@@ -5,7 +5,7 @@ import { StandardMomentData } from "./dataTypes/moment"
 import { assureItemInReferenceList, childReferenceFactory, mapReferenceToFormat, mergeUniqueReferences, ReferenceFormat } from "./utils/references"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
-import StandardReference, { diffStandardReferenceList, StandardKey } from "./reference"
+import StandardReference, { diffStandardReferenceList, ReferenceList, StandardKey } from "./reference"
 import { deepEqual } from "../../lib/objects"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { excludeUndefined } from "../../lib/lists"
@@ -14,27 +14,30 @@ import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
 import { renderReference } from "./utils/schema"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
-    _messages: StandardReference[] = [];
+    _messages: ReferenceList;
     tag = 'Moment' as const
 
     constructor(previous?: StandardMomentPayload) {
         if (previous) {
-            this._messages = previous.messages.map((message) => (message.clone()))
+            this._messages = previous._messages.clone()
+        }
+        else {
+            this._messages = new ReferenceList([])
         }
     }
 
     fromJSON(props: StandardMomentData) {
-        this._messages = props.messages?.map((reference) => (new StandardReference(reference))) ?? []
+        this._messages = new ReferenceList(props.messages?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMoment)(node)) {
-            this._messages = node.children.filter(wrappedNodeTypeGuard(isSchemaMessage)).map((reference) => {
+            this._messages = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaMessage)).map((reference) => {
                 if (treeNodeTypeguard(isSchemaMessage)(reference) || treeNodeTypeguard(isSchemaRemove)(reference)) {
                     return childReferenceFactory([reference])
                 }
                 throw new Error('Schema mismatch in StandardMoment constructor')
-            })
+            }))
             return
         }
         throw new Error('Schema mismatch in StandardMoment constructor')
@@ -45,14 +48,14 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     toJSON(): Omit<StandardMomentData, 'key' | 'universalKey'> {
         return {
             tag: 'Moment',
-            messages: this.messages.map((reference) => (reference.toJSON() as StandardReferenceData))
+            messages: this.messages.toJSON()
         }
     }
 
     schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Moment', key, uuid: universalKey },
-            children: this.messages.map((reference) => (reference.schema)).flat(1)
+            children: this.messages.schema
         }
     }
 
@@ -60,13 +63,13 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         const { key } = options
         return {
             data: key.schema[0].data,
-            children: this.messages.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1)
+            children: this.messages.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1)
         }
     }
     
     merge(incoming: this): this {
         const returnValue = new StandardMomentPayload()
-        returnValue._messages = mergeUniqueReferences(this.messages, incoming.messages)
+        returnValue._messages = this.messages.merge(incoming.messages) ?? new ReferenceList([])
         return returnValue as this
     }
 
@@ -76,8 +79,8 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.messages.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
-            ...this.messages.map((reference) => ({ referenceType: 'Dependency' as const, key: reference._payload.plain })),
+            ...this.messages.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
+            ...this.messages.payload.map((reference) => ({ referenceType: 'Dependency' as const, key: reference._payload.plain })),
         ]
     }
 
@@ -88,14 +91,14 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMomentPayload(this)
         const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
-        returnValue._messages = returnValue._messages.map(mapReference)
+        returnValue._messages = returnValue._messages.map(mapReference as any)
         return returnValue as this
     }
     
     withChild(child: StandardReference): this {
         const returnValue = new StandardMomentPayload(this)
         if (child._payload.plain.tag === 'Message') {
-            returnValue._messages = assureItemInReferenceList(returnValue._messages, child)
+            returnValue._messages = returnValue._messages.assureItem(child)
         }
         else {
             throw new Error(`Invalid child type ${child._payload.tag} for StandardMoment`)
@@ -118,7 +121,7 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         if (!(incoming instanceof StandardMoment)) {
             return false
         }
-        return !(diffStandardReferenceList({ base: this.messages, incoming: incoming.messages }).length)
+        return !(this.messages.diff(incoming.messages)?.payload?.length)
     }
 
     override merge(incoming: StandardComponent): StandardComponent {
@@ -129,8 +132,8 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         if (!(incoming instanceof StandardMoment)) {
             throw new Error('Mismatched component types in diff')
         }
-        const messagesDiff = diffStandardReferenceList({ base: this._payload._messages, incoming: incoming._payload._messages })
-        if (deepEqual(this.toJSON(), incoming.toJSON()) && !messagesDiff.length) {
+        const messagesDiff = this._payload._messages.diff(incoming._payload._messages) ?? new ReferenceList([])
+        if (deepEqual(this.toJSON(), incoming.toJSON()) && !messagesDiff.payload.length) {
             return undefined
         }
         const base = this.clone()

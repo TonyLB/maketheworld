@@ -14,7 +14,7 @@ describe('StandardMoment class', () => {
         const testMoment = new StandardMoment(testSource)
         expect(testMoment.universalKey).toEqual('MOMENT#001')
         expect(testMoment.key).toEqual('test')
-        expect(testMoment.messages.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Message', key: 'testMessage' }])
+        expect(testMoment.messages.toJSON()).toEqual([{ tag: 'Message', key: 'testMessage' }])
         expect(schemaToWML([testMoment.schema])).toEqual(testSource)
     })
 
@@ -26,7 +26,7 @@ describe('StandardMoment class', () => {
         schema.loadWML(testSource)
         const testMoment = new StandardMoment(schema.schema[0])
         expect(testMoment.key).toEqual('test')
-        expect(testMoment.messages.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Message', key: 'testMessage' }])
+        expect(testMoment.messages.toJSON()).toEqual([{ tag: 'Message', key: 'testMessage' }])
         expect(schemaToWML([testMoment.schema])).toEqual(testSource)
     })
 
@@ -37,7 +37,7 @@ describe('StandardMoment class', () => {
             messages: [{ tag: 'Message', key: 'testMessage' }]
         }
         const testMoment = new StandardMoment(testMomentData)
-        expect(testMoment.messages.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Message', key: 'testMessage' }])
+        expect(testMoment.messages.toJSON()).toEqual([{ tag: 'Message', key: 'testMessage' }])
         expect(testMoment.toJSON()).toEqual(testMomentData)
     })
 
