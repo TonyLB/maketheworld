@@ -7,6 +7,7 @@ import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePay
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { ReferenceFormat } from "./utils/references";
 import { editableListClassFactory, EditableListItem } from "./editableList";
+import { StandardComponent } from "./baseClasses";
 
 export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
@@ -593,6 +594,32 @@ export class StandardReference {
             return new StandardReference(new StandardReferenceReplace(this._payload.payload, this._payload.match))
         }
         throw new Error('Invalid StandardReference payload for invert')
+    }
+
+    lookup(callback: (key: StandardKey) => StandardComponent | undefined): StandardReference {
+        if (this._payload instanceof StandardReferenceSimple) {
+            return new StandardReference(new StandardReferenceSimple(callback(this._payload.payload)?._key ?? this._payload.payload))
+        }
+        if (this._payload instanceof StandardReferenceRemove) {
+            return new StandardReference(new StandardReferenceRemove(callback(this._payload.match)?._key ?? this._payload.match))
+        }
+        if (this._payload instanceof StandardReferenceReplace) {
+            return new StandardReference(new StandardReferenceReplace(callback(this._payload.match)?._key ?? this._payload.match, callback(this._payload.payload)?._key ?? this._payload.payload))
+        }
+        throw new Error('Invalid StandardReference payload for lookup')
+    }
+
+    toFormat(format: ReferenceFormat): StandardReference {
+        if (this._payload instanceof StandardReferenceSimple) {
+            return new StandardReference(new StandardReferenceSimple(this._payload.payload.toFormat(format)))
+        }
+        if (this._payload instanceof StandardReferenceRemove) {
+            return new StandardReference(new StandardReferenceRemove(this._payload.match.toFormat(format)))
+        }
+        if (this._payload instanceof StandardReferenceReplace) {
+            return new StandardReference(new StandardReferenceReplace(this._payload.match.toFormat(format), this._payload.payload.toFormat(format)))
+        }
+        throw new Error('Invalid StandardReference payload for format')
     }
 }
 

@@ -2,6 +2,7 @@ import { StandardKey, StandardReference, StandardReferenceRemove } from './refer
 import { deIndentWML } from '../../schema/utils';
 import { Schema, schemaToWML } from '../../schema';
 import { StandardReferenceData } from './dataTypes/reference';
+import StandardRoom from './room';
 
 describe('StandardKey', () => {
     it('should return a clone for format "both"', () => {
@@ -152,6 +153,29 @@ describe('StandardReference', () => {
         }
         const testReference = new StandardReference(testReferenceData)
         expect(testReference.equal(new StandardReference({ key: 'test', tag: 'Example' }))).toBe(false)
+    })
+
+    it('should correctly lookup keys in reference material', () => {
+        const callback = jest.fn((key: StandardKey) => {
+            const keys: StandardKey[] = [
+                { key: 'room1', universalKey: 'ROOM#Room1' as const },
+                { key: 'room2', universalKey: 'ROOM#Room2' as const },
+                { key: 'room3', universalKey: 'ROOM#Room3' as const }
+            ].map(({ key, universalKey }) => new StandardKey({ key, universalKey, tag: 'Room' }))
+            const returnKey = keys.find((check) => (check.equals(key)))
+            return returnKey ? new StandardRoom(returnKey.universalKey ?? '').withStandardKey(returnKey) : undefined
+        })
+
+        const testSimple = new StandardReference('<Room key=(room1) />')
+        expect(testSimple.lookup(callback).toJSON()).toEqual({ key: 'room1', tag: 'Room', universalKey: 'ROOM#Room1'})
+        const testRemove = new StandardReference('<Remove><Room key=(room2) /></Remove>')
+        expect(testRemove.lookup(callback).toJSON()).toEqual({ tag: 'Remove', match: { key: 'room2', tag: 'Room', universalKey: 'ROOM#Room2' } })
+        const testReplace = new StandardReference('<Replace><Room key=(room2) /></Replace><With><Room key=(room3) /></With>')
+        expect(testReplace.lookup(callback).toJSON()).toEqual({
+            tag: 'Replace',
+            match: { key: 'room2', tag: 'Room', universalKey: 'ROOM#Room2' },
+            payload: { key: 'room3', tag: 'Room', universalKey: 'ROOM#Room3' }
+        })
     })
 
 })
