@@ -345,6 +345,11 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
         returnValue.match = this.match.withKey(key)
         return returnValue
     }
+    withContext(context: StandardKey[]): StandardReferenceRemove {
+        const returnValue = this.clone()
+        returnValue.match = this.match.withContext(context)
+        return returnValue
+    }
 }
 
 export class StandardReferenceReplace implements StandardEditableWrapper<StandardKey> {
@@ -419,6 +424,12 @@ export class StandardReferenceReplace implements StandardEditableWrapper<Standar
         const returnValue = this.clone()
         returnValue.match = this.match.withKey(key)
         returnValue.payload = this.payload.withKey(key)
+        return returnValue
+    }
+    withContext(context: StandardKey[]): StandardReferenceReplace {
+        const returnValue = this.clone()
+        returnValue.match = this.match.withContext(context)
+        returnValue.payload = this.payload.withContext(context)
         return returnValue
     }
 }
@@ -523,6 +534,12 @@ export class StandardReference {
         return returnValue
     }
 
+    withContext(context: StandardKey[]): StandardReference {
+        const returnValue = this.clone()
+        returnValue._payload = this._payload.withContext(context)
+        return returnValue
+    }
+
     plain(): StandardKey {
         return this._payload.plain
     }
@@ -552,11 +569,14 @@ export class StandardReference {
         return false
     }
 
-    sameKey(other: StandardReference): boolean {
+    sameKey(other: any): boolean {
         //
         // sameKey is NOT commutative: In the case of a replace, it checks the base against its payload, and
         // the incoming comparator against its match.
         //
+        if (!(other instanceof StandardReference)) {
+            return false
+        }
         const thisKey = this._payload instanceof StandardReferenceReplace ? this._payload.payload : this._payload.plain
         const otherKey = other._payload instanceof StandardReferenceReplace ? other._payload.match : other._payload.plain
         return thisKey.equals(otherKey)
@@ -577,6 +597,35 @@ export class StandardReference {
 }
 
 export class ReferenceList extends editableListClassFactory<StandardEditablePayload<StandardReferenceData>, any>(StandardReference as any, 'ReferenceList') {
+
+    constructor(args: any) {
+        super(args)
+        //
+        // Guarantee that the reference stored is to the minimum key information needed to correctly
+        // identify the component (universalKey for preference), without context.
+        //
+        this._items = this._items.map<StandardReference>((item) => {
+            if (item instanceof StandardReference) {
+                return item.mapContents((data) => {
+                    if (isStandardReferencePayloadData(data)) {
+                        if (typeof data === 'string') {
+                            return data
+                        }
+                        if (data.universalKey) {
+                            return data.universalKey
+                        }
+                        return {
+                            ...data,
+                            context: undefined
+                        }
+                    }
+                    return data
+                })
+            }
+            return item as unknown as StandardReference
+        }) as any
+    }
+
     override merge(other: ReferenceList): ReferenceList | undefined {
         const merged = super.merge(other)
         if (merged) {
