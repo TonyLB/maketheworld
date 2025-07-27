@@ -6,7 +6,7 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { ComponentTag } from "./dataTypes/abstract";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
-import { StandardKey } from "./reference";
+import StandardReference, { StandardKey, StandardReferenceRemove, StandardReferenceReplace } from "./reference";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
@@ -59,6 +59,10 @@ export class StandardRemove implements StandardComponent {
             key: this.key,
             universalKey: this.universalKey,
         }
+    }
+
+    get reference(): StandardReference {
+        return new StandardReference(new StandardReferenceRemove(this._match._key))
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRemove {
@@ -228,6 +232,10 @@ export class StandardReplace implements StandardComponent {
             key: this.key,
             universalKey: this.universalKey,
         }
+    }
+
+    get reference(): StandardReference {
+        return new StandardReference(new StandardReferenceReplace(this._match._key, this._payload._key))
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardReplace {

@@ -48,6 +48,7 @@ export interface StandardComponent {
     referencedKeys(): StandardComponentReferenceKey[];
     remapReferences(mapTo: ReferenceFormat): StandardComponent;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
+    reference: StandardReference;
     referenceData: StandardReferenceData;
     withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent;
     withChild(child: StandardReference): StandardComponent;

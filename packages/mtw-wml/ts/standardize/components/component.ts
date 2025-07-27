@@ -117,6 +117,9 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 universalKey: this.universalKey,
             }
         }
+        get reference(): StandardReference {
+            return new StandardReference(this.referenceData)
+        }
 
         clone(): StandardComponent {
             return new GeneratedComponentClass(this)
