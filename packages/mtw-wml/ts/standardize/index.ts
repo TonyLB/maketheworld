@@ -348,10 +348,11 @@ export class StandardForm {
     get key(): string { return this._key ?? '' }
 
     toJSON(options?: StandardToJSONOptions): StandardFormData {
+        const mapKeys = this._components.map(({ _key }) => (_key.plain))
         return {
             key: this._key,
             metaData: this.metaData,
-            components: this._components.map((component) => (component.toJSON(options) as StandardComponentData))
+            components: this._components.map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON(options) as StandardComponentData))
         }
     }
 
@@ -370,8 +371,9 @@ export class StandardForm {
         const sortedChildren = this._components
             .filter(({ _key }) => ((_key.context ?? []).length === 0))
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
+        const mapKeys = this._components.map(({ _key }) => (_key.plain))
         const children = sortedChildren
-            .map((component) => (component.nestedSchema(this._lookup.bind(this), { context: [] })))
+            .map((component) => (component.withMapping(mapKeys).remapReferences('key').nestedSchema(this._lookup.bind(this), { context: [] })))
         return {
             data: { tag: 'Asset', key: this._key, Story: undefined },
             children: [
