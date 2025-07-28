@@ -108,49 +108,6 @@ export const mapKeyToFormat = (format: ReferenceFormat) =>
             })
     }
 
-export const mapReferenceToFormat = (mappings: StandardKey[], format: ReferenceFormat) =>
-    (reference: StandardReference): StandardReference => {
-        const mapKey = (reference: StandardReferenceData): StandardKey | undefined => {
-            if (typeof reference === 'string') {
-                return mappings.find(({ universalKey }) => (universalKey === reference))
-            }
-            if (reference.key) {
-                return mappings.find(({ key }) => (key === reference.key))
-            }
-            if (reference.universalKey) {
-                return mappings.find(({ universalKey }) => (universalKey === reference.universalKey))
-            }
-            return undefined
-        }
-
-        const payload = reference._payload
-        if (payload instanceof StandardReferenceSimple) {
-            const newKey = mapKey(reference.toJSON() as StandardReferenceData)
-            if (!newKey) {
-                throw new Error(`Could not find mapping for reference ${JSON.stringify(reference.toJSON())}`)
-            }
-            return new StandardReference({
-                tag: reference.tag,
-                key: ['key', 'both'].includes(format) ? newKey.key : undefined,
-                universalKey: ['universal', 'both'].includes(format) ? newKey.universalKey : undefined,
-                context: newKey.context?.map(mapKeyToFormat(format))
-            })
-        }
-
-        if (payload instanceof StandardReferenceRemove) {
-            return new StandardReference(new StandardReferenceRemove(mapReferenceToFormat(mappings, format)(new StandardReference(payload.match))._payload.plain))
-        }
-
-        if (payload instanceof StandardReferenceReplace) {
-            return new StandardReference(new StandardReferenceReplace(
-                mapReferenceToFormat(mappings, format)(new StandardReference(payload.match))._payload.plain,
-                mapReferenceToFormat(mappings, format)(new StandardReference(payload.payload))._payload.plain
-            ))
-        }
-        
-        throw new Error('Unsupported reference type')
-    }
-
 export const childReferenceFactory = (props: any): StandardReference => {
     const reference = new StandardReference(props)
     if (reference._payload instanceof StandardReferenceReplace && reference._payload.match.equals(reference._payload.payload)) {

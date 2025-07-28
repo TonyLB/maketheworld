@@ -4,7 +4,7 @@ import { isSchemaLink, SchemaLinkTag } from "@tonylb/mtw-base/ts/schema/renderTr
 import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
 import { isRenderTreeNode } from "@tonylb/mtw-base/ts/renderTree";
 import StandardReference, { StandardKey } from "../components/reference";
-import { mapReferenceToFormat, ReferenceFormat } from "../components/utils/references";
+import { ReferenceFormat } from "../components/utils/references";
 
 export class StandardRenderLink extends StandardRenderAbstract implements StandardRenderElement {
     _to: string | StandardKey;
@@ -51,13 +51,13 @@ export class StandardRenderLink extends StandardRenderAbstract implements Standa
     override remapReferences({ mapping, mapTo }: { mapping: StandardKey[]; mapTo: ReferenceFormat }): this {
         const returnValue = this.clone() as this
         if (this._to instanceof StandardKey) {
-            const mappedReference = mapReferenceToFormat(mapping, mapTo)(new StandardReference(this._to))
+            const mappedReference = new StandardReference(this._to).lookup(mapping).toFormat(mapTo)
             returnValue._to = mappedReference._payload.plain
         }
         else {
             const findMatch = mapping.find(({ key, universalKey }) => (key === this._to || universalKey === this._to))
             if (findMatch) {
-                returnValue._to = mapReferenceToFormat(mapping, mapTo)(new StandardReference(findMatch))._payload.plain
+                returnValue._to = new StandardReference(findMatch).lookup(mapping).toFormat(mapTo)._payload.plain
             }
         }
         return returnValue
