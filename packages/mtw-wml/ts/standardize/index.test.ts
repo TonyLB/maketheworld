@@ -980,7 +980,7 @@ describe('StandardForm', () => {
                 <Room uuid=(testRoomTwo) key=(testRoomTwo) />
                 <Moment uuid=(testMoment) key=(testMoment)>
                     <Message uuid=(testMessage) key=(testMessage)>
-                        <Room key=(testRoomOne) />Test message
+                        <Room uuid=(testRoomOne) key=(testRoomOne) />Test message
                     </Message>
                 </Moment>
             </Asset>
@@ -2237,7 +2237,7 @@ describe('StandardForm', () => {
                 tag: 'Room',
                 key: 'testRoom',
                 universalKey: 'ROOM#001',
-                features: ['FEATURE#004', 'FEATURE#003'],
+                features: [{ key: 'testLocal', tag: 'Feature', universalKey: 'FEATURE#004' }, { key: 'testGlobal', tag: 'Feature', universalKey: 'FEATURE#003' }],
                 examples: ['EXAMPLE#001b'],
                 exits: []
             },
