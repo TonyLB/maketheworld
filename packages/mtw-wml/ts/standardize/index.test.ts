@@ -264,7 +264,7 @@ describe('StandardForm', () => {
                     tag: 'Room',
                     key: 'testRoom',
                     universalKey: 'ROOM#testRoom',
-                    examples: [{ key: 'base', tag: 'Example', universalKey: 'EXAMPLE#testRoomBase' }],
+                    examples: ['EXAMPLE#testRoomBase'],
                     exits: [],
                 },
                 {
@@ -475,10 +475,7 @@ describe('StandardForm', () => {
                 universalKey: 'ROOM#testRoom',
                 examples: ['EXAMPLE#testRoomBase'],
                 exits: [],
-                features: [
-                    { tag: 'Feature', key: 'testLocal', universalKey: 'FEATURE#testLocal' },
-                    { tag: 'Feature', key: 'testGlobal', universalKey: 'FEATURE#testGlobal' }
-                ]
+                features: ['FEATURE#testLocal', 'FEATURE#testGlobal']
             },
             {
                 tag: 'Example',
@@ -597,14 +594,14 @@ describe('StandardForm', () => {
                 key: 'test',
                 universalKey: 'ROOM#test',
                 exits: [],
-                features: [{ tag: 'Feature', key: 'testFeature', universalKey: 'FEATURE#testFeature' }]
+                features: ['FEATURE#testFeature']
             },
             {
                 tag: 'Feature',
                 key: 'testFeature',
                 context: [{ key: 'test', tag: 'Room', universalKey: 'ROOM#test' }],
                 universalKey: 'FEATURE#testFeature',
-                examples: [{ tag: 'Example', key: 'testLocal', universalKey: 'EXAMPLE#testLocal' }]
+                examples: ['EXAMPLE#testLocal']
             },
             {
                 tag: 'Example',
@@ -751,7 +748,7 @@ describe('StandardForm', () => {
                     <Exit to=(test)>Test Return</Exit>
                 </Room>
                 <Message uuid=(testMessage) key=(testMessage)>
-                    <Room uuid=(test) key=(test) />Test message
+                    <Room key=(test) />Test message
                 </Message>
             </Asset>
         `))
@@ -945,8 +942,8 @@ describe('StandardForm', () => {
                     <Exit to=(testRoomOne)>one</Exit>
                 </Room>
                 <Message uuid=(testMessage) key=(testMessage)>
-                    <Room uuid=(testRoomOne) key=(testRoomOne) />
-                    <Room uuid=(testRoomTwo) key=(testRoomTwo) />
+                    <Room key=(testRoomOne) />
+                    <Room key=(testRoomTwo) />
                     Test message
                 </Message>
             </Asset>
