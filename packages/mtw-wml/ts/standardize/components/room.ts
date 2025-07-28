@@ -6,7 +6,7 @@ import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardRoomData } from "./dataTypes/room"
-import { childReferenceFactory, exitReferenceKeys, mapReferenceToFormat, ReferenceFormat } from "./utils/references"
+import { childReferenceFactory, exitReferenceKeys, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { ReferenceList, StandardKey } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
@@ -158,9 +158,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardRoomPayload(this)
-        const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
-        returnValue._examples = returnValue._examples.map(mapReference as any)
-        returnValue._features = returnValue._features.map(mapReference as any)
+        returnValue._examples = returnValue._examples.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._features = returnValue._features.lookup(props.mappings).toFormat(props.mapTo)
         returnValue._exits = returnValue._exits.map((exit) => exit.remapReferences(props))
         return returnValue as this
     }

@@ -2,7 +2,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardMomentData } from "./dataTypes/moment"
-import { childReferenceFactory, mapReferenceToFormat, ReferenceFormat } from "./utils/references"
+import { childReferenceFactory, ReferenceFormat } from "./utils/references"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
 import StandardReference, { ReferenceList, StandardKey } from "./reference"
@@ -90,8 +90,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMomentPayload(this)
-        const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
-        returnValue._messages = returnValue._messages.map(mapReference as any)
+        returnValue._messages = returnValue._messages.lookup(props.mappings).toFormat(props.mapTo)
         return returnValue as this
     }
     

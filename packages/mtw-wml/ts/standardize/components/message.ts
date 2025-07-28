@@ -99,8 +99,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMessagePayload(this)
-        const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
-        returnValue._rooms = returnValue._rooms.map(mapReference as any)
+        returnValue._rooms = returnValue._rooms.lookup(props.mappings).toFormat(props.mapTo)
         if (returnValue._description) {
             returnValue._description = returnValue._description.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
         }
