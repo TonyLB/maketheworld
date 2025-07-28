@@ -596,15 +596,18 @@ export class StandardReference {
         throw new Error('Invalid StandardReference payload for invert')
     }
 
-    lookup(callback: (key: StandardKey) => StandardComponent | undefined): StandardReference {
+    lookup(arg: StandardKey[] | ((key: StandardKey) => StandardKey | undefined)): StandardReference {
+        const callback = typeof arg === 'function' ? arg : (key: StandardKey) => {
+            return arg.find((item) => item.equals(key))
+        }
         if (this._payload instanceof StandardReferenceSimple) {
-            return new StandardReference(new StandardReferenceSimple(callback(this._payload.payload)?._key ?? this._payload.payload))
+            return new StandardReference(new StandardReferenceSimple(callback(this._payload.payload) ?? this._payload.payload))
         }
         if (this._payload instanceof StandardReferenceRemove) {
-            return new StandardReference(new StandardReferenceRemove(callback(this._payload.match)?._key ?? this._payload.match))
+            return new StandardReference(new StandardReferenceRemove(callback(this._payload.match) ?? this._payload.match))
         }
         if (this._payload instanceof StandardReferenceReplace) {
-            return new StandardReference(new StandardReferenceReplace(callback(this._payload.match)?._key ?? this._payload.match, callback(this._payload.payload)?._key ?? this._payload.payload))
+            return new StandardReference(new StandardReferenceReplace(callback(this._payload.match) ?? this._payload.match, callback(this._payload.payload) ?? this._payload.payload))
         }
         throw new Error('Invalid StandardReference payload for lookup')
     }
@@ -688,8 +691,8 @@ export class ReferenceList extends editableListClassFactory<StandardEditablePayl
         return new ReferenceList(this.payload.map((item) => item.toFormat(format)))
     }
 
-    lookup(callback: (key: StandardKey) => StandardComponent | undefined): ReferenceList {
-        return new ReferenceList(this.payload.map((item) => item.lookup(callback)))
+    lookup(arg: StandardKey[] | ((key: StandardKey) => StandardKey | undefined)): ReferenceList {
+        return new ReferenceList(this.payload.map((item) => item.lookup(arg)))
     }
 
 }

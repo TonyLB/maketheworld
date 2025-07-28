@@ -155,15 +155,14 @@ describe('StandardReference', () => {
         expect(testReference.equal(new StandardReference({ key: 'test', tag: 'Example' }))).toBe(false)
     })
 
-    it('should correctly lookup keys in reference material', () => {
+    it('should correctly lookup keys in reference callback', () => {
         const callback = jest.fn((key: StandardKey) => {
             const keys: StandardKey[] = [
                 { key: 'room1', universalKey: 'ROOM#Room1' as const },
                 { key: 'room2', universalKey: 'ROOM#Room2' as const },
                 { key: 'room3', universalKey: 'ROOM#Room3' as const }
             ].map(({ key, universalKey }) => new StandardKey({ key, universalKey, tag: 'Room' }))
-            const returnKey = keys.find((check) => (check.equals(key)))
-            return returnKey ? new StandardRoom(returnKey.universalKey ?? '').withStandardKey(returnKey) : undefined
+            return keys.find((check) => (check.equals(key)))
         })
 
         const testSimple = new StandardReference('<Room key=(room1) />')
@@ -172,6 +171,25 @@ describe('StandardReference', () => {
         expect(testRemove.lookup(callback).toJSON()).toEqual({ tag: 'Remove', match: { key: 'room2', tag: 'Room', universalKey: 'ROOM#Room2' } })
         const testReplace = new StandardReference('<Replace><Room key=(room2) /></Replace><With><Room key=(room3) /></With>')
         expect(testReplace.lookup(callback).toJSON()).toEqual({
+            tag: 'Replace',
+            match: { key: 'room2', tag: 'Room', universalKey: 'ROOM#Room2' },
+            payload: { key: 'room3', tag: 'Room', universalKey: 'ROOM#Room3' }
+        })
+    })
+
+        it('should correctly lookup keys in reference list', () => {
+        const keys: StandardKey[] = [
+            { key: 'room1', universalKey: 'ROOM#Room1' as const },
+            { key: 'room2', universalKey: 'ROOM#Room2' as const },
+            { key: 'room3', universalKey: 'ROOM#Room3' as const }
+        ].map(({ key, universalKey }) => new StandardKey({ key, universalKey, tag: 'Room' }))
+
+        const testSimple = new StandardReference('<Room key=(room1) />')
+        expect(testSimple.lookup(keys).toJSON()).toEqual({ key: 'room1', tag: 'Room', universalKey: 'ROOM#Room1'})
+        const testRemove = new StandardReference('<Remove><Room key=(room2) /></Remove>')
+        expect(testRemove.lookup(keys).toJSON()).toEqual({ tag: 'Remove', match: { key: 'room2', tag: 'Room', universalKey: 'ROOM#Room2' } })
+        const testReplace = new StandardReference('<Replace><Room key=(room2) /></Replace><With><Room key=(room3) /></With>')
+        expect(testReplace.lookup(keys).toJSON()).toEqual({
             tag: 'Replace',
             match: { key: 'room2', tag: 'Room', universalKey: 'ROOM#Room2' },
             payload: { key: 'room3', tag: 'Room', universalKey: 'ROOM#Room3' }
@@ -248,8 +266,7 @@ describe('ReferenceList', () => {
 
     it('should correctly lookup references', () => {
         const callback = jest.fn((key: StandardKey) => {
-            const found = keys.find((check) => (check.equals(key)))
-            return found ? new StandardRoom(found.universalKey ?? '').withStandardKey(found) : undefined
+            return keys.find((check) => (check.equals(key)))
         })
 
         const testList = new ReferenceList([
