@@ -4,7 +4,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
-import { childReferenceFactory, mapReferenceToFormat, ReferenceFormat } from "./utils/references"
+import { childReferenceFactory, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { ReferenceList, StandardKey } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
@@ -87,8 +87,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 
     remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardKnowledgePayload(this)
-        const mapReference = mapReferenceToFormat(props.mappings, props.mapTo)
-        returnValue._examples = returnValue._examples.map(mapReference as any)
+        returnValue._examples = returnValue._examples.lookup(props.mappings).toFormat(props.mapTo)
         return returnValue as this
     }
     

@@ -23,7 +23,7 @@ import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
 import { StandardReplace } from "./edits";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
-import { mapReferenceToFormat, ReferenceFormat } from "./utils/references";
+import { ReferenceFormat } from "./utils/references";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import StandardReference, { StandardKey } from "./reference";
 
@@ -177,7 +177,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 : Boolean((this._key?.context?.length ?? 0) === 0)
 
             if (!inLeastCommonContext) {
-                const reference = mapReferenceToFormat([this._key], 'key')(new StandardReference(this._key))
+                const reference = new StandardReference(this._key).toFormat('key')
                 return reference.schema[0]
             }
             if (this._payload.nestedSchema) {
