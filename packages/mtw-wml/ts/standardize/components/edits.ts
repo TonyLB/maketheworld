@@ -180,7 +180,7 @@ export class StandardReplace implements StandardComponent {
         if (propsArray.length > 1) {
             const match = propsArray[0] as StandardComponent
             const payload = propsArray[1] as StandardComponent
-            if (!(match.key === payload.key && match.tag === payload.tag)) {
+            if (match.tag !== payload.tag || (match.universalKey && payload.universalKey && match.universalKey !== payload.universalKey)) {
                 throw new Error('Match and payload mistmatch in StandardReplace constructor call.')
             }
             this._match = match

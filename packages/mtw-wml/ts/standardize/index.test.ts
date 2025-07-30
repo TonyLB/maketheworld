@@ -1819,54 +1819,33 @@ describe('StandardForm', () => {
             `))
         })
 
-        // xit('should diff a rename correctly', () => {
-        //     const base = new StandardForm(`
-        //         <Asset key=(test)>
-        //             <Room uuid=(Room1) key=(Room1)><Exit to=(Room2)>text</Exit></Room>
-        //             <Room uuid=(Room2) key=(Room2)>
-        //                 <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
-        //             </Room>
-        //         </Asset>
-        //     `)
-        //     const incoming = base.renameKey([{ fromKey: 'Room2', toKey: 'garden' }])
-        //     const diff = base.diff(incoming)
-        //     expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
-        //         <Asset key=(test)>
-        //             <Room uuid=(Room2) key=(garden)>
-        //                 <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
-        //             </Room>
-        //             <Room uuid=(Room1) key=(Room1)>
-        //                 <Remove><Exit to=(Room2)>text</Exit></Remove>
-        //                 <Exit to=(garden)>text</Exit>
-        //             </Room>
-        //             <Remove>
-        //                 <Room uuid=(Room2) key=(Room2)>
-        //                     <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
-        //                 </Room>
-        //             </Remove>
-        //         </Asset>
-        //     `))
-        // })
-
-        // it('should diff an import change correctly', () => {
-        //     const base = new StandardForm(`
-        //         <Asset key=(test)>
-        //             <Import from=(base)><Room uuid=(Room1) key=(Room1) /></Import>
-        //         </Asset>
-        //     `)
-        //     const incoming = base._clone()
-        //     incoming.byId['Room1'] = incoming.byId['Room1'].withImport(new ImportItemContent('base', 'testRoom'))
-        //     const diff = base.diff(incoming)
-        //     expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
-        //         <Asset key=(test)>
-        //             <Import from=(base)>
-        //                 <Replace><Room key=(Room1) /></Replace>
-        //                 <With><Room key=(testRoom) as=(Room1) /></With>
-        //             </Import>
-        //             <Room key=(Room1) />
-        //         </Asset>
-        //     `))
-        // })
+        it('should diff a rename correctly', () => {
+            const base = new StandardForm(`
+                <Asset key=(test)>
+                    <Room uuid=(Room1) key=(Room1)><Exit to=(Room2)>text</Exit></Room>
+                    <Room uuid=(Room2) key=(Room2)>
+                        <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
+                    </Room>
+                </Asset>
+            `)
+            const incoming = base._clone()
+            incoming.byUniversalId['ROOM#Room2'] = incoming.byUniversalId['ROOM#Room2'].withKey('garden')
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Replace>
+                        <Room uuid=(Room2) key=(Room2)>
+                            <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
+                        </Room>
+                    </Replace>
+                    <With>
+                        <Room uuid=(Room2) key=(garden)>
+                            <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
+                        </Room>
+                    </With>
+                </Asset>
+            `))
+        })
 
     })
 

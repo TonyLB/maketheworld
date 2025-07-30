@@ -806,7 +806,7 @@ export class StandardForm {
         //
         const mergedForKeys = [...this._components, ...incoming._components]
             .reduce<StandardKey[]>((previous, component) => {
-                const existingIndex = previous.findIndex((key) => (key.plain.equals(component._key.plain)))
+                const existingIndex = previous.findIndex((key) => (key.equals(component._key)))
                 if (existingIndex === -1) {
                     return [...previous, component._key]
                 }
@@ -828,7 +828,7 @@ export class StandardForm {
         const allKeys = new ReferenceList(
             [...this._components, ...incoming._components]
             .map((component) => (new StandardReference(component.referenceData)))
-        ).payload.map((reference) => (reference._payload.plain.toJSON()))
+        ).toFormat('universal').payload.map((reference) => (reference._payload.plain.toJSON()))
 
         //
         // Next, we need a zippered version of the components in the two forms, with an
@@ -849,7 +849,7 @@ export class StandardForm {
         //
 
         const diffedValue = this._clone()
-        diffedValue._components = zipperedComponents
+        const diffedComponents = zipperedComponents
             .reduce<StandardComponent[]>((previous, { previous: previousComponent, incoming: incomingComponent }) => {
                 if (previousComponent && incomingComponent) {
                     const diffedComponent = previousComponent.diff(incomingComponent, {})
@@ -875,6 +875,20 @@ export class StandardForm {
                     throw new Error('diff error')
                 }
             }, [])
+
+        //
+        // Find components that are not diffed, but appear nested inside of diff components of
+        // StandardReplace or StandardRemove form (so that you can match terms completely in the
+        // final diff)
+        //
+        diffedValue._components = diffedComponents
+            .filter((component) => (component instanceof StandardReplace || component instanceof StandardRemove))
+            .reduce<StandardComponent[]>((previous, component) => {
+                const nestedComponents = this._components
+                    .filter(({ _key }) => (Boolean((_key.context ?? []).find((contextKey) => (contextKey.equals(component._key.plain))))))
+                    .filter(({ universalKey }) => (!Boolean(previous.find(({ universalKey: existingUniversalKey }) => (existingUniversalKey === universalKey)))))
+                return [...previous, ...nestedComponents]
+            }, diffedComponents)
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         diffedValue._metaData = applyEdits(combinedMetaData.tree)
