@@ -19,6 +19,7 @@ import { StandardLiteral } from "../literal"
 import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { diffStandardExitList, mergeStandardExitList, StandardExit } from "./exit"
+import { StandardReplace } from "./edits"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
@@ -212,6 +213,12 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
         if (!(incoming instanceof StandardRoom)) {
             throw new Error('Mismatched component types in diff')
+        }
+        if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
+            throw new Error('Mismatched universal keys in diff')
+        }
+        if (incoming.key !== this.key) {
+            return new StandardReplace(this, incoming)
         }
         const featuresDiff = this.features.diff(incoming.features) ?? new ReferenceList([])
         const examplesDiff = this.examples.diff(incoming.examples) ?? new ReferenceList([])

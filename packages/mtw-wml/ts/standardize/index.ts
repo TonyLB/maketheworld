@@ -849,7 +849,7 @@ export class StandardForm {
         //
 
         const diffedValue = this._clone()
-        diffedValue._components = zipperedComponents
+        const diffedComponents = zipperedComponents
             .reduce<StandardComponent[]>((previous, { previous: previousComponent, incoming: incomingComponent }) => {
                 if (previousComponent && incomingComponent) {
                     const diffedComponent = previousComponent.diff(incomingComponent, {})
@@ -875,6 +875,20 @@ export class StandardForm {
                     throw new Error('diff error')
                 }
             }, [])
+
+        //
+        // Find components that are not diffed, but appear nested inside of diff components of
+        // StandardReplace or StandardRemove form (so that you can match terms completely in the
+        // final diff)
+        //
+        diffedValue._components = diffedComponents
+            .filter((component) => (component instanceof StandardReplace || component instanceof StandardRemove))
+            .reduce<StandardComponent[]>((previous, component) => {
+                const nestedComponents = this._components
+                    .filter(({ _key }) => (Boolean((_key.context ?? []).find((contextKey) => (contextKey.equals(component._key.plain))))))
+                    .filter(({ universalKey }) => (!Boolean(previous.find(({ universalKey: existingUniversalKey }) => (existingUniversalKey === universalKey)))))
+                return [...previous, ...nestedComponents]
+            }, diffedComponents)
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         diffedValue._metaData = applyEdits(combinedMetaData.tree)
