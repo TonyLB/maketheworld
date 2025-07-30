@@ -806,7 +806,7 @@ export class StandardForm {
         //
         const mergedForKeys = [...this._components, ...incoming._components]
             .reduce<StandardKey[]>((previous, component) => {
-                const existingIndex = previous.findIndex((key) => (key.plain.equals(component._key.plain)))
+                const existingIndex = previous.findIndex((key) => (key.equals(component._key)))
                 if (existingIndex === -1) {
                     return [...previous, component._key]
                 }
@@ -828,7 +828,7 @@ export class StandardForm {
         const allKeys = new ReferenceList(
             [...this._components, ...incoming._components]
             .map((component) => (new StandardReference(component.referenceData)))
-        ).payload.map((reference) => (reference._payload.plain.toJSON()))
+        ).toFormat('universal').payload.map((reference) => (reference._payload.plain.toJSON()))
 
         //
         // Next, we need a zippered version of the components in the two forms, with an

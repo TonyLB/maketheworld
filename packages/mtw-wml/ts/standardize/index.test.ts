@@ -1831,7 +1831,6 @@ describe('StandardForm', () => {
             const incoming = base._clone()
             incoming.byUniversalId['ROOM#Room2'] = incoming.byUniversalId['ROOM#Room2'].withKey('garden')
             const diff = base.diff(incoming)
-            console.log(`Diff toJSON: ${JSON.stringify(diff.toJSON(), null, 2)}`)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Replace>
