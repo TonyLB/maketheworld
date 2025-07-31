@@ -16,8 +16,8 @@ import { getRecentlyVisited } from "../../../slices/messages/selectors"
 import { useDispatch, useSelector } from "react-redux"
 import { Collapse } from "@mui/material"
 import { SchemaImportMapping } from "@tonylb/mtw-base/ts/schema/metaData"
-import { ImportItemContent, ImportItemReplace } from "@tonylb/mtw-wml/ts/standardize/components/metaData"
 import { addImport } from "../../../slices/personalAssets"
+import { AssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
 type RecentlyVisitedProps = {
 
@@ -30,32 +30,27 @@ export const RecentlyVisited: FunctionComponent<RecentlyVisitedProps> = () => {
     const recentlyVisitedTimestamp = useMemo(() => (Date.now() - 1000 * 60 * 15), [])
     const recentlyVisited = useSelector(getRecentlyVisited(recentlyVisitedTimestamp))
 
-    const importsFromStandard = useMemo<{ fromAssetId: string; key: string; }[]>(() => {
-        return Object.values(standardForm.byId).map((component) => {
-            const importItem = component.import
-            if (importItem) {
-                if (importItem instanceof ImportItemContent) {
-                    return [{ fromAssetId: importItem.assetId, key: importItem.fromKey }]
-                }
-                if (importItem instanceof ImportItemReplace) {
-                    return [{ fromAssetId: importItem._payload.assetId, key: importItem._payload.fromKey }]
-                }
+    const importsFromStandard = useMemo<{ fromAssetId: AssetUUID; universalKey: ComponentUUID; }[]>(() => {
+        return standardForm._components.map((component) => {
+            const importItem = component._from
+            if (importItem && component.universalKey) {
+                return [{ fromAssetId: importItem, universalKey: component.universalKey }]
             }
             return []
         }).flat(1)
     }, [standardForm.byId])
 
     const recentlyVisitedByAsset = useMemo(() => {
-        return recentlyVisited.reduce<Record<string, { key: string, name: string, tag: SchemaImportMapping["type"] }[]>>((previous, { name, assets, tag }) => {
-            if (assets.some(({ fromAssetId, key }) => importsFromStandard.some((importItem) => `ASSET#${importItem.fromAssetId}` === fromAssetId && importItem.key === key))) {
+        return recentlyVisited.reduce<Record<AssetUUID, { universalKey: ComponentUUID, name: string, tag: SchemaImportMapping["type"] }[]>>((previous, { name, assets, tag }) => {
+            if (assets.some(({ fromAssetId, universalKey }) => importsFromStandard.some((importItem) => importItem.fromAssetId === fromAssetId && importItem.universalKey === universalKey))) {
                 return previous
             }
             return assets
-                .reduce<Record<string, { key: string, name: string, tag: SchemaImportMapping["type"] }[]>>((accumulator, { fromAssetId, key }) => ({
+                .reduce<Record<string, { universalKey: ComponentUUID, name: string, tag: SchemaImportMapping["type"] }[]>>((accumulator, { fromAssetId, universalKey }) => ({
                     ...accumulator,
                     [fromAssetId]: [
                         ...accumulator[fromAssetId] ?? [],
-                        { key, name, tag }
+                        { universalKey, name, tag }
                     ]
                 }), previous)
         }, {})
@@ -88,7 +83,7 @@ export const RecentlyVisited: FunctionComponent<RecentlyVisitedProps> = () => {
                 </ListItemButton>
                 <Collapse in={collapseStates[fromAssetId] ?? false}>
                     <List disablePadding>
-                        { visitList.map(({ name, key, tag }, index) => (
+                        { visitList.map(({ name, universalKey, tag }, index) => (
                             <ListItem
                                 key={`recentlyVisited-${fromAssetId}-${index}`}
                                 sx={{
@@ -100,10 +95,10 @@ export const RecentlyVisited: FunctionComponent<RecentlyVisitedProps> = () => {
                                     borderColor: blue[400],
                                 }}
                             >
-                                <ListItemText primary={name} secondary={key} />
+                                <ListItemText primary={name} secondary={universalKey} />
                                 <IconButton
                                     onClick={() => {
-                                        dispatch(addImport({ assetId: AssetId, fromAsset: fromAssetId.split('#').slice(-1)[0], key, tag }))
+                                        dispatch(addImport({ assetId: AssetId, fromAsset: fromAssetId as AssetUUID, uuid: universalKey, tag }))
                                     }}
                                 >
                                     <DownloadIcon />
