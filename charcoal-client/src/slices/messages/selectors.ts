@@ -9,6 +9,8 @@ import binarySearch from './binarySearch'
 import { unique } from '../../lib/lists'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
+import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { Component } from 'react'
 
 
 export const getMessages: Selector<MessageState> = (state) => {
@@ -113,10 +115,10 @@ export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<M
                     Target: CharacterId,
                     RoomId: 'ROOM#NONE',
                     CreatedTime: probeMessages[0].CreatedTime,
-                    ShortName: [{ data: { tag: 'String', value: 'Unknown' }, children: [] }],
+                    ShortName: 'Unknown',
                     Name: [],
                     Summary: [],
-                    Description: [{ data: { tag: 'String', value: '??????' }, children: [] }],
+                    Description: ['??????'],
                     Exits: [],
                     Characters: []
                 },
@@ -190,8 +192,8 @@ type MessageRecentVisit = {
     ephemeraId: string;
     name: string;
     assets: {
-        fromAssetId: string;
-        key: string;    
+        fromAssetId: AssetUUID;
+        universalKey: ComponentUUID;
     }[];
     tag: SchemaImportMapping["type"];
 }
@@ -222,7 +224,7 @@ export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVis
                         const adjustedAssets: MessageRecentVisit["assets"] = Object.entries(message.assets ?? {})
                             .filter(([fromAsset]) => (((Object.keys(message.assets ?? {})).length === 1) || fromAsset !== 'ASSET#primitives'))
                             .filter(([_, key]) => (key))
-                            .map(([fromAssetId, key]) => ({ fromAssetId, key }))
+                            .map(([fromAssetId, universalKey]) => ({ fromAssetId: fromAssetId as AssetUUID, universalKey }))
                         return [
                             ...previous.filter(({ ephemeraId: id }) => id !== ephemeraId),
                             {
