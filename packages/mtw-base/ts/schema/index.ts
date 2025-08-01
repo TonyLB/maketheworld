@@ -126,7 +126,7 @@ export const isSchemaComponent = (value: SchemaTag): value is SchemaComponent =>
 )
 export type AssetUUID = `ASSET#${string}`
 export const isSchemaAssetUUID = (value: string): value is AssetUUID => {
-    return value.startsWith('ASSET#') && value.length > 6 && /^[A-Za-z0-9-]+$/.test(value.slice(6))
+    return value.startsWith('ASSET#') && value.length > 6 && /^[A-Za-z0-9-\[\]]+$/.test(value.slice(6))
 }
 export type ComponentUUID = `${Uppercase<SchemaComponent["tag"]>}#${string}` | AssetUUID
 export const isSchemaComponentUUID = (value: string): value is ComponentUUID => {
