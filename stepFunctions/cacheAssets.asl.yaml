@@ -69,7 +69,7 @@ States:
                         End: true
                         Resource: "${AssetsFunctionArn}"
                         Parameters:
-                            "message": "cacheAssets"
+                            "message": "cacheAsset"
                             "assetId.$": "$.args.assetIds[0]"
             -
                 StartAt: Cache Ephemera

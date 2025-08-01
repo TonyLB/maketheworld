@@ -1,3 +1,4 @@
+import { ComponentUUID } from "@tonylb/mtw-base/ts/schema";
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId, isEphemeraCharacterId } from "./baseClasses";
 import { LibraryAsset, LibraryCharacter } from "./library";
 import { checkAll, checkTypes } from "./utils";
@@ -14,7 +15,7 @@ export type MetaDataAPIMessage = {
 export type FetchImportsAPIMessage = {
     message: 'fetchImports';
     assetId: `ASSET#${string}`;
-    keys: string[];
+    keys: ComponentUUID[];
 }
 
 
