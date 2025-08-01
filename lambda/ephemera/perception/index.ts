@@ -55,7 +55,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     internalCache.Global.get('assets')
                 ])
                 const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, [ ...(globalAssets || []), ...characterMeta.assets ].map((key) => (AssetKey(key)))) as Record<AssetUUID, StandardComponent>
-                const roomsForMessage = (Object.values(messageMetaForCharacter) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms.map((reference) => (new StandardReference(reference).universalKey)) as `ROOM#${string}`[] ]), [])
+                const roomsForMessage = (Object.values(messageMetaForCharacter) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...(rooms ?? []).map((reference) => (new StandardReference(reference).universalKey)) as `ROOM#${string}`[] ]), [])
                 if (roomsForMessage.includes(characterMeta.RoomId)) {
                     const messageForm = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     if (messageForm.byUniversalId[characterMeta.RoomId]) {
@@ -84,7 +84,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 internalCache.Global.get('assets')
             ])
             const assetsByMessageId = Object.entries(momentMetaByAsset as Record<AssetUUID, StandardMoment>).reduce<Record<EphemeraMessageId, string[]>>((previous, [key, { messages }]) => (
-                messages.reduce<Record<EphemeraMessageId, string[]>>((accumulator, { key: messageId }) => (messageId
+                messages.payload.reduce<Record<EphemeraMessageId, string[]>>((accumulator, { key: messageId }) => (messageId
                     ? {
                         ...accumulator,
                         [messageId]: [

@@ -20,10 +20,10 @@ const generateCacheKey = (EphemeraId: ComponentUUID, assetId: AssetUUID) => (`${
 const cacheKeyComponents = (cacheKey: string): { EphemeraId: ComponentUUID, assetId: AssetUUID } => {
     const [assetId, EphemeraId] = cacheKey.split('::')
     if (!(EphemeraId && isEphemeraId(EphemeraId) && isSchemaComponentUUID(EphemeraId))) {
-        throw new Error('CacheKey error in ComponentMeta internalCache')
+        throw new Error(`CacheKey error in ComponentMeta internalCache (${cacheKey})`)
     }
     if (!assetId || typeof assetId !== 'string' || !isSchemaAssetUUID(assetId)) {
-        throw new Error('CacheKey error in ComponentMeta internalCache')
+        throw new Error(`CacheKey error in ComponentMeta internalCache (${cacheKey})`)
     }
     return {
         EphemeraId,

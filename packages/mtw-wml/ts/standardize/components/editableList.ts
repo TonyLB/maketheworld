@@ -8,6 +8,7 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 export interface EditableListItem<D extends StandardEditablePayload<any>> extends StandardEditableWrapper<D> {
     sameKey(other: this): boolean;
     invert(): this;
+    clone(): this;
 }
 
 export interface EditableList<D extends StandardEditablePayload<any>> {

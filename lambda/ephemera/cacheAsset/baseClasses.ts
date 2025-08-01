@@ -160,7 +160,7 @@ export const isEphemeraActionItem = (item: EphemeraItem): item is EphemeraAction
 export const isEphemeraVariableItem = (item: EphemeraItem): item is EphemeraVariable => (isEphemeraVariableId(item.EphemeraId))
 export const isEphemeraComputedItem = (item: EphemeraItem): item is EphemeraComputed => (isEphemeraComputedId(item.EphemeraId))
 
-const isLegalEphemeraTag = (tag: string): tag is SchemaTag["tag"] => (['Asset', 'Room', 'Map', 'Character', 'Action', 'Variable', 'Computed', 'Message'].includes(tag))
+const isLegalEphemeraTag = (tag: string): tag is SchemaTag["tag"] => (['Asset', 'Feature', 'Knowledge', 'Room', 'Map', 'Character', 'Action', 'Variable', 'Computed', 'Message'].includes(tag))
 
 export const tagFromEphemeraWrappedId = (EphemeraId: string): SchemaTag["tag"] => {
     const [upperTag] = splitType(EphemeraId)

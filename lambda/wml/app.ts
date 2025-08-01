@@ -12,6 +12,7 @@ import applyEdit from "./applyEdit";
 import { checkLock, requestLock, yieldAtomicLock } from "./atomicLock";
 import delayPromise from "@tonylb/mtw-utilities/ts/dynamoDB/delayPromise";
 import internalCache from "./internalCache";
+import { ComponentUUID } from "@tonylb/mtw-base/ts/schema";
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -20,7 +21,7 @@ type FetchImportsHandlerArguments = {
     RequestId: string;
     inheritanceNodes: { key: EphemeraAssetId; address: AssetWorkspaceAddress }[];
     inheritanceEdges: { from: EphemeraAssetId; to: EphemeraAssetId }[];
-    payloads: { assetId: EphemeraAssetId; keys: string[] }[];
+    payloads: { assetId: EphemeraAssetId; keys: ComponentUUID[] }[];
 }
 
 const fetchImportsHandler = async (event: FetchImportsHandlerArguments) => {
