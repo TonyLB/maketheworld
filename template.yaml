@@ -1584,6 +1584,8 @@ Resources:
             FunctionName: !Ref AddressLookupFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref EphemeraFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AssetsFunction
         - CloudWatchLogsFullAccess
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt MTWFeedbackTopic.TopicName
@@ -1609,6 +1611,8 @@ Resources:
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref EphemeraFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AssetsFunction
         - CloudWatchLogsFullAccess
   HealStateMachineLogs:
     Type: AWS::Logs::LogGroup
