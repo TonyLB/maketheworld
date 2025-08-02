@@ -82,6 +82,8 @@ standard form, the data would be expresed as follows:
 </Asset>
 ```
 
+For detailed information about all component types and their APIs, see [`standardize/components/AGENT.md`](./standardize/components/AGENT.md).
+
 #### **Keys and UUIDs**: Any component *can* have a key or UUID (or both) and *must* have one or the other. The
 key and UUID specify the component as itself, even when it appears in multiple places. The two serve different
 purposes: The UUID is a **global** identifier, which uniquely identifies a given component whatever Asset it is
@@ -113,6 +115,9 @@ used to style text in a description.
 #### **Content**: In addition to tags nested in tags, WML also allows free text that associates content with
 a parent tag (usually `Description` or `Name` or the like). As mentioned above (in **References**), that free
 text can *itself* include tags within it, when the tags are used for styling.
+
+For detailed information about how rich text content is processed and standardized, see
+[`standardize/render/AGENT.md`](./standardize/render/AGENT.md).
 
 #### **Edit Tags**: WML includes special tags for recording changes to be merged into existing content. These
 edit tags allow the language to be used for both storage and transmission of modifications:
