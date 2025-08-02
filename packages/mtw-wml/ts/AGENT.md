@@ -114,6 +114,47 @@ used to style text in a description.
 a parent tag (usually `Description` or `Name` or the like). As mentioned above (in **References**), that free
 text can *itself* include tags within it, when the tags are used for styling.
 
+#### **Edit Tags**: WML includes special tags for recording changes to be merged into existing content. These
+edit tags allow the language to be used for both storage and transmission of modifications:
+
+- **`<Replace>`**: Specifies content to be replaced, paired with a `<With>` tag containing the new content
+- **`<Remove>`**: Marks content to be removed from the asset
+
+Edit tags are processed by the standardization system to merge changes into the base content. For example:
+
+```xml
+<Asset key=(Test)>
+    <Room key=(testRoom)>
+        <Replace><Description>bare and spindly trees.</Description></Replace>
+        <With><Description>cherry trees lushly in bloom.</Description></With>
+    </Room>
+    <Remove><Room key=(unwantedRoom) /></Remove>
+</Asset>
+```
+
+The edit system supports merging multiple edits together and can detect conflicts when incompatible changes are
+attempted. For instance, merging the above changes into the following:
+
+```xml
+<Asset key=(Test)>
+    <Room key=(testRoom)>
+        <Description>A walkway by a canal, winding through bare and spindly trees.</Description>
+    </Room>
+    <Room key=(unwantedRoom) />
+</Asset>
+```
+
+... would result in the following:
+
+```xml
+<Asset key=(Test)>
+    <Room key=(testRoom)>
+        <Description>A walkway by a canal, winding through cherry trees lushly in bloom.</Description>
+    </Room>
+    <Room key=(unwantedRoom) />
+</Asset>
+```
+
 ## Library Architecture
 
 ### Core Components
@@ -134,6 +175,9 @@ text can *itself* include tags within it, when the tags are used for styling.
 #### 3. **Standardize** (`standardize/`)
 - Normalization and standardization of WML content, as well as the data manipulators
 for every component type
+- **Edit Processing** (`standardize/components/edits.ts`): Handles `<Replace>`, `<Remove>`, and other edit tags
+- **Component Standardization**: Each component type has its own standardizer (Room, Feature, etc.)
+- **Merge Operations**: Combines multiple edits and detects conflicts
 
 ## Usage Patterns
 
