@@ -181,7 +181,7 @@ for every component type
 
 ## Usage Patterns
 
-### Loading WML
+### Parsing WML
 ```typescript
 import { Schema } from './schema'
 const schema = new Schema()
