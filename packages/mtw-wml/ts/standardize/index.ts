@@ -678,29 +678,6 @@ export class StandardForm {
                 }
             })
         )
-        // returnValue._components = returnValue._components
-        //     .reduce<StandardComponent[]>((previous, component) => {
-        //         const matchKey = findMatchingRename(component.key ?? '')
-        //         if (matchKey) {
-        //             if (lookupInComponentList(previous, matchKey.toKey)) {
-        //                 throw new Error('renameKey collision')
-        //             }
-
-        //             return [
-        //                 ...previous,
-        //                 component
-        //                     .mapContents(renameContentsCallback)
-        //                     .withKey(matchKey.toKey)
-        //             ]
-        //         }
-        //         if (previous[component.key ?? '']) {
-        //             throw new Error('renameKey collision')
-        //         }
-        //         return {
-        //             ...previous,
-        //             [component.key ?? '']: component.mapContents(renameContentsCallback)
-        //         }
-        //     }, {})
 
         return returnValue
     }
