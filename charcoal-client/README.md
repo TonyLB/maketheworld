@@ -24,6 +24,16 @@ You will also see any lint errors in the console.
 Launches the test runner in the interactive watch mode.<br />
 See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
+**Note**: This runs Vitest in watch mode by default. To run tests once and exit, use:
+```bash
+npm test -- --run
+```
+
+To run a specific test file once:
+```bash
+npm test -- --run src/path/to/test.ts
+```
+
 ### `npm run introspect <your stack name>`
 
 Pulls client-relevant information from the main MTW Cloudformation stack.  This must be run after install of the stack,

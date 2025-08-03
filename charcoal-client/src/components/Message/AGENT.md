@@ -140,6 +140,7 @@ Components will need to:
 
 #### **Phase 1: Add WML Support** 🔄 **IN PROGRESS**
 - **✅ Backend Ready**: Backend perception system now sends `PerceptionMessage` format
+- **✅ Infrastructure Ready**: WML parsing with fallback strategy implemented in Redux
 - **🔄 Add `PerceptionMessage` case**: Add case to message router in `index.tsx`
 - **🔄 Create component lookup logic**: Use `componentUUID` to determine component type
 

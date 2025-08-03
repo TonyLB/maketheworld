@@ -469,6 +469,7 @@ Update the `mtw-interfaces/AGENT.md` to reflect the actual message formats used 
 #### **🔄 Phase 2: Backend Updates - IN PROGRESS**
 - **✅ Perception System**: Updated to send `PerceptionMessage` format for rooms, features, and knowledge
 - **✅ MessageBus Integration**: Added `PublishPerceptionMessage` type and processing
+- **✅ Infrastructure**: Frontend WML parsing with fallback strategy implemented
 - **🔄 Character Descriptions**: Still using legacy format (doesn't use WML content)
 - **🔄 Frontend Router**: Next step - update message router to handle new format
 

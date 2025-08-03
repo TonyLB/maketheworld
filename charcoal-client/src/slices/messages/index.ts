@@ -1,19 +1,26 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import cacheDB, { LastSyncType } from '../../cacheDB'
-import { Message } from '@tonylb/mtw-interfaces/ts/messages'
+import { Message, PerceptionMessage } from '@tonylb/mtw-interfaces/ts/messages'
 import { EphemeraClientMessagePublishMessages } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { unique } from '../../lib/lists'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import binarySearch from './binarySearch'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
+import { splitType } from '@tonylb/mtw-utilities/ts/types'
 
-const initialState = {} as Record<string, Message[]>
+// Enhanced message type with parsed WML
+type EnhancedMessage = Message | (PerceptionMessage & { parsedWML: StandardForm })
+
+const initialState = {} as Record<string, EnhancedMessage[]>
 
 const messagesSlice = createSlice({
     name: 'messages',
     initialState,
     reducers: {
-        receiveMessages(state: any, action: PayloadAction<Message[]>) {
+        receiveMessages(state: any, action: PayloadAction<EnhancedMessage[]>) {
             action.payload.forEach((message) => {
                 if (message.Target && state[message.Target]) {
                     const { exactMatch, index } = binarySearch(state[message.Target], message.CreatedTime, message.MessageId)
@@ -42,11 +49,46 @@ const messagesSlice = createSlice({
 
 export const { receiveMessages, clear } = messagesSlice.actions
 
+// Helper function to process PerceptionMessage with WML parsing
+const processPerceptionMessage = (message: Message): EnhancedMessage => {
+    if (message.DisplayProtocol === 'PerceptionMessage') {
+        try {
+            const standardForm = new StandardForm(message.wmlContent)
+            return {
+                ...message,
+                parsedWML: standardForm
+            }
+        } catch (error) {
+            console.warn('Failed to parse WML content for PerceptionMessage:', error)
+            // Create a fallback StandardForm to prevent perpetual loading state
+            const [upperTag] = splitType(message.componentUUID)
+            const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
+            
+            // Create a proper fallback StandardForm with the correct component type
+            const fallbackForm = new StandardForm('fallback')
+            const defaultData = defaultComponentFromTag(tag as any, 'fallback', message.componentUUID)
+            const fallbackComponent = standardComponentFactory(defaultData)
+            
+            if (fallbackComponent) {
+                fallbackForm._components = [fallbackComponent]
+            }
+            
+            return {
+                ...message,
+                parsedWML: fallbackForm
+            }
+        }
+    }
+    return message
+}
+
 export const cacheMessages = (payload: EphemeraClientMessagePublishMessages) => async (dispatch: any) => {
     //
     // Update LastSync data, and push messages to cacheDB
     //
     const { messages, LastSync } = payload
+    
+    // Store original messages in cacheDB (without parsedWML)
     const lastSyncUpdateTargets = unique(messages.map(({ Target }) => (Target))) as EphemeraCharacterId[]
     const updateLastSync = LastSync
         ? Promise.all(lastSyncUpdateTargets.map((CharacterId) => (cacheDB.characterSync
@@ -61,13 +103,14 @@ export const cacheMessages = (payload: EphemeraClientMessagePublishMessages) => 
         : Promise.resolve({})
     await Promise.all([
         updateLastSync,
-        cacheDB.messages.bulkPut(messages)
+        cacheDB.messages.bulkPut(messages) // Store original messages
     ])
 
     //
-    // Push messages to Redux
+    // Push processed messages to Redux
     //
-    dispatch(receiveMessages(messages))
+    const processedMessages = messages.map(processPerceptionMessage)
+    dispatch(receiveMessages(processedMessages))
 }
 
 export {

@@ -68,53 +68,66 @@ To avoid expensive WML parsing on every render, we will:
 
 #### **Enhanced Message Structure**
 ```typescript
-interface EnhancedPerceptionMessage extends PerceptionMessage {
-    parsedWML?: StandardForm;           // Pre-parsed WML content
-    componentData?: StandardComponent;   // Extracted component data
-    parsedAt: number;                   // Timestamp of parsing
-}
+// Enhanced message type with parsed WML
+type EnhancedMessage = Message | (PerceptionMessage & { parsedWML: StandardForm })
 ```
 
 #### **Implementation Strategy**
 
-##### **Phase 1: Message Processing Enhancement**
+##### **Phase 1: Message Processing Enhancement** ✅ **IMPLEMENTED**
 ```typescript
-// In cacheMessages action
-const processPerceptionMessage = (message: PerceptionMessage) => {
+// Helper function to process PerceptionMessage with WML parsing
+const processPerceptionMessage = (message: Message): EnhancedMessage => {
     if (message.DisplayProtocol === 'PerceptionMessage') {
-        const standardForm = new StandardForm(message.wmlContent)
-        const component = standardForm.byUniversalID(message.componentUUID)
-        
-        return {
-            ...message,
-            parsedWML: standardForm,
-            componentData: component,
-            parsedAt: Date.now()
+        try {
+            const standardForm = new StandardForm(message.wmlContent)
+            return {
+                ...message,
+                parsedWML: standardForm
+            }
+        } catch (error) {
+            console.warn('Failed to parse WML content for PerceptionMessage:', error)
+            // Create a fallback StandardForm to prevent perpetual loading state
+            const [upperTag] = splitType(message.componentUUID)
+            const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
+            
+            // Create a proper fallback StandardForm with the correct component type
+            const fallbackForm = new StandardForm('fallback')
+            const defaultData = defaultComponentFromTag(tag as any, 'fallback', message.componentUUID)
+            const fallbackComponent = standardComponentFactory(defaultData)
+            
+            if (fallbackComponent) {
+                fallbackForm._components = [fallbackComponent]
+            }
+            
+            return {
+                ...message,
+                parsedWML: fallbackForm
+            }
         }
     }
     return message
 }
+
+// In cacheMessages action
+const processedMessages = messages.map(processPerceptionMessage)
 ```
 
-##### **Phase 2: Selector Optimization**
+##### **Phase 2: No Special Selectors Needed**
 ```typescript
-// Enhanced selectors for pre-parsed data
-export const getParsedPerceptionMessages = (state: RootState, characterId: EphemeraCharacterId) => {
-    return getMessages(state, characterId)
-        .filter(msg => msg.DisplayProtocol === 'PerceptionMessage')
-        .map(msg => ({
-            ...msg,
-            parsedWML: msg.parsedWML || new StandardForm(msg.wmlContent),
-            componentData: msg.componentData || msg.parsedWML?.byUniversalID(msg.componentUUID)
-        }))
+// Use existing getMessages selector - components handle routing
+// No need for getPerceptionMessages - components filter by DisplayProtocol
+export const getMessages = (state: RootState, characterId: EphemeraCharacterId) => {
+    return state.messages[characterId] || []
 }
 ```
 
 ##### **Phase 3: Component Integration**
 ```typescript
-// Components receive pre-parsed data
+// Components handle parsing with fallback support
 case 'PerceptionMessage':
-    const component = message.componentData || message.parsedWML?.byUniversalID(message.componentUUID)
+    // parsedWML is guaranteed to exist (either valid or fallback)
+    const component = message.parsedWML.byUniversalID(message.componentUUID)
     const componentType = component?.tag || getComponentTypeFromUUID(message.componentUUID)
     
     switch(componentType) {
@@ -128,24 +141,29 @@ case 'PerceptionMessage':
 
 1. **Performance**: Parse once, use many times
 2. **Memory Efficiency**: Store parsed objects instead of re-parsing strings
-3. **Component Simplicity**: Components receive ready-to-use data
-4. **Caching**: Leverage Redux state for parsed data persistence
-5. **Backward Compatibility**: Graceful fallback to runtime parsing
+3. **Simple Architecture**: Use existing selectors, no special perception selectors needed
+4. **Lazy Evaluation**: Support future lazy parsing strategies
+5. **User Experience**: Graceful error handling with fallback content
+6. **Backward Compatibility**: Graceful fallback to runtime parsing
+7. **Cache Safety**: Store original messages in IndexedDB, process at read time
+8. **Type Safety**: Proper TypeScript types for enhanced messages
 
 ### **Migration Timeline**
 
-#### **Phase 1: Infrastructure**
-- Add WML parsing utilities to message processing
-- Enhance message state structure for parsed data
-- Update selectors to handle parsed content
+#### **Phase 1: Infrastructure** ✅ **COMPLETED**
+- ✅ Add WML parsing utilities to message processing
+- ✅ Enhance message state structure for parsed data
+- ✅ Use existing message selectors (no special perception selectors needed)
+- ✅ Store original messages in cacheDB, process at read time
+- ✅ Proper TypeScript types for enhanced messages
 
 #### **Phase 2: Component Updates**
-- Modify components to use pre-parsed data
-- Add fallback parsing for legacy messages
-- Update message router for new data structure
+- Update message router to handle `PerceptionMessage` case
+- Modify components to handle parsed WML content
+- No loading states needed (fallback StandardForm provided)
 
 #### **Phase 3: Optimization**
-- Implement lazy parsing for unparsed messages
+- Implement lazy parsing strategies
 - Add parsing performance monitoring
 - Optimize memory usage for parsed data
 
@@ -156,12 +174,13 @@ case 'PerceptionMessage':
 - Triggers `cacheMessages` action with message processing
 
 ### **Message Components**
-- Consume pre-parsed message data
-- Focus on rendering rather than parsing
+- Handle parsing states with loading components
+- Focus on rendering with graceful parsing fallbacks
 
 ### **Cache Database**
-- Stores original message format
-- Syncs with Redux for parsed data
+- Stores original message format (without parsedWML)
+- Processes messages at read time for WML parsing
+- Avoids storing complex objects in IndexedDB
 
 ### **WML Library**
 - Provides `StandardForm` parsing capabilities
@@ -170,27 +189,34 @@ case 'PerceptionMessage':
 ## Navigation Tips
 
 1. **Start with Index**: Understand the main slice logic in `index.ts`
-2. **Check Selectors**: Review message retrieval patterns in `selectors.ts`
+2. **Check Selectors**: Review existing message retrieval patterns in `selectors.ts`
 3. **Review Binary Search**: Understand message ordering in `binarySearch.ts`
 4. **Examine Cache Integration**: See how messages sync with IndexedDB
-5. **Plan WML Integration**: Focus on performance optimization strategy
+5. **Plan WML Integration**: Focus on component-level parsing strategy
 
 ## Development Notes
 
 ### **Current State**
-- **Message Storage**: Fully functional Redux state management
-- **Cache Integration**: Complete IndexedDB synchronization
+- **Message Storage**: Fully functional Redux state management with enhanced message types
+- **Cache Integration**: Complete IndexedDB synchronization with safe storage (original messages only)
 - **Message Ordering**: Efficient binary search insertion
 - **Selector System**: Optimized message retrieval
+- **WML Processing**: ✅ Implemented with fallback strategy and type safety
+
+### **Testing Patterns**
+- **Watch Mode**: `npm test` - Runs Vitest in watch mode (default)
+- **Single Run**: `npm test -- --run` - Runs tests once and exits
+- **Specific File**: `npm test -- --run src/path/to/test.ts` - Run specific test file
+- **Client vs Packages**: Use `npm test` for client (Vitest), `npm run test` for packages (Jest)
 
 ### **Future Plans**
-- **WML Parsing**: Add pre-parsing for perception messages
-- **Performance Optimization**: Implement parsed data caching
-- **Component Integration**: Update components for pre-parsed data
-- **Memory Management**: Optimize parsed data storage
+- **Component Integration**: Update message router to handle `PerceptionMessage` case
+- **Component Updates**: Modify components to use parsed WML content
+- **Error Display**: Create components to show fallback content gracefully
+- **Performance Monitoring**: Add parsing performance tracking
 
 ### **Technical Debt**
-- **Message Processing**: Need to add WML parsing pipeline
-- **State Structure**: Enhance for parsed data storage
-- **Performance**: Current approach will be expensive for WML content
-- **Memory Usage**: Need to manage parsed data lifecycle 
+- **Component Updates**: Need to update message router and components for `PerceptionMessage`
+- **Error Handling**: Need to create graceful fallback display components
+- **Performance**: Monitor parsing performance in production
+- **Memory Usage**: Optimize parsed data lifecycle management 
