@@ -63,6 +63,33 @@ describe('PerceptionMessage', () => {
             expect(isPerceptionMessage(invalidTarget)).toBe(false)
         })
 
+        it('should accept valid character-based Target format', () => {
+            const characterTarget = { ...validPerceptionMessage, Target: 'CHARACTER#player1' }
+            expect(isPerceptionMessage(characterTarget)).toBe(true)
+
+            const characterTarget2 = { ...validPerceptionMessage, Target: 'CHARACTER#guest123' }
+            expect(isPerceptionMessage(characterTarget2)).toBe(true)
+        })
+
+        it('should accept valid session-based Target format', () => {
+            const sessionTarget = { ...validPerceptionMessage, Target: 'SESSION#anonymous' }
+            expect(isPerceptionMessage(sessionTarget)).toBe(true)
+
+            const sessionTarget2 = { ...validPerceptionMessage, Target: 'SESSION#abc123def' }
+            expect(isPerceptionMessage(sessionTarget2)).toBe(true)
+
+            const sessionTarget3 = { ...validPerceptionMessage, Target: 'SESSION#test-session-id' }
+            expect(isPerceptionMessage(sessionTarget3)).toBe(true)
+        })
+
+        it('should reject invalid session-based Target format', () => {
+            const invalidSessionTarget = { ...validPerceptionMessage, Target: 'SESSION#' }
+            expect(isPerceptionMessage(invalidSessionTarget)).toBe(false)
+
+            const invalidSessionTarget2 = { ...validPerceptionMessage, Target: 'SESSION' }
+            expect(isPerceptionMessage(invalidSessionTarget2)).toBe(false)
+        })
+
         it('should accept valid componentUUID formats', () => {
             const roomUUID = { ...validPerceptionMessage, componentUUID: 'ROOM#abc123' }
             expect(isPerceptionMessage(roomUUID)).toBe(true)
@@ -92,6 +119,21 @@ describe('PerceptionMessage', () => {
         it('should reject invalid PerceptionMessage through isMessage', () => {
             const invalidMessage = { ...validPerceptionMessage, wmlContent: '' }
             expect(isMessage(invalidMessage)).toBe(false)
+        })
+
+        it('should validate PerceptionMessage with session-based Target through isMessage', () => {
+            const sessionTargetMessage = { ...validPerceptionMessage, Target: 'SESSION#anonymous' }
+            expect(isMessage(sessionTargetMessage)).toBe(true)
+        })
+
+        it('should validate PerceptionMessage with character-based Target through isMessage', () => {
+            const characterTargetMessage = { ...validPerceptionMessage, Target: 'CHARACTER#player1' }
+            expect(isMessage(characterTargetMessage)).toBe(true)
+        })
+
+        it('should reject PerceptionMessage with invalid Target through isMessage', () => {
+            const invalidTargetMessage = { ...validPerceptionMessage, Target: 'INVALID#target' }
+            expect(isMessage(invalidTargetMessage)).toBe(false)
         })
     })
 

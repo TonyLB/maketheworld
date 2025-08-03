@@ -146,46 +146,64 @@ Components will need to:
 **Implementation Pattern:**
 ```typescript
 // Initialize with proper types
-let name: StandardRender = new StandardRender('Unknown')
+let name: StandardRender = new StandardRender(['Unknown'])  // Array, not string
 let description: StandardRender = new StandardRender([])
 
-if (component instanceof StandardFeature || component instanceof StandardKnowledge) {
-    const firstExample = component.examples.payload[0]
-    if (firstExample && firstExample.universalKey) {
-        const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as ComponentUUID]
-        if (exampleComponent instanceof StandardExample) {
-            // NOTE: StandardExample properties return RenderTree, not StandardRender
-            // This is a technical debt that should be fixed in the WML system
-            name = exampleComponent.name ? new StandardRender(exampleComponent.name) : new StandardRender('Unknown')
-            description = exampleComponent.description ? new StandardRender(exampleComponent.description) : new StandardRender([])
+if (parsedWML && componentUUID) {
+    // WML format: extract from StandardForm
+    const component = parsedWML.byUniversalId[componentUUID]
+    if (component instanceof StandardFeature || component instanceof StandardKnowledge) {
+        const firstExample = component.examples.payload[0]
+        if (firstExample && firstExample.universalKey) {
+            const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as ComponentUUID]
+            if (exampleComponent instanceof StandardExample) {
+                // NOTE: StandardExample properties return RenderTree, not StandardRender
+                // This is a technical debt that should be fixed in the WML system
+                name = exampleComponent.name ? new StandardRender(exampleComponent.name) : new StandardRender(['Unknown'])
+                description = exampleComponent.description ? new StandardRender(exampleComponent.description) : new StandardRender([])
+            }
         }
     }
+} else {
+    // Legacy format: only handle actual legacy message types
+    if (message.DisplayProtocol === 'FeatureDescription' || message.DisplayProtocol === 'KnowledgeDescription') {
+        const legacyMessage = message as FeatureDescriptionType | KnowledgeDescriptionType
+        name = new StandardRender(legacyMessage.Name || ['Unknown'])
+        description = new StandardRender(legacyMessage.Description || [])
+    }
+    // For PerceptionMessage without parsedWML, keep default values (Unknown/empty)
 }
 
 // For rendering, convert back to RenderTree
 <RenderTreeContent list={description.toJSON()} onClickLink={onClickLink} />
 ```
 
+**⚠️ CRITICAL**: The `StandardRender` constructor expects:
+- **RenderTree arrays**: `new StandardRender(['text'])` ✅
+- **StandardRender instances**: `new StandardRender(existingStandardRender)` ✅  
+- **WML strings**: `new StandardRender('<Name>text</Name>')` ✅
+- **NOT plain strings**: `new StandardRender('text')` ❌
+
 See [WML Standard Components documentation](../../../../packages/mtw-wml/ts/standardize/components/AGENT.md) for details.
 
 ### **Migration Strategy**
 
-#### **Phase 1: Add WML Support** 🔄 **IN PROGRESS**
+#### **Phase 1: Add WML Support** ✅ **COMPLETED**
 - **✅ Backend Ready**: Backend perception system now sends `PerceptionMessage` format
 - **✅ Infrastructure Ready**: WML parsing with fallback strategy implemented in Redux
-- **🔄 Add `PerceptionMessage` case**: Add case to message router in `index.tsx`
-- **🔄 Create component lookup logic**: Use `componentUUID` to determine component type
+- **✅ Add `PerceptionMessage` case**: Added case to message router in `index.tsx`
+- **✅ Create component lookup logic**: Using `componentUUID` to determine component type
 
-#### **Phase 2: Bridge State Component Updates** ⏳ **PENDING**
+#### **Phase 2: Bridge State Component Updates** 🔄 **IN PROGRESS**
 Each existing component will be updated to accept **either** legacy properties **or** new WML format:
 
 ```typescript
 // Bridge state component interface
-interface RoomDescriptionProps {
+interface ComponentDescriptionProps {
     message: Message;
     // Legacy properties (for backward compatibility)
-    roomName?: string;
-    roomDescription?: string;
+    Name?: string;
+    Description?: RenderTree;
     // New WML properties (for PerceptionMessage)
     parsedWML?: StandardForm;
     componentUUID?: SchemaComponentUUID;
@@ -200,7 +218,7 @@ interface RoomDescriptionProps {
 4. **`RoomDescription`** - Room layout and features, most complex
 
 **Migration Progress Tracking:**
-- [x] `KnowledgeDescription` - Bridge state implemented ✅ (WML structure corrected, instanceof checks added, proper StandardRender types)
+- [x] `KnowledgeDescription` - Bridge state implemented ✅ (WML structure corrected, instanceof checks added, proper StandardRender types, resilient typeguards)
 - [ ] `FeatureDescription` - Bridge state implemented
 - [ ] `RoomHeader` - Bridge state implemented
 - [ ] `RoomDescription` - Bridge state implemented

@@ -334,4 +334,5 @@ const merged = base.merge(incoming)
 - **Error Handling**: Improve error messages for merge conflicts
 - **Documentation**: Add more examples for complex component operations
 - **Testing**: Expand test coverage for edge cases
-- **StandardExample Properties**: The `name`, `summary`, and `description` properties in `StandardExample` return `RenderTree` (array) instead of `StandardRender` objects, creating inconsistency with the rest of the system 
+- **StandardExample Properties**: The `name`, `summary`, and `description` properties in `StandardExample` return `RenderTree` (array) instead of `StandardRender` objects, creating inconsistency with the rest of the system
+- **StandardRender Constructor**: Must use arrays (`['text']`) not strings (`'text'`) for initialization - this is a common source of runtime errors 

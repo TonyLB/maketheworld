@@ -46,7 +46,7 @@ export const ComponentDescription = <T extends FeatureDescriptionType | Knowledg
     componentUUID
 }: ComponentDescriptionProps<T>) => {
     // Bridge state: handle both legacy and WML formats
-    let name: StandardRender = new StandardRender('Unknown')
+    let name: StandardRender = new StandardRender(['Unknown'])
     let description: StandardRender = new StandardRender([])
     
     if (parsedWML && componentUUID) {
@@ -58,21 +58,23 @@ export const ComponentDescription = <T extends FeatureDescriptionType | Knowledg
                 const firstExample = component.examples.payload[0]
                 if (firstExample && firstExample.universalKey) {
                     const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as ComponentUUID]
-                    if (exampleComponent instanceof StandardExample) {
-                        name = exampleComponent.name ? new StandardRender(exampleComponent.name) : new StandardRender('Unknown')
+                    if (exampleComponent && exampleComponent instanceof StandardExample) {
+                        name = exampleComponent.name ? new StandardRender(exampleComponent.name) : new StandardRender(['Unknown'])
                         description = exampleComponent.description ? new StandardRender(exampleComponent.description) : new StandardRender([])
                     }
                 }
             }
         }
     } else {
-        // Legacy format: use message properties directly
-        const legacyMessage = message as FeatureDescriptionType | KnowledgeDescriptionType
-        name = new StandardRender(legacyMessage.Name || 'Unknown')
-        description = new StandardRender(legacyMessage.Description || [])
+        // Legacy format: only handle actual legacy message types
+        if (message.DisplayProtocol === 'FeatureDescription' || message.DisplayProtocol === 'KnowledgeDescription') {
+            const legacyMessage = message as FeatureDescriptionType | KnowledgeDescriptionType
+            name = new StandardRender(legacyMessage.Name || ['Unknown'])
+            description = new StandardRender(legacyMessage.Description || [])
+        }
+        // For PerceptionMessage without parsedWML, keep default values (Unknown/empty)
     }
     
-    const standardName = new StandardRender(name)
     const bevelCSS = bevel
         ? `polygon(
             0% ${bevel},
@@ -105,7 +107,7 @@ export const ComponentDescription = <T extends FeatureDescriptionType | Knowledg
                 }}
             >
                 <Typography variant='h5' align='left'>
-                    { standardName.plainString }
+                    { name.plainString }
                 </Typography>
                 <Divider />
                 {

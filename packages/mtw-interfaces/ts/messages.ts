@@ -21,7 +21,7 @@ import { AssetUUID, ComponentUUID, isSchemaComponentUUID } from "@tonylb/mtw-bas
 export type MessageAddressing = {
     MessageId: string;
     CreatedTime: number;
-    Target?: EphemeraCharacterId;
+    Target?: EphemeraCharacterId | `SESSION#${string}`;
 }
 
 export type SpacerMessage = {
@@ -225,7 +225,7 @@ export const isMessage = (message: any): message is Message => {
     if (!checkTypes(message, { MessageId: 'string', CreatedTime: 'number' }, { Target: 'string' })) {
         return false
     }
-    if (message.Target && !isEphemeraCharacterId(message.Target)) {
+    if (message.Target && !isEphemeraCharacterId(message.Target) && !(message.Target.startsWith('SESSION#') && message.Target.length > 8)) {
         return false
     }
     switch(message.DisplayProtocol) {
@@ -328,7 +328,7 @@ export const isPerceptionMessage = (message: any): message is PerceptionMessage 
     if (!isSchemaComponentUUID(message.componentUUID)) {
         return false
     }
-    if (message.Target && (!isSchemaComponentUUID(message.Target) || !message.Target.startsWith('CHARACTER#'))) {
+    if (message.Target && !isEphemeraCharacterId(message.Target) && !(message.Target.startsWith('SESSION#') && message.Target.length > 8)) {
         return false
     }
     return true

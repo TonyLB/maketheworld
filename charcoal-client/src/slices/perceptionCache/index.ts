@@ -1,23 +1,32 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { KnowledgeDescription, Message } from '@tonylb/mtw-interfaces/ts/messages'
+import { Message, PerceptionMessage } from '@tonylb/mtw-interfaces/ts/messages'
 import { PerceptionCacheKey, PerceptionCacheState } from './baseClasses'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
+import { splitType } from '@tonylb/mtw-utilities/ts/types'
+
+// Enhanced message type with parsed WML
+type EnhancedPerceptionMessage = PerceptionMessage & { parsedWML: StandardForm }
 
 const perceptionCacheSlice = createSlice({
     name: 'perceptionCache',
-    initialState: {} as PerceptionCacheState,
+    initialState: {} as Record<PerceptionCacheKey, EnhancedPerceptionMessage>,
     reducers: {
         receiveMessages: (state: any, action: PayloadAction<Message[]>) => {
             action.payload
-                .filter((value): value is KnowledgeDescription => (value.DisplayProtocol === 'KnowledgeDescription'))
-                .forEach(({ Target, MessageId, CreatedTime, DisplayProtocol, ...rest }) => {
-                    //
-                    // TODO: Evaluate whether there is any benefit to the currently unused ability to cache
-                    // perceptions for individual characters (perhaps as a way to lift maps out of ActiveCharacter slice)
-                    //
-                    if (!Target) {
-                        const cacheKey: PerceptionCacheKey = `${Target ?? 'ANONYMOUS'}::${rest.KnowledgeId}`
-                        state[cacheKey] = rest
-                    }
+                .filter((value): value is PerceptionMessage => (value.DisplayProtocol === 'PerceptionMessage'))
+                .forEach((message) => {
+                    // Process PerceptionMessage with WML parsing
+                    const enhancedMessage = processPerceptionMessage(message)
+                    
+                    // For anonymous knowledge exploration, we cache PerceptionMessages
+                    // The backend sends to SESSION#${SessionId} for directResponse, but the Target
+                    // field may not be included in the message payload itself
+                    // We cache all PerceptionMessages for anonymous access
+                    const componentUUID = message.componentUUID
+                    const cacheKey: PerceptionCacheKey = `ANONYMOUS::${componentUUID}`
+                    state[cacheKey] = enhancedMessage
                 })
         },
         clear: (state: any) => {
@@ -25,6 +34,36 @@ const perceptionCacheSlice = createSlice({
         }
     }
 })
+
+// Helper function to process PerceptionMessage with WML parsing
+const processPerceptionMessage = (message: PerceptionMessage): EnhancedPerceptionMessage => {
+    try {
+        const standardForm = new StandardForm(message.wmlContent)
+        return {
+            ...message,
+            parsedWML: standardForm
+        }
+    } catch (error) {
+        console.warn('Failed to parse WML content for PerceptionMessage:', error)
+        // Create a fallback StandardForm to prevent perpetual loading state
+        const [upperTag] = splitType(message.componentUUID)
+        const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
+        
+        // Create a proper fallback StandardForm with the correct component type
+        const fallbackForm = new StandardForm('fallback')
+        const defaultData = defaultComponentFromTag(tag as any, 'fallback', message.componentUUID)
+        const fallbackComponent = standardComponentFactory(defaultData)
+        
+        if (fallbackComponent) {
+            fallbackForm._components = [fallbackComponent]
+        }
+        
+        return {
+            ...message,
+            parsedWML: fallbackForm
+        }
+    }
+}
 
 export {
     getCachedPerception
