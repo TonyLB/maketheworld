@@ -136,6 +136,38 @@ Components will need to:
 - **Extract Content**: Pull relevant information from WML structure and component data
 - **Render Appropriately**: Display content with proper styling based on component type
 
+**⚠️ CRITICAL**: When accessing WML content, remember that display content (`name`, `summary`, `description`) is stored in `Example` components, not directly in Feature/Knowledge/Room components. You must:
+
+1. Get the main component from `parsedWML.byUniversalId[componentUUID]`
+2. Use `instanceof` checks to verify the component type (e.g., `component instanceof StandardFeature`)
+3. Access the `examples.payload[0]` to get the first Example reference
+4. Look up the Example component to get actual display content
+
+**Implementation Pattern:**
+```typescript
+// Initialize with proper types
+let name: StandardRender = new StandardRender('Unknown')
+let description: StandardRender = new StandardRender([])
+
+if (component instanceof StandardFeature || component instanceof StandardKnowledge) {
+    const firstExample = component.examples.payload[0]
+    if (firstExample && firstExample.universalKey) {
+        const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as ComponentUUID]
+        if (exampleComponent instanceof StandardExample) {
+            // NOTE: StandardExample properties return RenderTree, not StandardRender
+            // This is a technical debt that should be fixed in the WML system
+            name = exampleComponent.name ? new StandardRender(exampleComponent.name) : new StandardRender('Unknown')
+            description = exampleComponent.description ? new StandardRender(exampleComponent.description) : new StandardRender([])
+        }
+    }
+}
+
+// For rendering, convert back to RenderTree
+<RenderTreeContent list={description.toJSON()} onClickLink={onClickLink} />
+```
+
+See [WML Standard Components documentation](../../../../packages/mtw-wml/ts/standardize/components/AGENT.md) for details.
+
 ### **Migration Strategy**
 
 #### **Phase 1: Add WML Support** 🔄 **IN PROGRESS**
@@ -144,15 +176,42 @@ Components will need to:
 - **🔄 Add `PerceptionMessage` case**: Add case to message router in `index.tsx`
 - **🔄 Create component lookup logic**: Use `componentUUID` to determine component type
 
-#### **Phase 2: Update Components**
-- Modify components to handle WML content
-- Add WML-specific rendering logic
-- Maintain backward compatibility
+#### **Phase 2: Bridge State Component Updates** ⏳ **PENDING**
+Each existing component will be updated to accept **either** legacy properties **or** new WML format:
 
-#### **Phase 3: Replace Legacy Types**
-- Update perception system to use new format
-- Remove deprecated message types
-- Clean up legacy code
+```typescript
+// Bridge state component interface
+interface RoomDescriptionProps {
+    message: Message;
+    // Legacy properties (for backward compatibility)
+    roomName?: string;
+    roomDescription?: string;
+    // New WML properties (for PerceptionMessage)
+    parsedWML?: StandardForm;
+    componentUUID?: SchemaComponentUUID;
+}
+```
+
+**Component Migration List** (ordered by testability and complexity):
+
+1. **`KnowledgeDescription`** - Knowledge items, easy to test manually via Knowledge UI
+2. **`FeatureDescription`** - Interactive features, moderate complexity
+3. **`RoomHeader`** - Header information, moderate complexity
+4. **`RoomDescription`** - Room layout and features, most complex
+
+**Migration Progress Tracking:**
+- [x] `KnowledgeDescription` - Bridge state implemented ✅ (WML structure corrected, instanceof checks added, proper StandardRender types)
+- [ ] `FeatureDescription` - Bridge state implemented
+- [ ] `RoomHeader` - Bridge state implemented
+- [ ] `RoomDescription` - Bridge state implemented
+
+**Note**: `CharacterDescription` is not included in this migration as character perception messages are not currently being converted to `PerceptionMessage` format. This may be addressed in a future phase.
+
+#### **Phase 3: Legacy Removal**
+- Remove legacy message types from perception system
+- Remove legacy property handling from components
+- Clean up bridge state code
+- Update type definitions to remove legacy interfaces
 
 ## Navigation Tips
 
@@ -180,4 +239,5 @@ Components will need to:
 - **Message Type Proliferation**: Too many specific message types
 - **Interface Inconsistencies**: Perception system format mismatches
 - **WML Processing**: Need to add WML parsing capabilities
-- **Component Complexity**: Some components handle too many concerns 
+- **Component Complexity**: Some components handle too many concerns
+- **StandardExample Type Inconsistency**: `StandardExample` properties return `RenderTree` instead of `StandardRender`, requiring conversion in client code (see WML Standard Components documentation for details) 

@@ -157,12 +157,19 @@ case 'PerceptionMessage':
 - ✅ Store original messages in cacheDB, process at read time
 - ✅ Proper TypeScript types for enhanced messages
 
-#### **Phase 2: Component Updates**
+#### **Phase 2: Bridge State Component Updates**
 - Update message router to handle `PerceptionMessage` case
-- Modify components to handle parsed WML content
-- No loading states needed (fallback StandardForm provided)
+- Modify components to accept both legacy and WML formats
+- Implement bridge state for gradual migration
+- Track progress through component migration list
 
-#### **Phase 3: Optimization**
+#### **Phase 3: Legacy Removal**
+- Remove legacy message types from perception system
+- Remove legacy property handling from components
+- Clean up bridge state code
+- Update type definitions to remove legacy interfaces
+
+#### **Phase 4: Optimization**
 - Implement lazy parsing strategies
 - Add parsing performance monitoring
 - Optimize memory usage for parsed data

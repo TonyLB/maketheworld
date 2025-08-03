@@ -106,7 +106,9 @@ Represents physical locations in the world.
 
 #### **StandardFeature** (`feature.ts`)
 Represents interactive elements within rooms.
-- **Properties**: `name`, `description`, `actions`
+- **Properties**: `examples` (list of Example references)
+- **⚠️ CRITICAL**: Features do NOT contain `name` or `description` directly - these are stored in referenced `StandardExample` components
+- **⚠️ IMPORTANT**: To get display content, access the `examples` property and look up the referenced Example components
 
 #### **StandardCharacter** (`character.ts`)
 Represents player characters and NPCs.
@@ -114,7 +116,10 @@ Represents player characters and NPCs.
 
 #### **StandardExample** (`example.ts`)
 Represents different states/versions of content.
-- **Properties**: `name`, `description`, `conditions`
+- **Properties**: `name`, `summary`, `description`
+- **⚠️ CRITICAL**: This component contains the actual display content (`name`, `summary`, `description` as `StandardRender` objects)
+- **⚠️ IMPORTANT**: Other components (Feature, Knowledge, Room) reference Examples via their `examples` property - they do NOT contain display content directly
+- **⚠️ TECHNICAL DEBT**: The `name`, `summary`, and `description` properties currently return `RenderTree` (array) instead of `StandardRender` objects. This should be refactored to return `StandardRender` for consistency with the rest of the system.
 
 #### **StandardMessage** (`message.ts`)
 Represents in-game messages and communications.
@@ -122,7 +127,9 @@ Represents in-game messages and communications.
 
 #### **StandardKnowledge** (`knowledge.ts`)
 Represents information that characters can learn.
-- **Properties**: `title`, `content`, `prerequisites`
+- **Properties**: `examples` (list of Example references)
+- **⚠️ CRITICAL**: Knowledge components do NOT contain `title` or `content` directly - these are stored in referenced `StandardExample` components
+- **⚠️ IMPORTANT**: To get display content, access the `examples` property and look up the referenced Example components
 
 #### **StandardMoment** (`moment.ts`)
 Represents time-based events and conditions.
@@ -165,6 +172,49 @@ Represents content to be removed.
 #### **StandardReplace** (`edits.ts`)
 Represents content to be replaced.
 - **Properties**: `_match` (original), `_payload` (replacement)
+
+## ⚠️ CRITICAL: Example-Component Relationship
+
+### **Content Storage Pattern**
+
+**⚠️ IMPORTANT**: Display content (`name`, `summary`, `description`) is NOT stored directly in Feature, Knowledge, or Room components. Instead:
+
+1. **`StandardExample` components** contain the actual display content as `StandardRender` objects
+2. **Other components** (Feature, Knowledge, Room) have an `examples` property that contains references to Example components
+3. **To get display content**, you must:
+   - Access the main component's `examples` property
+   - Look up the referenced `StandardExample` components
+   - Extract `name`, `summary`, or `description` from the Example components
+
+### **Common Mistake to Avoid**
+
+❌ **Incorrect**: Assuming Feature/Knowledge components have `name` and `description` properties directly
+```typescript
+// WRONG - this won't work
+const feature = parsedWML.byUniversalId[componentUUID]
+const name = feature.name        // ❌ Property doesn't exist
+const description = feature.description  // ❌ Property doesn't exist
+```
+
+✅ **Correct**: Access content through referenced Example components
+```typescript
+// RIGHT - access through examples
+const feature = parsedWML.byUniversalId[componentUUID]
+const firstExample = feature.examples?.[0]
+if (firstExample) {
+    const exampleComponent = parsedWML.byUniversalId[firstExample]
+    const name = exampleComponent.name        // ✅ From Example component
+    const description = exampleComponent.description  // ✅ From Example component
+}
+```
+
+### **Why This Pattern?**
+
+This separation allows:
+- **Multiple states**: Different examples for different conditions
+- **Conditional content**: Content that changes based on game state
+- **Reusable content**: Same example can be referenced by multiple components
+- **Flexible rendering**: Different display formats for different contexts
 
 ## Merge Operations
 
@@ -278,8 +328,10 @@ const merged = base.merge(incoming)
 - **Performance**: Optimize merge operations for large components
 - **Validation**: Enhanced component validation
 - **Extensions**: Support for additional component types
+- **StandardRender Consistency**: Refactor `StandardExample` properties (`name`, `summary`, `description`) to return `StandardRender` objects instead of `RenderTree` arrays for consistency with the rest of the system
 
 ### Technical Debt
 - **Error Handling**: Improve error messages for merge conflicts
 - **Documentation**: Add more examples for complex component operations
-- **Testing**: Expand test coverage for edge cases 
+- **Testing**: Expand test coverage for edge cases
+- **StandardExample Properties**: The `name`, `summary`, and `description` properties in `StandardExample` return `RenderTree` (array) instead of `StandardRender` objects, creating inconsistency with the rest of the system 

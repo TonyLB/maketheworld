@@ -199,11 +199,15 @@ const assetWithImports = new StandardForm(`<Asset key=(UserEdit)>
     <Room key=(mainHall)>
         <Exit to=(kitchen)>kitchen</Exit>
         <Feature key=(fountain)>
-            <Description>Beautiful marble fountain</Description>
+            <Example uuid=(fountain-example)>
+                <Description>Beautiful marble fountain</Description>
+            </Example>
         </Feature>
     </Room>
     <Room key=(kitchen) uuid=(KITCHEN#imported-uuid)>
-        <Description>Cozy kitchen</Description>
+        <Example uuid=(kitchen-example)>
+            <Description>Cozy kitchen</Description>
+        </Example>
     </Room>
 </Asset>`)
 

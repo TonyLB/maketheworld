@@ -193,12 +193,12 @@ Include specific guidance for AI assistants:
 - **Example Quality**: Some examples could be more realistic
 
 ### **Current Development Status**
-- **Perception System Migration**: Phase 2 (Frontend Updates) in progress
+- **Perception System Migration**: Phase 2 (Bridge State Component Updates) in progress
 - **✅ Phase 1 Completed**: Interface updates with `PerceptionMessage`, `WMLSchema`, `SchemaComponentUUID`
 - **✅ Backend Updates**: Perception system now sends `PerceptionMessage` format for rooms, features, knowledge
 - **✅ MessageBus Integration**: Added `PublishPerceptionMessage` type and processing
 - **✅ Infrastructure Completed**: WML parsing with fallback strategy, safe cache storage, type safety
-- **🔄 Phase 2 In Progress**: Frontend message router and component updates needed
+- **🔄 Phase 2 In Progress**: Bridge state component updates with gradual migration approach (1/4 components completed, WML structure corrected)
 - **Type Safety**: Comprehensive validation with `isPerceptionMessage` function
 - **Testing**: Full test coverage with 67 tests passing
 - **Documentation**: All relevant AGENT.md files updated with progress status

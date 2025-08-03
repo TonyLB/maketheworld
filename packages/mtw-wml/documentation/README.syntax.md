@@ -59,8 +59,10 @@ the following:
 ```
 <Asset key=(testAsset)>
     <Room key=(room1)>
-        <Name>Lobby</Name>
-        <Description>A sterile corporate lobby, brightly lit by fluorescent bulbs.</Description>
+        <Example uuid=(room1-example)>
+            <Name>Lobby</Name>
+            <Description>A sterile corporate lobby, brightly lit by fluorescent bulbs.</Description>
+        </Example>
     </Room>
 </Asset>
 ```
@@ -75,17 +77,21 @@ has different rules around what spacing and line breaks mean (see *Whitespace*, 
 Independent property content tags can sort past each other. Successive content tags of the same type will, by default, just add their contents together. So
 ```
     <Room key=(room1)>
-        <Name>Lobby</Name>
-        <Description>A corporate lobby</Description>
-        <Name>: at night</Name>
-        <Description>, with shadows clinging to the corners.</Description>
+        <Example uuid=(room1-example)>
+            <Name>Lobby</Name>
+            <Description>A corporate lobby</Description>
+            <Name>: at night</Name>
+            <Description>, with shadows clinging to the corners.</Description>
+        </Example>
     </Room>
 ```
 is the same as:
 ```
     <Room key=(room1)>
-        <Name>Lobby: at night</Name>
-        <Description>A corporate lobby, with shadows clinging to the corners.</Description>
+        <Example uuid=(room1-example)>
+            <Name>Lobby: at night</Name>
+            <Description>A corporate lobby, with shadows clinging to the corners.</Description>
+        </Example>
     </Room>
 ```
 
@@ -100,18 +106,24 @@ appears in the world when that condition is met. So, for instance:
 <Asset key=(testAsset)>
     <Variable key=(dayTime) default={true} />
     <Room key=(lobby)>
-        <Name>Lobby</Name>
-        <Description>A corporate lobby<Space /></Description>
+        <Example uuid=(lobby-example)>
+            <Name>Lobby</Name>
+            <Description>A corporate lobby<Space /></Description>
+        </Example>
     </Room>
     <If (dayTime)>
         <Room key=(lobby)>
-            <Description>with sunlight streaming in the windows.</Description>
+            <Example uuid=(lobby-day-example)>
+                <Description>with sunlight streaming in the windows.</Description>
+            </Example>
         </Room>
     </If>
     <Else>
         <Room key=(lobby)>
-            <Name>: at night</Name>
-            <Description>with shadows crowding the corners.</Description>
+            <Example uuid=(lobby-night-example)>
+                <Name>: at night</Name>
+                <Description>with shadows crowding the corners.</Description>
+            </Example>
         </Room>
     </Else>
 </Asset>
@@ -121,11 +133,15 @@ When the `dayTime` variable is set to true, this will render as if it were the f
 <Asset key=(testAsset)>
     <Variable key=(dayTime) default={true} />
     <Room key=(lobby)>
-        <Name>Lobby</Name>
-        <Description>A corporate lobby<Space /></Description>
+        <Example uuid=(lobby-example)>
+            <Name>Lobby</Name>
+            <Description>A corporate lobby<Space /></Description>
+        </Example>
     </Room>
     <Room key=(lobby)>
-        <Description>with sunlight streaming in the windows.</Description>
+        <Example uuid=(lobby-day-example)>
+            <Description>with sunlight streaming in the windows.</Description>
+        </Example>
     </Room>
 </Asset>
 ```
@@ -134,12 +150,16 @@ When the `dayTime` variable is set to true, this will render as if it were the f
 <Asset key=(testAsset)>
     <Variable key=(dayTime) default={true} />
     <Room key=(lobby)>
-        <Name>Lobby</Name>
-        <Description>A corporate lobby<Space /></Description>
+        <Example uuid=(lobby-example)>
+            <Name>Lobby</Name>
+            <Description>A corporate lobby<Space /></Description>
+        </Example>
     </Room>
     <Room key=(lobby)>
-        <Name>: at night</Name>
-        <Description>with shadows crowding the corners.</Description>
+        <Example uuid=(lobby-night-example)>
+            <Name>: at night</Name>
+            <Description>with shadows crowding the corners.</Description>
+        </Example>
     </Room>
 </Asset>
 ```
