@@ -4,6 +4,13 @@
 
 The World Markup Language (WML) is a custom markup format that serves as both a storage and transmission format for Make The World data. It provides a structured way to represent world assets, rooms, characters, and game state in a human-readable format.
 
+## Core Purpose
+
+- **Data Representation**: Provides a structured format for storing world data
+- **Transmission Format**: Enables data exchange between services and components
+- **Standardization**: Ensures consistent data structure across the system
+- **Extensibility**: Supports custom tags and properties for different content types
+
 ## WML Format Structure
 
 ### Basic Syntax
@@ -217,6 +224,33 @@ The tokenizer recognizes these token types:
 - **ExpressionValue**: Computed expressions
 - **KeyValue**: Key references
 
+## Integration Points
+
+- **Lambda Functions**: WML is used in `lambda/wml/` for asset management
+- **Frontend**: WML content is rendered in the React client
+- **Shared Libraries**: Uses `@tonylb/mtw-base` for tree structures
+- **Event System**: WML changes trigger events via the ExternalBus
+- **Standard Components**: See [`standardize/components/AGENT.md`](./standardize/components/AGENT.md) for component processing
+- **Rich Text Processing**: See [`standardize/render/AGENT.md`](./standardize/render/AGENT.md) for content handling
+
+## Usage Patterns
+
+### Parsing WML
+```typescript
+import { Schema } from './schema'
+const schema = new Schema()
+schema.loadWML(wmlString)
+```
+
+The example above takes a string and converts it into a Schema object. The `schema.schema` property
+will contain the `GenericTree` representation of the schema.
+
+### Converting back to WML
+```typescript
+import { schemaToWML } from './schema'
+const wmlString = schemaToWML(tree)
+```
+
 ## Navigation Tips
 
 1. **Start with Examples**: Look at `dungeon.wml` to understand the format
@@ -225,17 +259,20 @@ The tokenizer recognizes these token types:
 4. **Use TypeScript**: All components are strongly typed
 5. **Review Schema**: The schema system handles validation and conversion
 
-## Integration Points
+## Development Notes
 
-- **Lambda Functions**: WML is used in `lambda/wml/` for asset management
-- **Frontend**: WML content is rendered in the React client
-- **Shared Libraries**: Uses `@tonylb/mtw-base` for tree structures
-- **Event System**: WML changes trigger events via the ExternalBus
+### Current State
+- **Parser**: Fully functional tokenizer and simple parser
+- **Schema**: Complete conversion between WML and internal formats
+- **Standardization**: Component processing and edit handling implemented
+- **Validation**: Schema validation ensures WML correctness
 
-## Development Workflow
+### Future Plans
+- **Performance**: Optimize parsing for large WML files
+- **Validation**: Enhanced schema validation with better error messages
+- **Extensions**: Support for additional tag types and properties
 
-1. **Modify WML**: Edit `.wml` files for content changes
-2. **Update Schema**: Modify schema converters for new tag types
-3. **Add Tests**: Ensure new functionality is tested
-4. **Validate**: Use schema validation for WML correctness
-5. **Deploy**: Changes propagate through the Lambda functions 
+### Technical Debt
+- **Error Handling**: Improve error messages for malformed WML
+- **Documentation**: Add more examples for complex WML structures
+- **Testing**: Expand test coverage for edge cases 

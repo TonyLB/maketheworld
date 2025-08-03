@@ -4,6 +4,13 @@
 
 The `standardize/render` directory contains the StandardRender system, which handles rich text content within WML components. StandardRender provides a structured way to represent and manipulate formatted text content that can include links, line breaks, spacing, and other formatting elements.
 
+## Core Purpose
+
+- **Rich Text Processing**: Handles formatted text content within WML components
+- **Content Normalization**: Ensures consistent text formatting and whitespace
+- **Link Management**: Manages references to other components within text
+- **Edit Operations**: Supports content modification through edit tags
+
 ## Core Concepts
 
 ### Serialization
@@ -140,6 +147,15 @@ class StandardExample {
 }
 ```
 
+## Integration Points
+
+- **Component System**: Used by components for rich text content
+- **Schema System**: Converts to/from WML schema format
+- **Reference System**: Manages component references in links
+- **Edit System**: Supports edit operations for content modification
+- **WML Language**: See [`../AGENT.md`](../AGENT.md) for WML format details
+- **Standard Components**: See [`../components/AGENT.md`](../components/AGENT.md) for component integration
+
 ## Navigation Tips
 
 1. **Start with Examples**: Look at test files for usage patterns
@@ -148,9 +164,20 @@ class StandardExample {
 4. **Review Merge Logic**: Understand how content is combined
 5. **Test Diff Operations**: Verify that diffs can recreate target states
 
-## Integration Points
+## Development Notes
 
-- **Component System**: Used by components for rich text content
-- **Schema System**: Converts to/from WML schema format
-- **Reference System**: Manages component references in links
-- **Edit System**: Supports edit operations for content modification 
+### Current State
+- **Core Elements**: All render element types implemented
+- **Merge/Diff**: Full support for content operations
+- **Normalization**: Automatic whitespace and content normalization
+- **Type Safety**: Strong TypeScript typing throughout
+
+### Future Plans
+- **Performance**: Optimize render operations for large content
+- **Validation**: Enhanced content validation
+- **Extensions**: Support for additional render element types
+
+### Technical Debt
+- **Error Handling**: Improve error messages for merge conflicts
+- **Documentation**: Add more examples for complex render operations
+- **Testing**: Expand test coverage for edge cases 
