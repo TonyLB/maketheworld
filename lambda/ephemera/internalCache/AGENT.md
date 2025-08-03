@@ -187,7 +187,7 @@ if (!object) {
 
 ### **Component-Based Handlers**
 - **`ComponentMeta`**: Caches component metadata from assetDB ([`componentMeta.AGENT.md`](./componentMeta.AGENT.md))
-- **`ComponentRender`**: Caches rendered component descriptions
+- **`ComponentRender`**: Caches rendered component descriptions ([`componentRender.AGENT.md`](./componentRender.AGENT.md))
 - **`Examples`**: Caches example components for rooms/features ([`examples.AGENT.md`](./examples.AGENT.md))
 
 ### **Character-Based Handlers**
