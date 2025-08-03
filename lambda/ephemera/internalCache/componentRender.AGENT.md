@@ -134,6 +134,12 @@ const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
 - Retrieves current character lists for rooms
 - Enables dynamic room descriptions based on occupancy
 
+### **Perception System**
+- **Primary Consumer**: The perception system is the main consumer of ComponentRender output
+- **Message Generation**: Perception uses rendered components to create display messages
+- **Real-time Updates**: Provides immediate feedback through the message bus
+- See [`../perception/AGENT.md`](../perception/AGENT.md) for details on how rendered components are used
+
 ## Legacy Code Considerations
 
 ### **Conditional Rendering (Deprecated)**
