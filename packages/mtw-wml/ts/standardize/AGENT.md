@@ -4,6 +4,13 @@
 
 The `standardize` directory contains the `StandardForm` class, which represents an Asset as a whole, first-class object. StandardForm handles aggregate operations on WML assets by orchestrating the known operations of the `StandardComponent` interface to make changes on each of the children components.
 
+## Core Purpose
+
+- **Asset Management**: Represents entire WML assets as first-class objects
+- **Aggregate Operations**: Orchestrates operations across all components in an asset
+- **Subset Extraction**: Creates focused subsets of assets for specific use cases
+- **Reference Management**: Handles component references and cross-asset relationships
+
 ## StandardForm Class
 
 ### Core Properties
@@ -361,6 +368,16 @@ const assetWithEdits = new StandardForm({
 })
 ```
 
+## Integration Points
+
+- **Component System**: Orchestrates operations on StandardComponent instances
+- **Schema System**: Converts to/from WML schema format
+- **Reference System**: Manages component references and mappings
+- **Edit System**: Processes StandardRemove and StandardReplace components
+- **WML Language**: See [`../AGENT.md`](../AGENT.md) for WML format details
+- **Standard Components**: See [`./components/AGENT.md`](./components/AGENT.md) for component details
+- **Rich Text Processing**: See [`./render/AGENT.md`](./render/AGENT.md) for content handling
+
 ## Navigation Tips
 
 1. **Start with Examples**: Look at test files for usage patterns
@@ -369,9 +386,20 @@ const assetWithEdits = new StandardForm({
 4. **Review Subset Logic**: Understand cascade and request priority systems
 5. **Test Merge Operations**: Verify that component-level merges work correctly
 
-## Integration Points
+## Development Notes
 
-- **Component System**: Orchestrates operations on StandardComponent instances
-- **Schema System**: Converts to/from WML schema format
-- **Reference System**: Manages component references and mappings
-- **Edit System**: Processes StandardRemove and StandardReplace components
+### Current State
+- **Core Operations**: Merge, diff, and subset operations fully implemented
+- **Component Integration**: Complete integration with StandardComponent system
+- **Reference Management**: Full support for component references and mappings
+- **Edit Processing**: Support for edit operations at asset and component levels
+
+### Future Plans
+- **Performance**: Optimize operations for large assets
+- **Validation**: Enhanced asset validation
+- **Extensions**: Support for additional asset operations
+
+### Technical Debt
+- **Error Handling**: Improve error messages for complex operations
+- **Documentation**: Add more examples for complex asset operations
+- **Testing**: Expand test coverage for edge cases

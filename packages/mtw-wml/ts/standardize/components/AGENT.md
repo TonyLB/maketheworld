@@ -4,6 +4,13 @@
 
 The `standardize/components` directory contains the core classes that represent standardized WML components. Each component type has its own class that implements the `StandardComponent` interface, providing a consistent API for manipulating WML data structures.
 
+## Core Purpose
+
+- **Component Standardization**: Provides consistent interfaces for all WML component types
+- **Data Manipulation**: Enables merge, diff, and transformation operations on components
+- **Type Safety**: Ensures type-safe component creation and manipulation
+- **Factory Pattern**: Uses component factory for consistent component generation
+
 ## StandardComponent Interface
 
 All component classes implement the `StandardComponent` interface, which provides these key properties and methods:
@@ -242,6 +249,15 @@ const merged = base.merge(incoming)
 
 ```
 
+## Integration Points
+
+- **Schema System**: Components convert to/from WML schema format
+- **Edit System**: Components support edit tag processing
+- **Reference System**: Components manage references to other components
+- **Standardization**: Components are used in the standardization pipeline
+- **WML Language**: See [`../AGENT.md`](../AGENT.md) for WML format details
+- **Rich Text Processing**: See [`../render/AGENT.md`](../render/AGENT.md) for content handling
+
 ## Navigation Tips
 
 1. **Start with Base Classes**: Understand `baseClasses.ts` and `component.ts`
@@ -250,9 +266,20 @@ const merged = base.merge(incoming)
 4. **Test Diff Operations**: Verify that diffs can recreate target states
 5. **Use TypeScript**: All components are strongly typed for safety
 
-## Integration Points
+## Development Notes
 
-- **Schema System**: Components convert to/from WML schema format
-- **Edit System**: Components support edit tag processing
-- **Reference System**: Components manage references to other components
-- **Standardization**: Components are used in the standardization pipeline 
+### Current State
+- **Core Components**: All major component types implemented
+- **Factory Pattern**: Component factory provides consistent API
+- **Merge/Diff**: Full support for component operations
+- **Type Safety**: Strong TypeScript typing throughout
+
+### Future Plans
+- **Performance**: Optimize merge operations for large components
+- **Validation**: Enhanced component validation
+- **Extensions**: Support for additional component types
+
+### Technical Debt
+- **Error Handling**: Improve error messages for merge conflicts
+- **Documentation**: Add more examples for complex component operations
+- **Testing**: Expand test coverage for edge cases 
