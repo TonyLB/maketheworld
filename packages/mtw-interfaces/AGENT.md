@@ -64,7 +64,7 @@ Defines interfaces for real-time game state and character interactions:
 
 Defines the display protocol for different types of game messages:
 
-#### **Message Types**
+#### **Current Message Types**
 - **`SpacerMessage`**: Visual spacing in chat
 - **`WorldMessage`**: System-generated content
 - **`RoomDescription/Header/Update`**: Room information and changes
@@ -74,6 +74,11 @@ Defines the display protocol for different types of game messages:
 - **`CharacterSpeech`**: Character dialogue
 - **`CharacterNarration`**: Character narrative actions
 - **`OutOfCharacterMessage`**: Player OOC communication
+
+#### **Planned Perception System**
+- **`PerceptionMessage`**: Generic WML-based perception messages (replacing specific description types)
+- **`WMLSchema`**: String format for WML content transmission
+- **`SchemaComponentUUID`**: UUID field for component identification and data lookup
 
 #### **Supporting Types**
 - **`RoomExit`**: Exit connections between rooms
@@ -179,4 +184,39 @@ Provides validation and type checking utilities used throughout the package.
 2. **Include Type Guards**: Add validation functions for new messages
 3. **Update Tests**: Ensure comprehensive test coverage
 4. **Document Changes**: Update this file for new message categories
-5. **Version Control**: Increment package version for breaking changes 
+5. **Version Control**: Increment package version for breaking changes
+
+## Perception System Migration
+
+### **Current State**
+The perception system currently sends WML schema strings that don't match the documented interfaces. This creates inconsistencies between the actual message format and the expected RenderTree format.
+
+### **Planned Changes**
+
+#### **Phase 1: Interface Updates**
+- **New `PerceptionMessage` Type**: Generic message type that accepts WML schema strings
+- **Component UUID Field**: Add `SchemaComponentUUID` for component identification and data lookup
+- **Backward Compatibility**: Maintain existing message types during transition
+
+#### **Phase 2: Frontend Updates**
+- **WML Parsing**: Leverage existing frontend WML parsing capabilities
+- **Component Lookup**: Use `SchemaComponentUUID` to fetch component data and determine type
+- **Component Routing**: Update message router to handle generic perception messages
+
+#### **Phase 3: System Migration**
+- **Perception System**: Update to use consistent `PerceptionMessage` format
+- **Frontend Components**: Replace specific description components with generic WML renderer
+- **Legacy Cleanup**: Remove deprecated message types after migration
+
+### **Benefits of Migration**
+- **Consistency**: Single message type for all perception content
+- **Flexibility**: WML format allows for rich, structured content
+- **Extensibility**: Easy to add new perception types without interface changes
+- **Maintainability**: Reduced interface complexity and message type proliferation
+
+### **Migration Timeline**
+1. **Interface Definition**: Define new `PerceptionMessage` type with WML support
+2. **Frontend Preparation**: Add WML disambiguation logic to message router
+3. **Perception System Update**: Modify perception system to use new format
+4. **Testing and Validation**: Ensure all perception content renders correctly
+5. **Legacy Removal**: Remove deprecated message types after successful migration 
