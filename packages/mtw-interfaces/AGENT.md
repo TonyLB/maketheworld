@@ -207,10 +207,12 @@ The perception system currently sends WML schema strings that don't match the do
 - **Type Guards**: Added `isPerceptionMessage` function with comprehensive validation ✅
 - **Tests**: Created `messages.test.ts` with full test coverage ✅
 
-#### **Phase 2: Frontend Updates**
-- **WML Parsing**: Leverage existing frontend WML parsing capabilities
-- **Component Lookup**: Use `SchemaComponentUUID` to fetch component data and determine type
-- **Component Routing**: Update message router to handle generic perception messages
+#### **Phase 2: Frontend Updates** 🔄 **IN PROGRESS**
+- **✅ Backend Perception System**: Updated perception system to send `PerceptionMessage` format
+- **✅ MessageBus Infrastructure**: Added `PublishPerceptionMessage` type and processing
+- **🔄 Frontend Message Router**: Update message router to handle `PerceptionMessage` format
+- **🔄 Component Lookup**: Use `SchemaComponentUUID` to fetch component data and determine type
+- **🔄 Component Routing**: Update message router to handle generic perception messages
 
 #### **Phase 3: System Migration**
 - **Perception System**: Update to use consistent `PerceptionMessage` format
@@ -225,7 +227,8 @@ The perception system currently sends WML schema strings that don't match the do
 
 ### **Migration Timeline**
 1. **Interface Definition**: Define new `PerceptionMessage` type with WML support ✅ **COMPLETED**
-2. **Frontend Preparation**: Add WML disambiguation logic to message router 🔄 **IN PROGRESS**
-3. **Perception System Update**: Modify perception system to use new format ⏳ **PENDING**
-4. **Testing and Validation**: Ensure all perception content renders correctly ⏳ **PENDING**
-5. **Legacy Removal**: Remove deprecated message types after successful migration ⏳ **PENDING** 
+2. **Backend Perception System**: Updated perception system to send `PerceptionMessage` format ✅ **COMPLETED**
+3. **MessageBus Infrastructure**: Added `PublishPerceptionMessage` type and processing ✅ **COMPLETED**
+4. **Frontend Message Router**: Update message router to handle `PerceptionMessage` format 🔄 **IN PROGRESS**
+5. **Testing and Validation**: Ensure all perception content renders correctly ⏳ **PENDING**
+6. **Legacy Removal**: Remove deprecated message types after successful migration ⏳ **PENDING** 

@@ -187,8 +187,11 @@ Include specific guidance for AI assistants:
 - **Example Quality**: Some examples could be more realistic
 
 ### **Current Development Status**
-- **Perception System Migration**: Phase 1 (Interface Updates) completed successfully
-- **New Types Added**: `PerceptionMessage`, `WMLSchema`, `SchemaComponentUUID` in `packages/mtw-interfaces`
+- **Perception System Migration**: Phase 2 (Backend Updates) in progress
+- **✅ Phase 1 Completed**: Interface updates with `PerceptionMessage`, `WMLSchema`, `SchemaComponentUUID`
+- **✅ Backend Updates**: Perception system now sends `PerceptionMessage` format for rooms, features, knowledge
+- **✅ MessageBus Integration**: Added `PublishPerceptionMessage` type and processing
+- **🔄 Phase 2 In Progress**: Frontend message router updates needed
 - **Type Safety**: Comprehensive validation with `isPerceptionMessage` function
 - **Testing**: Full test coverage with 67 tests passing
 - **Documentation**: All relevant AGENT.md files updated with progress status

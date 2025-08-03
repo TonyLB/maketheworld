@@ -458,6 +458,26 @@ The `isMessage` validation function needs to be updated to handle the actual per
 #### **4. Documentation Updates**
 Update the `mtw-interfaces/AGENT.md` to reflect the actual message formats used by the perception system.
 
+### **Migration Progress**
+
+#### **✅ Phase 1: Interface Updates - COMPLETED**
+- **New `PerceptionMessage` Type**: Added to `packages/mtw-interfaces` with WML schema support
+- **Component UUID Field**: Uses `SchemaComponentUUID` for component identification and data lookup
+- **Type Guards**: Comprehensive validation with `isPerceptionMessage` function
+- **Tests**: Full test coverage with 67 tests passing
+
+#### **🔄 Phase 2: Backend Updates - IN PROGRESS**
+- **✅ Perception System**: Updated to send `PerceptionMessage` format for rooms, features, and knowledge
+- **✅ MessageBus Integration**: Added `PublishPerceptionMessage` type and processing
+- **🔄 Character Descriptions**: Still using legacy format (doesn't use WML content)
+- **🔄 Frontend Router**: Next step - update message router to handle new format
+
+#### **⏳ Phase 3: Frontend Updates - PENDING**
+- **Frontend Message Router**: Add `PerceptionMessage` case to handle new format
+- **Component Updates**: Modify components to parse WML content
+- **Component Lookup**: Use `componentUUID` to determine component type
+- **Testing**: End-to-end validation of new message flow
+
 ### **Implementation Priority**
 1. **High Priority**: Fix CharacterDescription pronouns format mismatch
 2. **Medium Priority**: Add WML schema support for room/feature/knowledge messages

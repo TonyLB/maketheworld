@@ -138,9 +138,10 @@ Components will need to:
 
 ### **Migration Strategy**
 
-#### **Phase 1: Add WML Support** 🔄 **READY TO IMPLEMENT**
-- Add `PerceptionMessage` case to message router
-- Create component lookup logic using `componentUUID`
+#### **Phase 1: Add WML Support** 🔄 **IN PROGRESS**
+- **✅ Backend Ready**: Backend perception system now sends `PerceptionMessage` format
+- **🔄 Add `PerceptionMessage` case**: Add case to message router in `index.tsx`
+- **🔄 Create component lookup logic**: Use `componentUUID` to determine component type
 
 #### **Phase 2: Update Components**
 - Modify components to handle WML content
