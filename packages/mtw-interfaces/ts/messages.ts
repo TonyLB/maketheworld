@@ -12,10 +12,11 @@ import {
     isEphemeraKnowledgeId,
     isEphemeraMapId,
     isEphemeraRoomId,
+    isEphemeraId,
     LegalCharacterColor
 } from "./baseClasses";
 import { checkAll, checkTypes } from "./utils";
-import { AssetUUID } from "@tonylb/mtw-base/ts/schema";
+import { AssetUUID, ComponentUUID, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
 export type MessageAddressing = {
     MessageId: string;
@@ -206,7 +207,16 @@ export type OutOfCharacterMessage = {
     Message: RenderTree;
 } & MessageAddressing & MessageCharacterInfo
 
-export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | KnowledgeDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
+// WML Schema type for string-based WML transmission
+export type WMLSchema = string
+
+export type PerceptionMessage = {
+    DisplayProtocol: 'PerceptionMessage';
+    wmlContent: WMLSchema;
+    componentUUID: ComponentUUID;
+} & MessageAddressing
+
+export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | KnowledgeDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
 
 export const isMessage = (message: any): message is Message => {
     if (typeof message !== 'object') {
@@ -281,6 +291,45 @@ export const isMessage = (message: any): message is Message => {
                     reflexive: 'string'
                 })
             ) && isEphemeraCharacterId(message.CharacterId)
+        case 'PerceptionMessage':
+            return checkAll(
+                checkTypes(message, {
+                    wmlContent: 'string',
+                    componentUUID: 'string'
+                }),
+                typeof message.wmlContent === 'string' && message.wmlContent.length > 0,
+                isSchemaComponentUUID(message.componentUUID)
+            )
         default: return false
     }
+}
+
+// Specific type guard for PerceptionMessage
+export const isPerceptionMessage = (message: any): message is PerceptionMessage => {
+    if (typeof message !== 'object' || message === null) {
+        return false
+    }
+    if (message.DisplayProtocol !== 'PerceptionMessage') {
+        return false
+    }
+    if (!checkTypes(message, {
+        wmlContent: 'string',
+        componentUUID: 'string',
+        MessageId: 'string',
+        CreatedTime: 'number'
+    }, {
+        Target: 'string'
+    })) {
+        return false
+    }
+    if (typeof message.wmlContent !== 'string' || message.wmlContent.length === 0) {
+        return false
+    }
+    if (!isSchemaComponentUUID(message.componentUUID)) {
+        return false
+    }
+    if (message.Target && (!isSchemaComponentUUID(message.Target) || !message.Target.startsWith('CHARACTER#'))) {
+        return false
+    }
+    return true
 }

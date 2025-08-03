@@ -186,6 +186,13 @@ Include specific guidance for AI assistants:
 - **Link Maintenance**: Cross-references need regular validation
 - **Example Quality**: Some examples could be more realistic
 
+### **Current Development Status**
+- **Perception System Migration**: Phase 1 (Interface Updates) completed successfully
+- **New Types Added**: `PerceptionMessage`, `WMLSchema`, `SchemaComponentUUID` in `packages/mtw-interfaces`
+- **Type Safety**: Comprehensive validation with `isPerceptionMessage` function
+- **Testing**: Full test coverage with 67 tests passing
+- **Documentation**: All relevant AGENT.md files updated with progress status
+
 ## Navigation Tips
 
 1. **Start with Overview**: Always read the overview section first
