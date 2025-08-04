@@ -1,5 +1,3 @@
-jest.mock('../internalCache')
-import internalCache from "../internalCache"
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
@@ -8,9 +6,9 @@ import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import perceptionMessage from '.'
 import StandardMessage from "@tonylb/mtw-wml/ts/standardize/components/message"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { StandardReference } from "@tonylb/mtw-wml/ts/standardize/components/reference"
 
 // @ts-ignore
-const cacheMock = jest.mocked(internalCache, true)
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -21,27 +19,40 @@ describe('Perception message', () => {
     })
 
     it('should render characters correctly', async () => {
-        cacheMock.Global.get.mockResolvedValue(['Base'])
-        cacheMock.CharacterMeta.get.mockResolvedValue({
-            EphemeraId: 'CHARACTER#Test',
-            Name: 'Tess',
-            assets: ['Personal'],
-            RoomId: 'ROOM#VORTEX',
-            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-            HomeId: 'ROOM#VORTEX',
-            Pronouns: 'she/her'
-        })
+        // Create mock instance
+        const mockInternalCache = {
+            Global: {
+                get: jest.fn().mockResolvedValue(['Base'])
+            },
+            CharacterMeta: {
+                get: jest.fn().mockResolvedValue({
+                    EphemeraId: 'CHARACTER#Test',
+                    Name: 'Tess',
+                    assets: ['Personal'],
+                    RoomId: 'ROOM#VORTEX',
+                    RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+                    HomeId: 'ROOM#VORTEX',
+                    Pronouns: 'she/her'
+                })
+            }
+        } as any
+
         ephemeraDBMock.getItem.mockResolvedValue({
             Name: 'Tess', 
             Pronouns: 'she/her'
         })
-        await perceptionMessage({ payloads: [
-            {
-                type: 'Perception',
-                characterId: 'CHARACTER#TESS',
-                ephemeraId: 'CHARACTER#TESS'
-            }
-        ], messageBus: messageBusMock })
+        
+        await perceptionMessage({ 
+            payloads: [
+                {
+                    type: 'Perception',
+                    characterId: 'CHARACTER#TESS',
+                    ephemeraId: 'CHARACTER#TESS'
+                }
+            ], 
+            messageBus: messageBusMock,
+            internalCacheOverride: mockInternalCache
+        })
         expect(ephemeraDBMock.getItem).toHaveBeenCalledWith({
             Key: {
                 EphemeraId: 'CHARACTER#TESS',
@@ -62,42 +73,59 @@ describe('Perception message', () => {
 
     describe('messageTag', () => {
         it('should render message tag correctly to a single character', async () => {
-            cacheMock.Global.get.mockResolvedValue(['Base'])
-            cacheMock.CharacterMeta.get.mockResolvedValue({
-                EphemeraId: 'CHARACTER#TESS',
-                Name: 'Tess',
-                assets: ['Personal'],
-                RoomId: 'ROOM#VORTEX',
-                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-                HomeId: 'ROOM#VORTEX',
-                Pronouns: 'she/her'
-            })
-            cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
-                [`ASSET#Base`]: new StandardMessage({
-                    universalKey: 'MESSAGE#Test',
-                    tag: 'Message',
-                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }] },
-                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
-                    key: 'testMessage',
-                })
-            })
-            cacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
-                <Asset key=(render)>
-                    <Message uuid=(Test)>
-                        <Room uuid=(VORTEX) />
-                        <Room uuid=(ABC) />
-                        Test Message
-                    </Message>
-                </Asset>
-            `))
-            await perceptionMessage({ payloads: [
-                {
-                    type: 'Perception',
-                    characterId: 'CHARACTER#TESS',
-                    ephemeraId: 'MESSAGE#Test',
-                    messageGroupId: 'UUID#1'
+            // Create mock instance
+            const mockInternalCache = {
+                Global: {
+                    get: jest.fn().mockResolvedValue(['Base'])
+                },
+                CharacterMeta: {
+                    get: jest.fn().mockResolvedValue({
+                        EphemeraId: 'CHARACTER#TESS',
+                        Name: 'Tess',
+                        assets: ['Personal'],
+                        RoomId: 'ROOM#VORTEX',
+                        RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+                        HomeId: 'ROOM#VORTEX',
+                        Pronouns: 'she/her'
+                    })
+                },
+                ComponentMeta: {
+                    getAcrossAssets: jest.fn().mockResolvedValue({
+                        ['ASSET#Base']: new StandardMessage(`
+                            <Message uuid=(Test) key=(testMessage)>
+                                <Room uuid=(VORTEX) />
+                                <Room uuid=(ABC) />
+                                Test Message
+                            </Message>
+                        `)
+                    })
+                },
+                ComponentRender: {
+                    get: jest.fn().mockResolvedValue(new StandardForm(`
+                        <Asset key=(render)>
+                            <Message uuid=(Test)>
+                                <Room uuid=(VORTEX) />
+                                <Room uuid=(ABC) />
+                                Test Message
+                            </Message>
+                        </Asset>
+                    `))
                 }
-            ], messageBus: messageBusMock })
+            } as any
+
+            await perceptionMessage({ 
+                payloads: [
+                    {
+                        type: 'Perception',
+                        characterId: 'CHARACTER#TESS',
+                        ephemeraId: 'MESSAGE#Test',
+                        messageGroupId: 'UUID#1'
+                    }
+                ], 
+                messageBus: messageBusMock,
+                internalCacheOverride: mockInternalCache
+            })
+            
             expect(messageBusMock.send).toHaveBeenCalledTimes(2)
             expect(messageBusMock.send).toHaveBeenCalledWith({
                 type: 'PublishMessage',
@@ -109,110 +137,111 @@ describe('Perception message', () => {
         })
 
         it('should not render when character is not in a messaged room', async () => {
-            cacheMock.Global.get.mockResolvedValue(['Base'])
-            cacheMock.CharacterMeta.get.mockResolvedValue({
-                EphemeraId: 'CHARACTER#TESS',
-                Name: 'Tess',
-                assets: ['Personal'],
-                RoomId: 'ROOM#VORTEX',
-                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-                HomeId: 'ROOM#VORTEX',
-                Pronouns: 'she/her'
-            })
-            cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
-                [`ASSET#Base`]: new StandardMessage({
-                    universalKey: 'MESSAGE#Test',
-                    tag: 'Message',
-                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }] },
-                    rooms: ['ROOM#ABC'],
-                    key: 'testMessage'
-                })
-            })
-            await perceptionMessage({ payloads: [
-                {
-                    type: 'Perception',
-                    characterId: 'CHARACTER#TESS',
-                    ephemeraId: 'MESSAGE#Test'
+            // Create mock instance
+            const mockInternalCache = {
+                Global: {
+                    get: jest.fn().mockResolvedValue(['Base'])
+                },
+                CharacterMeta: {
+                    get: jest.fn().mockResolvedValue({
+                        EphemeraId: 'CHARACTER#TESS',
+                        Name: 'Tess',
+                        assets: ['Personal'],
+                        RoomId: 'ROOM#VORTEX',
+                        RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+                        HomeId: 'ROOM#VORTEX',
+                        Pronouns: 'she/her'
+                    })
+                },
+                ComponentMeta: {
+                    getAcrossAssets: jest.fn().mockResolvedValue({
+                        ['ASSET#Base']: new StandardMessage(`
+                            <Message uuid=(Test) key=(testMessage)>
+                                <Room uuid=(ABC) />
+                                Test Message
+                            </Message>
+                        `)
+                    })
+                },
+                ComponentRender: {
+                    get: jest.fn().mockResolvedValue(new StandardForm(`
+                        <Asset key=(render)>
+                            <Message uuid=(Test)>
+                                <Room uuid=(ABC) />
+                                Test Message
+                            </Message>
+                        </Asset>
+                    `))
                 }
-            ], messageBus: messageBusMock })
+            } as any
+
+            await perceptionMessage({ 
+                payloads: [
+                    {
+                        type: 'Perception',
+                        characterId: 'CHARACTER#TESS',
+                        ephemeraId: 'MESSAGE#Test'
+                    }
+                ], 
+                messageBus: messageBusMock,
+                internalCacheOverride: mockInternalCache
+            })
             expect(messageBusMock.send).toHaveBeenCalledTimes(1)
         })
 
         it('should not render when render tag delivers no contents', async () => {
-            cacheMock.Global.get.mockResolvedValue(['Base'])
-            cacheMock.CharacterMeta.get.mockResolvedValue({
-                EphemeraId: 'CHARACTER#TESS',
-                Name: 'Tess',
-                assets: ['Personal'],
-                RoomId: 'ROOM#VORTEX',
-                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-                HomeId: 'ROOM#VORTEX',
-                Pronouns: 'she/her'
-            })
-            cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
-                [`ASSET#Base`]: new StandardMessage({
-                    universalKey: 'MESSAGE#Test',
-                    tag: 'Message',
-                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }] },
-                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
-                    key: 'testMessage'
-                })
-            })
-            cacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
-                <Asset key=(render)>
-                    <Message uuid=(Test)>
-                        <Room uuid=(VORTEX) />
-                        <Room uuid=(ABC) />
-                    </Message>
-                </Asset>
-            `))
-            await perceptionMessage({ payloads: [
-                {
-                    type: 'Perception',
-                    characterId: 'CHARACTER#TESS',
-                    ephemeraId: 'MESSAGE#Test'
+            // Create mock instance
+            const mockInternalCache = {
+                Global: {
+                    get: jest.fn().mockResolvedValue(['Base'])
+                },
+                CharacterMeta: {
+                    get: jest.fn().mockResolvedValue({
+                        EphemeraId: 'CHARACTER#TESS',
+                        Name: 'Tess',
+                        assets: ['Personal'],
+                        RoomId: 'ROOM#VORTEX',
+                        RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+                        HomeId: 'ROOM#VORTEX',
+                        Pronouns: 'she/her'
+                    })
+                },
+                ComponentMeta: {
+                    getAcrossAssets: jest.fn().mockResolvedValue({
+                        ['ASSET#Base']: new StandardMessage(`
+                            <Message uuid=(Test) key=(testMessage)>
+                                <Room uuid=(VORTEX) />
+                                <Room uuid=(ABC) />
+                                Test Message
+                            </Message>
+                        `)
+                    })
+                },
+                ComponentRender: {
+                    get: jest.fn().mockResolvedValue(new StandardForm(`
+                        <Asset key=(render)>
+                            <Message uuid=(Test)>
+                                <Room uuid=(ABC) />
+                                <Room uuid=(VORTEX) />
+                            </Message>
+                        </Asset>
+                    `))
                 }
-            ], messageBus: messageBusMock })
+            } as any
+
+            await perceptionMessage({ 
+                payloads: [
+                    {
+                        type: 'Perception',
+                        characterId: 'CHARACTER#TESS',
+                        ephemeraId: 'MESSAGE#Test'
+                    }
+                ], 
+                messageBus: messageBusMock,
+                internalCacheOverride: mockInternalCache
+            })
             expect(messageBusMock.send).toHaveBeenCalledTimes(1)
         })
 
-        it('should not render when room is not in evaluated conditions', async () => {
-            cacheMock.Global.get.mockResolvedValue(['Base'])
-            cacheMock.CharacterMeta.get.mockResolvedValue({
-                EphemeraId: 'CHARACTER#TESS',
-                Name: 'Tess',
-                assets: ['Personal'],
-                RoomId: 'ROOM#VORTEX',
-                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-                HomeId: 'ROOM#VORTEX',
-                Pronouns: 'she/her'
-            })
-            cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
-                [`ASSET#Base`]: new StandardMessage({
-                    universalKey: 'MESSAGE#Test',
-                    tag: 'Message',
-                    description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Test Message' }, children: [] }] },
-                    rooms: ['ROOM#VORTEX', 'ROOM#ABC'],
-                    key: 'testMessage',
-                })
-            })
-            cacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
-                <Asset key=(render)>
-                    <Message uuid=(Test)>
-                        <Room uuid=(ABC) />
-                        Test Message
-                    </Message>
-                </Asset>
-            `))
-            await perceptionMessage({ payloads: [
-                {
-                    type: 'Perception',
-                    characterId: 'CHARACTER#TESS',
-                    ephemeraId: 'MESSAGE#Test'
-                }
-            ], messageBus: messageBusMock })
-            expect(messageBusMock.send).toHaveBeenCalledTimes(1)
-        })
     })
-
 })

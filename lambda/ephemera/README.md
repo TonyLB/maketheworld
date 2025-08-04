@@ -304,3 +304,106 @@ leaveMessage to update those in the room being departed.
 ***Cascades***: None
 
 ---
+
+## Testing Patterns
+
+---
+
+### InternalCache Dependency Injection
+
+The `internalCache` is a global singleton that provides caching services across the lambda. While this works well in production, it can make unit testing difficult due to Jest's module caching behavior and the difficulty of mocking global instances.
+
+#### Pattern Implemented
+
+We've implemented a **dependency injection pattern** that allows tests to inject mock instances while keeping production code clean:
+
+```typescript
+// In the function signature, add an optional override parameter
+export const perceptionMessage = async ({ 
+    payloads, 
+    messageBus, 
+    internalCacheOverride 
+}: { 
+    payloads: PerceptionRequestMessage[], 
+    messageBus: MessageBus,
+    internalCacheOverride?: any
+}): Promise<void> => {
+    // Use a local getter function to choose between override and default
+    const getCache = () => internalCacheOverride || internalCache
+    
+    // Use getCache() instead of internalCache directly throughout the function
+    const messageMetaForCharacter = await getCache().ComponentMeta.getAcrossAssets(ephemeraId, assetList)
+    // ... rest of the function
+}
+```
+
+#### Usage in Tests
+
+```typescript
+// Create a mock instance with the methods you need
+const mockInternalCache = {
+    Global: {
+        get: jest.fn().mockResolvedValue(['Base'])
+    },
+    CharacterMeta: {
+        get: jest.fn().mockResolvedValue({
+            EphemeraId: 'CHARACTER#TESS',
+            Name: 'Tess',
+            assets: ['Personal'],
+            RoomId: 'ROOM#VORTEX',
+            // ... other properties
+        })
+    },
+    ComponentMeta: {
+        getAcrossAssets: jest.fn().mockResolvedValue({
+            [`ASSET#Base`]: new StandardMessage({
+                // ... component data
+            })
+        })
+    }
+} as any
+
+// Pass the mock to the function
+await perceptionMessage({ 
+    payloads: [/* test payload */], 
+    messageBus: messageBusMock,
+    internalCacheOverride: mockInternalCache
+})
+```
+
+#### Benefits
+
+1. **Clean Production Code**: Production code uses the default `internalCache` instance without any test-specific logic
+2. **Reliable Testing**: Tests can inject completely controlled mock instances without worrying about module caching issues
+3. **Type Safety**: The pattern maintains TypeScript type checking
+4. **Minimal Changes**: Only requires adding an optional parameter and a local getter function
+
+#### Future Candidates for This Pattern
+
+The following functions and modules could benefit from this same dependency injection pattern:
+
+- **`lambda/ephemera/executeAction`**: Uses `internalCache` for character and room lookups
+- **`lambda/ephemera/moveCharacter`**: Uses `internalCache` for room and character validation
+- **`lambda/ephemera/checkLocation`**: Uses `internalCache` for location-based queries
+- **`lambda/ephemera/fetchEphemera`**: Uses `internalCache` for character and room data
+- **`lambda/ephemera/characterEvents`**: Uses `internalCache` for character state management
+- **`lambda/ephemera/registerCharacter`**: Uses `internalCache` for character registration
+- **`lambda/ephemera/guestCharacter`**: Uses `internalCache` for guest character handling
+- **`lambda/ephemera/canonUpdate`**: Uses `internalCache` for canonical data updates
+- **`lambda/ephemera/roomUpdate`**: Uses `internalCache` for room state updates
+- **`lambda/ephemera/mapUpdate`**: Uses `internalCache` for map rendering
+- **`lambda/ephemera/mapSubscription`**: Uses `internalCache` for map subscription logic
+
+#### Implementation Guidelines
+
+When implementing this pattern in other functions:
+
+1. **Add the optional parameter**: `internalCacheOverride?: any`
+2. **Create a local getter**: `const getCache = () => internalCacheOverride || internalCache`
+3. **Replace all `internalCache` calls**: Use `getCache()` instead
+4. **Update tests**: Create mock instances and pass them via `internalCacheOverride`
+5. **Document the pattern**: Add comments explaining the dependency injection approach
+
+This pattern significantly improves test reliability and maintainability while keeping production code clean and performant.
+
+---
