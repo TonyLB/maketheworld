@@ -122,6 +122,12 @@ Include specific guidance for AI assistants:
 
 ### **Development Guidelines**
 
+#### **Testing Patterns**
+- **Client (Vitest)**: Use `npm test` for watch mode, `npm test -- --run` for single run
+- **Packages (Jest)**: Use `npm run test` for watch mode, `npm run test -- --watchAll=false` for single run
+- **Specific Files**: `npm test -- --run src/path/to/test.ts` (client) or `npm run test src/path/to/test.ts` (packages)
+- **Test Coverage**: Follow existing test patterns and naming conventions
+
 #### **Adding New Documentation**
 1. **Follow the Structure**: Use the standard sections outlined above
 2. **Cross-Reference**: Link to related `AGENT.md` files
@@ -185,6 +191,18 @@ Include specific guidance for AI assistants:
 - **Incomplete Coverage**: Some subsystems lack documentation
 - **Link Maintenance**: Cross-references need regular validation
 - **Example Quality**: Some examples could be more realistic
+
+### **Current Development Status**
+- **Perception System Migration**: Phase 2 (Bridge State Component Updates) in progress
+- **✅ Phase 1 Completed**: Interface updates with `PerceptionMessage`, `WMLSchema`, `SchemaComponentUUID`
+- **✅ Backend Updates**: Perception system now sends `PerceptionMessage` format for rooms, features, knowledge
+- **✅ MessageBus Integration**: Added `PublishPerceptionMessage` type and processing
+- **✅ Infrastructure Completed**: WML parsing with fallback strategy, safe cache storage, type safety
+- **🔄 Phase 2 In Progress**: Bridge state component updates with gradual migration approach (1/4 components completed, WML structure corrected, resilient typeguards implemented)
+- **✅ Component Migration**: `KnowledgeDescription` completed with proper WML structure, instanceof checks, StandardRender types, and resilient typeguards
+- **Type Safety**: Comprehensive validation with `isPerceptionMessage` function
+- **Testing**: Full test coverage with 67 tests passing
+- **Documentation**: All relevant AGENT.md files updated with progress status
 
 ## Navigation Tips
 

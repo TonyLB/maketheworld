@@ -57,14 +57,18 @@ For instance, in the following example:
 ```xml
 <Asset key=(MarketSquare)>
     <Feature key=(fountain) uuid=(fountain-123)>
-        <Name>Central Fountain</Name>
+        <Example uuid=(fountain-example-1)>
+            <Name>Central Fountain</Name>
+            <Description>A beautiful marble fountain with flowing water.</Description>
+        </Example>
     </Feature>
     
     <Room key=(cafe) uuid=(cafe-456)>
-        <Description>The cafe overlooks the central fountain.</Description>
-        <Feature key=(fountain)>
-            <Description>A beautiful marble fountain with flowing water.</Description>
-        </Feature>
+        <Example uuid=(cafe-example-1)>
+            <Name>Cafe</Name>
+            <Description>The cafe overlooks the central fountain.</Description>
+        </Example>
+        <Feature key=(fountain) />
     </Room>
     
 </Asset>
@@ -77,12 +81,17 @@ standard form, the data would be expresed as follows:
 ```xml
 <Asset key=(MarketSquare)>
     <Feature key=(fountain) uuid=(fountain-123)>
-        <Name>Central Fountain</Name>
-        <Description>A beautiful marble fountain with flowing water.</Description>
+        <Example uuid=(fountain-example-1)>
+            <Name>Central Fountain</Name>
+            <Description>A beautiful marble fountain with flowing water.</Description>
+        </Example>
     </Feature>
     
     <Room key=(cafe) uuid=(cafe-456)>
-        <Description>The cafe overlooks the central fountain.</Description>
+        <Example uuid=(cafe-example-1)>
+            <Name>Cafe</Name>
+            <Description>The cafe overlooks the central fountain.</Description>
+        </Example>
         <Feature key=(fountain) />
     </Room>
     
@@ -90,6 +99,8 @@ standard form, the data would be expresed as follows:
 ```
 
 For detailed information about all component types and their APIs, see [`standardize/components/AGENT.md`](./standardize/components/AGENT.md).
+
+**⚠️ CRITICAL**: Display content (`name`, `summary`, `description`) is stored in `Example` components, not directly in other components. Feature, Knowledge, and Room components reference Examples via their `examples` property. See [Standard Components documentation](standardize/components/AGENT.md) for details.
 
 #### **Keys and UUIDs**: Any component *can* have a key or UUID (or both) and *must* have one or the other. The
 key and UUID specify the component as itself, even when it appears in multiple places. The two serve different
@@ -137,8 +148,10 @@ Edit tags are processed by the standardization system to merge changes into the 
 ```xml
 <Asset key=(Test)>
     <Room key=(testRoom)>
-        <Replace><Description>bare and spindly trees.</Description></Replace>
-        <With><Description>cherry trees lushly in bloom.</Description></With>
+        <Example uuid=(testRoom-example)>
+            <Replace><Description>bare and spindly trees.</Description></Replace>
+            <With><Description>cherry trees lushly in bloom.</Description></With>
+        </Example>
     </Room>
     <Remove><Room key=(unwantedRoom) /></Remove>
 </Asset>
@@ -150,7 +163,9 @@ attempted. For instance, merging the above changes into the following:
 ```xml
 <Asset key=(Test)>
     <Room key=(testRoom)>
-        <Description>A walkway by a canal, winding through bare and spindly trees.</Description>
+        <Example uuid=(testRoom-example)>
+            <Description>A walkway by a canal, winding through bare and spindly trees.</Description>
+        </Example>
     </Room>
     <Room key=(unwantedRoom) />
 </Asset>
@@ -161,7 +176,9 @@ attempted. For instance, merging the above changes into the following:
 ```xml
 <Asset key=(Test)>
     <Room key=(testRoom)>
-        <Description>A walkway by a canal, winding through cherry trees lushly in bloom.</Description>
+        <Example uuid=(testRoom-example)>
+            <Description>A walkway by a canal, winding through cherry trees lushly in bloom.</Description>
+        </Example>
     </Room>
     <Room key=(unwantedRoom) />
 </Asset>

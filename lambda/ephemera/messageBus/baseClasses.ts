@@ -92,6 +92,12 @@ export type PublishCharacterDescriptionMessage = Omit<CharacterDescription, 'Dis
     displayProtocol: 'CharacterDescription';
 } & PublishMessageBase
 
+export type PublishPerceptionMessage = {
+    displayProtocol: 'PerceptionMessage';
+    wmlContent: string;
+    componentUUID: string;
+} & PublishMessageBase
+
 export type PublishMessage = PublishWorldMessage |
     PublishSpeechMessage |
     PublishNarrateMessage |
@@ -100,7 +106,8 @@ export type PublishMessage = PublishWorldMessage |
     PublishFeatureDescriptionMessage |
     PublishKnowledgeDescriptionMessage |
     PublishRoomDescriptionMessage |
-    PublishCharacterDescriptionMessage
+    PublishCharacterDescriptionMessage |
+    PublishPerceptionMessage
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';
@@ -311,6 +318,8 @@ export const isRoomDescriptionPublishMessage = (prop: PublishMessage): prop is P
 export const isFeatureDescriptionPublishMessage = (prop: PublishMessage): prop is PublishFeatureDescriptionMessage => (prop.displayProtocol === 'FeatureDescription')
 export const isKnowledgeDescriptionPublishMessage = (prop: PublishMessage): prop is PublishKnowledgeDescriptionMessage => (prop.displayProtocol === 'KnowledgeDescription')
 export const isCharacterDescriptionPublishMessage = (prop: PublishMessage): prop is PublishCharacterDescriptionMessage => (prop.displayProtocol === 'CharacterDescription')
+
+export const isPerceptionPublishMessage = (prop: PublishMessage): prop is PublishPerceptionMessage => (prop.displayProtocol === 'PerceptionMessage')
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 

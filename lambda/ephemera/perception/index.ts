@@ -1,4 +1,5 @@
-import { PerceptionMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage, isPerceptionComponentMessage } from "../messageBus/baseClasses"
+import { PerceptionMessage as PerceptionRequestMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage, isPerceptionComponentMessage } from "../messageBus/baseClasses"
+import { PerceptionMessage } from "@tonylb/mtw-interfaces/ts/messages"
 import internalCache from "../internalCache"
 import { EphemeraCharacter } from "../cacheAsset/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
@@ -20,7 +21,7 @@ type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'fileURL' | 'Color']: EphemeraCharacter[K];
 }
 
-export const perceptionMessage = async ({ payloads, messageBus }: { payloads: PerceptionMessage[], messageBus: MessageBus }): Promise<void> => {
+export const perceptionMessage = async ({ payloads, messageBus }: { payloads: PerceptionRequestMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads.map(async (payload) => {
         if (isPerceptionShowMessage(payload)) {
             const { characterId, ephemeraId, onlyForAssets } = payload
@@ -133,8 +134,9 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     messageBus.send({
                         type: 'PublishMessage',
                         targets: [characterId],
-                        displayProtocol: payload.header ? 'RoomHeader' : 'RoomDescription',
-                        description: schemaToWML([roomDescribe.schema]),
+                        displayProtocol: 'PerceptionMessage',
+                        wmlContent: schemaToWML([roomDescribe.schema]),
+                        componentUUID: payload.ephemeraId,
                         messageGroupId: payload.messageGroupId
                     })
                 }))
@@ -168,9 +170,9 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     messageBus.send({
                         type: 'PublishMessage',
                         targets: [characterId],
-                        displayProtocol: 'FeatureDescription',
-                        description: schemaToWML([featureDescribe.schema]),
-                        FeatureId: ephemeraId,
+                        displayProtocol: 'PerceptionMessage',
+                        wmlContent: schemaToWML([featureDescribe.schema]),
+                        componentUUID: ephemeraId,
                         messageGroupId: payload.messageGroupId
                     })
                 }
@@ -185,9 +187,9 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                     messageBus.send({
                         type: 'PublishMessage',
                         targets,
-                        displayProtocol: 'KnowledgeDescription',
-                        description: schemaToWML([knowledgeDescribe.schema]),
-                        KnowledgeId: ephemeraId,
+                        displayProtocol: 'PerceptionMessage',
+                        wmlContent: schemaToWML([knowledgeDescribe.schema]),
+                        componentUUID: ephemeraId,
                         messageGroupId: payload.messageGroupId
                     })
                 }

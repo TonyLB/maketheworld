@@ -33,7 +33,7 @@ export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
             directResponse: true
         }))
     }, [KnowledgeId, dispatch])
-    const { fetched, ...rest } = useSelector(getCachedPerception({ EphemeraId: `KNOWLEDGE#${KnowledgeId}` }))
+    const { fetched, wmlContent, parsedWML, componentUUID, Target } = useSelector(getCachedPerception({ EphemeraId: `KNOWLEDGE#${KnowledgeId}` }))
     const navigate = useNavigate()
     const onClickLink = useCallback((to: EphemeraKnowledgeId | EphemeraCharacterId | EphemeraFeatureId | EphemeraActionId) => {
         const knowledgeId = to.split('#')?.[1]
@@ -46,20 +46,21 @@ export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
             }
         }
     }, [navigate])
-    const currentAssets = useMemo(() => (rest.assets || {}), [rest])
-    const status = useSelector(getStatus(`ASSET#draft`))
-    const showEdit = useMemo(() => (currentAssets && ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'].includes(status || '')), [currentAssets, status])
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         {
-            fetched
+            fetched && parsedWML && componentUUID
                 ? <ComponentDescription
                     message={{
-                        ...rest,
+                        DisplayProtocol: 'PerceptionMessage',
+                        wmlContent,
+                        componentUUID,
                         MessageId: 'stub',
-                        DisplayProtocol: 'KnowledgeDescription',
-                        CreatedTime: 0
+                        CreatedTime: 0,
+                        Target: Target ?? 'SESSION#anonymous'
                     }}
+                    parsedWML={parsedWML}
+                    componentUUID={componentUUID}
                     icon={<KnowledgeIcon />}
                     onClickLink={onClickLink}
                 />
