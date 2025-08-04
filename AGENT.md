@@ -198,8 +198,8 @@ Include specific guidance for AI assistants:
 - **✅ Backend Updates**: Perception system now sends `PerceptionMessage` format for rooms, features, knowledge
 - **✅ MessageBus Integration**: Added `PublishPerceptionMessage` type and processing
 - **✅ Infrastructure Completed**: WML parsing with fallback strategy, safe cache storage, type safety
-- **🔄 Phase 2 In Progress**: Bridge state component updates with gradual migration approach (1/4 components completed, WML structure corrected, resilient typeguards implemented)
-- **✅ Component Migration**: `KnowledgeDescription` completed with proper WML structure, instanceof checks, StandardRender types, and resilient typeguards
+- **🔄 Phase 2 In Progress**: Bridge state component updates with gradual migration approach (2/4 components completed, WML structure corrected, resilient typeguards implemented)
+- **✅ Component Migration**: `KnowledgeDescription` and `FeatureDescription` completed with proper WML structure, instanceof checks, StandardRender types, and resilient typeguards
 - **Type Safety**: Comprehensive validation with `isPerceptionMessage` function
 - **Testing**: Full test coverage with 67 tests passing
 - **Documentation**: All relevant AGENT.md files updated with progress status
