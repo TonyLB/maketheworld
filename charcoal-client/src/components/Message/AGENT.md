@@ -219,7 +219,7 @@ interface ComponentDescriptionProps {
 
 **Migration Progress Tracking:**
 - [x] `KnowledgeDescription` - Bridge state implemented ✅ (WML structure corrected, instanceof checks added, proper StandardRender types, resilient typeguards)
-- [ ] `FeatureDescription` - Bridge state implemented
+- [x] `FeatureDescription` - Bridge state implemented ✅ (uses ComponentDescription, now supports both legacy and WML formats)
 - [ ] `RoomHeader` - Bridge state implemented
 - [ ] `RoomDescription` - Bridge state implemented
 
