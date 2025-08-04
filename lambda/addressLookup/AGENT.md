@@ -146,13 +146,13 @@ return assetIds.map((assetId) => ({
 ### Library Zone  
 - **Purpose**: Shared community assets
 - **Structure**: `Library/${subFolder}/${fileName}`
-- **Access**: Available to all players
+- **Access**: Available to all players, but not automatically applied for all players
 - **Example**: `Library/Rooms/tavern.wml`
 
 ### Canon Zone
 - **Purpose**: Official game content
 - **Structure**: `Canon/${subFolder}/${fileName}`
-- **Access**: Read-only for all players
+- **Access**: Available to and automatically applied for all players
 - **Example**: `Canon/Characters/hero.wml`
 
 ### Draft Zone

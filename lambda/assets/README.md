@@ -238,3 +238,4 @@ const metaRecord = await assetDB.getItem({
 - **[Ephemera System](../ephemera/)**: Real-time state management
 - **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File utilities
 - **[Address Lookup System](../addressLookup/)**: S3 address resolution and zone management
+- **[Address Lookup AGENT.md](../addressLookup/AGENT.md)**: Detailed documentation of address resolution, zone management, and draft asset handling
