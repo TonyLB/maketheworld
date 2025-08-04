@@ -1,6 +1,6 @@
 import { PerceptionMessage as PerceptionRequestMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage, isPerceptionComponentMessage } from "../messageBus/baseClasses"
 import { PerceptionMessage } from "@tonylb/mtw-interfaces/ts/messages"
-import internalCache from "../internalCache"
+import { internalCache } from "../internalCache"
 import { EphemeraCharacter } from "../cacheAsset/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import {
@@ -21,12 +21,23 @@ type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'fileURL' | 'Color']: EphemeraCharacter[K];
 }
 
-export const perceptionMessage = async ({ payloads, messageBus }: { payloads: PerceptionRequestMessage[], messageBus: MessageBus }): Promise<void> => {
+export const perceptionMessage = async ({ 
+    payloads, 
+    messageBus, 
+    internalCacheOverride 
+}: { 
+    payloads: PerceptionRequestMessage[], 
+    messageBus: MessageBus,
+    internalCacheOverride?: any
+}): Promise<void> => {
+    const getCache = () => internalCacheOverride || internalCache
+    
     await Promise.all(payloads.map(async (payload) => {
         if (isPerceptionShowMessage(payload)) {
             const { characterId, ephemeraId, onlyForAssets } = payload
 
             if (!characterId) {
+                const internalCache = getCache()
                 const messageMetaByAsset = await internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId) as Record<AssetUUID, StandardComponent>
                 const roomsForMessage = (Object.values(messageMetaByAsset) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms as `ROOM#${string}`[] ]), [])
                 const roomCharacterLists = await Promise.all(roomsForMessage.map(async (roomId) => (internalCache.RoomCharacterList.get(roomId))))
@@ -51,12 +62,14 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 )
             }
             else {
+                const internalCache = getCache()
                 const [characterMeta, globalAssets] = await Promise.all([
                     internalCache.CharacterMeta.get(characterId),
                     internalCache.Global.get('assets')
                 ])
-                const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, [ ...(globalAssets || []), ...characterMeta.assets ].map((key) => (AssetKey(key)))) as Record<AssetUUID, StandardComponent>
-                const roomsForMessage = (Object.values(messageMetaForCharacter) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...(rooms ?? []).map((reference) => (new StandardReference(reference).universalKey)) as `ROOM#${string}`[] ]), [])
+                const assetList = [ ...(globalAssets || []), ...characterMeta.assets ].map((key) => (AssetKey(key)))
+                const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, assetList) as Record<AssetUUID, StandardComponent>
+                const roomsForMessage = Object.values(messageMetaForCharacter).filter((component): component is StandardMessage => component instanceof StandardMessage).reduce<EphemeraRoomId[]>((previous, component) => ([ ...previous, ...(component.rooms.payload ?? []).map((reference) => (reference.universalKey)) as `ROOM#${string}`[] ]), [])
                 if (roomsForMessage.includes(characterMeta.RoomId)) {
                     const messageForm = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     if (messageForm.byUniversalId[characterMeta.RoomId]) {
@@ -79,6 +92,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
         }
         else if (isPerceptionShowMoment(payload)) {
             const { ephemeraId } = payload
+            const internalCache = getCache()
 
             const [momentMetaByAsset, globalAssets = []] = await Promise.all([
                 internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId),
@@ -116,6 +130,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             })
         }
         else if (isPerceptionAssetMessage(payload)) {
+            const internalCache = getCache()
             const { rooms = [] } = (await internalCache.AssetRooms.get(payload.ephemeraId)) || {}
             rooms.forEach((roomId) => {
                 messageBus.send({
@@ -128,6 +143,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
         }
         else if (isPerceptionRoomMessage(payload)) {
             if (isEphemeraRoomId(payload.ephemeraId)) {
+                const internalCache = getCache()
                 const characterList = payload.characterId ? [payload.characterId] : (await internalCache.RoomCharacterList.get(payload.ephemeraId)).map(({ EphemeraId }) => (EphemeraId))
                 await Promise.all(characterList.map(async (characterId) => {
                     const roomDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId, { header: payload.header })
@@ -165,6 +181,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 })
             }
             else {
+                const internalCache = getCache()
                 if (isEphemeraFeatureId(ephemeraId) && isEphemeraCharacterId(characterId)) {
                     const featureDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
                     messageBus.send({
@@ -198,6 +215,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
         else {
             const { characterId = 'ANONYMOUS' } = payload
             if (isPerceptionMapMessage(payload) && isEphemeraCharacterId(characterId)) {
+                const internalCache = getCache()
                 const mapDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
                 if ((!payload.mustIncludeRoomId) || mapDescribe.byUniversalId[payload.mustIncludeRoomId]) {
                     messageBus.send({

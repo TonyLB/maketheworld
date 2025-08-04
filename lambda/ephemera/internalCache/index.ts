@@ -126,5 +126,7 @@ export class InternalCache {
 
 }
 
-export const internalCache = new InternalCache()
+// Default instance
+export let internalCache: InternalCache = new InternalCache()
+
 export default internalCache
