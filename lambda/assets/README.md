@@ -1,132 +1,241 @@
 ---
 ---
 
-# Asset Manager
+# Asset Manager Lambda
 
-The Assets Lambda manages storage of long-duration Assets, defining the structure of the game world.
+## Overview
 
----
+The Assets Lambda manages the storage, caching, and retrieval of long-duration Assets that define the structure of the game world. It serves as the primary content management system for the Make The World platform, handling asset metadata, component data, and S3 file coordination.
 
-## Needs Addressed
+### Core Purpose
 
----
+The Assets Lambda is responsible for:
+- **Asset Storage Management**: Coordinating between DynamoDB metadata and S3 file storage
+- **Caching System**: Maintaining denormalized component data for efficient queries
+- **Content Distribution**: Managing asset access across Personal, Library, and Canon zones
+- **Secure Passthrough**: Acting as a gatekeeper for other microservices
 
-***S3 Intake***
-- Asset details must be stored in non-volatile S3 files in WML format
-- Asset meta-data must be extracted from the S3 files automatically upon upload or change
-- Assets must be able to be healed at any time by reconstructing them from their S3 file
-- Assets must be able to exist in and move between three zones of access:
-    - Personal assets are shown only to the player who owns them, or as part of Stories they share
-    - Library assets are shown only as part of Stories they are imported into
-    - Canon assets are shown to all players
+### Key Concepts
 
-***Denormalized Meta-Data***
-- For a given asset, the manager should optimize *fetch* on a question of this form (even if that
-optimization costs resources at *insert* time):
-    - "Show me the default *inherited* values for all items referenced in this asset, as imported
-    from other assets.  Including:
-        - Default names and descriptions of all Components
-        - Previous layers of all Maps, as shown in default condition"
-- For a given asset and component ID, the manager should optimize *fetch* on a question of
-this form:
-    - "Show me all appearances of this component, in all ancestor assets in the import tree,
-    in an order in which their dependencies do not conflict (DAG-sorted imports)."
+- **Asset**: A WML-formatted content unit containing components, maps, and other game elements
+- **Component**: Individual game elements (rooms, features, characters) within an asset
+- **AssetUUID**: Unique identifier for an asset (format: `ASSET#${string}`)
+- **ComponentUUID**: Unique identifier for a component (format: `ROOM#${string}`, `FEATURE#${string}`, etc.)
+- **DataCategory**: Determines the semantic level of data storage in DynamoDB
 
----
+## DynamoDB Table Structure
 
-## Secure Passthrough
-The **assets** lambda serves as a gatekeeper for functionality services by other microservices (particularly
-the **wml** lambda).  **assets** should perform authorization checks and cleanup on any call before passing
-it on to the ecosystem of Step Functions or directly to another lambda.
+The assets table uses a compound key system with `AssetId` and `DataCategory` fields to organize data at different semantic levels:
 
-Passthrough should be fire-and-forget:  On a passthrough, the receiving functions are responsible for
-reporting feedback and success/failure back to the sessionID that they get passed, and the assets lambda
-can shut down once control has been forwarded.
+### Meta::Asset Records (Root Level)
+- **AssetId**: `ASSET#${string}` (AssetUUID)
+- **DataCategory**: `Meta::Asset`
+- **Purpose**: Root metadata for an asset containing S3 address information
+- **Key Data**:
+  - `address`: S3 location information for the asset's source files (see **[Address Lookup System](../addressLookup/) for details**)
+  - `fileName`: Base filename for WML and JSON files
+  - `zone`: Access zone ('Personal', 'Library', 'Canon', 'Draft', 'Archive')
+  - `player`: Owner player ID (for personal assets)
+  - `subFolder`: Optional subfolder path
+  - `namespaceMap`: WML namespace mapping data
 
----
+### Component Records (Asset-Specific Level)
+- **AssetId**: `ROOM#${string}`, `FEATURE#${string}`, etc. (ComponentUUID)
+- **DataCategory**: `ASSET#${string}` (AssetUUID)
+- **Purpose**: Component data as expressed within a specific asset
+- **Key Data**:
+  - Component-specific attributes and properties
+  - Inherited values and overrides
+  - Component metadata and relationships
 
-## Layers
-Different types of data are stored in different thematic layers within the DynamoDB assets table:
+### Component Meta Records (Cross-Asset Level)
+- **AssetId**: `ROOM#${string}`, `FEATURE#${string}`, etc. (ComponentUUID)
+- **DataCategory**: `Meta::${componentType}` (e.g., `Meta::Room`, `Meta::Feature`)
+- **Purpose**: Cross-asset component metadata for efficient range queries
+- **Key Data**:
+  - `cached`: Array of asset IDs where this component appears
+  - Component type metadata
+  - Inheritance chain information
 
-- [Player Layer](./README.player.md): This layer stores player information, particularly which characters
-the player is currently authorized to play
-- [Character Layer](./README.character.md): This layer stores character information, particularly the address
-of the WML and JSON files in which the character is defined
-- Asset Layer: This layer stores asset information, particularly the address of the WML and JSON files in which
-the asset is defined
-- [Permissions Layer](./README.permissions.md): This layer stores permission and access information, connecting
-players to character and asset files, and characters to asset files to which they have inherent access
+## Core Functions
 
----
+### cacheAsset
+The primary caching function that synchronizes asset data between S3 files and DynamoDB:
 
-## Outlets
+```typescript
+export const cacheAssetMessage = async ({ 
+    payloads, 
+    messageBus 
+}: { 
+    payloads: CacheAssetMessage[], 
+    messageBus: MessageBus 
+}): Promise<void>
+```
 
-- ***checkout***: Moves an asset (specified by checkout) from the Library to the personal assets
-of a player (specified by PlayerName)
-- ***checkin***: Moves an asset (specified by checkin) from the Personal assets of a player into
-the Library
-- ***canonize***: Moves an asset (specified by canonize) from the Library into Canon (DEPRECATED)
-- ***upload***: Generates a pre-signed S3 URL to upload an asset of type "tag" into "fileName" in
-the personal assets of "PlayerName", and return updates on "RequestId"
-- ***uploadImage***: Generates a pre-signed S3 URL to upload an Image of type "fileExtension" in
-the personal assets of "PlayerName", and return updates on "RequestId"
-- ***fetch***: Generates a pre-signed S3 URL to fetch "AssetId" from "fileName" in the personal
-assets of "PlayerName"
-- [***fetchImports***](./fetchImportDefaults/README.md): Accepts a list of imports from assets, and
-recursively follows the import tree for a vertical slice of all relevant assets for only those items.
+**Process**:
+1. **Dual Source Loading**: Retrieves asset data from both DynamoDB cache and S3 files
+2. **Diff Analysis**: Compares cached data with file data to identify changes
+3. **Component Updates**: Updates individual component records in DynamoDB
+4. **Meta Updates**: Updates cross-asset component metadata
+5. **Character Integration**: Handles character-specific caching for Ephemera system
 
----
+**Key Features**:
+- **Optimistic Updates**: Uses optimistic locking for concurrent access
+- **Incremental Updates**: Only updates changed components
+- **Cross-Reference Maintenance**: Updates component meta records for efficient queries
+- **Character Event Integration**: Triggers Ephemera system updates for character changes
 
-## Subscribes to
+### decacheAsset
+Removes asset data from the caching system:
 
-- ***WML***:
-    - Content Update
-    - Authorization Update
+```typescript
+export const decacheAssetMessage = async ({ 
+    payloads, 
+    messageBus 
+}: { 
+    payloads: DecacheAssetMessage[], 
+    messageBus: MessageBus 
+}): Promise<void>
+```
 
----
+**Process**:
+1. **Component Removal**: Deletes all component records for the asset
+2. **Meta Cleanup**: Removes asset references from component meta records
+3. **Cache Invalidation**: Clears internal cache entries
 
-## Events Streamed
+## Internal Cache System
 
-- ***Canon Updated***: An asset has been set canonical, or a canonical asset set non-canonical
-- ***Asset Added***: Add a WML asset to the data manifest
-- ***Asset Removed***: Remove a WML asset from the data manifest
+The lambda uses a sophisticated caching system with multiple specialized caches:
 
----
+### AssetData Cache
+- **Purpose**: Caches parsed StandardForm representations of assets
+- **Key**: `ASSET#${string}`
+- **Data**: StandardForm objects containing asset structure
 
-## S3
+### Meta Cache
+- **Purpose**: Caches asset metadata and S3 address information
+- **Key**: `ASSET#${string}` or `CHARACTER#${string}`
+- **Data**: AssetWorkspaceAddress, cached status
 
----
+### ComponentData Cache
+- **Purpose**: Caches individual component data for efficient retrieval
+- **Key**: ComponentUUID
+- **Data**: Component-specific attributes and properties
 
-### Expected S3 Contents, before or after
+## Integration Points
 
-Expects incoming files in WML Format, with ".wml" extensions
+### Dependencies
+- **S3**: File storage for WML and JSON assets
+- **DynamoDB**: Metadata and component data storage
+- **EventBridge**: System event notifications
+- **WML Lambda**: Content parsing and validation
+- **Ephemera Lambda**: Real-time game state updates
+- **[Address Lookup Lambda](../addressLookup/)**: Asset address resolution and S3 path management
 
-Generates (and later uses) ".json" extension files on the same root name, to track how
-local scopedId keys are mapped to global UUID internal DB keys, and what the normal form of the
-asset contains
+### Cross-References
+- **[WML System](../wml/)**: Content parsing and standardization
+- **[Ephemera System](../ephemera/)**: Real-time state management
+- **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File management utilities
+- **[Address Lookup System](../addressLookup/)**: S3 address resolution and zone management
 
----
+### API Contracts
+- **CacheAssetMessage**: Triggers asset caching process
+- **DecacheAssetMessage**: Triggers asset removal process
+- **AssetAPIMessage**: Direct API calls for asset operations
 
-## Meta::Asset records
+## Usage Patterns
 
----
+### Common Scenarios
 
-### *Key Data*
+#### Asset Upload and Caching
+```typescript
+// Upload asset to S3
+const uploadResult = await s3Client.upload(file)
 
-- AssetId
-- DataCategory
+// Trigger caching
+messageBus.send({
+    type: 'CacheAsset',
+    assetId: 'my-asset-id'
+})
+```
 
-### *S3 Meta-Data*
+**Note**: Asset addresses are resolved through the **[Address Lookup Lambda](../addressLookup/)**, which handles zone management, draft assets, and S3 path generation.
 
-- fileName: The base filename at which data for the asset is stored in S3
-    - Base fileName plus ".wml" is the original WML file for the asset
-    - Base fileName plus ".json" is the parsed output
-- zone:  The zone ('Personal', 'Library', or 'Canon') in which the asset is stored and published
-- player: The internal ID of the player (if any) for whom this is a personal asset
-- subFolder:  Any subFolder between the zone and the fileName
+#### Component Range Queries
+```typescript
+// Query all appearances of a component across assets
+const componentRecords = await assetDB.query({
+    Key: { DataCategory: 'ASSET#asset-id' },
+    IndexName: 'DataCategoryIndex'
+})
+```
 
-### *Namespace Meta-Data*
+#### Cross-Asset Component Lookup
+```typescript
+// Find all assets containing a specific component
+const metaRecord = await assetDB.getItem({
+    Key: {
+        AssetId: 'ROOM#room-id',
+        DataCategory: 'Meta::Room'
+    }
+})
+```
 
-- namespaceMap
+### Best Practices
+1. **Always Cache After Upload**: Ensure new assets are cached immediately
+2. **Use Optimistic Updates**: Leverage the optimistic locking system for concurrent access
+3. **Monitor Cache Performance**: Watch for cache invalidation patterns
+4. **Handle Character Changes**: Ensure character updates trigger Ephemera events
 
----
+## Error Handling
+
+### Common Issues
+- **S3 File Not Found**: Graceful fallback to empty StandardForm
+- **DynamoDB Consistency**: Use eventually consistent reads with fallback
+- **Cache Invalidation**: Automatic cleanup of stale cache entries
+- **Concurrent Updates**: Optimistic locking prevents conflicts
+
+### Recovery Strategies
+- **Self-Healing**: Assets can be reconstructed from S3 files
+- **Cache Refresh**: Force cache invalidation for problematic assets
+- **Backup Restoration**: Use backup entries for data recovery
+
+## Development Notes
+
+### Current State
+- **Cache System**: Fully functional with optimistic updates
+- **Character Integration**: Complete integration with Ephemera system
+- **S3 Coordination**: Robust file management with WML/JSON pairs
+- **Cross-Reference Queries**: Efficient component lookup across assets
+
+### Known Limitations
+- **Cache Size**: Large assets may impact memory usage
+- **Concurrent Access**: High concurrency may require cache tuning
+- **S3 Latency**: File operations can introduce delays
+
+### Future Improvements
+1. **Cache Optimization**: Implement more sophisticated cache eviction
+2. **Batch Operations**: Improve performance for bulk operations
+3. **Monitoring**: Add comprehensive metrics and alerting
+4. **Compression**: Implement data compression for large assets
+
+## Navigation Tips
+
+### Getting Started
+1. **Start with cacheAsset**: Understand the core caching logic
+2. **Review Internal Cache**: Study the caching system architecture
+3. **Examine Table Structure**: Understand the DynamoDB schema
+4. **Check Integration**: See how assets connect to other systems
+
+### Key Files
+- `cacheAsset/index.ts`: Core caching implementation
+- `internalCache/`: Caching system architecture
+- `app.ts`: Main lambda handler
+- `messageBus/`: Event system integration
+
+### Related Documentation
+- **[WML System](../wml/)**: Content format and parsing
+- **[Ephemera System](../ephemera/)**: Real-time state management
+- **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File utilities
+- **[Address Lookup System](../addressLookup/)**: S3 address resolution and zone management
+- **[Address Lookup AGENT.md](../addressLookup/AGENT.md)**: Detailed documentation of address resolution, zone management, and draft asset handling
