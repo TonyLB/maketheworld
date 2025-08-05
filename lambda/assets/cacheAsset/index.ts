@@ -8,16 +8,18 @@ import StandardCharacter from "@tonylb/mtw-wml/ts/standardize/components/charact
 import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses";
 import eventBridgeClient from "@tonylb/mtw-utilities/ts/eventBridge";
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists";
+import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
 
 export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: CacheAssetMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(
         payloads.map(async (payload) => {
             const { assetId } = payload
 
+            const assetUUID = AssetKey(assetId)
             const [dbAsset, fileAsset] = await Promise.all([
-                internalCache.AssetData.get([`ASSET#${assetId}`]).then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset key=(${assetId}) />`))),
+                internalCache.AssetData.get([assetUUID]).then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset key=(${assetId}) />`))),
                 (async () => {
-                    const assetMeta = (await internalCache.Meta.get([`ASSET#${assetId}`]))[0]
+                    const assetMeta = (await internalCache.Meta.get([assetUUID]))[0]
                     const { address } = assetMeta ?? {}
                     if (!address) {
                         return new StandardForm(`<Asset key=(${assetId}) />`)
@@ -38,7 +40,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                         if (component instanceof StandardRemove) {
                             await assetDB.deleteItem({
                                 AssetId: component.universalKey,
-                                DataCategory: `ASSET#${assetId}`
+                                DataCategory: assetUUID
                             })
                         }
                         else {
@@ -51,7 +53,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                                 assetDB.putItem({
                                     ...(fileComponent.toJSON()),
                                     AssetId: component.universalKey,
-                                    DataCategory: `ASSET#${assetId}`,
+                                    DataCategory: assetUUID,
                                 }),
                                 assetDB.optimisticUpdate({
                                     Key: {
