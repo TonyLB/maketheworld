@@ -77,24 +77,58 @@ Components are created using the `componentClassFactory` function, which generat
 - Automatic payload management
 - Consistent API across all component types
 
-However, it is important to note that the generated class returned by methods in `componentClassFactory` is
-**not** the same class as any class that extends `componentClassFactory`. Therefore, any extending class
-needs to override functions like `merge` in order to assure that `instanceof` checks will work for all
-components generated. See example:
+#### **GeneratedComponentClass and Override Pattern**
+
+**⚠️ CRITICAL**: The `componentClassFactory` creates a `GeneratedComponentClass` that provides the base functionality. When specific component classes (like `StandardExample`, `StandardRoom`) extend this generated class, they inherit methods that return `GeneratedComponentClass` instances instead of the specific subclass instances.
+
+**The Problem**: If `StandardExample` simply inherited methods like `merge`, `clone`, etc., from `GeneratedComponentClass`, then:
+```typescript
+const example1 = new StandardExample(data1)
+const example2 = new StandardExample(data2)
+const merged = example1.merge(example2)  // Returns GeneratedComponentClass, not StandardExample!
+```
+
+**The Solution**: Each specific component class must override these methods to ensure they return instances of the correct class:
 
 ```typescript
-// Example: StandardRoom merge override
-export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {
+export class StandardExample extends componentClassFactory(StandardExamplePayload, 'StandardExample') {
     // ... other methods ...
     
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardRoom(super.merge(incoming) as StandardRoom)
+    override clone(): StandardExample {
+        const returnValue = new StandardExample(this)
+        returnValue._payload = new StandardExamplePayload(this._payload)
+        return returnValue
     }
+
+    override merge(incoming: StandardComponent): StandardComponent {
+        return new StandardExample(super.merge(incoming) as StandardExample)
+    }
+
+    override withKey(key: string): StandardComponent {
+        return new StandardExample(super.withKey(key) as StandardExample)
+    }
+
+    // ... other override methods ...
 }
 ```
 
-This pattern ensures that `instanceof StandardRoom` checks work correctly by returning a new `StandardRoom` instance
-rather than the generic factory-generated class.
+**Why This Matters**: 
+- `instanceof StandardExample` checks will fail if methods return `GeneratedComponentClass` instances
+- The `_lookup` method in `StandardForm` relies on correct class types for proper component retrieval
+- Client code expects specific component types, not generic `GeneratedComponentClass` instances
+
+**Required Override Methods**: All specific component classes must override:
+- `clone()`
+- `merge()`
+- `diff()`
+- `withKey()`
+- `withUniversalKey()`
+- `withFileName()`
+- `withMapping()`
+- `withImport()`
+- `withLeastCommonContext()`
+- `withChild()`
+- `equals()` (for custom equality logic)
 
 ## Component Types
 
@@ -335,4 +369,9 @@ const merged = base.merge(incoming)
 - **Documentation**: Add more examples for complex component operations
 - **Testing**: Expand test coverage for edge cases
 - **StandardExample Properties**: The `name`, `summary`, and `description` properties in `StandardExample` return `RenderTree` (array) instead of `StandardRender` objects, creating inconsistency with the rest of the system
-- **StandardRender Constructor**: Must use arrays (`['text']`) not strings (`'text'`) for initialization - this is a common source of runtime errors 
+- **StandardRender Constructor**: Must use arrays (`['text']`) not strings (`'text'`) for initialization - this is a common source of runtime errors
+- **Missing Override Methods**: Several `StandardComponent` classes are missing required override methods to ensure correct class type preservation:
+  - **Missing `withLeastCommonContext` and `withChild` overrides**: `StandardRoom`, `StandardFeature`, `StandardKnowledge`, `StandardCharacter`, `StandardMessage`, `StandardMoment`, `StandardMap`, `StandardAction`, `StandardVariable`, `StandardComputed`, `StandardImage`
+  - **Missing `equals` override**: `StandardCharacter`, `StandardMap`, `StandardVariable`, `StandardImage`
+  - **Missing `diff` override**: `StandardAction`, `StandardVariable`, `StandardComputed`, `StandardImage`
+  - **Note**: `StandardExample` has all required overrides and serves as the reference implementation 

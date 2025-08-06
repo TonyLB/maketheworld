@@ -9,13 +9,17 @@ import { useActiveCharacter } from '../ActiveCharacter'
 import { RoomExit as RoomExitType } from '@tonylb/mtw-interfaces/ts/messages'
 import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
+import { StandardExit } from '@tonylb/mtw-wml/ts/standardize/components/exit'
 
 interface RoomExitProps {
-    exit: RoomExitType;
+    exit: StandardExit;  // Only accept Standard format
     children?: ReactChild | ReactChildren;
 }
 
-export const RoomExit = ({ exit: { Name, Visibility, RoomId } }: RoomExitProps) => {
+export const RoomExit = ({ exit }: RoomExitProps) => {
+    const exitData = exit._payload.plain.toJSON()
+    const exitName = typeof exitData.description === 'string' ? exitData.description : 'Unknown Exit'
+    const targetRoomId = typeof exitData.to === 'string' ? exitData.to : exitData.to.universalKey || ''
 
     const { CharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
@@ -25,14 +29,14 @@ export const RoomExit = ({ exit: { Name, Visibility, RoomId } }: RoomExitProps) 
     //
     const clickable = true
     const clickHandler = clickable ? () => {
-        if (isEphemeraCharacterId(CharacterId) && isEphemeraRoomId(RoomId)) {
+        if (isEphemeraCharacterId(CharacterId) && isEphemeraRoomId(targetRoomId)) {
             dispatch(addOnboardingComplete(['exitLink']))
-            dispatch(moveCharacter(CharacterId)({ RoomId, ExitName: Name }))
+            dispatch(moveCharacter(CharacterId)({ RoomId: targetRoomId, ExitName: exitName }))
         }
     } : () => {}
 
     return <Chip
-            label={Name}
+            label={exitName}
             icon={<ExitIcon />}
             onClick={clickHandler}
         />

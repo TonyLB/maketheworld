@@ -220,8 +220,8 @@ interface ComponentDescriptionProps {
 **Migration Progress Tracking:**
 - [x] `KnowledgeDescription` - Bridge state implemented ✅ (WML structure corrected, instanceof checks added, proper StandardRender types, resilient typeguards)
 - [x] `FeatureDescription` - Bridge state implemented ✅ (uses ComponentDescription, now supports both legacy and WML formats)
-- [ ] `RoomHeader` - Bridge state implemented (Phase 1 analysis completed ✅)
-- [ ] `RoomDescription` - Bridge state implemented (Phase 1 analysis completed ✅)
+- [x] `RoomHeader` - Bridge state implemented ✅ (Phase 2 completed, inherits from RoomDescription)
+- [x] `RoomDescription` - Bridge state implemented ✅ (Phase 2 completed, legacy conversion functions, pure Standard format sub-components, comprehensive unit tests)
 
 **Note**: `CharacterDescription` is not included in this migration as character perception messages are not currently being converted to `PerceptionMessage` format. This may be addressed in a future phase.
 

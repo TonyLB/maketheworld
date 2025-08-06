@@ -80,6 +80,13 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                             componentUUID={perceptionMessage.componentUUID}
                             {...rest} 
                         />
+                    case 'Room':
+                        return <RoomDescription 
+                            message={message} 
+                            parsedWML={perceptionMessage.parsedWML}
+                            componentUUID={perceptionMessage.componentUUID}
+                            {...rest} 
+                        />
                     // Add other cases as we implement them
                     default:
                         return <UnknownMessage message={message} />

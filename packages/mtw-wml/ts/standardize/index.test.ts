@@ -7,6 +7,7 @@ import StandardRoom from './components/room'
 import StandardCharacter from './components/character'
 import { StandardKey } from './components/reference'
 import StandardFeature from './components/feature'
+import StandardExample from './components/example'
 import { StandardLiteral } from './literal'
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
     return {
@@ -2668,6 +2669,33 @@ describe('StandardForm', () => {
                     </Room>
                 </Asset>
             `))
+        })
+
+        it('should return correct instance types from _lookup', () => {
+            const testWML = deIndentWML(`
+                <Asset key=(test)>
+                    <Room uuid=(testRoom) key=(testRoom)>
+                        <Example uuid=(testExample) key=(testExample)>
+                            <Name>Test Room</Name>
+                            <Description>Test room description</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const test = new StandardForm(testWML)
+            
+            // Test that _lookup returns the correct instance types
+            const foundRoom = test._lookup('ROOM#testRoom')
+            expect(foundRoom).toBeInstanceOf(StandardRoom)
+            
+            const foundExample = test._lookup('EXAMPLE#testExample')
+            expect(foundExample).toBeInstanceOf(StandardExample)
+            
+            // Test that the returned instances have the expected properties
+            if (foundExample instanceof StandardExample) {
+                expect(foundExample.name).toBeDefined()
+                expect(foundExample.description).toBeDefined()
+            }
         })
     })
 
