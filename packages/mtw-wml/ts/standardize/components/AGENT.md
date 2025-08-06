@@ -176,21 +176,23 @@ Represents different states/versions of content.
 - [x] Map out required changes across the codebase
 - [x] Create comprehensive project plan
 
-#### **Phase 2: Core Implementation** 🔄
-- [ ] Update `StandardExamplePayload` class:
-  - [ ] Change `_name`, `_summary`, `_description` to store `StandardRender` objects
-  - [ ] Update `fromJSON()` method to create `StandardRender` from `RenderTree`
-  - [ ] Update `fromSchema()` method to create `StandardRender` from schema
-  - [ ] Update `toJSON()` and `toNDJSON()` methods to return `StandardRender.toJSON()`
-  - [ ] Update `schema()` method to use `StandardRender.schema`
-  - [ ] Update `merge()` method to use `StandardRender.merge()`
-  - [ ] Update `referencedKeys()` method to work with `StandardRender`
-  - [ ] Update `mapContents()` method to work with `StandardRender`
-  - [ ] Update `remapReferences()` method to work with `StandardRender`
+#### **Phase 2: Core Implementation** ✅
+- [x] Update `StandardExamplePayload` class:
+  - [x] Change `_name`, `_summary`, `_description` to store `StandardRender` objects
+  - [x] Update `fromJSON()` method to create `StandardRender` from `RenderTree`
+  - [x] Update `fromSchema()` method to create `StandardRender` from schema
+  - [x] Update `toJSON()` and `toNDJSON()` methods to return `StandardRender.toJSON()`
+  - [x] Update `schema()` method to use `StandardRender.schema`
+  - [x] Update `merge()` method to use `StandardRender.merge()`
+  - [x] Update `referencedKeys()` method to work with `StandardRender`
+  - [x] Update `mapContents()` method to work with `StandardRender`
+  - [x] Update `remapReferences()` method to work with `StandardRender`
 
-- [ ] Update `StandardExample` class:
-  - [ ] Update getter methods to return `StandardRender` objects instead of `RenderTree`
-  - [ ] Ensure all override methods preserve `StandardExample` type
+- [x] Update `StandardExample` class:
+  - [x] Update getter methods to return `StandardRender` objects instead of `RenderTree`
+  - [x] Ensure all override methods preserve `StandardExample` type
+
+**⚠️ NOTE**: One integration test is failing due to diff format changes. This needs investigation in Phase 4.
 
 #### **Phase 3: Data Type Updates** 🔄
 - [x] **Keep `StandardExampleData` type unchanged** - `RenderTree` is correct for serialization
