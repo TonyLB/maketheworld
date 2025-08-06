@@ -11,7 +11,7 @@ import RoomDescription from './RoomDescription'
 import { RoomDescription as RoomDescriptionType, RoomHeader as RoomHeaderType } from '@tonylb/mtw-interfaces/ts/messages'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { StandardExit, StandardExitSimple } from '@tonylb/mtw-wml/ts/standardize/components/exit'
+import { StandardExit } from '@tonylb/mtw-wml/ts/standardize/components/exit'
 
 vi.mock('../../../cacheDB')
 vi.mock('../../slices/player', () => ({
@@ -272,6 +272,140 @@ describe('RoomDescription', () => {
 
             expect(screen.getByText('Header Room')).toBeDefined()
             expect(screen.getByText('Live')).toBeDefined()
+        })
+
+        it('should render Standard format data in header mode', () => {
+            // Create a StandardForm with room data
+            const wmlContent = `
+<Asset key=(HeaderRoom)>
+    <Room uuid=(ROOM#header-room)>
+        <Example uuid=(EXAMPLE#header-example)>
+            <Name>Standard Header Room</Name>
+            <Description>Standard header description</Description>
+            <Summary>Standard header summary</Summary>
+        </Example>
+        <Exit to=(ROOM#north-room)>Header Exit</Exit>
+    </Room>
+</Asset>`
+            
+            const standardForm = new StandardForm(wmlContent)
+            const componentUUID = 'ROOM#header-room'
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription 
+                        message={{ DisplayProtocol: 'PerceptionMessage' } as any}
+                        parsedWML={standardForm}
+                        componentUUID={componentUUID}
+                        header
+                        currentHeader
+                    />
+                </Provider>
+            )
+
+            expect(screen.getByText('Standard Header Room')).toBeDefined()
+            expect(screen.getByText('Standard header description')).toBeDefined()
+            expect(screen.getByText('Live')).toBeDefined()
+        })
+
+        it('should apply header layout constraints', () => {
+            const legacyMessage: RoomHeaderType = {
+                DisplayProtocol: 'RoomHeader',
+                Name: ['Header Room'],
+                Description: ['A very long description that should be constrained by the header mode layout constraints including maxHeight and overflow hidden'],
+                Summary: ['Header summary'],
+                RoomId: 'ROOM#header-room',
+                Exits: [],
+                Characters: [],
+                Target: 'CHARACTER#test',
+                MessageId: 'Test',
+                CreatedTime: 1000000
+            }
+
+            const { container } = render(
+                <Provider store={store}>
+                    <RoomDescription message={legacyMessage} header />
+                </Provider>
+            )
+
+            // Check that the content area has header-specific styling
+            const contentBox = container.querySelector('[style*="maxHeight"]')
+            expect(contentBox).toBeDefined()
+            
+            // Verify the room name and description are still rendered
+            expect(screen.getByText('Header Room')).toBeDefined()
+            expect(screen.getByText(/A very long description/)).toBeDefined()
+        })
+
+        it('should not show live indicator when not current header', () => {
+            const legacyMessage: RoomHeaderType = {
+                DisplayProtocol: 'RoomHeader',
+                Name: ['Header Room'],
+                Description: ['Header description'],
+                Summary: ['Header summary'],
+                RoomId: 'ROOM#header-room',
+                Exits: [],
+                Characters: [],
+                Target: 'CHARACTER#test',
+                MessageId: 'Test',
+                CreatedTime: 1000000
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription message={legacyMessage} header />
+                </Provider>
+            )
+
+            expect(screen.getByText('Header Room')).toBeDefined()
+            expect(screen.queryByText('Live')).toBeNull()
+        })
+
+        it('should handle header mode with personal assets', () => {
+            // Mock store with personal assets
+            const storeWithAssets = mockStore({
+                player: { Assets: ['ASSET#test-asset'] },
+                personalAssets: { byId: { 'ASSET#draft': { meta: { currentState: 'FRESH' } } } }
+            })
+
+            const legacyMessage: RoomHeaderType = {
+                DisplayProtocol: 'RoomHeader',
+                Name: ['Personal Room'],
+                Description: ['Personal room description'],
+                Summary: ['Personal summary'],
+                RoomId: 'ROOM#personal-room',
+                Exits: [],
+                Characters: [],
+                assets: ['ASSET#test-asset'],
+                Target: 'CHARACTER#test',
+                MessageId: 'Test',
+                CreatedTime: 1000000
+            }
+
+            render(
+                <Provider store={storeWithAssets}>
+                    <RoomDescription message={legacyMessage} header currentHeader />
+                </Provider>
+            )
+
+            expect(screen.getByText('Personal Room')).toBeDefined()
+            expect(screen.getByText('Live')).toBeDefined()
+        })
+
+        it('should handle header mode with missing Standard format data', () => {
+            render(
+                <Provider store={store}>
+                    <RoomDescription 
+                        message={{ DisplayProtocol: 'PerceptionMessage' } as any}
+                        parsedWML={undefined}
+                        componentUUID={undefined}
+                        header
+                    />
+                </Provider>
+            )
+
+            expect(screen.getByText('Untitled')).toBeDefined()
+            expect(screen.getByText('No description')).toBeDefined()
         })
     })
 }) 
