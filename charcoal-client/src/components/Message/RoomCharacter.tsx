@@ -7,19 +7,19 @@ import { socketDispatchPromise } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
 
 import CharacterChip from '../CharacterChip'
+import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 
 interface RoomCharacterProps {
-    character: RoomCharacterType;
+    character: StandardCharacter;  // Only accept Standard format
     children?: ReactChild | ReactChildren;
 }
 
-export const RoomCharacter = ({
-    character: {
-        CharacterId,
-        Name,
-        fileURL
-    }
-}: RoomCharacterProps) => {
+export const RoomCharacter = ({ character }: RoomCharacterProps) => {
+    const characterData = character._payload.plain.toJSON()
+    const characterName = typeof characterData.name === 'string' ? characterData.name : 'Unknown Character'
+    const characterId = character.universalKey as any
+    const characterImage = characterData.image?.fileURL
+
     const { CharacterId: viewCharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
     //
@@ -31,11 +31,11 @@ export const RoomCharacter = ({
         dispatch(socketDispatchPromise({
             message: 'link',
             CharacterId: viewCharacterId,
-            to: CharacterId
+            to: characterId
         }))
     } : () => {}
 
-    return <CharacterChip CharacterId={CharacterId} onClick={clickHandler} Name={Name} fileURL={fileURL} />
+    return <CharacterChip CharacterId={characterId} onClick={clickHandler} Name={characterName} fileURL={characterImage} />
 }
 
 export default RoomCharacter

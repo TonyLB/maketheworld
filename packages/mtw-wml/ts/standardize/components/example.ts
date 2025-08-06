@@ -14,6 +14,7 @@ import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "./reference"
+import StandardReference from "./reference"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
@@ -155,6 +156,13 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         return returnValue
     }
 
+    override equals(incoming: StandardComponent): boolean {
+        if (!(incoming instanceof StandardExample)) {
+            return false
+        }
+        return deepEqual(this.toJSON(), incoming.toJSON())
+    }
+
     override merge(incoming: StandardComponent): StandardComponent {
         return new StandardExample(super.merge(incoming) as StandardExample)
     }
@@ -198,6 +206,14 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
 
     override withImport(fromAsset: AssetUUID): StandardComponent {
         return new StandardExample(super.withImport(fromAsset) as StandardExample)
+    }
+
+    override withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
+        return new StandardExample(super.withLeastCommonContext(leastCommonContext) as StandardExample)
+    }
+
+    override withChild(child: StandardReference): StandardComponent {
+        return new StandardExample(super.withChild(child) as StandardExample)
     }
 
 }

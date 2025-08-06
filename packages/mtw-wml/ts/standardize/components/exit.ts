@@ -136,6 +136,9 @@ export class StandardExitSimple implements StandardEditableWrapper<StandardExitB
     get schema() {
         return this.payload.schema
     }
+    get description() {
+        return this.payload.description
+    }
     nestedSchema(tag) {
         return [{ data: tag, children: this.schema }]
     }

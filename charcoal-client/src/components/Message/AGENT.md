@@ -194,7 +194,7 @@ See [WML Standard Components documentation](../../../../packages/mtw-wml/ts/stan
 - **✅ Add `PerceptionMessage` case**: Added case to message router in `index.tsx`
 - **✅ Create component lookup logic**: Using `componentUUID` to determine component type
 
-#### **Phase 2: Bridge State Component Updates** 🔄 **IN PROGRESS**
+#### **Phase 2: Bridge State Component Updates** ✅ **COMPLETED** (4/4 components completed)
 Each existing component will be updated to accept **either** legacy properties **or** new WML format:
 
 ```typescript
@@ -220,8 +220,9 @@ interface ComponentDescriptionProps {
 **Migration Progress Tracking:**
 - [x] `KnowledgeDescription` - Bridge state implemented ✅ (WML structure corrected, instanceof checks added, proper StandardRender types, resilient typeguards)
 - [x] `FeatureDescription` - Bridge state implemented ✅ (uses ComponentDescription, now supports both legacy and WML formats)
-- [ ] `RoomHeader` - Bridge state implemented
-- [ ] `RoomDescription` - Bridge state implemented
+- [x] `RoomHeader` - Bridge state implemented ✅ (Phase 2 completed, inherits from RoomDescription)
+- [x] `RoomDescription` - Bridge state implemented ✅ (Phase 2 completed, legacy conversion functions, pure Standard format sub-components, comprehensive unit tests, all 7 tests passing)
+- [x] `RoomHeader` - Bridge state implemented ✅ (Phase 2 completed, inherits from RoomDescription, handles both legacy and Standard formats, includes header-specific layout and live status)
 
 **Note**: `CharacterDescription` is not included in this migration as character perception messages are not currently being converted to `PerceptionMessage` format. This may be addressed in a future phase.
 
