@@ -11,6 +11,17 @@ The `standardize/components` directory contains the core classes that represent 
 - **Type Safety**: Ensures type-safe component creation and manipulation
 - **Factory Pattern**: Uses component factory for consistent component generation
 
+## ⚠️ CRITICAL: Serialization vs. Manipulation Types
+
+The WML system uses a **two-layer architecture** to separate concerns:
+
+- **Serialization Types** (`dataTypes/` directory): JSON-serializable formats for storage and transmission
+- **Manipulation Types** (this directory): Active objects with methods for runtime operations
+
+**⚠️ IMPORTANT**: Component classes convert between these formats automatically. The `dataTypes/` directory contains the serialization format definitions, while this directory contains the runtime manipulation classes.
+
+**📖 For detailed explanation**: See [`dataTypes/AGENT.md`](dataTypes/AGENT.md) for comprehensive documentation of the serialization vs. manipulation architecture.
+
 ## StandardComponent Interface
 
 All component classes implement the `StandardComponent` interface, which provides these key properties and methods:
@@ -154,6 +165,99 @@ Represents different states/versions of content.
 - **⚠️ CRITICAL**: This component contains the actual display content (`name`, `summary`, `description` as `StandardRender` objects)
 - **⚠️ IMPORTANT**: Other components (Feature, Knowledge, Room) reference Examples via their `examples` property - they do NOT contain display content directly
 - **⚠️ TECHNICAL DEBT**: The `name`, `summary`, and `description` properties currently return `RenderTree` (array) instead of `StandardRender` objects. This should be refactored to return `StandardRender` for consistency with the rest of the system.
+
+## 🔧 TECHNICAL DEBT FIX: StandardExample Properties Refactor
+
+### **Project Plan: StandardExample Properties to StandardRender**
+
+#### **Phase 1: Analysis and Planning** ✅
+- [x] Document current state and technical debt
+- [x] Identify all usage patterns of `StandardExample` properties
+- [x] Map out required changes across the codebase
+- [x] Create comprehensive project plan
+
+#### **Phase 2: Core Implementation** 🔄
+- [ ] Update `StandardExamplePayload` class:
+  - [ ] Change `_name`, `_summary`, `_description` to store `StandardRender` objects
+  - [ ] Update `fromJSON()` method to create `StandardRender` from `RenderTree`
+  - [ ] Update `fromSchema()` method to create `StandardRender` from schema
+  - [ ] Update `toJSON()` and `toNDJSON()` methods to return `StandardRender.toJSON()`
+  - [ ] Update `schema()` method to use `StandardRender.schema`
+  - [ ] Update `merge()` method to use `StandardRender.merge()`
+  - [ ] Update `referencedKeys()` method to work with `StandardRender`
+  - [ ] Update `mapContents()` method to work with `StandardRender`
+  - [ ] Update `remapReferences()` method to work with `StandardRender`
+
+- [ ] Update `StandardExample` class:
+  - [ ] Update getter methods to return `StandardRender` objects instead of `RenderTree`
+  - [ ] Ensure all override methods preserve `StandardExample` type
+
+#### **Phase 3: Data Type Updates** 🔄
+- [x] **Keep `StandardExampleData` type unchanged** - `RenderTree` is correct for serialization
+- [x] **Keep `StandardExampleNDJSONData` type unchanged** - `RenderTree` is correct for serialization  
+- [x] **Keep type guards unchanged** - they correctly validate `RenderTree` format
+- [x] **No changes needed** - Data types represent serialization format, not runtime format
+
+#### **Phase 4: Test Updates** 🔄
+- [ ] Update `example.test.ts`:
+  - [ ] Fix all test expectations to expect `StandardRender` objects
+  - [ ] Update test assertions to use `StandardRender.toJSON()` for comparisons
+  - [ ] Add tests for `StandardRender` specific functionality
+- [ ] Update `edits.test.ts`:
+  - [ ] Fix all test expectations for `StandardExample` properties
+  - [ ] Update merge/diff test cases
+- [ ] Update `index.test.ts`:
+  - [ ] Fix test expectations for `StandardExample` property access
+
+#### **Phase 5: Integration Updates** 🔄
+- [ ] Update `nonEditFactory.ts`:
+  - [ ] Ensure factory creates `StandardExample` with correct property types
+- [ ] Update `index.ts`:
+  - [ ] Ensure type checking works with new property types
+- [ ] Update any other integration points that access `StandardExample` properties
+
+#### **Phase 6: Documentation Updates** 🔄
+- [ ] Update this AGENT.md file:
+  - [ ] Remove technical debt warning
+  - [ ] Update usage examples to show `StandardRender` access
+  - [ ] Update component documentation
+- [ ] Update any other documentation files that reference the old pattern
+
+### **Impact Analysis**
+
+#### **Files Requiring Updates:**
+1. **Core Implementation:**
+   - `packages/mtw-wml/ts/standardize/components/example.ts` (main implementation)
+   - `packages/mtw-wml/ts/standardize/components/dataTypes/example.ts` (type definitions)
+
+2. **Test Files:**
+   - `packages/mtw-wml/ts/standardize/components/example.test.ts` (unit tests)
+   - `packages/mtw-wml/ts/standardize/components/edits.test.ts` (edit operation tests)
+   - `packages/mtw-wml/ts/standardize/index.test.ts` (integration tests)
+
+3. **Integration Points:**
+   - `packages/mtw-wml/ts/standardize/nonEditFactory.ts` (factory creation)
+   - `packages/mtw-wml/ts/standardize/index.ts` (type checking)
+
+4. **Documentation:**
+   - `packages/mtw-wml/ts/standardize/components/AGENT.md` (this file)
+
+#### **Breaking Changes:**
+- **API Change**: `StandardExample.name`, `summary`, `description` will return `StandardRender` objects instead of `RenderTree` arrays
+- **Type Change**: Data types will use `StandardRender` instead of `RenderTree`
+- **Test Updates**: All tests expecting `RenderTree` arrays will need updates
+
+#### **Migration Strategy:**
+1. **Backward Compatibility**: Consider adding deprecated getter methods that return `RenderTree` for gradual migration
+2. **Gradual Rollout**: Update one component at a time, starting with tests
+3. **Validation**: Ensure all `StandardRender` operations work correctly with the new property types
+
+### **Benefits of This Refactor:**
+- **Consistency**: All render content uses `StandardRender` objects
+- **Type Safety**: Better TypeScript support with proper object types
+- **Functionality**: Access to `StandardRender` methods like `merge()`, `diff()`, `remapReferences()`
+- **Maintainability**: Unified approach to render content across all components
+- **Future-Proofing**: Easier to add new render features and capabilities
 
 #### **StandardMessage** (`message.ts`)
 Represents in-game messages and communications.
