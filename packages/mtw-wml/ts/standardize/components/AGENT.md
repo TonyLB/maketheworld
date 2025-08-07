@@ -23,8 +23,8 @@ The `standardize/components` directory contains the core WML component classes t
 - ✅ Room schema generation includes character references
 - ✅ End-to-end WML ↔ JSON ↔ Schema conversion works
 
-**🔄 In Progress (Phase 4+)**: 
-- 🔄 Advanced component operations (merge, diff, equal)
+**🔄 In Progress (Phase 5+)**: 
+- ✅ Advanced component operations (merge, diff, equal) - **COMPLETE**
 - 🔄 Comprehensive unit test coverage
 - 🔄 Client integration for UI display
 - 🔄 Lambda integration for server-side functionality
@@ -37,12 +37,13 @@ The `standardize/components` directory contains the core WML component classes t
 ## Project Plan: StandardRoom Character Integration
 
 **🎯 Progress Summary:**
-- ✅ **Phases 1-3 Complete**: Core functionality implemented and tested
+- ✅ **Phases 1-4 Complete**: Core functionality and advanced operations implemented and tested
 - ✅ **Schema Parsing**: Characters can be parsed as Room sub-components
 - ✅ **Data Structures**: `_characters` property added with proper types
-- ✅ **Core Methods**: `fromJSON`, `fromSchema`, `toJSON`, `schema` methods support characters
+- ✅ **Core Methods**: `fromJSON`, `fromSchema`, `toJSON`, `schema`, `nestedSchema` methods support characters
+- ✅ **Advanced Logic**: `merge`, `diff`, `equals`, `referencedKeys` methods handle character references
 - ✅ **End-to-End**: Room ↔ Character integration works with full round-trip conversion
-- 🔄 **Next**: Phase 4 (Component Logic) - merge, diff, equal operations
+- 🔄 **Next**: Phase 5 (Unit Tests) - comprehensive test coverage for all character functionality
 
 ### **Phase 1: Schema and Parser Updates** ✅
 - [x] Update WML schema parsing to allow Characters as legal sub-components of Room
@@ -63,12 +64,13 @@ The `standardize/components` directory contains the core WML component classes t
 - [x] Update `schema` method to include Character references in output
 - [x] Add `characters` getter to expose `ReferenceList`
 
-### **Phase 4: Component Logic Updates** 🔄
-- [ ] Update `merge` method to handle character reference merging
-- [ ] Update `diff` method to detect character reference changes
-- [ ] Update `equal` method to compare character references
-- [ ] Update `referencedKeys` to include character references
-- [ ] Ensure proper handling of empty/undefined character lists
+### **Phase 4: Component Logic Updates** ✅
+- [x] Update `merge` method to handle character reference merging
+- [x] Update `diff` method to detect character reference changes
+- [x] Update `equals` method to compare character references
+- [x] Update `referencedKeys` to include character references
+- [x] Update `withChild` method to support character references
+- [x] Ensure proper handling of empty/undefined character lists
 
 ### **Phase 5: Unit Test Implementation** 🔄
 - [ ] Create unit tests for `fromJSON` with characters property
@@ -197,12 +199,13 @@ See `dataTypes/AGENT.md` for detailed documentation of this distinction.
 - **Purpose**: Represents knowledge with name and description
 - **Content Properties**: `name`, `description` (both `StandardRender`)
 
-### **StandardRoom** 🟡
+### **StandardRoom** 🟢
 - **Purpose**: Represents rooms with name, description, exits, features, and characters
 - **Content Properties**: `name`, `description` (both `StandardRender`)
 - **Reference Properties**: `features`, `examples`, `characters` (all `ReferenceList`)
-- **Current Status**: ✅ Core functionality complete (Phases 1-3)
-- **Status**: 🟡 Advanced operations in progress (Phase 4: merge, diff, equal)
+- **Current Status**: ✅ Core functionality and advanced operations complete (Phases 1-4)
+- **Advanced Operations**: ✅ merge, diff, equals, referencedKeys, withChild, nestedSchema
+- **Status**: 🟢 Core implementation complete, ready for testing and integration
 
 ## Project Plan: StandardCharacter Technical Debt Fix
 

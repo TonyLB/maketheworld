@@ -128,6 +128,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._exits = mergeStandardExitList([...this.exits, ...incoming.exits])
         returnValue._features = this._features.merge(incoming._features) ?? new ReferenceList([])
         returnValue._examples = this._examples.merge(incoming._examples) ?? new ReferenceList([])
+        returnValue._characters = this._characters.merge(incoming._characters) ?? new ReferenceList([])
         return returnValue as this
     }
 
@@ -147,7 +148,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             ...exitReferenceKeys(this.exits)
                 .map((key) => ({ referenceType: 'Exit' as const, key: isSchemaComponentUUID(key) ? new StandardKey(key) : new StandardKey({ key, tag: 'Room' }) })),
             ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
+            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
         ]
     }
 
@@ -216,6 +218,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         }
         return !(this.features.diff(incoming.features)?.payload.length) &&
             !(this.examples.diff(incoming.examples)?.payload.length) &&
+            !(this.characters.diff(incoming.characters)?.payload.length) &&
             !(diffStandardExitList(this.exits, incoming.exits).length) &&
             deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
     }
@@ -236,9 +239,11 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         }
         const featuresDiff = this.features.diff(incoming.features) ?? new ReferenceList([])
         const examplesDiff = this.examples.diff(incoming.examples) ?? new ReferenceList([])
+        const charactersDiff = this.characters.diff(incoming.characters) ?? new ReferenceList([])
         if (deepEqual(this._payload.shortName?.toJSON(), incoming._payload.shortName?.toJSON()) &&
             !featuresDiff.payload.length &&
             !examplesDiff.payload.length &&
+            !charactersDiff.payload.length &&
             !diffStandardExitList(this.exits, incoming.exits).length
         ) {
             return undefined
@@ -250,6 +255,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
             : incoming._payload._shortName
         base._payload._features = featuresDiff
         base._payload._examples = examplesDiff
+        base._payload._characters = charactersDiff
         base._payload._exits = diffStandardExitList(this.exits, incoming.exits)
         return base
     }
