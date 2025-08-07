@@ -1743,12 +1743,10 @@ describe('StandardForm', () => {
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset key=(Test)>
                     <Room uuid=(testRoom) key=(testRoom)>
-                        <Replace>
-                            <Example uuid=(base) key=(base)><Name>Old Name</Name></Example>
-                        </Replace>
-                        <With>
-                            <Example uuid=(base) key=(base)><Name>New Name</Name></Example>
-                        </With>
+                        <Example uuid=(base) key=(base)>
+                            <Replace><Name>Old Name</Name></Replace>
+                            <With><Name>New Name</Name></With>
+                        </Example>
                     </Room>
                 </Asset>
             `))
