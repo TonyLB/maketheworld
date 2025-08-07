@@ -224,4 +224,22 @@ describe('StandardRoom class', () => {
         `))
     })
 
+    it('should correctly add a character reference to a room', () => {
+        const test = new StandardRoom(`
+            <Room key=(testRoomOne)>
+                <Example uuid=(Example1) />
+                <Feature uuid=(Feature1) />
+            </Room>
+        `)
+        const character = new StandardKey("CHARACTER#Character1")
+        const added = test.withChild(new StandardReference(character))
+        expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
+            <Room key=(testRoomOne)>
+                <Feature uuid=(Feature1) />
+                <Example uuid=(Example1) />
+                <Character uuid=(Character1) />
+            </Room>
+        `))
+    })
+
 })

@@ -116,6 +116,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...this.features.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
                 ...this.examples.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
+                ...this.characters.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
                 ...this.exits.map((exit) => (exit.schema)).flat(1)
             ]
         }
@@ -182,6 +183,9 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         else if (child._payload.plain.tag === 'Example') {
             returnValue._examples = returnValue._examples.assureItem(child)
         }
+        else if (child._payload.plain.tag === 'Character') {
+            returnValue._characters = returnValue._characters.assureItem(child)
+        }
         else {
             throw new Error(`Invalid child type ${child._payload.tag} for StandardRoom`)
         }
@@ -194,6 +198,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get exits() { return this._payload.exits }
     get features() { return this._payload.features }
     get examples() { return this._payload.examples }
+    get characters() { return this._payload.characters }
 
     constructor(props: string | StandardRoomData | GenericTreeNode<SchemaTag> | StandardRoom) {
         super(props)
