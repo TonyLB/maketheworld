@@ -12,9 +12,12 @@ import SchemaTagTree from "../../tagTree/schema"
 import { StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { deepEqual } from "../../lib/objects"
 import { StandardKey } from "./reference"
+import { StandardRender } from "../render"
+import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
+import { wrappedNodeTypeGuard } from "../../schema/utils"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
-    _name?: EditWrappedStandardNode<SchemaNameTag, SchemaOutputTag>;
+    _name?: StandardRender;
     _shortName?: StandardLiteral;
     _pronouns?: StandardLiteral;
     _image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
@@ -33,7 +36,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         const { shortName, pronouns } = props
         this._shortName = shortName ? new StandardLiteral(shortName) : undefined
         this._pronouns = pronouns ? new StandardLiteral(pronouns) : undefined
-        this._name = props.name
+        this._name = props.name ? new StandardRender(props.name) : undefined
         this._image = props.image
     }
 
@@ -50,8 +53,10 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
             this._pronouns = pronounsItem.length ? new StandardLiteral(pronounsItem) : undefined
-            const confirmOutputChildren = <InputNode extends SchemaTag>(node: GenericTreeNodeFiltered<InputNode, SchemaTag> |  undefined): GenericTreeNodeFiltered<InputNode, SchemaOutputTag> | undefined => (node ? { data: node.data, children: treeTypeGuard({ tree: node.children, typeGuard: isSchemaOutputTag })} : undefined)
-            this._name = confirmOutputChildren(node.children.find(treeNodeTypeguard(isSchemaName)))
+            const nameItem = tagTree.filter({ match: 'Name' }).prune({ match: 'Name' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
+            if (nameItem.length) {
+                this._name = new StandardRender(nameItem)
+            }
             this._image = node.children.find(treeNodeTypeguard(isSchemaImage))
             return
         }
@@ -68,7 +73,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             tag: 'Character',
             shortName: this?.shortName?.toJSON(),
             pronouns: this?.pronouns?.toJSON(),
-            name: this.name,
+            name: this.name?.toJSON(),
             image: this.image,
         }
     }
@@ -79,7 +84,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema({ tag: 'Pronouns' }))).flat(1),
-                this.name,
+                rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }),
                 this.image
             ].filter(excludeUndefined).flat(1)
         }
@@ -92,6 +97,8 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         const returnValue = new StandardCharacterPayload()
         returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         returnValue._pronouns = (this._pronouns && incoming._pronouns) ? this._pronouns.merge(incoming._pronouns) : this._pronouns ?? incoming._pronouns
+        returnValue._name = (this._name && incoming._name) ? this._name.merge(incoming._name) : this._name ?? incoming._name
+        returnValue._image = this._image ?? incoming._image
         return returnValue as this
     }
 
@@ -143,6 +150,10 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         base._payload._pronouns = this._payload._pronouns
             ? this._payload._pronouns.diff(incoming._payload._pronouns)
             : incoming._payload._pronouns
+        base._payload._name = this._payload._name
+            ? this._payload._name.diff(incoming._payload._name)
+            : incoming._payload._name
+        base._payload._image = this._payload._image ?? incoming._payload._image
         return base
     }
 

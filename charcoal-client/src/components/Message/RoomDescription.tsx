@@ -60,7 +60,7 @@ const createStandardCharacterFromLegacy = (legacyCharacter: any): StandardCharac
     // Create StandardCharacter instance from legacy data
     const characterData: StandardCharacterData = {
         tag: 'Character',
-        name: legacyCharacter.Name,  // Convert string to rich text
+        name: legacyCharacter.Name ? [legacyCharacter.Name] : undefined,  // Convert string to RenderTree array
         shortName: legacyCharacter.Name,  // Use name as shortName
         pronouns: undefined,  // Legacy doesn't have pronouns
         image: legacyCharacter.fileURL ? { data: { tag: 'Image', key: '', fileURL: legacyCharacter.fileURL }, children: [] } : undefined
