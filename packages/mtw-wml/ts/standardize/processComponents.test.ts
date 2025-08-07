@@ -550,8 +550,7 @@ describe("processComponents", () => {
         const roomComponent = result.find(({ key }) => (key === 'testRoom'))
         expect(roomComponent).toBeDefined()
         
-        // Note: Room schema output doesn't include Characters yet - that's Phase 2 work
-        // For now, we're just verifying that Characters can be parsed within Room context
-        expect(schemaToWML([roomComponent!.schema])).toBe('<Room key=(testRoom) />')
+        // Phase 3: Room schema output should now include Character references!
+        expect(schemaToWML([roomComponent!.schema])).toBe('<Room key=(testRoom)><Character key=(testCharacter) /></Room>')
     })
 })
