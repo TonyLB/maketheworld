@@ -26,6 +26,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     _exits: StandardExit[] = [];
     _features: ReferenceList;
     _examples: ReferenceList;
+    _characters: ReferenceList;
     tag = 'Room' as const
 
     constructor(previous?: StandardRoomPayload) {
@@ -34,10 +35,12 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             this._exits = [...previous.exits]
             this._features = previous._features.clone()
             this._examples = previous._examples.clone()
+            this._characters = previous._characters.clone()
         }
         else {
             this._examples = new ReferenceList([])
             this._features = new ReferenceList([])
+            this._characters = new ReferenceList([])
         }
     }
 
@@ -75,6 +78,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     get exits() { return this._exits }
     get features() { return this._features }
     get examples() { return this._examples }
+    get characters() { return this._characters }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardRoomData, 'key' | 'universalKey'> {
         const { stripUIFields: stripUI } = options ?? {}
