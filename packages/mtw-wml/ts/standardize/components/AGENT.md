@@ -34,6 +34,68 @@ The `standardize/components` directory contains the core WML component classes t
 - Modify room serialization/deserialization
 - Update UI components to handle character display
 
+## Project Plan: StandardRoom Character Integration
+
+### **Phase 1: Schema and Parser Updates** 🔄
+- [ ] Update WML schema parsing to allow Characters as legal sub-components of Room
+- [ ] Ensure Characters can be parsed within Room context
+- [ ] Add schema validation for Character references in Room components
+- [ ] Test schema parsing with Room containing Characters
+
+### **Phase 2: Core Data Structure Updates** 🔄
+- [ ] Add `_characters` property of type `ReferenceList` to `StandardRoomPayload`
+- [ ] Update `StandardRoomData` type to include `characters` property (similar to `features`)
+- [ ] Import necessary types (`ReferenceList`, character-related types)
+- [ ] Update type definitions for serialization
+
+### **Phase 3: Core Implementation Methods** 🔄
+- [ ] Update `fromJSON` method to handle `characters` property
+- [ ] Update `fromSchema` method to extract Character references from schema
+- [ ] Update `toJSON` method to serialize `_characters` to `characters` property
+- [ ] Update `schema` method to include Character references in output
+- [ ] Add `characters` getter to expose `ReferenceList`
+
+### **Phase 4: Component Logic Updates** 🔄
+- [ ] Update `merge` method to handle character reference merging
+- [ ] Update `diff` method to detect character reference changes
+- [ ] Update `equal` method to compare character references
+- [ ] Update `referencedKeys` to include character references
+- [ ] Ensure proper handling of empty/undefined character lists
+
+### **Phase 5: Unit Test Implementation** 🔄
+- [ ] Create unit tests for `fromJSON` with characters property
+- [ ] Create unit tests for `fromSchema` with Character sub-components
+- [ ] Create unit tests for `toJSON` serialization including characters
+- [ ] Create unit tests for `schema` output including characters
+- [ ] Create unit tests for `merge` operations with character conflicts
+- [ ] Create unit tests for `diff` detection of character changes
+- [ ] Create unit tests for `equal` comparison with character differences
+- [ ] Create unit tests for `characters` getter functionality
+
+### **Phase 6: Integration Testing** 🔄
+- [ ] Test StandardRoom with Characters in integration scenarios
+- [ ] Test WML parsing of Room components containing Characters
+- [ ] Test serialization round-trip (WML → StandardRoom → JSON → StandardRoom → WML)
+- [ ] Test diff scenarios with complex character reference changes
+
+### **Phase 7: Client Integration** 🔄
+- [ ] Update `RoomDescription` component to use `room.characters` when available
+- [ ] Update UI logic to handle both legacy and Standard format character display
+- [ ] Test frontend functionality with Standard format rooms containing characters
+- [ ] Remove legacy character handling workarounds where possible
+
+### **Phase 8: Lambda Integration** 🔄
+- [ ] Update server-side room construction to include character references
+- [ ] Update ephemera system to populate character references in StandardRoom
+- [ ] Test Lambda functions that create/manipulate StandardRoom instances
+- [ ] Ensure proper character reference synchronization
+
+### **Phase 9: Documentation and Cleanup** 🔄
+- [ ] Update StandardRoom documentation to reflect character integration
+- [ ] Update usage examples to show character reference patterns
+- [ ] Update related documentation (ephemera, UI components)
+- [ ] Clean up temporary workarounds and debug code
+
 ### **RESOLVED: StandardCharacter Technical Debt** ✅
 **Status**: COMPLETED - `StandardCharacter` component now uses `StandardRender` objects for the `name` property.
 
