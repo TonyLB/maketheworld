@@ -101,9 +101,19 @@ See `dataTypes/AGENT.md` for detailed documentation of this distinction.
 - **Purpose**: Represents exits between rooms
 - **Content Properties**: `description` (uses `StandardRender`)
 
-### **StandardImage**
+### **StandardImage** 🔴
 - **Purpose**: Represents images with fileURL
 - **Content Properties**: `fileURL` (string)
+- **Status**: 🔴 **CRITICAL: Image Storage System Migration Needed**
+
+**Current Issues**: `fileURL` property is brittle and complex to maintain. Images use UUID-based naming with separate `fileName` properties in asset JSON.
+
+**Future Plans**: Migrate to universalKey-based storage (`${universalKey}.png`) to eliminate separate properties and enable automatic cleanup.
+
+**Related Documentation**:
+- **[Image Storage System](../../../../lambda/assets/AGENT.imageStorage.md)**: Comprehensive overview of current system and migration plans
+
+**Developer Note**: Current `fileURL` handling is temporary. Feel free to insert temporary stub implementations for images in order to progress on other functionality.
 
 ### **StandardFeature**
 - **Purpose**: Represents features with name and description
