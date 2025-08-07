@@ -15,10 +15,10 @@ interface RoomCharacterProps {
 }
 
 export const RoomCharacter = ({ character }: RoomCharacterProps) => {
-    const characterData = character._payload.plain.toJSON()
-    const characterName = typeof characterData.name === 'string' ? characterData.name : 'Unknown Character'
+    // Access data through StandardCharacter getters
+    const characterName = character.name ? character.name.plainString : 'Unknown Character'
     const characterId = character.universalKey as any
-    const characterImage = characterData.image?.fileURL
+    const characterImage = character.image?.fileURL
 
     const { CharacterId: viewCharacterId } = useActiveCharacter()
     const dispatch = useDispatch()

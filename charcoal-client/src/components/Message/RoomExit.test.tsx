@@ -7,6 +7,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
+import '@testing-library/jest-dom'
 import RoomExit from './RoomExit'
 import { StandardExit } from '@tonylb/mtw-wml/ts/standardize/components/exit'
 
@@ -15,7 +16,7 @@ vi.mock('../ActiveCharacter', () => ({
     useActiveCharacter: () => ({ CharacterId: 'CHARACTER#test' })
 }))
 vi.mock('../../slices/lifeLine', () => ({
-    moveCharacter: vi.fn()
+    moveCharacter: vi.fn(() => vi.fn())
 }))
 vi.mock('../../slices/player/index.api', () => ({
     addOnboardingComplete: vi.fn()
@@ -36,11 +37,12 @@ describe('RoomExit', () => {
 
     it('should render StandardExit with description', () => {
         // Create a StandardExit with description
-        const exitData = {
+        const exit = new StandardExit({
+            tag: 'Exit',
+            key: 'test-exit',
             to: 'ROOM#target-room',
             description: 'Test Exit'
-        }
-        const exit = new StandardExit(exitData)
+        })
 
         render(
             <Provider store={store}>
@@ -53,14 +55,15 @@ describe('RoomExit', () => {
 
     it('should render StandardExit with object reference', () => {
         // Create a StandardExit with object reference
-        const exitData = {
+        const exit = new StandardExit({
+            tag: 'Exit',
+            key: 'object-exit',
             to: {
                 universalKey: 'ROOM#target-room',
                 tag: 'Room'
             },
             description: 'Object Exit'
-        }
-        const exit = new StandardExit(exitData)
+        })
 
         render(
             <Provider store={store}>
@@ -72,11 +75,12 @@ describe('RoomExit', () => {
     })
 
     it('should handle click and dispatch moveCharacter', () => {
-        const exitData = {
+        const exit = new StandardExit({
+            tag: 'Exit',
+            key: 'clickable-exit',
             to: 'ROOM#target-room',
             description: 'Clickable Exit'
-        }
-        const exit = new StandardExit(exitData)
+        })
 
         render(
             <Provider store={store}>
@@ -100,11 +104,12 @@ describe('RoomExit', () => {
     })
 
     it('should handle missing description gracefully', () => {
-        const exitData = {
+        const exit = new StandardExit({
+            tag: 'Exit',
+            key: 'no-desc-exit',
             to: 'ROOM#target-room'
             // No description
-        }
-        const exit = new StandardExit(exitData)
+        })
 
         render(
             <Provider store={store}>
@@ -116,14 +121,16 @@ describe('RoomExit', () => {
     })
 
     it('should handle missing target room gracefully', () => {
-        const exitData = {
+        const exit = new StandardExit({
+            tag: 'Exit',
+            key: 'no-target-exit',
             to: {
-                tag: 'Room'
-                // No universalKey
+                tag: 'Room',
+                key: 'unknown-room'
+                // No universalKey but has key
             },
             description: 'No Target Exit'
-        }
-        const exit = new StandardExit(exitData)
+        })
 
         render(
             <Provider store={store}>

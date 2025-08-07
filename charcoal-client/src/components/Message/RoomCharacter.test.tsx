@@ -7,9 +7,9 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
+import '@testing-library/jest-dom'
 import RoomCharacter from './RoomCharacter'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 
 vi.mock('../../../cacheDB')
 vi.mock('../ActiveCharacter', () => ({
@@ -49,13 +49,14 @@ describe('RoomCharacter', () => {
 
     it('should render StandardCharacter with name', () => {
         // Create a StandardCharacter with name
-        const characterData = {
+        const character = new StandardCharacter({
+            tag: 'Character',
+            key: 'test-character',
             name: 'Test Character',
             shortName: 'Test',
             pronouns: undefined,
             image: undefined
-        }
-        const character = standardComponentFactory('Character', characterData) as StandardCharacter
+        })
 
         render(
             <Provider store={store}>
@@ -68,13 +69,14 @@ describe('RoomCharacter', () => {
 
     it('should render StandardCharacter with image', () => {
         // Create a StandardCharacter with image
-        const characterData = {
+        const character = new StandardCharacter({
+            tag: 'Character',
+            key: 'image-character',
             name: 'Image Character',
             shortName: 'Image',
             pronouns: undefined,
             image: { fileURL: 'test-image.jpg' }
-        }
-        const character = standardComponentFactory('Character', characterData) as StandardCharacter
+        })
 
         render(
             <Provider store={store}>
@@ -86,13 +88,14 @@ describe('RoomCharacter', () => {
     })
 
     it('should handle click and dispatch socketDispatchPromise', () => {
-        const characterData = {
+        const character = new StandardCharacter({
+            tag: 'Character',
+            key: 'clickable-character',
             name: 'Clickable Character',
             shortName: 'Clickable',
             pronouns: undefined,
             image: undefined
-        }
-        const character = standardComponentFactory('Character', characterData) as StandardCharacter
+        })
 
         render(
             <Provider store={store}>
@@ -111,13 +114,14 @@ describe('RoomCharacter', () => {
     })
 
     it('should handle missing name gracefully', () => {
-        const characterData = {
+        const character = new StandardCharacter({
+            tag: 'Character',
+            key: 'no-name-character',
             shortName: 'Short',
             pronouns: undefined,
             image: undefined
             // No name
-        }
-        const character = standardComponentFactory('Character', characterData) as StandardCharacter
+        })
 
         render(
             <Provider store={store}>
@@ -129,13 +133,14 @@ describe('RoomCharacter', () => {
     })
 
     it('should handle missing image gracefully', () => {
-        const characterData = {
+        const character = new StandardCharacter({
+            tag: 'Character',
+            key: 'no-image-character',
             name: 'No Image Character',
             shortName: 'NoImage',
             pronouns: undefined
             // No image
-        }
-        const character = standardComponentFactory('Character', characterData) as StandardCharacter
+        })
 
         render(
             <Provider store={store}>
@@ -147,13 +152,14 @@ describe('RoomCharacter', () => {
     })
 
     it('should pass character ID to CharacterChip', () => {
-        const characterData = {
+        const character = new StandardCharacter({
+            tag: 'Character',
+            key: 'id-character',
             name: 'ID Character',
             shortName: 'ID',
             pronouns: undefined,
             image: undefined
-        }
-        const character = standardComponentFactory('Character', characterData) as StandardCharacter
+        })
 
         render(
             <Provider store={store}>

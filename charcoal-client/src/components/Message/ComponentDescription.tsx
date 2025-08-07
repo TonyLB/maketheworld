@@ -59,8 +59,8 @@ export const ComponentDescription = <T extends FeatureDescriptionType | Knowledg
                 if (firstExample && firstExample.universalKey) {
                     const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as ComponentUUID]
                     if (exampleComponent && exampleComponent instanceof StandardExample) {
-                        name = exampleComponent.name ? new StandardRender(exampleComponent.name) : new StandardRender(['Unknown'])
-                        description = exampleComponent.description ? new StandardRender(exampleComponent.description) : new StandardRender([])
+                        name = exampleComponent.name || new StandardRender(['Unknown'])
+                        description = exampleComponent.description || new StandardRender([])
                     }
                 }
             }

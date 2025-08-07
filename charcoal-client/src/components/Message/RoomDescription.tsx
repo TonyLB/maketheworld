@@ -107,11 +107,10 @@ export const RoomDescription = ({ message, header, currentHeader, parsedWML, com
                     console.log('Example name:', exampleComponent.name)
                     console.log('Example description:', exampleComponent.description)
                     
-                    // StandardExample properties return RenderTree (array), not StandardRender
-                    // Convert to StandardRender for consistency
-                    name = exampleComponent.name ? new StandardRender(exampleComponent.name) : new StandardRender(['Untitled'])
-                    description = exampleComponent.description ? new StandardRender(exampleComponent.description) : new StandardRender([])
-                    summary = exampleComponent.summary ? new StandardRender(exampleComponent.summary) : new StandardRender([])
+                    // StandardExample properties now return StandardRender objects directly
+                    name = exampleComponent.name || new StandardRender(['Untitled'])
+                    description = exampleComponent.description || new StandardRender([])
+                    summary = exampleComponent.summary || new StandardRender([])
                 }
             }
             
