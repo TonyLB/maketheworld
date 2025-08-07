@@ -13,6 +13,27 @@ The `standardize/components` directory contains the core WML component classes t
 
 ## Technical Debt
 
+### **CRITICAL: StandardRoom Character Integration** 🔴
+**Status**: `StandardRoom` component lacks character reference integration.
+
+**Problem**: 
+- `StandardRoom` doesn't store character references
+- Characters are managed separately in ephemera system
+- Room descriptions can't display character information
+- Legacy room messages include characters, but Standard format doesn't
+
+**Impact**: 
+- UI inconsistency between legacy and Standard formats
+- Missing character information in room descriptions
+- Test failures in `RoomDescription` component
+- Incomplete room representation in Standard format
+
+**Solution**: 
+- Add character reference list to `StandardRoom` component
+- Update room schema to include character references
+- Modify room serialization/deserialization
+- Update UI components to handle character display
+
 ### **RESOLVED: StandardCharacter Technical Debt** ✅
 **Status**: COMPLETED - `StandardCharacter` component now uses `StandardRender` objects for the `name` property.
 
@@ -96,6 +117,12 @@ See `dataTypes/AGENT.md` for detailed documentation of this distinction.
 - **Purpose**: Represents knowledge with name and description
 - **Content Properties**: `name`, `description` (both `StandardRender`)
 
+### **StandardRoom** 🔴
+- **Purpose**: Represents rooms with name, description, exits, and features
+- **Content Properties**: `name`, `description` (both `StandardRender`)
+- **Missing Integration**: Character references not included in room structure
+- **Status**: 🔴 Character integration needed
+
 ## Project Plan: StandardCharacter Technical Debt Fix
 
 ### **Phase 1: Analysis and Planning** ✅
@@ -166,9 +193,9 @@ const name = example.name.plainString
 const summary = example.summary.plainString
 const description = example.description.plainString
 
-// StandardCharacter (🔴 Needs Fix)
-const name = example.name.plainString  // Currently fails - needs StandardRender
-const image = example.image.fileURL    // Currently fails - needs different approach
+// StandardCharacter (✅ Fixed)
+const name = character.name.plainString  // Now works - returns StandardRender
+const image = character.image?.data?.fileURL || ''  // Now works - handles EditWrappedStandardNode
 ```
 
 ### Serialization
