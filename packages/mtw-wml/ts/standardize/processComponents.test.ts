@@ -5,7 +5,10 @@ import processComponents, { ComponentProcessingTemplate } from "./processCompone
 import StandardRoom from "./components/room"
 
 const componentTemplates: ComponentProcessingTemplate[] = [
-    { key: 'Character' },
+    { 
+        key: 'Character',
+        legalParents: ['Room']
+    },
     { key: 'Image' },
     {
         key: 'Room',
@@ -518,5 +521,37 @@ describe("processComponents", () => {
         ])
         expect((result[1]._key?.context ?? []).map((reference) => (reference.toJSON()))).toEqual([{ key: 'testRoom', tag: 'Room' }])
         expect(result[2]._key?.context).toBeUndefined()
+    })
+
+    it('should allow Characters as legal sub-components of Room', () => {
+        const testSource = `
+            <Asset key=(Test)>
+                <Room key=(testRoom)>
+                    <Character key=(testCharacter)>
+                        <Name>Test Character</Name>
+                    </Character>
+                </Room>
+            </Asset>
+        `
+        const schema = new Schema()
+        schema.loadWML(testSource)
+        const result = processComponents({
+            componentTemplates,
+            schema: schema.schema,
+        })
+        
+        // Verify Character was processed as a sub-component of Room
+        const characterComponent = result.find(({ key }) => (key === 'testCharacter'))
+        expect(characterComponent).toBeDefined()
+        expect(characterComponent?._key?.context?.length).toBe(1)
+        expect(characterComponent?._key?.context?.[0]?.toJSON()).toEqual({ key: 'testRoom', tag: 'Room' })
+        
+        // Verify Room was processed (though it won't include Character references yet)
+        const roomComponent = result.find(({ key }) => (key === 'testRoom'))
+        expect(roomComponent).toBeDefined()
+        
+        // Note: Room schema output doesn't include Characters yet - that's Phase 2 work
+        // For now, we're just verifying that Characters can be parsed within Room context
+        expect(schemaToWML([roomComponent!.schema])).toBe('<Room key=(testRoom) />')
     })
 })

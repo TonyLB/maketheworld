@@ -7,7 +7,10 @@ import { StandardAuthRemove, StandardAuthReplace } from './components/edits'
 import StandardReference from '../components/reference'
 
 const componentTemplates: ComponentProcessingTemplate[] = [
-    { key: 'Character' },
+    { 
+        key: 'Character',
+        legalParents: ['Room']
+    },
     { key: 'Image' },
     { key: 'Room', legalParents: ['Map', 'Message'] },
     { key: 'Feature', legalParents: ['Room'] },
