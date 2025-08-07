@@ -21,20 +21,28 @@ vi.mock('../../slices/lifeLine', () => ({
 
 const mockStore = configureStore()
 
-// Mock CharacterChip component to properly handle props
-vi.mock('../CharacterChip', () => ({
-    default: ({ CharacterId, Name, fileURL, onClick }: any) => (
-        <div 
-            data-testid="character-chip" 
-            data-character-id={CharacterId}
-            data-name={Name}
-            data-file-url={fileURL}
-            onClick={onClick}
-        >
-            {Name}
-        </div>
-    )
-}))
+// Mock CharacterChip component with proper React component pattern
+vi.mock('../CharacterChip', () => {
+    const MockCharacterChip = vi.fn((props: any) => {
+        console.log('MockCharacterChip called with props:', props)
+        const { CharacterId, Name, fileURL, onClick } = props
+        return (
+            <div 
+                data-testid="character-chip" 
+                data-character-id={CharacterId}
+                data-name={Name}
+                data-file-url={fileURL}
+                onClick={onClick}
+            >
+                {Name}
+            </div>
+        )
+    })
+    
+    return {
+        default: MockCharacterChip
+    }
+})
 
 describe('RoomCharacter', () => {
     let store: any
@@ -56,11 +64,21 @@ describe('RoomCharacter', () => {
             </Character>
         `)
 
+        // Debug: Check what the StandardCharacter getters return
+        console.log('Character universalKey:', character.universalKey)
+        console.log('Character name:', character.name)
+        console.log('Character name.plainString:', character.name?.plainString)
+        console.log('Character image:', character.image)
+        console.log('Character image.fileURL:', character.image?.fileURL)
+
         render(
             <Provider store={store}>
                 <RoomCharacter character={character} />
             </Provider>
         )
+
+        // Debug: Check what was rendered
+        console.log('Rendered HTML:', screen.getByTestId('character-chip').outerHTML)
 
         expect(screen.getByTestId('character-chip')).toHaveAttribute('data-name', 'Test Character')
     })
