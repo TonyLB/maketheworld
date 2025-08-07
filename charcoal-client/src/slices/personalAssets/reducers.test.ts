@@ -105,8 +105,7 @@ describe('personalAsset slice reducers', () => {
                     <Asset key=(testAsset)>
                         <Room uuid=(testRoom)>
                             <Example uuid=(base)>
-                                <Replace><Name>Test Room</Name></Replace>
-                                <With><Name>Test Update</Name></With>
+                                <Replace><Name>Room</Name></Replace><With><Name>Update</Name></With>
                             </Example>
                         </Room>
                     </Asset>

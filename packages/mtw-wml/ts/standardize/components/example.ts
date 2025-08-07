@@ -57,9 +57,9 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         throw new Error('Schema mismatch in StandardExample constructor')
     }
 
-    get name() { return this._name?.toJSON() }
-    get summary() { return this._summary?.toJSON() }
-    get description() { return this._description?.toJSON() }
+    get name() { return this._name }
+    get summary() { return this._summary }
+    get description() { return this._description }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardExampleData, 'key' | 'universalKey'> {
         const { stripUIFields: stripUI } = options ?? {}
@@ -109,10 +109,11 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
     }
 
     referencedKeys(mapping: StandardKey[]): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+        const renderTrees = [this._name?.toJSON(), this._summary?.toJSON(), this._description?.toJSON()].filter(excludeUndefined)
         return [
-            ...linkReferenceKeys(mapping)(renderTreeToSchema([this.name, this.summary, this.description].filter(excludeUndefined).flat(1)))
+            ...linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1)))
                 .map((key) => ({ referenceType: 'Link' as const, key })),
-            ...dependencyReferenceKeys(renderTreeToSchema([this.name, this.summary, this.description].filter(excludeUndefined).flat(1)))
+            ...dependencyReferenceKeys(renderTreeToSchema(renderTrees.flat(1)))
                 .map((key) => ({ referenceType: 'Dependency' as const, key: new StandardKey(key) }))
         ]
     }

@@ -28,9 +28,9 @@ describe('StandardExample class', () => {
         `)
         const testExample = new StandardExample(testSource)
         expect(testExample.key).toEqual('test')
-        expect(testExample.name).toEqual(['Name Test'])
-        expect(testExample.summary).toEqual(['Summary Test'])
-        expect(testExample.description).toEqual(['Description Test'])
+        expect(testExample.name?.toJSON()).toEqual(['Name Test'])
+        expect(testExample.summary?.toJSON()).toEqual(['Summary Test'])
+        expect(testExample.description?.toJSON()).toEqual(['Description Test'])
         expect(schemaToWML([testExample.schema])).toEqual(testSource)
     })
 
@@ -46,9 +46,9 @@ describe('StandardExample class', () => {
         schema.loadWML(testSource)
         const testExample = new StandardExample(schema.schema[0])
         expect(testExample.key).toEqual('test')
-        expect(testExample.name).toEqual(['Name Test'])
-        expect(testExample.summary).toEqual(['Summary Test'])
-        expect(testExample.description).toEqual(['Description Test'])
+        expect(testExample.name?.toJSON()).toEqual(['Name Test'])
+        expect(testExample.summary?.toJSON()).toEqual(['Summary Test'])
+        expect(testExample.description?.toJSON()).toEqual(['Description Test'])
         expect(schemaToWML([testExample.schema])).toEqual(testSource)
     })
 
@@ -62,9 +62,9 @@ describe('StandardExample class', () => {
         }
         const testExample = new StandardExample(testExampleData)
         expect(testExample.key).toEqual('test')
-        expect(testExample.name).toEqual(['Name Test'])
-        expect(testExample.summary).toEqual(['Summary Test'])
-        expect(testExample.description).toEqual(['Description Test'])
+        expect(testExample.name?.toJSON()).toEqual(['Name Test'])
+        expect(testExample.summary?.toJSON()).toEqual(['Summary Test'])
+        expect(testExample.description?.toJSON()).toEqual(['Description Test'])
         expect(testExample.toJSON()).toEqual(testExampleData)
     })
 

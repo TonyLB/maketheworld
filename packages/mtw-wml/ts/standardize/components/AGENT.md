@@ -2,376 +2,201 @@
 
 ## Overview
 
-The `standardize/components` directory contains the core classes that represent standardized WML components. Each component type has its own class that implements the `StandardComponent` interface, providing a consistent API for manipulating WML data structures.
+The `standardize/components` directory contains the core WML component classes that represent different types of content within the system. These components provide a structured way to represent and manipulate WML content with proper serialization, manipulation, and diffing capabilities.
 
 ## Core Purpose
 
-- **Component Standardization**: Provides consistent interfaces for all WML component types
-- **Data Manipulation**: Enables merge, diff, and transformation operations on components
-- **Type Safety**: Ensures type-safe component creation and manipulation
-- **Factory Pattern**: Uses component factory for consistent component generation
+- **Component Representation**: Define structured WML components with proper data types
+- **Content Manipulation**: Provide methods for creating, modifying, and merging components
+- **Serialization**: Handle conversion between runtime objects and storage formats
+- **Diffing**: Support change detection and conflict resolution
 
-## StandardComponent Interface
+## Technical Debt
 
-All component classes implement the `StandardComponent` interface, which provides these key properties and methods:
+### **CRITICAL: StandardCharacter Technical Debt** 🔴
+**Status**: `StandardCharacter` component has technical debt - it uses `EditWrappedStandardNode` objects instead of `StandardRender` objects for the `name` property.
 
-### Core Properties
-- **`_key`**: `StandardKey` - The component's identifier (local key and/or universal key)
-- **`tag`**: `ComponentTag | 'Remove' | 'Replace'` - The component type
-- **`schema`**: `GenericTreeNode<SchemaTag>` - The WML schema representation
+**Problem**: The `name` property returns `EditWrappedStandardNode` objects, but client code expects `StandardRender` objects with `.plainString` property.
 
-### Key Methods
-- **`clone()`**: Creates a deep copy of the component
-- **`equals(incoming)`**: Compares two components for equality
-- **`merge(incoming)`**: Combines two components (returns `undefined` if the comination removes the original)
-- **`diff(incoming)`**: Creates a component representing the edit operation that would transform one component into the other
-- **`toJSON(options?)`**: Serializes to JSON format
-- **`referencedKeys()`**: Returns all keys referenced by this component
-- **`mapContents(callback)`**: Transforms the component's content
-- **`remapReferences(mapTo)`**: Updates references to other components
+**Impact**: 
+- Client code (like `RoomCharacter`) cannot access the name content properly
+- Inconsistent API between `StandardExample` (uses `StandardRender`) and `StandardCharacter` (uses `EditWrappedStandardNode`)
+- Test failures due to missing `.plainString` property
 
-### Constructor Methods
-- **`withKey(key)`**: Creates a copy with a new local key
-- **`withUniversalKey(key)`**: Creates a copy with a new universal key
-- **`withMapping(mapping)`**: Creates a copy with reference mapping
-- **`withImport(fromAsset)`**: Creates a copy imported from another asset
+**Solution**: Refactor `StandardCharacter` to use `StandardRender` objects for the `name` property, following the same pattern as `StandardExample`. The `image` property should remain as `EditWrappedStandardNode` since it represents different data (file references rather than rich text content).
 
-## Usage Patterns
+### **RESOLVED: StandardExample Technical Debt** ✅
+**Status**: COMPLETED - `StandardExample` component now uses `StandardRender` objects for content properties.
 
-### Constructor Overloads
+**Problem**: The `name`, `summary`, and `description` properties were returning `RenderTree` arrays instead of `StandardRender` objects.
 
-Each `StandardComponent` class supports multiple constructor patterns:
+**Solution**: Updated getters to return `StandardRender` objects directly, providing a more active and resilient API.
 
-```typescript
-// 1. String constructor (creates component with key)
-const room = new StandardRoom("mainHall")
+**Benefits**:
+- ✅ Improved diff granularity - now detects specific field changes instead of replacing entire components
+- ✅ More consistent API with other components
+- ✅ Better type safety and runtime manipulation capabilities
 
-// 2. UUID constructor
-const room = new StandardRoom("ROOM#mainHall-uuid")
+## Core Concepts
 
-// 3. JSON data constructor
-const room = new StandardRoom({
-    tag: 'Room',
-    key: 'mainHall',
-    exits: [{ to: 'kitchen', description: 'kitchen' }]
-})
+### Component Architecture
 
-// 4. WML data constructor
-const room = new StandardRoom(`
-    <Room key=(mainHall)><Exit to=(kitchen)>kitchen</Exit></Room>
-`)
+Each component follows a consistent pattern:
+- **Payload Class**: Handles data storage and manipulation logic
+- **Component Class**: Provides the public API and inheritance structure
+- **Data Types**: Define serialization formats for storage
 
-// 5. Schema node constructor
-const room = new StandardRoom(schemaNode)
+### Serialization vs. Manipulation Types
 
-// 6. Copy constructor
-const roomCopy = new StandardRoom(existingRoom)
+**CRITICAL ARCHITECTURAL DISTINCTION**: There are two types of data structures:
 
-```
+1. **Serialization Types** (for storage/serialization):
+   - `RenderTree` arrays
+   - `StandardCharacterData` objects
+   - Used at API boundaries and for persistence
 
-### Component Factory Pattern
+2. **Manipulation Types** (for runtime operations):
+   - `StandardRender` objects
+   - `StandardCharacter` instances
+   - Used for active content manipulation
 
-Components are created using the `componentClassFactory` function, which generates a class with:
-- Standard `StandardComponent` interface implementation
-- Type-safe constructor overloads
-- Automatic payload management
-- Consistent API across all component types
+**Conversion happens at API boundaries** - components should expose manipulation types in their public API, while using serialization types internally for storage.
 
-#### **GeneratedComponentClass and Override Pattern**
-
-**⚠️ CRITICAL**: The `componentClassFactory` creates a `GeneratedComponentClass` that provides the base functionality. When specific component classes (like `StandardExample`, `StandardRoom`) extend this generated class, they inherit methods that return `GeneratedComponentClass` instances instead of the specific subclass instances.
-
-**The Problem**: If `StandardExample` simply inherited methods like `merge`, `clone`, etc., from `GeneratedComponentClass`, then:
-```typescript
-const example1 = new StandardExample(data1)
-const example2 = new StandardExample(data2)
-const merged = example1.merge(example2)  // Returns GeneratedComponentClass, not StandardExample!
-```
-
-**The Solution**: Each specific component class must override these methods to ensure they return instances of the correct class:
-
-```typescript
-export class StandardExample extends componentClassFactory(StandardExamplePayload, 'StandardExample') {
-    // ... other methods ...
-    
-    override clone(): StandardExample {
-        const returnValue = new StandardExample(this)
-        returnValue._payload = new StandardExamplePayload(this._payload)
-        return returnValue
-    }
-
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardExample(super.merge(incoming) as StandardExample)
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardExample(super.withKey(key) as StandardExample)
-    }
-
-    // ... other override methods ...
-}
-```
-
-**Why This Matters**: 
-- `instanceof StandardExample` checks will fail if methods return `GeneratedComponentClass` instances
-- The `_lookup` method in `StandardForm` relies on correct class types for proper component retrieval
-- Client code expects specific component types, not generic `GeneratedComponentClass` instances
-
-**Required Override Methods**: All specific component classes must override:
-- `clone()`
-- `merge()`
-- `diff()`
-- `withKey()`
-- `withUniversalKey()`
-- `withFileName()`
-- `withMapping()`
-- `withImport()`
-- `withLeastCommonContext()`
-- `withChild()`
-- `equals()` (for custom equality logic)
+See `dataTypes/AGENT.md` for detailed documentation of this distinction.
 
 ## Component Types
 
-### Core Components
+### **StandardExample** ✅
+- **Purpose**: Represents examples with name, summary, and description
+- **Content Properties**: `name`, `summary`, `description` (all `StandardRender`)
+- **Status**: ✅ Technical debt resolved
 
-#### **StandardRoom** (`room.ts`)
-Represents physical locations in the world.
-- **Properties**: `shortName`, `exits`, `features`, `examples`
+### **StandardCharacter** 🔴
+- **Purpose**: Represents characters with name, shortName, pronouns, and image
+- **Content Properties**: `name` (currently `EditWrappedStandardNode`, should be `StandardRender`), `image` (should remain `EditWrappedStandardNode`)
+- **Status**: 🔴 Technical debt needs resolution
 
-#### **StandardFeature** (`feature.ts`)
-Represents interactive elements within rooms.
-- **Properties**: `examples` (list of Example references)
-- **⚠️ CRITICAL**: Features do NOT contain `name` or `description` directly - these are stored in referenced `StandardExample` components
-- **⚠️ IMPORTANT**: To get display content, access the `examples` property and look up the referenced Example components
+### **StandardExit**
+- **Purpose**: Represents exits between rooms
+- **Content Properties**: `description` (uses `StandardRender`)
 
-#### **StandardCharacter** (`character.ts`)
-Represents player characters and NPCs.
-- **Properties**: `name`, `description`, `location`
+### **StandardImage**
+- **Purpose**: Represents images with fileURL
+- **Content Properties**: `fileURL` (string)
 
-#### **StandardExample** (`example.ts`)
-Represents different states/versions of content.
-- **Properties**: `name`, `summary`, `description`
-- **⚠️ CRITICAL**: This component contains the actual display content (`name`, `summary`, `description` as `StandardRender` objects)
-- **⚠️ IMPORTANT**: Other components (Feature, Knowledge, Room) reference Examples via their `examples` property - they do NOT contain display content directly
-- **⚠️ TECHNICAL DEBT**: The `name`, `summary`, and `description` properties currently return `RenderTree` (array) instead of `StandardRender` objects. This should be refactored to return `StandardRender` for consistency with the rest of the system.
+### **StandardFeature**
+- **Purpose**: Represents features with name and description
+- **Content Properties**: `name`, `description` (both `StandardRender`)
 
-#### **StandardMessage** (`message.ts`)
-Represents in-game messages and communications.
-- **Properties**: `content`, `recipients`, `conditions`
+### **StandardAction**
+- **Purpose**: Represents actions with name and description
+- **Content Properties**: `name`, `description` (both `StandardRender`)
 
-#### **StandardKnowledge** (`knowledge.ts`)
-Represents information that characters can learn.
-- **Properties**: `examples` (list of Example references)
-- **⚠️ CRITICAL**: Knowledge components do NOT contain `title` or `content` directly - these are stored in referenced `StandardExample` components
-- **⚠️ IMPORTANT**: To get display content, access the `examples` property and look up the referenced Example components
+### **StandardKnowledge**
+- **Purpose**: Represents knowledge with name and description
+- **Content Properties**: `name`, `description` (both `StandardRender`)
 
-#### **StandardMoment** (`moment.ts`)
-Represents time-based events and conditions.
-- **Properties**: `conditions`, `effects`, `duration`
+## Project Plan: StandardCharacter Technical Debt Fix
 
-#### **StandardMap** (`map.ts`)
-Represents spatial layouts and positioning.
-- **Properties**: `image`, `rooms`, `positions`
+### **Phase 1: Analysis and Planning** ✅
+- [x] Document the technical debt issue
+- [x] Identify all usages of `StandardCharacter` that need updates
+- [x] Plan the refactoring approach
 
-#### **StandardAction** (`action.ts`)
-Represents executable game actions.
-- **Properties**: `name`, `effects`, `requirements`
+### **Phase 2: Core Implementation** 🔄
+- [ ] Update `StandardCharacterPayload` to use `StandardRender` for `_name` (only)
+- [ ] Update `name` getter to return `StandardRender` object
+- [ ] Update `fromJSON` and `fromSchema` methods to create `StandardRender` for name
+- [ ] Update `toJSON` method to serialize `StandardRender` for name
+- [ ] Update `schema` method to rebuild from `StandardRender` for name
+- [ ] Keep `image` property as `EditWrappedStandardNode` (no changes needed)
 
-#### **StandardVariable** (`variable.ts`)
-Represents state-tracking elements.
-- **Properties**: `name`, `value`, `type`
+### **Phase 3: Data Type Updates** ✅
+- [x] **No changes needed** - Data types represent serialization format, not runtime format
 
-#### **StandardComputed** (`computed.ts`)
-Represents derived values and calculations.
-- **Properties**: `expression`, `dependencies`, `result`
+### **Phase 4: Test Updates** 🔄
+- [ ] Update `StandardCharacter` unit tests to expect `StandardRender` objects
+- [ ] Update integration tests that use `StandardCharacter`
+- [ ] Verify diffing works correctly with new API
 
-### Specialized Sub-Components
+### **Phase 5: Front-End Client Code Updates** 🔄
+- [ ] Update `RoomCharacter` component to use `StandardRender` objects directly
+- [ ] Update any other client code that accesses `StandardCharacter` properties
+- [ ] Test front-end functionality
 
-#### **StandardExit** (`exit.ts`)
-Represents connections between rooms. Is not a stand-alone component, but rather a piece
-of data stored within the `StandardRoom` component
-- **Properties**: `to`, `description`
+### **Phase 6: Ephemera Lambda Updates** 🔄
+- [ ] Update any server-side code that creates or manipulates `StandardCharacter` instances
+- [ ] Update perception subsystem if it uses `StandardCharacter` properties
 
-#### **StandardPosition** (`position.ts`)
-Represents spatial coordinates within a room. Is not a stand-alone component, but rather a piece
-of data stored within the `StandardMap` component.
-- **Properties**: `room`, `x`, `y`
+### **Phase 7: Integration Updates** 🔄
+- [ ] Update factory functions that create `StandardCharacter` instances
+- [ ] Update any other integration points
 
-### Edit Components
+### **Phase 8: Documentation Updates** 🔄
+- [ ] Update component documentation to reflect new API
+- [ ] Update usage examples
 
-#### **StandardRemove** (`edits.ts`)
-Represents content to be removed.
-- **Properties**: `_match` (component to remove)
+## Usage Patterns
 
-#### **StandardReplace** (`edits.ts`)
-Represents content to be replaced.
-- **Properties**: `_match` (original), `_payload` (replacement)
-
-## ⚠️ CRITICAL: Example-Component Relationship
-
-### **Content Storage Pattern**
-
-**⚠️ IMPORTANT**: Display content (`name`, `summary`, `description`) is NOT stored directly in Feature, Knowledge, or Room components. Instead:
-
-1. **`StandardExample` components** contain the actual display content as `StandardRender` objects
-2. **Other components** (Feature, Knowledge, Room) have an `examples` property that contains references to Example components
-3. **To get display content**, you must:
-   - Access the main component's `examples` property
-   - Look up the referenced `StandardExample` components
-   - Extract `name`, `summary`, or `description` from the Example components
-
-### **Common Mistake to Avoid**
-
-❌ **Incorrect**: Assuming Feature/Knowledge components have `name` and `description` properties directly
+### Creating Components
 ```typescript
-// WRONG - this won't work
-const feature = parsedWML.byUniversalId[componentUUID]
-const name = feature.name        // ❌ Property doesn't exist
-const description = feature.description  // ❌ Property doesn't exist
-```
-
-✅ **Correct**: Access content through referenced Example components
-```typescript
-// RIGHT - access through examples
-const feature = parsedWML.byUniversalId[componentUUID]
-const firstExample = feature.examples?.[0]
-if (firstExample) {
-    const exampleComponent = parsedWML.byUniversalId[firstExample]
-    const name = exampleComponent.name        // ✅ From Example component
-    const description = exampleComponent.description  // ✅ From Example component
-}
-```
-
-### **Why This Pattern?**
-
-This separation allows:
-- **Multiple states**: Different examples for different conditions
-- **Conditional content**: Content that changes based on game state
-- **Reusable content**: Same example can be referenced by multiple components
-- **Flexible rendering**: Different display formats for different contexts
-
-## Merge Operations
-
-### Merge Logic
-
-The `merge()` method combines two components following these rules:
-
-1. **Compatible Components**: Same type components merge their properties
-2. **Edit Components**: `StandardRemove` and `StandardReplace` have special merge logic
-3. **Conflict Detection**: Incompatible changes throw `MergeConflictError`
-4. **Additive Merging**: Properties from both components are combined
-
-### Merge Examples
-
-```typescript
-// Merge two rooms
-const base = new StandardRoom(`
-    <Room key=(mainHall)>
-        <ShortName>Main Hall</ShortName>
-        <Exit to=(kitchen)>kitchen</Exit>
-    </Room>
+// From WML string
+const example = new StandardExample(`
+    <Example key=(my-example)>
+        <Name>Example Name</Name>
+        <Summary>Example Summary</Summary>
+        <Description>Example Description</Description>
+    </Example>
 `)
 
-const incoming = new StandardRoom(`
-    <Room key=(mainHall)>
-        <Feature key=(tapestry) />
-        <Exit to=(gatehouse)>gatehouse</Exit>
-    </Room>
-`)
-
-const merged = base.merge(incoming)
-// Result: Room with this schema:
-//
-//    <Room key=(mainHall)>
-//        <ShortName>Main Hall</ShortName>
-//        <Feature key=(tapestry) />
-//        <Exit to=(gatehouse)>gatehouse</Exit>
-//        <Exit to=(kitchen)>kitchen</Exit>
-//    </Room>
-
-
+// From JSON data
+const example = new StandardExample({
+    tag: 'Example',
+    key: 'my-example',
+    name: ['Example Name'],
+    summary: ['Example Summary'],
+    description: ['Example Description']
+})
 ```
 
-## Diff Operations
-
-### Diff Logic
-
-The `diff()` method creates a component representing the difference between two components:
-
-1. **Property Differences**: Only changed properties are included
-2. **Edit Generation**: Differences are expressed as edit components
-3. **Minimal Representation**: Only the necessary changes are captured
-4. **Reversible**: The diff can be applied to recreate the target
-
-### Diff Examples
-
+### Accessing Content Properties
 ```typescript
-// Create diff between two rooms
-const base = new StandardRoom(`
-    <Room key=(mainHall)>
-        <ShortName>Main Hall</ShortName>
-        <Exit to=(kitchen)>kitchen</Exit>
-    </Room>
-`)
+// StandardExample (✅ Fixed)
+const name = example.name.plainString
+const summary = example.summary.plainString
+const description = example.description.plainString
 
-const incoming = new StandardRoom(`
-    <Room key=(mainHall)>
-        <ShortName>Main Hall</ShortName>
-        <Feature key=(tapestry) />
-        <Exit to=(gatehouse)>gatehouse</Exit>
-        <Exit to=(kitchen)>kitchen</Exit>
-    </Room>
-`)
-
-const merged = base.merge(incoming)
-// Result: Room with this schema:
-//
-//    <Room key=(mainHall)>
-//        <Feature key=(tapestry) />
-//        <Exit to=(gatehouse)>gatehouse</Exit>
-//    </Room>
-
+// StandardCharacter (🔴 Needs Fix)
+const name = example.name.plainString  // Currently fails - needs StandardRender
+const image = example.image.fileURL    // Currently fails - needs different approach
 ```
 
-## Integration Points
+### Serialization
+```typescript
+// To JSON for storage
+const json = example.toJSON()
 
-- **Schema System**: Components convert to/from WML schema format
-- **Edit System**: Components support edit tag processing
-- **Reference System**: Components manage references to other components
-- **Standardization**: Components are used in the standardization pipeline
-- **WML Language**: See [`../AGENT.md`](../AGENT.md) for WML format details
-- **Rich Text Processing**: See [`../render/AGENT.md`](../render/AGENT.md) for content handling
+// From JSON for loading
+const example = new StandardExample(json)
+```
 
-## Navigation Tips
+## Testing
 
-1. **Start with Base Classes**: Understand `baseClasses.ts` and `component.ts`
-2. **Check Constructor Patterns**: Each component supports multiple construction methods
-3. **Review Merge Logic**: Understand how components combine and conflict
-4. **Test Diff Operations**: Verify that diffs can recreate target states
-5. **Use TypeScript**: All components are strongly typed for safety
+### Running Tests
+```bash
+# From packages/mtw-wml directory
+npm run test -- --watchAll=false ts/standardize/components/example.test.ts
+npm run test -- --watchAll=false ts/standardize/components/character.test.ts
+```
 
-## Development Notes
+### Test Patterns
+- Use WML strings for component construction in tests for readability
+- Use JSON objects for tests specifically targeting JSON structure
+- Mock Redux actions to return proper action objects
+- Use `@testing-library/jest-dom` for DOM assertions
 
-### Current State
-- **Core Components**: All major component types implemented
-- **Factory Pattern**: Component factory provides consistent API
-- **Merge/Diff**: Full support for component operations
-- **Type Safety**: Strong TypeScript typing throughout
+## Related Documentation
 
-### Future Plans
-- **Performance**: Optimize merge operations for large components
-- **Validation**: Enhanced component validation
-- **Extensions**: Support for additional component types
-- **StandardRender Consistency**: Refactor `StandardExample` properties (`name`, `summary`, `description`) to return `StandardRender` objects instead of `RenderTree` arrays for consistency with the rest of the system
-
-### Technical Debt
-- **Error Handling**: Improve error messages for merge conflicts
-- **Documentation**: Add more examples for complex component operations
-- **Testing**: Expand test coverage for edge cases
-- **StandardExample Properties**: The `name`, `summary`, and `description` properties in `StandardExample` return `RenderTree` (array) instead of `StandardRender` objects, creating inconsistency with the rest of the system
-- **StandardRender Constructor**: Must use arrays (`['text']`) not strings (`'text'`) for initialization - this is a common source of runtime errors
-- **Missing Override Methods**: Several `StandardComponent` classes are missing required override methods to ensure correct class type preservation:
-  - **Missing `withLeastCommonContext` and `withChild` overrides**: `StandardRoom`, `StandardFeature`, `StandardKnowledge`, `StandardCharacter`, `StandardMessage`, `StandardMoment`, `StandardMap`, `StandardAction`, `StandardVariable`, `StandardComputed`, `StandardImage`
-  - **Missing `equals` override**: `StandardCharacter`, `StandardMap`, `StandardVariable`, `StandardImage`
-  - **Missing `diff` override**: `StandardAction`, `StandardVariable`, `StandardComputed`, `StandardImage`
-  - **Note**: `StandardExample` has all required overrides and serves as the reference implementation 
+- `dataTypes/AGENT.md` - Serialization vs. Manipulation Types architecture
+- `render/AGENT.md` - StandardRender system documentation
+- `../AGENT.md` - Parent directory overview 
