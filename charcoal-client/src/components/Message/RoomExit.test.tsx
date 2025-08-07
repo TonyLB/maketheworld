@@ -16,10 +16,10 @@ vi.mock('../ActiveCharacter', () => ({
     useActiveCharacter: () => ({ CharacterId: 'CHARACTER#test' })
 }))
 vi.mock('../../slices/lifeLine', () => ({
-    moveCharacter: vi.fn(() => vi.fn())
+    moveCharacter: vi.fn(() => () => ({ type: 'lifeLine/moveCharacter' }))
 }))
 vi.mock('../../slices/player/index.api', () => ({
-    addOnboardingComplete: vi.fn()
+    addOnboardingComplete: vi.fn(() => ({ type: 'player/addOnboardingComplete' }))
 }))
 
 const mockStore = configureStore()
@@ -36,13 +36,12 @@ describe('RoomExit', () => {
     })
 
     it('should render StandardExit with description', () => {
-        // Create a StandardExit with description
-        const exit = new StandardExit({
-            tag: 'Exit',
-            key: 'test-exit',
-            to: 'ROOM#target-room',
-            description: 'Test Exit'
-        })
+        // Create a StandardExit with description using WML
+        const exit = new StandardExit(`
+            <Exit to=(ROOM#target-room)>
+                Test Exit
+            </Exit>
+        `)
 
         render(
             <Provider store={store}>
@@ -54,16 +53,12 @@ describe('RoomExit', () => {
     })
 
     it('should render StandardExit with object reference', () => {
-        // Create a StandardExit with object reference
-        const exit = new StandardExit({
-            tag: 'Exit',
-            key: 'object-exit',
-            to: {
-                universalKey: 'ROOM#target-room',
-                tag: 'Room'
-            },
-            description: 'Object Exit'
-        })
+        // Create a StandardExit with object reference using WML
+        const exit = new StandardExit(`
+            <Exit to=(ROOM#target-room)>
+                Object Exit
+            </Exit>
+        `)
 
         render(
             <Provider store={store}>
@@ -104,12 +99,9 @@ describe('RoomExit', () => {
     })
 
     it('should handle missing description gracefully', () => {
-        const exit = new StandardExit({
-            tag: 'Exit',
-            key: 'no-desc-exit',
-            to: 'ROOM#target-room'
-            // No description
-        })
+        const exit = new StandardExit(`
+            <Exit to=(ROOM#target-room) />
+        `)
 
         render(
             <Provider store={store}>
@@ -121,16 +113,11 @@ describe('RoomExit', () => {
     })
 
     it('should handle missing target room gracefully', () => {
-        const exit = new StandardExit({
-            tag: 'Exit',
-            key: 'no-target-exit',
-            to: {
-                tag: 'Room',
-                key: 'unknown-room'
-                // No universalKey but has key
-            },
-            description: 'No Target Exit'
-        })
+        const exit = new StandardExit(`
+            <Exit to=(unknown-room)>
+                No Target Exit
+            </Exit>
+        `)
 
         render(
             <Provider store={store}>
