@@ -21,10 +21,10 @@ export const isStandardCharacter = (arg: any): arg is StandardCharacterData => {
 
     return checkAll(
         ('tag' in arg && arg.tag === 'Character'),
-        checkTypes(arg, {
-            key: 'string',
-        },
+        checkTypes(arg, {},
         {
+            key: 'string',
+            universalKey: 'string',
             shortName: 'literal',
             pronouns: 'literal',
             name: 'renderTree',

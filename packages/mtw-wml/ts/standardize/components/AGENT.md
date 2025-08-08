@@ -100,11 +100,11 @@ The `standardize/components` directory contains the core WML component classes t
 - [x] Test frontend functionality with Standard format rooms containing characters
 - [x] Remove legacy character handling workarounds where possible
 
-### **Phase 8: Lambda Integration** 🔄
-- [ ] Update server-side room construction to include character references
-- [ ] Update ephemera system to populate character references in StandardRoom
-- [ ] Test Lambda functions that create/manipulate StandardRoom instances
-- [ ] Ensure proper character reference synchronization
+### **Phase 8: Lambda Integration** ✅
+- [x] Update server-side room construction to include character references
+- [x] Update ephemera system to populate character references in StandardRoom
+- [x] Test Lambda functions that create/manipulate StandardRoom instances
+- [x] Ensure proper character reference synchronization
 
 ### **Phase 9: Documentation and Cleanup** 🔄
 - [ ] Update StandardRoom documentation to reflect character integration
@@ -209,10 +209,10 @@ See `dataTypes/AGENT.md` for detailed documentation of this distinction.
 - **Purpose**: Represents rooms with name, description, exits, features, and characters
 - **Content Properties**: `name`, `description` (both `StandardRender`)
 - **Reference Properties**: `features`, `examples`, `characters` (all `ReferenceList`)
-- **Current Status**: ✅ Core functionality, advanced operations, and client integration complete (Phases 1-7)
+- **Current Status**: ✅ Core functionality, advanced operations, client integration, and Lambda integration complete (Phases 1-8)
 - **Advanced Operations**: ✅ merge, diff, equals, referencedKeys, withChild, nestedSchema
 - **Client Integration**: ✅ RoomDescription component updated to handle character references
-- **Status**: 🟢 Client integration complete, ready for Lambda integration (Phase 8)
+- **Status**: 🟢 Lambda integration complete, ready for documentation and cleanup (Phase 9)
 
 ## Project Plan: StandardCharacter Technical Debt Fix
 

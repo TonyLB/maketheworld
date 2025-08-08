@@ -46,6 +46,8 @@ import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/data
 import { StandardKnowledgeData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/knowledge';
 import { StandardMapData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/map';
 import { StandardFeatureData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/feature';
+import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character';
+import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -243,22 +245,37 @@ export class ComponentRenderData {
                 universalKey: EphemeraId,
                 exits,
                 examples: naiveFirstExample ? ['EXAMPLE#rendered'] : [],
+                characters: roomCharacterList.map(char => char.EphemeraId),
                 shortName: shortName?.toJSON()
             };
+
+            // Create character components for the StandardForm
+            const characterComponents: StandardCharacterData[] = roomCharacterList.map(char => {
+                const characterData: StandardCharacterData = {
+                    tag: 'Character',
+                    universalKey: char.EphemeraId,
+                    name: char.Name ? [char.Name] : undefined,
+                    image: char.fileURL ? { 
+                        data: { tag: 'Image', key: '', fileURL: char.fileURL }, 
+                        children: [] 
+                    } : undefined
+                };
+                return characterData;
+            });
+
+            const formComponents: any[] = [
+                { tag: 'Asset' as const, universalKey: 'ASSET#render' as const, key: 'render' },
+                roomRow,
+                ...characterComponents
+            ];
 
             if (naiveFirstExample) {
                 const example = naiveFirstExample.clone();
                 example._key = new StandardKey(`EXAMPLE#rendered`).withContext([new StandardKey(EphemeraId)]);
-                return new StandardForm([
-                    { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
-                    roomRow,
-                    example.toJSON()
-                ]);
+                formComponents.push(example.toJSON());
             }
-            return new StandardForm([
-                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
-                roomRow
-            ])
+
+            return new StandardForm(formComponents)
         }
         if (isEphemeraFeatureId(EphemeraId)) {
             const assets = allAssets
