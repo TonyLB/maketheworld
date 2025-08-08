@@ -58,7 +58,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
             const tagTree = new SchemaTagTree(node.children)
             const shortNameItem = tagTree
-                .filter({ match: 'ShortName' })
+                .filter({ and: [{ match: 'ShortName' }, { not: { or: [{ match: 'Character'}, { match: 'Feature' }] } }] })
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
             const exitTagTree = tagTree

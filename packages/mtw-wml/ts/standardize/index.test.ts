@@ -2695,6 +2695,95 @@ describe('StandardForm', () => {
                 expect(foundExample.description).toBeDefined()
             }
         })
+
+        it('should integrate characters with rooms in StandardForm.schema scenarios', () => {
+            // Create a complex scenario with characters defined both as separate components
+            // and as sub-components of rooms
+            const testWML = deIndentWML(`
+                <Asset key=(test)>
+                    <Character uuid=(char1) key=(char1)>
+                        <ShortName>Alice</ShortName>
+                        <Name>Alice</Name>
+                    </Character>
+                    <Character uuid=(char2) key=(char2)>
+                        <ShortName>Bob</ShortName>
+                        <Name>Bob</Name>
+                    </Character>
+                    <Room uuid=(room1) key=(room1)>
+                        <Character key=(char3)>
+                            <ShortName>Charlie</ShortName>
+                            <Name>Charlie</Name>
+                        </Character>
+                        <Character uuid=(char1) />
+                    </Room>
+                    <Room uuid=(room2) key=(room2)>
+                        <Character uuid=(char2) />
+                        <Character key=(char4)>
+                            <ShortName>David</ShortName>
+                            <Name>David</Name>
+                        </Character>
+                    </Room>
+                </Asset>
+            `)
+            const test = new StandardForm(testWML)
+            
+            // Test that characters are correctly parsed and stored
+            const room1 = test._lookup('ROOM#room1') as StandardRoom
+            const room2 = test._lookup('ROOM#room2') as StandardRoom
+            const char1 = test._lookup('CHARACTER#char1') as StandardCharacter
+            const char2 = test._lookup('CHARACTER#char2') as StandardCharacter
+            
+            expect(room1).toBeInstanceOf(StandardRoom)
+            expect(room2).toBeInstanceOf(StandardRoom)
+            expect(char1).toBeInstanceOf(StandardCharacter)
+            expect(char2).toBeInstanceOf(StandardCharacter)
+            
+            // Test that rooms have the correct character references
+            expect(room1.characters.payload.length).toBe(2)
+            expect(room2.characters.payload.length).toBe(2)
+            
+            // Test that character references include both local and universal keys
+            const room1CharKeys = room1.characters.payload.map(ref => ref._payload.plain.key || ref._payload.plain.universalKey)
+            const room2CharKeys = room2.characters.payload.map(ref => ref._payload.plain.key || ref._payload.plain.universalKey)
+            
+            expect(room1CharKeys).toContain('char3') // Local character in room1
+            expect(room1CharKeys).toContain('CHARACTER#char1') // Universal character reference in room1
+            expect(room2CharKeys).toContain('CHARACTER#char2') // Universal character reference in room2
+            expect(room2CharKeys).toContain('char4') // Local character in room2
+            
+            // Test that StandardForm.schema includes character references in room contexts
+            const schemaWML = schemaToWML([test.schema])
+            
+            // Verify that the schema includes character references within room contexts
+            // Note: StandardForm.schema includes full character content, not just references
+            expect(schemaWML).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Character uuid=(char1) key=(char1)>
+                        <ShortName>Alice</ShortName>
+                        <Name>Alice</Name>
+                    </Character>
+                    <Character uuid=(char2) key=(char2)>
+                        <ShortName>Bob</ShortName>
+                        <Name>Bob</Name>
+                    </Character>
+                    <Room uuid=(room1) key=(room1)>
+                        <Character key=(char3)>
+                            <ShortName>Charlie</ShortName>
+                            <Name>Charlie</Name>
+                        </Character>
+                        <Character key=(char1) />
+                    </Room>
+                    <Room uuid=(room2) key=(room2)>
+                        <Character key=(char2) />
+                        <Character key=(char4)>
+                            <ShortName>David</ShortName>
+                            <Name>David</Name>
+                        </Character>
+                    </Room>
+                </Asset>
+            `))
+            
+        })
     })
 
 })
