@@ -60,6 +60,7 @@ const createStandardCharacterFromLegacy = (legacyCharacter: any): StandardCharac
     // Create StandardCharacter instance from legacy data
     const characterData: StandardCharacterData = {
         tag: 'Character',
+        universalKey: legacyCharacter.CharacterId,  // Set the universalKey from CharacterId
         name: legacyCharacter.Name ? [legacyCharacter.Name] : undefined,  // Convert string to RenderTree array
         shortName: legacyCharacter.Name,  // Use name as shortName
         pronouns: undefined,  // Legacy doesn't have pronouns
@@ -80,33 +81,16 @@ export const RoomDescription = ({ message, header, currentHeader, parsedWML, com
 
     if (parsedWML && componentUUID) {
         // Standard format: extract from StandardForm
-        console.log('Standard format parsing - componentUUID:', componentUUID)
-        console.log('parsedWML.byUniversalId keys:', Object.keys(parsedWML.byUniversalId))
-        
         const component = parsedWML.byUniversalId[componentUUID]
-        console.log('Found component:', component)
-        console.log('Component type:', component?.constructor?.name)
         
         if (component instanceof StandardRoom) {
-            console.log('Component is StandardRoom')
-            console.log('Component examples:', component.examples)
-            console.log('Component examples payload:', component.examples.payload)
-            
             // Extract room data from Standard format structure
             const firstExample = parsedWML._lookup(component.examples.payload[0].plain().toJSON())
-            console.log('First example:', firstExample)
             
             if (firstExample && firstExample.universalKey) {
-                console.log('Example universalKey:', firstExample.universalKey)
                 const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as any]
-                console.log('Found example component:', exampleComponent)
-                console.log('Example component type:', exampleComponent?.constructor?.name)
                 
                 if (exampleComponent instanceof StandardExample) {
-                    console.log('Example component is StandardExample')
-                    console.log('Example name:', exampleComponent.name)
-                    console.log('Example description:', exampleComponent.description)
-                    
                     // StandardExample properties now return StandardRender objects directly
                     name = exampleComponent.name || new StandardRender(['Untitled'])
                     description = exampleComponent.description || new StandardRender([])
@@ -114,9 +98,16 @@ export const RoomDescription = ({ message, header, currentHeader, parsedWML, com
                 }
             }
             
+            // Extract character references from StandardRoom and resolve them to StandardCharacter instances
+            characters = component.characters.payload
+                .map(characterRef => {
+                    const resolvedCharacter = parsedWML._lookup(characterRef.plain().toJSON())
+                    return resolvedCharacter
+                })
+                .filter((character): character is StandardCharacter => character instanceof StandardCharacter)
+            
             // Pass Standard format objects directly to sub-components
             exits = component.exits  // Pass StandardExit instances directly
-            characters = []  // Characters not stored in Room component - requires backend changes
         }
     } else {
         // Legacy format: extract from message

@@ -49,8 +49,8 @@ vi.mock('./RoomExit', () => ({
 vi.mock('./RoomCharacter', () => ({
     default: ({ character }: { character: StandardCharacter }) => {
         try {
-            // Try to extract name, fallback to 'Unknown Character'
-            const name = typeof character.name === 'string' ? character.name || 'Unknown Character' : 'Unknown Character'
+            // Extract name from StandardRender object
+            const name = character.name?.plainString || 'Unknown Character'
             return <div data-testid="room-character">{name}</div>
         } catch (e) {
             return <div data-testid="room-character">Unknown Character</div>
