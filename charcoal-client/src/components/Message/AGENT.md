@@ -194,37 +194,20 @@ See [WML Standard Components documentation](../../../../packages/mtw-wml/ts/stan
 - **✅ Add `PerceptionMessage` case**: Added case to message router in `index.tsx`
 - **✅ Create component lookup logic**: Using `componentUUID` to determine component type
 
-#### **Phase 2: Bridge State Component Updates** ✅ **COMPLETED** (4/4 components completed)
-Each existing component will be updated to accept **either** legacy properties **or** new WML format:
+#### **Phase 2: Bridge State Component Updates** ✅ **COMPLETED** 
+All message components now support dual format handling (legacy and WML PerceptionMessage):
 
-```typescript
-// Bridge state component interface
-interface ComponentDescriptionProps {
-    message: Message;
-    // Legacy properties (for backward compatibility)
-    Name?: string;
-    Description?: RenderTree;
-    // New WML properties (for PerceptionMessage)
-    parsedWML?: StandardForm;
-    componentUUID?: SchemaComponentUUID;
-}
-```
+**✅ Bridge State Implementation Complete:**
+- **`KnowledgeDescription`**: Handles both legacy and WML formats with proper Standard Component integration
+- **`FeatureDescription`**: Uses ComponentDescription with dual format support
+- **`RoomDescription`**: Full bridge state with legacy conversion functions and Standard format sub-components
+- **`RoomHeader`**: Inherits bridge state from RoomDescription with header-specific layout
 
-**Component Migration List** (ordered by testability and complexity):
-
-1. **`KnowledgeDescription`** - Knowledge items, easy to test manually via Knowledge UI
-2. **`FeatureDescription`** - Interactive features, moderate complexity
-3. **`RoomHeader`** - Header information, moderate complexity
-4. **`RoomDescription`** - Room layout and features, most complex
-
-**Migration Progress Tracking:**
-- [x] `KnowledgeDescription` - Bridge state implemented ✅ (WML structure corrected, instanceof checks added, proper StandardRender types, resilient typeguards)
-- [x] `FeatureDescription` - Bridge state implemented ✅ (uses ComponentDescription, now supports both legacy and WML formats)
-- [x] `RoomHeader` - Bridge state implemented ✅ (Phase 2 completed, inherits from RoomDescription)
-- [x] `RoomDescription` - Bridge state implemented ✅ (Phase 2 completed, legacy conversion functions, pure Standard format sub-components, comprehensive unit tests, all 7 tests passing)
-- [x] `RoomHeader` - Bridge state implemented ✅ (Phase 2 completed, inherits from RoomDescription, handles both legacy and Standard formats, includes header-specific layout and live status)
-
-**Note**: `CharacterDescription` is not included in this migration as character perception messages are not currently being converted to `PerceptionMessage` format. This may be addressed in a future phase.
+**Current Capabilities:**
+- **Dual Format Support**: All components accept both legacy message types and PerceptionMessage with WML
+- **Legacy Conversion**: Automatic conversion from legacy data to Standard Components at component boundaries
+- **Standard Component Integration**: Sub-components work exclusively with Standard format objects
+- **Backward Compatibility**: Maintains full support for existing legacy message formats
 
 #### **Phase 3: Legacy Removal**
 - Remove legacy message types from perception system
@@ -243,20 +226,21 @@ interface ComponentDescriptionProps {
 ## Development Notes
 
 ### **Current State**
-- **Message Routing**: Fully functional for current message types
-- **Component Library**: Complete set of message display components
+- **Bridge State Active**: All components support both legacy and WML PerceptionMessage formats
+- **Message Routing**: Routes both legacy message types and PerceptionMessage with component lookup
+- **Component Library**: Complete set of message display components with dual format support
+- **WML Integration**: Full WML parsing and Standard Component integration
 - **Redux Integration**: Proper state management and character actions
-- **WebSocket Handling**: Real-time message processing
+- **WebSocket Handling**: Real-time message processing for both format types
 
 ### **Future Plans**
-- **WML Integration**: Add WML parsing and disambiguation
-- **Perception System**: Migrate to generic perception messages
-- **Component Updates**: Enhance components for WML content
-- **Performance**: Optimize WML parsing for real-time updates
+- **Legacy Removal**: Complete Phase 3 migration by removing legacy message type support
+- **PerceptionMessage Consolidation**: Migrate remaining message types to unified PerceptionMessage format
+- **Bridge State Cleanup**: Remove dual format support once backend sends only WML format
+- **Performance Optimization**: Optimize WML parsing and component rendering for real-time updates
 
 ### **Technical Debt**
-- **Message Type Proliferation**: Too many specific message types
-- **Interface Inconsistencies**: Perception system format mismatches
-- **WML Processing**: Need to add WML parsing capabilities
-- **Component Complexity**: Some components handle too many concerns
-- **StandardExample Type Inconsistency**: `StandardExample` properties return `RenderTree` instead of `StandardRender`, requiring conversion in client code (see WML Standard Components documentation for details) 
+- **Bridge State Complexity**: Components maintain both legacy and WML format support, adding complexity
+- **Legacy Message Types**: Multiple specific message types could be consolidated into PerceptionMessage
+- **StandardExample Type Inconsistency**: `StandardExample` properties return `RenderTree` instead of `StandardRender`, requiring conversion in client code (see WML Standard Components documentation for details)
+- **Component Dual Concerns**: Some components handle both message parsing and display logic 

@@ -13,128 +13,21 @@ The `standardize/components` directory contains the core WML component classes t
 
 ## Technical Debt
 
-### **IN PROGRESS: StandardRoom Character Integration** 🟡
-**Status**: Core character integration complete, advanced operations in progress.
+### **CRITICAL: StandardImage Storage System Migration** 🔴
 
-**✅ Completed (Phases 1-3)**: 
-- ✅ `StandardRoom` now stores character references (`_characters: ReferenceList`)
-- ✅ Characters can be parsed as Room sub-components
-- ✅ Room serialization/deserialization supports characters
-- ✅ Room schema generation includes character references
-- ✅ End-to-end WML ↔ JSON ↔ Schema conversion works
+**Component**: `StandardImage`
 
-**🔄 In Progress (Phase 5+)**: 
-- ✅ Advanced component operations (merge, diff, equal) - **COMPLETE**
-- 🔄 Comprehensive unit test coverage
-- 🔄 Client integration for UI display
-- 🔄 Lambda integration for server-side functionality
+**Problem**: `fileURL` property is brittle and complex to maintain. Images use UUID-based naming with separate `fileName` properties in asset JSON.
 
-**Benefits Achieved**: 
-- ✅ Consistent room representation between legacy and Standard formats
-- ✅ Foundation laid for character information in room descriptions
-- ✅ Proper reference management and schema validation
+**Impact**: Image handling is fragile and requires complex coordination between components and asset storage.
 
-## Project Plan: StandardRoom Character Integration
+**Proposed Solution**: Migrate to universalKey-based storage (`${universalKey}.png`) to eliminate separate properties and enable automatic cleanup.
 
-**🎯 Progress Summary:**
-- ✅ **Phases 1-6 Complete**: Core functionality, advanced operations, comprehensive testing, and integration testing implemented
-- ✅ **Schema Parsing**: Characters can be parsed as Room sub-components
-- ✅ **Data Structures**: `_characters` property added with proper types
-- ✅ **Core Methods**: `fromJSON`, `fromSchema`, `toJSON`, `schema`, `nestedSchema` methods support characters
-- ✅ **Advanced Logic**: `merge`, `diff`, `equals`, `referencedKeys` methods handle character references
-- ✅ **Unit Testing**: Comprehensive test coverage for all character functionality (23 tests passing)
-- ✅ **End-to-End**: Room ↔ Character integration works with full round-trip conversion
-- ✅ **UUID Fix**: Fixed StandardCharacter schema generation to include uuid attributes
-- ✅ **Integration Testing**: Complete integration testing with diff system edge case documented
-- 🔄 **Next**: Phase 7 (Client Integration) - update frontend to use StandardRoom character references
+**Related Documentation**: [`lambda/assets/AGENT.imageStorage.md`](../../../../lambda/assets/AGENT.imageStorage.md)
 
-### **Phase 1: Schema and Parser Updates** ✅
-- [x] Update WML schema parsing to allow Characters as legal sub-components of Room
-- [x] Ensure Characters can be parsed within Room context
-- [x] Add schema validation for Character references in Room components
-- [x] Test schema parsing with Room containing Characters
+**Developer Note**: Current `fileURL` handling is temporary. Feel free to insert temporary stub implementations for images in order to progress on other functionality.
 
-### **Phase 2: Core Data Structure Updates** ✅
-- [x] Add `_characters` property of type `ReferenceList` to `StandardRoomPayload`
-- [x] Update `StandardRoomData` type to include `characters` property (similar to `features`)
-- [x] Import necessary types (`ReferenceList`, character-related types)
-- [x] Update type definitions for serialization
 
-### **Phase 3: Core Implementation Methods** ✅
-- [x] Update `fromJSON` method to handle `characters` property
-- [x] Update `fromSchema` method to extract Character references from schema
-- [x] Update `toJSON` method to serialize `_characters` to `characters` property
-- [x] Update `schema` method to include Character references in output
-- [x] Add `characters` getter to expose `ReferenceList`
-
-### **Phase 4: Component Logic Updates** ✅
-- [x] Update `merge` method to handle character reference merging
-- [x] Update `diff` method to detect character reference changes
-- [x] Update `equals` method to compare character references
-- [x] Update `referencedKeys` to include character references
-- [x] Update `withChild` method to support character references
-- [x] Ensure proper handling of empty/undefined character lists
-
-### **Phase 5: Unit Test Implementation** ✅
-- [x] Create unit tests for `fromJSON` with characters property
-- [x] Create unit tests for `fromSchema` with Character sub-components
-- [x] Create unit tests for `toJSON` serialization including characters
-- [x] Create unit tests for `schema` output including characters
-- [x] Create unit tests for `merge` operations with character conflicts
-- [x] Create unit tests for `diff` detection of character changes
-- [x] Create unit tests for `equals` comparison with character differences
-- [x] Create unit tests for `characters` getter functionality
-- [x] Create unit tests for empty character lists handling
-- [x] Create unit tests for nestedSchema behavior with character references
-
-### **Phase 6: Integration Testing** ✅
-- [x] Test StandardRoom with Characters in integration scenarios
-- [x] Test WML parsing of Room components containing Characters
-- [x] Test serialization round-trip (WML → StandardRoom → JSON → StandardRoom → WML)
-- [x] Test diff scenarios with complex character reference changes
-- [x] Document diff system edge case for reference changes in nested components
-
-### **Phase 7: Client Integration** ✅
-- [x] Update `RoomDescription` component to use `room.characters` when available
-- [x] Update UI logic to handle both legacy and Standard format character display
-- [x] Test frontend functionality with Standard format rooms containing characters
-- [x] Remove legacy character handling workarounds where possible
-
-### **Phase 8: Lambda Integration** ✅
-- [x] Update server-side room construction to include character references
-- [x] Update ephemera system to populate character references in StandardRoom
-- [x] Test Lambda functions that create/manipulate StandardRoom instances
-- [x] Ensure proper character reference synchronization
-
-### **Phase 9: Documentation and Cleanup** 🔄
-- [ ] Update StandardRoom documentation to reflect character integration
-- [ ] Update usage examples to show character reference patterns
-- [ ] Update related documentation (ephemera, UI components)
-- [ ] Clean up temporary workarounds and debug code
-
-### **RESOLVED: StandardCharacter Technical Debt** ✅
-**Status**: COMPLETED - `StandardCharacter` component now uses `StandardRender` objects for the `name` property.
-
-**Problem**: The `name` property was returning `EditWrappedStandardNode` objects, but client code expected `StandardRender` objects with `.plainString` property.
-
-**Solution**: Updated `StandardCharacter` to use `StandardRender` objects for the `name` property, following the same pattern as `StandardExample`. The `image` property remains as `EditWrappedStandardNode` since it represents different data (file references rather than rich text content).
-
-**Benefits**:
-- ✅ Consistent API between `StandardExample` and `StandardCharacter`
-- ✅ Client code can now access name content properly with `.plainString`
-- ✅ Better type safety and runtime manipulation capabilities
-
-### **RESOLVED: StandardExample Technical Debt** ✅
-**Status**: COMPLETED - `StandardExample` component now uses `StandardRender` objects for content properties.
-
-**Problem**: The `name`, `summary`, and `description` properties were returning `RenderTree` arrays instead of `StandardRender` objects.
-
-**Solution**: Updated getters to return `StandardRender` objects directly, providing a more active and resilient API.
-
-**Benefits**:
-- ✅ Improved diff granularity - now detects specific field changes instead of replacing entire components
-- ✅ More consistent API with other components
-- ✅ Better type safety and runtime manipulation capabilities
 
 ## Core Concepts
 
@@ -182,16 +75,7 @@ See `dataTypes/AGENT.md` for detailed documentation of this distinction.
 ### **StandardImage** 🔴
 - **Purpose**: Represents images with fileURL
 - **Content Properties**: `fileURL` (string)
-- **Status**: 🔴 **CRITICAL: Image Storage System Migration Needed**
-
-**Current Issues**: `fileURL` property is brittle and complex to maintain. Images use UUID-based naming with separate `fileName` properties in asset JSON.
-
-**Future Plans**: Migrate to universalKey-based storage (`${universalKey}.png`) to eliminate separate properties and enable automatic cleanup.
-
-**Related Documentation**:
-- **[Image Storage System](../../../../lambda/assets/AGENT.imageStorage.md)**: Comprehensive overview of current system and migration plans
-
-**Developer Note**: Current `fileURL` handling is temporary. Feel free to insert temporary stub implementations for images in order to progress on other functionality.
+- **Status**: 🔴 Has critical technical debt (see Technical Debt section)
 
 ### **StandardFeature**
 - **Purpose**: Represents features with name and description
@@ -209,50 +93,8 @@ See `dataTypes/AGENT.md` for detailed documentation of this distinction.
 - **Purpose**: Represents rooms with name, description, exits, features, and characters
 - **Content Properties**: `name`, `description` (both `StandardRender`)
 - **Reference Properties**: `features`, `examples`, `characters` (all `ReferenceList`)
-- **Current Status**: ✅ Core functionality, advanced operations, client integration, and Lambda integration complete (Phases 1-8)
-- **Advanced Operations**: ✅ merge, diff, equals, referencedKeys, withChild, nestedSchema
-- **Client Integration**: ✅ RoomDescription component updated to handle character references
-- **Status**: 🟢 Lambda integration complete, ready for documentation and cleanup (Phase 9)
 
-## Project Plan: StandardCharacter Technical Debt Fix
 
-### **Phase 1: Analysis and Planning** ✅
-- [x] Document the technical debt issue
-- [x] Identify all usages of `StandardCharacter` that need updates
-- [x] Plan the refactoring approach
-
-### **Phase 2: Core Implementation** ✅
-- [x] Update `StandardCharacterPayload` to use `StandardRender` for `_name` (only)
-- [x] Update `name` getter to return `StandardRender` object
-- [x] Update `fromJSON` and `fromSchema` methods to create `StandardRender` for name
-- [x] Update `toJSON` method to serialize `StandardRender` for name
-- [x] Update `schema` method to rebuild from `StandardRender` for name
-- [x] Keep `image` property as `EditWrappedStandardNode` (no changes needed)
-
-### **Phase 3: Data Type Updates** ✅
-- [x] **No changes needed** - Data types represent serialization format, not runtime format
-
-### **Phase 4: Test Updates** ✅
-- [x] Update `StandardCharacter` unit tests to expect `StandardRender` objects
-- [x] Update integration tests that use `StandardCharacter`
-- [x] Verify diffing works correctly with new API
-
-### **Phase 5: Front-End Client Code Updates** 🔄
-- [ ] Update `RoomCharacter` component to use `StandardRender` objects directly
-- [ ] Update any other client code that accesses `StandardCharacter` properties
-- [ ] Test front-end functionality
-
-### **Phase 6: Ephemera Lambda Updates** 🔄
-- [ ] Update any server-side code that creates or manipulates `StandardCharacter` instances
-- [ ] Update perception subsystem if it uses `StandardCharacter` properties
-
-### **Phase 7: Integration Updates** 🔄
-- [ ] Update factory functions that create `StandardCharacter` instances
-- [ ] Update any other integration points
-
-### **Phase 8: Documentation Updates** 🔄
-- [ ] Update component documentation to reflect new API
-- [ ] Update usage examples
 
 ## Usage Patterns
 
@@ -287,6 +129,38 @@ const description = example.description.plainString
 // StandardCharacter (✅ Fixed)
 const name = character.name.plainString  // Now works - returns StandardRender
 const image = character.image?.data?.fileURL || ''  // Now works - handles EditWrappedStandardNode
+```
+
+### Character Reference Patterns
+```typescript
+// Creating a room with character references
+const roomData: StandardRoomData = {
+    tag: 'Room',
+    universalKey: 'ROOM#tavern',
+    characters: ['CHARACTER#innkeeper', 'CHARACTER#bard'],
+    exits: [],
+    examples: ['EXAMPLE#tavernDescription']
+}
+const room = new StandardRoom(roomData)
+
+// Accessing characters in a room
+const characterRefs = room.characters.payload
+characterRefs.forEach(ref => {
+    console.log(`Character: ${ref.universalKey}`)
+})
+
+// In Lambda: Creating character components for StandardForm
+const characterComponents: StandardCharacterData[] = roomCharacterList.map(char => ({
+    tag: 'Character',
+    universalKey: char.EphemeraId,  // No local key needed!
+    name: char.Name ? [char.Name] : undefined
+}))
+
+// Client: Accessing characters in RoomDescription
+characters.forEach(character => {
+    const name = character.name?.plainString || 'Unknown Character'
+    const characterId = character.universalKey || character.key
+})
 ```
 
 ### Serialization
