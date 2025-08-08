@@ -36,7 +36,11 @@ export const RoomCharacter = ({ character }: RoomCharacterProps) => {
         }))
     } : () => {}
 
-    return <CharacterChip CharacterId={characterId} onClick={clickHandler} Name={characterName} fileURL={characterImage} />
+    return (
+        <div data-testid="room-character">
+            <CharacterChip CharacterId={characterId} onClick={clickHandler} Name={characterName} fileURL={characterImage} />
+        </div>
+    )
 }
 
 export default RoomCharacter

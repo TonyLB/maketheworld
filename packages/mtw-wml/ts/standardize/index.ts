@@ -190,7 +190,10 @@ export class StandardForm {
                 // Templates for the following component tags: 'Character', 'Image', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action'
                 //
                 const componentTemplates: ComponentProcessingTemplate[] = [
-                    { key: 'Character' },
+                    { 
+                        key: 'Character',
+                        legalParents: ['Room']
+                    },
                     { key: 'Image' },
                     {
                         key: 'Room',

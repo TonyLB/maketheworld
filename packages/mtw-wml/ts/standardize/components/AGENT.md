@@ -13,50 +13,21 @@ The `standardize/components` directory contains the core WML component classes t
 
 ## Technical Debt
 
-### **CRITICAL: StandardRoom Character Integration** 🔴
-**Status**: `StandardRoom` component lacks character reference integration.
+### **CRITICAL: StandardImage Storage System Migration** 🔴
 
-**Problem**: 
-- `StandardRoom` doesn't store character references
-- Characters are managed separately in ephemera system
-- Room descriptions can't display character information
-- Legacy room messages include characters, but Standard format doesn't
+**Component**: `StandardImage`
 
-**Impact**: 
-- UI inconsistency between legacy and Standard formats
-- Missing character information in room descriptions
-- Test failures in `RoomDescription` component
-- Incomplete room representation in Standard format
+**Problem**: `fileURL` property is brittle and complex to maintain. Images use UUID-based naming with separate `fileName` properties in asset JSON.
 
-**Solution**: 
-- Add character reference list to `StandardRoom` component
-- Update room schema to include character references
-- Modify room serialization/deserialization
-- Update UI components to handle character display
+**Impact**: Image handling is fragile and requires complex coordination between components and asset storage.
 
-### **RESOLVED: StandardCharacter Technical Debt** ✅
-**Status**: COMPLETED - `StandardCharacter` component now uses `StandardRender` objects for the `name` property.
+**Proposed Solution**: Migrate to universalKey-based storage (`${universalKey}.png`) to eliminate separate properties and enable automatic cleanup.
 
-**Problem**: The `name` property was returning `EditWrappedStandardNode` objects, but client code expected `StandardRender` objects with `.plainString` property.
+**Related Documentation**: [`lambda/assets/AGENT.imageStorage.md`](../../../../lambda/assets/AGENT.imageStorage.md)
 
-**Solution**: Updated `StandardCharacter` to use `StandardRender` objects for the `name` property, following the same pattern as `StandardExample`. The `image` property remains as `EditWrappedStandardNode` since it represents different data (file references rather than rich text content).
+**Developer Note**: Current `fileURL` handling is temporary. Feel free to insert temporary stub implementations for images in order to progress on other functionality.
 
-**Benefits**:
-- ✅ Consistent API between `StandardExample` and `StandardCharacter`
-- ✅ Client code can now access name content properly with `.plainString`
-- ✅ Better type safety and runtime manipulation capabilities
 
-### **RESOLVED: StandardExample Technical Debt** ✅
-**Status**: COMPLETED - `StandardExample` component now uses `StandardRender` objects for content properties.
-
-**Problem**: The `name`, `summary`, and `description` properties were returning `RenderTree` arrays instead of `StandardRender` objects.
-
-**Solution**: Updated getters to return `StandardRender` objects directly, providing a more active and resilient API.
-
-**Benefits**:
-- ✅ Improved diff granularity - now detects specific field changes instead of replacing entire components
-- ✅ More consistent API with other components
-- ✅ Better type safety and runtime manipulation capabilities
 
 ## Core Concepts
 
@@ -104,16 +75,7 @@ See `dataTypes/AGENT.md` for detailed documentation of this distinction.
 ### **StandardImage** 🔴
 - **Purpose**: Represents images with fileURL
 - **Content Properties**: `fileURL` (string)
-- **Status**: 🔴 **CRITICAL: Image Storage System Migration Needed**
-
-**Current Issues**: `fileURL` property is brittle and complex to maintain. Images use UUID-based naming with separate `fileName` properties in asset JSON.
-
-**Future Plans**: Migrate to universalKey-based storage (`${universalKey}.png`) to eliminate separate properties and enable automatic cleanup.
-
-**Related Documentation**:
-- **[Image Storage System](../../../../lambda/assets/AGENT.imageStorage.md)**: Comprehensive overview of current system and migration plans
-
-**Developer Note**: Current `fileURL` handling is temporary. Feel free to insert temporary stub implementations for images in order to progress on other functionality.
+- **Status**: 🔴 Has critical technical debt (see Technical Debt section)
 
 ### **StandardFeature**
 - **Purpose**: Represents features with name and description
@@ -127,51 +89,12 @@ See `dataTypes/AGENT.md` for detailed documentation of this distinction.
 - **Purpose**: Represents knowledge with name and description
 - **Content Properties**: `name`, `description` (both `StandardRender`)
 
-### **StandardRoom** 🔴
-- **Purpose**: Represents rooms with name, description, exits, and features
+### **StandardRoom** 🟢
+- **Purpose**: Represents rooms with name, description, exits, features, and characters
 - **Content Properties**: `name`, `description` (both `StandardRender`)
-- **Missing Integration**: Character references not included in room structure
-- **Status**: 🔴 Character integration needed
+- **Reference Properties**: `features`, `examples`, `characters` (all `ReferenceList`)
 
-## Project Plan: StandardCharacter Technical Debt Fix
 
-### **Phase 1: Analysis and Planning** ✅
-- [x] Document the technical debt issue
-- [x] Identify all usages of `StandardCharacter` that need updates
-- [x] Plan the refactoring approach
-
-### **Phase 2: Core Implementation** ✅
-- [x] Update `StandardCharacterPayload` to use `StandardRender` for `_name` (only)
-- [x] Update `name` getter to return `StandardRender` object
-- [x] Update `fromJSON` and `fromSchema` methods to create `StandardRender` for name
-- [x] Update `toJSON` method to serialize `StandardRender` for name
-- [x] Update `schema` method to rebuild from `StandardRender` for name
-- [x] Keep `image` property as `EditWrappedStandardNode` (no changes needed)
-
-### **Phase 3: Data Type Updates** ✅
-- [x] **No changes needed** - Data types represent serialization format, not runtime format
-
-### **Phase 4: Test Updates** ✅
-- [x] Update `StandardCharacter` unit tests to expect `StandardRender` objects
-- [x] Update integration tests that use `StandardCharacter`
-- [x] Verify diffing works correctly with new API
-
-### **Phase 5: Front-End Client Code Updates** 🔄
-- [ ] Update `RoomCharacter` component to use `StandardRender` objects directly
-- [ ] Update any other client code that accesses `StandardCharacter` properties
-- [ ] Test front-end functionality
-
-### **Phase 6: Ephemera Lambda Updates** 🔄
-- [ ] Update any server-side code that creates or manipulates `StandardCharacter` instances
-- [ ] Update perception subsystem if it uses `StandardCharacter` properties
-
-### **Phase 7: Integration Updates** 🔄
-- [ ] Update factory functions that create `StandardCharacter` instances
-- [ ] Update any other integration points
-
-### **Phase 8: Documentation Updates** 🔄
-- [ ] Update component documentation to reflect new API
-- [ ] Update usage examples
 
 ## Usage Patterns
 
@@ -206,6 +129,38 @@ const description = example.description.plainString
 // StandardCharacter (✅ Fixed)
 const name = character.name.plainString  // Now works - returns StandardRender
 const image = character.image?.data?.fileURL || ''  // Now works - handles EditWrappedStandardNode
+```
+
+### Character Reference Patterns
+```typescript
+// Creating a room with character references
+const roomData: StandardRoomData = {
+    tag: 'Room',
+    universalKey: 'ROOM#tavern',
+    characters: ['CHARACTER#innkeeper', 'CHARACTER#bard'],
+    exits: [],
+    examples: ['EXAMPLE#tavernDescription']
+}
+const room = new StandardRoom(roomData)
+
+// Accessing characters in a room
+const characterRefs = room.characters.payload
+characterRefs.forEach(ref => {
+    console.log(`Character: ${ref.universalKey}`)
+})
+
+// In Lambda: Creating character components for StandardForm
+const characterComponents: StandardCharacterData[] = roomCharacterList.map(char => ({
+    tag: 'Character',
+    universalKey: char.EphemeraId,  // No local key needed!
+    name: char.Name ? [char.Name] : undefined
+}))
+
+// Client: Accessing characters in RoomDescription
+characters.forEach(character => {
+    const name = character.name?.plainString || 'Unknown Character'
+    const characterId = character.universalKey || character.key
+})
 ```
 
 ### Serialization

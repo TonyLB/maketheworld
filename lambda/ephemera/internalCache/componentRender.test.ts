@@ -57,6 +57,7 @@ describe('ComponentRender cache handler', () => {
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
             <Asset key=(render)>
+                <Character uuid=(TESS)><Name>Tess</Name></Character>
                 <Room uuid=(TestOne)>
                     <ShortName>TestRoom</ShortName>
                     <Example uuid=(rendered)>
@@ -64,6 +65,7 @@ describe('ComponentRender cache handler', () => {
                         <Summary>Summary</Summary>
                         <Description>Description</Description>
                     </Example>
+                    <Character uuid=(TESS) />
                 </Room>
             </Asset>
         `))

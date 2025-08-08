@@ -1,4 +1,4 @@
-# RoomDescription Component - Migration Planning Guide
+# RoomDescription Component - Bridge State Implementation
 
 ## Overview
 
@@ -345,15 +345,41 @@ export const RoomCharacter = ({ character }: RoomCharacterProps) => {
 - **Character Linking**: Character chips with navigation functionality
 - **Asset Integration**: Personal asset status and edit capabilities
 
-## Migration Strategy
+### **Display Modes**
+The `RoomDescription` component supports two display modes:
 
-### **Phase 1: Component Analysis** ✅ **COMPLETED**
+#### **Full Description Mode** (default)
+- **Layout**: Side margins (70px left/right)
+- **Content**: Complete room description with all sub-components
+- **Height**: Unlimited height, full content display
+- **Usage**: Primary room display in message stream
+
+#### **Header Mode** (`header={true}`)
+- **Layout**: No margins, compact header positioning
+- **Content**: Essential information only (name, truncated description)
+- **Height**: Limited to `maxHeight: '20vh'` with overflow hidden
+- **Live Indicator**: Shows "Live" chip when `currentHeader={true}`
+- **Usage**: Room context headers during navigation
+- **Routing**: `RoomHeader` message type routes to `<RoomDescription header />`
+
+## Migration Status: Bridge State ✅ Phases 1-3 Complete
+
+### **Current Implementation (Bridge State)**
+- ✅ **Dual Format Support**: Handles both legacy and Standard format data
+- ✅ **Legacy Conversion**: Converts legacy data to Standard format for sub-components
+- ✅ **Sub-Component Migration**: RoomExit and RoomCharacter accept only Standard format objects
+- ✅ **Backend Integration**: StandardRoom character integration complete
+- 🔄 **Next Phase**: Remove legacy data handling and use only Standard format
+
+### **Migration Progress**
+
+#### **Phase 1: Component Analysis** ✅ **COMPLETED**
 - [x] Document current component structure and dependencies
 - [x] Identify legacy data formats and WML equivalents
 - [x] Analyze sub-component requirements (RoomExit, RoomCharacter)
 - [x] Map Redux integration points
 
-### **Phase 2: Bridge State Implementation** ✅ **COMPLETED**
+#### **Phase 2: Bridge State Implementation** ✅ **COMPLETED**
 - [x] Update `RoomDescription` component interface to accept Standard format objects
 - [x] Implement legacy data conversion functions (`createStandardExitFromLegacy`, `createStandardCharacterFromLegacy`)
 - [x] Refactor `RoomExit` component to accept only `StandardExit` instances
@@ -361,41 +387,54 @@ export const RoomCharacter = ({ character }: RoomCharacterProps) => {
 - [x] Update component rendering to pass Standard format objects directly to sub-components
 - [x] Add unit tests for legacy conversion functions
 
-### **Phase 3: Backend Integration**
-- [ ] Update backend to include character data in room Standard format structure
-- [ ] Ensure StandardExit and StandardCharacter data is properly included
-- [ ] Test Standard format generation for room components
-- [ ] Validate character data integration
+#### **Phase 3: Backend Integration** ✅ **COMPLETED**
+- [x] Update backend to include character data in room Standard format structure
+- [x] Ensure StandardExit and StandardCharacter data is properly included
+- [x] Test Standard format generation for room components
+- [x] Validate character data integration
 
-### **Phase 4: Testing and Validation**
-- [ ] Test both legacy and Standard format data
-- [ ] Verify navigation functionality
+#### **Phase 4: Complete Migration (Pending)**
+- [ ] Remove legacy data format support from RoomDescription component
+- [ ] Update backend to send only Standard format data
+- [ ] Remove legacy conversion functions
+- [ ] Update tests to use only Standard format data
+
+#### **Phase 5: Testing and Validation (Pending)**
+- [ ] Test Standard format-only implementation
+- [ ] Verify navigation functionality with native Standard format
 - [ ] Validate layout in both header and full modes
-- [ ] Test asset integration
+- [ ] Test asset integration with Standard format only
 
-### **Phase 5: Documentation Cleanup**
-- [ ] Identify documentation that includes excessive technical detail in service of migration planning
-- [ ] Refactor with concise documentation that serves as an overview and guide to the code
+#### **Phase 6: Documentation Cleanup (Pending)**
+- [ ] Update documentation to reflect Standard format-only implementation
+- [ ] Remove bridge state implementation notes
+- [ ] Document final Standard format integration patterns
 
 ## Implementation Notes
 
-### **Critical Considerations**
-1. **Legacy Data Conversion**: Convert legacy data to Standard format at parent component level
-2. **Pure Sub-Components**: RoomExit and RoomCharacter accept only Standard format types
-3. **Navigation Logic**: Redux dispatch patterns must work with Standard format data
-4. **Backend Integration**: Character data must be included in room Standard format structure
-5. **Asset Integration**: Personal asset status logic must work with Standard format data
+### **Bridge State Architecture**
+1. **Legacy Input Processing**: Accepts legacy RoomDescription and RoomHeader message formats
+2. **Standard Format Conversion**: Converts legacy data to Standard format objects at component boundary
+3. **Pure Sub-Components**: RoomExit and RoomCharacter work exclusively with Standard format objects
+4. **Character Integration**: Handles characters from both legacy arrays and StandardRoom.characters references
+5. **Migration Path**: Maintains backward compatibility while enabling future removal of legacy support
+
+### **Critical Migration Considerations**
+1. **Data Conversion**: Legacy-to-Standard conversion happens at the RoomDescription component level
+2. **Sub-Component Purity**: RoomExit and RoomCharacter must never receive legacy data directly
+3. **Backend Transition**: Backend currently sends legacy format but includes Standard format character data
+4. **Future Cleanup**: Legacy conversion code can be removed once backend sends only Standard format
 
 ### **Performance Considerations**
 - **Complex Parsing**: Room data includes multiple sub-components
 - **State Updates**: Heavy Redux integration requires careful state management
 - **Layout Recalculation**: Grid layout may need optimization for Standard format data
 
-### **Testing Strategy**
-- **Manual Testing**: Room navigation and character interaction
-- **Layout Testing**: Header vs. full description modes
-- **Integration Testing**: Asset status and edit functionality
-- **Navigation Testing**: Exit and character link functionality
+### **Testing Coverage**
+- **Unit Tests**: Legacy conversion functions and component rendering
+- **Integration Tests**: Both legacy and Standard format data handling
+- **Manual Testing**: Room navigation and character interaction functionality
+- **Layout Testing**: Header vs. full description modes with proper styling
 
 ## Navigation Tips
 

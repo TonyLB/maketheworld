@@ -404,6 +404,25 @@ const assetWithEdits = new StandardForm({
 - **Extensions**: Support for additional asset operations
 
 ### Technical Debt
+
+#### **DIFF SYSTEM: Reference Changes in Nested Components** 🔴
+**Status**: Specific edge case where diff system fails to detect new references to existing global components.
+
+**Issue**: When a nested component (like Room) adds a reference to an existing global component, the diff system correctly identifies the global component but fails to include the new reference in the diff output.
+
+**Example**: 
+- Base: Global `char2` exists, Room has no `char2` reference
+- Modified: Global `char2` unchanged, Room adds `char2` reference
+- Expected: Diff should show `<Character key=(char2) />` in Room
+- Actual: Diff missing the `char2` reference entirely
+
+**Root Cause**: The `StandardForm.diff()` method's zippered component processing doesn't correctly handle reference changes in nested components when the referenced component already exists globally.
+
+**Impact**: Affects any reference list (characters, features, examples) in nested components when adding references to existing global components.
+
+**Priority**: Medium - affects diff accuracy but doesn't break core functionality.
+
+#### **General Issues**
 - **Error Handling**: Improve error messages for complex operations
 - **Documentation**: Add more examples for complex asset operations
 - **Testing**: Expand test coverage for edge cases

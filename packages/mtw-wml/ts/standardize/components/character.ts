@@ -78,9 +78,9 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         }
     }
 
-    schema(key: string): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
-            data: { tag: 'Character', key },
+            data: { tag: 'Character', key, uuid: universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema({ tag: 'Pronouns' }))).flat(1),

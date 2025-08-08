@@ -13,6 +13,7 @@ import { StandardReferenceData } from "./dataTypes/reference"
 import { AssetUUID, ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaFeature, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaCharacter } from "@tonylb/mtw-base/ts/schema"
 import { deepEqual } from "../../lib/objects"
 import { StandardLiteral } from "../literal"
 
@@ -26,6 +27,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     _exits: StandardExit[] = [];
     _features: ReferenceList;
     _examples: ReferenceList;
+    _characters: ReferenceList;
     tag = 'Room' as const
 
     constructor(previous?: StandardRoomPayload) {
@@ -34,10 +36,12 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             this._exits = [...previous.exits]
             this._features = previous._features.clone()
             this._examples = previous._examples.clone()
+            this._characters = previous._characters.clone()
         }
         else {
             this._examples = new ReferenceList([])
             this._features = new ReferenceList([])
+            this._characters = new ReferenceList([])
         }
     }
 
@@ -47,13 +51,14 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         this._exits = props.exits.map((exitData) => (new StandardExit(exitData)))
         this._features = new ReferenceList(props.features?.map((reference) => (new StandardReference(reference))) ?? [])
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
+        this._characters = new ReferenceList(props.characters?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
             const tagTree = new SchemaTagTree(node.children)
             const shortNameItem = tagTree
-                .filter({ match: 'ShortName' })
+                .filter({ and: [{ match: 'ShortName' }, { not: { or: [{ match: 'Character'}, { match: 'Feature' }] } }] })
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
             const exitTagTree = tagTree
@@ -64,6 +69,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             this._exits = exitTagTree.tree.map((exitData) => (new StandardExit([exitData])))
             this._features = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map((node => (childReferenceFactory([node])))))
             this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node])))))
+            this._characters = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaCharacter)).map((node => (childReferenceFactory([node])))))
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')
@@ -75,6 +81,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     get exits() { return this._exits }
     get features() { return this._features }
     get examples() { return this._examples }
+    get characters() { return this._characters }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardRoomData, 'key' | 'universalKey'> {
         const { stripUIFields: stripUI } = options ?? {}
@@ -83,7 +90,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             shortName: this?.shortName?.toJSON(),
             exits: this.exits.map((exit) => exit.toJSON()),
             ...(this.features.payload.length ? { features: this.features.toJSON() } : {}),
-            ...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {})
+            ...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {}),
+            ...(this.characters.payload.length ? { characters: this.characters.toJSON() } : {})
         }
     }
 
@@ -94,6 +102,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...this.features.schema,
                 ...this.examples.schema,
+                ...this.characters.schema,
                 ...this.exits.map((exit) => (exit.schema)).flat(1)
             ]
         }
@@ -107,6 +116,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...this.features.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
                 ...this.examples.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
+                ...this.characters.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
                 ...this.exits.map((exit) => (exit.schema)).flat(1)
             ]
         }
@@ -118,6 +128,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._exits = mergeStandardExitList([...this.exits, ...incoming.exits])
         returnValue._features = this._features.merge(incoming._features) ?? new ReferenceList([])
         returnValue._examples = this._examples.merge(incoming._examples) ?? new ReferenceList([])
+        returnValue._characters = this._characters.merge(incoming._characters) ?? new ReferenceList([])
         return returnValue as this
     }
 
@@ -137,7 +148,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             ...exitReferenceKeys(this.exits)
                 .map((key) => ({ referenceType: 'Exit' as const, key: isSchemaComponentUUID(key) ? new StandardKey(key) : new StandardKey({ key, tag: 'Room' }) })),
             ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
+            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
         ]
     }
 
@@ -173,6 +185,9 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         else if (child._payload.plain.tag === 'Example') {
             returnValue._examples = returnValue._examples.assureItem(child)
         }
+        else if (child._payload.plain.tag === 'Character') {
+            returnValue._characters = returnValue._characters.assureItem(child)
+        }
         else {
             throw new Error(`Invalid child type ${child._payload.tag} for StandardRoom`)
         }
@@ -185,6 +200,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get exits() { return this._payload.exits }
     get features() { return this._payload.features }
     get examples() { return this._payload.examples }
+    get characters() { return this._payload.characters }
 
     constructor(props: string | StandardRoomData | GenericTreeNode<SchemaTag> | StandardRoom) {
         super(props)
@@ -202,6 +218,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         }
         return !(this.features.diff(incoming.features)?.payload.length) &&
             !(this.examples.diff(incoming.examples)?.payload.length) &&
+            !(this.characters.diff(incoming.characters)?.payload.length) &&
             !(diffStandardExitList(this.exits, incoming.exits).length) &&
             deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
     }
@@ -222,9 +239,11 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         }
         const featuresDiff = this.features.diff(incoming.features) ?? new ReferenceList([])
         const examplesDiff = this.examples.diff(incoming.examples) ?? new ReferenceList([])
+        const charactersDiff = this.characters.diff(incoming.characters) ?? new ReferenceList([])
         if (deepEqual(this._payload.shortName?.toJSON(), incoming._payload.shortName?.toJSON()) &&
             !featuresDiff.payload.length &&
             !examplesDiff.payload.length &&
+            !charactersDiff.payload.length &&
             !diffStandardExitList(this.exits, incoming.exits).length
         ) {
             return undefined
@@ -236,6 +255,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
             : incoming._payload._shortName
         base._payload._features = featuresDiff
         base._payload._examples = examplesDiff
+        base._payload._characters = charactersDiff
         base._payload._exits = diffStandardExitList(this.exits, incoming.exits)
         return base
     }
