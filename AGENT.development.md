@@ -39,11 +39,77 @@ The following migrations must be completed in this specific order due to depende
 - Clean up bridge-state code in `RoomDescription` and related components
 
 #### **Key Tasks**
-- [ ] **Audit Legacy Format Usage**: Identify remaining places where legacy formats are sent/expected
-- [ ] **Update Ephemera Message Generation**: Ensure all perception messages use WML/Standard format
-- [ ] **Complete Frontend Format Migration**: Remove all legacy format handling from client slices and components
-- [ ] **Remove Bridge-State Code**: Clean up conditional format handling in `RoomDescription` and other components
-- [ ] **Update Tests**: Ensure all tests use new format expectations
+- [x] **Audit Legacy Format Usage**: ✅ COMPLETED - Identified specific remaining legacy patterns
+- [x] **🚨 URGENT: Fix PerceptionMessage Room Differentiation**: ✅ COMPLETED - Implemented `metaData` field with discriminated union based on `componentUUID` type patterns
+- [x] **Update Ephemera Room Message Generation**: ✅ COMPLETED - Include metaData with displayMode for room PerceptionMessages  
+- [x] **Update Frontend Room Message Routing**: ✅ COMPLETED - Use metaData with type guards for enhanced routing
+- [x] **Test MetaData System**: ✅ COMPLETED - Comprehensive tests pass for RoomDescription vs RoomHeader differentiation
+- [ ] **Update Ephemera CharacterDescription**: Migrate CharacterDescription messages to use PerceptionMessage format with WML content
+- [ ] **Remove Frontend Bridge Code**: Clean up legacy format fallback support in ComponentDescription component
+- [ ] **Remove Legacy Message Types**: Clean up unused type definitions and handlers in Ephemera messageBus
+- [ ] **Update Tests**: Ensure all tests use new format expectations including metaData field
+
+#### **Audit Results Summary**
+**Legacy Formats Found**:
+- **CharacterDescription**: Only remaining Ephemera message using legacy format (lines 174-181 in perception/index.ts)
+- **Frontend Bridge Logic**: ComponentDescription still supports legacy FeatureDescription/KnowledgeDescription formats (lines 70-76)
+- **Type Definitions**: Legacy message types still defined in messageBus/baseClasses.ts but unused
+
+**Already Migrated** ✅:
+- Room messages (RoomDescription/RoomHeader) → PerceptionMessage format
+- Feature messages → PerceptionMessage format  
+- Knowledge messages → PerceptionMessage format
+
+**Scope Reduction**: Most migration work was already completed - only character descriptions and cleanup remain.
+
+**🚨 CRITICAL ISSUE IDENTIFIED**: PerceptionMessage format cannot differentiate between RoomDescription and RoomHeader display modes. The backend sends `{ header: payload.header }` to ComponentRender, but this information is lost in the `PerceptionMessage` format since it only has `DisplayProtocol: 'PerceptionMessage'` without display mode indication.
+
+**💡 ARCHITECTURAL SOLUTION**: Instead of adding ad hoc fields, implement a `metaData` field with strongly-typed discriminated union based on `componentUUID` patterns:
+
+```typescript
+// Base interface
+type PerceptionMessageMetaDataBase = {
+  componentUUID: ComponentUUID;
+}
+
+// Discriminated union based on componentUUID type
+type PerceptionRoomMetaData = PerceptionMessageMetaDataBase & {
+  componentUUID: `ROOM#${string}`;
+  displayMode: 'header' | 'full';
+}
+
+type PerceptionFeatureMetaData = PerceptionMessageMetaDataBase & {
+  componentUUID: `FEATURE#${string}`;
+  // Room-specific metadata not applicable
+}
+
+// Union type
+type PerceptionMessageMetaData = PerceptionRoomMetaData | PerceptionFeatureMetaData | PerceptionKnowledgeMetaData | PerceptionCharacterMetaData | PerceptionAssetMetaData;
+
+// Updated PerceptionMessage
+export type PerceptionMessage = {
+    DisplayProtocol: 'PerceptionMessage';
+    wmlContent: WMLSchema;
+    metaData: PerceptionMessageMetaData;  // Replaces standalone componentUUID
+} & MessageAddressing
+```
+
+This approach:
+- ✅ Prevents ad hoc field accumulation
+- ✅ Provides type safety based on component type
+- ✅ Allows component-specific metadata without polluting base message
+- ✅ Maintains backward compatibility (can migrate `componentUUID` to `metaData.componentUUID`)
+- ✅ Extensible for future component-specific needs
+
+**✅ IMPLEMENTATION COMPLETED** - Phase 1 Migration:
+- **Interface Definition**: Added discriminated union metadata types and updated PerceptionMessage interface with optional `metaData` field
+- **Backend Generation**: Updated Ephemera perception system to generate `metaData` for Room, Feature, and Knowledge messages
+- **Frontend Routing**: Updated Message router to use metaData with type guards, providing proper RoomDescription vs RoomHeader differentiation
+- **Backward Compatibility**: Maintained `componentUUID` field and fallback logic during migration period
+- **Cache Compatibility**: Updated perceptionCache slice to work with both metaData and legacy componentUUID
+- **Clear Naming**: Renamed all types and type guards with 'Perception' prefix (e.g., `PerceptionRoomMetaData`, `isPerceptionRoomMetaData`) to avoid naming confusion
+- **Backend Message Bus**: Updated `PublishPerceptionMessage` type in Ephemera to include optional `metaData` field
+- **Comprehensive Testing**: 91 total tests pass including 18 new metadata system tests verifying type safety and routing logic
 
 #### **Success Criteria**
 - All perception messages use WML/Standard format

@@ -96,6 +96,7 @@ export type PublishPerceptionMessage = {
     displayProtocol: 'PerceptionMessage';
     wmlContent: string;
     componentUUID: string;
+    metaData?: import('@tonylb/mtw-interfaces/ts/messages').PerceptionMessageMetaData;
 } & PublishMessageBase
 
 export type PublishMessage = PublishWorldMessage |

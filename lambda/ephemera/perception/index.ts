@@ -153,6 +153,10 @@ export const perceptionMessage = async ({
                         displayProtocol: 'PerceptionMessage',
                         wmlContent: schemaToWML([roomDescribe.schema]),
                         componentUUID: payload.ephemeraId,
+                        metaData: {
+                            componentUUID: payload.ephemeraId,
+                            displayMode: payload.header ? 'header' : 'full'
+                        },
                         messageGroupId: payload.messageGroupId
                     })
                 }))
@@ -190,6 +194,9 @@ export const perceptionMessage = async ({
                         displayProtocol: 'PerceptionMessage',
                         wmlContent: schemaToWML([featureDescribe.schema]),
                         componentUUID: ephemeraId,
+                        metaData: {
+                            componentUUID: ephemeraId
+                        },
                         messageGroupId: payload.messageGroupId
                     })
                 }
@@ -207,6 +214,9 @@ export const perceptionMessage = async ({
                         displayProtocol: 'PerceptionMessage',
                         wmlContent: schemaToWML([knowledgeDescribe.schema]),
                         componentUUID: ephemeraId,
+                        metaData: {
+                            componentUUID: ephemeraId
+                        },
                         messageGroupId: payload.messageGroupId
                     })
                 }

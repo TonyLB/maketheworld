@@ -24,7 +24,7 @@ const perceptionCacheSlice = createSlice({
                     // The backend sends to SESSION#${SessionId} for directResponse, but the Target
                     // field may not be included in the message payload itself
                     // We cache all PerceptionMessages for anonymous access
-                    const componentUUID = message.componentUUID
+                    const componentUUID = message.metaData?.componentUUID || message.componentUUID
                     const cacheKey: PerceptionCacheKey = `ANONYMOUS::${componentUUID}`
                     state[cacheKey] = enhancedMessage
                 })

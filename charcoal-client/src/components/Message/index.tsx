@@ -12,7 +12,13 @@ import ComponentDescription from './ComponentDescription'
 import SpacerMessage from './SpacerMessage'
 import UnknownMessage from './UnknownMessage'
 
-import { Message as MessageType, PerceptionMessage } from '@tonylb/mtw-interfaces/ts/messages'
+import { 
+    Message as MessageType, 
+    PerceptionMessage,
+    isPerceptionRoomMetaData,
+    isPerceptionFeatureMetaData,
+    isPerceptionKnowledgeMetaData
+} from '@tonylb/mtw-interfaces/ts/messages'
 import { useActiveCharacter } from '../ActiveCharacter'
 import CharacterDescription from './CharacterDescription'
 import { useDispatch } from 'react-redux'
@@ -54,10 +60,50 @@ export const Message = ({ message, ...rest }: MessageProps) => {
         case 'KnowledgeDescription':
             return <ComponentDescription message={message} icon={<KnowledgeIcon />} bevel="2em" onClickLink={onClickLink} {...rest} />
         case 'PerceptionMessage':
-            // Handle PerceptionMessage by routing to appropriate component based on component type
+            // Handle PerceptionMessage by routing to appropriate component based on metaData or fallback to component type
             const perceptionMessage = message as PerceptionMessage & { parsedWML?: StandardForm }
+            
+            // Use metaData if available, otherwise fall back to componentUUID for backward compatibility
+            const metaData = perceptionMessage.metaData
+            
             if (perceptionMessage.parsedWML) {
-                const component = perceptionMessage.parsedWML.byUniversalID(perceptionMessage.componentUUID)
+                // Use metaData-based routing with type guards for enhanced type safety
+                if (metaData && isPerceptionRoomMetaData(metaData)) {
+                    return <RoomDescription 
+                        message={message} 
+                        parsedWML={perceptionMessage.parsedWML}
+                        componentUUID={metaData.componentUUID}
+                        header={metaData.displayMode === 'header'}
+                        {...rest} 
+                    />
+                }
+                
+                if (metaData && isPerceptionKnowledgeMetaData(metaData)) {
+                    return <ComponentDescription 
+                        message={message} 
+                        icon={<KnowledgeIcon />} 
+                        bevel="2em" 
+                        onClickLink={onClickLink} 
+                        parsedWML={perceptionMessage.parsedWML}
+                        componentUUID={metaData.componentUUID}
+                        {...rest} 
+                    />
+                }
+                
+                if (metaData && isPerceptionFeatureMetaData(metaData)) {
+                    return <ComponentDescription 
+                        message={message} 
+                        icon={<FeatureIcon />} 
+                        onClickLink={onClickLink} 
+                        parsedWML={perceptionMessage.parsedWML}
+                        componentUUID={metaData.componentUUID}
+                        {...rest} 
+                    />
+                }
+                
+                // Fallback to legacy component type detection for backward compatibility
+                const componentUUID = metaData?.componentUUID || perceptionMessage.componentUUID
+                const component = perceptionMessage.parsedWML.byUniversalId[componentUUID]
                 const componentType = component?.tag
                 
                 switch(componentType) {
@@ -68,7 +114,7 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                             bevel="2em" 
                             onClickLink={onClickLink} 
                             parsedWML={perceptionMessage.parsedWML}
-                            componentUUID={perceptionMessage.componentUUID}
+                            componentUUID={componentUUID}
                             {...rest} 
                         />
                     case 'Feature':
@@ -77,14 +123,14 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                             icon={<FeatureIcon />} 
                             onClickLink={onClickLink} 
                             parsedWML={perceptionMessage.parsedWML}
-                            componentUUID={perceptionMessage.componentUUID}
+                            componentUUID={componentUUID}
                             {...rest} 
                         />
                     case 'Room':
                         return <RoomDescription 
                             message={message} 
                             parsedWML={perceptionMessage.parsedWML}
-                            componentUUID={perceptionMessage.componentUUID}
+                            componentUUID={componentUUID}
                             {...rest} 
                         />
                     // Add other cases as we implement them
