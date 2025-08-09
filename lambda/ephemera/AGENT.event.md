@@ -1,79 +1,233 @@
 # Ephemera Lambda - Event Flow Documentation
 
-**Status: STUB DOCUMENT - PLANNING PHASE**
+**Status: ACTIVE DOCUMENTATION - SYSTEM IN TRANSITION**
 
-This is a placeholder document for future research and design work on event flows within the Ephemera Lambda system.
+This document provides documentation of key event flows within the Ephemera Lambda system, with particular attention to the ongoing transition away from legacy Variable/Computed/Action patterns toward example-driven content management.
+
+**Note**: This documentation is a work in progress. While it covers many important event patterns, there are additional event flows that have not yet been fully documented.
 
 ## Purpose
 
-This document will eventually contain comprehensive documentation of:
+This document contains analysis of:
 
 - **Event Input Processing**: How the Ephemera Lambda receives and processes events from other system components
-- **Internal Event Orchestration**: How events cascade and coordinate within the lambda's real-time processing systems
+- **Internal Event Orchestration**: How events cascade and coordinate within the lambda's real-time processing systems  
 - **Event Output Generation**: How the lambda generates perception events, character updates, and world state changes
-- **Event Flow Patterns**: Real-time event processing patterns and their performance implications
+- **Legacy System Transition**: How current event patterns are being migrated away from Variable/Computed/Action dependencies
 
-## Current State
+### **WebSocket Event Processing**
 
-The event flow documentation work **has not yet been done**. The Ephemera Lambda currently handles events in an ad-hoc manner that grew organically as real-time functionality was developed. While the system successfully implements character-based perception filtering and real-time state management, this approach lacks systematic documentation and design principles.
+The Ephemera Lambda serves as the primary WebSocket handler for real-time client communication:
 
-## Planned Documentation Scope
+#### **Connection Management Events**
+- **`$connect`**: Authenticates incoming WebSocket connections
+- **`$disconnect`**: Handles connection cleanup and character state updates
+- **`whoAmI`**: Returns authenticated player information
+- **`registercharacter`**: Associates connection with specific character for play
 
-### **Event Categories to Document**
+#### **Character Interaction Events**
+- **`action`**: Executes character actions in the game world
+- **`command`**: Parses and executes text-based character commands
+- **`link`**: Handles character interaction with game elements
 
-#### **Incoming Events**
-- Character action and movement events from client connections
-- Asset caching events from Assets Lambda
-- WML content update events from WML Lambda
-- World state change events from various system components
-- Character registration and connection events
-- Perception request events from character interactions
+#### **State Synchronization Events**
+- **`fetchEphemera`**: Provides initial state synchronization for new connections
+- **`sync`**: Delivers message history and state updates since specified timestamps
 
-#### **Internal Event Orchestration**
-- Perception filtering based on character presence ("tree falls in forest" principle)
-- Message routing and delivery coordination
-- Real-time cache updates and invalidation
-- Character state synchronization across connections
-- Room state management and character list updates
-- Dependency cascade processing for interconnected components
+#### **Content Integration Events** *(Legacy - Under Review)*
+- **`fetchImportDefaults`**: Provides asset import information for authoring tools
+- **`fetchLibrary`**: Delivers library table-of-contents for content browsing
 
-#### **Outgoing Events**
-- Perception messages to character connections via WebSocket
-- Character state updates to other system components
-- Room state broadcasts to subscribed characters
-- Cache invalidation events to other lambdas
-- Real-time collaboration updates for authoring mode
-- System diagnostic and monitoring events
+### **Internal Message Bus Architecture**
 
-### **Event Flow Analysis**
+The Ephemera Lambda uses an internal message bus pattern to decouple complex event cascades:
 
-#### **Real-Time Processing Patterns**
-- Character presence detection and filtering mechanisms
-- WebSocket message routing and delivery strategies
-- Event batching and performance optimization
-- Concurrent character interaction handling
-- State consistency across multiple active sessions
+#### **Connection Coordination Messages**
+- **`Connect`**: Associates WebSocket connections with player accounts
+- **`Disconnect`**: Cleans up connection state and updates character presence
+- **`RegisterCharacter`**: Links connections to specific characters for gameplay
 
-#### **Perception-Driven Architecture**
-- Implementation of "perception-driven processing" principle
-- Character viewpoint filtering and message targeting
-- Cost optimization through selective event processing
-- Scale-to-zero coordination with character presence detection
-- Authoring mode vs playing mode event handling distinctions
+#### **Character State Management Messages**
+- **`MoveCharacter`**: Handles character movement between rooms
+- **`EphemeraUpdate`**: Broadcasts character state changes to connected clients
+- **`FetchPlayerEphemera`**: Requests comprehensive state updates for players
 
-#### **Integration Points**
-- WebSocket API Gateway event routing
-- EventBridge message transformation and distribution
-- Message Bus internal coordination patterns
-- Database consistency and real-time update synchronization
-- Cross-lambda communication and state coordination
+#### **Perception and Rendering Messages**
+- **`Perception`**: Requests character-perspective rendering of game components
+- **`ReturnValue`**: Queues response data for WebSocket delivery
 
-#### **Performance and Scale Considerations**
-- Real-time event processing latency requirements
-- Memory management for active character sessions
-- Connection management and scaling patterns
-- Event queuing and priority handling
-- Error recovery and connection resilience
+#### **Event Cascade Coordination**
+
+The message bus enables complex workflows such as:
+1. Character movement triggering room updates
+2. Room updates triggering perception rendering
+3. Perception rendering triggering WebSocket message delivery
+4. All while maintaining character presence filtering
+
+### **EventBridge Event Subscription**
+
+The Ephemera Lambda subscribes to events from other system components:
+
+#### **WML Events**
+- **Content Update**: Triggers content refresh for real-time authoring collaboration
+- **Authorization Update**: Updates character access permissions
+
+#### **Asset Events**
+- **Asset Added/Removed**: Updates character access to new/removed content
+- **Asset Canonized/Decanonized**: Adjusts character content availability
+
+#### **Coordination Events** *(Legacy - Under Review)*
+- **Calculate Cascade**: Triggers Variable dependency cascade calculations
+- **Execute Action**: Executes Action code in response to external triggers
+- **Disconnect Character**: Handles character disconnection from external systems
+
+## Character Presence Filtering
+
+The lambda implements the core "perception-driven processing" philosophy through sophisticated presence detection:
+
+### **Presence Detection Mechanism**
+1. **Character Location Tracking**: Maintains real-time character room assignments
+2. **Active Connection Monitoring**: Tracks which characters have connected players
+3. **Perception Filtering**: Only processes events when characters are present to perceive results
+
+### **Cost Optimization Through Filtering**
+- **Room Updates**: Only calculated when characters are present in the room
+- **Message Routing**: Only delivered when target characters have active connections
+- **Cache Updates**: Only performed when characters would benefit from the cached data
+
+### **Implementation Details**
+
+The presence filtering is primarily implemented through:
+- **`RoomCharacterList`** cache: Real-time tracking of character presence in rooms
+- **Character Meta** information: Location and connection status for each character
+- **Perception Message Processing**: Filtering logic in `perception/index.ts`
+
+For detailed technical implementation, see [`perception/AGENT.md`](perception/AGENT.md).
+
+## Legacy System Transition
+
+### **Variable/Computed/Action Event Patterns** *(Being Removed)*
+
+**Historical Context**: The current system includes sophisticated event patterns originally designed for programming-language-based authoring:
+
+#### **Variable Dependency Cascades**
+- **Event Trigger**: Variable value changes from Action execution or external updates
+- **Graph Traversal**: Complex dependency graph navigation to find affected Computed values
+- **Cascade Calculation**: Automatic recalculation of dependent values across asset boundaries
+- **State Synchronization**: Updates to all assets that import affected variables
+
+#### **Action Execution Events**
+- **External Triggers**: EventBridge events triggering Action code execution
+- **Code Sandbox**: JavaScript evaluation within serverless execution environment
+- **State Mutation**: Variable updates resulting from Action code execution
+- **Dependency Integration**: Triggering Variable cascades from Action results
+
+#### **Technical Implementation**
+- **`dependencyCascade.ts`**: Complex graph traversal for dependency updates
+- **`executeAction/index.ts`**: Code execution and state mutation coordination
+- **EventBridge Integration**: External event triggers for Variable/Action coordination
+
+### **Why These Patterns Are Being Removed**
+
+The Variable/Computed/Action event patterns were designed for **programming-language-based authoring**, but Make The World is transitioning to an **example-driven content model**:
+
+- **Old Model**: Events trigger code execution that modifies programmatic variables
+- **New Model**: Events trigger AI inference from content examples
+- **Consequence**: Complex dependency cascades and code execution events are unnecessary overhead
+
+### **Replacement Architecture** *(Needs Design)*
+
+The new event architecture should focus on:
+- **Example-Based State Changes**: Events modify example-driven content rather than programmatic variables
+- **AI-Inferred Behavior**: Events trigger AI interpretation of content examples
+- **Simplified State Management**: Streamlined event patterns without complex dependency graphs
+
+## Performance and Scale Considerations
+
+### **Real-Time Processing Optimization**
+
+#### **Connection Management**
+- **WebSocket Scaling**: Handles multiple concurrent character connections
+- **Message Batching**: Optimizes delivery of bulk state updates
+- **Connection Pooling**: Efficient management of session-to-connection mappings
+
+#### **Cache Strategy**
+- **Request-Scoped Caching**: Avoids duplicate database queries within request lifecycle
+- **Character Presence Caching**: Real-time tracking minimizes lookup overhead
+- **Selective Invalidation**: Targeted cache clearing based on character presence
+
+#### **Event Processing Efficiency**
+- **Perception Filtering**: Eliminates unnecessary computational work
+- **Message Bus Decoupling**: Enables parallel processing of independent workflows
+- **Optimistic Concurrency**: Efficient handling of concurrent character interactions
+
+## Room Content Perception Update Flows
+
+**Priority Focus Area**: Understanding how incoming events cause room content perception updates and delivery to clients.
+
+### **Current Flow Pattern** *(Needs Detailed Documentation)*
+
+The room content perception update process involves:
+
+1. **Event Triggers**: What incoming events cause room content updates?
+   - WML Content Update events from content changes
+   - Asset caching completion events  
+   - Character movement triggering room re-rendering
+   - Environmental state changes affecting room descriptions
+
+2. **Event Subscription**: How does Ephemera subscribe to relevant events?
+   - EventBridge subscription patterns for content updates
+   - Internal message bus coordination for character movement
+   - Asset Lambda integration for component data changes
+
+3. **Information Materialization**: How is updated information prepared for delivery?
+   - Assets Lambda component data retrieval
+   - Character presence filtering before processing
+   - Room description rendering and caching
+   - Message formatting for client delivery
+
+4. **Filtering and Transformation**: How is content filtered for character perspectives?
+   - Character viewpoint limitation logic
+   - Permission-based content filtering
+   - Perception-driven processing application
+   - Message targeting based on character presence
+
+5. **Client Delivery**: How are updates delivered to connected clients?
+   - WebSocket message routing to character connections
+   - Message batching and optimization
+   - Real-time delivery coordination
+   - Error handling and retry logic
+
+### **Research Priorities for Room Content Flows**
+
+1. **Map Event Triggers**: Document all events that can cause room content updates
+2. **Trace Integration Points**: Follow data flow from external events to client delivery
+3. **Document Filtering Logic**: Capture character presence and permission filtering
+4. **Analyze Legacy Dependencies**: Identify Variable/Computed/Action patterns in room updates
+5. **Design Replacement Patterns**: Plan example-driven room content update architecture
+
+## Migration Documentation Priorities
+
+### **Priority 1: Legacy System Documentation**
+Before removal, document the current Variable/Computed/Action system patterns:
+- **Dependency Cascade Patterns**: Document the graph traversal logic in `dependencyCascade.ts`
+- **State Management Schemas**: Catalog current DynamoDB table structures and event triggers
+- **Event Integration Points**: Map how EventBridge events currently trigger Variable cascades
+- **Action Execution Workflows**: Document the code execution patterns in `executeAction/`
+
+### **Priority 2: Perception System Clarification**
+The perception system is core to the new architecture and needs comprehensive documentation:
+- **Character Presence Detection**: Detail how `RoomCharacterList` cache enables filtering
+- **Message Routing Patterns**: Document how perception events become WebSocket messages
+- **Integration with Assets**: Trace how component data flows into character perceptions
+- **Real-Time Optimization**: Document caching and performance patterns
+
+### **Priority 3: Migration Path Planning**
+Establish framework for the Variable/Computed/Action removal:
+- **Replacement Architecture**: Design example-driven state management patterns
+- **Transition Strategy**: Plan gradual migration without breaking existing content
+- **Testing Framework**: Ensure migration preserves functional behavior
+- **Event Pattern Simplification**: Design streamlined event flows for example-driven content
 
 ## Related Event Documentation
 
@@ -82,36 +236,15 @@ This document is part of a coordinated event flow documentation effort across th
 - **[Assets Event Flows](../assets/AGENT.event.md)**: Asset caching, component management, and file coordination events
 - **[WML Event Flows](../wml/AGENT.event.md)**: Content parsing, validation, and WML schema event handling
 
-## Future Work Requirements
-
-### **Research Phase**
-1. **Real-Time Flow Analysis**: Map current WebSocket and real-time event processing patterns
-2. **Perception Filter Documentation**: Document character presence detection and filtering logic
-3. **Message Routing Analysis**: Analyze current message bus and delivery coordination
-4. **Performance Profiling**: Assess real-time event processing bottlenecks and optimization opportunities
-
-### **Design Phase**
-1. **Event Processing Standardization**: Establish consistent real-time event handling patterns
-2. **Perception Architecture Documentation**: Formalize perception-driven processing implementation
-3. **WebSocket Coordination Strategy**: Design improved real-time client communication patterns
-4. **Testing and Monitoring Framework**: Plan comprehensive real-time event testing and monitoring
-
-### **Implementation Tracking**
-Future updates to this document should track:
-- Real-time performance improvements and optimizations
-- New character interaction patterns and event types
-- WebSocket connection management improvements
-- Perception filtering enhancements and character presence detection refinements
-- Integration improvements with Assets and WML systems
-
 ## Navigation Notes
 
-- **Current Ephemera Documentation**: See [`README.md`](README.md) for current functional documentation
+- **Main Lambda Documentation**: See [`AGENT.md`](AGENT.md) for complete Ephemera Lambda overview and architecture
 - **Perception System**: See [`perception/AGENT.md`](perception/AGENT.md) for detailed perception processing documentation
 - **Internal Cache System**: See [`internalCache/AGENT.md`](internalCache/AGENT.md) for caching architecture
+- **Legacy System Details**: See `cacheAsset/README.state.md` for Variable/Computed/Action technical details
 - **Related Architecture**: See [`../../AGENT.architecture.events.md`](../../AGENT.architecture.events.md) for system-wide event architecture principles
 - **Related Philosophy**: See [`../../AGENT.architecture.philosophy.md`](../../AGENT.architecture.philosophy.md) for underlying architectural philosophy including perception-driven processing
 
 ---
 
-*This stub document will be expanded as research and design work progresses. The goal is to transform the current ad-hoc real-time event handling into a well-documented, systematic approach that fully realizes the perception-driven processing architecture and supports both authoring and playing mode interactions.*
+*This document provides a foundation for understanding key event flows needed for planning the room content perception update improvements and the Variable/Computed/Action system migration. The analysis of documented patterns enables systematic replacement design while preserving the core perception-driven processing architecture. Additional event flow documentation will be added as investigation continues.*
