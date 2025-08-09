@@ -120,6 +120,15 @@ Include specific guidance for AI assistants:
 - **[Examples](lambda/ephemera/internalCache/examples.AGENT.md)**: Example system and future vision
 - **[Perception](lambda/ephemera/perception/AGENT.md)**: Message routing and display engine
 
+#### **Client System** (`charcoal-client/`)
+- **[Client Architecture](charcoal-client/AGENT.md)**: Frontend system with authoring vs playing mode distinction
+
+### **Architectural Philosophy**
+
+#### **Core Principles**
+- **[Architectural Philosophy](AGENT.architecture.philosophy.md)**: Perception-driven processing, cost optimization, and the "tree falls in forest" principle
+- **[Event Architecture](AGENT.architecture.events.md)**: Technical implementation of event processing, character presence filtering, and performance optimization
+
 ### **Development Guidelines**
 
 #### **Testing Patterns**
