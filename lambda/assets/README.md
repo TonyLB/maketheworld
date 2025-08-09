@@ -239,3 +239,4 @@ const metaRecord = await assetDB.getItem({
 - **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File utilities
 - **[Address Lookup System](../addressLookup/)**: S3 address resolution and zone management
 - **[Address Lookup AGENT.md](../addressLookup/AGENT.md)**: Detailed documentation of address resolution, zone management, and draft asset handling
+- **[Event Flow Documentation](AGENT.event.md)**: Event processing patterns and flow analysis (planned documentation)

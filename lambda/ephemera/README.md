@@ -406,4 +406,14 @@ When implementing this pattern in other functions:
 
 This pattern significantly improves test reliability and maintainability while keeping production code clean and performant.
 
+## Related Documentation
+
+- **[Event Flow Documentation](AGENT.event.md)**: Event processing patterns and real-time flow analysis (planned documentation)  
+- **[Perception System](perception/AGENT.md)**: Detailed perception processing documentation
+- **[Internal Cache System](internalCache/AGENT.md)**: Caching architecture supporting event processing
+- **[Assets System](../assets/)**: Asset management and component caching integration
+- **[WML System](../wml/)**: Content processing and validation system
+- **[System Architecture](../../AGENT.architecture.events.md)**: Overall event architecture principles
+- **[Architectural Philosophy](../../AGENT.architecture.philosophy.md)**: Perception-driven processing philosophy
+
 ---
