@@ -15,6 +15,7 @@ The Ephemera Lambda is responsible for:
 - **WebSocket Communication**: Handling all client-server real-time communication
 - **Room State Management**: Coordinating character presence and room-based interactions
 - **Message Routing**: Delivering character-targeted messages through WebSocket connections
+- **Blueprint Reconciliation**: Maintaining consistent real-time state while world blueprints are actively revised
 
 ## Architectural Context
 
@@ -29,8 +30,8 @@ Within the **Domain-Authoritative Event Mesh** pattern, Ephemera Lambda has sole
 ### **Integration Points**
 
 The Ephemera Lambda integrates with other system components through:
-- **Assets Lambda**: Consumes component-level materialized views for rendering
-- **WML Lambda**: Subscribes to content update events for real-time content changes
+- **Assets Lambda**: Consumes component-level materialized views for rendering while reconciling blueprint changes
+- **EventBridge Events**: Receives 'Content Update' events (from various sources including WML changes) for blueprint reconciliation
 - **Client Applications**: Maintains persistent WebSocket connections for real-time interaction
 
 ## Current System Architecture
@@ -50,6 +51,31 @@ The lambda implements the system's core architectural philosophy: computational 
 - **Resource Conservation**: Eliminating unnecessary computational work when no characters are present
 
 For detailed technical implementation of perception filtering, see [`perception/AGENT.md`](perception/AGENT.md).
+
+### **Blueprint Reconciliation System**
+
+A fundamental responsibility of the Ephemera Lambda is maintaining consistent real-time state while the underlying world blueprints are continuously revised through collaborative authoring.
+
+#### **The Reconciliation Challenge**
+- **Living Blueprints**: Asset definitions are actively modified by collaborative authors
+- **Active State**: Characters are currently present and interacting within the real-time representation
+- **Consistency Requirement**: Real-time experience must remain coherent despite blueprint changes
+- **Seamless Integration**: Blueprint updates must be incorporated without disrupting ongoing character interactions
+
+#### **Reconciliation Strategies**
+- **Event-Driven Updates**: Subscribes to Asset and WML update events to detect blueprint changes
+- **State Validation**: Verifies current character positions and states remain valid after blueprint updates
+- **Graceful Transitions**: Manages character relocations when room definitions change or are removed
+- **Perception Coherence**: Ensures character perceptions remain consistent during blueprint transitions
+
+#### **Integration with Collaborative Authoring**
+- **Real-Time Authoring**: Basic support for content updates while characters are present (via 'Content Update' EventBridge events)
+- **Change Integration**: Triggers asset re-caching when blueprint changes occur
+- **State Preservation**: Maintains character locations and interactions across basic blueprint revisions
+
+**Note**: Advanced collaborative authoring features (author awareness of character presence, sophisticated conflict resolution) are planned but not yet fully implemented.
+
+This reconciliation system enables Make The World's core vision of collaborative world-building without disrupting active gameplay experiences.
 
 ### **Internal Cache System**
 

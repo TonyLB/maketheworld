@@ -76,7 +76,7 @@ Based on the **Domain-Authoritative Event Mesh** pattern identified in [`../../A
 
 ### **Priority 1: Cache Management Event Patterns**
 **Focus**: Document how Assets Lambda maintains authoritative component-level materialized views
-- **WML Event Subscription**: How Assets subscribes to and processes WML Content Update events
+- **WML Event Subscription**: 🔄 Migration Incomplete - Assets should subscribe to WML Content Update events (part of ongoing asset caching migration from Ephemera)
 - **Cache Update Workflows**: The `cacheAsset` function's event-driven coordination patterns
 - **Incremental Updates**: How component-level changes propagate through the cache system
 - **Cache Invalidation Strategies**: When and how cached data is invalidated and refreshed

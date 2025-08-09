@@ -68,8 +68,8 @@ The message bus enables complex workflows such as:
 
 The Ephemera Lambda subscribes to events from other system components:
 
-#### **WML Events**
-- **Content Update**: Triggers content refresh for real-time authoring collaboration
+#### **EventBridge Events from Multiple Sources**
+- **Content Update**: Triggers asset re-caching when content changes (source varies - may include WML, direct editing, etc.)
 - **Authorization Update**: Updates character access permissions
 
 #### **Asset Events**
@@ -80,6 +80,11 @@ The Ephemera Lambda subscribes to events from other system components:
 - **Calculate Cascade**: Triggers Variable dependency cascade calculations
 - **Execute Action**: Executes Action code in response to external triggers
 - **Disconnect Character**: Handles character disconnection from external systems
+
+#### **Blueprint Reconciliation Events**
+- **Asset Canonized/Decanonized**: Updates character access to content and validates current character states
+- **Content Update**: Incorporates WML blueprint changes into real-time state representation
+- **Authorization Update**: Adjusts character permissions and validates character positions
 
 ## Character Presence Filtering
 
@@ -104,11 +109,77 @@ The presence filtering is primarily implemented through:
 
 For detailed technical implementation, see [`perception/AGENT.md`](perception/AGENT.md).
 
+## Blueprint Reconciliation Event Processing
+
+A core responsibility of the Ephemera Lambda is reconciling real-time state with continuously changing world blueprints from collaborative authoring.
+
+### **Blueprint Change Detection**
+
+#### **Asset Blueprint Updates**
+- **Trigger**: WML Content Update events from collaborative editing
+- **Processing**: Validate current character states against updated asset definitions
+- **Reconciliation**: Update character perceptions and handle room definition changes
+- **Challenge**: Maintain character experience continuity during blueprint modifications
+
+#### **Component-Level Changes**
+- **Room Definition Updates**: Character locations may become invalid if rooms are redefined or removed
+- **Feature Modifications**: Interactive elements characters are using may change behavior or availability
+- **Connection Changes**: Exits and pathways between rooms may be added, removed, or modified
+- **Permission Updates**: Character access to areas may change based on asset authorization modifications
+
+### **State Reconciliation Patterns**
+
+#### **Character Position Validation**
+- **Event Trigger**: Asset update events affecting room definitions
+- **Validation Process**: Check if characters are in rooms that still exist and are accessible
+- **Reconciliation Actions**: 
+  - Gracefully relocate characters if their current room is removed
+  - Update room descriptions for characters when room blueprints change
+  - Validate character permissions for their current location
+
+#### **Perception Update Coordination**
+- **Blueprint Change Impact**: Determine which characters need updated perceptions
+- **Selective Updates**: Only update perceptions for characters present to perceive changes
+- **Consistency Maintenance**: Ensure character experiences remain coherent across blueprint transitions
+- **Real-Time Integration**: Incorporate blueprint changes without breaking ongoing character interactions
+
+### **Current Blueprint Integration**
+
+#### **Basic Content Update Handling** *(Legacy Pattern - Migration In Progress)*
+- **EventBridge Integration**: Receives 'Content Update' events directly from WML Lambda and triggers asset re-caching
+- **Character State Preservation**: Maintains character locations during content updates
+- **Perception Updates**: Re-renders character perceptions after asset cache updates
+
+**🔄 Migration Context**: This pattern represents a partially-completed migration from Ephemera-owned asset caching to Assets Lambda domain authority. The direct WML → Ephemera flow was left in place to support legacy Variable/Computed/Action systems that have complex dependencies on Ephemera's asset caching implementation.
+
+#### **Planned Collaborative Authoring Features** *(Not Yet Implemented)*
+- **Author Awareness**: Authors would receive feedback about characters present in areas they're modifying
+- **Impact Assessment**: System would evaluate how blueprint changes affect current character experiences  
+- **Advanced Conflict Resolution**: Sophisticated handling of conflicts between character actions and blueprint modifications
+- **Selective Change Propagation**: Intelligent timing of when blueprint changes become visible to characters
+
+### **Event Flow Examples**
+
+#### **Content Update Flow** *(Current Implementation)*
+1. **Content change occurs** → 'Content Update' EventBridge event
+2. **Ephemera receives event** → Triggers asset re-caching (`cacheAsset` with `updateOnly: true`)
+3. **Asset cache updated** → Updated component data available for future perception requests
+4. **Next character interaction** → Characters receive updated perceptions based on new cached data
+
+#### **Room Structure Change Flow** *(Planned - Not Fully Implemented)*
+1. **Author removes or relocates room** → Asset update event
+2. **Ephemera would validate character positions** → Identify characters in affected room
+3. **Character relocation would be required** → Gracefully move characters to safe location
+4. **Perception updates would follow** → Deliver new room descriptions to relocated characters
+5. **Connection updates would propagate** → Update navigation options for characters in adjacent rooms
+
+**Current State**: The basic blueprint reconciliation foundation exists through Content Update event handling and asset re-caching, but advanced features like automatic character relocation and sophisticated change propagation are planned for future development.
+
 ## Legacy System Transition
 
 ### **Variable/Computed/Action Event Patterns** *(Being Removed)*
 
-**Historical Context**: The current system includes sophisticated event patterns originally designed for programming-language-based authoring:
+**Historical Context**: The current system includes sophisticated event patterns originally designed for programming-language-based authoring. These patterns have complex dependencies on Ephemera's asset caching implementation, which is why the asset caching migration to Assets Lambda remains partially incomplete:
 
 #### **Variable Dependency Cascades**
 - **Event Trigger**: Variable value changes from Action execution or external updates
@@ -208,26 +279,33 @@ The room content perception update process involves:
 
 ## Migration Documentation Priorities
 
-### **Priority 1: Legacy System Documentation**
+### **Priority 1: Asset Caching Migration Completion**
+Complete the partially-finished migration from Ephemera-owned to Assets-owned caching:
+- **Legacy Dependency Mapping**: Document which Variable/Computed/Action patterns depend on Ephemera asset caching
+- **Migration Blockers**: Identify specific code that prevents completing the Assets Lambda migration
+- **Incremental Migration Strategy**: Plan phased approach to move remaining asset dependencies
+- **Event Flow Redesign**: Design the proper WML → Assets → Ephemera event flow
+
+### **Priority 2: Legacy System Documentation**
 Before removal, document the current Variable/Computed/Action system patterns:
 - **Dependency Cascade Patterns**: Document the graph traversal logic in `dependencyCascade.ts`
+- **Asset Cache Dependencies**: Map how Variable/Computed/Action systems rely on Ephemera's asset caching
 - **State Management Schemas**: Catalog current DynamoDB table structures and event triggers
-- **Event Integration Points**: Map how EventBridge events currently trigger Variable cascades
 - **Action Execution Workflows**: Document the code execution patterns in `executeAction/`
 
-### **Priority 2: Perception System Clarification**
+### **Priority 3: Perception System Clarification**
 The perception system is core to the new architecture and needs comprehensive documentation:
 - **Character Presence Detection**: Detail how `RoomCharacterList` cache enables filtering
 - **Message Routing Patterns**: Document how perception events become WebSocket messages
-- **Integration with Assets**: Trace how component data flows into character perceptions
+- **Integration with Assets**: Trace how component data flows into character perceptions (both current and post-migration)
 - **Real-Time Optimization**: Document caching and performance patterns
 
-### **Priority 3: Migration Path Planning**
-Establish framework for the Variable/Computed/Action removal:
-- **Replacement Architecture**: Design example-driven state management patterns
-- **Transition Strategy**: Plan gradual migration without breaking existing content
-- **Testing Framework**: Ensure migration preserves functional behavior
-- **Event Pattern Simplification**: Design streamlined event flows for example-driven content
+### **Priority 4: Migration Path Planning**
+Establish framework for completing both the asset migration and Variable/Computed/Action removal:
+- **Dual Migration Strategy**: Coordinate asset caching migration with Variable/Computed/Action removal
+- **Replacement Architecture**: Design example-driven state management patterns that work with Assets Lambda
+- **Testing Framework**: Ensure migration preserves functional behavior across both changes
+- **Event Pattern Simplification**: Design streamlined event flows for example-driven content consuming from Assets
 
 ## Related Event Documentation
 

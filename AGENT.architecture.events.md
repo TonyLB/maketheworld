@@ -504,10 +504,15 @@ The WML-to-Assets relationship exemplifies how domain authority operates across 
 - **Cache Management**: Handles incremental updates and cache invalidation
 - **Integration Authority**: Serves parsed component data to other subsystems (especially Ephemera)
 
-#### **Event-Driven Coordination**
+#### **Event-Driven Coordination** *(Migration In Progress)*
 - **WML Changes**: WML Lambda publishes Content Update events when source files change
-- **Cache Updates**: Assets Lambda subscribes to these events and updates its materialized views
-- **Perception Integration**: Ephemera Lambda consumes component data from Assets' cache for character interactions
+- **Cache Updates**: 🔄 **Migration Incomplete** - Assets Lambda should subscribe to these events but migration was paused due to downstream complexities
+- **Perception Integration**: 🔄 **Legacy Pattern** - Ephemera Lambda currently receives WML events directly to support Variable/Computed/Action systems
+
+**Current Flow (Legacy)**: `WML → Ephemera (direct cacheAsset)`  
+**Target Flow (Post-Migration)**: `WML → Assets → Ephemera`
+
+This pattern reflects a partially-completed migration from Ephemera-owned asset caching to Assets Lambda domain authority. The migration was paused due to complex dependencies in the Variable/Computed/Action system that rely on Ephemera's asset caching implementation.
 
 This separation enables the WML Lambda to focus on content integrity and validation while the Assets Lambda optimizes for runtime access patterns and integration needs.
 
