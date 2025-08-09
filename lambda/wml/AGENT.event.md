@@ -86,19 +86,44 @@ The WML Lambda already implements some EventBridge event generation as documente
 
 These existing events provide a foundation for understanding current event patterns, but require systematic documentation of their processing flows and integration patterns.
 
+## Near-Term Documentation Priorities
+
+Based on the **Domain-Authoritative Event Mesh** pattern identified in [`../../AGENT.architecture.events.md`](../../AGENT.architecture.events.md), the WML Lambda's role as **Source of Truth** in the **Data Transformation Pipeline** requires specific documentation focus:
+
+### **Priority 1: Source Content Authority Patterns**
+**Focus**: Document how WML Lambda establishes and maintains authority over S3 source files
+- **Content Lifecycle Events**: Create, update, delete operations on WML source files
+- **Schema Validation Workflows**: How validation failures are handled and reported
+- **Atomic Operations**: File locking, transaction coordination, and conflict resolution
+- **Version Control Integration**: Backup creation and content history management
+
+### **Priority 2: Event Publishing Patterns**
+**Focus**: Document the EventBridge event generation that coordinates the transformation pipeline
+- **Content Update Events**: What triggers them, what data they contain, who subscribes
+- **Authorization Update Events**: Permission change propagation patterns
+- **Merge Conflict Events**: Failed edit coordination and resolution workflows
+- **Event Schema Documentation**: Standardize event contracts for downstream consumers
+
+### **Priority 3: Assets Lambda Coordination**
+**Focus**: Document the specific coordination patterns with Assets Lambda materialized views
+- **Cache Update Triggers**: When and how WML changes trigger Assets cache updates
+- **Dependency Tracking**: How WML changes propagate through component relationships
+- **Consistency Guarantees**: What consistency promises are made to downstream consumers
+- **Performance Coordination**: Batching, throttling, and optimization patterns
+
 ## Future Work Requirements
 
 ### **Research Phase**
-1. **Content Processing Flow Analysis**: Map current WML parsing, validation, and transformation workflows
-2. **Event Generation Documentation**: Document EventBridge event creation patterns and triggers
-3. **Integration Flow Mapping**: Analyze coordination with Assets Lambda and client systems
-4. **Concurrency Analysis**: Review atomic locking and concurrent access patterns
+1. **Content Processing Flow Analysis**: Map current WML parsing, validation, and transformation workflows **(supports Priority 1)**
+2. **Event Generation Documentation**: Document EventBridge event creation patterns and triggers **(supports Priority 2)**
+3. **Integration Flow Mapping**: Analyze coordination with Assets Lambda and client systems **(supports Priority 3)**
+4. **Concurrency Analysis**: Review atomic locking and concurrent access patterns **(supports Priority 1)**
 
 ### **Design Phase**
-1. **Content Event Standardization**: Establish consistent WML processing event patterns
-2. **Integration Strategy**: Design improved coordination with Assets and Ephemera systems
-3. **Error Handling Framework**: Plan comprehensive content error and recovery event handling
-4. **Performance Optimization**: Design event processing performance improvements
+1. **Content Event Standardization**: Establish consistent WML processing event patterns **(supports Priority 2)**
+2. **Integration Strategy**: Design improved coordination with Assets and Ephemera systems **(supports Priority 3)**
+3. **Error Handling Framework**: Plan comprehensive content error and recovery event handling **(supports Priority 1)**
+4. **Performance Optimization**: Design event processing performance improvements **(supports Priority 3)**
 
 ### **Implementation Tracking**
 Future updates to this document should track:

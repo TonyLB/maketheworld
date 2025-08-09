@@ -70,19 +70,44 @@ This document is part of a coordinated event flow documentation effort across th
 - **[Ephemera Event Flows](../ephemera/AGENT.event.md)**: Real-time game state and character event processing
 - **[WML Event Flows](../wml/AGENT.event.md)**: Content parsing, validation, and WML schema event handling
 
+## Near-Term Documentation Priorities
+
+Based on the **Domain-Authoritative Event Mesh** pattern identified in [`../../AGENT.architecture.events.md`](../../AGENT.architecture.events.md), the Assets Lambda's role as **Materialized Views** authority in the **Data Transformation Pipeline** requires specific documentation focus:
+
+### **Priority 1: Cache Management Event Patterns**
+**Focus**: Document how Assets Lambda maintains authoritative component-level materialized views
+- **WML Event Subscription**: How Assets subscribes to and processes WML Content Update events
+- **Cache Update Workflows**: The `cacheAsset` function's event-driven coordination patterns
+- **Incremental Updates**: How component-level changes propagate through the cache system
+- **Cache Invalidation Strategies**: When and how cached data is invalidated and refreshed
+
+### **Priority 2: Component Data Authority Patterns**
+**Focus**: Document how Assets Lambda serves as the authoritative source for component queries
+- **Cross-Asset Component Lookup**: How the DynamoDB schema enables efficient component queries
+- **Metadata Coordination**: How component metadata is maintained across multiple assets
+- **Integration Events**: How other lambdas (especially Ephemera) consume component data
+- **Query Optimization Patterns**: How materialized views are structured for runtime performance
+
+### **Priority 3: File Coordination Event Patterns**
+**Focus**: Document S3 file coordination without owning source content authority
+- **Address Lookup Integration**: How Assets coordinates with Address Lookup Lambda for S3 paths
+- **File Synchronization Events**: Coordination between S3 files and DynamoDB cache
+- **Backup and Recovery Events**: How file operations trigger backup and recovery workflows
+- **Consistency Guarantees**: What consistency promises Assets makes about file-to-cache relationships
+
 ## Future Work Requirements
 
 ### **Research Phase**
-1. **Code Analysis**: Systematic review of existing event handling patterns
-2. **Flow Mapping**: Document current event cascades and dependencies  
-3. **Integration Analysis**: Map event flows between Assets and other systems
-4. **Performance Assessment**: Analyze current event processing bottlenecks
+1. **Code Analysis**: Systematic review of existing event handling patterns **(supports all priorities)**
+2. **Flow Mapping**: Document current event cascades and dependencies **(supports Priority 1)**
+3. **Integration Analysis**: Map event flows between Assets and other systems **(supports Priority 2 & 3)**
+4. **Performance Assessment**: Analyze current event processing bottlenecks **(supports Priority 2)**
 
 ### **Design Phase**
-1. **Pattern Standardization**: Establish consistent event handling patterns
-2. **Documentation Framework**: Create systematic documentation templates
-3. **Integration Strategy**: Design improved cross-system event coordination
-4. **Testing Strategy**: Plan comprehensive event flow testing approaches
+1. **Pattern Standardization**: Establish consistent event handling patterns **(supports Priority 1)**
+2. **Documentation Framework**: Create systematic documentation templates **(supports all priorities)**
+3. **Integration Strategy**: Design improved cross-system event coordination **(supports Priority 2 & 3)**
+4. **Testing Strategy**: Plan comprehensive event flow testing approaches **(supports all priorities)**
 
 ### **Implementation Tracking**
 Future updates to this document should track:
