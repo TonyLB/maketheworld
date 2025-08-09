@@ -29,6 +29,32 @@ Within the **Domain-Authoritative Event Mesh** pattern, Ephemera Lambda has sole
 
 ### **Integration Points**
 
+#### **Message Persistence System**
+
+Ephemera Lambda manages a **dual-layer message persistence architecture**:
+
+**DynamoDB Storage** (`publishMessage`)
+- **Table**: `message_delta` (via `messageDeltaDB`)
+- **Purpose**: Authoritative server-side message history for cross-client synchronization
+- **Structure**: Messages stored with `Target`, `DeltaId` (`CreatedTime::MessageId`), and full content
+- **Scope**: Global message history accessible across all client sessions and devices
+
+**Real-Time Distribution** 
+- **WebSocket Delivery**: Live messages pushed to connected clients via WebSocket connections
+- **Target Mapping**: `PublishMessageTargetMapper` routes messages to appropriate character connections
+- **Connection Management**: Tracks active sessions and character subscriptions for message delivery
+
+**Message Publishing Pipeline**
+1. **Message Generation**: Perception system creates messages (PerceptionMessage with various metadata types)
+2. **Target Resolution**: Mapper identifies target characters and their active connections
+3. **Dual Persistence**: 
+   - Store in DynamoDB `message_delta` for historical access
+   - Queue for WebSocket delivery to live clients
+4. **Live Delivery**: Push messages to connected clients via WebSocket
+5. **Sync Support**: Enable historical message requests using `LastSync` timestamps
+
+#### **External System Integration**
+
 The Ephemera Lambda integrates with other system components through:
 - **Assets Lambda**: Consumes component-level materialized views for rendering while reconciling blueprint changes
 - **EventBridge Events**: Receives 'Content Update' events (from various sources including WML changes) for blueprint reconciliation

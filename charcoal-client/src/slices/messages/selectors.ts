@@ -1,7 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit'
 import { v4 as uuidv4 } from 'uuid'
 
-import { Message, RoomHeader } from '@tonylb/mtw-interfaces/ts/messages'
+import { Message, PerceptionMessage, isPerceptionRoomMetaData } from '@tonylb/mtw-interfaces/ts/messages'
 import { MessageState } from './baseClasses'
 import { Selector } from '../../store'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -11,6 +11,28 @@ import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { Component } from 'react'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
+
+// Helper function to check if a message is a room header
+const isRoomHeader = (message: Message): message is PerceptionMessage => {
+    if (message.DisplayProtocol === 'PerceptionMessage') {
+        const perceptionMessage = message as PerceptionMessage
+        return !!(perceptionMessage.metaData && isPerceptionRoomMetaData(perceptionMessage.metaData) && perceptionMessage.metaData.displayMode === 'header')
+    }
+    return false
+}
+
+// Helper function to extract room ID from a PerceptionMessage
+const getRoomId = (message: PerceptionMessage): string => {
+    if (message.metaData && isPerceptionRoomMetaData(message.metaData)) {
+        return message.metaData.componentUUID
+    }
+    return 'ROOM#UNKNOWN'
+}
+
+
 
 
 export const getMessages: Selector<MessageState> = (state) => {
@@ -33,7 +55,7 @@ export const getMessages: Selector<MessageState> = (state) => {
 }
 
 type MessageRoomBreakdownHeader = {
-    header: RoomHeader;
+    header: PerceptionMessage & { parsedWML?: StandardForm };
     messageCount: number;
 }
 
@@ -48,7 +70,7 @@ type MessageRoomInProgress = {
     currentGroup: MessageRoomBreakdownHeader;
 }
 
-const combineCurrentHeader = ({ Messages, Groups, currentGroup }: MessageRoomInProgress, newMessage?: RoomHeader): MessageRoomInProgress => {
+const combineCurrentHeader = ({ Messages, Groups, currentGroup }: MessageRoomInProgress, newMessage?: PerceptionMessage & { parsedWML?: StandardForm }): MessageRoomInProgress => {
     if (currentGroup.messageCount > 0) {
         return {
             Messages,
@@ -94,13 +116,15 @@ export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<M
         let messages = [] as Message[]
         let initialHeader = undefined as MessageRoomBreakdownHeader | undefined
         const probeMessages = allMessages[CharacterId]
+        
         if (!probeMessages.length) {
             return {
                 Messages: [],
                 Groups: []
             }
         }
-        if (probeMessages[0].DisplayProtocol === 'RoomHeader') {
+        
+        if (isRoomHeader(probeMessages[0])) {
             initialHeader = {
                 header: probeMessages[0],
                 messageCount: 0
@@ -108,60 +132,55 @@ export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<M
             messages = probeMessages.slice(1)
         }
         else {
+            // Create a fallback PerceptionMessage for unknown room
             initialHeader = {
                 header: {
-                    DisplayProtocol: 'RoomHeader',
+                    DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'NONE',
                     Target: CharacterId,
-                    RoomId: 'ROOM#NONE',
                     CreatedTime: probeMessages[0].CreatedTime,
-                    ShortName: 'Unknown',
-                    Name: [],
-                    Summary: [],
-                    Description: ['??????'],
-                    Exits: [],
-                    Characters: []
-                },
+                    wmlContent: '<Room key=(none)><ShortName>Unknown</ShortName><Description>??????</Description></Room>',
+                    metaData: {
+                        componentUUID: 'ROOM#NONE',
+                        displayMode: 'header'
+                    }
+                } as PerceptionMessage & { parsedWML?: StandardForm },
                 messageCount: 0
             }
             messages = probeMessages
         }
+        
         const aggregate: MessageRoomInProgress = messages.reduce((previous, message) => {
+            if (isRoomHeader(message)) {
+                // Handle PerceptionMessage room headers
+                const currentRoomId = getRoomId(message)
+                const previousRoomId = getRoomId(previous.currentGroup.header)
+                
+                if (currentRoomId === previousRoomId) {
+                    // Same room - update the current header
+                    return {
+                        Messages: previous.Messages,
+                        Groups: previous.Groups,
+                        currentGroup: {
+                            header: message, // Replace with newer header data
+                            messageCount: previous.currentGroup.messageCount
+                        }
+                    }
+                }
+                else {
+                    // Different room - create new header group
+                    return combineCurrentHeader(previous, message)
+                }
+            } else {
                 switch(message.DisplayProtocol) {
-                    case 'RoomHeader':
-                        if (message.RoomId === previous.currentGroup.header.RoomId) {
-                            return {
-                                Messages: previous.Messages,
-                                Groups: previous.Groups,
-                                currentGroup: {
-                                    header: {
-                                        ...previous.currentGroup.header,
-                                        Name: message.Name,
-                                        Description: message.Description,
-                                        Characters: message.Characters,
-                                        Exits: message.Exits
-                                    },
-                                    messageCount: previous.currentGroup.messageCount
-                                }
-                            }
-                        }
-                        else {
-                            return combineCurrentHeader(previous, message)
-                        }
                     case 'RoomUpdate':
+                        // For RoomUpdate, we maintain compatibility but don't create legacy types
+                        // The UI will need to handle RoomUpdate separately or we convert it to PerceptionMessage
                         return {
                             Messages: previous.Messages,
                             Groups: previous.Groups,
                             currentGroup: {
-                                header: {
-                                    ...previous.currentGroup.header,
-                                    ...{
-                                        Name: message.Name || previous.currentGroup.header.Name,
-                                        Description: message.Description || previous.currentGroup.header.Description,
-                                        Characters: message.Characters || previous.currentGroup.header.Characters,
-                                        Exits: message.Exits || previous.currentGroup.header.Exits
-                                    }
-                                } as RoomHeader,
+                                header: previous.currentGroup.header, // Keep existing header as-is
                                 messageCount: previous.currentGroup.messageCount
                             }
                         }
@@ -178,11 +197,13 @@ export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<M
                             }
                         }
                 }
-            }, {
-                Messages: [],
-                Groups: [],
-                currentGroup: initialHeader
-            } as MessageRoomInProgress)
+            }
+        }, {
+            Messages: [],
+            Groups: [],
+            currentGroup: initialHeader
+        } as MessageRoomInProgress)
+        
         const { currentGroup: discard, ...rest } = combineCurrentHeader(aggregate)
         return rest
     }
@@ -208,34 +229,51 @@ export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVis
             })
             .flat(1)
             .reduce<MessageRecentVisit[]>((previous, message) => {
-                if (
-                    message.DisplayProtocol === 'RoomHeader' ||
-                    message.DisplayProtocol === 'RoomDescription' ||
-                    message.DisplayProtocol === 'FeatureDescription' ||
-                    message.DisplayProtocol === 'KnowledgeDescription'
-                ) {
-                    const ephemeraId = (message.DisplayProtocol === 'RoomHeader' || message.DisplayProtocol === 'RoomDescription')
-                        ? message.RoomId
-                        : message.DisplayProtocol === 'FeatureDescription'
-                            ? message.FeatureId
-                            : message.KnowledgeId
+                if (message.DisplayProtocol === 'PerceptionMessage') {
+                    const perceptionMessage = message as PerceptionMessage & { parsedWML?: StandardForm }
+                    const ephemeraId = perceptionMessage.metaData?.componentUUID
+                    
                     if (ephemeraId) {
-                        const name = message.Name ? (Array.isArray(message.Name) ? new StandardRender(message.Name) : new StandardRender([message.Name])).plainString : ""
-                        const adjustedAssets: MessageRecentVisit["assets"] = Object.entries(message.assets ?? {})
-                            .filter(([fromAsset]) => (((Object.keys(message.assets ?? {})).length === 1) || fromAsset !== 'ASSET#primitives'))
-                            .filter(([_, key]) => (key))
-                            .map(([fromAssetId, universalKey]) => ({ fromAssetId: fromAssetId as AssetUUID, universalKey }))
+                        // Extract name from WML content or metadata
+                        let name = 'Unknown'
+                        let tag: SchemaImportMapping["type"] = 'Room' // Default fallback
+                        let adjustedAssets: MessageRecentVisit["assets"] = []
+                        
+                        // Determine component type from componentUUID
+                        if (ephemeraId.startsWith('ROOM#')) {
+                            tag = 'Room'
+                        } else if (ephemeraId.startsWith('FEATURE#')) {
+                            tag = 'Feature'
+                        } else if (ephemeraId.startsWith('KNOWLEDGE#')) {
+                            tag = 'Knowledge'
+                        }
+                        
+                        // Try to extract name from parsed WML if available
+                        if (perceptionMessage.parsedWML) {
+                            const component = perceptionMessage.parsedWML.byUniversalId[ephemeraId]
+                            if (component) {
+                                // Try to get name from component - this is component-specific logic
+                                const componentName = (component as any).name || (component as any).shortName
+                                if (componentName) {
+                                    name = componentName.plainString || name
+                                }
+                                
+                                // Extract assets if available
+                                const assets = (component as any).assets || {}
+                                adjustedAssets = Object.entries(assets)
+                                    .filter(([fromAsset]) => (((Object.keys(assets)).length === 1) || fromAsset !== 'ASSET#primitives'))
+                                    .filter(([_, key]) => (key))
+                                    .map(([fromAssetId, universalKey]) => ({ fromAssetId: fromAssetId as AssetUUID, universalKey: universalKey as ComponentUUID }))
+                            }
+                        }
+                        
                         return [
                             ...previous.filter(({ ephemeraId: id }) => id !== ephemeraId),
                             {
                                 ephemeraId,
                                 name,
                                 assets: adjustedAssets,
-                                tag: (message.DisplayProtocol === 'RoomHeader' || message.DisplayProtocol === 'RoomDescription')
-                                    ? 'Room'
-                                    : (message.DisplayProtocol === 'FeatureDescription')
-                                        ? 'Feature'
-                                        : 'Knowledge'
+                                tag
                             }
                         ]    
                     }

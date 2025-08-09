@@ -6,6 +6,7 @@ import {
 } from '@mui/material'
 
 import { GroupedVirtuoso, VirtuosoHandle } from 'react-virtuoso'
+import { isPerceptionRoomMetaData } from '@tonylb/mtw-interfaces/ts/messages'
 
 import { useActiveCharacter } from '../ActiveCharacter'
 import { Message as MessageComponent } from '.'
@@ -41,9 +42,24 @@ export const VirtualMessageList = () => {
             <MessageComponent message={messageBreakdown.Messages[index]} />
         ), [messageBreakdown.Messages])
 
-    const groupContent = useCallback((index: number) => (
-            <RoomDescription message={messageBreakdown.Groups[index].header} header currentHeader={index >= messageBreakdown.Groups.length - 1} />
-        ), [messageBreakdown.Groups])
+    const groupContent = useCallback((index: number) => {
+        const headerMessage = messageBreakdown.Groups[index].header
+        
+        // Validate that we have room metadata
+        if (!headerMessage.metaData || !isPerceptionRoomMetaData(headerMessage.metaData)) {
+            console.error('VirtualMessageList: Invalid room header metadata', headerMessage)
+            return null
+        }
+        
+        return (
+            <RoomDescription 
+                parsedWML={headerMessage.parsedWML}
+                metaData={headerMessage.metaData}
+                header 
+                currentHeader={index >= messageBreakdown.Groups.length - 1} 
+            />
+        )
+    }, [messageBreakdown.Groups])
 
     return (
         <GroupedVirtuoso

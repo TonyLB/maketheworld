@@ -28,22 +28,16 @@ The system is currently in a transitional state with several incomplete migratio
 
 The following migrations must be completed in this specific order due to dependencies:
 
-### **Phase 1: Message Format Standardization** *(Foundation)*
-**Duration Estimate**: 2-3 weeks  
+### **Phase 1: Message Format Standardization** *(Foundation)* ✅ **COMPLETED**
+**Duration**: 2-3 weeks  
 **Risk Level**: Low  
 **Goal**: Complete the transition to unified WML/Standard message format
 
-#### **Objectives**
-- Remove legacy message format support from frontend
-- Ensure all Ephemera perception messages use WML/Standard format
-- Clean up bridge-state code in `RoomDescription` and related components
-
-#### **Key Tasks**
-- [ ] **Audit Legacy Format Usage**: Identify remaining places where legacy formats are sent/expected
-- [ ] **Update Ephemera Message Generation**: Ensure all perception messages use WML/Standard format
-- [ ] **Complete Frontend Format Migration**: Remove all legacy format handling from client slices and components
-- [ ] **Remove Bridge-State Code**: Clean up conditional format handling in `RoomDescription` and other components
-- [ ] **Update Tests**: Ensure all tests use new format expectations
+#### **✅ ACCOMPLISHED**
+- **Unified PerceptionMessage Format**: All frontend components and server-side generation now use `PerceptionMessage` with WML content and strongly-typed `metaData` discriminated unions
+- **Legacy Type Elimination**: Removed all legacy message types (`RoomDescription`, `RoomHeader`, `FeatureDescription`, `KnowledgeDescription`, `CharacterDescription`) from interfaces and handlers
+- **Component Interface Modernization**: Refactored components to accept clean `parsedWML + metaData` interfaces instead of redundant message wrappers
+- **Type Safety Enhancement**: Implemented component-specific metadata types with proper type guards for elegant validation and routing
 
 #### **Success Criteria**
 - All perception messages use WML/Standard format
@@ -226,7 +220,7 @@ Comprehensive risk mitigation across all phases:
 ## Phase Dependencies and Timeline
 
 ```
-Phase 1: Message Format (2-3 weeks)
+Phase 1: Message Format ✅ COMPLETED
     ↓
 Phase 2: Variable/Computed/Action Removal (4-6 weeks)
     ↓
@@ -234,12 +228,12 @@ Phase 3: Asset Caching Migration (3-4 weeks)
     ↓
 Phase 4: LLM-Mediated System (6-8 weeks)
 
-Total Estimated Duration: 15-21 weeks
+Remaining Estimated Duration: 11-18 weeks
 ```
 
 ### **Critical Path**
 The phases must be completed in order due to hard dependencies:
-- **Phase 1 → Phase 2**: Consistent message format needed for clean Variable/Computed/Action removal
+- **Phase 1 ✅ COMPLETED**: Consistent message format foundation established
 - **Phase 2 → Phase 3**: Asset caching dependencies must be removed before migration
 - **Phase 3 → Phase 4**: Clean domain authority needed before implementing new AI-mediated patterns
 
@@ -252,6 +246,7 @@ Some tasks can be done in parallel across phases:
 ## Success Metrics
 
 ### **Technical Success**
+- [x] **Message Format Standardization**: All perception messages use unified WML/Standard format with strongly-typed metadata ✅ COMPLETED
 - [ ] Domain-Authoritative Event Mesh fully implemented
 - [ ] No legacy Variable/Computed/Action code remains
 - [ ] Assets Lambda has complete authority over component materialized views
@@ -306,6 +301,22 @@ This document is part of the project's comprehensive documentation system:
 2. **Risk Mitigation Plans**: Develop specific mitigation strategies for identified risks
 3. **Testing Strategies**: Define comprehensive testing approaches for each phase
 4. **Success Criteria**: Refine success criteria with specific, measurable outcomes
+
+---
+
+## **Future Architectural Improvements**
+*Post-Migration Technical Debt*
+
+### **Component UUID Type System Refactor**
+**Context**: Current type guards like `isEphemeraKnowledgeId` perpetuate legacy assumption that `ComponentUUID` records are Ephemera-specific. Modern architecture has `ComponentUUID` records created across multiple system boundaries, requiring more generic type validation approaches.
+
+**Future Tasks**:
+- [ ] **Relocate Ephemera Type Guards**: Move `isEphemera*` type guards to more generic locations
+- [ ] **Refactor Legacy Assumptions**: Remove assumption that `ComponentUUID` records originate specifically from Ephemera operations  
+- [ ] **Generic Type Guard System**: Create component-agnostic type guards that work across all system boundaries
+- [ ] **Update Import Patterns**: Refactor imports to reflect new, more generic type guard locations
+
+**Impact**: Currently low-impact technical debt, but will become more important as other services (Assets, WML, client-side) create more `ComponentUUID` records outside of Ephemera context.
 
 ---
 

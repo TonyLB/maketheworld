@@ -232,5 +232,40 @@ describe('withGetOperations', () => {
             ])
         })
 
+        it('should omit ProjectionExpression when getAllFields is true', async () => {
+            dbMock.send.mockResolvedValue({ Responses: { Ephemera: [
+                marshall({
+                    EphemeraId: 'TestOne',
+                    DataCategory: 'DC1',
+                    TestValue: 5,
+                    ExtraField: 'should be included'
+                })
+            ]}})
+            const output = await dbHandler.getItems<{ PrimaryKey: string; DataCategory: string; TestValue: number; ExtraField: string }>({
+                Keys: [{ PrimaryKey: 'TestOne', DataCategory: 'DC1'}],
+                getAllFields: true
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                RequestItems: {
+                    Ephemera: {
+                        Keys: [
+                            marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1'})
+                        ],
+                        ConsistentRead: undefined
+                        // Note: No ProjectionExpression should be present
+                    }
+                },
+            })
+            expect(output).toEqual([
+                {
+                    PrimaryKey: 'TestOne',
+                    DataCategory: 'DC1',
+                    TestValue: 5,
+                    ExtraField: 'should be included'
+                }
+            ])
+        })
+
     })
 })

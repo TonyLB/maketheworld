@@ -122,6 +122,7 @@ Include specific guidance for AI assistants:
 
 #### **Client System** (`charcoal-client/`)
 - **[Client Architecture](charcoal-client/AGENT.md)**: Frontend system with authoring vs playing mode distinction
+- **[Message Persistence](charcoal-client/src/slices/messages/AGENT.md)**: Dual-layer client/server message storage, IndexedDB caching, synchronization
 
 ### **Architectural Philosophy**
 

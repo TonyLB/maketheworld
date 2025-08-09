@@ -7,6 +7,7 @@ import mapProjectionFields from './utils/mapProjectionFields'
 
 type GetItemExtendedProps = {
     ProjectionFields?: string[];
+    getAllFields?: boolean;  // When true, omits ProjectionExpression to get all attributes
     ExpressionAttributeNames?: Record<string, string>;
     ConsistentRead?: boolean;
 }
@@ -16,13 +17,22 @@ export const withGetOperations = <KIncoming extends DBHandlerLegalKey, T extends
         async getItem<Get extends Partial<DBHandlerItem<KIncoming, T>>>(props: { Key: DBHandlerKey<KIncoming, T> } & GetItemExtendedProps): Promise<Get | undefined> {
             return await asyncSuppressExceptions(async () => {
                 const { ProjectionFields, ExpressionAttributeNames } = mapProjectionFields((props.ProjectionFields || []).map((projectionField) => (projectionField === this._incomingKeyLabel ? this._internalKeyLabel : projectionField)))
-                const { Item = null } = await this._client.send(new GetItemCommand({
+                // Build the command object conditionally based on getAllFields
+                const commandInput: any = {
                     TableName: this._tableName,
                     Key: marshall(this._remapIncomingObject(props.Key)),
-                    ProjectionExpression: ProjectionFields.length ? ProjectionFields.join(', ') : this._internalKeyLabel,
-                    ...(Object.keys(ExpressionAttributeNames).length ? { ExpressionAttributeNames } : {}),
                     ConsistentRead: props.ConsistentRead
-                }))
+                }
+                
+                // Only add ProjectionExpression if getAllFields is not true
+                if (!props.getAllFields) {
+                    commandInput.ProjectionExpression = ProjectionFields.length ? ProjectionFields.join(', ') : this._internalKeyLabel
+                    if (Object.keys(ExpressionAttributeNames).length) {
+                        commandInput.ExpressionAttributeNames = ExpressionAttributeNames
+                    }
+                }
+                
+                const { Item = null } = await this._client.send(new GetItemCommand(commandInput))
                 return Item ? this._remapOutgoingObject(unmarshall(Item) as DBHandlerItem<DBHandlerLegalKey, T>) : undefined
             }, async () => (undefined)) as Get | undefined
         }
@@ -33,13 +43,22 @@ export const withGetOperations = <KIncoming extends DBHandlerLegalKey, T extends
                 .filter((itemList) => (itemList.length))
                 .map(async (itemList) => {
                     const Keys = itemList.map((item) => (marshall(this._remapIncomingObject(item))))
-                    return await this._client.send(new BatchGetItemCommand({ RequestItems: {
-                        [this._tableName]: {
-                            Keys,
-                            ProjectionExpression: ProjectionFields.length ? ProjectionFields.join(', ') : this._internalKeyLabel,
-                            ExpressionAttributeNames: Object.keys(ExpressionAttributeNames).length ? ExpressionAttributeNames : undefined,
-                            ConsistentRead: props.ConsistentRead
+                    // Build the request items conditionally based on getAllFields
+                    const requestItem: any = {
+                        Keys,
+                        ConsistentRead: props.ConsistentRead
+                    }
+                    
+                    // Only add ProjectionExpression if getAllFields is not true
+                    if (!props.getAllFields) {
+                        requestItem.ProjectionExpression = ProjectionFields.length ? ProjectionFields.join(', ') : this._internalKeyLabel
+                        if (Object.keys(ExpressionAttributeNames).length) {
+                            requestItem.ExpressionAttributeNames = ExpressionAttributeNames
                         }
+                    }
+                    
+                    return await this._client.send(new BatchGetItemCommand({ RequestItems: {
+                        [this._tableName]: requestItem
                     } }))
                 })
             const outcomes = await Promise.all(batchPromises)

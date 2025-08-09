@@ -1,15 +1,15 @@
+/**
+ * @fileoverview Message type definitions for client-server communication
+ */
+
 import { isRenderTreeNode, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import {
     EphemeraAssetId,
     EphemeraCharacterId,
-    EphemeraFeatureId,
-    EphemeraKnowledgeId,
     EphemeraMapId,
     EphemeraRoomId,
     isEphemeraAssetId,
     isEphemeraCharacterId,
-    isEphemeraFeatureId,
-    isEphemeraKnowledgeId,
     isEphemeraMapId,
     isEphemeraRoomId,
     isEphemeraId,
@@ -89,31 +89,9 @@ export type RoomDescribeData = {
     assets?: AssetUUID[];
 }
 
-export type RoomDescription = {
-    DisplayProtocol: 'RoomDescription';
-} & RoomDescribeData & MessageAddressing
 
-export type FeatureDescribeData = {
-    Description: RenderTree;
-    Name: RenderTree;
-    FeatureId: EphemeraFeatureId;
-    assets?: AssetUUID[];
-}
 
-export type FeatureDescription = {
-    DisplayProtocol: 'FeatureDescription';
-} & FeatureDescribeData & MessageAddressing
 
-export type KnowledgeDescribeData = {
-    Description: RenderTree;
-    Name: RenderTree;
-    KnowledgeId: EphemeraKnowledgeId;
-    assets?: AssetUUID[];
-}
-
-export type KnowledgeDescription = {
-    DisplayProtocol: 'KnowledgeDescription';
-} & KnowledgeDescribeData & MessageAddressing
 
 export type MapDescribeRoom = {
     roomId: EphemeraRoomId;
@@ -166,20 +144,9 @@ export const isMapDescribeData = (message: any): message is MapDescribeData => {
     )
 }
 
-type CharacterDescribeData = {
-    CharacterId: EphemeraCharacterId;
-    Name: string;
-    fileURL?: string;
-    Pronouns?: string;
-}
 
-export type CharacterDescription = {
-    DisplayProtocol: 'CharacterDescription';
-} & CharacterDescribeData & MessageAddressing
 
-export type RoomHeader = {
-    DisplayProtocol: 'RoomHeader';
-} & RoomDescribeData & MessageAddressing
+
 
 export type RoomUpdate = {
     DisplayProtocol: 'RoomUpdate';
@@ -210,13 +177,142 @@ export type OutOfCharacterMessage = {
 // WML Schema type for string-based WML transmission
 export type WMLSchema = string
 
+// PerceptionMessage MetaData Discriminated Union System
+// Base metadata interface
+type PerceptionMessageMetaDataBase = {
+    componentUUID: ComponentUUID;
+}
+
+// Component-specific metadata types
+export type PerceptionRoomMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `ROOM#${string}`;
+    displayMode: 'header' | 'full';
+}
+
+export type PerceptionFeatureMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `FEATURE#${string}`;
+}
+
+export type PerceptionKnowledgeMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `KNOWLEDGE#${string}`;
+}
+
+export type PerceptionCharacterMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `CHARACTER#${string}`;
+}
+
+export type PerceptionExampleMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `EXAMPLE#${string}`;
+}
+
+export type PerceptionMapMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `MAP#${string}`;
+}
+
+export type PerceptionImageMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `IMAGE#${string}`;
+}
+
+export type PerceptionActionMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `ACTION#${string}`;
+}
+
+export type PerceptionVariableMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `VARIABLE#${string}`;
+}
+
+export type PerceptionComputedMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `COMPUTED#${string}`;
+}
+
+export type PerceptionMessageComponentMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `MESSAGE#${string}`;
+}
+
+export type PerceptionMomentMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `MOMENT#${string}`;
+}
+
+export type PerceptionAssetMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `ASSET#${string}`;
+}
+
+// Discriminated union of all metadata types
+export type PerceptionMessageMetaData = 
+    | PerceptionRoomMetaData 
+    | PerceptionFeatureMetaData 
+    | PerceptionKnowledgeMetaData 
+    | PerceptionCharacterMetaData
+    | PerceptionExampleMetaData
+    | PerceptionMapMetaData
+    | PerceptionImageMetaData
+    | PerceptionActionMetaData     // Deprecated but included for migration period
+    | PerceptionVariableMetaData   // Deprecated but included for migration period
+    | PerceptionComputedMetaData   // Deprecated but included for migration period
+    | PerceptionMessageComponentMetaData
+    | PerceptionMomentMetaData
+    | PerceptionAssetMetaData
+
 export type PerceptionMessage = {
     DisplayProtocol: 'PerceptionMessage';
     wmlContent: WMLSchema;
-    componentUUID: ComponentUUID;
+    metaData: PerceptionMessageMetaData;
 } & MessageAddressing
 
-export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | KnowledgeDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
+// Type guard functions for runtime type narrowing
+export const isPerceptionRoomMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionRoomMetaData => {
+    return metaData.componentUUID.startsWith('ROOM#');
+}
+
+export const isPerceptionFeatureMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionFeatureMetaData => {
+    return metaData.componentUUID.startsWith('FEATURE#');
+}
+
+export const isPerceptionKnowledgeMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionKnowledgeMetaData => {
+    return metaData.componentUUID.startsWith('KNOWLEDGE#');
+}
+
+export const isPerceptionCharacterMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionCharacterMetaData => {
+    return metaData.componentUUID.startsWith('CHARACTER#');
+}
+
+export const isPerceptionExampleMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionExampleMetaData => {
+    return metaData.componentUUID.startsWith('EXAMPLE#');
+}
+
+export const isPerceptionMapMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionMapMetaData => {
+    return metaData.componentUUID.startsWith('MAP#');
+}
+
+export const isPerceptionImageMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionImageMetaData => {
+    return metaData.componentUUID.startsWith('IMAGE#');
+}
+
+export const isPerceptionActionMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionActionMetaData => {
+    return metaData.componentUUID.startsWith('ACTION#');
+}
+
+export const isPerceptionVariableMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionVariableMetaData => {
+    return metaData.componentUUID.startsWith('VARIABLE#');
+}
+
+export const isPerceptionComputedMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionComputedMetaData => {
+    return metaData.componentUUID.startsWith('COMPUTED#');
+}
+
+export const isPerceptionMessageComponentMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionMessageComponentMetaData => {
+    return metaData.componentUUID.startsWith('MESSAGE#');
+}
+
+export const isPerceptionMomentMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionMomentMetaData => {
+    return metaData.componentUUID.startsWith('MOMENT#');
+}
+
+export const isPerceptionAssetMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionAssetMetaData => {
+    return metaData.componentUUID.startsWith('ASSET#');
+}
+
+export type Message = SpacerMessage | WorldMessage | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
 
 export const isMessage = (message: any): message is Message => {
     if (typeof message !== 'object') {
@@ -239,16 +335,7 @@ export const isMessage = (message: any): message is Message => {
                 ['blue', 'pink', 'purple', 'green', 'grey'].includes(message.Color),
                 isRenderTree(message.Message)
             ) && isEphemeraCharacterId(message.CharacterId)
-        case 'RoomDescription':
-        case 'RoomHeader':
-            return checkAll(
-                checkTypes(message, { RoomId: 'string' }),
-                validateRoomExitList(message.Exits),
-                validateRoomCharacterList(message.Characters),
-                isRenderTree(message.Name),
-                isRenderTree(message.Description),
-                ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
-            ) && isEphemeraRoomId(message.RoomId)
+
         case 'RoomUpdate':
             return checkAll(
                 checkTypes(message, {}, { RoomId: 'string' }),
@@ -258,48 +345,9 @@ export const isMessage = (message: any): message is Message => {
                 isRenderTree(message.Description ?? []),
                 ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
             ) && isEphemeraRoomId(message.RoomId)
-        case 'FeatureDescription':
-            return checkAll(
-                checkTypes(message, { FeatureId: 'string' }),
-                isRenderTree(message.Name),
-                isRenderTree(message.Description),
-                ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
-            ) && isEphemeraFeatureId(message.FeatureId)
-        case 'KnowledgeDescription':
-            return checkAll(
-                checkTypes(message, { KnowledgeId: 'string' }),
-                isRenderTree(message.Name),
-                isRenderTree(message.Description),
-                ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
-            ) && isEphemeraKnowledgeId(message.KnowledgeId)
-        case 'CharacterDescription':
-            return checkAll(
-                checkTypes(message, 
-                    {
-                        CharacterId: 'string',
-                        Name: 'string'
-                    },
-                    {
-                        fileUrl: 'string',
-                    }
-                ),
-                !message.Pronouns || checkTypes(message.Pronouns, {
-                    subject: 'string',
-                    object: 'string',
-                    possessive: 'string',
-                    adjective: 'string',
-                    reflexive: 'string'
-                })
-            ) && isEphemeraCharacterId(message.CharacterId)
+
         case 'PerceptionMessage':
-            return checkAll(
-                checkTypes(message, {
-                    wmlContent: 'string',
-                    componentUUID: 'string'
-                }),
-                typeof message.wmlContent === 'string' && message.wmlContent.length > 0,
-                isSchemaComponentUUID(message.componentUUID)
-            )
+            return isPerceptionMessage(message)
         default: return false
     }
 }
@@ -314,7 +362,6 @@ export const isPerceptionMessage = (message: any): message is PerceptionMessage 
     }
     if (!checkTypes(message, {
         wmlContent: 'string',
-        componentUUID: 'string',
         MessageId: 'string',
         CreatedTime: 'number'
     }, {
@@ -325,7 +372,10 @@ export const isPerceptionMessage = (message: any): message is PerceptionMessage 
     if (typeof message.wmlContent !== 'string' || message.wmlContent.length === 0) {
         return false
     }
-    if (!isSchemaComponentUUID(message.componentUUID)) {
+    if (!message.metaData || typeof message.metaData !== 'object' || message.metaData === null) {
+        return false
+    }
+    if (typeof message.metaData.componentUUID !== 'string' || !isSchemaComponentUUID(message.metaData.componentUUID)) {
         return false
     }
     if (message.Target && !isEphemeraCharacterId(message.Target) && !(message.Target.startsWith('SESSION#') && message.Target.length > 8)) {

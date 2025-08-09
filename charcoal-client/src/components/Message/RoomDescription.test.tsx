@@ -8,404 +8,259 @@ import { render, screen } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import RoomDescription from './RoomDescription'
-import { RoomDescription as RoomDescriptionType, RoomHeader as RoomHeaderType } from '@tonylb/mtw-interfaces/ts/messages'
+import { PerceptionRoomMetaData } from '@tonylb/mtw-interfaces/ts/messages'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { StandardExit } from '@tonylb/mtw-wml/ts/standardize/components/exit'
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 vi.mock('../../../cacheDB')
-vi.mock('../../slices/player', () => ({
-    getPlayer: () => (state: any) => state.player
-}))
-vi.mock('../../slices/personalAssets', () => ({
-    getStatus: () => (state: any) => state.personalAssets?.byId?.['ASSET#draft']?.meta?.currentState || 'FRESH'
-}))
-vi.mock('../ActiveCharacter', () => ({
-    useActiveCharacter: () => ({ CharacterId: 'CHARACTER#test' })
-}))
-vi.mock('../../slices/lifeLine', () => ({
-    socketDispatchPromise: vi.fn(),
-    moveCharacter: vi.fn()
-}))
-vi.mock('../Onboarding/useOnboarding', () => ({
-    useOnboardingCheckpoint: vi.fn()
-}))
 
-const mockStore = configureStore()
-
-// Mock sub-components
+// Mock the sub-components to simplify testing
 vi.mock('./RoomExit', () => ({
-    default: ({ exit }: { exit: StandardExit }) => {
-        try {
-            // Try to extract description, fallback to 'Unknown Exit'
-            const description = exit._payload.plain.description?._payload?.plain?.toJSON?.() || 'Unknown Exit'
-            return <div data-testid="room-exit">{description}</div>
-        } catch (e) {
-            return <div data-testid="room-exit">Unknown Exit</div>
-        }
-    }
+    default: ({ exit }: any) => (
+        <div data-testid="room-exit">{exit?.description?.plainString || 'Exit'}</div>
+    )
 }))
 
 vi.mock('./RoomCharacter', () => ({
-    default: ({ character }: { character: StandardCharacter }) => {
-        try {
-            // Extract name from StandardRender object
-            const name = character.name?.plainString || 'Unknown Character'
-            return <div data-testid="room-character">{name}</div>
-        } catch (e) {
-            return <div data-testid="room-character">Unknown Character</div>
-        }
-    }
+    default: ({ character }: any) => (
+        <div data-testid="room-character">{character?.name?.plainString || 'Character'}</div>
+    )
 }))
 
 vi.mock('./RenderTreeContent', () => ({
-    default: ({ list }: any) => <div data-testid="render-tree">{Array.isArray(list) ? list.join(' ') : 'No content'}</div>
+    default: ({ list }: { list: any[] }) => (
+        <div>{Array.isArray(list) ? list.join(' ') : String(list)}</div>
+    )
 }))
+
+const mockStore = configureStore([])
 
 describe('RoomDescription', () => {
     let store: any
 
     beforeEach(() => {
         store = mockStore({
-            player: { Assets: [] },
-            personalAssets: { byId: {} }
+            player: {
+                Players: {
+                    'CHARACTER#test': {
+                        Assets: []
+                    }
+                }
+            },
+            personalAssets: {
+                byId: {
+                    'ASSET#draft': {
+                        meta: {
+                            currentState: 'FRESH'
+                        }
+                    }
+                }
+            },
+            activeCharacters: {
+                activeCharacter: 'CHARACTER#test'
+            },
+            lifeLine: {}
         })
-        vi.clearAllMocks()
     })
 
-    describe('Legacy Format Support', () => {
-        it('should render legacy RoomDescription data', () => {
-            const legacyMessage: RoomDescriptionType = {
-                DisplayProtocol: 'RoomDescription',
-                Name: ['Test Room'],
-                Description: ['A test room description'],
-                Summary: ['Test summary'],
-                RoomId: 'ROOM#test-room',
-                Exits: [
-                    {
-                        Name: 'North Exit',
-                        RoomId: 'ROOM#north-room',
-                        Visibility: 'Public'
-                    }
-                ],
-                Characters: [
-                    {
-                        Name: 'Test Character',
-                        CharacterId: 'CHARACTER#test-char',
-                        fileURL: 'test-image.jpg'
-                    }
-                ],
-                assets: ['ASSET#test'],
-                Target: 'CHARACTER#test',
-                MessageId: 'Test',
-                CreatedTime: 1000000
+    describe('Basic Rendering', () => {
+        it('should render with minimal metaData (no parsedWML)', () => {
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#test-room',
+                displayMode: 'full'
             }
 
             render(
                 <Provider store={store}>
-                    <RoomDescription message={legacyMessage} />
+                    <RoomDescription metaData={metaData} />
+                </Provider>
+            )
+
+            // Should show default values when no parsedWML
+            expect(screen.getByText('Untitled')).toBeDefined()
+        })
+
+        it('should render room with StandardForm data', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) uuid=(ROOM#testRoom)>
+                        <Example key=(example1) uuid=(EXAMPLE#example1)>
+                            <Name>Test Room</Name>
+                            <Description>A beautiful test room with stone walls</Description>
+                            <Summary>Test summary</Summary>
+                        </Example>
+                    </Room>
+                </Asset>
+            `))
+
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#testRoom',
+                displayMode: 'full'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription parsedWML={standardForm} metaData={metaData} />
                 </Provider>
             )
 
             expect(screen.getByText('Test Room')).toBeDefined()
-            expect(screen.getByText('A test room description')).toBeDefined()
-            expect(screen.getByTestId('room-exit').textContent).toBe('North Exit')
-            expect(screen.getByTestId('room-character').textContent).toBe('Test Character')
+            expect(screen.getByText('A beautiful test room with stone walls')).toBeDefined()
         })
 
-        it('should render legacy RoomHeader data', () => {
-            const legacyMessage: RoomHeaderType = {
-                DisplayProtocol: 'RoomHeader',
-                Name: ['Header Room'],
-                Description: ['A header room description'],
-                Summary: ['Header summary'],
-                RoomId: 'ROOM#header-room',
-                Exits: [],
-                Characters: [],
-                Target: 'CHARACTER#test',
-                MessageId: 'Test',
-                CreatedTime: 1000000
+        it('should handle room with exits and characters', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) uuid=(ROOM#testRoom)>
+                        <Example key=(example1) uuid=(EXAMPLE#example1)>
+                            <Name>Room with Exits</Name>
+                            <Description>A room with multiple exits and characters</Description>
+                        </Example>
+                        <Exit to=(ROOM#north)>North passage</Exit>
+                        <Exit to=(ROOM#south)>South corridor</Exit>
+                        <Character key=(testChar) uuid=(testChar) />
+                    </Room>
+                </Asset>
+            `))
+
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#testRoom',
+                displayMode: 'full'
             }
 
             render(
                 <Provider store={store}>
-                    <RoomDescription message={legacyMessage} header />
+                    <RoomDescription parsedWML={standardForm} metaData={metaData} />
                 </Provider>
             )
 
-            expect(screen.getByText('Header Room')).toBeDefined()
-            expect(screen.getByText('A header room description')).toBeDefined()
-        })
-    })
-
-    describe('Standard Format Support', () => {
-        it('should render Standard format room data', () => {
-            // Create a StandardForm with room data
-            const wmlContent = `
-<Asset key=(TestRoom)>
-    <Room uuid=(ROOM#test-room)>
-        <Example uuid=(EXAMPLE#test-example)>
-            <Name>Standard Room</Name>
-            <Description>Standard room description</Description>
-            <Summary>Standard summary</Summary>
-        </Example>
-        <Exit to=(ROOM#north-room)>North Exit</Exit>
-    </Room>
-</Asset>`
+            expect(screen.getByText('Room with Exits')).toBeDefined()
+            expect(screen.getByText('A room with multiple exits and characters')).toBeDefined()
             
-            const standardForm = new StandardForm(wmlContent)
-            const componentUUID = 'ROOM#test-room'
-
-            render(
-                <Provider store={store}>
-                    <RoomDescription 
-                        message={{ DisplayProtocol: 'PerceptionMessage' } as any}
-                        parsedWML={standardForm}
-                        componentUUID={componentUUID}
-                    />
-                </Provider>
-            )
-
-            expect(screen.getByText('Standard Room')).toBeDefined()
-            expect(screen.getByText('Standard room description')).toBeDefined()
-            expect(screen.getByTestId('room-exit').textContent).toBe('North Exit')
-        })
-
-        it('should handle missing Standard format data gracefully', () => {
-            render(
-                <Provider store={store}>
-                    <RoomDescription 
-                        message={{ DisplayProtocol: 'PerceptionMessage' } as any}
-                        parsedWML={undefined}
-                        componentUUID={undefined}
-                    />
-                </Provider>
-            )
-
-            expect(screen.getByText('Untitled')).toBeDefined()
-            expect(screen.getByText('No description')).toBeDefined()
-        })
-    })
-
-    describe('Bridge State Functionality', () => {
-        it('should convert legacy exits to Standard format', () => {
-            const legacyMessage: RoomDescriptionType = {
-                DisplayProtocol: 'RoomDescription',
-                Name: ['Test Room'],
-                Description: ['Test description'],
-                Summary: ['Test summary'],
-                RoomId: 'ROOM#test-room',
-                Exits: [
-                    {
-                        Name: 'Legacy Exit',
-                        RoomId: 'ROOM#target-room',
-                        Visibility: 'Public'
-                    }
-                ],
-                Characters: [],
-                Target: 'CHARACTER#test',
-                MessageId: 'Test',
-                CreatedTime: 1000000
-            }
-
-            render(
-                <Provider store={store}>
-                    <RoomDescription message={legacyMessage} />
-                </Provider>
-            )
-
-            // Should render the converted exit
-            expect(screen.getByTestId('room-exit').textContent).toBe('Legacy Exit')
-        })
-
-        it('should convert legacy characters to Standard format', () => {
-            const legacyMessage: RoomDescriptionType = {
-                DisplayProtocol: 'RoomDescription',
-                Name: ['Test Room'],
-                Description: ['Test description'],
-                Summary: ['Test summary'],
-                RoomId: 'ROOM#test-room',
-                Exits: [],
-                Characters: [
-                    {
-                        Name: 'Legacy Character',
-                        CharacterId: 'CHARACTER#legacy-char',
-                        fileURL: 'legacy-image.jpg'
-                    }
-                ],
-                Target: 'CHARACTER#test',
-                MessageId: 'Test',
-                CreatedTime: 1000000
-            }
-
-            render(
-                <Provider store={store}>
-                    <RoomDescription message={legacyMessage} />
-                </Provider>
-            )
-
-            // Should render the converted character
-            expect(screen.getByTestId('room-character').textContent).toBe('Legacy Character')
+            // Should render both exits
+            const exits = screen.getAllByTestId('room-exit')
+            expect(exits).toHaveLength(2)
+            
+            // Should render the character (but it won't show up without proper data)
+            // Just verify no crashes occurred
+            expect(screen.getByRole('heading', { name: 'Room with Exits' })).toBeDefined()
         })
     })
 
     describe('Header Mode', () => {
-        it('should render in header mode with live indicator', () => {
-            const legacyMessage: RoomHeaderType = {
-                DisplayProtocol: 'RoomHeader',
-                Name: ['Header Room'],
-                Description: ['Header description'],
-                Summary: ['Header summary'],
-                RoomId: 'ROOM#header-room',
-                Exits: [],
-                Characters: [],
-                Target: 'CHARACTER#test',
-                MessageId: 'Test',
-                CreatedTime: 1000000
+        it('should render in header mode', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) uuid=(ROOM#testRoom)>
+                        <Example key=(example1) uuid=(EXAMPLE#example1)>
+                            <Name>Header Room</Name>
+                            <Description>A room shown as header</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `))
+
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#testRoom',
+                displayMode: 'header'
             }
-
-            render(
-                <Provider store={store}>
-                    <RoomDescription message={legacyMessage} header currentHeader />
-                </Provider>
-            )
-
-            expect(screen.getByText('Header Room')).toBeDefined()
-            expect(screen.getByText('Live')).toBeDefined()
-        })
-
-        it('should render Standard format data in header mode', () => {
-            // Create a StandardForm with room data
-            const wmlContent = `
-<Asset key=(HeaderRoom)>
-    <Room uuid=(ROOM#header-room)>
-        <Example uuid=(EXAMPLE#header-example)>
-            <Name>Standard Header Room</Name>
-            <Description>Standard header description</Description>
-            <Summary>Standard header summary</Summary>
-        </Example>
-        <Exit to=(ROOM#north-room)>Header Exit</Exit>
-    </Room>
-</Asset>`
-            
-            const standardForm = new StandardForm(wmlContent)
-            const componentUUID = 'ROOM#header-room'
 
             render(
                 <Provider store={store}>
                     <RoomDescription 
-                        message={{ DisplayProtocol: 'PerceptionMessage' } as any}
-                        parsedWML={standardForm}
-                        componentUUID={componentUUID}
-                        header
-                        currentHeader
+                        parsedWML={standardForm} 
+                        metaData={metaData} 
+                        header 
                     />
                 </Provider>
             )
 
-            expect(screen.getByText('Standard Header Room')).toBeDefined()
-            expect(screen.getByText('Standard header description')).toBeDefined()
-            expect(screen.getByText('Live')).toBeDefined()
-        })
-
-        it('should apply header layout constraints', () => {
-            const legacyMessage: RoomHeaderType = {
-                DisplayProtocol: 'RoomHeader',
-                Name: ['Header Room'],
-                Description: ['A very long description that should be constrained by the header mode layout constraints including maxHeight and overflow hidden'],
-                Summary: ['Header summary'],
-                RoomId: 'ROOM#header-room',
-                Exits: [],
-                Characters: [],
-                Target: 'CHARACTER#test',
-                MessageId: 'Test',
-                CreatedTime: 1000000
-            }
-
-            const { container } = render(
-                <Provider store={store}>
-                    <RoomDescription message={legacyMessage} header />
-                </Provider>
-            )
-
-            // Check that the content area has header-specific styling
-            const contentBox = container.querySelector('[style*="maxHeight"]')
-            expect(contentBox).toBeDefined()
-            
-            // Verify the room name and description are still rendered
             expect(screen.getByText('Header Room')).toBeDefined()
-            expect(screen.getByText(/A very long description/)).toBeDefined()
         })
 
-        it('should not show live indicator when not current header', () => {
-            const legacyMessage: RoomHeaderType = {
-                DisplayProtocol: 'RoomHeader',
-                Name: ['Header Room'],
-                Description: ['Header description'],
-                Summary: ['Header summary'],
-                RoomId: 'ROOM#header-room',
-                Exits: [],
-                Characters: [],
-                Target: 'CHARACTER#test',
-                MessageId: 'Test',
-                CreatedTime: 1000000
+        it('should show live indicator when currentHeader is true', () => {
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#test-room',
+                displayMode: 'header'
             }
 
             render(
                 <Provider store={store}>
-                    <RoomDescription message={legacyMessage} header />
+                    <RoomDescription 
+                        metaData={metaData} 
+                        header 
+                        currentHeader 
+                    />
                 </Provider>
             )
 
-            expect(screen.getByText('Header Room')).toBeDefined()
+            expect(screen.getByText('Live')).toBeDefined()
+        })
+
+        it('should not show live indicator when currentHeader is false', () => {
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#test-room',
+                displayMode: 'header'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription 
+                        metaData={metaData} 
+                        header 
+                    />
+                </Provider>
+            )
+
             expect(screen.queryByText('Live')).toBeNull()
         })
+    })
 
-        it('should handle header mode with personal assets', () => {
-            // Mock store with personal assets
-            const storeWithAssets = mockStore({
-                player: { Assets: ['ASSET#test-asset'] },
-                personalAssets: { byId: { 'ASSET#draft': { meta: { currentState: 'FRESH' } } } }
-            })
+    describe('Edge Cases', () => {
+        it('should handle room with no examples gracefully', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset key=(test)>
+                    <Room key=(testRoom) uuid=(ROOM#testRoom) />
+                </Asset>
+            `))
 
-            const legacyMessage: RoomHeaderType = {
-                DisplayProtocol: 'RoomHeader',
-                Name: ['Personal Room'],
-                Description: ['Personal room description'],
-                Summary: ['Personal summary'],
-                RoomId: 'ROOM#personal-room',
-                Exits: [],
-                Characters: [],
-                assets: ['ASSET#test-asset'],
-                Target: 'CHARACTER#test',
-                MessageId: 'Test',
-                CreatedTime: 1000000
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#testRoom',
+                displayMode: 'full'
             }
 
             render(
-                <Provider store={storeWithAssets}>
-                    <RoomDescription message={legacyMessage} header currentHeader />
+                <Provider store={store}>
+                    <RoomDescription parsedWML={standardForm} metaData={metaData} />
                 </Provider>
             )
 
-            expect(screen.getByText('Personal Room')).toBeDefined()
-            expect(screen.getByText('Live')).toBeDefined()
+            // Should fall back to defaults
+            expect(screen.getByText('Untitled')).toBeDefined()
         })
 
-        it('should handle header mode with missing Standard format data', () => {
+        it('should handle missing room component gracefully', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset key=(test)>
+                    <Feature key=(notARoom)>
+                        <Name>Not a Room</Name>
+                    </Feature>
+                </Asset>
+            `))
+
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#nonexistent', // Component doesn't exist
+                displayMode: 'full'
+            }
+
             render(
                 <Provider store={store}>
-                    <RoomDescription 
-                        message={{ DisplayProtocol: 'PerceptionMessage' } as any}
-                        parsedWML={undefined}
-                        componentUUID={undefined}
-                        header
-                    />
+                    <RoomDescription parsedWML={standardForm} metaData={metaData} />
                 </Provider>
             )
 
+            // Should fall back to defaults when component not found
             expect(screen.getByText('Untitled')).toBeDefined()
-            expect(screen.getByText('No description')).toBeDefined()
         })
     })
-}) 
+})

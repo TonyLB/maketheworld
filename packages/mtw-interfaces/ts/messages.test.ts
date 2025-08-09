@@ -1,14 +1,29 @@
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { isMessage, isPerceptionMessage, PerceptionMessage, WMLSchema } from './messages'
+import { 
+    isMessage, 
+    isPerceptionMessage, 
+    PerceptionMessage, 
+    WMLSchema,
+    PerceptionRoomMetaData,
+    PerceptionFeatureMetaData,
+    PerceptionKnowledgeMetaData,
+    isPerceptionRoomMetaData,
+    isPerceptionFeatureMetaData,
+    isPerceptionKnowledgeMetaData,
+    PerceptionMessageMetaData
+} from './messages'
 
 describe('PerceptionMessage', () => {
     const validPerceptionMessage: PerceptionMessage = {
         DisplayProtocol: 'PerceptionMessage',
         wmlContent: '<Room key=(mainHall)><ShortName>Main Hall</ShortName></Room>',
-        componentUUID: 'ROOM#abc123',
         MessageId: 'msg123',
         CreatedTime: 1234567890,
-        Target: 'CHARACTER#player1'
+        Target: 'CHARACTER#player1',
+        metaData: {
+            componentUUID: 'ROOM#abc123',
+            displayMode: 'full'
+        }
     }
 
     describe('isPerceptionMessage', () => {
@@ -32,9 +47,9 @@ describe('PerceptionMessage', () => {
             delete missingWML.wmlContent
             expect(isPerceptionMessage(missingWML)).toBe(false)
 
-            const missingUUID: any = { ...validPerceptionMessage }
-            delete missingUUID.componentUUID
-            expect(isPerceptionMessage(missingUUID)).toBe(false)
+            const missingMetaData: any = { ...validPerceptionMessage }
+            delete missingMetaData.metaData
+            expect(isPerceptionMessage(missingMetaData)).toBe(false)
 
             const missingMessageId: any = { ...validPerceptionMessage }
             delete missingMessageId.MessageId
@@ -51,10 +66,10 @@ describe('PerceptionMessage', () => {
         })
 
         it('should reject invalid componentUUID format', () => {
-            const invalidUUID = { ...validPerceptionMessage, componentUUID: 'invalid#uuid' }
+            const invalidUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'invalid#uuid' as any } }
             expect(isPerceptionMessage(invalidUUID)).toBe(false)
 
-            const noHashUUID = { ...validPerceptionMessage, componentUUID: 'ROOMabc123' }
+            const noHashUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'ROOMabc123' as any } }
             expect(isPerceptionMessage(noHashUUID)).toBe(false)
         })
 
@@ -91,16 +106,16 @@ describe('PerceptionMessage', () => {
         })
 
         it('should accept valid componentUUID formats', () => {
-            const roomUUID = { ...validPerceptionMessage, componentUUID: 'ROOM#abc123' }
+            const roomUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'ROOM#abc123' } }
             expect(isPerceptionMessage(roomUUID)).toBe(true)
 
-            const featureUUID = { ...validPerceptionMessage, componentUUID: 'FEATURE#def456' }
+            const featureUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'FEATURE#def456' } }
             expect(isPerceptionMessage(featureUUID)).toBe(true)
 
-            const knowledgeUUID = { ...validPerceptionMessage, componentUUID: 'KNOWLEDGE#ghi789' }
+            const knowledgeUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'KNOWLEDGE#ghi789' } }
             expect(isPerceptionMessage(knowledgeUUID)).toBe(true)
 
-            const characterUUID = { ...validPerceptionMessage, componentUUID: 'CHARACTER#jkl012' }
+            const characterUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'CHARACTER#jkl012' } }
             expect(isPerceptionMessage(characterUUID)).toBe(true)
         })
 
@@ -147,6 +162,287 @@ describe('PerceptionMessage', () => {
             const componentUUID: ComponentUUID = 'ROOM#test123'
             expect(typeof componentUUID).toBe('string')
             expect(componentUUID.includes('#')).toBe(true)
+        })
+    })
+})
+
+describe('PerceptionMessage MetaData System', () => {
+    describe('PerceptionRoomMetaData', () => {
+        const roomMetaData: PerceptionRoomMetaData = {
+            componentUUID: 'ROOM#mainHall',
+            displayMode: 'header'
+        }
+
+        it('should accept valid room metadata with header displayMode', () => {
+            expect(roomMetaData.componentUUID).toBe('ROOM#mainHall')
+            expect(roomMetaData.displayMode).toBe('header')
+        })
+
+        it('should accept valid room metadata with full displayMode', () => {
+            const fullRoomMetaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#testRoom',
+                displayMode: 'full'
+            }
+            expect(fullRoomMetaData.displayMode).toBe('full')
+        })
+
+        it('should be identified by type guard', () => {
+            expect(isPerceptionRoomMetaData(roomMetaData)).toBe(true)
+        })
+
+        it('should provide type safety for displayMode', () => {
+            // This test verifies TypeScript compilation - the type system ensures
+            // only 'header' | 'full' are valid values for displayMode
+            const validModes: Array<PerceptionRoomMetaData['displayMode']> = ['header', 'full']
+            expect(validModes).toContain('header')
+            expect(validModes).toContain('full')
+        })
+    })
+
+    describe('PerceptionFeatureMetaData', () => {
+        const featureMetaData: PerceptionFeatureMetaData = {
+            componentUUID: 'FEATURE#treasureChest'
+        }
+
+        it('should accept valid feature metadata', () => {
+            expect(featureMetaData.componentUUID).toBe('FEATURE#treasureChest')
+        })
+
+        it('should be identified by type guard', () => {
+            expect(isPerceptionFeatureMetaData(featureMetaData)).toBe(true)
+        })
+
+        it('should not have displayMode property', () => {
+            // TypeScript compilation verifies that displayMode doesn't exist on FeatureMetaData
+            expect('displayMode' in featureMetaData).toBe(false)
+        })
+    })
+
+    describe('PerceptionKnowledgeMetaData', () => {
+        const knowledgeMetaData: PerceptionKnowledgeMetaData = {
+            componentUUID: 'KNOWLEDGE#ancientHistory'
+        }
+
+        it('should accept valid knowledge metadata', () => {
+            expect(knowledgeMetaData.componentUUID).toBe('KNOWLEDGE#ancientHistory')
+        })
+
+        it('should be identified by type guard', () => {
+            expect(isPerceptionKnowledgeMetaData(knowledgeMetaData)).toBe(true)
+        })
+    })
+
+    describe('Type Guard Functions', () => {
+        const roomMetaData: PerceptionMessageMetaData = {
+            componentUUID: 'ROOM#test',
+            displayMode: 'header'
+        }
+
+        const featureMetaData: PerceptionMessageMetaData = {
+            componentUUID: 'FEATURE#test'
+        }
+
+        const knowledgeMetaData: PerceptionMessageMetaData = {
+            componentUUID: 'KNOWLEDGE#test'
+        }
+
+        describe('isPerceptionRoomMetaData', () => {
+            it('should correctly identify room metadata', () => {
+                expect(isPerceptionRoomMetaData(roomMetaData)).toBe(true)
+                expect(isPerceptionRoomMetaData(featureMetaData)).toBe(false)
+                expect(isPerceptionRoomMetaData(knowledgeMetaData)).toBe(false)
+            })
+
+            it('should provide type narrowing', () => {
+                if (isPerceptionRoomMetaData(roomMetaData)) {
+                    // TypeScript should know that roomMetaData has displayMode property
+                    expect(roomMetaData.displayMode).toBeDefined()
+                    expect(['header', 'full']).toContain(roomMetaData.displayMode)
+                }
+            })
+        })
+
+        describe('isPerceptionFeatureMetaData', () => {
+            it('should correctly identify feature metadata', () => {
+                expect(isPerceptionFeatureMetaData(roomMetaData)).toBe(false)
+                expect(isPerceptionFeatureMetaData(featureMetaData)).toBe(true)
+                expect(isPerceptionFeatureMetaData(knowledgeMetaData)).toBe(false)
+            })
+        })
+
+        describe('isPerceptionKnowledgeMetaData', () => {
+            it('should correctly identify knowledge metadata', () => {
+                expect(isPerceptionKnowledgeMetaData(roomMetaData)).toBe(false)
+                expect(isPerceptionKnowledgeMetaData(featureMetaData)).toBe(false)
+                expect(isPerceptionKnowledgeMetaData(knowledgeMetaData)).toBe(true)
+            })
+        })
+    })
+
+    describe('PerceptionMessage with MetaData', () => {
+        const roomHeaderMessage: PerceptionMessage = {
+            DisplayProtocol: 'PerceptionMessage',
+            wmlContent: '<Room key=(mainHall)><ShortName>Main Hall</ShortName></Room>',
+            metaData: {
+                componentUUID: 'ROOM#mainHall',
+                displayMode: 'header'
+            },
+            MessageId: 'msg123',
+            CreatedTime: 1234567890
+        }
+
+        const roomFullMessage: PerceptionMessage = {
+            DisplayProtocol: 'PerceptionMessage',
+            wmlContent: '<Room key=(mainHall)><ShortName>Main Hall</ShortName><Description>A grand hall</Description></Room>',
+            metaData: {
+                componentUUID: 'ROOM#mainHall',
+                displayMode: 'full'
+            },
+            MessageId: 'msg124',
+            CreatedTime: 1234567891
+        }
+
+        const featureMessage: PerceptionMessage = {
+            DisplayProtocol: 'PerceptionMessage',
+            wmlContent: '<Feature key=(chest)><ShortName>Treasure Chest</ShortName></Feature>',
+            metaData: {
+                componentUUID: 'FEATURE#chest'
+            },
+            MessageId: 'msg125',
+            CreatedTime: 1234567892
+        }
+
+        it('should validate room header message with metaData', () => {
+            expect(isPerceptionMessage(roomHeaderMessage)).toBe(true)
+            expect(isMessage(roomHeaderMessage)).toBe(true)
+            
+            if (roomHeaderMessage.metaData && isPerceptionRoomMetaData(roomHeaderMessage.metaData)) {
+                expect(roomHeaderMessage.metaData.displayMode).toBe('header')
+            } else {
+                fail('Room header message should have valid room metadata')
+            }
+        })
+
+        it('should validate room full message with metaData', () => {
+            expect(isPerceptionMessage(roomFullMessage)).toBe(true)
+            expect(isMessage(roomFullMessage)).toBe(true)
+            
+            if (roomFullMessage.metaData && isPerceptionRoomMetaData(roomFullMessage.metaData)) {
+                expect(roomFullMessage.metaData.displayMode).toBe('full')
+            } else {
+                fail('Room full message should have valid room metadata')
+            }
+        })
+
+        it('should validate feature message with metaData', () => {
+            expect(isPerceptionMessage(featureMessage)).toBe(true)
+            expect(isMessage(featureMessage)).toBe(true)
+            
+            if (featureMessage.metaData && isPerceptionFeatureMetaData(featureMessage.metaData)) {
+                expect(featureMessage.metaData.componentUUID).toBe('FEATURE#chest')
+                // TypeScript ensures displayMode doesn't exist on FeatureMetaData
+            } else {
+                fail('Feature message should have valid feature metadata')
+            }
+        })
+
+        it('should handle messages with metaData', () => {
+            const messageWithMetaData: PerceptionMessage = {
+                DisplayProtocol: 'PerceptionMessage',
+                wmlContent: '<Room key=(test)><ShortName>Test</ShortName></Room>',
+                MessageId: 'msg126',
+                CreatedTime: 1234567893,
+                metaData: {
+                    componentUUID: 'ROOM#test',
+                    displayMode: 'full'
+                }
+            }
+
+            expect(isPerceptionMessage(messageWithMetaData)).toBe(true)
+            expect(isMessage(messageWithMetaData)).toBe(true)
+            expect(messageWithMetaData.metaData).toBeDefined()
+            expect(messageWithMetaData.metaData.componentUUID).toBe('ROOM#test')
+        })
+    })
+
+    describe('Message Routing Scenario', () => {
+        it('should correctly route messages based on metaData', () => {
+            const messages: PerceptionMessage[] = [
+                {
+                    DisplayProtocol: 'PerceptionMessage',
+                    wmlContent: '<Room key=(hall)><ShortName>Hall</ShortName></Room>',
+                    metaData: {
+                        componentUUID: 'ROOM#hall',
+                        displayMode: 'header'
+                    },
+                    MessageId: 'msg1',
+                    CreatedTime: 1000
+                },
+                {
+                    DisplayProtocol: 'PerceptionMessage',
+                    wmlContent: '<Room key=(hall)><ShortName>Hall</ShortName><Description>Full description</Description></Room>',
+                    metaData: {
+                        componentUUID: 'ROOM#hall',
+                        displayMode: 'full'
+                    },
+                    MessageId: 'msg2',
+                    CreatedTime: 1001
+                },
+                {
+                    DisplayProtocol: 'PerceptionMessage',
+                    wmlContent: '<Feature key=(door)><ShortName>Door</ShortName></Feature>',
+                    metaData: {
+                        componentUUID: 'FEATURE#door'
+                    },
+                    MessageId: 'msg3',
+                    CreatedTime: 1002
+                }
+            ]
+
+            // Simulate message routing logic
+            const routingResults = messages.map(message => {
+                const metaData = message.metaData
+                
+                if (metaData && isPerceptionRoomMetaData(metaData)) {
+                    return {
+                        type: 'RoomDescription',
+                        isHeader: metaData.displayMode === 'header',
+                        componentUUID: metaData.componentUUID
+                    }
+                }
+                
+                if (metaData && isPerceptionFeatureMetaData(metaData)) {
+                    return {
+                        type: 'ComponentDescription',
+                        subtype: 'Feature',
+                        componentUUID: metaData.componentUUID
+                    }
+                }
+                
+                // Fallback for unknown metadata
+                return {
+                    type: 'Unknown',
+                    componentUUID: metaData?.componentUUID || 'UNKNOWN'
+                }
+            })
+
+            expect(routingResults).toEqual([
+                {
+                    type: 'RoomDescription',
+                    isHeader: true,
+                    componentUUID: 'ROOM#hall'
+                },
+                {
+                    type: 'RoomDescription',
+                    isHeader: false,
+                    componentUUID: 'ROOM#hall'
+                },
+                {
+                    type: 'ComponentDescription',
+                    subtype: 'Feature',
+                    componentUUID: 'FEATURE#door'
+                }
+            ])
         })
     })
 }) 

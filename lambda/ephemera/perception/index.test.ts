@@ -63,11 +63,19 @@ describe('Perception message', () => {
         expect(messageBusMock.send).toHaveBeenCalledTimes(2)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'PublishMessage',
-            displayProtocol: 'CharacterDescription',
+            displayProtocol: 'PerceptionMessage',
             targets: ['CHARACTER#TESS'],
-            CharacterId: 'CHARACTER#TESS',
-            Name: 'Tess', 
-            Pronouns: 'she/her'
+            wmlContent: `<Asset key=(render)>
+    <Character uuid=(CHARACTER#TESS)>
+        <Name>Tess</Name>
+        <Pronouns>she/her</Pronouns>
+        
+    </Character>
+</Asset>`,
+            metaData: {
+                componentUUID: 'CHARACTER#TESS'
+            },
+            messageGroupId: undefined
         })
     })
 

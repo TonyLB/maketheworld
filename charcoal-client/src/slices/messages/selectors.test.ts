@@ -92,15 +92,15 @@ describe('messages selectors', () => {
         const testState = {
             messages: {
                 'CHARACTER#TESS': [{
-                    DisplayProtocol: 'RoomHeader',
+                    DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test1',
                     CreatedTime: 1,
                     Target: 'CHARACTER#TESS',
-                    RoomId: 'TEST',
-                    Description: ['Test1'],
-                    Name: 'Test1',
-                    Exits: [],
-                    Characters: []
+                    wmlContent: '<Room key=(test)><ShortName>Test1</ShortName><Description>Test1</Description></Room>',
+                    metaData: {
+                        componentUUID: 'ROOM#TEST',
+                        displayMode: 'header'
+                    }
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test2',
@@ -114,15 +114,15 @@ describe('messages selectors', () => {
                     CreatedTime: 3,
                     Target: 'CHARACTER#TESS'
                 }, {
-                    DisplayProtocol: 'RoomHeader',
+                    DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test4',
                     CreatedTime: 4,
                     Target: 'CHARACTER#TESS',
-                    RoomId: 'TEST4',
-                    Description: ['Test4'],
-                    Name: 'Test4',
-                    Exits: [],
-                    Characters: []
+                    wmlContent: '<Room key=(test4)><ShortName>Test4</ShortName><Description>Test4</Description></Room>',
+                    metaData: {
+                        componentUUID: 'ROOM#TEST4',
+                        displayMode: 'header'
+                    }
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test5',
@@ -131,15 +131,15 @@ describe('messages selectors', () => {
                     Target: 'CHARACTER#TESS'
                 }],
                 'CHARACTER#MARCO': [{
-                    DisplayProtocol: 'RoomHeader',
+                    DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test1',
                     CreatedTime: 1,
                     Target: 'CHARACTER#MARCO',
-                    RoomId: 'TEST',
-                    Description: ['Test1'],
-                    Name: 'Test1',
-                    Exits: [],
-                    Characters: []
+                    wmlContent: '<Room key=(test)><ShortName>Test1</ShortName><Description>Test1</Description></Room>',
+                    metaData: {
+                        componentUUID: 'ROOM#TEST',
+                        displayMode: 'header'
+                    }
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test2',
@@ -147,15 +147,15 @@ describe('messages selectors', () => {
                     CreatedTime: 2,
                     Target: 'CHARACTER#MARCO'
                 }, {
-                    DisplayProtocol: 'RoomHeader',
+                    DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test3',
                     CreatedTime: 3,
                     Target: 'CHARACTER#MARCO',
-                    RoomId: 'TEST',
-                    Description: ['Test3'],
-                    Name: 'Test3',
-                    Exits: [],
-                    Characters: []
+                    wmlContent: '<Room key=(test)><ShortName>Test3</ShortName><Description>Test3</Description></Room>',
+                    metaData: {
+                        componentUUID: 'ROOM#TEST',
+                        displayMode: 'header'
+                    }
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test4',
@@ -196,28 +196,28 @@ describe('messages selectors', () => {
                 }],
                 Groups: [{
                         header: {
-                            DisplayProtocol: 'RoomHeader',
+                            DisplayProtocol: 'PerceptionMessage',
                             MessageId: 'Test1',
                             CreatedTime: 1,
                             Target: 'CHARACTER#TESS',
-                            RoomId: 'TEST',
-                            Description: ['Test1'],
-                            Name: 'Test1',
-                            Exits: [],
-                            Characters: []
+                            wmlContent: '<Room key=(test)><ShortName>Test1</ShortName><Description>Test1</Description></Room>',
+                            metaData: {
+                                componentUUID: 'ROOM#TEST',
+                                displayMode: 'header'
+                            }
                         },
                         messageCount: 2
                     }, {
                         header: {
-                            DisplayProtocol: 'RoomHeader',
+                            DisplayProtocol: 'PerceptionMessage',
                             MessageId: 'Test4',
                             CreatedTime: 4,
                             Target: 'CHARACTER#TESS',
-                            RoomId: 'TEST4',
-                            Description: ['Test4'],
-                            Name: 'Test4',
-                            Exits: [],
-                            Characters: []
+                            wmlContent: '<Room key=(test4)><ShortName>Test4</ShortName><Description>Test4</Description></Room>',
+                            metaData: {
+                                componentUUID: 'ROOM#TEST4',
+                                displayMode: 'header'
+                            }
                         },
                         messageCount: 1
                 }]
@@ -241,15 +241,15 @@ describe('messages selectors', () => {
                 }],
                 Groups: [{
                         header: {
-                            DisplayProtocol: 'RoomHeader',
-                            MessageId: 'Test1',
-                            CreatedTime: 1,
+                            DisplayProtocol: 'PerceptionMessage',
+                            MessageId: 'Test3',
+                            CreatedTime: 3,
                             Target: 'CHARACTER#MARCO',
-                            RoomId: 'TEST',
-                            Description: ['Test3'],
-                            Name: 'Test3',
-                            Exits: [],
-                            Characters: []
+                            wmlContent: '<Room key=(test)><ShortName>Test3</ShortName><Description>Test3</Description></Room>',
+                            metaData: {
+                                componentUUID: 'ROOM#TEST',
+                                displayMode: 'header'
+                            }
                         },
                         messageCount: 2
                 }]
@@ -262,16 +262,23 @@ describe('messages selectors', () => {
         const testState = {
             messages: {
                 'CHARACTER#TESS': [{
-                    DisplayProtocol: 'RoomHeader',
+                    DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test1',
                     CreatedTime: 1,
                     Target: 'CHARACTER#TESS',
-                    RoomId: 'TEST',
-                    Description: ['Test1'],
-                    Name: ['Test1'],
-                    Exits: [],
-                    Characters: [],
-                    assets: { 'ASSET#test': 'key1', 'ASSET#testTwo': 'key1' }
+                    wmlContent: '<Room key=(test)><ShortName>Test1</ShortName><Description>Test1</Description></Room>',
+                    metaData: {
+                        componentUUID: 'ROOM#TEST',
+                        displayMode: 'header'
+                    },
+                    parsedWML: {
+                        byUniversalId: {
+                            'ROOM#TEST': {
+                                name: { plainString: 'Test1' },
+                                assets: { 'ASSET#test': 'key1', 'ASSET#testTwo': 'key1' }
+                            }
+                        }
+                    }
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test2',
@@ -287,16 +294,23 @@ describe('messages selectors', () => {
                     assets: { 'ASSET#test': 'key1', 'ASSET#testTwo': 'key1' },
                     Name: ['Test3']
                 }, {
-                    DisplayProtocol: 'RoomHeader',
+                    DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test4',
                     CreatedTime: 4,
                     Target: 'CHARACTER#TESS',
-                    RoomId: 'TEST4',
-                    Description: ['Test4'],
-                    Name: ['Test4'],
-                    Exits: [],
-                    Characters: [],
-                    assets: { 'ASSET#test': 'key3' }
+                    wmlContent: '<Room key=(test4)><ShortName>Test4</ShortName><Description>Test4</Description></Room>',
+                    metaData: {
+                        componentUUID: 'ROOM#TEST4',
+                        displayMode: 'header'
+                    },
+                    parsedWML: {
+                        byUniversalId: {
+                            'ROOM#TEST4': {
+                                name: { plainString: 'Test4' },
+                                assets: { 'ASSET#test': 'key3' }
+                            }
+                        }
+                    }
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test5',
@@ -314,23 +328,23 @@ describe('messages selectors', () => {
         it('should return recently visited rooms', () => {
             expect(getRecentlyVisited(1)(testState)).toEqual([{
                 tag: 'Room',
-                ephemeraId: 'TEST',
+                ephemeraId: 'ROOM#TEST',
                 name: 'Test1',
-                assets: [{ fromAssetId: 'ASSET#test', key: 'key1' }, { fromAssetId: 'ASSET#testTwo', key: 'key1' }]
+                assets: [{ fromAssetId: 'ASSET#test', universalKey: 'key1' }, { fromAssetId: 'ASSET#testTwo', universalKey: 'key1' }]
             }, {
                 tag: 'Room',
-                ephemeraId: 'TEST4',
+                ephemeraId: 'ROOM#TEST4',
                 name: 'Test4',
-                assets: [{ fromAssetId: 'ASSET#test', key: 'key3' }]
+                assets: [{ fromAssetId: 'ASSET#test', universalKey: 'key3' }]
             }])
         })
 
         it('should filter out messages before the given time', () => {
             expect(getRecentlyVisited(4)(testState)).toEqual([{
                 tag: 'Room',
-                ephemeraId: 'TEST4',
+                ephemeraId: 'ROOM#TEST4',
                 name: 'Test4',
-                assets: [{ fromAssetId: 'ASSET#test', key: 'key3' }]
+                assets: [{ fromAssetId: 'ASSET#test', universalKey: 'key3' }]
             }])
         })
     })

@@ -24,7 +24,7 @@ const perceptionCacheSlice = createSlice({
                     // The backend sends to SESSION#${SessionId} for directResponse, but the Target
                     // field may not be included in the message payload itself
                     // We cache all PerceptionMessages for anonymous access
-                    const componentUUID = message.componentUUID
+                    const componentUUID = message.metaData.componentUUID
                     const cacheKey: PerceptionCacheKey = `ANONYMOUS::${componentUUID}`
                     state[cacheKey] = enhancedMessage
                 })
@@ -46,12 +46,13 @@ const processPerceptionMessage = (message: PerceptionMessage): EnhancedPerceptio
     } catch (error) {
         console.warn('Failed to parse WML content for PerceptionMessage:', error)
         // Create a fallback StandardForm to prevent perpetual loading state
-        const [upperTag] = splitType(message.componentUUID)
+        const componentUUID = message.metaData.componentUUID
+        const [upperTag] = splitType(componentUUID)
         const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
         
         // Create a proper fallback StandardForm with the correct component type
         const fallbackForm = new StandardForm('fallback')
-        const defaultData = defaultComponentFromTag(tag as any, 'fallback', message.componentUUID)
+        const defaultData = defaultComponentFromTag(tag as any, 'fallback', componentUUID)
         const fallbackComponent = standardComponentFactory(defaultData)
         
         if (fallbackComponent) {

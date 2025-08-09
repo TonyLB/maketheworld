@@ -13,7 +13,7 @@ export const getCachedPerception = ({ CharacterId, EphemeraId }: { CharacterId?:
             fetched: true,
             wmlContent: cachedMessage.wmlContent,
             parsedWML: cachedMessage.parsedWML,
-            componentUUID: cachedMessage.componentUUID,
+            componentUUID: cachedMessage.metaData.componentUUID,
             Target: cachedMessage.Target
         }
     }

@@ -11,9 +11,10 @@ import { socketDispatchPromise } from '../../slices/lifeLine'
 import { getCachedPerception } from '../../slices/perceptionCache'
 import Spinner from '../Spinner'
 import ComponentDescription from '../Message/ComponentDescription'
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { getPlayer } from '../../slices/player'
 import { getStatus } from '../../slices/personalAssets'
+import { isPerceptionKnowledgeMetaData, PerceptionKnowledgeMetaData, PerceptionMessageMetaData } from '@tonylb/mtw-interfaces/ts/messages'
 
 type KnowledgeProps = {
 }
@@ -47,20 +48,31 @@ export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
         }
     }, [navigate])
 
+    // Create properly typed metaData with type guard validation
+    const metaData: PerceptionKnowledgeMetaData | undefined = useMemo(() => {
+        if (!componentUUID) {
+            return undefined
+        }
+        
+        // Validate that we have a Knowledge UUID using the base type guard
+        if (!isEphemeraKnowledgeId(componentUUID)) {
+            throw new Error(`Knowledge component received non-knowledge UUID: ${componentUUID}. This indicates a bug in component routing.`)
+        }
+        
+        // Now componentUUID is properly typed as EphemeraKnowledgeId, which matches PerceptionKnowledgeMetaData
+        const candidateMetaData: PerceptionKnowledgeMetaData = {
+            componentUUID
+        }
+        
+        return candidateMetaData
+    }, [componentUUID])
+
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         {
-            fetched && parsedWML && componentUUID
+            fetched && parsedWML && componentUUID && metaData
                 ? <ComponentDescription
-                    message={{
-                        DisplayProtocol: 'PerceptionMessage',
-                        wmlContent,
-                        componentUUID,
-                        MessageId: 'stub',
-                        CreatedTime: 0,
-                        Target: Target ?? 'SESSION#anonymous'
-                    }}
                     parsedWML={parsedWML}
-                    componentUUID={componentUUID}
+                    metaData={metaData}
                     icon={<KnowledgeIcon />}
                     onClickLink={onClickLink}
                 />
