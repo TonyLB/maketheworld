@@ -14,6 +14,116 @@ The perception system serves as the **message routing and display engine** that:
 - **Asset Integration**: Leverages the internalCache system for efficient data retrieval
 - **Real-time Updates**: Provides immediate feedback through the message bus
 
+## Perception Event Triggers
+
+The perception system can be triggered by several different categories of events, each representing a different reason why characters need updated information:
+
+### **Blueprint Change Events** *(Content Updates)*
+**What They Are**: Changes to the underlying world definition that require perception updates
+
+#### **WML Content Updates** *(Legacy Pattern - Migration In Progress)*
+- **Source**: `Content Update` EventBridge events from WML Lambda (via Asset re-caching)
+- **Trigger Pattern**: WML source changes → Ephemera receives Content Update → `cacheAsset({ updateOnly: true })` → Updated component data available
+- **Perception Impact**: Characters may see updated room descriptions, feature descriptions, or component changes on next interaction
+- **Migration Context**: This represents the legacy direct WML → Ephemera flow; target flow is WML → Assets → Ephemera
+
+#### **Asset Canonization/Decanonization Events**
+- **Source**: `Canonize Asset` / `Decanonize Asset` EventBridge events
+- **Trigger Pattern**: Asset status changes → Characters gain/lose access to content
+- **Perception Impact**: Room headers update to reflect new available features, exits may appear/disappear
+- **Usage**: `PerceptionAssetMessage` triggers room header updates for affected areas
+
+#### **Asset-Level Changes**
+- **Source**: Direct asset modifications, imports, or structural changes
+- **Trigger Pattern**: Asset structure changes → Room compositions change → Headers need updates
+- **Perception Impact**: Room descriptions may include new components or lose removed ones
+- **Propagation**: Affects all rooms associated with the modified asset
+
+### **Character State Events** *(Real-Time Updates)*
+**What They Are**: Changes to character presence, movement, or actions that require immediate perception updates
+
+#### **Character Movement Events**
+- **Source**: `MoveCharacter` internal message bus events
+- **Trigger Pattern**: Character moves rooms → New room perception → Header updates → Map updates
+- **Perception Flow**:
+  1. `moveCharacter` function triggers `Perception` message with `header: true`
+  2. `PerceptionRoomMessage` sends room header to moving character
+  3. `MapUpdate` message updates character's map view
+  4. Other characters in destination room see arrival message
+- **Special Behavior**: Room headers use in-place updates rather than timeline entries
+
+#### **Character Interaction Events**
+- **Source**: Direct character actions, commands, or link interactions
+- **Trigger Pattern**: Character interacts with component → Component perception triggered
+- **Perception Types**:
+  - **Feature Interaction**: `PerceptionComponentMessage` for feature descriptions
+  - **Knowledge Access**: `PerceptionComponentMessage` with `directResponse` for immediate knowledge delivery
+  - **Character Examination**: Character description lookups
+- **Targeting**: Usually character-specific rather than broadcast
+
+#### **Room State Changes**
+- **Source**: Environmental changes, character presence updates, or dynamic content
+- **Trigger Pattern**: Room state changes → Room header updates → Character notifications
+- **Examples**:
+  - Characters entering/leaving rooms (updates character lists in headers)
+  - Room features being activated or deactivated
+  - Environmental conditions changing
+- **Update Strategy**: Headers receive current state updates, not timeline entries
+
+### **Message Broadcasting Events** *(Communication)*
+**What They Are**: Deliberate message delivery to characters in specific contexts
+
+#### **Moment-Based Messages**
+- **Source**: `PerceptionShowMoment` requests for specific moments
+- **Trigger Pattern**: System needs to display all messages within a moment → Asset discovery → Character targeting
+- **Usage**: Often for coordinated narrative events or system announcements
+- **Routing**: Messages distributed based on asset access and room presence
+
+#### **Direct Messages**
+- **Source**: `PerceptionShowMessage` requests for specific messages
+- **Trigger Pattern**: Specific message needs display → Room association discovery → Character targeting
+- **Filtering**: Can be restricted by `onlyForAssets` parameter
+- **Scope**: Global (all associated characters) or targeted (specific character)
+
+### **System Coordination Events** *(Infrastructure)*
+**What They Are**: System-level events that require perception updates for consistency
+
+#### **Map Subscription Events**
+- **Source**: Character map subscriptions, room transitions
+- **Trigger Pattern**: Character needs map updates → Map rendering → `EphemeraUpdate` delivery
+- **Targeting**: Always character-specific due to different asset access levels
+- **Content**: Map data filtered based on character's asset permissions
+
+#### **Cache Invalidation Events**
+- **Source**: Asset cache updates, system maintenance, or data consistency operations
+- **Trigger Pattern**: Cached data becomes stale → Re-render needed → Updated perceptions
+- **Scope**: May affect multiple characters if they share access to updated assets
+- **Performance**: Uses InternalCache system to minimize redundant lookups
+
+### **Event Processing Patterns**
+
+#### **Character Presence Filtering**
+All perception events are filtered through character presence detection:
+- **Room-Based Events**: Only processed if characters are present in affected rooms
+- **Asset-Based Events**: Only processed if characters have access to affected assets
+- **Performance Benefit**: Implements "tree falls in forest" principle for cost optimization
+
+#### **Asset Discovery and Filtering**
+Most perception events involve asset discovery:
+1. **Global Assets**: System-wide canonical assets available to all characters
+2. **Character Assets**: Personal and authorized assets for specific characters
+3. **Asset Intersection**: Only include assets where the component/content actually appears
+4. **Permission Filtering**: Respect character-level access controls
+
+#### **Message Targeting Strategy**
+Different events use different targeting approaches:
+- **Broadcast**: All characters in associated rooms (room changes, announcements)
+- **Targeted**: Specific character only (personal interactions, knowledge access)
+- **Asset-Filtered**: Characters with access to specific assets (asset changes)
+- **Anonymous**: Public information for unauthenticated access
+
+For detailed technical implementation of these patterns, see [`../AGENT.event.md`](../AGENT.event.md) - Event Flow Documentation.
+
 ## Message Types
 
 The system handles several types of perception messages, each with specific behavior:
