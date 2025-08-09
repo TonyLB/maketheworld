@@ -131,6 +131,11 @@ Include specific guidance for AI assistants:
 
 ### **Development Guidelines**
 
+#### **Migration and Architecture Planning**
+- **[Development Roadmap](AGENT.development.md)**: Master planning document for major migrations and architectural changes
+- **Migration Phases**: Message format standardization, Variable/Computed/Action removal, asset caching migration, LLM-mediated systems
+- **Strategic Planning**: Coordinated approach to completing incomplete migrations and legacy system removal
+
 #### **Testing Patterns**
 - **Client (Vitest)**: Use `npm test` for watch mode, `npm test -- --run` for single run
 - **Packages (Jest)**: Use `npm run test` for watch mode, `npm run test -- --watchAll=false` for single run
