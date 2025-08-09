@@ -1,5 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
-import { FeatureDescription, RoomDescription, CharacterDescription } from "@tonylb/mtw-interfaces/ts/messages"
+import { RoomDescription } from "@tonylb/mtw-interfaces/ts/messages"
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
@@ -10,7 +10,7 @@ import {
     isEphemeraMapId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateMapClear, EphemeraClientMessageEphemeraUpdateMapItem } from "@tonylb/mtw-interfaces/ts/ephemera"
-import { KnowledgeDescription } from "@tonylb/mtw-interfaces/ts/messages"
+
 import { MessageGroupId } from "../internalCache/orchestrateMessages"
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
@@ -71,25 +71,9 @@ export type PublishRoomUpdateMessage = {
     Characters: (Omit<RoomCharacterListItem, 'EphemeraId' | 'ConnectionIds' | 'SessionIds'> & { CharacterId: string })[];
 } & PublishMessageBase
 
-export type PublishFeatureDescriptionMessage = {
-    displayProtocol: 'FeatureDescription';
-    FeatureId: EphemeraFeatureId;
-    description: string;
-} & PublishMessageBase
-
-export type PublishKnowledgeDescriptionMessage = {
-    displayProtocol: 'KnowledgeDescription';
-    KnowledgeId: EphemeraKnowledgeId;
-    description: string;
-} & PublishMessageBase
-
 export type PublishRoomDescriptionMessage = {
     displayProtocol: 'RoomDescription' | 'RoomHeader';
     description: string;
-} & PublishMessageBase
-
-export type PublishCharacterDescriptionMessage = Omit<CharacterDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
-    displayProtocol: 'CharacterDescription';
 } & PublishMessageBase
 
 export type PublishPerceptionMessage = {
@@ -103,10 +87,7 @@ export type PublishMessage = PublishWorldMessage |
     PublishNarrateMessage |
     PublishOutOfCharacterMessage |
     PublishRoomUpdateMessage |
-    PublishFeatureDescriptionMessage |
-    PublishKnowledgeDescriptionMessage |
     PublishRoomDescriptionMessage |
-    PublishCharacterDescriptionMessage |
     PublishPerceptionMessage
 
 export type ReturnValueMessage = {
@@ -315,9 +296,7 @@ export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessag
 export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage) => (['SayMessage', 'NarrateMessage', 'OOCMessage'].includes(prop.displayProtocol))
 export const isRoomUpdatePublishMessage = (prop: PublishMessage): prop is PublishRoomUpdateMessage => (prop.displayProtocol === 'RoomUpdate')
 export const isRoomDescriptionPublishMessage = (prop: PublishMessage): prop is PublishRoomDescriptionMessage => (['RoomDescription', 'RoomHeader'].includes(prop.displayProtocol))
-export const isFeatureDescriptionPublishMessage = (prop: PublishMessage): prop is PublishFeatureDescriptionMessage => (prop.displayProtocol === 'FeatureDescription')
-export const isKnowledgeDescriptionPublishMessage = (prop: PublishMessage): prop is PublishKnowledgeDescriptionMessage => (prop.displayProtocol === 'KnowledgeDescription')
-export const isCharacterDescriptionPublishMessage = (prop: PublishMessage): prop is PublishCharacterDescriptionMessage => (prop.displayProtocol === 'CharacterDescription')
+
 
 export const isPerceptionPublishMessage = (prop: PublishMessage): prop is PublishPerceptionMessage => (prop.displayProtocol === 'PerceptionMessage')
 
