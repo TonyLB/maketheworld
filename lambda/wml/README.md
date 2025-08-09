@@ -43,5 +43,14 @@ plain elements, that has been applied to authorization layer of the specified as
 This event means that the system tried to apply an edit, but failed because it was in conflict
 with the current state of the asset
 
+## Related Documentation
+
+- **[Event Flow Documentation](AGENT.event.md)**: Event processing patterns and content flow analysis (planned documentation)
+- **[WML Language System](../../packages/mtw-wml/ts/AGENT.md)**: Core WML language documentation and parsing
+- **[Assets System](../assets/)**: Asset caching and component management integration
+- **[Ephemera System](../ephemera/)**: Real-time game state and character interaction system
+- **[System Architecture](../../AGENT.architecture.events.md)**: Overall event architecture principles
+- **[Architectural Philosophy](../../AGENT.architecture.philosophy.md)**: Core architectural philosophy and design principles
+
 ---
 ---

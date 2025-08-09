@@ -479,9 +479,51 @@ await exponentialBackoffWrapper(async () => {
 4. **Check Integration Points**: Understand how events connect to other systems
 5. **Review Performance Patterns**: See how presence filtering optimizes resource usage
 
+## Domain-Specific Event Flows
+
+The Domain-Authoritative Event Mesh pattern manifests through specific event processing patterns within each lambda subsystem. The following documents provide detailed analysis of event flows within each domain:
+
+### **Lambda-Specific Event Documentation**
+- **[Assets Event Flows](lambda/assets/AGENT.event.md)**: Component caching, metadata management, and file coordination events
+- **[Ephemera Event Flows](lambda/ephemera/AGENT.event.md)**: Real-time character state, perception filtering, and WebSocket communication events  
+- **[WML Event Flows](lambda/wml/AGENT.event.md)**: Content parsing, schema validation, and transformation workflow events
+
+### **Data Transformation Pipeline**
+
+The WML-to-Assets relationship exemplifies how domain authority operates across transformation boundaries:
+
+#### **Source of Truth: WML Lambda**
+- **Authoritative Source**: S3 WML files are the canonical source of all content
+- **Content Operations**: All create, update, delete operations on source content
+- **Schema Validation**: Ensures WML content meets structural requirements
+- **Transformation Coordination**: Publishes events when source content changes
+
+#### **Materialized Views: Assets Lambda**
+- **Parsed Representation**: Maintains DynamoDB tables with component-level granularity
+- **Query Optimization**: Structures data for efficient component lookups and cross-references
+- **Cache Management**: Handles incremental updates and cache invalidation
+- **Integration Authority**: Serves parsed component data to other subsystems (especially Ephemera)
+
+#### **Event-Driven Coordination** *(Migration In Progress)*
+- **WML Changes**: WML Lambda publishes Content Update events when source files change
+- **Cache Updates**: 🔄 **Migration Incomplete** - Assets Lambda should subscribe to these events but migration was paused due to downstream complexities
+- **Perception Integration**: 🔄 **Legacy Pattern** - Ephemera Lambda currently receives WML events directly to support Variable/Computed/Action systems
+
+**Current Flow (Legacy)**: `WML → Ephemera (direct cacheAsset)`  
+**Target Flow (Post-Migration)**: `WML → Assets → Ephemera`
+
+This pattern reflects a partially-completed migration from Ephemera-owned asset caching to Assets Lambda domain authority. The migration was paused due to complex dependencies in the Variable/Computed/Action system that rely on Ephemera's asset caching implementation.
+
+This separation enables the WML Lambda to focus on content integrity and validation while the Assets Lambda optimizes for runtime access patterns and integration needs.
+
+For implementation details of this pipeline, see:
+- **[WML Event Flows](lambda/wml/AGENT.event.md)**: Source content event generation and publishing
+- **[Assets Event Flows](lambda/assets/AGENT.event.md)**: Materialized view updates and cache management
+- **[Ephemera Event Flows](lambda/ephemera/AGENT.event.md)**: Real-time consumption of component data for character interactions
+
 ## Related Documentation
 
-- **[Architectural Philosophy](AGENT.architecture.philosophy.md)**: Core principles driving event design
+- **[Architectural Philosophy](AGENT.architecture.philosophy.md)**: Core principles driving event design including Domain-Authoritative Event Mesh pattern
 - **[Client Architecture](charcoal-client/AGENT.md)**: Frontend implementation of dual-mode user experience
 - **[Perception System](lambda/ephemera/perception/AGENT.md)**: Detailed perception processing documentation  
 - **[Internal Cache](lambda/ephemera/internalCache/AGENT.md)**: Caching system supporting event processing

@@ -100,6 +100,109 @@ The perception-driven principle influences every aspect of the technical archite
 
 For complete technical details including code examples, event flow diagrams, caching mechanisms, and implementation patterns, see **[Event Architecture](AGENT.architecture.events.md)**.
 
+## Domain-Authoritative Event Mesh Architecture
+
+The perception-driven philosophy is implemented through what we've termed a **Domain-Authoritative Event Mesh** pattern that structures the system's three primary lambda subsystems.
+
+### **Core Pattern: Event-Sourced Bounded Contexts**
+
+Each lambda embodies a **Bounded Context** (from Domain-Driven Design) with specific characteristics:
+
+#### **Domain Authority**
+- **Assets Lambda**: Sole authority over component-level materialized views, asset metadata, and S3 file coordination. Provides the authoritative DynamoDB cache of parsed component data derived from WML sources.
+- **Ephemera Lambda**: Sole authority over real-time character state, room presence, and perception events
+- **WML Lambda**: Sole authority over WML source files in S3, content parsing, schema validation, and transformation workflows
+
+#### **Communication Contracts**
+Each domain-authoritative subsystem provides three standardized interfaces:
+
+1. **Direct/Immediate API Access**
+   - **Purpose**: Nearly-synchronous lookups and incoming change requests
+   - **Pattern**: Command/Query Segregation - direct API for commands and immediate queries
+   - **Use Cases**: Character movement, asset retrieval, content validation
+
+2. **Event Stream Publishing**
+   - **Purpose**: Broadcasting state changes to other subsystems
+   - **Pattern**: Event Sourcing with both snapshots and delta events
+   - **Content**: Periodic full state snapshots plus frequent incremental changes
+   - **Examples**: Asset cache updates, character location changes, content modifications
+
+3. **Event Stream Subscription**
+   - **Purpose**: Locally materializing current state from other subsystems
+   - **Pattern**: Materialized Views/Read Models derived from consumed events
+   - **Behavior**: Subscribe to relevant events, filter and transform for local domain needs
+   - **Benefits**: Reduced latency, local data ownership, resilience to service outages
+
+### **Hybrid Integration Benefits**
+
+This pattern combines the strengths of multiple architectural approaches:
+
+#### **From Domain-Driven Design**
+- **Clear Boundaries**: Each subsystem owns its domain completely
+- **Autonomous Development**: Teams can evolve domains independently
+- **Consistent Language**: Domain-specific terminology and contracts
+
+#### **From Event Sourcing**
+- **Audit Trail**: Complete history of all system changes
+- **Temporal Queries**: Can (theoretically ... not yet implemented) reconstruct state at any point in time
+- **Replay Capability**: Can rebuild read models from event streams
+
+#### **From CQRS (Command Query Responsibility Segregation)**
+- **Optimized Reads**: Materialized views optimized for each domain's query patterns
+- **Optimized Writes**: Commands processed directly by authoritative domain
+- **Independent Scaling**: Read and write sides can scale independently
+
+#### **From Data Mesh Principles**
+- **Domain-Owned Data**: Each domain is a first-class data product
+- **Self-Serve Platform**: Common patterns for event publishing/consuming
+- **Federated Governance**: Domain teams own their data contracts
+
+### **Perception-Driven Implementation**
+
+The Domain-Authoritative Event Mesh directly supports the perception-driven philosophy:
+
+#### **Selective Event Processing**
+- **Character Presence Filtering**: Events only processed when characters can perceive results
+- **Context-Aware Routing**: Different processing for authoring vs playing modes
+- **Resource Conservation**: Materialized views only updated when beneficial
+
+#### **Cost Optimization**
+- **Event-Driven Scale-to-Zero**: Subsystems only consume resources when processing events
+- **Selective Materialization**: Read models only populated when needed
+- **Efficient Cross-Subsystem Communication**: Avoids expensive synchronous dependencies
+
+### **Practical Implementation**
+
+Each lambda implements this pattern through:
+
+#### **Internal Message Bus**
+- **Purpose**: Decouple internal functions within each subsystem
+- **Pattern**: Event-driven coordination of complex workflows
+- **Benefits**: Separate concerns, enable testing, support parallel processing
+
+#### **Cross-Subsystem Event Streams**
+- **Technology**: AWS EventBridge for reliable event delivery
+- **Contracts**: Standardized event schemas for inter-domain communication
+- **Reliability**: Built-in retry, dead letter queues, and monitoring
+
+#### **Materialized View Management**
+- **Technology**: DynamoDB for fast, scalable local storage
+- **Strategy**: Cache data from other domains in locally-optimized format
+- **Consistency**: Eventually consistent with authoritative sources
+
+### **Architectural Evolution**
+
+This pattern enables the system to evolve while maintaining architectural coherence:
+
+- **New Domains**: Additional bounded contexts can be added using the same pattern
+- **Integration Points**: Standardized interfaces make integration predictable
+- **Independent Development**: Domains can evolve their internal implementations independently
+- **Migration Support**: Event streams provide natural migration paths for changing requirements
+
+For detailed examples of how domain authority operates across transformation boundaries, including the WML-to-Assets data transformation pipeline, see **[Event Architecture](AGENT.architecture.events.md)**.
+
+The Domain-Authoritative Event Mesh serves as the structural foundation that enables the perception-driven philosophy to be implemented consistently across all system components, ensuring both cost efficiency and narrative immersion.
+
 ## Philosophical Benefits
 
 ### Narrative Consistency
