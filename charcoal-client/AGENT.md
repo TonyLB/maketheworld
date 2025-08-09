@@ -34,6 +34,8 @@ The Charcoal Client is a React-based frontend that provides users with two disti
 
 ## User Experience Modes
 
+The client implements the fundamental architectural distinction between authoring and playing contexts. This dual-mode design reflects the core [Architectural Philosophy](../AGENT.architecture.philosophy.md) of perception-driven processing and is supported by the backend [Event Architecture](../AGENT.architecture.events.md).
+
 ### 🎨 **Authoring Mode - Collaborative Creator**
 
 In authoring mode, users work as **collaborating authors** to create and extend the world. This mode provides:
@@ -106,7 +108,7 @@ In playing mode, users experience the world **through the lens of their characte
 
 ### WebSocket Communication System
 
-The client maintains persistent WebSocket connections that serve different purposes across the two user modes:
+The client maintains persistent WebSocket connections that serve different purposes across the two user modes, implementing the event processing patterns detailed in [Event Architecture](../AGENT.architecture.events.md):
 
 #### **Authoring Mode - Collaborative Editing**
 **Purpose**: Enable real-time collaboration between multiple authors working on shared content
