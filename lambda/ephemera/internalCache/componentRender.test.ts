@@ -159,9 +159,7 @@ describe('ComponentRender cache handler', () => {
                 ]
             }]
         })
-        jest.spyOn(internalCache.EvaluateCode, "get").mockImplementation(async ({ source }) => {
-            return Boolean(['testOne', 'testFour'].includes(source))
-        })
+        // EvaluateCode removed - Variable/Computed evaluation no longer available
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
             { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
         ])
@@ -242,7 +240,7 @@ describe('ComponentRender cache handler', () => {
             throw new Error(`Invalid test EphemeraID: ${ephemeraId}`)
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
-        jest.spyOn(internalCache.EvaluateCode, "get").mockResolvedValue(false)
+        // EvaluateCode removed - Variable/Computed evaluation no longer available
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset key=(render)>

@@ -4,7 +4,7 @@ import { DeferredCache } from './deferredCache'
 import { RoomDescribeData, MapDescribeData, RoomExit } from '@tonylb/mtw-interfaces/ts/messages'
 import CacheGlobalData from './global';
 import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
-import { AssetStateMapping, EvaluateCodeAddress, EvaluateCodeData } from './assetState';
+
 import {
     EphemeraCharacterId,
 
@@ -23,7 +23,7 @@ import {
     isEphemeraRoomId,
 
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
-import { RoomCharacterListItem, StateItemId } from './baseClasses';
+import { RoomCharacterListItem } from './baseClasses';
 import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta';
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
@@ -59,7 +59,7 @@ type MessageDescribeData = {
 export type ComponentDescriptionItem = RoomDescribeData | MapDescribeData | MessageDescribeData
 
 type ComponentDescriptionCache = {
-    dependencies: StateItemId[];
+    dependencies: string[]; // StateItemId removed - dependencies no longer tracked
     description: ComponentDescriptionItem;
 }
 
@@ -98,7 +98,7 @@ export const isComponentKey = (key) => (['ROOM', 'FEATURE'].includes(splitType(k
 
 export class ComponentRenderData {
     _examples: (keys: ExampleComponentId[]) => Promise<Record<ExampleComponentId, ExamplesReturn[]>>;
-    _evaluateCode: (address: EvaluateCodeAddress) => Promise<any>;
+    // _evaluateCode removed - Variable/Computed evaluation no longer needed
     _componentMeta: (EphemeraId: ComponentUUID, assetList: AssetUUID[]) => Promise<Record<AssetUUID, StandardComponent>>;
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
     _getAssets: () => Promise<string[]>;
@@ -108,14 +108,13 @@ export class ComponentRenderData {
     
     constructor(
         examples: ExamplesData,
-        evaluateCode: EvaluateCodeData,
         componentMeta: ComponentMetaData,
         roomCharacterList: CacheRoomCharacterListsData,
         globalCache: CacheGlobalData,
         characterMeta: CacheCharacterMetaData
     ) {
         this._examples = (keys) => (examples.get(keys))
-        this._evaluateCode = (address) => (evaluateCode.get(address))
+        // _evaluateCode removed - Variable/Computed evaluation no longer needed
         this._componentMeta = (EphemeraId, assetList) => (componentMeta.getAcrossAssets(EphemeraId, assetList))
         this._roomCharacterList = (RoomId) => (roomCharacterList.get(RoomId))
         this._getAssets = async () => (await globalCache.get('assets') || [])
@@ -404,7 +403,7 @@ export class ComponentRenderData {
         this._Store[cacheKey] = value
     }
 
-    invalidateByEphemeraId(EphemeraId: StateItemId) {
+    invalidateByEphemeraId(EphemeraId: string) { // StateItemId removed
         // const cacheKeysToInvalidate = Object.entries(this._Dependencies)
         //     .filter(([key, dependencies]) => (dependencies.includes(EphemeraId)))
         //     .map(([key]) => (key))

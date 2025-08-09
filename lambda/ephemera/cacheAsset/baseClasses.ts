@@ -23,7 +23,8 @@ import {
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { splitType } from "@tonylb/mtw-utilities/ts/types";
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
-import { StateItemId } from "../internalCache/baseClasses"
+// StateItemId removed - Variable/Computed functionality no longer available
+type StateItemId = string;
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 
 type WrappedSchemaOutputTag = SchemaOutputTag | { tag: 'Remove' } | { tag: 'Replace' } | { tag: 'ReplaceMatch' } | { tag: 'ReplacePayload' }
