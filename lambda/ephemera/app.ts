@@ -9,24 +9,24 @@ import {
     isRegisterCharacterAPIMessage,
     isFetchEphemeraAPIMessage,
     isSyncAPIMessage,
-    isActionAPIMessage,
+
     isLinkAPIMessage,
-    isCommandAPIMessage,
+
     isMapSubscribeAPIMessage,
     isEphemeraAPIMessage,
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage
 } from '@tonylb/mtw-interfaces/ts/ephemera'
-import { EphemeraAssetId, EphemeraCharacterId, isEphemeraActionId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraVariableId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 
 import internalCache from './internalCache'
 import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
-import { executeAction } from './parse/executeAction'
+
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
-import dependencyCascade from './dependentMessages/dependencyCascade.js'
+
 import { sfnClient } from './clients'
 import { cacheAsset } from './cacheAsset'
 import decacheAsset from './decacheAsset'
@@ -79,26 +79,8 @@ export const handler = async (event: any, context: any) => {
                     })
                 }
                 break
-            case 'Calculate Cascade':
-                if (event.detail.EphemeraId && (isEphemeraVariableId(event.detail.EphemeraId) || isEphemeraComputedId(event.detail.EphemeraId))) {
-                    await dependencyCascade({
-                        payloads: [{ targetId: event.detail.EphemeraId, value: event.detail.value }],
-                        messageBus
-                    })
-                }
-                break
-            case 'Execute Action':
-                if (event.detail.actionId && event.detail.characterId) {
-                    const { actionId, characterId } = event.detail
-                    if (isEphemeraActionId(actionId) && isEphemeraCharacterId(characterId)) {
-                        messageBus.send({
-                            type: 'ExecuteAction',
-                            actionId,
-                            characterId
-                        })
-                    }
-                }
-                break
+
+
             case 'Canonize Asset':
             case 'Decanonize Asset':
                 const { assetId } = event.detail
@@ -212,19 +194,11 @@ export const handler = async (event: any, context: any) => {
                     })
                 }
             }
-            if (isActionAPIMessage(request)) {
-                await executeAction(request)
-            }
+
             if (isLinkAPIMessage(request)) {
                 const CharacterId = request.CharacterId
                 if (CharacterId && isEphemeraCharacterId(CharacterId)) {
-                    if (isEphemeraActionId(request.to)) {
-                        messageBus.send({
-                            type: 'ExecuteAction',
-                            actionId: request.to,
-                            characterId: CharacterId
-                        })
-                    }
+
                     if (isEphemeraFeatureId(request.to) || isEphemeraCharacterId(request.to)) {
                         messageBus.send({
                             type: 'Perception',
@@ -242,13 +216,7 @@ export const handler = async (event: any, context: any) => {
                     })
                 }
             }
-            if (isCommandAPIMessage(request)) {
-                const CharacterId = request.CharacterId
-                const actionPayload = await parseCommand({ CharacterId, command: request.command })
-                if (actionPayload?.actionType) {
-                    await executeAction(actionPayload)
-                }
-            }
+
         }
         else {
             return {

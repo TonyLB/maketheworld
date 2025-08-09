@@ -57,7 +57,8 @@ describe('ComponentMeta', () => {
             Keys: [
                 { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
                 { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
-            ]
+            ],
+            getAllFields: true
         })
     })
 
@@ -94,7 +95,8 @@ describe('ComponentMeta', () => {
         expect(assetMock.getItems).toHaveBeenCalledWith({
             Keys: [
                 { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' }
-            ]
+            ],
+            getAllFields: true
         })
     })
 
@@ -124,7 +126,8 @@ describe('ComponentMeta', () => {
             Keys: [
                 { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
                 { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
-            ]
+            ],
+            getAllFields: true
         })
     })
 

@@ -1,6 +1,6 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 
-import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { LegalCharacterColor, isEphemeraTaggedId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
     EphemeraCharacterId,
@@ -237,14 +237,10 @@ export type RoomUpdateMessage = {
     render?: boolean;
 }
 
-export type LegalDependencyTag = 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
-export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
+export type LegalDependencyTag = 'Asset' | 'Room' | 'Feature' | 'Map'
+export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Room', 'Feature', 'Map'].includes(tag))
 
-export type ExecuteActionMessage = {
-    type: 'ExecuteAction';
-    actionId: EphemeraActionId;
-    characterId: EphemeraCharacterId;
-}
+
 
 export type MapUpdateMessage = {
     type: 'MapUpdate';
@@ -283,7 +279,7 @@ export type MessageType = PublishMessage |
     CheckLocationMessage |
     CharacterEventMessage |
     RoomUpdateMessage |
-    ExecuteActionMessage |
+
     MapUpdateMessage |
     CanonUpdateMessage
 
@@ -321,6 +317,6 @@ export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessag
 export const isMapUpdateMessage = (prop: MessageType): prop is MapUpdateMessage => (prop.type === 'MapUpdate')
 export const isCanonUpdateMessage = (prop: MessageType): prop is CanonUpdateMessage => (['CanonAdd', 'CanonRemove', 'CanonSet'].includes(prop.type))
 
-export const isExecuteActionMessage = (prop: MessageType): prop is ExecuteActionMessage => (prop.type === 'ExecuteAction')
+
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

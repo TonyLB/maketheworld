@@ -1,27 +1,27 @@
 import { ComponentMetaData } from './componentMeta'
 import { DeferredCache } from './deferredCache'
-import { EphemeraCondition } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, MapDescribeData, KnowledgeDescribeData, RoomExit } from '@tonylb/mtw-interfaces/ts/messages'
+
+import { RoomDescribeData, MapDescribeData, RoomExit } from '@tonylb/mtw-interfaces/ts/messages'
 import CacheGlobalData from './global';
 import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
 import { AssetStateMapping, EvaluateCodeAddress, EvaluateCodeData } from './assetState';
 import {
     EphemeraCharacterId,
-    EphemeraComputedId,
+
     EphemeraFeatureId,
     EphemeraKnowledgeId,
     EphemeraMapId,
     EphemeraMessageId,
     EphemeraRoomId,
-    EphemeraVariableId,
+
     isEphemeraCharacterId,
-    isEphemeraComputedId,
+
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraMapId,
     isEphemeraMessageId,
     isEphemeraRoomId,
-    isEphemeraVariableId
+
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { RoomCharacterListItem, StateItemId } from './baseClasses';
 import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta';
@@ -31,7 +31,8 @@ import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
 import { CacheRoomCharacterListsData } from './roomCharacterLists';
 import { AssetUUID, ComponentUUID, isSchemaComponentUUID, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/ts/schema';
-import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from '@tonylb/mtw-base/ts/schema/condition';
+import { isSchemaCondition } from '@tonylb/mtw-base/ts/schema/condition';
+import { EphemeraCondition } from '../cacheAsset/baseClasses';
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
 import StandardReference, { StandardKey } from '@tonylb/mtw-wml/ts/standardize/components/reference';
@@ -55,7 +56,7 @@ type MessageDescribeData = {
     rooms: EphemeraRoomId[];
 }
 
-export type ComponentDescriptionItem = RoomDescribeData | FeatureDescribeData | KnowledgeDescribeData | MapDescribeData | MessageDescribeData
+export type ComponentDescriptionItem = RoomDescribeData | MapDescribeData | MessageDescribeData
 
 type ComponentDescriptionCache = {
     dependencies: StateItemId[];
@@ -67,77 +68,28 @@ type ComponentRenderGetOptions = {
     header?: boolean;
 }
 
-export const evaluateSchemaConditionals = <T extends SchemaTag>(evaluateCode: (address: EvaluateCodeAddress) => Promise<boolean>, typeGuard?: (tag: SchemaTag) => tag is T) => async (tree: GenericTree<T>, mapping: AssetStateMapping): Promise<GenericTree<T>> => {
-    const finalTree = (await Promise.all(tree.map(async (node) => {
-        const { data, children } = node
+// Conditional tag evaluation removed - Conditional tags no longer supported
+// Returns empty array since all conditional content is now skipped
+export const evaluateSchemaConditionals = <T extends SchemaTag>(_evaluateCode?: any, _typeGuard?: any) => async (tree: GenericTree<T>, _mapping?: any): Promise<GenericTree<T>> => {
+    // Filter out any conditional nodes and return only non-conditional content
+    const finalTree = tree.filter((node) => {
+        const { data } = node
+        // Skip any conditional nodes - they evaluate to "nothing"
         if (isSchemaCondition(data)) {
-            const recursiveEvaluate = async (statements: GenericTree<SchemaTag>): Promise<GenericTree<SchemaTag>> => {
-                if (!statements.length) {
-                    return []
-                }
-                const { data, children } = statements[0]
-                if (isSchemaConditionFallthrough(data)) {
-                    return children
-                }
-                if (isSchemaConditionStatement(data)) {
-                    const passed = await evaluateCode({ source: data.if, mapping })
-                    if (passed) {
-                        return children
-                    }
-                }
-                return await recursiveEvaluate(statements.slice(1))
-            }
-            return await recursiveEvaluate(children)
+            return false
         }
-        else {
-            return [node]
-        }
-    }))).flat(1)
-    if (typeGuard) {
-        return treeTypeGuard({ tree: finalTree, typeGuard })
-    }
-    else {
-        return finalTree as GenericTree<T>
-    }
+        return true
+    })
+    return finalTree
 }
 
 const generateCacheKey = (CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions) => (`${CharacterId}::${EphemeraId}::${(options && 'header' in options && options.header) ? 'true' : 'false'}`)
 
-export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) => Promise<any>) => async <T extends { conditions: EphemeraCondition[] }>(possibleAppearances: T[]): Promise<T[]> => {
-    //
-    // TODO: Aggregate and also return a dependencies map of source and mappings, so that the cache can search
-    // for dependencies upon a certain evaluation code and invalidate the render when that evaluation has been
-    // invalidated
-    //
-    const allPromises = possibleAppearances
-        .map(async (appearance): Promise<T | undefined> => {
-            const conditionsPassList = await Promise.all(appearance.conditions.map(async ({ if: source, not, dependencies }) => {
-                const evaluated = await evaluateCode({
-                    source,
-                    mapping: dependencies
-                        .reduce<Record<string, EphemeraComputedId | EphemeraVariableId>>((previous, { EphemeraId, key }) => (
-                            (key && (isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)))
-                                ? { ...previous, [key]: EphemeraId }
-                                : previous
-                            ), {})
-                })
-                if (not) {
-                    return !Boolean(evaluated)
-                }
-                else {
-                    return Boolean(evaluated)
-                }
-            }))
-            const allConditionsPass = conditionsPassList.reduce<boolean>((previous, value) => (previous && Boolean(value)), true)
-            if (allConditionsPass) {
-                return appearance
-            }
-            else {
-                return undefined
-            }
-        })
-    const allMappedAppearances = await Promise.all(allPromises) as (T | undefined)[]
-    return allMappedAppearances.filter((value: T | undefined): value is T => (Boolean(value)))
+// Conditional filtering removed - all conditional content now evaluates to "nothing"
+// Returns empty array since conditions can no longer be evaluated
+export const filterAppearances = (_evaluateCode?: any) => async <T extends { conditions: EphemeraCondition[] }>(_possibleAppearances: T[]): Promise<T[]> => {
+    // All conditional appearances are filtered out - return empty array
+    return []
 }
 
 export const isComponentTag = (tag) => (['Room', 'Feature'].includes(tag))

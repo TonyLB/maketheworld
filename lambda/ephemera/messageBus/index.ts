@@ -7,7 +7,7 @@ import {
     isPerception,
     isMoveCharacter,
     isRoomUpdateMessage,
-    isExecuteActionMessage,
+
     isMapSubscription,
     isMapUpdateMessage,
     isMapUnsubscribe,
@@ -26,7 +26,7 @@ import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
 import moveCharacter from '../moveCharacter'
 import roomUpdateMessage from '../roomUpdate'
-import executeActionMessage from '../executeAction'
+
 import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscription'
 import mapUpdateMessage from '../mapUpdate'
 import { canonUpdateMessage } from '../canonUpdate'
@@ -125,11 +125,6 @@ messageBus.subscribe({
     callback: canonUpdateMessage
 })
 
-messageBus.subscribe({
-    tag: 'ExecuteAction',
-    priority: 7,
-    filter: isExecuteActionMessage,
-    callback: executeActionMessage
-})
+
 
 export default messageBus

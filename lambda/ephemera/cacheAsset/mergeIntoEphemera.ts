@@ -2,15 +2,15 @@
 // mergeIntoEphemera merges a new list of EphemeraItems into the current database, updating
 // both the per-Asset entries and (if necessary) the Meta::<Component> aggregate entries
 //
-import { EphemeraComputedId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraRoomId, isEphemeraComputedId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import evaluateCode from "@tonylb/mtw-utilities/ts/computation/sandbox"
+import { EphemeraFeatureId, EphemeraKnowledgeId, EphemeraRoomId, isEphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+
 import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { unique } from "@tonylb/mtw-utilities/ts/lists"
 import { AssetKey, splitType } from "@tonylb/mtw-utilities/ts/types"
 import internalCache from "../internalCache"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import messageBus from "../messageBus"
-import dependencyCascade from "../dependentMessages/dependencyCascade"
+
 import { updateDependenciesFromMergeActions } from "./dependencyUpdate"
 import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
 import { StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
@@ -26,7 +26,7 @@ export const mergeIntoEphemera = async (assetId: string, items: StandardComponen
     // TODO:  Better error handling and validation throughout
     //
     const DataCategory = AssetKey(assetId)
-    let computedIdsNeedingCascade: EphemeraComputedId[] = []
+
     await ephemeraDB.mergeTransact({
         query: {
             IndexName: 'DataCategoryIndex',
@@ -55,9 +55,7 @@ export const mergeIntoEphemera = async (assetId: string, items: StandardComponen
                 if (isEphemeraRoomId(ephemeraId)) {
                     activeCharacters = await internalCache.RoomCharacterList.get(ephemeraId)
                 }
-                if (isEphemeraComputedId(ephemeraId) && action.src) {
-                    computedIdsNeedingCascade = [...computedIdsNeedingCascade, ephemeraId]
-                }
+
                 return [{ Update: {
                     Key: { ...key, DataCategory: `Meta::${tag}` },
                     updateKeys: ['cached', 'activeCharacters', 'src', 'rootAsset', 'value'],
@@ -68,22 +66,14 @@ export const mergeIntoEphemera = async (assetId: string, items: StandardComponen
                             draft.src = action.src
                             draft.rootAsset = assetId
                         }
-                        if (isEphemeraVariableId(ephemeraId) && action.default) {
-                            if (typeof draft.value === 'undefined') {
-                                draft.value = evaluateCode(`return (${action.default})`)({})
-                                internalCache.AssetState.set(ephemeraId, draft.value)
-                            }
-                        }
+
                     }
                 }}]
             }
             return []
         }
     })
-    await dependencyCascade({
-        payloads: computedIdsNeedingCascade.map((ephemeraId) => ({ targetId: ephemeraId })),
-        messageBus
-    })
+
 
 }
 
