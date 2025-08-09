@@ -273,7 +273,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
                 wmlContent: payload.wmlContent,
-                componentUUID: payload.componentUUID
+                metaData: payload.metaData
             })
         }
     }))

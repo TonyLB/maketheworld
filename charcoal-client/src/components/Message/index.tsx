@@ -102,7 +102,7 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                 }
                 
                 // Fallback to legacy component type detection for backward compatibility
-                const componentUUID = metaData?.componentUUID || perceptionMessage.componentUUID
+                const componentUUID = metaData.componentUUID
                 const component = perceptionMessage.parsedWML.byUniversalId[componentUUID]
                 const componentType = component?.tag
                 

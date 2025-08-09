@@ -34,7 +34,7 @@ const getRoomId = (message: Message): string => {
     }
     if (message.DisplayProtocol === 'PerceptionMessage') {
         const perceptionMessage = message as PerceptionMessage
-        return perceptionMessage.metaData?.componentUUID || perceptionMessage.componentUUID
+        return perceptionMessage.metaData.componentUUID
     }
     return 'ROOM#UNKNOWN'
 }
@@ -47,7 +47,7 @@ const extractRoomHeaderData = (message: Message): RoomHeader => {
     
     if (message.DisplayProtocol === 'PerceptionMessage') {
         const perceptionMessage = message as PerceptionMessage & { parsedWML?: StandardForm }
-        const componentUUID = perceptionMessage.metaData?.componentUUID || perceptionMessage.componentUUID
+        const componentUUID = perceptionMessage.metaData.componentUUID
         
         // If we have parsed WML, extract the data
         if (perceptionMessage.parsedWML) {

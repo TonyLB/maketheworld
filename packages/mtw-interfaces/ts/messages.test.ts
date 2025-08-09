@@ -17,10 +17,13 @@ describe('PerceptionMessage', () => {
     const validPerceptionMessage: PerceptionMessage = {
         DisplayProtocol: 'PerceptionMessage',
         wmlContent: '<Room key=(mainHall)><ShortName>Main Hall</ShortName></Room>',
-        componentUUID: 'ROOM#abc123',
         MessageId: 'msg123',
         CreatedTime: 1234567890,
-        Target: 'CHARACTER#player1'
+        Target: 'CHARACTER#player1',
+        metaData: {
+            componentUUID: 'ROOM#abc123',
+            displayMode: 'full'
+        }
     }
 
     describe('isPerceptionMessage', () => {
@@ -44,9 +47,9 @@ describe('PerceptionMessage', () => {
             delete missingWML.wmlContent
             expect(isPerceptionMessage(missingWML)).toBe(false)
 
-            const missingUUID: any = { ...validPerceptionMessage }
-            delete missingUUID.componentUUID
-            expect(isPerceptionMessage(missingUUID)).toBe(false)
+            const missingMetaData: any = { ...validPerceptionMessage }
+            delete missingMetaData.metaData
+            expect(isPerceptionMessage(missingMetaData)).toBe(false)
 
             const missingMessageId: any = { ...validPerceptionMessage }
             delete missingMessageId.MessageId
@@ -63,10 +66,10 @@ describe('PerceptionMessage', () => {
         })
 
         it('should reject invalid componentUUID format', () => {
-            const invalidUUID = { ...validPerceptionMessage, componentUUID: 'invalid#uuid' }
+            const invalidUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'invalid#uuid' as any } }
             expect(isPerceptionMessage(invalidUUID)).toBe(false)
 
-            const noHashUUID = { ...validPerceptionMessage, componentUUID: 'ROOMabc123' }
+            const noHashUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'ROOMabc123' as any } }
             expect(isPerceptionMessage(noHashUUID)).toBe(false)
         })
 
@@ -103,16 +106,16 @@ describe('PerceptionMessage', () => {
         })
 
         it('should accept valid componentUUID formats', () => {
-            const roomUUID = { ...validPerceptionMessage, componentUUID: 'ROOM#abc123' }
+            const roomUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'ROOM#abc123' } }
             expect(isPerceptionMessage(roomUUID)).toBe(true)
 
-            const featureUUID = { ...validPerceptionMessage, componentUUID: 'FEATURE#def456' }
+            const featureUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'FEATURE#def456' } }
             expect(isPerceptionMessage(featureUUID)).toBe(true)
 
-            const knowledgeUUID = { ...validPerceptionMessage, componentUUID: 'KNOWLEDGE#ghi789' }
+            const knowledgeUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'KNOWLEDGE#ghi789' } }
             expect(isPerceptionMessage(knowledgeUUID)).toBe(true)
 
-            const characterUUID = { ...validPerceptionMessage, componentUUID: 'CHARACTER#jkl012' }
+            const characterUUID = { ...validPerceptionMessage, metaData: { ...validPerceptionMessage.metaData, componentUUID: 'CHARACTER#jkl012' } }
             expect(isPerceptionMessage(characterUUID)).toBe(true)
         })
 
@@ -280,7 +283,6 @@ describe('PerceptionMessage MetaData System', () => {
         const roomHeaderMessage: PerceptionMessage = {
             DisplayProtocol: 'PerceptionMessage',
             wmlContent: '<Room key=(mainHall)><ShortName>Main Hall</ShortName></Room>',
-            componentUUID: 'ROOM#mainHall',
             metaData: {
                 componentUUID: 'ROOM#mainHall',
                 displayMode: 'header'
@@ -292,7 +294,6 @@ describe('PerceptionMessage MetaData System', () => {
         const roomFullMessage: PerceptionMessage = {
             DisplayProtocol: 'PerceptionMessage',
             wmlContent: '<Room key=(mainHall)><ShortName>Main Hall</ShortName><Description>A grand hall</Description></Room>',
-            componentUUID: 'ROOM#mainHall',
             metaData: {
                 componentUUID: 'ROOM#mainHall',
                 displayMode: 'full'
@@ -304,7 +305,6 @@ describe('PerceptionMessage MetaData System', () => {
         const featureMessage: PerceptionMessage = {
             DisplayProtocol: 'PerceptionMessage',
             wmlContent: '<Feature key=(chest)><ShortName>Treasure Chest</ShortName></Feature>',
-            componentUUID: 'FEATURE#chest',
             metaData: {
                 componentUUID: 'FEATURE#chest'
             },
@@ -346,19 +346,22 @@ describe('PerceptionMessage MetaData System', () => {
             }
         })
 
-        it('should handle messages with backward compatibility (no metaData)', () => {
-            const legacyMessage: PerceptionMessage = {
+        it('should handle messages with metaData', () => {
+            const messageWithMetaData: PerceptionMessage = {
                 DisplayProtocol: 'PerceptionMessage',
                 wmlContent: '<Room key=(test)><ShortName>Test</ShortName></Room>',
-                componentUUID: 'ROOM#test',
                 MessageId: 'msg126',
-                CreatedTime: 1234567893
-                // No metaData field - backward compatibility
+                CreatedTime: 1234567893,
+                metaData: {
+                    componentUUID: 'ROOM#test',
+                    displayMode: 'full'
+                }
             }
 
-            expect(isPerceptionMessage(legacyMessage)).toBe(true)
-            expect(isMessage(legacyMessage)).toBe(true)
-            expect(legacyMessage.metaData).toBeUndefined()
+            expect(isPerceptionMessage(messageWithMetaData)).toBe(true)
+            expect(isMessage(messageWithMetaData)).toBe(true)
+            expect(messageWithMetaData.metaData).toBeDefined()
+            expect(messageWithMetaData.metaData.componentUUID).toBe('ROOM#test')
         })
     })
 
@@ -368,7 +371,6 @@ describe('PerceptionMessage MetaData System', () => {
                 {
                     DisplayProtocol: 'PerceptionMessage',
                     wmlContent: '<Room key=(hall)><ShortName>Hall</ShortName></Room>',
-                    componentUUID: 'ROOM#hall',
                     metaData: {
                         componentUUID: 'ROOM#hall',
                         displayMode: 'header'
@@ -379,7 +381,6 @@ describe('PerceptionMessage MetaData System', () => {
                 {
                     DisplayProtocol: 'PerceptionMessage',
                     wmlContent: '<Room key=(hall)><ShortName>Hall</ShortName><Description>Full description</Description></Room>',
-                    componentUUID: 'ROOM#hall',
                     metaData: {
                         componentUUID: 'ROOM#hall',
                         displayMode: 'full'
@@ -390,7 +391,6 @@ describe('PerceptionMessage MetaData System', () => {
                 {
                     DisplayProtocol: 'PerceptionMessage',
                     wmlContent: '<Feature key=(door)><ShortName>Door</ShortName></Feature>',
-                    componentUUID: 'FEATURE#door',
                     metaData: {
                         componentUUID: 'FEATURE#door'
                     },
@@ -419,10 +419,10 @@ describe('PerceptionMessage MetaData System', () => {
                     }
                 }
                 
-                // Fallback for legacy messages
+                // Fallback for unknown metadata
                 return {
-                    type: 'Legacy',
-                    componentUUID: message.componentUUID
+                    type: 'Unknown',
+                    componentUUID: metaData?.componentUUID || 'UNKNOWN'
                 }
             })
 

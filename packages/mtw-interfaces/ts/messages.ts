@@ -289,8 +289,7 @@ export type PerceptionMessageMetaData =
 export type PerceptionMessage = {
     DisplayProtocol: 'PerceptionMessage';
     wmlContent: WMLSchema;
-    componentUUID: ComponentUUID;  // Maintained for backward compatibility during Phase 1
-    metaData?: PerceptionMessageMetaData;  // Optional during migration
+    metaData: PerceptionMessageMetaData;
 } & MessageAddressing
 
 // Type guard functions for runtime type narrowing
@@ -422,14 +421,7 @@ export const isMessage = (message: any): message is Message => {
                 })
             ) && isEphemeraCharacterId(message.CharacterId)
         case 'PerceptionMessage':
-            return checkAll(
-                checkTypes(message, {
-                    wmlContent: 'string',
-                    componentUUID: 'string'
-                }),
-                typeof message.wmlContent === 'string' && message.wmlContent.length > 0,
-                isSchemaComponentUUID(message.componentUUID)
-            )
+            return isPerceptionMessage(message)
         default: return false
     }
 }
@@ -444,7 +436,6 @@ export const isPerceptionMessage = (message: any): message is PerceptionMessage 
     }
     if (!checkTypes(message, {
         wmlContent: 'string',
-        componentUUID: 'string',
         MessageId: 'string',
         CreatedTime: 'number'
     }, {
@@ -455,7 +446,10 @@ export const isPerceptionMessage = (message: any): message is PerceptionMessage 
     if (typeof message.wmlContent !== 'string' || message.wmlContent.length === 0) {
         return false
     }
-    if (!isSchemaComponentUUID(message.componentUUID)) {
+    if (!message.metaData || typeof message.metaData !== 'object' || message.metaData === null) {
+        return false
+    }
+    if (typeof message.metaData.componentUUID !== 'string' || !isSchemaComponentUUID(message.metaData.componentUUID)) {
         return false
     }
     if (message.Target && !isEphemeraCharacterId(message.Target) && !(message.Target.startsWith('SESSION#') && message.Target.length > 8)) {
