@@ -10,6 +10,7 @@ The `Message` directory contains React components that handle the display of dif
 - **Protocol Routing**: Route messages to the correct component based on `DisplayProtocol`
 - **Interactive Elements**: Handle clickable links and character actions
 - **Real-time Updates**: Process incoming WebSocket messages for immediate display
+- **Narrative Interface**: Create an immersive, time-ordered display of in-fiction events organized by location
 
 ## Current Message Types
 
@@ -56,6 +57,118 @@ Each message type has its own component that:
 - Handles specific styling and layout
 - Manages interactive elements (links, buttons)
 - Integrates with Redux for state management
+
+## Message Panel UI Architecture
+
+The Message Panel provides the primary interface for character-based gameplay, organizing messages into a narrative timeline that maintains immersion while providing essential navigation context.
+
+### **Overall Layout**
+
+The Message Panel (`MessagePanel.tsx`) creates a two-section interface:
+- **Message Display Area**: Virtualized list of time-ordered messages
+- **Input Area**: Character action and communication input
+
+### **Narrative Timeline Organization**
+
+#### **Time-Ordered Message Flow**
+Messages are displayed in strict chronological order to create a coherent narrative:
+- **Character dialogue** (`SayMessage`, `NarrateMessage`, `OOCMessage`)
+- **World events** (`WorldMessage`)
+- **Environmental descriptions** (`RoomDescription`, `FeatureDescription`)
+- **Character interactions** (movement, actions, discoveries)
+
+#### **Room-Based Sectioning**
+The timeline organizes messages into distinct sections representing different locations the character has visited. When a character moves to a new room, a new section begins with a room header, and all subsequent messages are grouped under that location until the next movement occurs.
+
+### **Sticky Room Headers**
+
+#### **Header Positioning**
+Room headers use sticky positioning to remain visible during scrolling:
+- **Scroll Behavior**: Headers scroll with content until reaching the top of the viewport
+- **Sticky Lock**: Once at the top, headers remain visible as context anchors
+- **Multiple Headers**: Only the current section's header remains sticky when multiple sections are visible
+
+#### **Header Content**
+Each room header displays:
+- **Room Name**: Current location identifier
+- **Room Summary**: Brief description of the space
+- **Character List**: Other characters currently present
+- **Exit List**: Available navigation options
+- **Environmental Status**: Current room state
+
+### **Dynamic Header Updates**
+
+#### **In-Place Header Replacement**
+The system handles room header updates through a special mechanism that preserves the narrative timeline while keeping location context current. When new room header information arrives, it updates the existing header display rather than adding a new message to the chronological flow.
+
+#### **Header Update Triggers**
+Headers are refreshed when:
+- **Room State Changes**: Environmental modifications, feature updates
+- **Character Movement**: Other characters entering or leaving the room
+- **Permission Changes**: Access to new areas or features
+- **Time-Based Events**: Scheduled world changes affecting the room
+
+#### **Temporal Consistency**
+- **Message Timeline**: Remains strictly chronological for narrative flow
+- **Header State**: Always reflects the most current room information
+- **No Timeline Pollution**: Header updates don't create timeline entries
+- **Context Preservation**: Room context remains visible regardless of scroll position
+
+### **Virtual Scrolling Implementation**
+
+#### **Performance Optimization**
+The message list uses grouped virtualization to handle potentially long message histories efficiently. This approach renders only visible messages while maintaining smooth scrolling performance and supporting the room-based organization structure.
+
+#### **Scrolling Behavior**
+- **Auto-Follow**: New messages automatically scroll into view
+- **Smooth Navigation**: Efficient scrolling through long message histories
+- **Context Preservation**: Sticky headers maintain location awareness
+- **Performance**: Only renders visible messages for optimal performance
+
+### **Message Flow Management**
+
+#### **Room Transition Handling**
+When a character moves between rooms:
+
+1. **Section Completion**: Current room section is finalized with final message count
+2. **New Section Creation**: New room section begins with fresh header
+3. **Header Population**: New room header displays current room state
+4. **Message Continuation**: Subsequent messages are grouped under new room section
+
+#### **Message Targeting and Display**
+All messages are targeted to specific characters via the `message.Target` field and appear in that character's chronological timeline. Messages are grouped into room sections based on when they arrive relative to room transitions, not based on their type or origin. All message types (including OOC messages, character dialogue, and system events) follow the same room-sectioning pattern within each character's personal timeline.
+
+### **State Management Integration**
+
+#### **Message Processing**
+The `getMessagesByRoom` selector transforms raw chronological messages into the room-organized timeline structure. This processing creates the grouped message layout while preserving temporal ordering within each room section.
+
+#### **Character Context**
+The `useActiveCharacter` hook provides:
+- **Character Identity**: For message attribution and styling
+- **Current Location**: For room section management
+- **Permission Level**: For message visibility and interaction capabilities
+- **Message History**: Organized message breakdown for display
+
+### **User Experience Goals**
+
+#### **Narrative Immersion**
+- **Chronological Flow**: Maintains story continuity through strict time ordering
+- **Location Context**: Room headers provide spatial anchoring for events
+- **Character Perspective**: All information filtered through character viewpoint
+- **Seamless Transitions**: Smooth movement between different locations
+
+#### **Navigation Clarity**
+- **Spatial Awareness**: Always clear which room events are occurring in
+- **Temporal Awareness**: Clear progression of time through message sequence
+- **Context Retention**: Sticky headers prevent loss of location context
+- **History Access**: Full scrollable history of character's experiences
+
+#### **Real-Time Responsiveness**
+- **Immediate Updates**: New messages appear instantly in timeline
+- **Live Room State**: Headers update to reflect current conditions
+- **Character Awareness**: Real-time character presence in room headers
+- **Environmental Changes**: Dynamic updates to room descriptions and features
 
 ## Integration Points
 
@@ -217,11 +330,13 @@ All message components now support dual format handling (legacy and WML Percepti
 
 ## Navigation Tips
 
-1. **Start with Router**: Understand the message routing logic in `index.tsx`
-2. **Check Component Types**: Each message type has its own component
-3. **Review WML Integration**: Focus on planned WML disambiguation
-4. **Examine Redux Integration**: Understand state management patterns
-5. **Test Message Flow**: Verify message processing from WebSocket to display
+1. **Start with Message Panel**: Begin with `MessagePanel.tsx` to understand overall UI structure
+2. **Examine Virtual List**: Review `VirtualMessageList.tsx` for room organization and header management
+3. **Study Message Router**: Understand message routing logic in `index.tsx`
+4. **Check Room Selector**: Review `getMessagesByRoom` in `selectors.ts` for timeline organization
+5. **Explore Components**: Each message type has its own component with specific styling
+6. **Review WML Integration**: Focus on planned WML disambiguation for future development
+7. **Test Message Flow**: Verify message processing from WebSocket through timeline to display
 
 ## Development Notes
 

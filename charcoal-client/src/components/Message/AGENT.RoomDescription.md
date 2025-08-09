@@ -362,6 +362,24 @@ The `RoomDescription` component supports two display modes:
 - **Usage**: Room context headers during navigation
 - **Routing**: `RoomHeader` message type routes to `<RoomDescription header />`
 
+### **Message Timeline Organization Role**
+
+The RoomDescription component plays a crucial organizational role in the message timeline system:
+
+#### **Room Section Headers**
+When used in header mode (`header={true}`), RoomDescription components serve as:
+- **Section Boundaries**: Demarcate different room sections in the chronological message timeline
+- **Sticky Context**: Remain visible at the top of the viewport during scrolling to provide location context
+- **Dynamic Updates**: Receive updated room information that replaces the header content without creating new timeline entries
+
+#### **Header Update Behavior**
+RoomHeader messages have special handling in the message timeline:
+- **In-Place Updates**: When a new RoomHeader message arrives for the same room, it updates the existing header rather than appearing in chronological order
+- **Temporal Independence**: Header content reflects current room state, not historical state when the header was first created
+- **Timeline Preservation**: Regular messages maintain strict chronological ordering while headers provide current context
+
+For complete details on message timeline organization, see [`AGENT.md`](AGENT.md).
+
 ## Migration Status: Bridge State ✅ Phases 1-3 Complete
 
 ### **Current Implementation (Bridge State)**
