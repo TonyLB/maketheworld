@@ -95,8 +95,7 @@ export type PublishCharacterDescriptionMessage = Omit<CharacterDescription, 'Dis
 export type PublishPerceptionMessage = {
     displayProtocol: 'PerceptionMessage';
     wmlContent: string;
-    componentUUID: string;
-    metaData?: import('@tonylb/mtw-interfaces/ts/messages').PerceptionMessageMetaData;
+    metaData: import('@tonylb/mtw-interfaces/ts/messages').PerceptionMessageMetaData;
 } & PublishMessageBase
 
 export type PublishMessage = PublishWorldMessage |

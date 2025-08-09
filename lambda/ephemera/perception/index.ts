@@ -152,7 +152,6 @@ export const perceptionMessage = async ({
                         targets: [characterId],
                         displayProtocol: 'PerceptionMessage',
                         wmlContent: schemaToWML([roomDescribe.schema]),
-                        componentUUID: payload.ephemeraId,
                         metaData: {
                             componentUUID: payload.ephemeraId,
                             displayMode: payload.header ? 'header' : 'full'
@@ -175,12 +174,27 @@ export const perceptionMessage = async ({
                     Name: 'Unknown',
                     Pronouns: 'they/them',
                 }
+                
+                // Generate WML content for the character
+                const { Name = 'Unknown', Pronouns = 'they/them' } = characterDescription
+                const fileURL = ('fileURL' in characterDescription) ? characterDescription.fileURL : undefined
+                const imageTag = fileURL ? `<Image key=(portrait) fileURL="${fileURL}" />` : ''
+                const wmlContent = `<Asset key=(render)>
+    <Character uuid=(${ephemeraId})>
+        <Name>${Name}</Name>
+        <Pronouns>${Pronouns}</Pronouns>
+        ${imageTag}
+    </Character>
+</Asset>`
+
                 messageBus.send({
                     type: 'PublishMessage',
                     targets: [characterId],
-                    displayProtocol: 'CharacterDescription',
-                    ...characterDescription,
-                    CharacterId: ephemeraId,
+                    displayProtocol: 'PerceptionMessage',
+                    wmlContent,
+                    metaData: {
+                        componentUUID: ephemeraId
+                    },
                     messageGroupId: payload.messageGroupId
                 })
             }
@@ -193,7 +207,6 @@ export const perceptionMessage = async ({
                         targets: [characterId],
                         displayProtocol: 'PerceptionMessage',
                         wmlContent: schemaToWML([featureDescribe.schema]),
-                        componentUUID: ephemeraId,
                         metaData: {
                             componentUUID: ephemeraId
                         },
@@ -213,7 +226,6 @@ export const perceptionMessage = async ({
                         targets,
                         displayProtocol: 'PerceptionMessage',
                         wmlContent: schemaToWML([knowledgeDescribe.schema]),
-                        componentUUID: ephemeraId,
                         metaData: {
                             componentUUID: ephemeraId
                         },
