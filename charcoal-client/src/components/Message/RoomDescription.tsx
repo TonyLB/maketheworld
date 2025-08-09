@@ -84,17 +84,20 @@ export const RoomDescription = ({ message, header, currentHeader, parsedWML, com
         const component = parsedWML.byUniversalId[componentUUID]
         
         if (component instanceof StandardRoom) {
-            // Extract room data from Standard format structure
-            const firstExample = parsedWML._lookup(component.examples.payload[0].plain().toJSON())
-            
-            if (firstExample && firstExample.universalKey) {
-                const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as any]
+            // Extract room data from Standard format structure - handle missing examples gracefully
+            const firstExampleRef = component.examples.payload[0]
+            if (firstExampleRef) {
+                const firstExample = parsedWML._lookup(firstExampleRef.plain().toJSON())
                 
-                if (exampleComponent instanceof StandardExample) {
-                    // StandardExample properties now return StandardRender objects directly
-                    name = exampleComponent.name || new StandardRender(['Untitled'])
-                    description = exampleComponent.description || new StandardRender([])
-                    summary = exampleComponent.summary || new StandardRender([])
+                if (firstExample && firstExample.universalKey) {
+                    const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as any]
+                    
+                    if (exampleComponent instanceof StandardExample) {
+                        // StandardExample properties now return StandardRender objects directly
+                        name = exampleComponent.name || new StandardRender(['Untitled'])
+                        description = exampleComponent.description || new StandardRender([])
+                        summary = exampleComponent.summary || new StandardRender([])
+                    }
                 }
             }
             

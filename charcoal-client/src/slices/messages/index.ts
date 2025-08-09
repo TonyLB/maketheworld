@@ -21,7 +21,10 @@ const messagesSlice = createSlice({
     initialState,
     reducers: {
         receiveMessages(state: any, action: PayloadAction<EnhancedMessage[]>) {
-            action.payload.forEach((message) => {
+            action.payload.forEach((rawMessage) => {
+                // Process the message with WML parsing if needed
+                const message = processPerceptionMessage(rawMessage)
+                
                 if (message.Target && state[message.Target]) {
                     const { exactMatch, index } = binarySearch(state[message.Target], message.CreatedTime, message.MessageId)
                     if (exactMatch) {
