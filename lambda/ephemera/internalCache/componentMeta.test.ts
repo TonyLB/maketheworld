@@ -128,4 +128,53 @@ describe('ComponentMeta', () => {
         })
     })
 
+    it('should handle invalid DataCategory values gracefully', async () => {
+        // Simulate bootstrap database scenario with records that have invalid/missing DataCategory
+        assetMock.getItems.mockResolvedValue([
+            {
+                DataCategory: 'ASSET#Base',
+                examples: [{ key: 'validRecord', tag: 'Example' }],
+                exits: [],
+                AssetId: 'ROOM#TestOne'
+            },
+            {
+                DataCategory: '', // Empty string - invalid AssetUUID
+                examples: [{ key: 'shouldBeFiltered', tag: 'Example' }],
+                exits: [],
+                AssetId: 'ROOM#TestOne'
+            },
+            {
+                DataCategory: undefined, // Missing DataCategory - invalid AssetUUID
+                examples: [{ key: 'alsoFiltered', tag: 'Example' }],
+                exits: [],
+                AssetId: 'ROOM#TestOne'
+            },
+            {
+                DataCategory: 'INVALIDFORMAT', // Invalid AssetUUID format
+                examples: [{ key: 'stillFiltered', tag: 'Example' }],
+                exits: [],
+                AssetId: 'ROOM#TestOne'
+            }
+        ])
+        
+        // Should only return the valid record, filtering out invalid ones
+        const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        expect(mapToJSON(output)).toEqual({
+            Base: {
+                tag: 'Room',
+                universalKey: 'ROOM#TestOne',
+                examples: [{ key: 'validRecord', tag: 'Example' }],
+                exits: [],
+            },
+            Layer: {
+                universalKey: 'ROOM#TestOne',
+                tag: 'Room',
+                exits: [],
+            }
+        })
+        
+        // Should not crash and should process the request normally
+        expect(assetMock.getItems).toHaveBeenCalledTimes(1)
+    })
+
 })

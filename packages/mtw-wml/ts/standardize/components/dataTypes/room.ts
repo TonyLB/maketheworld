@@ -11,7 +11,7 @@ import { is } from "immer/dist/internal";
 export type StandardRoomData = {
     tag: 'Room';
     shortName?: StandardEditableData<string>;
-    exits: StandardEditableData<StandardExitData>[];
+    exits?: StandardEditableData<StandardExitData>[];
     features?: StandardEditableData<StandardReferenceData>[];
     examples?: StandardEditableData<StandardReferenceData>[];
     characters?: StandardEditableData<StandardReferenceData>[];

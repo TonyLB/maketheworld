@@ -78,29 +78,46 @@ export class ComponentMetaData {
 
     _getPromiseFactory(EphemeraId: ComponentUUID, assetIds: AssetUUID[]): Promise<{ assetId: AssetUUID; component: StandardComponent }[]> {
         const factory = async () => {
+            const queryKeys = assetIds.map((assetId) => ({
+                AssetId: EphemeraId,
+                DataCategory: assetId
+            }));
+            console.log('DEBUG - ComponentMeta DynamoDB Query Keys:', JSON.stringify(queryKeys, null, 2));
+            
+            // Use the new getAllFields option to get all attributes from DynamoDB
             const returnValues = await assetDB.getItems<Omit<StandardComponentData, 'universalKey' | 'tag'> & { DataCategory?: AssetUUID, AssetId: ComponentUUID }>({
-                Keys: assetIds
-                    .map((assetId) => ({
-                        AssetId: EphemeraId,
-                        DataCategory: assetId
-                    }))
-            })
-            return returnValues.map((value) => {
-                const { DataCategory, AssetId, ...rest } = value
-                const assetId = DataCategory ?? ''
-                const componentData = { universalKey: EphemeraId, tag: tagFromEphemeraId(EphemeraId), ...rest }
-                if (!isStandardComponentData(componentData)) {
-                    throw new Error(`Invalid component data for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
-                }
-                const component = standardComponentFactory(componentData)
-                if (!component) {
-                    throw new Error(`Failed to create component for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
-                }
-                if (!isSchemaAssetUUID(assetId)) {
-                    throw new Error(`Invalid DataCategory: '${assetId}' for EphemeraId: ${EphemeraId}`)
-                }
-                return { assetId, component }
-            })
+                Keys: queryKeys,
+                getAllFields: true
+            });
+            
+            console.log('DEBUG - ComponentMeta DynamoDB Raw Response:', JSON.stringify(returnValues, null, 2));
+            const filteredResults = returnValues
+                .filter((value) => {
+                    // Filter out records with invalid or missing DataCategory
+                    const assetId = value.DataCategory ?? ''
+                    const isValid = isSchemaAssetUUID(assetId)
+                    if (!isValid) {
+                        console.log(`DEBUG - Filtering out invalid DataCategory: "${value.DataCategory}" (becomes "${assetId}") for EphemeraId: ${EphemeraId}`);
+                    }
+                    return isValid
+                });
+            
+            console.log('DEBUG - ComponentMeta Filtered Results Count:', filteredResults.length, 'of', returnValues.length);
+            
+            return filteredResults
+                .map((value) => {
+                    const { DataCategory, AssetId, ...rest } = value
+                    const assetId = DataCategory as AssetUUID // Safe after filter
+                    const componentData = { universalKey: EphemeraId, tag: tagFromEphemeraId(EphemeraId), ...rest }
+                    if (!isStandardComponentData(componentData)) {
+                        throw new Error(`Invalid component data for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
+                    }
+                    const component = standardComponentFactory(componentData)
+                    if (!component) {
+                        throw new Error(`Failed to create component for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
+                    }
+                    return { assetId, component }
+                })
         }
         return factory()
     }

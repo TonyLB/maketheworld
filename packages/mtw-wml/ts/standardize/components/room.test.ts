@@ -75,6 +75,25 @@ describe('StandardRoom class', () => {
         expect(testRoom.toJSON()).toEqual(testRoomData)
     })
 
+    it('should construct StandardRoom from StandardRoomData with missing exits', () => {
+        const testRoomDataWithoutExits: StandardRoomData = {
+            key: 'test',
+            tag: 'Room',
+            shortName: 'ShortName Test',
+            // exits property is missing - this should not crash
+            features: [{ tag: 'Feature', key: 'testFeature' }]
+        }
+        const testRoom = new StandardRoom(testRoomDataWithoutExits)
+        expect(testRoom.key).toEqual('test')
+        expect(testRoom.features.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
+        expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
+        expect(testRoom.exits).toEqual([])  // Should default to empty array
+        
+        // The JSON output should include an empty exits array
+        const outputJSON = testRoom.toJSON() as StandardRoomData
+        expect(outputJSON.exits).toEqual([])
+    })
+
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Room key=(testRoomOne)>
