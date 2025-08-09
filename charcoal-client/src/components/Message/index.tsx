@@ -15,14 +15,16 @@ import UnknownMessage from './UnknownMessage'
 import { 
     Message as MessageType, 
     PerceptionMessage,
+    PerceptionRoomMetaData,
     isPerceptionRoomMetaData,
     isPerceptionFeatureMetaData,
-    isPerceptionKnowledgeMetaData
+    isPerceptionKnowledgeMetaData,
+    isPerceptionCharacterMetaData
 } from '@tonylb/mtw-interfaces/ts/messages'
 import { useActiveCharacter } from '../ActiveCharacter'
 import CharacterDescription from './CharacterDescription'
 import { useDispatch } from 'react-redux'
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
@@ -51,11 +53,6 @@ export const Message = ({ message, ...rest }: MessageProps) => {
             return <OOCMessage message={message} variant={message.CharacterId === CharacterId ? 'right' : 'left'} />
         case 'WorldMessage':
             return <WorldMessage message={message} {...rest} />
-        case 'RoomDescription':
-            return <RoomDescription message={message} {...rest} />
-        case 'RoomHeader':
-            return <RoomDescription message={message} {...rest} header />
-
         case 'PerceptionMessage':
             // Handle PerceptionMessage by routing to appropriate component based on metaData or fallback to component type
             const perceptionMessage = message as PerceptionMessage & { parsedWML?: StandardForm }
@@ -67,9 +64,8 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                 // Use metaData-based routing with type guards for enhanced type safety
                 if (metaData && isPerceptionRoomMetaData(metaData)) {
                     return <RoomDescription 
-                        message={message} 
                         parsedWML={perceptionMessage.parsedWML}
-                        componentUUID={metaData.componentUUID}
+                        metaData={metaData}
                         header={metaData.displayMode === 'header'}
                         {...rest} 
                     />
@@ -120,10 +116,14 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                             {...rest} 
                         />
                     case 'Room':
+                        // Create fallback metadata for Room type
+                        const fallbackRoomMetaData: PerceptionRoomMetaData = {
+                            componentUUID: componentUUID as EphemeraRoomId,
+                            displayMode: 'full'
+                        }
                         return <RoomDescription 
-                            message={message} 
                             parsedWML={perceptionMessage.parsedWML}
-                            componentUUID={componentUUID}
+                            metaData={fallbackRoomMetaData}
                             {...rest} 
                         />
                     // Add other cases as we implement them
@@ -132,8 +132,6 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                 }
             }
             return <UnknownMessage message={message} />
-        case 'CharacterDescription':
-            return <CharacterDescription message={message} {...rest} />
         case 'SpacerMessage':
             return <SpacerMessage message={message} />
         default:

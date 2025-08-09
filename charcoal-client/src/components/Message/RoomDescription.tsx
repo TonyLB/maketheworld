@@ -11,9 +11,9 @@ import HouseIcon from '@mui/icons-material/House'
 
 import MessageComponent from './MessageComponent'
 import {
-    RoomDescription as RoomDescriptionType,
-    RoomHeader as RoomHeaderType,
     PerceptionMessage,
+    PerceptionRoomMetaData,
+    isPerceptionRoomMetaData
 } from '@tonylb/mtw-interfaces/ts/messages'
 
 import RoomExit from './RoomExit'
@@ -36,51 +36,27 @@ import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/cha
 import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character'
 
 interface RoomDescriptionProps {
-    message: RoomDescriptionType | RoomHeaderType | (PerceptionMessage & { parsedWML?: StandardForm });
+    parsedWML?: StandardForm;
+    metaData: PerceptionRoomMetaData;
     children?: ReactChild | ReactChildren;
     header?: boolean;
     currentHeader?: boolean;
-    // New Standard format properties
-    parsedWML?: StandardForm;
-    componentUUID?: ComponentUUID;
 }
 
-// Legacy data conversion functions
-const createStandardExitFromLegacy = (legacyExit: any): StandardExit => {
-    // Create StandardExit instance from legacy data
-    const exitData = {
-        to: legacyExit.RoomId,  // Convert EphemeraRoomId to reference
-        description: legacyExit.Name  // Convert string name to StandardLiteral
-    }
-    
-    return new StandardExit(exitData)
-}
 
-const createStandardCharacterFromLegacy = (legacyCharacter: any): StandardCharacter => {
-    // Create StandardCharacter instance from legacy data
-    const characterData: StandardCharacterData = {
-        tag: 'Character',
-        universalKey: legacyCharacter.CharacterId,  // Set the universalKey from CharacterId
-        name: legacyCharacter.Name ? [legacyCharacter.Name] : undefined,  // Convert string to RenderTree array
-        shortName: legacyCharacter.Name,  // Use name as shortName
-        pronouns: undefined,  // Legacy doesn't have pronouns
-        image: legacyCharacter.fileURL ? { data: { tag: 'Image', key: '', fileURL: legacyCharacter.fileURL }, children: [] } : undefined
-    }
-    
-    return new StandardCharacter(characterData)
-}
 
-export const RoomDescription = ({ message, header, currentHeader, parsedWML, componentUUID }: RoomDescriptionProps) => {
+export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: RoomDescriptionProps) => {
+    const componentUUID = metaData.componentUUID
+
     // Initialize with proper types
     let name: StandardRender = new StandardRender(['Untitled'])
     let description: StandardRender = new StandardRender([])
     let summary: StandardRender = new StandardRender([])
     let exits: StandardExit[] = []
     let characters: StandardCharacter[] = []
-    let legacyMessage: RoomDescriptionType | RoomHeaderType | null = null
 
-    if (parsedWML && componentUUID) {
-        // Standard format: extract from StandardForm
+    if (parsedWML) {
+        // Extract from StandardForm
         const component = parsedWML.byUniversalId[componentUUID]
         
         if (component instanceof StandardRoom) {
@@ -112,16 +88,8 @@ export const RoomDescription = ({ message, header, currentHeader, parsedWML, com
             // Pass Standard format objects directly to sub-components
             exits = component.exits  // Pass StandardExit instances directly
         }
-    } else {
-        // Legacy format: extract from message
-        legacyMessage = message as RoomDescriptionType | RoomHeaderType
-        name = new StandardRender(legacyMessage.Name || ['Untitled'])
-        description = new StandardRender(legacyMessage.Description || [])
-        summary = new StandardRender(legacyMessage.Summary || [])
-        // Convert legacy data to Standard format for sub-components
-        exits = legacyMessage.Exits?.map(legacyExit => createStandardExitFromLegacy(legacyExit)) || []
-        characters = legacyMessage.Characters?.map(legacyCharacter => createStandardCharacterFromLegacy(legacyCharacter)) || []
     }
+    // Note: No legacy format handling - this component now only accepts PerceptionMessage
 
     const { Assets } = useSelector(getPlayer)
     const status = useSelector(getStatus(`ASSET#draft`))
@@ -135,8 +103,17 @@ export const RoomDescription = ({ message, header, currentHeader, parsedWML, com
         }))
     }, [dispatch, CharacterId])
     
-    // Use legacy message for asset data if available
-    const currentAssets = useMemo(() => (legacyMessage?.assets || {}), [legacyMessage])
+    // Extract asset data from parsed WML if available
+    const currentAssets = useMemo(() => {
+        if (parsedWML) {
+            const component = parsedWML.byUniversalId[componentUUID]
+            if (component instanceof StandardRoom) {
+                return (component as any).assets || {}
+            }
+        }
+        return {}
+    }, [parsedWML, componentUUID])
+    
     const inPersonalRoom = useMemo(() => (currentHeader && Boolean(Object.keys(currentAssets).map((assetId) => (assetId.split('#')[1])).find((key) => (Assets?.map(({ AssetId }) => (AssetId))?.includes(key) || false)))), [currentHeader, Assets, currentAssets])
     const showEdit = useMemo(() => (currentAssets && ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'].includes(status || '')), [currentAssets, status])
     useOnboardingCheckpoint('navigatePersonalRoom', { requireSequence: true, condition: inPersonalRoom })
