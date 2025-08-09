@@ -88,6 +88,19 @@ Displays room descriptions to characters:
 - **Description Types**: Full room description or header-only based on `header` flag
 - **Real-time Updates**: Provides immediate room information
 
+#### **Special Header Message Behavior**
+When `header: true` is specified, the generated RoomHeader message has unique timeline organization properties:
+
+- **Timeline Organization**: RoomHeader messages serve as section boundaries in the character's message timeline, organizing messages into room-based sections
+- **In-Place Updates**: Unlike regular messages, RoomHeader messages update existing headers rather than creating new timeline entries when the same room sends another header. A header message can be *either* a new entry (if it indicates a new room) or an update to the existing header
+- **Sticky Context**: Headers remain visible at the top of the viewport during scrolling to provide current location context
+- **Dynamic Content**: Header content reflects the current state of the room, not the historical state when first displayed
+- **Temporal Independence**: While regular messages maintain strict chronological order, headers transcend timeline sequence to provide real-time room context
+
+This special behavior enables the narrative timeline system where players see their story organized by location while maintaining current awareness of their surroundings.
+
+For complete details on how RoomHeaders organize the message timeline, see [`../../../charcoal-client/src/components/Message/AGENT.md`](../../../charcoal-client/src/components/Message/AGENT.md) - Message Panel UI Architecture
+
 ### **PerceptionComponentMessage**
 Displays component descriptions (features, knowledge, characters), using the componentRender internalCache ([`../internalCache/componentRender.AGENT.md`](../internalCache/componentRender.AGENT.md)):
 
