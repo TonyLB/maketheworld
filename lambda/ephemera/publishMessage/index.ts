@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession } from "../messageBus/baseClasses"
+import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession } from "../messageBus/baseClasses"
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../internalCache'
 import { messageDeltaDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -225,15 +225,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 Characters: payload.Characters
             })
         }
-        if (isRoomDescriptionPublishMessage(payload)) {
-            await pushToQueues({
-                Targets: payload.targets,
-                MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime,
-                DisplayProtocol: payload.displayProtocol,
-                description: payload.description
-            })
-        }
+
 
         if (isPerceptionPublishMessage(payload)) {
             await pushToQueues({

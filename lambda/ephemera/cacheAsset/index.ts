@@ -91,10 +91,10 @@ export const cacheAsset = async ({ assetId, messageBus, check = false, updateOnl
         ])
 
         //
-        // Use MessageBus to queue RoomHeader messages for any room that has a person to
+        // Use MessageBus to queue room perception messages (header format) for any room that has a person to
         // report to
         //
-        // TODO: Optimize RoomHeader messages to only deliver to characters who have
+        // TODO: Optimize room header messages to only deliver to characters who have
         // the asset that is being cached
         //
         const components = assetWorkspace.standard?._components || []

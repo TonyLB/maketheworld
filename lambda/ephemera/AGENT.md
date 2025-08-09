@@ -45,7 +45,7 @@ Ephemera Lambda manages a **dual-layer message persistence architecture**:
 - **Connection Management**: Tracks active sessions and character subscriptions for message delivery
 
 **Message Publishing Pipeline**
-1. **Message Generation**: Perception system creates messages (RoomHeader, PerceptionMessage, etc.)
+1. **Message Generation**: Perception system creates messages (PerceptionMessage with various metadata types)
 2. **Target Resolution**: Mapper identifies target characters and their active connections
 3. **Dual Persistence**: 
    - Store in DynamoDB `message_delta` for historical access

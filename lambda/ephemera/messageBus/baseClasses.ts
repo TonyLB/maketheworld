@@ -1,5 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
-import { RoomDescription } from "@tonylb/mtw-interfaces/ts/messages"
+
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
@@ -71,10 +71,7 @@ export type PublishRoomUpdateMessage = {
     Characters: (Omit<RoomCharacterListItem, 'EphemeraId' | 'ConnectionIds' | 'SessionIds'> & { CharacterId: string })[];
 } & PublishMessageBase
 
-export type PublishRoomDescriptionMessage = {
-    displayProtocol: 'RoomDescription' | 'RoomHeader';
-    description: string;
-} & PublishMessageBase
+
 
 export type PublishPerceptionMessage = {
     displayProtocol: 'PerceptionMessage';
@@ -87,7 +84,6 @@ export type PublishMessage = PublishWorldMessage |
     PublishNarrateMessage |
     PublishOutOfCharacterMessage |
     PublishRoomUpdateMessage |
-    PublishRoomDescriptionMessage |
     PublishPerceptionMessage
 
 export type ReturnValueMessage = {
@@ -295,7 +291,7 @@ export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
 export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage) => (['SayMessage', 'NarrateMessage', 'OOCMessage'].includes(prop.displayProtocol))
 export const isRoomUpdatePublishMessage = (prop: PublishMessage): prop is PublishRoomUpdateMessage => (prop.displayProtocol === 'RoomUpdate')
-export const isRoomDescriptionPublishMessage = (prop: PublishMessage): prop is PublishRoomDescriptionMessage => (['RoomDescription', 'RoomHeader'].includes(prop.displayProtocol))
+
 
 
 export const isPerceptionPublishMessage = (prop: PublishMessage): prop is PublishPerceptionMessage => (prop.displayProtocol === 'PerceptionMessage')
