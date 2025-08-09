@@ -89,9 +89,7 @@ export type RoomDescribeData = {
     assets?: AssetUUID[];
 }
 
-export type RoomDescription = {
-    DisplayProtocol: 'RoomDescription';
-} & RoomDescribeData & MessageAddressing
+
 
 
 
@@ -148,9 +146,7 @@ export const isMapDescribeData = (message: any): message is MapDescribeData => {
 
 
 
-export type RoomHeader = {
-    DisplayProtocol: 'RoomHeader';
-} & RoomDescribeData & MessageAddressing
+
 
 export type RoomUpdate = {
     DisplayProtocol: 'RoomUpdate';
@@ -316,7 +312,7 @@ export const isPerceptionAssetMetaData = (metaData: PerceptionMessageMetaData): 
     return metaData.componentUUID.startsWith('ASSET#');
 }
 
-export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
+export type Message = SpacerMessage | WorldMessage | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
 
 export const isMessage = (message: any): message is Message => {
     if (typeof message !== 'object') {
@@ -339,16 +335,7 @@ export const isMessage = (message: any): message is Message => {
                 ['blue', 'pink', 'purple', 'green', 'grey'].includes(message.Color),
                 isRenderTree(message.Message)
             ) && isEphemeraCharacterId(message.CharacterId)
-        case 'RoomDescription':
-        case 'RoomHeader':
-            return checkAll(
-                checkTypes(message, { RoomId: 'string' }),
-                validateRoomExitList(message.Exits),
-                validateRoomCharacterList(message.Characters),
-                isRenderTree(message.Name),
-                isRenderTree(message.Description),
-                ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
-            ) && isEphemeraRoomId(message.RoomId)
+
         case 'RoomUpdate':
             return checkAll(
                 checkTypes(message, {}, { RoomId: 'string' }),
