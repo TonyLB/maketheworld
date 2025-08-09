@@ -44,14 +44,14 @@ The following migrations must be completed in this specific order due to depende
 - [x] **Update Ephemera Room Message Generation**: ✅ COMPLETED - Include metaData with displayMode for room PerceptionMessages  
 - [x] **Update Frontend Room Message Routing**: ✅ COMPLETED - Use metaData with type guards for enhanced routing
 - [x] **Test MetaData System**: ✅ COMPLETED - Comprehensive tests pass for RoomDescription vs RoomHeader differentiation
-- [ ] **Update Ephemera CharacterDescription**: Migrate CharacterDescription messages to use PerceptionMessage format with WML content
+- [x] **Update Ephemera CharacterDescription**: ✅ COMPLETED - Migrated CharacterDescription messages to use PerceptionMessage format with WML content
 - [ ] **Remove Frontend Bridge Code**: Clean up legacy format fallback support in ComponentDescription component
 - [ ] **Remove Legacy Message Types**: Clean up unused type definitions and handlers in Ephemera messageBus
 - [ ] **Update Tests**: Ensure all tests use new format expectations including metaData field
 
 #### **Audit Results Summary**
 **Legacy Formats Found**:
-- **CharacterDescription**: Only remaining Ephemera message using legacy format (lines 174-181 in perception/index.ts)
+
 - **Frontend Bridge Logic**: ComponentDescription still supports legacy FeatureDescription/KnowledgeDescription formats (lines 70-76)
 - **Type Definitions**: Legacy message types still defined in messageBus/baseClasses.ts but unused
 
@@ -59,8 +59,9 @@ The following migrations must be completed in this specific order due to depende
 - Room messages (RoomDescription/RoomHeader) → PerceptionMessage format
 - Feature messages → PerceptionMessage format  
 - Knowledge messages → PerceptionMessage format
+- Character messages → PerceptionMessage format
 
-**Scope Reduction**: Most migration work was already completed - only character descriptions and cleanup remain.
+**Scope Reduction**: Most migration work was already completed - only cleanup tasks remain.
 
 **🚨 CRITICAL ISSUE IDENTIFIED**: PerceptionMessage format cannot differentiate between RoomDescription and RoomHeader display modes. The backend sends `{ header: payload.header }` to ComponentRender, but this information is lost in the `PerceptionMessage` format since it only has `DisplayProtocol: 'PerceptionMessage'` without display mode indication.
 
