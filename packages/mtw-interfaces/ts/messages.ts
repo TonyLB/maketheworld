@@ -1,15 +1,15 @@
+/**
+ * @fileoverview Message type definitions for client-server communication
+ */
+
 import { isRenderTreeNode, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import {
     EphemeraAssetId,
     EphemeraCharacterId,
-    EphemeraFeatureId,
-    EphemeraKnowledgeId,
     EphemeraMapId,
     EphemeraRoomId,
     isEphemeraAssetId,
     isEphemeraCharacterId,
-    isEphemeraFeatureId,
-    isEphemeraKnowledgeId,
     isEphemeraMapId,
     isEphemeraRoomId,
     isEphemeraId,
@@ -93,27 +93,7 @@ export type RoomDescription = {
     DisplayProtocol: 'RoomDescription';
 } & RoomDescribeData & MessageAddressing
 
-export type FeatureDescribeData = {
-    Description: RenderTree;
-    Name: RenderTree;
-    FeatureId: EphemeraFeatureId;
-    assets?: AssetUUID[];
-}
 
-export type FeatureDescription = {
-    DisplayProtocol: 'FeatureDescription';
-} & FeatureDescribeData & MessageAddressing
-
-export type KnowledgeDescribeData = {
-    Description: RenderTree;
-    Name: RenderTree;
-    KnowledgeId: EphemeraKnowledgeId;
-    assets?: AssetUUID[];
-}
-
-export type KnowledgeDescription = {
-    DisplayProtocol: 'KnowledgeDescription';
-} & KnowledgeDescribeData & MessageAddressing
 
 export type MapDescribeRoom = {
     roomId: EphemeraRoomId;
@@ -166,16 +146,7 @@ export const isMapDescribeData = (message: any): message is MapDescribeData => {
     )
 }
 
-type CharacterDescribeData = {
-    CharacterId: EphemeraCharacterId;
-    Name: string;
-    fileURL?: string;
-    Pronouns?: string;
-}
 
-export type CharacterDescription = {
-    DisplayProtocol: 'CharacterDescription';
-} & CharacterDescribeData & MessageAddressing
 
 export type RoomHeader = {
     DisplayProtocol: 'RoomHeader';
@@ -345,7 +316,7 @@ export const isPerceptionAssetMetaData = (metaData: PerceptionMessageMetaData): 
     return metaData.componentUUID.startsWith('ASSET#');
 }
 
-export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | KnowledgeDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
+export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
 
 export const isMessage = (message: any): message is Message => {
     if (typeof message !== 'object') {
@@ -387,39 +358,7 @@ export const isMessage = (message: any): message is Message => {
                 isRenderTree(message.Description ?? []),
                 ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
             ) && isEphemeraRoomId(message.RoomId)
-        case 'FeatureDescription':
-            return checkAll(
-                checkTypes(message, { FeatureId: 'string' }),
-                isRenderTree(message.Name),
-                isRenderTree(message.Description),
-                ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
-            ) && isEphemeraFeatureId(message.FeatureId)
-        case 'KnowledgeDescription':
-            return checkAll(
-                checkTypes(message, { KnowledgeId: 'string' }),
-                isRenderTree(message.Name),
-                isRenderTree(message.Description),
-                ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
-            ) && isEphemeraKnowledgeId(message.KnowledgeId)
-        case 'CharacterDescription':
-            return checkAll(
-                checkTypes(message, 
-                    {
-                        CharacterId: 'string',
-                        Name: 'string'
-                    },
-                    {
-                        fileUrl: 'string',
-                    }
-                ),
-                !message.Pronouns || checkTypes(message.Pronouns, {
-                    subject: 'string',
-                    object: 'string',
-                    possessive: 'string',
-                    adjective: 'string',
-                    reflexive: 'string'
-                })
-            ) && isEphemeraCharacterId(message.CharacterId)
+
         case 'PerceptionMessage':
             return isPerceptionMessage(message)
         default: return false
