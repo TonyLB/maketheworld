@@ -33,7 +33,7 @@ import mapUpdateMessage from '../mapUpdate'
 import { canonUpdateMessage } from '../canonUpdate'
 import checkLocation from "../checkLocation"
 import characterEvent from "../characterEvents"
-import executeActionMessage from "../executeActionMessage"
+import { executeActionMessage } from "../parse/executeAction"
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({

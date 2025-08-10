@@ -61,3 +61,10 @@ export const executeAction = async (request: ActionAPIMessage) => {
             break        
     }
 }
+
+// Message bus handler for ExecuteAction messages
+export const executeActionMessage = async ({ payloads }: { payloads: import('../messageBus/baseClasses').ExecuteActionMessage[], messageBus?: any }) => {
+    await Promise.all(payloads.map(async (message) => {
+        await executeAction(message.action)
+    }))
+}
