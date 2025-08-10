@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useCallback, useMemo } from 'react'
 import { pink, blue } from '@mui/material/colors'
 import { SlateIndentBox } from '../LabelledIndentBox'
-import InlineChromiumBugfix from './InlineChromiumBugfix'
+import InlineChromiumBugfix from '../../../lib/slateUtils/InlineChromiumBugfix'
 import { RenderElementProps, RenderLeafProps, useSlate } from 'slate-react'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
