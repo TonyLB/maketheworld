@@ -149,15 +149,81 @@ The following migrations must be completed in this specific order due to depende
 - **Complex Layer Components**: `components/Maps` directory (complicated layer handling with Conditions)
 
 **Key Analysis Areas**:
-- [ ] **RenderTree/StandardRender Analysis**: Audit `link` elements referencing Action components and remove special handling
-- [ ] **Authorship Component Audit**: Identify and document all dynamic information handling patterns
-- [ ] **Conditional Component Analysis**: Analyze `ListWithConditions`, `IfElseTree` for condition-specific logic
+- [x] **RenderTree/StandardRender Analysis**: Audit `link` elements referencing Action components and remove special handling
+    - [x] **Audit Link Element Types**: Identify all link element types in StandardRender system (featureLink, knowledgeLink, actionLink)
+        - **Findings**: 
+          - **Schema Level**: Single `SchemaLinkTag` with `tag: 'Link'`, `to: string`, `text: string`
+          - **Frontend Editor Types**: `featureLink`, `knowledgeLink`, `actionLink` (3 types)
+          - **StandardRender Level**: `StandardRenderLink` class that handles generic links
+          - **Conversion Logic**: `descendantsFromRender` converts SchemaLink to either `featureLink` or `knowledgeLink` based on target type
+          - **Action Link Usage**: `actionLink` appears in editor configurations but not in actual conversion logic
+    - [x] **Remove Action Link Support**: Remove `actionLink` type from StandardRender editor components
+    - [x] **Update Link Conversion Logic**: Modify `descendantsFromRender` to no longer create actionLink elements
+    - [ ] **Update Link Creation Logic**: Modify `descendantsToRender` to no longer handle actionLink elements
+    - [ ] **Remove Action Link UI Components**: Remove actionLink rendering from StandardRender editor
+    - [ ] **Update Link Validation**: Remove Action from valid link target types in link dialogs
+    - [ ] **Test Link Functionality**: Verify feature and knowledge links still work correctly
+    - [ ] **Update Tests**: Remove actionLink test cases from StandardRender test suites
+
+- [ ] **State-Item System Removal - Rich Text Conditionals**: Remove conditional logic embedded within rich text content
+    - [ ] **Audit Conditional Components**: Document all components using `IfElseTree` and `ListWithConditions`
+    - [ ] **Remove IfElseTree from StandardRender**: Remove conditional wrapper support from rich text editors
+    - [ ] **Remove IfElseTree from DescriptionEditor**: Remove conditional editing from description components
+    - [ ] **Remove IfElseTree from Maps**: Remove conditional editing from map layer components
+    - [ ] **Update Conditional Converters**: Remove conditional tag support from WML schema converters
+    - [ ] **Remove Conditional Print Maps**: Remove conditional rendering from WML print system
+    - [ ] **Update Component Processing**: Remove conditional wrapping from `processComponents` function
+    - [ ] **Remove Conditional UI Components**: Delete `IfElseTree` and `ListWithConditions` components entirely
+    - [ ] **Update Rich Text Conversion**: Remove conditional handling from rich text conversion functions
+    - [ ] **Test Rich Text Functionality**: Verify plain text, links, and formatting still work correctly
+    - [ ] **Update Tests**: Remove conditional-related test cases from all test suites
+
+- [ ] **State-Item System Removal - Link Items**: Remove link items that reference Action components
+    - [ ] **Audit Link Item Usage**: Identify all components that create or handle link items to Actions
+    - [ ] **Remove Action Link Items**: Remove Action link creation from all link item systems
+    - [ ] **Update Link Item Validation**: Remove Action from valid link target validation
+    - [ ] **Remove Action Link Handlers**: Remove Action link click handlers from message components
+    - [ ] **Update Link Item UI**: Remove Action link display from all link item components
+    - [ ] **Test Link Item Functionality**: Verify feature and knowledge link items still work correctly
+    - [ ] **Update Tests**: Remove Action link item test cases from all test suites
+
+- [ ] **Conditional Component Analysis**: Analyze `ListWithConditions`, `IfElseTree` for condition-specific logic, and assess whether they deliver value independent of the state-item system
+- [ ] **Authorship Component Audit**: Identify and document all remaining dynamic information handling patterns
 - [ ] **Library/Edit System Review**: Document authoring tools for Variable/Computed/Action components
 - [ ] **Maps Component Documentation**: Full documentation of Maps subdirectory to understand condition entanglement
 - [ ] **JavaScript Editing Removal**: Remove `JSEdit` and `JSHeader` components entirely
 - [ ] **Component Interface Updates**: Update component props and interfaces to remove legacy dependencies
 - [ ] **Frontend Test Updates**: Update frontend test suites to reflect new component interfaces
 - [ ] **UI Behavior Migration**: Convert dynamic UI behaviors to static or example-driven patterns
+
+##### **Phase 2C.1: State-Item System Removal Planning** *(1 week)*
+**Context**: The state-item system appears in two critical ways that need systematic removal: (1) Link items that reference Action components, and (2) Conditional logic embedded within rich text content.
+
+**Strategic Approach**:
+- **Parallel Removal**: Address both link items and rich text conditionals simultaneously since they're interconnected
+- **Component-by-Component**: Remove state-item dependencies from each component type systematically
+- **Test-Driven Removal**: Verify functionality after each removal step to ensure no regressions
+- **Documentation First**: Document current usage patterns before removal to understand impact
+
+**Removal Priority Order**:
+1. **High-Impact Components**: StandardRender system, Message components, Library/Edit components
+2. **Medium-Impact Components**: Maps components, Description components
+3. **Low-Impact Components**: Utility components, helper functions
+
+**Success Criteria for State-Item Removal**:
+- No Action components can be referenced in link elements
+- No conditional logic remains embedded in rich text content
+- All link functionality works correctly for Feature and Knowledge components
+- Rich text editing maintains all formatting capabilities except conditionals
+- No state-item system code remains in frontend components
+- All tests pass after removal
+- Performance improvements from removing complex conditional logic
+
+**Risk Mitigation**:
+- **Functionality Loss**: Maintain comprehensive test coverage during removal
+- **User Experience**: Ensure link navigation still works smoothly
+- **Content Preservation**: Verify existing content isn't corrupted during removal
+- **Rollback Plan**: Keep removal changes in separate commits for easy rollback
 
 ##### **Phase 2D: WML Parser and Schema Analysis** *(To be determined)*
 - [ ] **WML Parser Dependency Audit**: Review WML parser for Variable/Computed/Action tag handling
@@ -208,6 +274,7 @@ The following migrations must be completed in this specific order due to depende
 - **Phase 2A Tasks**: ✅ **COMPLETED** - All tasks completed, dependency re-analysis revealed need for Phase 2B
 - **Phase 2B Tasks**: ✅ **COMPLETED** - Dependencies properties assessment completed, all properties confirmed to have no independent value
 - **Phase 2C Tasks**: ✅ **COMPLETED** - Detailed frontend component analysis tasks defined with specific component priorities
+- **Phase 2C.1 Tasks**: 🔄 **IN PROGRESS** - State-item system removal in progress, 2/8 sub-tasks completed
 - **Phase 2D Tasks**: Create detailed tasks for WML parser analysis after understanding scope of frontend dependencies
 - **Phase 2E Tasks**: Create detailed tasks for asset content analysis after understanding scope of parser dependencies
 - **Progressive Refinement**: Each sub-phase should refine the task list for subsequent sub-phases based on actual findings

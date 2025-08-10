@@ -1,5 +1,4 @@
 import {
-    CustomActionLinkElement,
     CustomBlock,
     CustomFeatureLinkElement,
     CustomKnowledgeLinkElement,
@@ -29,12 +28,12 @@ const descendantsTranslate = (tree: GenericTree<SchemaOutputTag>, options: { sta
             case 'Link':
                 const linkTarget = options.standard.byId[item.to]
                 returnValue.push({
-                    type: linkTarget instanceof StandardFeature ? 'featureLink' : linkTarget instanceof StandardAction ? 'actionLink' : 'knowledgeLink',
+                    type: linkTarget instanceof StandardFeature ? 'featureLink' : 'knowledgeLink',
                     to: item.to,
                     children: [{
                         text: item.text || ''
                     }]
-                } as CustomActionLinkElement | CustomFeatureLinkElement | CustomKnowledgeLinkElement)
+                } as CustomFeatureLinkElement | CustomKnowledgeLinkElement)
                 break
             case 'String':
                 returnValue.push({ text: item.value } as CustomText)
