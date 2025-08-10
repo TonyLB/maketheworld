@@ -10,6 +10,7 @@ import HomeIcon from '@mui/icons-material/Home'
 
 import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
+import StandardLiteralEditor from './StandardLiteralEditor'
 import { useLibraryAsset } from './LibraryAsset'
 import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
@@ -17,14 +18,14 @@ import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { useDispatch } from 'react-redux'
 import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs'
-import { EditSchema } from './EditContext'
+
 import TitledBox from '../../TitledBox'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
-import { StandardFormSchema } from './StandardFormContext'
+
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
@@ -65,32 +66,27 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         position: 'relative'
     }}>
         {
-            hasShortName(component) && <StandardFormSchema componentKey={ComponentId} tag="ShortName">
-                <EditSchema
-                    value={[{ data: { tag: 'String', value: component?.shortName?._payload?.plain?.toJSON() ?? ''}, children: [] }]}
-                    onChange={(value) => {
-                        if (typeof value !== 'function') {
+            hasShortName(component) && (
+                <TitledBox title="Short Name">
+                    <StandardLiteralEditor
+                        value={component.shortName}
+                        onChange={(newShortName) => {
                             updateStandard({
                                 type: 'update',
                                 update: (incoming: StandardForm) => {
                                     const base = incoming.byId[ComponentId]
                                     if (base instanceof StandardRoom || base instanceof StandardCharacter) {
-                                        base._payload._shortName = new StandardLiteral(value)
+                                        base._payload._shortName = newShortName
                                     }
                                     return incoming
                                 }
                             })
-                        }
-                    }}
-                >
-                    <TitledBox title="Short Name">
-                        <DescriptionEditor
-                            validLinkTags={[]}
-                            toolbar={false}
-                        />
-                    </TitledBox>
-                </EditSchema>
-            </StandardFormSchema>
+                        }}
+                        placeholder="Enter short name..."
+                        size="small"
+                    />
+                </TitledBox>
+            )
         }
         {
             (component.examples.map(({ key }) => (<ExampleEditor key={key} componentId={`${component.key}.${key}`} />)))
