@@ -21,7 +21,7 @@ tree, and then passing that tree change up to the handler that accepts the data 
 ## EditSchema and updateStandard
 
 While EditSchema frequently is passed an onChange that calls updateStandard at the top level, EditSchema *itself* is
-agnostic to the redux storage format. So, for instance, a DescriptionEditor showing the `shortName` field for a
+agnostic to the redux storage format. So, for instance, a StandardLiteralEditor showing the `shortName` field for a
 room would initialize its outermost EditSchema with a dispatch of updateStandard:replaceItem to update the shortName
 item on that particular room component ... but EditSchema knows only that it has a function to call on changes.
 
