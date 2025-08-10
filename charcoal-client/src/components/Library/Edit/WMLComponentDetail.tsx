@@ -9,7 +9,7 @@ import Box from '@mui/material/Box'
 import HomeIcon from '@mui/icons-material/Home'
 
 import LibraryBanner from './LibraryBanner'
-import DescriptionEditor from './DescriptionEditor'
+
 import StandardLiteralEditor from './StandardLiteralEditor'
 import { useLibraryAsset } from './LibraryAsset'
 import DraftLockout from './DraftLockout'

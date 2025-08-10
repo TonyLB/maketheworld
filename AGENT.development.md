@@ -168,7 +168,7 @@ The following migrations must be completed in this specific order due to depende
 - [ ] **State-Item System Removal - Rich Text Conditionals**: Remove conditional logic embedded within rich text content
     - [ ] **Audit Conditional Components**: Document all components using `IfElseTree` and `ListWithConditions`
     - [ ] **Remove IfElseTree from StandardRender**: Remove conditional wrapper support from rich text editors
-    - [ ] **Remove IfElseTree from DescriptionEditor**: Remove conditional editing from description components
+    - [x] **Remove IfElseTree from DescriptionEditor**: Remove conditional editing from description components (completed by removing entire DescriptionEditor component)
     - [ ] **Remove IfElseTree from Maps**: Remove conditional editing from map layer components
     - [ ] **Update Conditional Converters**: Remove conditional tag support from WML schema converters
     - [ ] **Remove Conditional Print Maps**: Remove conditional rendering from WML print system
