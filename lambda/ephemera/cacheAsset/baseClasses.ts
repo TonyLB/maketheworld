@@ -1,8 +1,8 @@
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import {
-    EphemeraActionId,
+
     EphemeraCharacterId,
-    EphemeraComputedId,
+
     EphemeraFeatureId,
     EphemeraId,
     EphemeraKnowledgeId,
@@ -10,20 +10,21 @@ import {
     EphemeraMessageId,
     EphemeraMomentId,
     EphemeraRoomId,
-    EphemeraVariableId,
-    isEphemeraActionId,
-    isEphemeraComputedId,
+
+
+
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraMapId,
     isEphemeraMessageId,
     isEphemeraMomentId,
     isEphemeraRoomId,
-    isEphemeraVariableId
+
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { splitType } from "@tonylb/mtw-utilities/ts/types";
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
-import { StateItemId } from "../internalCache/baseClasses"
+// StateItemId removed - Variable/Computed functionality no longer available
+type StateItemId = string;
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 
 type WrappedSchemaOutputTag = SchemaOutputTag | { tag: 'Remove' } | { tag: 'Replace' } | { tag: 'ReplaceMatch' } | { tag: 'ReplacePayload' }
@@ -51,27 +52,21 @@ export type EphemeraRenderMixin = {
     render: GenericTree<WrappedSchemaOutputTag>;
 }
 
-export type EphemeraStateMappingMixin = {
-    stateMapping: Record<string, StateItemId>;
-}
+// EphemeraStateMappingMixin removed - was for Variable/Computed state management
 
 export type EphemeraKeyMappingMixin = {
-    keyMapping: Record<string, EphemeraId>;
+    keyMapping: Record<string, string>;
 }
-
-export type EphemeraComponentMixin = {
-    EphemeraId: EphemeraId;
-} & Partial<EphemeraStateMappingMixin & EphemeraKeyMappingMixin>
 
 export type EphemeraFeature = {
     EphemeraId: EphemeraFeatureId;
     key: string;
-} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
+} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraKeyMappingMixin
 
 export type EphemeraKnowledge = {
     EphemeraId: EphemeraKnowledgeId;
     key: string;
-} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
+} & EphemeraNameMixin
 
 export type EphemeraRoom = {
     EphemeraId: EphemeraRoomId;
@@ -79,20 +74,20 @@ export type EphemeraRoom = {
     shortName: GenericTree<WrappedSchemaOutputTag>;
     summary: GenericTree<WrappedSchemaOutputTag>;
     exits: GenericTree<SchemaTag>;
-} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
+} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraConditionMixin
 
 export type EphemeraMapRoom = {
     EphemeraId: string;
     x: number;
     y: number;
-} & EphemeraConditionMixin & EphemeraStateMappingMixin
+} & EphemeraConditionMixin
 
 export type EphemeraMap = {
     EphemeraId: EphemeraMapId;
     key: string;
     rooms: GenericTree<SchemaTag>;
     images: GenericTree<SchemaTag>;
-} & EphemeraNameMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
+} & EphemeraNameMixin & EphemeraKeyMappingMixin
 
 export type EphemeraMessageRoom = {
     EphemeraId: string;
@@ -102,7 +97,7 @@ export type EphemeraMessage = {
     EphemeraId: EphemeraMessageId;
     key: string;
     rooms: EphemeraRoomId[];
-} & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
+} & EphemeraRenderMixin & EphemeraKeyMappingMixin
 
 export type EphemeraMomentMessage = {
     EphemeraId: string;
@@ -112,7 +107,7 @@ export type EphemeraMoment = {
     EphemeraId: EphemeraMomentId;
     key: string;
     messages: EphemeraMessageId[];
-} & EphemeraStateMappingMixin
+}
 
 export type EphemeraCharacter = {
     EphemeraId: EphemeraCharacterId;
@@ -129,26 +124,9 @@ export type EphemeraCharacter = {
     player?: string;
 }
 
-export type EphemeraAction = {
-    EphemeraId: EphemeraActionId;
-    key: string;
-    src: string;
-}
 
-export type EphemeraVariable = {
-    EphemeraId: EphemeraVariableId;
-    key: string;
-    default: string;
-}
 
-export type EphemeraComputed = {
-    EphemeraId: EphemeraComputedId;
-    key: string;
-    src: string;
-    dependencies: EphemeraItemDependency[];
-}
-
-export type EphemeraItem = EphemeraFeature | EphemeraKnowledge | EphemeraMessage | EphemeraMoment | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
+export type EphemeraItem = EphemeraFeature | EphemeraKnowledge | EphemeraMessage | EphemeraMoment | EphemeraRoom | EphemeraMap | EphemeraCharacter
 
 export const isEphemeraFeatureItem = (item: EphemeraItem): item is EphemeraFeature => (isEphemeraFeatureId(item.EphemeraId))
 export const isEphemeraKnowledgeItem = (item: EphemeraItem): item is EphemeraKnowledge => (isEphemeraKnowledgeId(item.EphemeraId))
@@ -156,11 +134,9 @@ export const isEphemeraMessageItem = (item: EphemeraItem): item is EphemeraMessa
 export const isEphemeraMomentItem = (item: EphemeraItem): item is EphemeraMoment => (isEphemeraMomentId(item.EphemeraId))
 export const isEphemeraRoomItem = (item: EphemeraItem): item is EphemeraRoom => (isEphemeraRoomId(item.EphemeraId))
 export const isEphemeraMapItem = (item: EphemeraItem): item is EphemeraMap => (isEphemeraMapId(item.EphemeraId))
-export const isEphemeraActionItem = (item: EphemeraItem): item is EphemeraAction => (isEphemeraActionId(item.EphemeraId))
-export const isEphemeraVariableItem = (item: EphemeraItem): item is EphemeraVariable => (isEphemeraVariableId(item.EphemeraId))
-export const isEphemeraComputedItem = (item: EphemeraItem): item is EphemeraComputed => (isEphemeraComputedId(item.EphemeraId))
 
-const isLegalEphemeraTag = (tag: string): tag is SchemaTag["tag"] => (['Asset', 'Feature', 'Knowledge', 'Room', 'Map', 'Character', 'Action', 'Variable', 'Computed', 'Message'].includes(tag))
+
+const isLegalEphemeraTag = (tag: string): tag is SchemaTag["tag"] => (['Asset', 'Feature', 'Knowledge', 'Room', 'Map', 'Character', 'Message'].includes(tag))
 
 export const tagFromEphemeraWrappedId = (EphemeraId: string): SchemaTag["tag"] => {
     const [upperTag] = splitType(EphemeraId)
@@ -173,59 +149,13 @@ export const tagFromEphemeraWrappedId = (EphemeraId: string): SchemaTag["tag"] =
     }
 }
 
-export type EphemeraDependencyImport = {
-    key: string;
-    asset: string;
-}
 
-export type EphemeraDependencies = {
-    room?: string[];
-    map?: string[];
-    mapCache?: string[];
-    computed?: string[];
-    imported?: EphemeraDependencyImport[];
-}
 
-export type EphemeraStateComputed = {
-    key: string;
-    computed: true;
-    src: string;
-    value?: any;
-}
 
-export type EphemeraStateVariable = {
-    key: string;
-    computed?: false;
-    imported?: false;
-    value: any;
-}
 
-export type EphemeraStateImport = {
-    key: string;
-    computed?: false;
-    imported: true;
-    value: any;
-    asset: string;
-}
 
-type EphemeraStateItem = EphemeraStateComputed | EphemeraStateVariable | EphemeraStateImport
 
-export type EphemeraState = {
-    [key: string]: EphemeraStateItem
-}
 
-export const isEphemeraStateVariable = (item: EphemeraStateItem): item is EphemeraStateVariable => (!(item.computed || item.imported))
-export const isEphemeraStateComputed = (item: EphemeraStateItem): item is EphemeraStateComputed => (item.computed || false)
-export const isEphemeraStateImport = (item: EphemeraStateItem): item is EphemeraStateImport => (!(item.computed || false) && (item.imported || false))
-
-export type EphemeraImportStateItem = {
-    state: EphemeraState;
-    dependencies: Record<string, EphemeraDependencies>;
-}
-
-export type EphemeraImportState = {
-    [key: string]: EphemeraImportStateItem;
-}
 export type EphemeraPushArgs = {
     EphemeraId: string;
     scopeMap?: any;

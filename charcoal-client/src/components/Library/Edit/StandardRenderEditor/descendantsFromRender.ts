@@ -1,6 +1,6 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardRender, StandardRenderSimple } from "@tonylb/mtw-wml/ts/standardize/render"
-import { CustomActionLinkElement, CustomBlock, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from "../baseClasses"
+import { CustomBlock, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from "../baseClasses"
 import {
     CustomParagraphContents,
     CustomParagraphElement,
@@ -32,10 +32,10 @@ const descendantsTranslate = (render: StandardRender, options: { standard: Stand
         if (isSchemaLink(simpleRenderElement.data)) {
             const linkTarget = options.standard.byId[simpleRenderElement.data.to]
             return [...previous, {
-                type: linkTarget instanceof StandardFeature ? 'featureLink' : linkTarget instanceof StandardAction ? 'actionLink' : 'knowledgeLink',
+                type: linkTarget instanceof StandardFeature ? 'featureLink' : 'knowledgeLink',
                 to: simpleRenderElement.data.to,
                 children: [{ text: simpleRenderElement.children.filter((child) => typeof child === 'string').join('') }]
-            } as CustomActionLinkElement | CustomFeatureLinkElement | CustomKnowledgeLinkElement]
+            } as CustomFeatureLinkElement | CustomKnowledgeLinkElement]
         }
         throw new Error('Invalid render element')
     }, [])

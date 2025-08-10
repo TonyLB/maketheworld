@@ -1,0 +1,183 @@
+# Client Testing Standards - Provisional Draft
+
+## Overview
+
+**Purpose**: This document captures our evolving insights and patterns for testing React components in the Vitest framework within the charcoal-client package.
+
+**Context**: This is a **PROVISIONAL DRAFT** of evolving testing standards. As we refine new patterns of testing, we should document them here to establish consistent practices across the client codebase.
+
+**Key Concepts**: 
+- **Vitest**: Modern testing framework replacing Jest in the client
+- **React Testing Library**: Component testing utilities
+- **jsdom**: DOM environment for browser-like testing
+- **Material-UI**: Component library requiring special test setup
+
+## Core Testing Commands
+
+### **Basic Test Execution**
+```bash
+# Watch mode (default)
+npm test
+
+# Single run mode (use --run flag)
+npm test -- --run
+
+# Test specific file
+npm test -- --run src/path/to/test.tsx
+```
+
+### **Key Differences from Jest**
+- **Command**: `npm test` instead of `npm run test`
+- **Run Flag**: Use `--run` for single execution instead of `--watchAll=false`
+- **Mocking**: Use `vi` instead of `jest` global
+- **Environment**: Explicitly specify `jsdom` environment
+
+## Test File Structure and Setup
+
+### **Required Test File Header**
+```typescript
+/**
+ * @vitest-environment jsdom
+ */
+```
+
+**Why**: Vitest needs explicit DOM environment for React component testing.
+
+### **Essential Imports**
+```typescript
+import React from 'react'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { vi, beforeEach, describe, it, expect } from 'vitest'
+import '@testing-library/jest-dom' // For Jest DOM matchers
+```
+
+## Mocking Patterns
+
+### **Hook Mocking with Vitest**
+```typescript
+// Create mock functions as variables for better control
+const mockUseLibraryAsset = vi.fn(() => ({
+    readonly: false
+}))
+
+// Mock modules
+vi.mock('../LibraryAsset', () => ({
+    useLibraryAsset: () => mockUseLibraryAsset()
+}))
+
+// Reset mocks in beforeEach
+beforeEach(() => {
+    mockUseLibraryAsset.mockReturnValue({ readonly: false })
+    vi.clearAllMocks()
+    vi.resetAllMocks()
+})
+```
+
+**Key Insights**:
+- Use `vi.fn()` instead of `jest.fn()`
+- Create mock variables for better control and resetting
+- Reset mocks in `beforeEach` to ensure clean state
+
+## Material-UI Testing Setup
+
+### **Theme Provider Wrapper**
+```typescript
+const TestWrapper: React.FunctionComponent = ({ children }) => {
+    const theme = createTheme()
+    return (
+        <ThemeProvider theme={theme}>
+            {children}
+        </ThemeProvider>
+    )
+}
+```
+
+**Why**: Material-UI components need theme context to render properly.
+
+### **Testing Material-UI Props**
+```typescript
+// Test size prop
+it('applies size prop correctly', () => {
+    render(
+        <TestWrapper>
+            <TextField size="small" />
+        </TestWrapper>
+    )
+    const textField = screen.getByRole('textbox')
+    expect(textField).toHaveClass('MuiInputBase-inputSizeSmall')
+})
+```
+
+## Testing Patterns and Best Practices
+
+### **Component State Testing**
+```typescript
+it('updates local value on user input', () => {
+    render(
+        <TestWrapper>
+            <YourComponent value={initialValue} onChange={mockOnChange} />
+        </TestWrapper>
+    )
+    
+    const input = screen.getByDisplayValue(initialValue)
+    fireEvent.change(input, { target: { value: 'New Value' } })
+    
+    expect(input).toHaveValue('New Value')
+})
+```
+
+### **Hook Integration Testing**
+```typescript
+it('calls useDebouncedOnChange hook with correct parameters', () => {
+    render(
+        <TestWrapper>
+            <YourComponent value={testValue} onChange={mockOnChange} />
+        </TestWrapper>
+    )
+    
+    expect(mockUseDebouncedOnChange).toHaveBeenCalledWith({
+        value: 'Expected Value',
+        delay: 1000,
+        onChange: expect.any(Function)
+    })
+})
+```
+
+## Troubleshooting Common Issues
+
+### **"document is not defined" Error**
+**Cause**: Missing `@vitest-environment jsdom` directive
+**Solution**: Add the directive at the top of your test file
+
+### **"jest is not defined" Error**
+**Cause**: Using Jest syntax instead of Vitest
+**Solution**: Replace `jest.fn()` with `vi.fn()`, `jest.mock()` with `vi.mock()`
+
+### **Material-UI Components Not Rendering**
+**Cause**: Missing theme provider
+**Solution**: Wrap components in `TestWrapper` with Material-UI theme
+
+## Test File Naming Conventions
+
+### **Component Test Files**
+- **Standard**: `index.test.tsx` for components with `index.tsx` files
+- **Location**: Same directory as the component being tested
+
+### **Example Structure**
+```
+ComponentName/
+├── index.tsx              # Main component
+├── index.test.tsx         # Unit tests
+└── AGENT.md               # Documentation
+```
+
+## Integration with Project Standards
+
+### **Cross-Reference with Project AGENT.md**
+- **Client Testing**: Use `npm test -- --run` (this document)
+- **Package Testing**: Use `npm run test -- --watchAll=false` (project AGENT.md)
+
+---
+
+**Note**: This is a **PROVISIONAL DRAFT** of evolving testing standards. As we discover better patterns and practices, this document should be updated to reflect our collective learning and establish consistent testing approaches across the client codebase.

@@ -2,7 +2,7 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { DeferredCache } from './deferredCache'
 
-import { EphemeraKeyMappingMixin, EphemeraStateMappingMixin, tagFromEphemeraWrappedId } from '../cacheAsset/baseClasses'
+import { EphemeraKeyMappingMixin, tagFromEphemeraWrappedId } from '../cacheAsset/baseClasses'
 import {
     isEphemeraId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
@@ -14,7 +14,7 @@ import { isStandardComponentData } from '@tonylb/mtw-wml/ts/standardize/componen
 import { tagFromEphemeraId } from '@tonylb/mtw-utilities/ts/graphStorage/cache';
 
 type ComponentMetaMixin = { assetId: string }
-export type ComponentMetaItem<T extends StandardComponentData = StandardComponentData> = T & EphemeraKeyMappingMixin & EphemeraStateMappingMixin & ComponentMetaMixin
+export type ComponentMetaItem<T extends StandardComponentData = StandardComponentData> = T & EphemeraKeyMappingMixin & ComponentMetaMixin
 
 const generateCacheKey = (EphemeraId: ComponentUUID, assetId: AssetUUID) => (`${assetId}::${EphemeraId}`)
 const cacheKeyComponents = (cacheKey: string): { EphemeraId: ComponentUUID, assetId: AssetUUID } => {

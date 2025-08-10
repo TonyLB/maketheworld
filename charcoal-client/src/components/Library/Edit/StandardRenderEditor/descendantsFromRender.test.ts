@@ -1,19 +1,13 @@
 import descendantsFromRender from './descendantsFromRender'
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { StandardRender, StandardRenderSimple } from "@tonylb/mtw-wml/ts/standardize/render"
-import StandardRenderString from "@tonylb/mtw-wml/ts/standardize/render/string"
-import StandardRenderLineBreak from "@tonylb/mtw-wml/ts/standardize/render/lineBreak"
-import StandardRenderSpace from "@tonylb/mtw-wml/ts/standardize/render/space"
-import StandardRenderLink from "@tonylb/mtw-wml/ts/standardize/render/link"
-import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
-import StandardAction from "@tonylb/mtw-wml/ts/standardize/components/action"
+import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 describe('descendantsFromRender', () => {
     const standardForm = new StandardForm(deIndentWML(`
         <Asset key=(test)>
             <Feature key=(feature1) />
-            <Action key=(action1) src={true} />
+            <Knowledge key=(knowledge1) />
         </Asset>
     `))
 
@@ -57,15 +51,15 @@ describe('descendantsFromRender', () => {
         }])
     })
 
-    it('should handle StandardRenderLink to action', () => {
-        const render = new StandardRender([{ data: { tag: 'Link', to: 'action1', text: 'Action Link' }, children: ['Action Link'] }])
+    it('should handle StandardRenderLink to knowledge', () => {
+        const render = new StandardRender([{ data: { tag: 'Link', to: 'knowledge1', text: 'Knowledge Link' }, children: ['Knowledge Link'] }])
         const result = descendantsFromRender(render, { standard: standardForm })
         expect(result).toEqual([{
             type: 'paragraph',
             children: [{
-                type: 'actionLink',
-                to: 'action1',
-                children: [{ text: 'Action Link' }]
+                type: 'knowledgeLink',
+                to: 'knowledge1',
+                children: [{ text: 'Knowledge Link' }]
             }]
         }])
     })

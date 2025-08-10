@@ -1,6 +1,6 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 
-import { LegalCharacterColor, isEphemeraTaggedId, EphemeraActionId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { LegalCharacterColor, isEphemeraTaggedId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
     EphemeraCharacterId,
@@ -237,14 +237,10 @@ export type RoomUpdateMessage = {
     render?: boolean;
 }
 
-export type LegalDependencyTag = 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
-export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
+export type LegalDependencyTag = 'Asset' | 'Room' | 'Feature' | 'Map'
+export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Room', 'Feature', 'Map'].includes(tag))
 
-export type ExecuteActionMessage = {
-    type: 'ExecuteAction';
-    actionId: EphemeraActionId;
-    characterId: EphemeraCharacterId;
-}
+
 
 export type MapUpdateMessage = {
     type: 'MapUpdate';
@@ -267,6 +263,11 @@ export type CanonAddRemoveMessage = {
 
 export type CanonUpdateMessage = CanonAddRemoveMessage | CanonSetMessage
 
+export type ExecuteActionMessage = {
+    type: 'ExecuteAction';
+    action: import('@tonylb/mtw-interfaces/ts/ephemera').ActionAPIMessage;
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     RegisterCharacterMessage |
@@ -283,9 +284,9 @@ export type MessageType = PublishMessage |
     CheckLocationMessage |
     CharacterEventMessage |
     RoomUpdateMessage |
-    ExecuteActionMessage |
     MapUpdateMessage |
-    CanonUpdateMessage
+    CanonUpdateMessage |
+    ExecuteActionMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')

@@ -52,9 +52,17 @@ The following migrations must be completed in this specific order due to depende
 ---
 
 ### **Phase 2: Variable/Computed/Action System Removal** *(Core Dependency)*
-**Duration Estimate**: 4-6 weeks  
+**Duration Estimate**: 6-8 weeks  
 **Risk Level**: High  
 **Goal**: Systematically remove programming-language-based authoring system
+
+**Sub-Phase Breakdown**:
+- **Phase 2A**: Remove Ephemera Usage (1-2 weeks) - ✅ **COMPLETED**
+- **Phase 2B**: Dependencies Properties Assessment (1-2 weeks) - ✅ **COMPLETED**
+- **Phase 2C**: Frontend Component Analysis (1-2 weeks) - ✅ **TASKS DEFINED**
+- **Phase 2D**: WML Parser and Schema Analysis (1-2 weeks) - *(To be determined)*  
+- **Phase 2E**: Asset Content and Storage Analysis (1-2 weeks) - *(To be determined)*
+- **Phase 2F**: Final Cleanup and Validation (1 week) - *(To be determined)*
 
 #### **Objectives**
 - Document all Variable/Computed/Action dependencies
@@ -66,16 +74,172 @@ The following migrations must be completed in this specific order due to depende
 
 #### **Key Tasks**
 
-##### **Phase 2A: Remove Ephemera Usage**
-- [ ] **Dependency Mapping**: Complete audit of Variable/Computed/Action usage patterns
-- [ ] **Asset Content Analysis**: Identify all assets using Variable/Computed/Action/Condition tags
-- [ ] **Migration Strategy**: Develop approach for converting existing dynamic content to static/example-driven
-- [ ] **Remove Dependency Cascade**: Delete `dependencyCascade.ts` and related logic
-- [ ] **Remove Action Execution**: Delete `executeAction/` module and EventBridge triggers
-- [ ] **Static Content Fallback**: Implement temporary system for previously-dynamic behavior
-- [ ] **Test Suite Updates**: Remove Ephemera tests for deprecated functionality
+##### **Phase 2A: Remove Ephemera Usage** *(1-2 weeks)*
+- [x] **Remove stateMapping Properties**: Remove all `stateMapping` properties, `EphemeraStateMappingMixin` type, and update dependency logic to no longer process Variable/Computed state dependencies ✅ **COMPLETED**
+- [x] **Broader Dependency Re-analysis**: Complete audit of remaining Variable/Computed/Action usage patterns across entire codebase ✅ **COMPLETED**
 
-##### **Phase 2B: Deprecate Tags from Storage Systems**
+##### **Phase 2B: Dependencies Properties Assessment** *(1-2 weeks)*
+- [x] **Cross-System Dependencies Audit**: Assess whether `dependencies` properties have value outside of Variable/Computed/Action/Condition system ✅ **COMPLETED**
+- [x] **Storage System Dependencies Review**: Review S3, DynamoDB, and cache systems for `dependencies` property usage ✅ **COMPLETED**
+- [x] **StandardForm/StandardComponent Analysis**: Analyze StandardForm/StandardComponent subsystem for `dependencies` property patterns ✅ **COMPLETED**
+- [x] **Dependency Value Assessment**: Determine if `dependencies` properties serve any purpose beyond legacy calculation sandboxes ✅ **COMPLETED**
+- [x] **Cleanup Planning**: If no independent value found, plan removal from each system ✅ **COMPLETED**
+- [x] **State Management Impact Analysis**: Assess impact of removing `dependencies` properties on overall state management ✅ **COMPLETED**
+
+**Cross-System Dependencies Audit Findings**:
+- **Schema Level**: `dependencies` properties exist in `SchemaConditionStatementTag` and `SchemaComputedTag` types
+- **StandardComponent Level**: `dependencies` properties implemented in `StandardAction` and `StandardComputed` classes
+- **Current Usage Patterns**:
+  - **Condition Dependencies**: Used in `dependencyReferenceKeys()` utility to extract dependency keys from condition statements
+  - **Computed Dependencies**: Used in `referencedKeys()` method to generate dependency references
+  - **Graph Updates**: Used in `dependencyUpdate.ts` for building dependency graphs in Ephemera system
+  - **No Independent Value Found**: All current usage is tied to Variable/Computed/Action/Condition system
+- **Systems Using Dependencies**:
+  - WML parsing utilities (`extractDependenciesFromJS`)
+  - StandardComponent reference tracking
+  - Ephemera dependency graph construction
+  - No usage found in S3, DynamoDB, or other storage systems outside the state-item context
+
+**Storage System Dependencies Review Findings**:
+- **S3**: No direct storage of `dependencies` properties found
+- **DynamoDB**: No database schemas or tables specifically designed for `dependencies` properties
+- **Cache Systems**: `dependencies` properties are only used in Ephemera's internal cache for dependency graph construction
+- **Database Streams**: No processing of `dependencies` properties in DynamoDB stream handlers
+- **Conclusion**: Storage systems do not independently use `dependencies` properties
+
+**StandardForm/StandardComponent Analysis Findings**:
+- **StandardForm**: No direct handling of `dependencies` properties at the form level
+- **StandardComponent**: Only `StandardAction` and `StandardComputed` implement `dependencies` properties
+- **Component Types**: No other StandardComponent types (Room, Feature, Knowledge, etc.) use `dependencies`
+- **Pattern**: `dependencies` properties are exclusively used by state-item components
+
+**Dependency Value Assessment Findings**:
+- **No Independent Value**: All `dependencies` properties serve only the Variable/Computed/Action/Condition system
+- **Legacy Purpose**: Originally designed for tracking variable dependencies across assets and calculation sandboxes
+- **Current Usage**: Limited to reference tracking and graph construction for the state-item system
+- **No Cross-System Benefits**: No other systems derive value from these properties
+
+**Cleanup Planning Findings**:
+- **Schema Types**: Dependencies properties exist only on Schema types that are slated to be removed entirely
+- **StandardComponent Classes**: Dependencies properties exist only on Standard classes that are slated to be removed entirely
+- **Data Types**: Dependencies properties exist only on Data Types that are slated to be removed entirely
+- **Utilities**: Remove `dependencyReferenceKeys()` function and update `referencedKeys()` method
+- **Graph Updates**: **PARTIAL REMOVAL** - The dependency graph construction logic in `dependencyUpdate.ts` serves **two distinct purposes**:
+  - **State-Item Dependencies**: Extract and remove `extractDependenciesFromEphemeraItem()` logic that processes Variable/Computed/Action dependencies (marked as "stateMapping dependencies removed - Variable/Computed no longer exist")
+  - **Structural Dependencies**: **PRESERVE** the core dependency graph infrastructure that tracks structural relationships like Features within Rooms, Maps containing Rooms, and hierarchical asset relationships
+- **WML Parsing**: Remove `extractDependenciesFromJS` utility and related parsing logic
+
+**State Management Impact Analysis**:
+- **Low Risk**: Removal will not affect any systems outside the state-item context
+- **No Breaking Changes**: Other components and systems do not depend on these properties
+- **Clean Removal**: All usage is contained within the Variable/Computed/Action/Condition system
+- **Graph Simplification**: Ephemera dependency graphs will be simplified, removing state-item dependencies while preserving structural relationship tracking
+- **Reference Tracking**: Component reference tracking will be simplified, removing dependency references
+- **Structural Dependencies Preserved**: The dependency graph will continue to track important structural relationships like Features within Rooms, Maps containing Rooms, and hierarchical asset relationships that are independent of the VCA system
+
+##### **Phase 2C: Frontend Component Analysis** *(1-2 weeks)*
+**Context**: Frontend components contain varying levels of dynamic information handling and legacy Variable/Computed/Action system integration.
+
+**High-Priority Components Identified**:
+- **Static Content Components**: Messages and in-play communications (generally static, minimal changes needed)
+- **Dynamic Content Components**: Authorship components and communications (frequent dynamic information handling)
+- **Conditional Rendering Components**: `ListWithConditions`, `IfElseTree` (explicit condition handling)
+- **Authoring Tools**: `Library/Edit` directory components (Variable/Computed/Action authoring tools)
+- **JavaScript Editing Components**: `JSEdit`, `JSHeader` (to be removed entirely)
+- **Complex Layer Components**: `components/Maps` directory (complicated layer handling with Conditions)
+
+**Key Analysis Areas**:
+- [x] **RenderTree/StandardRender Analysis**: Audit `link` elements referencing Action components and remove special handling
+    - [x] **Audit Link Element Types**: Identify all link element types in StandardRender system (featureLink, knowledgeLink, actionLink)
+        - **Findings**: 
+          - **Schema Level**: Single `SchemaLinkTag` with `tag: 'Link'`, `to: string`, `text: string`
+          - **Frontend Editor Types**: `featureLink`, `knowledgeLink`, `actionLink` (3 types)
+          - **StandardRender Level**: `StandardRenderLink` class that handles generic links
+          - **Conversion Logic**: `descendantsFromRender` converts SchemaLink to either `featureLink` or `knowledgeLink` based on target type
+          - **Action Link Usage**: `actionLink` appears in editor configurations but not in actual conversion logic
+    - [x] **Remove Action Link Support**: Remove `actionLink` type from StandardRender editor components
+    - [x] **Update Link Conversion Logic**: Modify `descendantsFromRender` to no longer create actionLink elements
+    - [ ] **Update Link Creation Logic**: Modify `descendantsToRender` to no longer handle actionLink elements
+    - [ ] **Remove Action Link UI Components**: Remove actionLink rendering from StandardRender editor
+    - [ ] **Update Link Validation**: Remove Action from valid link target types in link dialogs
+    - [ ] **Test Link Functionality**: Verify feature and knowledge links still work correctly
+    - [ ] **Update Tests**: Remove actionLink test cases from StandardRender test suites
+
+- [ ] **State-Item System Removal - Rich Text Conditionals**: Remove conditional logic embedded within rich text content
+    - [ ] **Audit Conditional Components**: Document all components using `IfElseTree` and `ListWithConditions`
+    - [ ] **Remove IfElseTree from StandardRender**: Remove conditional wrapper support from rich text editors
+    - [ ] **Remove IfElseTree from DescriptionEditor**: Remove conditional editing from description components
+    - [ ] **Remove IfElseTree from Maps**: Remove conditional editing from map layer components
+    - [ ] **Update Conditional Converters**: Remove conditional tag support from WML schema converters
+    - [ ] **Remove Conditional Print Maps**: Remove conditional rendering from WML print system
+    - [ ] **Update Component Processing**: Remove conditional wrapping from `processComponents` function
+    - [ ] **Remove Conditional UI Components**: Delete `IfElseTree` and `ListWithConditions` components entirely
+    - [ ] **Update Rich Text Conversion**: Remove conditional handling from rich text conversion functions
+    - [ ] **Test Rich Text Functionality**: Verify plain text, links, and formatting still work correctly
+    - [ ] **Update Tests**: Remove conditional-related test cases from all test suites
+
+- [ ] **State-Item System Removal - Link Items**: Remove link items that reference Action components
+    - [ ] **Audit Link Item Usage**: Identify all components that create or handle link items to Actions
+    - [ ] **Remove Action Link Items**: Remove Action link creation from all link item systems
+    - [ ] **Update Link Item Validation**: Remove Action from valid link target validation
+    - [ ] **Remove Action Link Handlers**: Remove Action link click handlers from message components
+    - [ ] **Update Link Item UI**: Remove Action link display from all link item components
+    - [ ] **Test Link Item Functionality**: Verify feature and knowledge link items still work correctly
+    - [ ] **Update Tests**: Remove Action link item test cases from all test suites
+
+- [ ] **Conditional Component Analysis**: Analyze `ListWithConditions`, `IfElseTree` for condition-specific logic, and assess whether they deliver value independent of the state-item system
+- [ ] **Authorship Component Audit**: Identify and document all remaining dynamic information handling patterns
+- [ ] **Library/Edit System Review**: Document authoring tools for Variable/Computed/Action components
+- [ ] **Maps Component Documentation**: Full documentation of Maps subdirectory to understand condition entanglement
+- [ ] **JavaScript Editing Removal**: Remove `JSEdit` and `JSHeader` components entirely
+- [ ] **Component Interface Updates**: Update component props and interfaces to remove legacy dependencies
+- [ ] **Frontend Test Updates**: Update frontend test suites to reflect new component interfaces
+- [ ] **UI Behavior Migration**: Convert dynamic UI behaviors to static or example-driven patterns
+
+##### **Phase 2C.1: State-Item System Removal Planning** *(1 week)*
+**Context**: The state-item system appears in two critical ways that need systematic removal: (1) Link items that reference Action components, and (2) Conditional logic embedded within rich text content.
+
+**Strategic Approach**:
+- **Parallel Removal**: Address both link items and rich text conditionals simultaneously since they're interconnected
+- **Component-by-Component**: Remove state-item dependencies from each component type systematically
+- **Test-Driven Removal**: Verify functionality after each removal step to ensure no regressions
+- **Documentation First**: Document current usage patterns before removal to understand impact
+
+**Removal Priority Order**:
+1. **High-Impact Components**: StandardRender system, Message components, Library/Edit components
+2. **Medium-Impact Components**: Maps components, Description components
+3. **Low-Impact Components**: Utility components, helper functions
+
+**Success Criteria for State-Item Removal**:
+- No Action components can be referenced in link elements
+- No conditional logic remains embedded in rich text content
+- All link functionality works correctly for Feature and Knowledge components
+- Rich text editing maintains all formatting capabilities except conditionals
+- No state-item system code remains in frontend components
+- All tests pass after removal
+- Performance improvements from removing complex conditional logic
+
+**Risk Mitigation**:
+- **Functionality Loss**: Maintain comprehensive test coverage during removal
+- **User Experience**: Ensure link navigation still works smoothly
+- **Content Preservation**: Verify existing content isn't corrupted during removal
+- **Rollback Plan**: Keep removal changes in separate commits for easy rollback
+
+##### **Phase 2D: WML Parser and Schema Analysis** *(To be determined)*
+- [ ] **WML Parser Dependency Audit**: Review WML parser for Variable/Computed/Action tag handling
+- [ ] **Schema Validation Review**: Analyze all schema validation layers for deprecated tag support
+- [ ] **Import/Export System Review**: Review asset import/export systems for legacy tag handling
+- [ ] **WML Processing Pipeline**: Audit WML processing pipeline for Variable/Computed/Action dependencies
+- [ ] **Parser Test Suite Updates**: Update WML parser tests to reflect new tag restrictions
+
+##### **Phase 2E: Asset Content and Storage Analysis** *(To be determined)*
+- [ ] **Asset Content Analysis**: Identify all assets using Variable/Computed/Action/Condition tags
+- [ ] **Storage System Audit**: Review S3, DynamoDB, and cache systems for deprecated tag representations
+- [ ] **Migration Strategy Development**: Develop approach for converting existing dynamic content to static/example-driven
+- [ ] **Content Backup Planning**: Plan comprehensive backup strategy for assets containing deprecated tags
+- [ ] **Migration Tool Design**: Design tools to remove deprecated tags from existing assets
+
+##### **Phase 2F: Deprecate Tags from Storage Systems**
 - [ ] **WML Parser Deprecation**: Update WML parser to reject Variable/Computed/Action/Condition tags
 - [ ] **Asset Migration Tools**: Build tools to remove deprecated tags from existing assets
 - [ ] **Asset Content Cleanup**: Run migration tools to strip deprecated tags from all stored assets
@@ -87,6 +251,7 @@ The following migrations must be completed in this specific order due to depende
 
 #### **Success Criteria**
 - No Variable/Computed/Action code remains in Ephemera Lambda
+- All frontend components have been updated to remove legacy dependencies
 - WML parser rejects Variable/Computed/Action/Condition tags at all parsing layers
 - All existing assets have been cleaned of deprecated tags
 - No deprecated tag types remain in `mtw-interfaces` or schema validation
@@ -104,6 +269,16 @@ The following migrations must be completed in this specific order due to depende
 - **Content Loss Risk**: Comprehensive asset backup before migration
 - **Functionality Loss Risk**: Clear documentation of removed capabilities for future LLM-mediated replacement
 - **Performance Risk**: Monitoring to ensure static fallbacks don't create performance issues
+
+#### **Task Management and Progress Tracking**
+- **Phase 2A Tasks**: ✅ **COMPLETED** - All tasks completed, dependency re-analysis revealed need for Phase 2B
+- **Phase 2B Tasks**: ✅ **COMPLETED** - Dependencies properties assessment completed, all properties confirmed to have no independent value
+- **Phase 2C Tasks**: ✅ **COMPLETED** - Detailed frontend component analysis tasks defined with specific component priorities
+- **Phase 2C.1 Tasks**: 🔄 **IN PROGRESS** - State-item system removal in progress, 2/8 sub-tasks completed
+- **Phase 2D Tasks**: Create detailed tasks for WML parser analysis after understanding scope of frontend dependencies
+- **Phase 2E Tasks**: Create detailed tasks for asset content analysis after understanding scope of parser dependencies
+- **Progressive Refinement**: Each sub-phase should refine the task list for subsequent sub-phases based on actual findings
+- **Dependency Discovery**: Use each sub-phase to identify additional dependencies that may affect later phases
 
 ---
 
@@ -222,13 +397,13 @@ Comprehensive risk mitigation across all phases:
 ```
 Phase 1: Message Format ✅ COMPLETED
     ↓
-Phase 2: Variable/Computed/Action Removal (4-6 weeks)
+Phase 2: Variable/Computed/Action Removal (6-8 weeks)
     ↓
 Phase 3: Asset Caching Migration (3-4 weeks)
     ↓
 Phase 4: LLM-Mediated System (6-8 weeks)
 
-Remaining Estimated Duration: 11-18 weeks
+Remaining Estimated Duration: 13-20 weeks
 ```
 
 ### **Critical Path**
@@ -291,10 +466,16 @@ This document is part of the project's comprehensive documentation system:
 ## Next Steps
 
 ### **Immediate Actions**
-1. **Validate Migration Sequence**: Review this plan with key stakeholders
-2. **Detailed Phase 1 Planning**: Break down message format standardization into specific tasks
-3. **Dependency Analysis**: Verify no additional dependencies have been missed
-4. **Resource Planning**: Ensure development capacity for estimated timeline
+1. **Phase 2A ✅ COMPLETED**: Broader dependency re-analysis completed, revealing need for Phase 2B dependencies properties assessment
+2. **Phase 2B ✅ COMPLETED**: Dependencies properties assessment completed, confirming all properties have no independent value
+3. **Begin Phase 2C**: Start frontend component analysis using the detailed task list already defined
+4. **Validate Migration Sequence**: Review this plan with key stakeholders
+
+### **Next Steps for Phase 2B-2F**
+1. **Progressive Task Creation**: Create detailed task lists for each sub-phase as dependencies become clear
+2. **Dependency Discovery**: Use each completed sub-phase to inform planning for subsequent phases
+3. **Task Refinement**: Continuously refine task lists based on actual findings during implementation
+4. **Risk Assessment Updates**: Update risk assessments as new dependencies are discovered
 
 ### **Planning Refinements**
 1. **Task Breakdown**: Each phase needs detailed task breakdowns with estimates

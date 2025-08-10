@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraComputedId, EphemeraVariableId, LegalCharacterColor, isEphemeraComputedId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses";
+import { EphemeraCharacterId, LegalCharacterColor } from "@tonylb/mtw-interfaces/ts/baseClasses";
 
 export class Deferred <T>{
     invalidationCounter: number;
@@ -52,8 +52,7 @@ export type RoomCharacterListItem = {
     Name: string;
 }
 
-export type LegalDependencyTag = 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
-export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
+export type LegalDependencyTag = 'Asset' | 'Room' | 'Feature' | 'Map'
+export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Room', 'Feature', 'Map'].includes(tag))
 
-export type StateItemId = EphemeraVariableId | EphemeraComputedId
-export const isStateItemId = (item: string): item is StateItemId => (isEphemeraVariableId(item) || isEphemeraComputedId(item))
+

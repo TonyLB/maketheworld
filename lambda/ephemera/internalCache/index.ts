@@ -1,11 +1,11 @@
-import { isStateItemId } from './baseClasses'
+
 
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 import { delayPromise } from '@tonylb/mtw-utilities/ts/dynamoDB/delayPromise'
 import CacheRoomCharacterListsData from './roomCharacterLists';
 import CacheCharacterMetaData from './characterMeta';
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
-import { AssetMap, AssetStateData, EvaluateCodeData, StateData } from './assetState';
+
 import ComponentMetaData from './componentMeta';
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import CacheAssetMetaData from './assetMeta';
@@ -59,10 +59,6 @@ export class InternalCache {
     ComponentMeta: ComponentMetaData = new ComponentMetaData();
 
     _invalidateAssetCallback: (EphemeraId: string) => void;
-    StateCache: StateData = new StateData((EphemeraId) => { this._invalidateAssetCallback(EphemeraId) })
-    AssetState: AssetStateData = new AssetStateData(this.StateCache)
-    EvaluateCode: EvaluateCodeData = new EvaluateCodeData(this.AssetState)
-    AssetMap: AssetMap
     
     Examples: ExamplesData = new ExamplesData()
 
@@ -75,10 +71,9 @@ export class InternalCache {
         this.Graph = this._graphCache.Graph
         this.GraphNodes = this._graphCache.Nodes
         this.GraphEdges = this._graphCache.Edges
-        this.AssetMap = new AssetMap(this.GraphNodes, this.GraphEdges)
+        // AssetMap removed - was used for Variable/Computed dependency resolution
         this.ComponentRender = new ComponentRenderData(
             this.Examples,
-            this.EvaluateCode,
             this.ComponentMeta,
             this.RoomCharacterList,
             this.Global,
@@ -86,10 +81,7 @@ export class InternalCache {
         )
         this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
         this._invalidateAssetCallback = (EphemeraId) => {
-            if (isStateItemId(EphemeraId)) {
-                this.EvaluateCode.invalidateByAssetStateId(EphemeraId)
-                this.ComponentRender.invalidateByEphemeraId(EphemeraId)
-            }
+            // Variable/Computed invalidation removed - no longer needed
         }
     }
 
@@ -108,8 +100,7 @@ export class InternalCache {
         this.PlayerSessions.clear()
         this._graphCache.clear()
         this.ComponentMeta.clear()
-        this.StateCache.clear()
-        this.EvaluateCode.clear()
+
         this.Examples.clear()
         this.ComponentRender.clear()
         this.CharacterPossibleMaps.clear()
@@ -119,7 +110,7 @@ export class InternalCache {
         await Promise.all([
             this._graphCache.flush(),
             this.ComponentMeta.flush(),
-            this.StateCache.flush(),
+
             this.ComponentRender.flush(),
         ])
     }

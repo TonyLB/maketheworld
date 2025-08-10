@@ -1,7 +1,7 @@
-import { EphemeraActionId, EphemeraComputedId, EphemeraExampleId, EphemeraFeatureId, EphemeraId, EphemeraKnowledgeId, EphemeraMapId, EphemeraMessageId, EphemeraMomentId, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraComputedId, isEphemeraExampleId, isEphemeraFeatureId, isEphemeraId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId, isEphemeraVariableId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { EphemeraExampleId, EphemeraFeatureId, EphemeraId, EphemeraKnowledgeId, EphemeraMapId, EphemeraMessageId, EphemeraMomentId, EphemeraRoomId, isEphemeraExampleId, isEphemeraFeatureId, isEphemeraId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraMessageId, isEphemeraMomentId, isEphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { MergeActionProperty } from "@tonylb/mtw-utilities/ts/dynamoDB/mixins/merge"
 import internalCache from "../internalCache"
-import { EphemeraComponentMixin } from "./baseClasses"
+import { EphemeraKeyMappingMixin } from "./baseClasses"
 import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
@@ -15,21 +15,17 @@ import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isStandardExample } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes/example"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
-const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraKnowledgeId | EphemeraExampleId | EphemeraMapId | EphemeraFeatureId | EphemeraActionId | EphemeraVariableId | EphemeraMessageId | EphemeraMomentId) => (
-    isEphemeraComputedId(EphemeraId) ||
+const isEphemeraBackLinkedToAsset = (EphemeraId: string): EphemeraId is (EphemeraRoomId | EphemeraKnowledgeId | EphemeraExampleId | EphemeraMapId | EphemeraFeatureId | EphemeraMessageId | EphemeraMomentId) => (
     isEphemeraRoomId(EphemeraId) ||
     isEphemeraKnowledgeId(EphemeraId) ||
     isEphemeraExampleId(EphemeraId) ||
     isEphemeraMapId(EphemeraId) ||
     isEphemeraFeatureId(EphemeraId) ||
-    isEphemeraActionId(EphemeraId) ||
-    isEphemeraVariableId(EphemeraId) ||
     isEphemeraMessageId(EphemeraId) ||
     isEphemeraMomentId(EphemeraId)
 )
 
-const isEphemeraInternallyBacklinked = (EphemeraId: string): EphemeraId is (EphemeraComputedId | EphemeraRoomId | EphemeraFeatureId | EphemeraMapId | EphemeraExampleId) => (
-    isEphemeraComputedId(EphemeraId) ||
+const isEphemeraInternallyBacklinked = (EphemeraId: string): EphemeraId is (EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraExampleId) => (
     isEphemeraRoomId(EphemeraId) ||
     isEphemeraFeatureId(EphemeraId) ||
     isEphemeraKnowledgeId(EphemeraId) ||
@@ -72,27 +68,27 @@ const extractDependenciesFromTaggedContent = (values: RenderTree, keyMapping: Re
     return returnValue
 }
 
-const extractDependenciesFromEphemeraItem = (item: StandardComponentData & EphemeraComponentMixin): EphemeraDependency[] => {
+const extractDependenciesFromEphemeraItem = (item: StandardComponentData & EphemeraKeyMappingMixin, EphemeraId: string): EphemeraDependency[] => {
     let dependencies: EphemeraDependency[] = []
-    if (isEphemeraInternallyBacklinked(item.EphemeraId)) {
+    if (isEphemeraInternallyBacklinked(EphemeraId)) {
         if (isStandardExample(item)) {
             dependencies = [
                 ...dependencies,
-                ...extractDependenciesFromTaggedContent((item.name ?? []).filter(excludeUndefined), item.keyMapping ?? {}),
-                ...extractDependenciesFromTaggedContent((item.description ?? []).filter(excludeUndefined), item.keyMapping ?? {}),
-                ...extractDependenciesFromTaggedContent((item.summary ?? []).filter(excludeUndefined), item.keyMapping ?? {})
+                ...extractDependenciesFromTaggedContent((item.name ?? []).filter(excludeUndefined), item.keyMapping as Record<string, EphemeraId> ?? {}),
+                ...extractDependenciesFromTaggedContent((item.description ?? []).filter(excludeUndefined), item.keyMapping as Record<string, EphemeraId> ?? {}),
+                ...extractDependenciesFromTaggedContent((item.summary ?? []).filter(excludeUndefined), item.keyMapping as Record<string, EphemeraId> ?? {})
             ]
         }
         if (isStandardMap(item)) {
             dependencies = [
                 ...dependencies,
-                ...Object.entries(item.keyMapping ?? {}).map(([scopedId, EphemeraId]) => ({ target: EphemeraId, data: { scopedId } }))
+                ...Object.entries(item.keyMapping ?? {}).map(([scopedId, ephemeraId]) => ({ target: ephemeraId as EphemeraId, data: { scopedId } }))
             ]
         }
     }
     const deduplicate = Object.values(Object.assign({}, ...dependencies.map((dependency) => ({ [dependency.target]: dependency })))) as EphemeraDependency[]
     return [
-        ...(Object.entries(item.stateMapping ?? {}).map(([scopedId, ephemeraId]) => ({ target: ephemeraId, data: { scopedId } }))),
+        // stateMapping dependencies removed - Variable/Computed no longer exist
         ...deduplicate
     ]
 }
@@ -127,12 +123,12 @@ export const updateDependenciesFromMergeActions = (context: string, graphUpdate:
             if (!mergeAction.action) {
                 return
             }
-            const item = mergeAction.action as unknown as StandardComponentData & EphemeraComponentMixin
+            const item = mergeAction.action as unknown as StandardComponentData & EphemeraKeyMappingMixin
             graphUpdate.setEdges([{
                 itemId: EphemeraId,
                 edges: [
                     assetBacklink(context)(item),
-                    ...extractDependenciesFromEphemeraItem(item).map((dependency) => ({ ...dependency, context }))
+                    ...extractDependenciesFromEphemeraItem(item, EphemeraId).map((dependency) => ({ ...dependency, context }))
                 ],
                 options
             }])
