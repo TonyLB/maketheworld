@@ -51,7 +51,7 @@ describe('dependencyUpdate', () => {
                         data: { tag: 'If', conditions: [{ if: 'active' }] },
                         children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }]
                     }],
-                    stateMapping: { active: 'COMPUTED#XYZ' },
+                    // stateMapping removed - Variable/Computed functionality no longer exists
                     keyMapping: {}
                 },
             },
@@ -66,7 +66,7 @@ describe('dependencyUpdate', () => {
                     key: 'LMNO',
                     tag: 'Map',
                     positions: [{ data: { tag: 'Room', key: 'room1' }, children: [] }],
-                    stateMapping: {},
+                    // stateMapping removed - Variable/Computed functionality no longer exists
                     keyMapping: { room1: 'ROOM#DEF' }
                 }
             },
@@ -111,25 +111,16 @@ describe('dependencyUpdate', () => {
                     //     { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
                     //     { key: 'powered', EphemeraId: 'VARIABLE#QRS' }
                     // ],
-                    stateMapping: {
-                        switchedOn: 'VARIABLE#TUV',
-                        powered: 'VARIABLE#QRS'
-                    }
+                    // stateMapping removed - Variable/Computed functionality no longer exists
                 }
             }
         ])
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(6)
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(3) // Only Room, Example, Map processed - Variable/Computed removed
         const testSetEdge = (itemId: string, edges: any[]) => ([{ itemId, edges, options: { direction: 'back', contextFilter: expect.any(Function) } }])
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#ABC', []))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('EXAMPLE#DEF', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'GHI.base' } }, { target: 'COMPUTED#XYZ', context: 'test', data: { scopedId: 'active' } }]))
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('EXAMPLE#DEF', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'GHI.base' } }])) // stateMapping dependencies removed
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('MAP#LMNO', [{ target: 'ASSET#test', context: 'test' }, { target: 'ROOM#DEF', data: { scopedId: 'room1' }, context: 'test' }]))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('VARIABLE#QRS', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'powered' } }]))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('VARIABLE#TUV', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'switchedOn' } }]))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('COMPUTED#XYZ', [
-            { target: 'ASSET#test', context: 'test', data: { scopedId: 'active' } },
-            { target: 'VARIABLE#TUV', context: 'test', data: { scopedId: 'switchedOn' } },
-            { target: 'VARIABLE#QRS', context: 'test', data: { scopedId: 'powered' } }
-        ]))
+        // Variable/Computed expectations removed - functionality no longer exists
     })
 
     it('should create internal connections from links', async () => {
@@ -152,7 +143,7 @@ describe('dependencyUpdate', () => {
                     key: 'Base.base',
                     tag: 'Example',
                     name: [{ tag: 'String', value: 'Feature Base Test' }],
-                    stateMapping: {},
+                    // stateMapping removed - Variable/Computed functionality no longer exists
                     keyMapping: {}
                 }
             },
@@ -175,7 +166,7 @@ describe('dependencyUpdate', () => {
                     tag: 'Example',
                     name: [{ data: { tag: 'String', value: 'Feature Test' }, children: [] }],
                     description: [{ data: { tag: 'Link', to: 'Base', text: 'Forward' }, children: [] }],
-                    stateMapping: {},
+                    // stateMapping removed - Variable/Computed functionality no longer exists
                     keyMapping: { Base: 'FEATURE#Base' }
                 }
             },
@@ -190,7 +181,7 @@ describe('dependencyUpdate', () => {
                     key: 'GHI',
                     tag: 'Room',
                     exits: [{ tag: 'Exit', from: 'GHI', to: 'MNO', key: 'GHI#MNO' }],
-                    stateMapping: {},
+                    // stateMapping removed - Variable/Computed functionality no longer exists
                     keyMapping: { MNO: 'ROOM#MNO' }
                 },
             },
@@ -206,7 +197,7 @@ describe('dependencyUpdate', () => {
                     tag: 'Example',
                     name: [{ data: { tag: 'String', value: 'VORTEX' }, children: [] }],
                     description: [{ data: { tag: 'String', value: 'Description with ' }, children: [] }, { data: { tag: 'Link', to: 'ABC', text: 'link' }, children: [] }],
-                    stateMapping: {},
+                    // stateMapping removed - Variable/Computed functionality no longer exists
                     keyMapping: { ABC: 'FEATURE#ABC' }
                 }
             },

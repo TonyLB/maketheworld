@@ -263,6 +263,11 @@ export type CanonAddRemoveMessage = {
 
 export type CanonUpdateMessage = CanonAddRemoveMessage | CanonSetMessage
 
+export type ExecuteActionMessage = {
+    type: 'ExecuteAction';
+    action: import('@tonylb/mtw-interfaces/ts/ephemera').ActionAPIMessage;
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     RegisterCharacterMessage |
@@ -279,9 +284,9 @@ export type MessageType = PublishMessage |
     CheckLocationMessage |
     CharacterEventMessage |
     RoomUpdateMessage |
-
     MapUpdateMessage |
-    CanonUpdateMessage
+    CanonUpdateMessage |
+    ExecuteActionMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -317,6 +322,6 @@ export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessag
 export const isMapUpdateMessage = (prop: MessageType): prop is MapUpdateMessage => (prop.type === 'MapUpdate')
 export const isCanonUpdateMessage = (prop: MessageType): prop is CanonUpdateMessage => (['CanonAdd', 'CanonRemove', 'CanonSet'].includes(prop.type))
 
-
+export const isExecuteActionMessage = (prop: MessageType): prop is ExecuteActionMessage => (prop.type === 'ExecuteAction')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

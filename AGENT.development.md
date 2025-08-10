@@ -74,6 +74,7 @@ The following migrations must be completed in this specific order due to depende
 - [x] **Test Suite Updates**: Remove Ephemera tests for deprecated functionality ✅ **COMPLETED**
 - [x] **Remove Conditional Tag Evaluation**: Remove `evaluateSchemaConditionals` and `filterAppearances` functions from componentRender.ts that depend on Variable/Computed state ✅ **COMPLETED**
 - [x] **Remove assetState Module**: Delete entire assetState internalCache module (StateData, AssetStateData, EvaluateCodeData) ✅ **COMPLETED**
+- [x] **Remove stateMapping Properties**: Remove all `stateMapping` properties, `EphemeraStateMappingMixin` type, and update dependency logic to no longer process Variable/Computed state dependencies ✅ **COMPLETED**
 - [ ] **Broader Dependency Re-analysis**: Complete audit of remaining Variable/Computed/Action usage patterns across entire codebase
 - [ ] **Asset Content Analysis**: Identify all assets using Variable/Computed/Action/Condition tags
 - [ ] **Migration Strategy**: Develop approach for converting existing dynamic content to static/example-driven

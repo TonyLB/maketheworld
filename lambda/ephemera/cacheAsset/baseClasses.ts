@@ -52,27 +52,21 @@ export type EphemeraRenderMixin = {
     render: GenericTree<WrappedSchemaOutputTag>;
 }
 
-export type EphemeraStateMappingMixin = {
-    stateMapping: Record<string, StateItemId>;
-}
+// EphemeraStateMappingMixin removed - was for Variable/Computed state management
 
 export type EphemeraKeyMappingMixin = {
-    keyMapping: Record<string, EphemeraId>;
+    keyMapping: Record<string, string>;
 }
-
-export type EphemeraComponentMixin = {
-    EphemeraId: EphemeraId;
-} & Partial<EphemeraStateMappingMixin & EphemeraKeyMappingMixin>
 
 export type EphemeraFeature = {
     EphemeraId: EphemeraFeatureId;
     key: string;
-} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
+} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraKeyMappingMixin
 
 export type EphemeraKnowledge = {
     EphemeraId: EphemeraKnowledgeId;
     key: string;
-} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
+} & EphemeraNameMixin
 
 export type EphemeraRoom = {
     EphemeraId: EphemeraRoomId;
@@ -80,20 +74,20 @@ export type EphemeraRoom = {
     shortName: GenericTree<WrappedSchemaOutputTag>;
     summary: GenericTree<WrappedSchemaOutputTag>;
     exits: GenericTree<SchemaTag>;
-} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
+} & EphemeraNameMixin & EphemeraRenderMixin & EphemeraConditionMixin
 
 export type EphemeraMapRoom = {
     EphemeraId: string;
     x: number;
     y: number;
-} & EphemeraConditionMixin & EphemeraStateMappingMixin
+} & EphemeraConditionMixin
 
 export type EphemeraMap = {
     EphemeraId: EphemeraMapId;
     key: string;
     rooms: GenericTree<SchemaTag>;
     images: GenericTree<SchemaTag>;
-} & EphemeraNameMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
+} & EphemeraNameMixin & EphemeraKeyMappingMixin
 
 export type EphemeraMessageRoom = {
     EphemeraId: string;
@@ -103,7 +97,7 @@ export type EphemeraMessage = {
     EphemeraId: EphemeraMessageId;
     key: string;
     rooms: EphemeraRoomId[];
-} & EphemeraRenderMixin & EphemeraStateMappingMixin & EphemeraKeyMappingMixin
+} & EphemeraRenderMixin & EphemeraKeyMappingMixin
 
 export type EphemeraMomentMessage = {
     EphemeraId: string;
@@ -113,7 +107,7 @@ export type EphemeraMoment = {
     EphemeraId: EphemeraMomentId;
     key: string;
     messages: EphemeraMessageId[];
-} & EphemeraStateMappingMixin
+}
 
 export type EphemeraCharacter = {
     EphemeraId: EphemeraCharacterId;

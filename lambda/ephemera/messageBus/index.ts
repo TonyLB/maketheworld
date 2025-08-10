@@ -15,7 +15,8 @@ import {
     isCanonUpdateMessage,
     isCheckLocation,
     isDisconnectCharacterMessage,
-    isCharacterEventMessage
+    isCharacterEventMessage,
+    isExecuteActionMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -32,6 +33,7 @@ import mapUpdateMessage from '../mapUpdate'
 import { canonUpdateMessage } from '../canonUpdate'
 import checkLocation from "../checkLocation"
 import characterEvent from "../characterEvents"
+import executeActionMessage from "../executeActionMessage"
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -124,7 +126,12 @@ messageBus.subscribe({
     filter: isCanonUpdateMessage,
     callback: canonUpdateMessage
 })
-
+messageBus.subscribe({
+    tag: 'ExecuteAction',
+    priority: 5,
+    filter: isExecuteActionMessage,
+    callback: executeActionMessage
+})
 
 
 export default messageBus

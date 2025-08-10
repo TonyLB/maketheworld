@@ -15,12 +15,13 @@ import {
     isMapSubscribeAPIMessage,
     isEphemeraAPIMessage,
     isMapUnsubscribeAPIMessage,
-    isUnregisterCharacterAPIMessage
+    isUnregisterCharacterAPIMessage,
+    isCommandAPIMessage,
+    isActionAPIMessage
 } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
-
 import internalCache from './internalCache'
 import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
@@ -215,6 +216,26 @@ export const handler = async (event: any, context: any) => {
                         directResponse: request.directResponse
                     })
                 }
+            }
+
+            if (isCommandAPIMessage(request)) {
+                const parsedAction = await parseCommand({
+                    CharacterId: request.CharacterId,
+                    command: request.command
+                })
+                if (parsedAction) {
+                    messageBus.send({
+                        type: 'ExecuteAction',
+                        action: parsedAction
+                    })
+                }
+            }
+
+            if (isActionAPIMessage(request)) {
+                messageBus.send({
+                    type: 'ExecuteAction',
+                    action: request
+                })
             }
 
         }
