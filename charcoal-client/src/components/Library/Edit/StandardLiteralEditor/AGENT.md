@@ -49,7 +49,7 @@
 - `StandardLiteral`: Data type from `@tonylb/mtw-wml`
 
 **Cross-References**:
-- See [`../DescriptionEditor/AGENT.md`](../DescriptionEditor/AGENT.md) for the component being replaced
+- See project documentation for the DescriptionEditor component that was replaced (component has been removed)
 - See [`../LibraryAsset/AGENT.md`](../LibraryAsset/AGENT.md) for asset-level state management
 - See [`../../../../hooks/useDebounce/AGENT.md`](../../../../hooks/useDebounce/AGENT.md) for debouncing logic
 

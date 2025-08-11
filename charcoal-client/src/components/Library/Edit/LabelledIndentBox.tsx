@@ -2,7 +2,7 @@ import { ForwardedRef, ReactNode } from 'react'
 import * as React from 'react'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
-import InlineChromiumBugfix from './DescriptionEditor/InlineChromiumBugfix'
+import InlineChromiumBugfix from '../../../lib/slateUtils/InlineChromiumBugfix'
 import DeleteIcon from '@mui/icons-material/Delete'
 
 type LabelledIndentBoxProps = {
