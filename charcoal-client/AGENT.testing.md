@@ -172,6 +172,166 @@ ComponentName/
 └── AGENT.md               # Documentation
 ```
 
+## Slate Editor Testing Patterns
+
+### **Slate Component Testing Setup**
+```typescript
+// Test wrapper with Material-UI theme and Slate editor
+const TestWrapper: React.FC<{ children: React.ReactNode, value?: any[] }> = ({ children, value = [] }) => {
+    const theme = createTheme()
+    const editor = withReact(createEditor())
+    
+    return (
+        <ThemeProvider theme={theme}>
+            <Slate editor={editor} value={value}>
+                {children}
+            </Slate>
+        </ThemeProvider>
+    )
+}
+```
+
+**Why**: Slate components need both theme context and editor context to render properly.
+
+### **Mocking Slate Dependencies**
+```typescript
+// Mock external components used by Slate components
+const MockDescriptionLinkFeatureChip = ({ children, tooltipTitle }: { children: React.ReactNode, tooltipTitle: string }) => (
+    <span data-testid="description-link-chip" title={tooltipTitle}>
+        {children}
+    </span>
+)
+
+vi.mock('../../../Message/DescriptionLink', () => ({
+    DescriptionLinkFeatureChip: MockDescriptionLinkFeatureChip
+}))
+
+// Mock utility components
+const MockInlineChromiumBugfix = () => <span data-testid="inline-chromium-bugfix" />
+
+vi.mock('../../../../lib/slateUtils', () => ({
+    default: MockInlineChromiumBugfix
+}))
+```
+
+**Key Insights**:
+- Mock external dependencies to isolate Slate component testing
+- Use `data-testid` attributes for reliable element selection
+- Keep mocks simple and focused on testing needs
+
+### **Testing Slate Element Components**
+```typescript
+describe('Element Component', () => {
+    const mockAttributes = { 'data-slate-element': 'true' }
+    const mockChildren = <span>Test content</span>
+
+    it('renders feature link with correct tooltip and structure', () => {
+        const element: CustomFeatureLinkElement = {
+            type: 'featureLink',
+            to: 'test-feature',
+            children: []
+        }
+
+        render(
+            <TestWrapper>
+                <Element
+                    attributes={mockAttributes}
+                    children={mockChildren}
+                    element={element}
+                />
+            </TestWrapper>
+        )
+
+        const linkChip = screen.getByTestId('description-link-chip')
+        expect(linkChip).toHaveAttribute('title', 'Feature: test-feature')
+        
+        // Check for InlineChromiumBugfix components
+        const bugfixes = screen.getAllByTestId('inline-chromium-bugfix')
+        expect(bugfixes).toHaveLength(2)
+    })
+})
+```
+
+**Key Patterns**:
+- Test different element types with appropriate mock data
+- Verify both structure and content rendering
+- Check for conditional rendering based on element properties
+
+### **Testing Slate Leaf Components**
+```typescript
+describe('Leaf Component', () => {
+    it('renders leaf with highlight when highlight is true', () => {
+        const leaf: CustomText = {
+            text: 'test',
+            highlight: true
+        }
+
+        render(
+            <TestWrapper>
+                <Leaf
+                    attributes={mockAttributes}
+                    children={mockChildren}
+                    leaf={leaf}
+                />
+            </TestWrapper>
+        )
+
+        // Check for highlight styling
+        const highlightBox = document.querySelector('[style*="background-color: rgb(144, 202, 249)"]')
+        expect(highlightBox).toBeInTheDocument()
+    })
+})
+```
+
+**Key Patterns**:
+- Test conditional rendering based on leaf properties
+- Verify styling and visual effects
+- Check attribute application
+
+### **Testing Slate Editor Plugins**
+```typescript
+describe('withParagraphBR Plugin', () => {
+    it('applies paragraph BR normalization to editor', () => {
+        const editor = withReact(createEditor())
+        const originalNormalizeNode = editor.normalizeNode
+        
+        const enhancedEditor = withParagraphBR(editor)
+        
+        expect(enhancedEditor.normalizeNode).not.toBe(originalNormalizeNode)
+        expect(typeof enhancedEditor.normalizeNode).toBe('function')
+    })
+})
+```
+
+**Key Patterns**:
+- Test that plugins modify editor behavior correctly
+- Verify plugin functions return enhanced editor
+- Test plugin integration without full editor complexity
+
+### **Testing Slate Decorator Functions**
+```typescript
+describe('decorateFactory Function', () => {
+    it('creates decorators for leading spaces in paragraph content', () => {
+        const editor = withReact(createEditor())
+        const decorate = decorateFactory(editor)
+        
+        const paragraphNode = {
+            type: 'paragraph',
+            children: [{ type: 'text', text: ' leading space' }]
+        }
+        const result = decorate([paragraphNode, [0]])
+        
+        expect(result).toHaveLength(1)
+        expect(result[0]).toHaveProperty('highlight', true)
+    })
+})
+```
+
+**Key Patterns**:
+- Test decorator creation with various input types
+- Verify decorator properties and structure
+- Test edge cases and empty inputs
+
 ## Integration with Project Standards
 
 ### **Cross-Reference with Project AGENT.md**
