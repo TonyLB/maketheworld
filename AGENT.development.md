@@ -119,17 +119,15 @@ The following migrations must be completed in this specific order due to depende
     - [x] **Update Tests**: Remove actionLink test cases from StandardRender test suites
 
 - [ ] **State-Item System Removal - Rich Text Conditionals**: Remove conditional logic embedded within rich text content
-    - [ ] **Audit Conditional Components**: Document all components using `IfElseTree` and `ListWithConditions`
-    - [ ] **Remove IfElseTree from StandardRender**: Remove conditional wrapper support from rich text editors
+    - [x] **Remove IfElseTree from StandardRender**: Remove conditional wrapper support from rich text editors (completed - conditional infrastructure and UI components removed)
     - [x] **Remove IfElseTree from DescriptionEditor**: Remove conditional editing from description components (completed by removing entire DescriptionEditor component)
-    - [ ] **Remove IfElseTree from Maps**: Remove conditional editing from map layer components
-    - [ ] **Update Conditional Converters**: Remove conditional tag support from WML schema converters
-    - [ ] **Remove Conditional Print Maps**: Remove conditional rendering from WML print system
-    - [ ] **Update Component Processing**: Remove conditional wrapping from `processComponents` function
-    - [ ] **Remove Conditional UI Components**: Delete `IfElseTree` and `ListWithConditions` components entirely
-    - [ ] **Update Rich Text Conversion**: Remove conditional handling from rich text conversion functions
     - [ ] **Test Rich Text Functionality**: Verify plain text, links, and formatting still work correctly
     - [ ] **Update Tests**: Remove conditional-related test cases from all test suites
+
+- [ ] **State-Item System Removal - Structural Conditionals**: Remove conditional logic from structural UI components
+    - [ ] **Audit Conditional Components**: Document all components using `IfElseTree` and `ListWithConditions`
+    - [ ] **Remove IfElseTree from Maps**: Remove conditional editing from map layer components
+    - [ ] **Remove Conditional UI Components**: Delete `IfElseTree` and `ListWithConditions` components entirely
 
 - [ ] **State-Item System Removal - Link Items**: Remove link items that reference Action components
     - [ ] **Audit Link Item Usage**: Identify all components that create or handle link items to Actions
@@ -157,6 +155,10 @@ The following migrations must be completed in this specific order due to depende
 - [ ] **Import/Export System Review**: Review asset import/export systems for legacy tag handling
 - [ ] **WML Processing Pipeline**: Audit WML processing pipeline for Variable/Computed/Action dependencies
 - [ ] **Parser Test Suite Updates**: Update WML parser tests to reflect new tag restrictions
+- [ ] **Update Conditional Converters**: Remove conditional tag support from WML schema converters
+- [ ] **Remove Conditional Print Maps**: Remove conditional rendering from WML print system
+- [ ] **Update Component Processing**: Remove conditional wrapping from `processComponents` function
+- [ ] **Update Rich Text Conversion**: Remove conditional handling from rich text conversion functions
 
 ##### **Phase 2E: Asset Content and Storage Analysis** *(To be determined)*
 - [ ] **Asset Content Analysis**: Identify all assets using Variable/Computed/Action/Condition tags
