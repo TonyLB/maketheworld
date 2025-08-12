@@ -12,7 +12,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import React, { FunctionComponent, useMemo } from 'react';
 import { ReactEditor, useSlate } from 'slate-react';
-import { CustomActionLinkElement, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses';
+import { CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses';
 import {
     Range,
     Editor,
@@ -20,14 +20,14 @@ import {
     Element as SlateElement
 } from 'slate';
 import { useLibraryAsset } from '../LibraryAsset';
-import StandardAction from '@tonylb/mtw-wml/ts/standardize/components/action';
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature';
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge';
+import { excludeUndefined } from '@tonylb/mtw-base/ts/utils/lists';
 
 interface LinkDialogProps {
     open: boolean;
     onClose: () => void;
-    validTags?: ('Feature' | 'Action' | 'Knowledge')[]
+    validTags?: ('Feature' | 'Knowledge')[]
 }
 
 const isInContextOf = (tags: string[]) => (editor: Editor) => {
@@ -38,12 +38,12 @@ const isInContextOf = (tags: string[]) => (editor: Editor) => {
     return !!(link?.value)
 }
 
-const isLinkActive = isInContextOf(['actionLink', 'featureLink', 'knowledgeLink'])
+const isLinkActive = isInContextOf(['featureLink', 'knowledgeLink'])
 
 const selectActiveLink = (editor: Editor) => {
     const link = Editor.nodes(editor, {
         match: n =>
-            !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink', 'knowledgeLink'].includes(n.type),
+            !Editor.isEditor(n) && SlateElement.isElement(n) && ['featureLink', 'knowledgeLink'].includes(n.type),
     }).next()
     if (link?.value) {
         const location = link.value[1]
@@ -54,31 +54,8 @@ const selectActiveLink = (editor: Editor) => {
 const unwrapLink = (editor: Editor) => {
     Transforms.unwrapNodes(editor, {
         match: n =>
-            !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink', 'knowledgeLink'].includes(n.type),
+            !Editor.isEditor(n) && SlateElement.isElement(n) && ['featureLink', 'knowledgeLink'].includes(n.type),
     })
-}
-
-const wrapActionLink = (editor: Editor, to: string) => {
-    if (isLinkActive(editor)) {
-        selectActiveLink(editor)
-        unwrapLink(editor)
-    }
-  
-    const { selection } = editor
-    const isCollapsed = selection && Range.isCollapsed(selection)
-    const link: CustomActionLinkElement = {
-        type: 'actionLink',
-        to,
-        children: isCollapsed ? [{ text: to }] : [],
-    }
-  
-    if (isCollapsed) {
-        Transforms.insertNodes(editor, link)
-    } else {
-        Transforms.wrapNodes(editor, link, { split: true })
-        Transforms.collapse(editor, { edge: 'end' })
-        editor.saveSelection = undefined
-    }
 }
 
 const wrapFeatureLink = (editor: Editor, to: string) => {
@@ -164,21 +141,18 @@ const LinkChoicesSubsection: FunctionComponent<LinkChoicesSubsectionProps> = ({ 
         : null
 }
 
-const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Action', 'Knowledge'] }) => {
+const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Knowledge'] }) => {
     const { standardForm } = useLibraryAsset()
-    const { actions, features, knowledges } = useMemo<{ actions: string[], features: string[], knowledges: string[] }>(() => (
-        Object.values(standardForm.byId).reduce<{ actions: string[], features: string[], knowledges: string[] }>((previous, component) => {
-            if (validTags.includes('Action') && component instanceof StandardAction) {
-                return { ...previous, actions: [...previous.actions, component.key]}
-            }
+    const { features, knowledges } = useMemo<{ features: string[], knowledges: string[] }>(() => (
+        standardForm._components.reduce<{ features: string[], knowledges: string[] }>((previous, component) => {
             if (validTags.includes('Feature') && component instanceof StandardFeature) {
-                return { ...previous, features: [...previous.features, component.key]}
+                return { ...previous, features: [...previous.features, component.key].filter(excludeUndefined)}
             }
             if (validTags.includes('Knowledge') && component instanceof StandardKnowledge) {
-                return { ...previous, knowledges: [...previous.knowledges, component.key]}
+                return { ...previous, knowledges: [...previous.knowledges, component.key].filter(excludeUndefined)}
             }
             return previous
-        }, { actions: [], features: [], knowledges: [] })
+        }, { features: [], knowledges: [] })
     ), [standardForm])
     return <Dialog
         open={open}
@@ -203,12 +177,6 @@ const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTa
         </DialogTitle>
         <DialogContent>
             <List>
-                <LinkChoicesSubsection
-                    subheader="Actions"
-                    keys={actions}
-                    onClose={onClose}
-                    wrapLink={wrapActionLink}
-                />
                 <LinkChoicesSubsection
                     subheader="Features"
                     keys={features}
