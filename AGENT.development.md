@@ -115,8 +115,8 @@ The following migrations must be completed in this specific order due to depende
     - [x] **Update Link Creation Logic**: Modify `descendantsToRender` to no longer handle actionLink elements (simplified, no actionLink handling)
     - [x] **Remove Action Link UI Components**: Remove actionLink rendering from StandardRender editor (LinkDialog and components.tsx updated)
     - [x] **Update Link Validation**: Remove Action from valid link target types in link dialogs (StandardRender editor validation complete)
-    - [ ] **Test Link Functionality**: Verify feature and knowledge links still work correctly
-    - [ ] **Update Tests**: Remove actionLink test cases from StandardRender test suites
+    - [x] **Test Link Functionality**: Verify feature and knowledge links still work correctly
+    - [x] **Update Tests**: Remove actionLink test cases from StandardRender test suites
 
 - [ ] **State-Item System Removal - Rich Text Conditionals**: Remove conditional logic embedded within rich text content
     - [ ] **Audit Conditional Components**: Document all components using `IfElseTree` and `ListWithConditions`
@@ -149,7 +149,7 @@ The following migrations must be completed in this specific order due to depende
 - [ ] **Frontend Test Updates**: Update frontend test suites to reflect new component interfaces
 - [ ] **UI Behavior Migration**: Convert dynamic UI behaviors to static or example-driven patterns
 
-**Current Status**: Phase 2C is approximately 40% complete. The StandardRender system has been fully cleaned of Action link support, but conditional components and broader link item validation still need work.
+**Current Status**: Phase 2C is approximately 45% complete. The StandardRender system has been fully cleaned of Action link support and thoroughly tested, but conditional components and broader link item validation still need work.
 
 ##### **Phase 2D: WML Parser and Schema Analysis** *(To be determined)*
 - [ ] **WML Parser Dependency Audit**: Review WML parser for Variable/Computed/Action tag handling
