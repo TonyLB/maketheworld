@@ -3,7 +3,7 @@ import { pink, blue } from '@mui/material/colors'
 import { SlateIndentBox } from '../LabelledIndentBox'
 import InlineChromiumBugfix from '../../../lib/slateUtils/InlineChromiumBugfix'
 import { RenderElementProps, RenderLeafProps, useSlate } from 'slate-react'
-import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
+import { DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
 import Box from '@mui/material/Box'
 import ReplaceIcon from '@mui/icons-material/Backspace'
@@ -43,14 +43,6 @@ export const Element: FunctionComponent<RenderElementProps> = (props) => {
                     {children}
                     <InlineChromiumBugfix />
                 </DescriptionLinkFeatureChip>
-            </span>
-        case 'actionLink':
-            return <span {...attributes}>
-                <DescriptionLinkActionChip tooltipTitle={`Action: ${element.to}`}>
-                    <InlineChromiumBugfix />
-                    {children}
-                    <InlineChromiumBugfix />
-                </DescriptionLinkActionChip>
             </span>
         case 'paragraph':
             const paragraphTags = <React.Fragment>

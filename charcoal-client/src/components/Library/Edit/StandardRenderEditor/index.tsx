@@ -36,7 +36,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
 interface StandardRenderEditorProps {
-    validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
+    validLinkTags?: ('Feature' | 'Knowledge')[];
     toolbar?: boolean;
     checkPoints?: string[];
     value: StandardRender;
@@ -113,7 +113,7 @@ type StandardRenderSlateComponentProperties = {
     standard: StandardForm;
     value: StandardRender;
     onChange: (value: StandardRender) => void;
-    validLinkTags?: ('Action' | 'Feature' | 'Knowledge')[];
+    validLinkTags?: ('Feature' | 'Knowledge')[];
     placeholder?: string;
     toolbar?: boolean;
     readonly: boolean;
