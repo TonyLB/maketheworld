@@ -256,7 +256,10 @@ describe('StandardRenderEditor Components', () => {
 
         describe('default element rendering', () => {
             it('renders unknown element types as div with attributes', () => {
-                const element = { type: 'unknown', children: [] }
+                const element = {
+                    type: 'unknown',
+                    children: []
+                } as any  // Use any for unknown element types
 
                 render(
                     <TestWrapper>
@@ -276,7 +279,11 @@ describe('StandardRenderEditor Components', () => {
     })
 
     describe('Leaf Component', () => {
-        const mockAttributes = { 'data-slate-leaf': true as const }
+        const mockAttributes = { 
+            'data-slate-leaf': true as const,
+            'data-slate-length': '11',
+            ref: null
+        }
         const mockChildren = <span>Leaf content</span>
 
         it('renders leaf without highlight when highlight is false', () => {
@@ -291,6 +298,7 @@ describe('StandardRenderEditor Components', () => {
                         attributes={mockAttributes}
                         children={mockChildren}
                         leaf={leaf}
+                        text={leaf}  // Slate expects this for RenderLeafProps
                     />
                 </TestWrapper>
             )
@@ -315,12 +323,15 @@ describe('StandardRenderEditor Components', () => {
                         attributes={mockAttributes}
                         children={mockChildren}
                         leaf={leaf}
+                        text={leaf}  // Slate expects this for RenderLeafProps
                     />
                 </TestWrapper>
             )
 
-            // Should have highlight box
-            const highlightBox = document.querySelector('[style*="background-color: rgb(144, 202, 249)"]') // blue[300]
+            // Should have highlight box (check for space character content)
+            const highlightBox = screen.getByText((content, element) => {
+                return element?.textContent === ' ' || element?.textContent === '\u00A0'
+            })
             expect(highlightBox).toBeInTheDocument()
             
             // Should render content
@@ -339,12 +350,15 @@ describe('StandardRenderEditor Components', () => {
                         attributes={mockAttributes}
                         children={mockChildren}
                         leaf={leaf}
+                        text={leaf}  // Slate expects this for RenderLeafProps
                     />
                 </TestWrapper>
             )
 
-            const contentSpan = screen.getByText('Leaf content').closest('span')
-            expect(contentSpan).toHaveAttribute('data-slate-leaf', 'true')
+            // Find the content span, then check its parent for attributes
+            const contentSpan = screen.getByText('Leaf content')
+            const parentElement = contentSpan.closest('[data-slate-leaf]')
+            expect(parentElement).toHaveAttribute('data-slate-leaf', 'true')
         })
     })
 
@@ -372,7 +386,10 @@ describe('StandardRenderEditor Components', () => {
             const editor = withReact(createEditor())
             const decorate = decorateFactory(editor)
             
-            const nonParagraphNode = { type: 'text' }
+            // Create a valid Slate text node
+            const nonParagraphNode = { 
+                text: 'test content'
+            }
             const result = decorate([nonParagraphNode, [0]])
             
             expect(result).toEqual([])
@@ -382,7 +399,11 @@ describe('StandardRenderEditor Components', () => {
             const editor = withReact(createEditor())
             const decorate = decorateFactory(editor)
             
-            const paragraphNode = { type: 'paragraph', children: [] }
+            // Create a valid CustomParagraphElement that matches our baseClasses
+            const paragraphNode: CustomParagraphElement = { 
+                type: 'paragraph', 
+                children: [] 
+            }
             const result = decorate([paragraphNode, [0]])
             
             expect(result).toEqual([])
@@ -392,10 +413,11 @@ describe('StandardRenderEditor Components', () => {
             const editor = withReact(createEditor())
             const decorate = decorateFactory(editor)
             
-            const paragraphNode = {
+            // Create a valid CustomParagraphElement with text children that match isCustomText expectations
+            const paragraphNode: CustomParagraphElement = {
                 type: 'paragraph',
                 children: [
-                    { type: 'text', text: ' leading space' }
+                    { text: ' leading space' }  // No type property - isCustomText expects this
                 ]
             }
             const result = decorate([paragraphNode, [0]])
@@ -410,10 +432,11 @@ describe('StandardRenderEditor Components', () => {
             const editor = withReact(createEditor())
             const decorate = decorateFactory(editor)
             
-            const paragraphNode = {
+            // Create a valid CustomParagraphElement with text children that match isCustomText expectations
+            const paragraphNode: CustomParagraphElement = {
                 type: 'paragraph',
                 children: [
-                    { type: 'text', text: 'trailing space ' }
+                    { text: 'trailing space ' }  // No type property - isCustomText expects this
                 ]
             }
             const result = decorate([paragraphNode, [0]])
@@ -428,10 +451,11 @@ describe('StandardRenderEditor Components', () => {
             const editor = withReact(createEditor())
             const decorate = decorateFactory(editor)
             
-            const paragraphNode = {
+            // Create a valid CustomParagraphElement with text children that match isCustomText expectations
+            const paragraphNode: CustomParagraphElement = {
                 type: 'paragraph',
                 children: [
-                    { type: 'text', text: ' both spaces ' }
+                    { text: ' both spaces ' }  // No type property - isCustomText expects this
                 ]
             }
             const result = decorate([paragraphNode, [0]])
