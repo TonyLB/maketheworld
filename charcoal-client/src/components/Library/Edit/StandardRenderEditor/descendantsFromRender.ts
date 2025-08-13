@@ -10,7 +10,6 @@ import {
     isCustomLineBreak
 } from "../baseClasses"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
-import StandardAction from "@tonylb/mtw-wml/ts/standardize/components/action"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 const descendantsTranslate = (render: StandardRender, options: { standard: StandardForm }): (CustomParagraphContents)[] => {
@@ -42,12 +41,15 @@ const descendantsTranslate = (render: StandardRender, options: { standard: Stand
     return returnValue
 }
 
-const descendantsCompact = (items: (CustomParagraphContents)[]): (CustomParagraphContents)[] =>  {
+export const descendantsCompact = (items: (CustomParagraphContents)[]): (CustomParagraphContents)[] =>  {
     const { previousText, returnValue } = items.reduce<{ previousText?: string, returnValue: (CustomParagraphContents)[] }>((previous, item) =>  {
         if ('text' in item) {
+            // Combine text elements
+            const newText = `${(previous.previousText || '')}${item.text}`
+            const normalizedText = newText.replace(/\s+/g, ' ')
             return {
                 ...previous,
-                previousText: `${(previous.previousText || '')}${item.text}`
+                previousText: normalizedText
             }
         }
         else {
@@ -65,8 +67,11 @@ const descendantsCompact = (items: (CustomParagraphContents)[]): (CustomParagrap
             }
         }
     }, { returnValue: [] })
+    
+    // Normalize multiple spaces to single spaces in the final text
     if (previousText) {
-        return [...returnValue, { text: previousText }]
+        const normalizedText = previousText.replace(/\s+/g, ' ')
+        return [...returnValue, { text: normalizedText }]
     }
     else {
         return returnValue
