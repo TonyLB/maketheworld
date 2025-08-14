@@ -204,3 +204,63 @@ Maps/
 - **Performance Optimization**: Address D3.js integration bottlenecks and memory management
 - **Type Safety**: Complete migration to TypeScript with comprehensive type coverage
 - **Component Modernization**: Convert remaining legacy components to modern React patterns
+
+## TEMPORARY FINDINGS: Conditional Functionality Integration
+
+**⚠️ TEMPORARY DOCUMENTATION FOR REMOVAL PLANNING** - This section documents how conditional functionality (SchemaConditionTag, IfElse processing) is integrated with the Map component to understand the complexity of removal.
+
+### Conditional Type Integration
+
+The Map component system has deep integration with conditional schema tags:
+
+- **`MapTreeCondition`**: Extended type that wraps `SchemaConditionTag` with `inherited?: boolean` flag
+- **`MapTreeItem`**: Union type that includes `MapTreeCondition` alongside rooms and exits
+- **`MapTreeSchemaTags`**: Includes all conditional types: `SchemaConditionTag`, `SchemaConditionStatementTag`, `SchemaConditionFallthroughTag`
+
+### Controller-Level Conditional Processing
+
+The MapController processes conditionals in several critical ways:
+
+1. **Tree Filtering**: `isMapContents` type guard includes all conditional types as valid map content
+2. **Room Extraction**: `extractRoomsHelper` recursively processes conditional nodes to find selected sub-items
+3. **Position Management**: Conditionals can contain rooms with positions that need to be extracted and managed
+4. **Tree Reordering**: The `combinedTree` reordering logic specifically handles `If`, `Statement`, and `Fallthrough` tags
+
+### D3.js Layer Integration
+
+Conditionals create additional D3.js layers that complicate the visualization system:
+
+1. **Nested Layer Creation**: Each conditional statement creates a new D3 layer with its own visibility state
+2. **Visibility Propagation**: Conditional layers inherit visibility from parent layers and can override it
+3. **Change Handling**: Each conditional sub-tree gets its own `onChange` handler for nested updates
+4. **Position Inheritance**: Conditional layers can inherit positions from previous layers
+
+### UI Layer Integration
+
+The MapLayers component deeply integrates conditional display:
+
+1. **Conditional Rendering**: `ConditionLayer` component displays conditional logic with expandable UI
+2. **IfElseTree Integration**: Uses `IfElseTree` from Library system for conditional editing
+3. **AddIfButton**: Allows users to add new conditional blocks to maps
+4. **Recursive Processing**: `MapItemLayer` recursively processes conditional children
+
+### Data Flow Complexity
+
+Removing conditionals affects multiple data flow paths:
+
+1. **Tree Structure**: Conditionals create nested tree structures that affect room positioning
+2. **Layer Visibility**: Conditional layers control which rooms are visible in the D3 simulation
+3. **Position Updates**: Changes in conditional selection affect room positioning and D3 force simulation
+4. **State Synchronization**: Conditional state must be synchronized between UI, D3, and data layers
+
+### Removal Complexity Assessment
+
+The conditional functionality is deeply embedded in:
+
+- **Type System**: Core type definitions include conditional types
+- **Tree Processing**: Room extraction and positioning logic handles conditional nesting
+- **D3.js System**: Layer management and visibility control depend on conditional structure
+- **UI Components**: Multiple components render and edit conditional logic
+- **State Management**: Position updates and tree changes flow through conditional processing
+
+**Removal Impact**: Removing conditionals requires refactoring the entire tree processing pipeline, D3.js layer system, and UI rendering logic to handle the simplified tree structure without conditional nesting.

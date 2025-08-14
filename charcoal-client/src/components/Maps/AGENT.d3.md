@@ -244,3 +244,55 @@ MapDThree/
 - **Alpha Decay**: Simulation convergence tuning
 - **Node Filtering**: Efficient handling of visible/invisible nodes
 - **Change Detection**: Incremental updates for performance
+
+## TEMPORARY FINDINGS: Conditional D3.js Layer Complexity
+
+**⚠️ TEMPORARY DOCUMENTATION FOR REMOVAL PLANNING** - This section documents how conditional functionality creates additional D3.js layers and complicates the visualization system.
+
+### Conditional Layer Creation in D3.js
+
+The D3.js system creates additional layers for each conditional statement, significantly complicating the layer management:
+
+1. **Nested Layer Generation**: Each `SchemaConditionTag` creates a new D3 layer with its own visibility state
+2. **Recursive Layer Processing**: `mapTreeTranslate` recursively processes conditional children, creating nested simulation trees
+3. **Visibility Inheritance**: Conditional layers inherit visibility from parent layers and can override it based on `selected` state
+4. **Change Handler Nesting**: Each conditional sub-tree gets its own `onChange` handler for nested updates
+
+### MapDThreeTree Conditional Integration
+
+The `MapDThreeTree` class has deep integration with conditional processing:
+
+1. **Conditional Node Detection**: `treeNodeTypeguard(isSchemaCondition)` identifies conditional nodes for special processing
+2. **Nested Change Handling**: Creates `nestedOnChange` functions that map changes to specific conditional sub-trees
+3. **Visibility Propagation**: Conditional visibility affects which rooms and exits are included in the D3 simulation
+4. **Layer Key Generation**: Conditional layers get unique keys like `parentId::(condition)` or `parentId::[fallthrough]`
+
+### Simulation Tree Translation Complexity
+
+The `mapTreeTranslate` function handles conditional complexity:
+
+1. **Conditional Branching**: When a conditional node is encountered, it processes all children (If, ElseIf, Else)
+2. **Visibility Calculation**: Each conditional branch's visibility depends on parent visibility AND the `selected` state
+3. **Recursive Processing**: Conditional children are recursively processed through `mapTreeTranslate`
+4. **Position Inheritance**: Conditional layers can inherit positions from previous layers in the cascade
+
+### D3.js Force Simulation Impact
+
+Conditionals affect the force simulation system in multiple ways:
+
+1. **Layer Visibility Control**: Conditional layers control which rooms participate in force calculations
+2. **Position Inheritance**: Rooms in conditional layers can inherit positions from parent layers
+3. **Change Propagation**: Updates to conditional selection affect the entire force simulation
+4. **Stability Detection**: Conditional layer changes can trigger simulation restarts
+
+### Removal Complexity in D3.js System
+
+Removing conditionals from the D3.js system requires:
+
+1. **Layer Simplification**: Remove conditional layer creation and nested simulation trees
+2. **Visibility Logic**: Simplify layer visibility to only consider asset inheritance, not conditional selection
+3. **Change Handling**: Remove nested change handlers and conditional sub-tree processing
+4. **Position Inheritance**: Simplify position inheritance to only consider asset layer relationships
+5. **Tree Processing**: Remove conditional node detection and special processing in `mapTreeTranslate`
+
+**D3.js Removal Impact**: The conditional functionality is deeply embedded in the D3.js layer system, requiring refactoring of the entire simulation tree translation, layer management, and force simulation logic to handle simplified tree structures without conditional nesting.
