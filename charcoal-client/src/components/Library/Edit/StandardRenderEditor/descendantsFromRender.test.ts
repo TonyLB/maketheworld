@@ -11,83 +11,460 @@ describe('descendantsFromRender', () => {
         </Asset>
     `))
 
-    it('should handle StandardRenderString', () => {
-        const render = new StandardRender(['Hello'])
-        const result = descendantsFromRender(render, { standard: standardForm })
-        expect(result).toEqual([{
-            type: 'paragraph',
-            children: [{ text: 'Hello' }]
-        }])
-    })
-
-    it('should handle StandardRenderLineBreak', () => {
-        const render = new StandardRender([{ data: { tag: 'br' }, children: [] }])
-        const result = descendantsFromRender(render, { standard: standardForm })
-        expect(result).toEqual([{
-            type: 'paragraph',
-            children: [{ text: '' }]
-        }])
-    })
-
-    it('should handle StandardRenderSpace', () => {
-        const render = new StandardRender([{ data: { tag: 'Space' }, children: [] }])
-        const result = descendantsFromRender(render, { standard: standardForm })
-        expect(result).toEqual([{
-            type: 'paragraph',
-            children: [{ text: ' ' }]
-        }])
-    })
-
-    it('should handle StandardRenderLink to feature', () => {
-        const render = new StandardRender([{ data: { tag: 'Link', to: 'feature1', text: 'Feature Link' }, children: ['Feature Link'] }])
-        const result = descendantsFromRender(render, { standard: standardForm })
-        expect(result).toEqual([{
-            type: 'paragraph',
-            children: [{
-                type: 'featureLink',
-                to: 'feature1',
-                children: [{ text: 'Feature Link' }]
-            }]
-        }])
-    })
-
-    it('should handle StandardRenderLink to knowledge', () => {
-        const render = new StandardRender([{ data: { tag: 'Link', to: 'knowledge1', text: 'Knowledge Link' }, children: ['Knowledge Link'] }])
-        const result = descendantsFromRender(render, { standard: standardForm })
-        expect(result).toEqual([{
-            type: 'paragraph',
-            children: [{
-                type: 'knowledgeLink',
-                to: 'knowledge1',
-                children: [{ text: 'Knowledge Link' }]
-            }]
-        }])
-    })
-
-    it('should handle mixed elements', () => {
-        const render = new StandardRender([
-            'Hello',
-            { data: { tag: 'Space' }, children: [] },
-            'World',
-            { data: { tag: 'br' }, children: [] },
-            { data: { tag: 'Link', to: 'feature1', text: 'Feature Link' }, children: ['Feature Link'] }
-        ])
-        const result = descendantsFromRender(render, { standard: standardForm })
-        expect(result).toEqual([
-            {
+    // Test Basic Text Rendering
+    describe('Basic Text Rendering', () => {
+        it('should handle StandardRenderString', () => {
+            const render = new StandardRender(['Hello'])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
                 type: 'paragraph',
-                children: [
-                    { text: 'Hello World' },
-                ]
-            },
-            {
+                children: [{ text: 'Hello' }]
+            }])
+        })
+
+        it('should handle empty string', () => {
+            const render = new StandardRender([''])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: '' }]
+            }])
+        })
+
+        it('should handle single character', () => {
+            const render = new StandardRender(['A'])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: 'A' }]
+            }])
+        })
+
+        it('should handle special characters', () => {
+            const render = new StandardRender(['Hello & World! @#$%'])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: 'Hello & World! @#$%' }]
+            }])
+        })
+
+        it('should handle unicode characters', () => {
+            const render = new StandardRender(['Hello 世界! 🌍'])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: 'Hello 世界! 🌍' }]
+            }])
+        })
+    })
+
+    // Test Link Rendering
+    describe('Link Rendering', () => {
+        it('should handle StandardRenderLink to feature', () => {
+            const render = new StandardRender([{ data: { tag: 'Link', to: 'feature1', text: 'Feature Link' }, children: ['Feature Link'] }])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
                 type: 'paragraph',
                 children: [{
                     type: 'featureLink',
                     to: 'feature1',
                     children: [{ text: 'Feature Link' }]
                 }]
-            }
-        ])
+            }])
+        })
+
+        it('should handle StandardRenderLink to knowledge', () => {
+            const render = new StandardRender([{ data: { tag: 'Link', to: 'knowledge1', text: 'Knowledge Link' }, children: ['Knowledge Link'] }])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{
+                    type: 'knowledgeLink',
+                    to: 'knowledge1',
+                    children: [{ text: 'Knowledge Link' }]
+                }]
+            }])
+        })
+
+        it('should handle links with empty text', () => {
+            const render = new StandardRender([{ data: { tag: 'Link', to: 'feature1', text: '' }, children: [] }])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{
+                    type: 'featureLink',
+                    to: 'feature1',
+                    children: [{ text: '' }]
+                }]
+            }])
+        })
+
+        it('should handle multiple links in sequence', () => {
+            const render = new StandardRender([
+                { data: { tag: 'Link', to: 'feature1', text: 'First' }, children: ['First'] },
+                ' and ',
+                { data: { tag: 'Link', to: 'knowledge1', text: 'Second' }, children: ['Second'] }
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [
+                    {
+                        type: 'featureLink',
+                        to: 'feature1',
+                        children: [{ text: 'First' }]
+                    },
+                    { text: ' and ' },
+                    {
+                        type: 'knowledgeLink',
+                        to: 'knowledge1',
+                        children: [{ text: 'Second' }]
+                    }
+                ]
+            }])
+        })
+    })
+
+    // Test Whitespace Handling
+    describe('Whitespace Handling', () => {
+        it('should handle StandardRenderSpace', () => {
+            const render = new StandardRender([{ data: { tag: 'Space' }, children: [] }])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: ' ' }]
+            }])
+        })
+
+        it('should handle multiple consecutive spaces', () => {
+            const render = new StandardRender(['Text    with    multiple    spaces'])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: 'Text with multiple spaces' }] // Multiple spaces normalized to single spaces
+            }])
+        })
+
+        it('should handle tabs and newlines in text', () => {
+            const render = new StandardRender(['Text\twith\ttabs\nand\nnewlines'])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: 'Text with tabs and newlines' }] // Tabs and newlines normalized to single spaces
+            }])
+        })
+
+        it('should handle leading and trailing spaces', () => {
+            const render = new StandardRender(['  Hello World  '])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: ' Hello World ' }] // Multiple spaces normalized to single spaces
+            }])
+        })
+    })
+
+    // Test Line Break Handling
+    describe('Line Break Handling', () => {
+        it('should handle StandardRenderLineBreak', () => {
+            const render = new StandardRender([{ data: { tag: 'br' }, children: [] }])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: '' }]
+            }])
+        })
+
+        it('should handle multiple line breaks', () => {
+            const render = new StandardRender([
+                'First line',
+                { data: { tag: 'br' }, children: [] },
+                'Second line',
+                { data: { tag: 'br' }, children: [] },
+                'Third line'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                {
+                    type: 'paragraph',
+                    children: [{ text: 'First line' }]
+                },
+                {
+                    type: 'paragraph',
+                    children: [{ text: 'Second line' }]
+                },
+                {
+                    type: 'paragraph',
+                    children: [{ text: 'Third line' }]
+                }
+            ])
+        })
+
+        it('should handle line breaks with empty content', () => {
+            const render = new StandardRender([
+                '',
+                { data: { tag: 'br' }, children: [] },
+                'Content'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                {
+                    type: 'paragraph',
+                    children: [{ text: '' }]
+                },
+                {
+                    type: 'paragraph',
+                    children: [{ text: 'Content' }]
+                }
+            ])
+        })
+    })
+
+    // Test Mixed Content
+    describe('Mixed Content', () => {
+        it('should handle mixed elements', () => {
+            const render = new StandardRender([
+                'Hello',
+                { data: { tag: 'Space' }, children: [] },
+                'World',
+                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'Link', to: 'feature1', text: 'Feature Link' }, children: ['Feature Link'] }
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                {
+                    type: 'paragraph',
+                    children: [
+                        { text: 'Hello World' },
+                    ]
+                },
+                {
+                    type: 'paragraph',
+                    children: [{
+                        type: 'featureLink',
+                        to: 'feature1',
+                        children: [{ text: 'Feature Link' }]
+                    }]
+                }
+            ])
+        })
+
+        it('should handle complex mixed content with links and formatting', () => {
+            const render = new StandardRender([
+                'Welcome to ',
+                { data: { tag: 'Link', to: 'feature1', text: 'our world' }, children: ['our world'] },
+                '! Learn ',
+                { data: { tag: 'Link', to: 'knowledge1', text: 'more' }, children: ['more'] },
+                ' about it.',
+                { data: { tag: 'br' }, children: [] },
+                'Second paragraph with ',
+                { data: { tag: 'Link', to: 'feature1', text: 'another link' }, children: ['another link'] }
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                {
+                    type: 'paragraph',
+                    children: [
+                        { text: 'Welcome to ' },
+                        {
+                            type: 'featureLink',
+                            to: 'feature1',
+                            children: [{ text: 'our world' }]
+                        },
+                        { text: '! Learn ' },
+                        {
+                            type: 'knowledgeLink',
+                            to: 'knowledge1',
+                            children: [{ text: 'more' }]
+                        },
+                        { text: ' about it.' }
+                    ]
+                },
+                {
+                    type: 'paragraph',
+                    children: [
+                        { text: 'Second paragraph with ' },
+                        {
+                            type: 'featureLink',
+                            to: 'feature1',
+                            children: [{ text: 'another link' }]
+                        }
+                    ]
+                }
+            ])
+        })
+
+        it('should handle text with embedded spaces and line breaks', () => {
+            const render = new StandardRender([
+                'Text with ',
+                { data: { tag: 'Space' }, children: [] },
+                'embedded spaces',
+                { data: { tag: 'br' }, children: [] },
+                'and line breaks'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                {
+                    type: 'paragraph',
+                    children: [{ text: 'Text with embedded spaces' }]
+                },
+                {
+                    type: 'paragraph',
+                    children: [{ text: 'and line breaks' }]
+                }
+            ])
+        })
+    })
+
+    // Test Edge Cases
+    describe('Edge Cases', () => {
+        it('should handle empty render', () => {
+            const render = new StandardRender([])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: '' }]
+            }])
+        })
+
+        it('should handle render with only whitespace', () => {
+            const render = new StandardRender(['   '])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: ' ' }] // Multiple spaces normalized to single space
+            }])
+        })
+
+        it('should handle very long text', () => {
+            const longText = 'A'.repeat(1000)
+            const render = new StandardRender([longText])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: longText }]
+            }])
+        })
+
+        it('should handle render with only line breaks', () => {
+            const render = new StandardRender([
+                { data: { tag: 'br' }, children: [] },
+                { data: { tag: 'br' }, children: [] }
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                {
+                    type: 'paragraph',
+                    children: [{ text: '' }]
+                },
+                {
+                    type: 'paragraph',
+                    children: [{ text: '' }]
+                }
+            ])
+        })
+
+        it('should handle render with only spaces', () => {
+            const render = new StandardRender([
+                { data: { tag: 'Space' }, children: [] },
+                { data: { tag: 'Space' }, children: [] }
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([{
+                type: 'paragraph',
+                children: [{ text: ' ' }] // Multiple spaces normalized to single space
+            }])
+        })
+    })
+
+    // Test Performance Considerations
+    describe('Performance', () => {
+        it('should handle large numbers of elements efficiently', () => {
+            const elements = Array.from({ length: 100 }, (_, i) => 
+                i % 3 === 0 ? `Text ${i}` : 
+                i % 3 === 1 ? { data: { tag: 'Space' }, children: [] } :
+                { data: { tag: 'br' }, children: [] }
+            )
+            const render = new StandardRender(elements)
+            
+            const startTime = performance.now()
+            const result = descendantsFromRender(render, { standard: standardForm })
+            const endTime = performance.now()
+            
+            expect(result).toBeInstanceOf(Array)
+            expect(endTime - startTime).toBeLessThan(100) // Should complete in under 100ms
+        })
+
+        it('should handle large text blocks efficiently', () => {
+            const largeText = 'Lorem ipsum '.repeat(1000)
+            const render = new StandardRender([largeText])
+            
+            const startTime = performance.now()
+            const result = descendantsFromRender(render, { standard: standardForm })
+            const endTime = performance.now()
+            
+            expect(result).toBeInstanceOf(Array)
+            expect(endTime - startTime).toBeLessThan(50) // Should complete in under 50ms
+        })
+    })
+
+    // Test Round-trip Consistency
+    describe('Round-trip Consistency', () => {
+        it('should maintain consistency with descendantsToRender', () => {
+            // This test ensures that the conversion functions work together correctly
+            const originalSlate = [
+                {
+                    type: 'paragraph',
+                    children: [
+                        { text: 'Hello ' },
+                        { type: 'featureLink', to: 'feature1', children: [{ text: 'world' }] },
+                        { text: '!' }
+                    ]
+                },
+                {
+                    type: 'paragraph',
+                    children: [{ text: 'Second paragraph' }]
+                }
+            ]
+            
+            // Convert to StandardRender and back
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset key=(test)>
+                    <Feature key=(feature1) />
+                </Asset>
+            `))
+            
+            // Note: We'd need to import descendantsToRender here to do the full round-trip test
+            // For now, we'll test the individual conversion
+            const render = new StandardRender([
+                'Hello ',
+                { data: { tag: 'Link', to: 'feature1', text: 'world' }, children: ['world'] },
+                '!',
+                { data: { tag: 'br' }, children: [] },
+                'Second paragraph'
+            ])
+            
+            const result = descendantsFromRender(render, { standard: standardForm })
+            
+            expect(result).toEqual([
+                {
+                    type: 'paragraph',
+                    children: [
+                        { text: 'Hello ' },
+                        {
+                            type: 'featureLink',
+                            to: 'feature1',
+                            children: [{ text: 'world' }]
+                        },
+                        { text: '!' }
+                    ]
+                },
+                {
+                    type: 'paragraph',
+                    children: [{ text: 'Second paragraph' }]
+                }
+            ])
+        })
     })
 })

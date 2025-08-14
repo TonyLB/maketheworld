@@ -1,12 +1,10 @@
-import React, { FunctionComponent, useCallback, useMemo } from 'react'
-import { pink, blue } from '@mui/material/colors'
-import { SlateIndentBox } from '../LabelledIndentBox'
-import InlineChromiumBugfix from '../../../lib/slateUtils/InlineChromiumBugfix'
+import React, { FunctionComponent } from 'react'
+import { blue } from '@mui/material/colors'
+import InlineChromiumBugfix from '../../../../lib/slateUtils'
 import { RenderElementProps, RenderLeafProps, useSlate } from 'slate-react'
 import { DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
 
 import Box from '@mui/material/Box'
-import ReplaceIcon from '@mui/icons-material/Backspace'
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn'
 import MoreIcon from '@mui/icons-material/More'
 import {
@@ -17,13 +15,7 @@ import {
     Range,
     Transforms
 } from 'slate'
-import { isCustomBlock, isCustomIfWrapper, isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
-import IfElseTree from '../IfElseTree'
-import { EditSchema } from '../EditContext'
-import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
-import { isSchemaCondition } from '@tonylb/mtw-base/ts/schema/condition'
-import produce, { Draft } from 'immer'
+import { isCustomParagraph, isCustomParagraphContents, isCustomText } from '../baseClasses'
 
 export const Element: FunctionComponent<RenderElementProps> = (props) => {
     const { attributes, children, element } = props

@@ -144,6 +144,62 @@ it('calls useDebouncedOnChange hook with correct parameters', () => {
 })
 ```
 
+## UserEvent Integration Testing Patterns
+
+**For comprehensive userEvent testing patterns and development roadmap, see [AGENT.testing.userevent.md](./AGENT.testing.userevent.md)**
+
+**⚠️ Critical Discovery**: JSDOM limitations prevent reliable userEvent.type() testing with Slate editors. See [Known Limitations and Future Investigations](#known-limitations-and-future-investigations) for details and the [slate-test-utils investigation backlog](#backlog-investigate-slate-test-utils).
+
+This includes:
+- **JSDOM Limitations** - Why userEvent.type() doesn't work with Slate editors
+- **Alternative Approaches** - slate-test-utils and direct Slate API testing
+- **Limited userEvent Usage** - What operations still work (click, focus, etc.)
+- **Hybrid Testing Strategy** - Combining working userEvent + Slate-specific tools
+- **Implementation Roadmap** - Revised approach focusing on alternative testing methods
+
+The userEvent testing patterns are substantial enough to warrant their own dedicated documentation file, especially given the current integration test needs in StandardRenderEditor and the JSDOM limitations we've discovered.
+
+## Known Limitations and Future Investigations
+
+### **JSDOM Limitations with Slate Editors**
+
+**Status**: Identified but not resolved - requires investigation of alternative testing approaches
+
+**Problem**: JSDOM (used by React Testing Library and Jest/Vitest) does not fully support `contenteditable` or the `beforeinput` event that Slate heavily utilizes for its internal logic.
+
+**Impact**: 
+- Standard `userEvent.type()` calls hang/timeout when testing Slate editors
+- Tests cannot reliably simulate realistic user typing interactions
+- Integration testing of rich text editor workflows is limited
+
+**Evidence**: 
+- Tests in `StandardRenderEditor/index.test.tsx` consistently timeout when attempting userEvent interactions
+- This is not an implementation issue but an environment limitation
+- Multiple attempts to work around the limitation were unsuccessful
+
+**Current Workaround**: 
+- Focus on testing component rendering, props, and state changes
+- Avoid userEvent interactions that depend on Slate's contenteditable logic
+- Use direct component prop testing and state verification
+
+### **Backlog: Investigate slate-test-utils**
+
+**Priority**: Medium - investigate when time permits, not blocking current development
+
+**Goal**: Evaluate whether `slate-test-utils` can provide better testing support for Slate editors than userEvent in JSDOM
+
+**Research Questions**:
+1. Does `slate-test-utils` work with our Vitest setup?
+2. Can it simulate user interactions more reliably than userEvent?
+3. Does it provide utilities for testing Slate-specific features (links, formatting)?
+4. How does it integrate with React Testing Library?
+
+**Expected Outcome**: Either adoption of slate-test-utils for Slate testing, or confirmation that we need to develop alternative testing strategies
+
+**Dependencies**: None - can be investigated independently
+
+**Estimated Effort**: 2-4 hours for initial investigation and proof-of-concept
+
 ## Troubleshooting Common Issues
 
 ### **"document is not defined" Error**
@@ -157,6 +213,10 @@ it('calls useDebouncedOnChange hook with correct parameters', () => {
 ### **Material-UI Components Not Rendering**
 **Cause**: Missing theme provider
 **Solution**: Wrap components in `TestWrapper` with Material-UI theme
+
+### **UserEvent Import Issues**
+**Cause**: Import path or configuration problems
+**Solution**: Verify package installation and import syntax
 
 ## Test File Naming Conventions
 
@@ -172,6 +232,20 @@ ComponentName/
 └── AGENT.md               # Documentation
 ```
 
+## Slate Editor Testing
+
+**For comprehensive Slate editor testing patterns, see [AGENT.testing.slate.md](./AGENT.testing.slate.md)**
+
+This includes:
+- **Slate Component Testing Setup** - Test wrappers, Material-UI integration
+- **Element Component Testing** - Feature links, knowledge links, paragraphs
+- **Leaf Component Testing** - Highlight boxes, attributes, conditional rendering
+- **Editor Plugin Testing** - withParagraphBR, withInlines, etc.
+- **Decorator Function Testing** - Space detection, path structures
+- **Common Pitfalls & Solutions** - Troubleshooting guide
+
+The Slate testing patterns are substantial enough to warrant their own dedicated documentation file.
+
 ## Integration with Project Standards
 
 ### **Cross-Reference with Project AGENT.md**
@@ -181,3 +255,5 @@ ComponentName/
 ---
 
 **Note**: This is a **PROVISIONAL DRAFT** of evolving testing standards. As we discover better patterns and practices, this document should be updated to reflect our collective learning and establish consistent testing approaches across the client codebase.
+
+**Next Priority**: Develop comprehensive userEvent testing patterns to support the StandardRenderEditor integration tests and establish consistent user interaction testing across the client codebase.

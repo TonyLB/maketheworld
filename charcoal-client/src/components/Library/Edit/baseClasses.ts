@@ -55,14 +55,7 @@ export type CustomIfWrapper = {
     position: number;
 }
 
-//
-// CustomNewIfWrapper can only be created by the AddIf button, and is immediately
-// processed by onChange into a CustomIfWrapper
-//
-export type CustomNewIfWrapper = {
-    type: 'newIfWrapper';
-    children: CustomParagraphContents[];
-}
+
 
 export type CustomExitBlock = {
     type: 'exit';
@@ -72,7 +65,7 @@ export type CustomExitBlock = {
     children: CustomText[];
 }
 
-export type CustomParagraphContents = CustomText | EmptyText | CustomFeatureLinkElement | CustomKnowledgeLinkElement | CustomLineBreak | CustomReplaceBlock | CustomIfWrapper | CustomNewIfWrapper
+export type CustomParagraphContents = CustomText | EmptyText | CustomFeatureLinkElement | CustomKnowledgeLinkElement | CustomLineBreak | CustomReplaceBlock | CustomIfWrapper
 
 export const isCustomLineBreak = (item: CustomParagraphContents): item is CustomLineBreak => ('type' in item && item.type === 'lineBreak')
 
@@ -84,7 +77,6 @@ export const isCustomReplaceBlock = (item: CustomParagraphContents): item is Cus
 export const isCustomParagraph = (item: CustomElement): item is CustomParagraphElement => ('type' in item && item.type === 'paragraph')
 export const isCustomInherited = (item: CustomElement): item is CustomInheritedReadOnlyElement => ('type' in item && item.type === 'inherited')
 export const isCustomIfWrapper = (item: CustomBlock | CustomParagraphContents): item is CustomIfWrapper => ('type' in item && item.type === 'ifWrapper')
-export const isCustomNewIfWrapper = (item: CustomBlock | CustomParagraphContents): item is CustomNewIfWrapper => ('type' in item && item.type === 'newIfWrapper')
 // export const isCustomIfBlock = (item: CustomBlock | CustomParagraphContents): item is CustomIfBlock => ('type' in item && item.type === 'ifBase')
 // export const isCustomElseIfBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseIfBlock => ('type' in item && item.type === 'elseif')
 // export const isCustomElseBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseBlock => ('type' in item && item.type === 'else')
@@ -103,15 +95,13 @@ type CustomElement = CustomLineElement |
     CustomParagraphElement |
     CustomInheritedReadOnlyElement |
     CustomReplaceBlock |
-    CustomIfWrapper |
-    CustomNewIfWrapper
+    CustomIfWrapper
 
 export type CustomBlock = CustomParagraphElement |
     CustomInheritedReadOnlyElement |
-    CustomIfWrapper |
-    CustomNewIfWrapper
+    CustomIfWrapper
 
-export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'inherited', 'replace', 'exit', 'ifWrapper', 'newIfWrapper'].includes(item.type))
+export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'inherited', 'replace', 'exit', 'ifWrapper'].includes(item.type))
 
 declare module 'slate' {
     interface CustomTypes {
