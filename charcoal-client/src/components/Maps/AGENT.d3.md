@@ -245,152 +245,26 @@ MapDThree/
 - **Node Filtering**: Efficient handling of visible/invisible nodes
 - **Change Detection**: Incremental updates for performance
 
-## TEMPORARY FINDINGS: Conditional D3.js Layer Complexity
+## Migration Planning
 
-**⚠️ TEMPORARY DOCUMENTATION FOR REMOVAL PLANNING** - This section documents how conditional functionality creates additional D3.js layers and complicates the visualization system.
+**⚠️ MIGRATION IN PROGRESS** - The D3.js subsystem is undergoing a system-wide refactor to remove both the Conditional system and the Visibility system. See [`AGENT.planning.md`](AGENT.planning.md) for detailed planning and implementation details.
 
-### Conditional Layer Creation in D3.js
+### What's Being Removed
 
-The D3.js system creates additional layers for each conditional statement, significantly complicating the layer management:
+- **Conditional System**: All `SchemaConditionTag`, `SchemaConditionStatementTag`, and `SchemaConditionFallthroughTag` functionality
+- **Visibility System**: D3.js visibility filtering, layer visibility tracking, and conditional visibility logic
 
-1. **Nested Layer Generation**: Each `SchemaConditionTag` creates a new D3 layer with its own visibility state
-2. **Recursive Layer Processing**: `mapTreeTranslate` recursively processes conditional children, creating nested simulation trees
-3. **Visibility Inheritance**: Conditional layers inherit visibility from parent layers and can override it based on `selected` state
-4. **Change Handler Nesting**: Each conditional sub-tree gets its own `onChange` handler for nested updates
+### Expected Outcome
 
-### MapDThreeTree Conditional Integration
+- **Simplified Layer Structure**: Linear asset inheritance layers without conditional branching
+- **Cleaner Force Simulation**: All layers always visible, simpler force calculations
+- **Reduced Complexity**: Eliminate nested simulation trees and visibility state management
+- **Better Performance**: Remove visibility filtering overhead and conditional processing
 
-The `MapDThreeTree` class has deep integration with conditional processing:
+### Current Status
 
-1. **Conditional Node Detection**: `treeNodeTypeguard(isSchemaCondition)` identifies conditional nodes for special processing
-2. **Nested Change Handling**: Creates `nestedOnChange` functions that map changes to specific conditional sub-trees
-3. **Visibility Propagation**: Conditional visibility affects which rooms and exits are included in the D3 simulation
-4. **Layer Key Generation**: Conditional layers get unique keys like `parentId::(condition)` or `parentId::[fallthrough]`
+- **Planning Phase**: Migration planning document created and under review
+- **Implementation**: Awaiting planning approval and implementation timeline
+- **Documentation**: This section will be updated as migration progresses
 
-### Simulation Tree Translation Complexity
 
-The `mapTreeTranslate` function handles conditional complexity:
-
-1. **Conditional Branching**: When a conditional node is encountered, it processes all children (If, ElseIf, Else)
-2. **Visibility Calculation**: Each conditional branch's visibility depends on parent visibility AND the `selected` state
-3. **Recursive Processing**: Conditional children are recursively processed through `mapTreeTranslate`
-4. **Position Inheritance**: Conditional layers can inherit positions from previous layers in the cascade
-
-### D3.js Force Simulation Impact
-
-Conditionals affect the force simulation system in multiple ways:
-
-1. **Layer Visibility Control**: Conditional layers control which rooms participate in force calculations
-2. **Position Inheritance**: Rooms in conditional layers can inherit positions from parent layers
-3. **Change Propagation**: Updates to conditional selection affect the entire force simulation
-4. **Stability Detection**: Conditional layer changes can trigger simulation restarts
-
-### Removal Complexity in D3.js System
-
-Removing conditionals from the D3.js system requires:
-
-1. **Layer Simplification**: Remove conditional layer creation and nested simulation trees
-2. **Visibility Logic**: Simplify layer visibility to only consider asset inheritance, not conditional selection
-3. **Change Handling**: Remove nested change handlers and conditional sub-tree processing
-4. **Position Inheritance**: Simplify position inheritance to only consider asset layer relationships
-5. **Tree Processing**: Remove conditional node detection and special processing in `mapTreeTranslate`
-
-**D3.js Removal Impact**: The conditional functionality is deeply embedded in the D3.js layer system, requiring refactoring of the entire simulation tree translation, layer management, and force simulation logic to handle simplified tree structures without conditional nesting.
-
-## TEMPORARY FINDINGS: D3.js Visibility System Complexity
-
-**⚠️ TEMPORARY DOCUMENTATION FOR REMOVAL PLANNING** - This section documents the D3.js visibility system's current implementation and assesses its value after conditional removal.
-
-### D3.js Visibility System Architecture
-
-The D3.js system implements a sophisticated visibility system that operates at multiple levels:
-
-1. **SimulationTreeNode Visibility**:
-   - Each `SimulationTreeNode` includes a `visible: boolean` property
-   - Visibility state affects whether the node participates in force simulation
-   - Visibility is inherited and can be overridden by child nodes
-
-2. **Layer-Level Visibility Tracking**:
-   - `MapDThreeTree._visibleLayers` array tracks which layers are currently visible
-   - `getNodes(layers: number[])` method filters nodes based on visible layer indices
-   - `get nodes` getter only returns nodes from `_visibleLayers`
-
-3. **Visibility State Propagation**:
-   - `mapDFSWalk` processes visibility state during tree traversal
-   - `parentVisible` state tracks visibility inheritance from parent layers
-   - Visibility changes trigger updates to `_visibleLayers` array
-
-### Conditional-Dependent Visibility Logic
-
-The D3.js visibility system is deeply intertwined with conditional processing:
-
-1. **Conditional Layer Creation**: Each conditional statement creates a new D3 layer with its own visibility state
-2. **Complex Visibility Calculation**: Conditional visibility depends on both parent visibility AND `selected` state
-3. **Nested Visibility Inheritance**: Conditional children inherit visibility from parent layers and can override it
-4. **Dynamic Layer Filtering**: `_visibleLayers` array changes based on conditional selection changes
-
-### Post-Conditional Visibility Simplification
-
-After removing conditionals, the D3.js visibility system would handle a much simpler structure:
-
-1. **Linear Ancestry Layers**: Only asset inheritance layers (non-branching tree)
-2. **Single Editable Layer**: One layer for the current asset being edited
-3. **Simplified Visibility Logic**: No conditional selection state to consider
-4. **Reduced Layer Count**: Fewer layers mean simpler visibility management
-
-### D3.js Visibility System Value Assessment
-
-**Current Value (with conditionals)**:
-- **High Value**: Manages complex conditional layer visibility in force simulation
-- **Complex Logic**: Handles nested visibility inheritance and conditional overrides
-- **Dynamic Updates**: Responds to conditional selection changes with layer visibility updates
-
-**Post-Conditional Value**:
-- **Low Value**: Simple linear ancestry tree doesn't require complex visibility filtering
-- **Unnecessary Complexity**: Visibility filtering adds overhead without meaningful benefit
-- **Simplified Logic**: All layers would always be visible, eliminating need for filtering
-
-### D3.js Visibility Removal Impact
-
-**High Impact Areas for D3.js Visibility System Removal**:
-
-1. **SimulationTreeNode Type**:
-   - Remove `visible: boolean` property from `SimulationTreeNode`
-   - Simplify node creation in `mapTreeTranslate`
-   - Remove visibility logic from node processing
-
-2. **MapDThreeTree Class**:
-   - Remove `_visibleLayers: number[]` property
-   - Simplify `getNodes()` method to always return all layers
-   - Remove visibility state tracking from `update()` method
-
-3. **Tree Translation Logic**:
-   - Remove `visible` parameter from `mapTreeTranslate` function
-   - Simplify conditional processing to remove visibility inheritance
-   - Remove visibility state from `mapDFSWalk` processing
-
-4. **Force Simulation Integration**:
-   - Remove visibility filtering from force simulation nodes
-   - Simplify `get nodes` getter to always return all nodes
-   - Remove visibility-based simulation updates
-
-### D3.js Simplification Benefits
-
-Removing the visibility system from D3.js would provide:
-
-1. **Simplified Force Simulation**: All layers always participate in force calculations
-2. **Reduced State Management**: No need to track and update `_visibleLayers`
-3. **Cleaner Tree Processing**: Simpler `mapTreeTranslate` without visibility logic
-4. **Better Performance**: Eliminate visibility filtering overhead in `getNodes()`
-5. **Easier Debugging**: Simpler simulation state without visibility complexity
-
-### D3.js Architecture Simplification
-
-The post-conditional, post-visibility D3.js system would be:
-
-1. **Linear Layer Structure**: Simple array of asset inheritance layers
-2. **Always-Visible Layers**: All layers participate in force simulation
-3. **Simplified Tree Processing**: No conditional nesting or visibility inheritance
-4. **Cleaner Force Simulation**: Direct layer-to-layer force calculations
-
-**D3.js Conclusion**: The visibility system provides minimal value in a post-conditional world and removing it would significantly simplify the D3.js subsystem while maintaining all necessary functionality for the simplified linear ancestry tree structure. The force simulation would be cleaner and more predictable without visibility-based filtering.

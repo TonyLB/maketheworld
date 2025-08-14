@@ -205,153 +205,26 @@ Maps/
 - **Type Safety**: Complete migration to TypeScript with comprehensive type coverage
 - **Component Modernization**: Convert remaining legacy components to modern React patterns
 
-## TEMPORARY FINDINGS: Conditional Functionality Integration
+## Migration Planning
 
-**⚠️ TEMPORARY DOCUMENTATION FOR REMOVAL PLANNING** - This section documents how conditional functionality (SchemaConditionTag, IfElse processing) is integrated with the Map component to understand the complexity of removal.
+**⚠️ MIGRATION IN PROGRESS** - The Maps component is undergoing a system-wide refactor to remove both the Conditional system and the Visibility system. See [`AGENT.planning.md`](AGENT.planning.md) for detailed planning and implementation details.
 
-### Conditional Type Integration
+### What's Being Removed
 
-The Map component system has deep integration with conditional schema tags:
+- **Conditional System**: All `SchemaConditionTag`, `SchemaConditionStatementTag`, and `SchemaConditionFallthroughTag` functionality
+- **Visibility System**: Layer visibility controls, conditional visibility logic, and D3.js visibility filtering
 
-- **`MapTreeCondition`**: Extended type that wraps `SchemaConditionTag` with `inherited?: boolean` flag
-- **`MapTreeItem`**: Union type that includes `MapTreeCondition` alongside rooms and exits
-- **`MapTreeSchemaTags`**: Includes all conditional types: `SchemaConditionTag`, `SchemaConditionStatementTag`, `SchemaConditionFallthroughTag`
+### Expected Outcome
 
-### Controller-Level Conditional Processing
+- **Simplified Tree Structure**: Linear ancestry tree without conditional branching
+- **Cleaner D3.js System**: All layers always visible, simpler force simulation
+- **Reduced Complexity**: Eliminate nested change handlers and visibility state management
+- **Better Performance**: Remove visibility filtering overhead and conditional processing
 
-The MapController processes conditionals in several critical ways:
+### Current Status
 
-1. **Tree Filtering**: `isMapContents` type guard includes all conditional types as valid map content
-2. **Room Extraction**: `extractRoomsHelper` recursively processes conditional nodes to find selected sub-items
-3. **Position Management**: Conditionals can contain rooms with positions that need to be extracted and managed
-4. **Tree Reordering**: The `combinedTree` reordering logic specifically handles `If`, `Statement`, and `Fallthrough` tags
+- **Planning Phase**: Migration planning document created and under review
+- **Implementation**: Awaiting planning approval and implementation timeline
+- **Documentation**: This section will be updated as migration progresses
 
-### D3.js Layer Integration
 
-Conditionals create additional D3.js layers that complicate the visualization system:
-
-1. **Nested Layer Creation**: Each conditional statement creates a new D3 layer with its own visibility state
-2. **Visibility Propagation**: Conditional layers inherit visibility from parent layers and can override it
-3. **Change Handling**: Each conditional sub-tree gets its own `onChange` handler for nested updates
-4. **Position Inheritance**: Conditional layers can inherit positions from previous layers
-
-### UI Layer Integration
-
-The MapLayers component deeply integrates conditional display:
-
-1. **Conditional Rendering**: `ConditionLayer` component displays conditional logic with expandable UI
-2. **IfElseTree Integration**: Uses `IfElseTree` from Library system for conditional editing
-3. **AddIfButton**: Allows users to add new conditional blocks to maps
-4. **Recursive Processing**: `MapItemLayer` recursively processes conditional children
-
-### Data Flow Complexity
-
-Removing conditionals affects multiple data flow paths:
-
-1. **Tree Structure**: Conditionals create nested tree structures that affect room positioning
-2. **Layer Visibility**: Conditional layers control which rooms are visible in the D3 simulation
-3. **Position Updates**: Changes in conditional selection affect room positioning and D3 force simulation
-4. **State Synchronization**: Conditional state must be synchronized between UI, D3, and data layers
-
-### Removal Complexity Assessment
-
-The conditional functionality is deeply embedded in:
-
-- **Type System**: Core type definitions include conditional types
-- **Tree Processing**: Room extraction and positioning logic handles conditional nesting
-- **D3.js System**: Layer management and visibility control depend on conditional structure
-- **UI Components**: Multiple components render and edit conditional logic
-- **State Management**: Position updates and tree changes flow through conditional processing
-
-**Removal Impact**: Removing conditionals requires refactoring the entire tree processing pipeline, D3.js layer system, and UI rendering logic to handle the simplified tree structure without conditional nesting.
-
-## TEMPORARY FINDINGS: Visibility System Analysis
-
-**⚠️ TEMPORARY DOCUMENTATION FOR REMOVAL PLANNING** - This section documents the visibility system's current implementation and assesses its value after conditional removal.
-
-### Current Visibility System Implementation
-
-The Map component has a sophisticated visibility system that operates at multiple levels:
-
-1. **UI-Level Visibility Controls**: 
-   - `useMapStyles.ts` defines grid layouts with `visibilityControl` areas
-   - `MapLayers` component shows inherited vs. local content with visual indicators
-   - `inheritedInvisible` context flag controls icon coloring for inherited content
-
-2. **D3.js Layer Visibility**:
-   - `SimulationTreeNode` includes `visible: boolean` property
-   - `MapDThreeTree._visibleLayers` tracks which layers are currently visible
-   - `getNodes()` method filters nodes based on `_visibleLayers` array
-   - `mapDFSWalk` processes visibility state during tree traversal
-
-3. **Visibility Toggle Actions**:
-   - `MapDispatchToggleBranchVisibility` action type for toggling layer visibility
-   - `ToggleVisibility` case in MapController dispatches to Redux store
-   - Visibility state affects which layers participate in D3.js force simulation
-
-### Visibility System's Conditional Dependencies
-
-The current visibility system is deeply intertwined with conditional functionality:
-
-1. **Conditional Layer Creation**: Each conditional statement creates a new D3 layer with its own visibility state
-2. **Complex Visibility Logic**: Visibility depends on both parent layer visibility AND conditional selection state
-3. **Nested Visibility Propagation**: Conditional children inherit visibility from parent layers and can override it
-4. **Dynamic Layer Filtering**: `_visibleLayers` array changes based on conditional selection changes
-
-### Post-Conditional Removal Visibility Complexity
-
-After removing conditionals, the visibility system would handle a much simpler structure:
-
-1. **Linear Ancestry Tree**: Only asset inheritance layers (non-branching tree)
-2. **Single Editable Layer**: One layer for the current asset being edited
-3. **Simplified Visibility Logic**: No conditional selection state to consider
-4. **Reduced Layer Count**: Fewer layers mean simpler visibility management
-
-### Visibility System Value Assessment
-
-**Current Value (with conditionals)**:
-- **High Value**: Allows editors to manage complex conditional layer trees
-- **Complex UI**: Provides visibility controls for arbitrary conditional complexity
-- **Flexible Editing**: Supports editing scenarios with many conditional branches
-
-**Post-Conditional Value**:
-- **Low Value**: Simple linear ancestry tree doesn't require complex visibility controls
-- **UI Simplification**: No need for expandable conditional branches or visibility toggles
-- **Reduced Complexity**: Fewer layers mean visibility controls provide minimal benefit
-
-### Removal Impact Assessment
-
-**High Impact Areas for Visibility System Removal**:
-
-1. **UI Components**:
-   - Remove `visibilityControl` grid areas from `useMapStyles.ts`
-   - Simplify `MapLayers` component to remove visibility toggle controls
-   - Remove `inheritedInvisible` context and related icon coloring logic
-
-2. **D3.js System**:
-   - Simplify `SimulationTreeNode` to remove `visible` property
-   - Remove `_visibleLayers` tracking from `MapDThreeTree`
-   - Simplify `getNodes()` to always return all layers
-   - Remove visibility logic from `mapDFSWalk`
-
-3. **State Management**:
-   - Remove `MapDispatchToggleBranchVisibility` action type
-   - Remove `ToggleVisibility` case from MapController
-   - Remove visibility-related Redux state management
-
-4. **Type System**:
-   - Remove `visible` property from `SimulationTreeNode`
-   - Remove `roomVisibility` from `MapDThreeIterator`
-   - Simplify visibility-related type definitions
-
-### Simplification Benefits
-
-Removing the visibility system along with conditionals would provide:
-
-1. **Reduced Complexity**: Eliminate complex visibility state management
-2. **Simplified D3.js Logic**: Remove visibility filtering from force simulation
-3. **Cleaner UI**: Remove visibility control UI elements and related styling
-4. **Better Performance**: Eliminate visibility-based node filtering overhead
-5. **Easier Maintenance**: Simpler codebase without conditional visibility logic
-
-**Conclusion**: The visibility system provides minimal value in a post-conditional world and removing it would significantly simplify the Map component subsystem while maintaining all necessary functionality for the simplified linear ancestry tree structure.
