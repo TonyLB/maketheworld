@@ -14,7 +14,7 @@
     "@reduxjs/toolkit": "^1.7.1",
     "@testing-library/jest-dom": "^5.16.1",
     "@testing-library/react": "^12.1.2",
-    "@testing-library/user-event": "^7.2.1",
+    "@testing-library/user-event": "^14.6.1",
     "@tonylb/mtw-base": "file:../packages/mtw-base/",
     "@tonylb/mtw-interfaces": "file:../packages/mtw-interfaces/",
     "@tonylb/mtw-wml": "file:../packages/mtw-wml/",
