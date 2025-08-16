@@ -32,7 +32,10 @@ export class SchemaTagTree extends TagTree<SchemaTag> {
             tree: addWrapperKey(tree),
             compare: ({ data: A }, { data: B }) => {
                 if (isSchemaWithKey(A)) {
-                    return (isSchemaWithKey(B) && A.key === B.key)
+                    return Boolean(isSchemaWithKey(B) && (
+                        (A.key && A.key === B.key) ||
+                        ('uuid' in A && 'uuid' in B && A.uuid && A.uuid === B.uuid)
+                    ))
                 }
                 if (isSchemaConditionStatement(A) && isSchemaConditionStatement(B)) {
                     return A.if === B.if
