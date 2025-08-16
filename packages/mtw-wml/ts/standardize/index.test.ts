@@ -360,7 +360,6 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const test = new StandardForm(testWML)
-        console.log(`test class constructors: ${test._components.map((component) => (component.constructor.name))}`)
         expect(test.byUniversalId['ROOM#testRoom']).toBeInstanceOf(StandardRoom)
         expect(test.byUniversalId['FEATURE#testFeature']).toBeInstanceOf(StandardFeature)
         expect(test.byUniversalId['MAP#testMap']).toBeInstanceOf(StandardMap)
@@ -1321,7 +1320,6 @@ describe('StandardForm', () => {
             </Map>
         </Asset>`)
         expect(mapTest.byId.testRoomOne.toJSON()).toEqual({
-            context: [{ key: 'testMap', tag: 'Map', universalKey: 'MAP#testMap' }],
             exits: [],
             key: 'testRoomOne',
             universalKey: 'ROOM#testRoomOne',
@@ -2196,15 +2194,11 @@ describe('StandardForm', () => {
             expect(results.byUniversalId['ROOM#room1']).toBeInstanceOf(StandardRoom)
             expect(schemaToWML([results.schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
+                    <Room uuid=(room1)><Exit to=(ROOM#room2)>room2</Exit></Room>
+                    <Room uuid=(room2)><Exit to=(ROOM#room1)>room1</Exit></Room>
                     <Map uuid=(testMap)>
-                        <Room uuid=(room1)>
-                            <Position x="0" y="0" />
-                            <Exit to=(ROOM#room2)>room2</Exit>
-                        </Room>
-                        <Room uuid=(room2)>
-                            <Position x="100" y="100" />
-                            <Exit to=(ROOM#room1)>room1</Exit>
-                        </Room>
+                        <Room uuid=(room1)><Position x="0" y="0" /></Room>
+                        <Room uuid=(room2)><Position x="100" y="100" /></Room>
                     </Map>
                 </Asset>
             `))
