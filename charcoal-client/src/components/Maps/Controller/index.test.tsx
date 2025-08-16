@@ -157,7 +157,7 @@ describe('mapTreeMemo', () => {
                         <Room uuid=(room1)>
                             <Position x="100" y="100" />
                             <ShortName>Room One</ShortName>
-                            <Exit to=(room2)>to room two</Exit>
+                            <Exit to=(ROOM#room2)>to room two</Exit>
                             <Example key=(example1)>
                                 <Description>This should not be included</Description>
                             </Example>
@@ -165,6 +165,7 @@ describe('mapTreeMemo', () => {
                                 <Description>This should not be included</Description>
                             </Feature>
                         </Room>
+                        <Room uuid=(room2)><Position x="200" y="200" /></Room>
                     </Map>
                 </Asset>
             `
@@ -214,13 +215,13 @@ describe('mapTreeMemo', () => {
         it('should include exit descriptions when present', () => {
             const testWML = `
                 <Asset key=(testAsset)>
-                    <Map key=(testMap)>
-                        <Room key=(room1)>
+                    <Map uuid=(testMap)>
+                        <Room uuid=(room1)>
                             <Position x="100" y="100" />
                             <ShortName>Room One</ShortName>
-                            <Exit to=(room2)>North to Room Two</Exit>
+                            <Exit to=(ROOM#room2)>North to Room Two</Exit>
                         </Room>
-                        <Room key=(room2)>
+                        <Room uuid=(room2)>
                             <Position x="200" y="200" />
                             <ShortName>Room Two</ShortName>
                         </Room>
@@ -242,13 +243,13 @@ describe('mapTreeMemo', () => {
         it('should handle exits without descriptions', () => {
             const testWML = `
                 <Asset key=(testAsset)>
-                    <Map key=(testMap)>
-                        <Room key=(room1)>
+                    <Map uuid=(testMap)>
+                        <Room uuid=(room1)>
                             <Position x="100" y="100" />
                             <ShortName>Room One</ShortName>
-                            <Exit to=(room2) />
+                            <Exit to=(ROOM#room2) />
                         </Room>
-                        <Room key=(room2)>
+                        <Room uuid=(room2)>
                             <Position x="200" y="200" />
                             <ShortName>Room Two</ShortName>
                         </Room>

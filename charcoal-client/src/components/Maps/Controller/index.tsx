@@ -19,7 +19,7 @@ import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { ignoreWrapped } from "@tonylb/mtw-wml/ts/schema/utils"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import StandardMap from "@tonylb/mtw-wml/ts/standardize/components/map"
-import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
+import StandardRoom, { StandardRoomPayload } from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { isSchemaAsset, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { SchemaAssetTag } from "@tonylb/mtw-base/ts/schema/asset"
 import { isSchemaExit, isSchemaPosition, isSchemaRoom, isSchemaShortName, SchemaExitTag, SchemaPositionTag, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
@@ -58,6 +58,13 @@ export const mapTreeMemo = (standardForm: StandardForm, mapId: `MAP#${string}`):
         cascadeConditions: [{ conditionType: 'Position', cascadeType: 'Exit' }]
     }])
     mapSubset._key = 'mapTree'
+    mapSubset._components.forEach((component) => {
+        if (component instanceof StandardRoom && component._payload instanceof StandardRoomPayload) {
+            component._payload._exits = component.exits.filter((exit) => (
+                Boolean(mapSubset._lookup(exit._payload.plain.to))
+            ))
+        }
+    })
     return mapSubset
 }
 
