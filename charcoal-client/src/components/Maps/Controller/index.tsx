@@ -115,8 +115,8 @@ export const MapController: FunctionComponent<{ mapId: string }> = ({ children, 
         }
         if (isSchemaRoom(data)) {
             const previousItem = previous.find(({ roomId }) => (roomId === data.key))
-            const roomComponent = standardForm.byId[data.key]
-            const name = (roomComponent && roomComponent instanceof StandardRoom) ? schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) : data.key
+            const roomComponent = standardForm.byId[data.key ?? '']
+            const name = (roomComponent && roomComponent instanceof StandardRoom) ? roomComponent.shortName?._payload?.plain?.toJSON() ?? data.key : data.key
             return children.reduce(extractRoomsHelper({ ...context, roomId: data.key }), [
                 ...previous.filter(({ roomId }) => (roomId !== data.key)),
                 {
