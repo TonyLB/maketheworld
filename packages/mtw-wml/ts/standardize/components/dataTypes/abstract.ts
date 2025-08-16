@@ -1,5 +1,5 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { ComponentUUID, SchemaTag, SchemaWithKey } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, SchemaTag, SchemaWithKey, AssetUUID } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 
 type StandardReferenceData = string | ({
@@ -13,6 +13,7 @@ export type StandardBaseData = {
     universalKey?: ComponentUUID;
     update?: boolean;
     context?: StandardReferenceData[];
+    origin?: AssetUUID[];  // Array of ancestor asset UUIDs in inheritance chain
 }
 
 export type EditInternalStandardNode<T extends SchemaTag, ChildType extends SchemaTag> = GenericTreeNodeFiltered<T, ChildType>

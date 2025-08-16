@@ -175,6 +175,7 @@ export type StandardAsset = {
 
 export type SerializeNDJSONMixin = {
     from?: AssetUUID;
+    origin?: AssetUUID[];  // Array of ancestor asset UUIDs in inheritance chain (from StandardBaseData)
     universalKey?: string;
     fileName?: string;
 }
@@ -205,7 +206,8 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] 
                 universalKey: 'string',
             }
         ),
-        (!line?.from || isSchemaAssetUUID(line.from))
+        (!line?.from || isSchemaAssetUUID(line.from)),
+        (!line?.origin || (Array.isArray(line.origin) && line.origin.every(isSchemaAssetUUID)))
     )
 }
 

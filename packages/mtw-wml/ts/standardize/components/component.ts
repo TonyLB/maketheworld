@@ -55,12 +55,14 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _mapping?: StandardKey[];
         _payload: InstanceType<typeof Base>;
         _from?: AssetUUID;
+        _origin?: AssetUUID[];
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
                 this._key = new StandardKey(props._key)
                 this._payload = props._payload
                 this._from = props._from
+                this._origin = props._origin
                 this._mapping = props._mapping
                 return
             }
@@ -289,6 +291,12 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         withImport(fromAsset: AssetUUID): StandardComponent {
             const returnValue = this.clone() as GeneratedComponentClass
             returnValue._from = fromAsset
+            return returnValue
+        }
+
+        withOrigin(origin: AssetUUID[] | undefined): StandardComponent {
+            const returnValue = this.clone() as GeneratedComponentClass
+            returnValue._origin = origin
             return returnValue
         }
     }

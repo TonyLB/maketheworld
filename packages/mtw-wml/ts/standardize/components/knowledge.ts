@@ -157,6 +157,10 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         return new StandardKnowledge(super.withImport(fromAsset) as StandardKnowledge)
     }
 
+    override withOrigin(origin: AssetUUID[]): StandardComponent {
+        return new StandardKnowledge(super.withOrigin(origin) as StandardKnowledge)
+    }
+
     override withLeastCommonContext(context: StandardKey[]): StandardComponent {
         return new StandardKnowledge(super.withLeastCommonContext(context) as StandardKnowledge)
     }

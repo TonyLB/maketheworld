@@ -177,6 +177,10 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         return new StandardCharacter(super.withImport(fromAsset) as StandardCharacter)
     }
 
+    override withOrigin(origin: AssetUUID[]): StandardComponent {
+        return new StandardCharacter(super.withOrigin(origin) as StandardCharacter)
+    }
+
     override withLeastCommonContext(context: StandardKey[]): StandardComponent {
         return new StandardCharacter(super.withLeastCommonContext(context) as StandardCharacter)
     }

@@ -161,6 +161,10 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         return new StandardMoment(super.withImport(fromAsset) as StandardMoment)
     }
 
+    override withOrigin(origin: AssetUUID[]): StandardComponent {
+        return new StandardMoment(super.withOrigin(origin) as StandardMoment)
+    }
+
     override withLeastCommonContext(context: StandardKey[]): StandardComponent {
         return new StandardMoment(super.withLeastCommonContext(context) as StandardMoment)
     }
