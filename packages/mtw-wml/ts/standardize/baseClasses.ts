@@ -20,6 +20,17 @@ import { StandardKey } from "./components/reference";
 import { deepEqual } from "../lib/objects";
 import { StandardReferenceData } from "./components/dataTypes/reference";
 
+/**
+ * Semantic modes that StandardForm can operate in, indicating how the form should be interpreted
+ * and used in different contexts.
+ * 
+ * @see {@link ./AGENT.md#semantic-modes AGENT.md - Semantic Modes} for detailed explanation of each mode
+ */
+export type StandardFormSemanticMode = 
+    | 'direct-representation'    // Mode 1: Direct representation of a single asset
+    | 'edits-to-apply'           // Mode 2: Edits to be applied to a single asset  
+    | 'aggregation'              // Mode 3: Aggregation of content from multiple assets
+
 export type StandardRemove = {
     key?: string;
     universalKey?: string;

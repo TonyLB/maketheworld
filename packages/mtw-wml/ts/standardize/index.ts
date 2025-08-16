@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
+import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { excludeUndefined } from "../lib/lists"
 import { isStandardComponentData, isStandardForm, StandardFormData } from "./components/dataTypes"
 import SchemaTagTree from "../tagTree/schema"
@@ -129,6 +129,12 @@ export class StandardForm {
     _key?: string;
     _components: StandardComponent[];
     _metaData: GenericTree<SchemaTag>;
+    /**
+     * Optional semantic mode indicating how this StandardForm should be interpreted and used.
+     * 
+     * @see {@link ./AGENT.md#semantic-modes AGENT.md - Semantic Modes} for detailed explanation of each mode
+     */
+    semanticMode?: StandardFormSemanticMode;
 
     constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string) {
         if (typeof args === 'string' && (isLegalKey(args) || args === '')) {
@@ -874,6 +880,18 @@ export class StandardForm {
         diffedValue._metaData = applyEdits(combinedMetaData.tree)
 
         return diffedValue.finalize()
+    }
+
+    /**
+     * Creates a clone of this StandardForm with an updated semantic mode.
+     * 
+     * @param semanticMode - The new semantic mode to set, or undefined to clear it
+     * @returns A new StandardForm instance with the updated semantic mode
+     */
+    withSemanticMode(semanticMode: StandardFormSemanticMode | undefined): StandardForm {
+        const returnValue = this._clone()
+        returnValue.semanticMode = semanticMode
+        return returnValue
     }
 
 }

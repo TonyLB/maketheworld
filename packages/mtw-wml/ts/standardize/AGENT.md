@@ -4,6 +4,55 @@
 
 The `standardize` directory contains the `StandardForm` class, which represents an Asset as a whole, first-class object. StandardForm handles aggregate operations on WML assets by orchestrating the known operations of the `StandardComponent` interface to make changes on each of the children components.
 
+## Semantic Modes
+
+StandardForm can operate in three distinct semantic modes, each serving different purposes in the asset management lifecycle:
+
+### 1. Direct Representation of a Single Asset
+- **Purpose**: Represents the complete, current state of a single asset as stored in the system
+- **Usage**: When loading an asset from storage, displaying its current state, or performing read-only operations
+- **Characteristics**: 
+  - Contains the actual components that exist in the asset, including any edits that have been applied
+  - May include inherited components that are being extended or refined from their parent assets
+  - Represents the "ground truth" of what the asset contains as a layer in the overall asset system
+- **Example**: Loading a particular room from an asset in the database to display the changes made
+to that specific room in that specific asset
+
+### 2. Edits to be Applied to a Single Asset
+- **Purpose**: Represents changes that need to be applied to an existing asset
+- **Usage**: When creating, updating, or modifying asset content through the editing interface
+- **Characteristics**:
+  - Contains `StandardRemove`, `StandardReplace`, and other edit operation components
+  - May include only partial information (just the components being changed)
+  - Designed to be merged with existing asset data
+  - **Key distinction**: This is a temporary artifact meant only to convey the *action* of a change, not a durable asset representation
+- **Example**: A user editing a room's description creates a `StandardReplace` component that will be merged with existing room data as part of updating the stored asset
+
+### 3. Aggregation of the Content of Multiple Assets
+- **Purpose**: Combines content from multiple assets through inheritance, imports, or other aggregation operations
+- **Usage**: When building a complete view that includes inherited content, imported components, or merged data from multiple sources
+- **Characteristics**:
+  - Contains components from multiple source assets
+  - May include stub components for referential integrity
+  - Represents the "effective" content after all inheritance and merging is resolved
+- **Example**: When rendering a component, the impact of multiple assets is combined into an
+overall structure that is *conveyed* as an asset, but which also needs to record information
+about the origin of each component within the larger tree that is being flattened.
+
+### Mode Transitions
+
+These modes are not mutually exclusive and can transition between each other:
+
+- **Mode 1 → Mode 2**: When editing begins, a direct representation becomes the base for edit operations
+- **Mode 2 → Mode 1**: When edits are applied and saved, the edit StandardForm is used to update and
+refine the direct representation
+- **Mode 1 → Mode 3**: When inheritance is processed, a single asset's content is merged with other
+content to generate an aggregate
+
+Understanding these modes is crucial for proper usage of StandardForm methods like `merge()`, `diff()`, and `subset()`. Each method behaves the same in all three modes, but they are *called* in different
+ways (and with different purposes) depending upon how the StandardForm class is being used in the
+particular context.
+
 ## Core Purpose
 
 - **Asset Management**: Represents entire WML assets as first-class objects
