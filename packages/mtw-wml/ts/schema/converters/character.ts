@@ -3,8 +3,8 @@ import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties } from "./utils"
-import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaCharacter, isSchemaCharacterContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
+import { isSchemaCharacter, isSchemaCharacterContents, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
@@ -12,8 +12,8 @@ import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 const characterTemplates = {
     Pronouns: {},
     Character: {
-        key: { type: ParsePropertyTypes.Key },
         uuid: { type: ParsePropertyTypes.Key },
+        key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
         update: { type: ParsePropertyTypes.Boolean },
         origin: { type: ParsePropertyTypes.AssetList }

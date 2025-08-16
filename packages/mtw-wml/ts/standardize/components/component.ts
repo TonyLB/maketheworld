@@ -87,6 +87,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 const tag = node.data.tag
                 this._key = new StandardKey({ tag, key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
                 this._from = node.data.from
+                this._origin = 'origin' in node.data ? node.data.origin : undefined
                 this._payload.fromSchema(node)
                 return
             }
@@ -149,6 +150,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 context: (this._key?.context ?? []).length > 0 ? (this._key.context ?? []).map((context) => context.toJSON()) : undefined,
                 ...this._payload.toJSON(options),
                 ...(this._from ? { from: this._from } : {}),
+                ...(this._origin ? { origin: this._origin } : {}),
             } as D
         }
 
@@ -157,7 +159,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
                 throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
             }
-            return { ...payload, data: { ...payload.data, from: this._from } }
+            return { ...payload, data: { ...payload.data, from: this._from, origin: this._origin } }
         }
 
         nestedSchema(lookup: (value: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
@@ -182,15 +184,13 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 const reference = new StandardReference(this._key).toFormat('key')
                 return reference.schema[0]
             }
-            if (this._payload.nestedSchema) {
-                const payload = this._payload.nestedSchema(lookup, { ...options, key: contextKey, context: newContext, inLeastCommonContext })
-                if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
-                    throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
-                }
-                return { ...payload, data: { ...payload.data, from: this._from } }
+            const payload = this._payload.nestedSchema
+                ? this._payload.nestedSchema(lookup, { ...options, key: contextKey, context: newContext, inLeastCommonContext })
+                : this._payload.schema(this.key, this.universalKey)
+            if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
+                throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
             }
-                
-            return this._payload.schema(this.key, this.universalKey)
+            return { ...payload, data: { ...payload.data, from: this._from, origin: this._origin } }
         }
 
         referencedKeys(): StandardComponentReferenceKey[] {
@@ -225,6 +225,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             }
             returnValue._key = this._key.merge(incoming._key)
             returnValue._from = this._from ?? incoming._from
+            returnValue._origin = this._origin ?? (incoming as any)._origin
             returnValue._payload = this._payload.merge((incoming as any)._payload)
 
             return returnValue as StandardComponent

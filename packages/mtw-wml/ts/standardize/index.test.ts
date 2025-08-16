@@ -1302,6 +1302,39 @@ describe('StandardForm', () => {
         expect(reconstructedRoom.characters.payload.length).toBe(0)
     })
 
+    it('should handle origin properties correctly in WML parsing and serialization', () => {
+        const originWML = deIndentWML(`
+            <Asset key=(origin)>
+                <Character uuid=(char1) origin=(ASSET#123,ASSET#456)>
+                    <Name>Character with Origin</Name>
+                </Character>
+                <Room uuid=(room1) origin=(ASSET#789)>
+                    <Feature uuid=(feature1) origin=(ASSET#101,ASSET#102) />
+                </Room>
+            </Asset>
+        `)
+        
+        // WML → StandardForm
+        const form = new StandardForm(originWML)
+        
+        // Verify origin properties are parsed correctly
+        const char1 = form._lookup('CHARACTER#char1') as StandardCharacter
+        const room1 = form._lookup('ROOM#room1') as StandardRoom
+        const feature1 = form._lookup('FEATURE#feature1') as StandardFeature
+        
+        expect(char1['_origin']).toEqual(['ASSET#123', 'ASSET#456'])
+        expect(room1['_origin']).toEqual(['ASSET#789'])
+        expect(feature1?.['_origin']).toEqual(['ASSET#101', 'ASSET#102'])
+        
+        // Debug logging to see what's in the Character schema
+        console.log('Character _origin:', char1['_origin'])
+        console.log('Character schema:', JSON.stringify(char1.schema, null, 2))
+        console.log('Form schema:', JSON.stringify(form.schema, null, 2))
+        
+        const finalWML = schemaToWML([form.schema])
+        expect(finalWML).toEqual(originWML)
+    })
+
     it('should correctly reflect empty imports in byId', () => {
         const test = new StandardForm(`<Asset key=(Test)>
             <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#test) />

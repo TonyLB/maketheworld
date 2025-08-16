@@ -55,6 +55,13 @@ describe('wml simple parser', () => {
             { type: ParseTypes.Close, tag: 'Room' }
         ])
     })
+    it('should parse single origin values as Key', () => {
+        const testTokens = tokenizer(new SourceStream('<Room origin=(ASSET#789)></Room>'))
+        expect(parse(testTokens)).toEqual([
+            { type: ParseTypes.Open, tag: 'Room', properties: [{ type: ParsePropertyTypes.Key, key: 'origin', value: 'ASSET#789' }] },
+            { type: ParseTypes.Close, tag: 'Room' }
+        ])
+    })
     it('should reject invalid AssetUUIDs in comma-separated lists', () => {
         const testTokens = tokenizer(new SourceStream('<Room origin=(INVALID#123,ASSET#456)></Room>'))
         expect(() => parse(testTokens)).toThrow('Invalid asset list')

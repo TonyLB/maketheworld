@@ -181,7 +181,7 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
             case 'literal':
                 return property.value ? `${propertyKeyLead}"${escapeWMLCharacters(indentFollowingLines(property.value))}"` : ''
             case 'assetList':
-                return property.value.length ? `${propertyKeyLead}[${property.value.map(escapeWMLCharacters).join(',')}]` : ''
+                return property.value.length ? `${propertyKeyLead}(${property.value.map(escapeWMLCharacters).join(',')})` : ''
         }
     }).filter((value) => (value))
 
