@@ -20,7 +20,10 @@ export type ValidationTemplateItem = {
 export type ValidationTemplate = Record<string, ValidationTemplateItem>
 
 export type ValidationTemplateRemap<V extends ValidationTemplate>  ={
-    [K in keyof V]: V[K] extends { type: ParsePropertyTypes.Boolean } ? boolean : V[K] extends { type: ParsePropertyTypes.Asset } ? AssetUUID : string
+    [K in keyof V]: V[K] extends { type: ParsePropertyTypes.Boolean } ? boolean : 
+                     V[K] extends { type: ParsePropertyTypes.Asset } ? AssetUUID :
+                     V[K] extends { type: ParsePropertyTypes.AssetList } ? AssetUUID[] :
+                     string
 }
 
 export type ValidationRequiredKeys<V extends ValidationTemplate> = {[K in keyof V]: V[K] extends { required: true } ? K : never}[keyof V]

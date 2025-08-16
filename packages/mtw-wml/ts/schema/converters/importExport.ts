@@ -20,7 +20,8 @@ const importExportTemplates = {
         time: { required: true, type: ParsePropertyTypes.Literal }
     },
     Image: {
-        key: { required: true, type: ParsePropertyTypes.Key }
+        key: { required: true, type: ParsePropertyTypes.Key },
+        origin: { type: ParsePropertyTypes.AssetList }
     },
     Selected: {}
 } as const
@@ -109,6 +110,7 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 tag: 'Image',
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
+                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
                 ],
                 node: { data: tag, children }
             })

@@ -13,5 +13,10 @@ export const isSchemaImage = (schema: any): schema is SchemaImageTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING, key: CheckTypes.STRING },
         optional: { as: CheckTypes.STRING, fileURL: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
-        values: { tag: 'Image', from: isSchemaAssetUUID } })(schema)
+        values: { 
+            tag: 'Image', 
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
+        }
+    })(schema)
 )

@@ -43,6 +43,16 @@ describe('example tags', () => {
             expect(isSchemaExample(schema)).toBe(true)
         })
 
+        it('should return true for valid SchemaExampleTag with origin', () => {
+            const schema = { tag: 'Example', key: 'exampleKey', origin: ['ASSET#123', 'ASSET#456'] }
+            expect(isSchemaExample(schema)).toBe(true)
+        })
+
+        it('should return true for valid SchemaExampleTag with empty origin array', () => {
+            const schema = { tag: 'Example', key: 'exampleKey', origin: [] }
+            expect(isSchemaExample(schema)).toBe(true)
+        })
+
         it('should return false for invalid SchemaExampleTag', () => {
             const schema = { tag: 'Invalid', key: 'exampleKey' }
             expect(isSchemaExample(schema)).toBe(false)

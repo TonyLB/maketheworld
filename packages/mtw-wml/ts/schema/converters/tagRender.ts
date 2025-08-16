@@ -18,6 +18,10 @@ type TagRenderProperty = {
     key: string;
     type: 'boolean';
     value: boolean;
+} | {
+    key: string;
+    type: 'assetList';
+    value: string[];
 }
 
 const indentFollowingLines = (value: string): string => {
@@ -176,6 +180,8 @@ export const tagRender = ({ schemaToWML, options, tag, properties, node }: Omit<
                 return property.value ? `${propertyKeyLead}(${escapeWMLCharacters(indentFollowingLines(property.value))})` : ''
             case 'literal':
                 return property.value ? `${propertyKeyLead}"${escapeWMLCharacters(indentFollowingLines(property.value))}"` : ''
+            case 'assetList':
+                return property.value.length ? `${propertyKeyLead}[${property.value.map(escapeWMLCharacters).join(',')}]` : ''
         }
     }).filter((value) => (value))
 

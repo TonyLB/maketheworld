@@ -15,7 +15,8 @@ const characterTemplates = {
         key: { type: ParsePropertyTypes.Key },
         uuid: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
-        update: { type: ParsePropertyTypes.Boolean }
+        update: { type: ParsePropertyTypes.Boolean },
+        origin: { type: ParsePropertyTypes.AssetList }
     }
 } as const
 
@@ -46,7 +47,8 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('CHARACTER')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'from', type: 'key', value: tag.from ?? '' },
-                    { key: 'update', type: 'boolean', value: tag.update ?? false }
+                    { key: 'update', type: 'boolean', value: tag.update ?? false },
+                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
                 ],
                 node: { data: tag, children }
             })
