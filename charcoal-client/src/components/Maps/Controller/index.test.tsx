@@ -129,6 +129,7 @@ describe('mapTreeMemo', () => {
             `
             const standardForm = new StandardForm(testWML)
             const result = mapTreeMemo(standardForm, 'MAP#testMap')
+            console.log(JSON.stringify(result.toJSON(), null, 2))
 
             const room1 = result.byUniversalId['ROOM#room1']
             const room2 = result.byUniversalId['ROOM#room2']

@@ -156,6 +156,14 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         return new StandardFeature(super.withImport(fromAsset) as StandardFeature)
     }
     
+    override withLeastCommonContext(context: StandardKey[]): StandardComponent {
+        return new StandardFeature(super.withLeastCommonContext(context) as StandardFeature)
+    }
+
+    override withChild(child: StandardReference): StandardComponent {
+        return new StandardFeature(super.withChild(child) as StandardFeature)
+    }
+
 }
 
 export default StandardFeature

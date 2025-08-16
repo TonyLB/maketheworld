@@ -11,7 +11,7 @@ import { StandardLiteral } from "../literal"
 import SchemaTagTree from "../../tagTree/schema"
 import { StandardComponent, StandardDiffOptions } from "./baseClasses"
 import { deepEqual } from "../../lib/objects"
-import { StandardKey } from "./reference"
+import StandardReference, { StandardKey } from "./reference"
 import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
@@ -175,6 +175,14 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
 
     override withImport(fromAsset: AssetUUID): StandardComponent {
         return new StandardCharacter(super.withImport(fromAsset) as StandardCharacter)
+    }
+
+    override withLeastCommonContext(context: StandardKey[]): StandardComponent {
+        return new StandardCharacter(super.withLeastCommonContext(context) as StandardCharacter)
+    }
+
+    override withChild(child: StandardReference): StandardComponent {
+        return new StandardCharacter(super.withChild(child) as StandardCharacter)
     }
 
 }

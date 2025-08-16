@@ -180,6 +180,14 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         return new StandardMessage(super.withImport(fromAsset) as StandardMessage)
     }
     
+    override withLeastCommonContext(context: StandardKey[]): StandardComponent {
+        return new StandardMessage(super.withLeastCommonContext(context) as StandardMessage)
+    }
+
+    override withChild(child: StandardReference): StandardComponent {
+        return new StandardMessage(super.withChild(child) as StandardMessage)
+    }
+
 }
 
 export default StandardMessage

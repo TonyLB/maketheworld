@@ -280,6 +280,14 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         return new StandardRoom(super.withImport(fromAsset) as StandardRoom)
     }
 
+    override withLeastCommonContext(context: StandardKey[]): StandardComponent {
+        return new StandardRoom(super.withLeastCommonContext(context) as StandardRoom)
+    }
+
+    override withChild(child: StandardReference): StandardComponent {
+        return new StandardRoom(super.withChild(child) as StandardRoom)
+    }
+
 }
 
 export default StandardRoom

@@ -9,6 +9,7 @@ import { StandardKey } from './components/reference'
 import StandardFeature from './components/feature'
 import StandardExample from './components/example'
 import { StandardLiteral } from './literal'
+import StandardMap from './components/map'
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
     return {
         ...jest.requireActual('@tonylb/mtw-utilities/ts/uuid/___mocks___/index')
@@ -345,6 +346,24 @@ describe('StandardForm', () => {
         `)
         const test = new StandardForm(testWML)
         expect(schemaToWML([test.schema])).toEqual(testWML)
+    })
+
+    it('should correctly construct classes', () => {
+        const testWML = deIndentWML(`
+            <Asset key=(Test)>
+                <Map uuid=(testMap)>
+                    <Room uuid=(testRoom)>
+                        <Feature uuid=(testFeature) key=(testFeature) />
+                        <Position x="0" y="0" />
+                    </Room>
+                </Map>
+            </Asset>
+        `)
+        const test = new StandardForm(testWML)
+        console.log(`test class constructors: ${test._components.map((component) => (component.constructor.name))}`)
+        expect(test.byUniversalId['ROOM#testRoom']).toBeInstanceOf(StandardRoom)
+        expect(test.byUniversalId['FEATURE#testFeature']).toBeInstanceOf(StandardFeature)
+        expect(test.byUniversalId['MAP#testMap']).toBeInstanceOf(StandardMap)
     })
 
     it('should correctly relocate nested components to rendering level', () => {
@@ -2152,7 +2171,45 @@ describe('StandardForm', () => {
                     <Room key=(testRoomTwo) />
                 </Asset>
             `))
-        })    
+        })
+
+        it('should properly subset a cascade with exits', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Map uuid=(testMap)>
+                        <Room uuid=(room1)>
+                            <Position x="0" y="0" />
+                            <Exit to=(ROOM#room2)>room2</Exit>
+                        </Room>
+                        <Room uuid=(room2)>
+                            <Position x="100" y="100" />
+                            <Exit to=(ROOM#room1)>room1</Exit>
+                        </Room>
+                    </Map>
+                </Asset>
+            `)
+            const results = test.subset([{
+                requestType: 'Full',
+                keys: [new StandardKey(`MAP#testMap`)],
+                cascadeConditions: [{ conditionType: 'Position', cascadeType: 'Exit' }]
+            }])
+            expect(results.byUniversalId['ROOM#room1']).toBeInstanceOf(StandardRoom)
+            expect(schemaToWML([results.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
+                    <Map uuid=(testMap)>
+                        <Room uuid=(room1)>
+                            <Position x="0" y="0" />
+                            <Exit to=(ROOM#room2)>room2</Exit>
+                        </Room>
+                        <Room uuid=(room2)>
+                            <Position x="100" y="100" />
+                            <Exit to=(ROOM#room1)>room1</Exit>
+                        </Room>
+                    </Map>
+                </Asset>
+            `))
+
+        })
 
         it('should properly subset an asset with shortName content without cascade', () => {
             const test = new StandardForm(`

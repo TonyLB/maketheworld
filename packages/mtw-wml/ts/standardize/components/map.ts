@@ -16,7 +16,7 @@ import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
 import StandardPosition, { mergeStandardPositionList, StandardPositionReplace, StandardPositionSimple } from "./position"
-import { StandardKey } from "./reference"
+import StandardReference, { StandardKey } from "./reference"
 import { StandardLiteral } from "../literal"
 
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
@@ -168,6 +168,14 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
 
     override withImport(fromAsset: AssetUUID): StandardComponent {
         return new StandardMap(super.withImport(fromAsset) as StandardMap)
+    }
+
+    override withLeastCommonContext(context: StandardKey[]): StandardComponent {
+        return new StandardMap(super.withLeastCommonContext(context) as StandardMap)
+    }
+
+    override withChild(child: StandardReference): StandardComponent {
+        return new StandardMap(super.withChild(child) as StandardMap)
     }
 
 }
