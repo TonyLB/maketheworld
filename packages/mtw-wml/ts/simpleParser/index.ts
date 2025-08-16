@@ -1,5 +1,6 @@
-import { Token, TokenProperty } from "../parser/tokenizer/baseClasses"
-import { ParseItem, ParsePropertyTypes, ParseTagOpen, ParseTypes } from "./baseClasses"
+import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { Token, TokenProperty, TokenKeyValue } from "../parser/tokenizer/baseClasses"
+import { ParseItem, ParsePropertyTypes, ParsePropertyAssetList, ParseTagOpen, ParseTypes } from "./baseClasses"
 
 enum ParseExpectation {
     Tags,
@@ -34,6 +35,24 @@ export const parse = (tokens: Token[]): ParseItem[] => {
     let currentProperty: TokenProperty | undefined
     let firstTag: boolean = true
     let currentText: string | undefined
+
+    // Helper function to handle comma-separated AssetUUID parsing
+    const handleCommaSeparatedAssetList = (token: TokenKeyValue, propertyKey?: string) => {
+        if (token.type === 'KeyValue' && token.value.includes(',')) {
+            // Split by comma and trim whitespace from each value
+            const assetList = token.value.split(',').map(item => item.trim())
+            if (assetList.some(item => !isSchemaAssetUUID(item))) {
+                throw new Error('Invalid asset list')
+            }
+            return {
+                key: propertyKey,
+                type: ParsePropertyTypes.AssetList,
+                value: assetList as AssetUUID[]
+            } as ParsePropertyAssetList
+        }
+        return null
+    }
+
     for (const token of tokens) {
         switch (expecting) {
             case ParseExpectation.Properties:
@@ -74,14 +93,39 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                         if (!currentTag) {
                             throw new Error('Parse error on property assignment')
                         }
-                        currentTag.properties.push({
-                            type: token.type === 'KeyValue'
-                                ? ParsePropertyTypes.Key
-                                : token.type === 'LiteralValue'
+                        
+                        // If we have a currentProperty, this is a value for a property with a key
+                        // Check if this is a KeyValue that might be a comma-separated list
+                        if (token.type === 'KeyValue') {
+                            const assetListProperty = handleCommaSeparatedAssetList(token, currentProperty?.key)
+                            if (assetListProperty) {
+                                currentTag.properties.push(assetListProperty)
+                                currentProperty = undefined
+                            } else if (currentProperty) {
+                                // Handle as before for single values
+                                currentTag.properties.push({
+                                    key: currentProperty.key,
+                                    type: ParsePropertyTypes.Key,
+                                    value: deIndentParse(token.value)
+                                })
+                                currentProperty = undefined
+                            } else {
+                                // This is a property without a key
+                                currentTag.properties.push({
+                                    type: ParsePropertyTypes.Key,
+                                    value: deIndentParse(token.value)
+                                })
+                            }
+                        } else {
+                            // Handle non-KeyValue tokens
+                            currentTag.properties.push({
+                                key: currentProperty?.key,
+                                type: token.type === 'LiteralValue'
                                     ? ParsePropertyTypes.Literal
                                     : ParsePropertyTypes.Expression,
-                            value: deIndentParse(token.value)
-                        })
+                                value: deIndentParse(token.value)
+                            })
+                        }
                         currentProperty = undefined
                         expecting = ParseExpectation.Properties
                         break;
@@ -103,15 +147,31 @@ export const parse = (tokens: Token[]): ParseItem[] => {
                         if (!currentProperty) {
                             throw new Error('Parse error on property value assignment')
                         }
-                        currentTag.properties.push({
-                            key: currentProperty.key,
-                            type: token.type === 'KeyValue'
-                                ? ParsePropertyTypes.Key
-                                : token.type === 'LiteralValue'
+                        
+                        // Check if this is a KeyValue that might be a comma-separated list
+                        if (token.type === 'KeyValue') {
+                            const assetListProperty = handleCommaSeparatedAssetList(token, currentProperty.key)
+                            if (assetListProperty) {
+                                currentTag.properties.push(assetListProperty)
+                            } else {
+                                // Handle as before for single values
+                                currentTag.properties.push({
+                                    key: currentProperty.key,
+                                    type: ParsePropertyTypes.Key,
+                                    value: deIndentParse(token.value)
+                                })
+                            }
+                        } else {
+                            // Handle non-KeyValue tokens (LiteralValue, ExpressionValue)
+                            currentTag.properties.push({
+                                key: currentProperty.key,
+                                type: token.type === 'LiteralValue'
                                     ? ParsePropertyTypes.Literal
                                     : ParsePropertyTypes.Expression,
-                            value: deIndentParse(token.value)
-                        })
+                                value: deIndentParse(token.value)
+                            })
+                        }
+                        
                         currentProperty = undefined
                         expecting = ParseExpectation.Properties
                         break;
