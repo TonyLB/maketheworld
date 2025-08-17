@@ -3116,4 +3116,25 @@ describe('StandardForm', () => {
         })
     })
 
+    it('should merge origin properties correctly in StandardForm merge', () => {
+        const baseForm = new StandardForm(`<Asset key=(Test)>
+            <Room uuid=(testRoom) key=(testRoom) origin=(ASSET#base,ASSET#inherited) />
+        </Asset>`)
+        
+        const incomingForm = new StandardForm(`<Asset key=(Test)>
+            <Room uuid=(testRoom) key=(testRoom) origin=(ASSET#incoming,ASSET#new) />
+        </Asset>`)
+        
+        const mergedForm = baseForm.merge(incomingForm)
+        const mergedRoom = mergedForm._lookup('ROOM#testRoom') as StandardRoom
+        
+        // Verify that origins are merged and deduplicated
+        expect(mergedRoom.origin).toEqual([
+            'ASSET#base',
+            'ASSET#inherited',
+            'ASSET#incoming', 
+            'ASSET#new'
+        ])
+    })
+
 })

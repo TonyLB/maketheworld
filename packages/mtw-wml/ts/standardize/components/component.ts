@@ -123,6 +123,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         get reference(): StandardReference {
             return new StandardReference(this.referenceData)
         }
+        get origin(): AssetUUID[] | undefined { return this._origin }
 
         clone(): StandardComponent {
             return new GeneratedComponentClass(this)
