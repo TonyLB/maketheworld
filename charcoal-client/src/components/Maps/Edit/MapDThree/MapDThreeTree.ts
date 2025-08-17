@@ -8,9 +8,12 @@ import { SimulationLinkDatum } from 'd3-force'
 import { isStandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { Draft } from 'immer'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
-import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import { isSchemaComponentUUID, SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { isSchemaExit, isSchemaPosition, isSchemaRoom } from '@tonylb/mtw-base/ts/schema/components'
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from '@tonylb/mtw-base/ts/schema/condition'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 
 export type SimulationTreeNode = SimulationReturn & {
     onChange: (newValue: SimulationTreeNode['nodes']) => void;
@@ -18,9 +21,10 @@ export type SimulationTreeNode = SimulationReturn & {
 }
 
 type MapDThreeTreeProps = {
-    tree: GenericTree<SchemaTag>;
-    onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void;
-    standardForm: StandardFormData;
+    mapId: `MAP#${string}`;
+    inherited: StandardForm;
+    editable: StandardForm
+    onChange: (newEditable: StandardForm | ((draft: Draft<StandardForm>) => void)) => void;
     onStabilize?: SimCallback;
     onTick?: SimCallback;
 }
@@ -277,7 +281,21 @@ export const mapDFSWalk = (callback: MapDFSInnerCallback) =>
     return { output, visibleLayers: incomingLayersFromSiblings }
 }
 
-export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', visible=true, previousRoomKeys=[] }: { tree: GenericTree<SchemaTag>, onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void, standardForm: StandardFormData, parentId?: string, previousRoomKeys?: string[], visible?: boolean }): GenericTree<SimulationTreeNode> => {
+export const mapTreeTranslate = ({
+    tree,
+    onChange,
+    standardForm,
+    parentId = '',
+    visible=true,
+    previousRoomKeys=[]
+}: {
+    tree: GenericTree<SchemaTag>,
+    onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void,
+    standardForm: StandardFormData,
+    parentId?: string,
+    previousRoomKeys?: string[],
+    visible?: boolean
+}): GenericTree<SimulationTreeNode> => {
     //
     // Create nodes for all top-level Rooms with positions in the tree
     //
@@ -380,6 +398,46 @@ export const mapTreeTranslate = ({ tree, onChange, standardForm, parentId = '', 
 }
 
 //
+// mapTranslate converts a StandardForm and mapId into the nodes and links for a MapDThreeTree.
+// It first translates all the positions in the Map component referenced by mapId into nodes.
+// Then is translates all the exits on rooms referenced in the positions into links.
+//
+export const mapTranslate = ({
+    mapId,
+    standardForm
+}: {
+    mapId: `MAP#${string}`,
+    standardForm: StandardForm
+}): { nodes: MapNodes, links: MapLinks } => {
+    const map = standardForm.byUniversalId[mapId]
+    if (!map) {
+        throw new Error(`Map ${mapId} not found in standardForm`)
+    }
+    if (!(map instanceof StandardMap)) {
+        throw new Error(`Map ${mapId} is not a StandardMap`)
+    }
+    const nodes: MapNodes = map.positions.map((position) => ({
+            id: position._payload.plain.room.universalKey,
+            x: position._payload.plain.x,
+            y: position._payload.plain.y,
+        }))
+        .filter((node): node is SimNode => (Boolean(node.id && isSchemaComponentUUID(node.id) && node.id.startsWith('ROOM#'))))
+    const links: MapLinks = nodes.map(({ id }) => {
+            const room = standardForm.byUniversalId[id]
+            if (!room || !(room instanceof StandardRoom)) {
+                return []
+            }
+            return room.exits.map<MapLinks[number]>((exit) => ({
+                id: `${id}:${exit._payload.plain.to.universalKey}`,
+                source: id ?? '',
+                target: exit._payload.plain.to.universalKey ?? ''
+            }))
+            .filter(({ target }) => (target))
+        }).flat(1)
+    return { nodes, links }
+}
+
+//
 // MapDThreeTree accepts incoming GenericTree<SchemaTag> and maps an incoming onChange funtion (on
 // that tree) to individual onChange functions for each sub-tree at the same conditional level (i.e.,
 // all items with no conditions, or all items within the same condition).
@@ -389,23 +447,23 @@ export class MapDThreeTree extends Object {
     stable: boolean = true;
     onStability: SimCallback = () => {};
     onTick: SimCallback = () => {};
-    _tree: GenericTree<SimulationTreeNode> = [];
-    _cascadeIndex?: number;
-    _visibleLayers: number[] = [];
+    _inheritedLayer: MapDThreeIterator;
+    _editableLayer: MapDThreeIterator;
 
     constructor(props: MapDThreeTreeProps) {
         super(props)
         const {
-            tree,
-            standardForm,
+            inherited,
+            editable,
             onChange,
             onStabilize,
             onTick
         } = props
 
-        this.layers = []
+        this._inheritedLayer = new MapDThreeIterator('inherited', [], [], () => {}, () => ([]))
+        this._editableLayer = new MapDThreeIterator('editable', [], [], () => {}, () => ([]))
         this.setCallbacks({ onTick, onStability: onStabilize })
-        this.update(tree, standardForm, onChange)
+        this.update(inherited, editable, onChange)
         this.checkStability()
     }
 
@@ -426,8 +484,14 @@ export class MapDThreeTree extends Object {
         }, [])
     }
 
-    get nodes(): (SimNode & { layers: number[] })[] {
-        return this.getNodes(this._visibleLayers)
+    get nodes(): (SimNode & { editable: boolean })[] {
+        return [
+            ...this._inheritedLayer.nodes
+                .filter(({ roomId }) => (!this._editableLayer.nodes.find(({ roomId: editableRoomId }) => (roomId === editableRoomId))))
+                .map((data) => ({ ...data, editable: false })),
+            ...this._editableLayer.nodes
+                .map((data) => ({ ...data, editable: true }))
+        ]
     }
     get links(): MapLinks {
         return this.layers.reduce<MapLinks>((previous, { links }) => ([ ...previous, ...links ]), [] as MapLinks)
@@ -445,10 +509,10 @@ export class MapDThreeTree extends Object {
     // Update responds to changes in the semantic structure of the map, while keeping live and running simulations.
     //
     // Do NOT use it to respond to simulation-level changes in the simulations themselves ... only semantic changes
-    // in the incoming map tree.
+    // in the incoming map definition (inherited and editable).
     //
 
-    update(tree: GenericTree<SchemaTag>, standardForm: StandardFormData, onChange: (newTree: GenericTree<SchemaTag> | ((draft: Draft<GenericTree<SchemaTag>>) => void)) => void): void {
+    update(inherited: StandardForm, editable: StandardForm, onChange: (newEditable: StandardForm | ((draft: Draft<StandardForm>) => void)) => void): void {
 
         const translatedTree = mapTreeTranslate({ tree, onChange, standardForm })
         const incomingDiff = diffTrees({

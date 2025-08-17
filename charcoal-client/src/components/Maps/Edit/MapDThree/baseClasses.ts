@@ -1,16 +1,16 @@
+import { isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema';
 import {
     SimulationNodeDatum,
     SimulationLinkDatum
 } from 'd3-force'
 
 export type SimNode = SimulationNodeDatum & {
-    id: string;
-    cascadeNode: boolean;
-    roomId: string;
-    visible: boolean;
+    id: `ROOM#${string}`;
+    x: number;
+    y: number;
 }
 export const isSimNode = (value: SimulationNodeDatum): value is SimNode => (
-    'cascadeNode' in value
+    'id' in value && typeof value.id === 'string' && 'x' in value && 'y' in value && isSchemaComponentUUID(value.id)
 )
 
 export type NodeRecord = Record<string, SimNode>

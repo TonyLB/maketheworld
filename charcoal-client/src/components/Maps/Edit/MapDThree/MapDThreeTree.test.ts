@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import MapDThreeTree, { MapDFSWalkInnerCallbackReduce, SimulationTreeNode, mapDFSWalk, mapTreeTranslate } from './MapDThreeTree'
+import MapDThreeTree, { MapDFSWalkInnerCallbackReduce, SimulationTreeNode, mapDFSWalk, mapTreeTranslate, mapTranslate } from './MapDThreeTree'
 
 vi.mock('./MapDThreeIterator.tsx')
 import MapDThreeIteratorRaw from './MapDThreeIterator'
@@ -115,6 +115,82 @@ describe('mapTreeTranslate', () => {
         }])
         expect(mapTreeTranslate(testArgs(false))).toEqual(expectedResult(false))
         expect(mapTreeTranslate(testArgs(true))).toEqual(expectedResult(true))
+    })
+
+})
+
+describe('mapTranslate', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        vi.resetAllMocks()
+    })
+
+    it('should translate a simple map with rooms and positions', () => {
+        const testStandard = new StandardForm(`
+            <Asset key=(testOne)>
+                <Map uuid=(testMap)>
+                    <Room uuid=(Room1)><Position x="100" y="100" /></Room>
+                    <Room uuid=(Room2)><Position x="200" y="150" /></Room>
+                    <Room uuid=(Room3)><Position x="300" y="200" /></Room>
+                </Map>
+            </Asset>
+        `)
+        
+        const result = mapTranslate({ 
+            mapId: 'MAP#testMap', 
+            standardForm: testStandard 
+        })
+        
+        expect(result.nodes).toEqual([
+            { id: 'ROOM#Room1', x: 100, y: 100 },
+            { id: 'ROOM#Room2', x: 200, y: 150 },
+            { id: 'ROOM#Room3', x: 300, y: 200 }
+        ])
+        expect(result.links).toEqual([])
+    })
+
+    it('should translate a map with rooms, positions, and exits', () => {
+        const testStandard = new StandardForm(`
+            <Asset key=(testOne)>
+                <Map uuid=(testMap)>
+                    <Room uuid=(Room1)><Position x="100" y="100" /></Room>
+                    <Room uuid=(Room2)>
+                        <Position x="200" y="150" />
+                        <Exit to=(ROOM#Room1)>North</Exit>
+                        <Exit to=(ROOM#Room3)>South</Exit>
+                    </Room>
+                    <Room uuid=(Room3)><Position x="200" y="250" /></Room>
+                </Map>
+            </Asset>
+        `)
+        
+        const result = mapTranslate({ 
+            mapId: 'MAP#testMap', 
+            standardForm: testStandard 
+        })
+        
+        expect(result.nodes).toEqual([
+            { id: 'ROOM#Room1', x: 100, y: 100 },
+            { id: 'ROOM#Room2', x: 200, y: 150 },
+            { id: 'ROOM#Room3', x: 200, y: 250 }
+        ])
+        expect(result.links).toEqual([
+            { id: 'ROOM#Room2:ROOM#Room1', source: 'ROOM#Room2', target: 'ROOM#Room1' },
+            { id: 'ROOM#Room2:ROOM#Room3', source: 'ROOM#Room2', target: 'ROOM#Room3' }
+        ])
+    })
+
+    it('should throw error when map is not found', () => {
+        const testStandard = new StandardForm(`
+            <Asset key=(testOne)>
+                <Room uuid=(Room1)><Position x="100" y="100" /></Room>
+            </Asset>
+        `)
+        
+        expect(() => mapTranslate({ 
+            mapId: 'MAP#nonexistent', 
+            standardForm: testStandard 
+        })).toThrow('Map MAP#nonexistent not found in standardForm')
     })
 
 })
@@ -449,132 +525,33 @@ describe('MapDThreeStack', () => {
     })
 
     it('should initialize layers on construction', () => {
-        const testMapDThreeTree = new MapDThreeTree({ tree: testTree, standardForm: testStandard.toJSON(), onChange: () => {} })
+        const inherited = new StandardForm(`
+            <Asset key=(inherited)>
+                <Map uuid=(testMap)>
+                    <Room uuid=(ABC) origin=(ASSET#inherited)><Position x="200" y="200" /></Room>
+                    <Room uuid=(DEF) origin=(ASSET#inherited)><Position x="100" y="200" /></Room>
+                </Map>
+            </Asset>
+        `)
+        const editable = new StandardForm(`
+            <Asset key=(editable)>
+                <Map uuid=(testMap)>
+                    <Room uuid=(DEF)><Position x="300" y="200" /></Room>
+                    <Room uuid=(GHI)><Position x="300" y="300" /></Room>
+                </Map>
+            </Asset>
+        `)
+        const testMapDThreeTree = new MapDThreeTree({ mapId: 'MAP#testMap', inherited, editable, onChange: () => {} })
         expect(MapDThreeIterator).toHaveBeenCalledTimes(2)
-        expect(MapDThreeIterator).toHaveBeenCalledWith("::(true)", [{
-            id: 'GHI',
-            roomId: 'GHI',
-            cascadeNode: false,
-            x: 300,
-            y: 300,
-            visible: true
-        }], [], expect.any(Function), expect.any(Function))
-        expect(MapDThreeIterator).toHaveBeenCalledWith("", [{
-                id: 'GHI',
-                roomId: 'GHI',
-                cascadeNode: false,
-                x: 300,
-                y: 300,
-                visible: true
-            },
-            {
-                id: 'DEF',
-                roomId: 'DEF',
-                cascadeNode: false,
-                x: 300,
-                y: 200,
-                visible: true
-            },
-            {
-                id: 'ABC',
-                roomId: 'ABC',
-                cascadeNode: false,
-                x: 200,
-                y: 200,
-                visible: true
-            }], [], expect.any(Function), expect.any(Function)
+        expect(MapDThreeIterator).toHaveBeenCalledWith([
+            { id: 'ROOM#DEF', x: 300, y: 200 },
+            { id: 'ROOM#GHI', x: 300, y: 300 }
+        ], [], expect.any(Function), expect.any(Function))
+        expect(MapDThreeIterator).toHaveBeenCalledWith([
+            { id: 'ROOM#ABC', x: 200, y: 200 },
+            { id: 'ROOM#DEF', x: 100, y: 200 }
+            ], [], expect.any(Function), expect.any(Function)
         )
-    })
-
-    it('should update correctly when node moved between layers', () => {
-        const testMapDThreeTree = new MapDThreeTree({ tree: testTree, standardForm: testStandard.toJSON(), onChange: () => {} })
-        const testUpdateSchema = new Schema()
-        testUpdateSchema.loadWML(`
-            <Asset key=(testOne)>
-                <Map key=(testMap)>
-                    <Room key=(GHI)><Position x="300" y="300" /></Room>
-                    <Room key=(DEF)><Position x="300" y="200" /></Room>
-                    <If {true}>
-                        <Room key=(GHI)><Position x="300" y="300" /></Room>
-                        <Room key=(ABC)><Position x="200" y="200" /></Room>
-                    </If>
-                </Map>
-            </Asset>
-        `)
-        const testUpdateStandard = new StandardForm(testUpdateSchema.schema[0])
-    
-        const testUpdateComponent = testUpdateStandard.byId.testMap
-        
-        const testUpdateTree = assertInstance(testUpdateComponent, StandardMap)?.positions ?? []
-        
-        testMapDThreeTree.update(testUpdateTree, testUpdateStandard.toJSON(), () => {})
-
-        expect(testMapDThreeTree.layers[0].update).toHaveBeenCalledWith([{
-            id: 'GHI',
-            roomId: 'GHI',
-            x: 300,
-            y: 300,
-            visible: true,
-            cascadeNode: false
-        },
-        {
-            id: 'DEF',
-            roomId: 'DEF',
-            x: 300,
-            y: 200,
-            visible: true,
-            cascadeNode: false
-        }], [], true, expect.any(Function), expect.any(Function))
-
-        expect(testMapDThreeTree.layers[1].update).toHaveBeenCalledWith([{
-                id: 'GHI',
-                roomId: 'GHI',
-                x: 300,
-                y: 300,
-                visible: true,
-                cascadeNode: false
-            },
-            {
-                id: 'ABC',
-                roomId: 'ABC',
-                x: 200,
-                y: 200,
-                visible: true,
-                cascadeNode: false
-            }], [], true, expect.any(Function), expect.any(Function))
-    })
-
-    it('should update correctly when layer removed', () => {
-        const testMapDThreeTree = new MapDThreeTree({ tree: testTree, standardForm: testStandard.toJSON(), onChange: () => {} })
-        const testUpdateSchema = new Schema()
-        testUpdateSchema.loadWML(`
-            <Asset key=(testOne)>
-                <Map key=(testMap)>
-                    <Room key=(ABC)><Position x="200" y="200" /></Room>
-                </Map>
-            </Asset>
-        `)
-        const testUpdateStandard = new StandardForm(testUpdateSchema.schema[0])
-    
-        const testUpdateComponent = testUpdateStandard.byId.testMap
-        
-        const testUpdateTree = assertInstance(testUpdateComponent, StandardMap)?.positions ?? []
-    
-        const movedLayer = testMapDThreeTree.layers[0]
-        const deletedLayer = testMapDThreeTree.layers[1]
-        testMapDThreeTree.update(testUpdateTree, testUpdateStandard.toJSON(), () => {})
-
-        expect(movedLayer.update).toHaveBeenCalledWith([{
-                id: 'ABC',
-                roomId: 'ABC',
-                x: 200,
-                y: 200,
-                visible: true,
-                cascadeNode: false
-            }], [], true, expect.any(Function), expect.any(Function))
-
-        expect(deletedLayer.simulation.stop).toHaveBeenCalledTimes(1)
-        expect(testMapDThreeTree.layers.length).toEqual(1)
     })
 
 })

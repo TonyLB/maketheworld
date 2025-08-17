@@ -16,7 +16,6 @@ import forceFlexLink from './forceFlexLink'
 import cascadeForce from './cascadeForce'
 
 export class MapDThreeIterator extends Object {
-    key: string = ''
     _nodes: MapNodes = []
     _links: MapLinks = []
     _onChange: SimCallback;
@@ -50,7 +49,6 @@ export class MapDThreeIterator extends Object {
     }
     constructor(key: string, nodes: MapNodes, links: MapLinks, onChange: SimCallback, getCascadeNodes?: () => MapNodes) {
         super()
-        this.key = key
         this._nodes = nodes
         this._links = links
         this._onChange = onChange
