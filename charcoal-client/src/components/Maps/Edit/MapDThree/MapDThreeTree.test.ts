@@ -122,32 +122,28 @@ describe('MapDThreeStack', () => {
             roomId: 'GHI',
             cascadeNode: false,
             x: 300,
-            y: 300,
-            visible: true
+            y: 300
         }]
         const nodesTwo = [{
             id: 'GHI',
             roomId: 'GHI',
             cascadeNode: false,
             x: 300,
-            y: 300,
-            visible: true
+            y: 300
         },
         {
             id: 'DEF',
             roomId: 'DEF',
             cascadeNode: false,
             x: 300,
-            y: 200,
-            visible: true
+            y: 200
         },
         {
             id: 'ABC',
             roomId: 'ABC',
             cascadeNode: false,
             x: 200,
-            y: 200,
-            visible: true
+            y: 200
         }]
         MapDThreeIterator
             .mockImplementationOnce(() => ({

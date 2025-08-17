@@ -6,6 +6,7 @@ import {
 
 export type SimNode = SimulationNodeDatum & {
     id: `ROOM#${string}`;
+    roomId: string;
     x: number;
     y: number;
 }
@@ -17,8 +18,7 @@ export type NodeRecord = Record<string, SimNode>
 export type LinkRecord = {
     id: string,
     source: string,
-    target: string,
-    visible?: boolean
+    target: string
 }[]
 export type SimulationReturn = {
     key: string,
@@ -42,5 +42,4 @@ export interface MapLayer {
     key: string;
     rooms: Record<string, MapLayerRoom>;
     onStability?: (nodes: SimNode[]) => void;
-    roomVisibility: Record<string, boolean>;
 }

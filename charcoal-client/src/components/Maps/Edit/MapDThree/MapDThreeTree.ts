@@ -8,7 +8,6 @@ import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 
 export type SimulationTreeNode = SimulationReturn & {
     onChange: (newValue: SimulationTreeNode['nodes']) => void;
-    visible: boolean;
 }
 
 type MapDThreeTreeProps = {
@@ -61,9 +60,8 @@ export const mapTranslate = ({
 }
 
 //
-// MapDThreeTree accepts incoming GenericTree<SchemaTag> and maps an incoming onChange funtion (on
-// that tree) to individual onChange functions for each sub-tree at the same conditional level (i.e.,
-// all items with no conditions, or all items within the same condition).
+// MapDThreeTree manages a simplified two-layer D3.js simulation system for map visualization.
+// It handles inherited and editable layers without conditional complexity.
 //
 export class MapDThreeTree extends Object {
     mapId: `MAP#${string}`;

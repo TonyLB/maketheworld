@@ -27,12 +27,11 @@ export class ExitDragD3Layer extends Object {
         this.double = double
         this.invalidTargets = invalidTargets
         this.nodes = [
-            ...getNodes().map(({ id, roomId, fx, fy, x, y, visible }) => ({
+            ...getNodes().map(({ id, roomId, fx, fy, x, y }) => ({
                 id,
                 roomId,
                 x: fx ?? x,
                 y: fy ?? y,
-                visible,
                 cascadeNode: true,
                 reference: { tag: 'Room' as const, key: '', index: 0 }
             })),
@@ -41,7 +40,6 @@ export class ExitDragD3Layer extends Object {
                 roomId: 'DRAG-TARGET',
                 x: 0,
                 y: 0,
-                visible: true,
                 cascadeNode: false,
                 reference: { tag: 'Room' as const, key: '', index: 0 }
             }
