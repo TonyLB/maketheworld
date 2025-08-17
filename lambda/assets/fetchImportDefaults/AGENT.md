@@ -85,11 +85,23 @@ The system automatically generates stub elements for components that are referen
 - The system will return a stub for Room B containing minimal information (like its name)
 - This ensures referential integrity without requiring full component data for every referenced item
 
+**Important**: Stub components maintain their own complete inheritance history through `origin` arrays, independent of how they were discovered. A stub component can have a complex multi-entry origin chain even when the component that referenced it has a simple origin.
+
+### Origin System Behavior
+
+The `origin` system provides component-level inheritance tracking that works independently for each component:
+
+- **Component-Aware Tracking**: Each component maintains its own origin array based on its individual inheritance history
+- **Discovery Method Independence**: Whether a component is directly requested or discovered as a stub doesn't affect its origin tracking
+- **Complete Inheritance Chains**: Components can have multi-entry origin arrays showing their complete path from ultimate origin to current asset
+- **Stub Origin Preservation**: Stub components discovered during import maintain their full inheritance lineage, not just their immediate source
+
 ### Best Practices
 
 - Use `removeLocalKeys: true` for recursive calls to focus on universal component identities
 - Leverage cascade conditions to control how related components are included
 - Process stubs to maintain referential integrity across asset boundaries
+- Expect complex origin arrays for stub components that have their own inheritance histories
 
 ### Error Handling
 
@@ -122,6 +134,7 @@ The system automatically generates stub elements for components that are referen
 - **Origin Flag Integration**: Currently uses `_from` for import tracking; ready for `_origin` array integration
 - **Semantic Mode Support**: Supports "Aggregation of Multiple Assets" mode through recursive inheritance resolution
 - **Stub Generation**: Robust stub creation for maintaining referential integrity
+- **Origin System Design**: Designed to provide component-level inheritance tracking independent of discovery method
 
 ### Future Plans
 
@@ -147,4 +160,4 @@ This functionality directly supports the **"Aggregation of the Content of Multip
   - Represents effective content after inheritance resolution
   - Ready for enhanced origin tracking with `_origin` arrays
 
-The recursive import system ensures that components maintain their inheritance context while providing a flattened view suitable for content creation and editing workflows.
+The recursive import system ensures that components maintain their inheritance context while providing a flattened view suitable for content creation and editing workflows. The `origin` system enhances this by providing complete inheritance lineage for each component, allowing content creators to understand not just what components exist, but their complete inheritance history and where they originated in the asset hierarchy.
