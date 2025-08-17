@@ -16,11 +16,6 @@ import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 
 const MapDThreeIterator = mockClass(MapDThreeIteratorRaw)
 
-type MapDThreeDFSOutput = {
-    data: SimulationReturn;
-    previousLayer?: number;
-}
-
 describe('mapTreeTranslate', () => {
     beforeEach(() => {
         vi.clearAllMocks()
