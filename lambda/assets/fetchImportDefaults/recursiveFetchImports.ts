@@ -4,6 +4,7 @@ import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
 import { AssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardKey } from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { mapKeyToFormat } from "@tonylb/mtw-wml/ts/standardize/components/utils/references"
+import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 
 type RecursiveFetchImportArgument = {
     assetId: AssetUUID;
@@ -35,6 +36,11 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
     // in the local keys, as they are not relevant to the import process.
     //
     const newStandard = subsetStandard
+    const originAsset = AssetKey(newStandard.key)
+    newStandard._components = newStandard._components.map((component) => {
+        const returnValue = component.withOrigin([originAsset])
+        return returnValue
+    })
     if (removeLocalKeys) {
         const allKeys = newStandard._components
             .map((component) => (component._key))
