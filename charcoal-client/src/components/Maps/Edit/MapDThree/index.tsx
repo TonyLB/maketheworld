@@ -62,26 +62,18 @@ export class MapDThree extends Object {
             mapId,
             inherited,
             editable,
-            onChange: (newTree) => {
-                const mapComponent = editable.byUniversalId[mapId]
-                if (mapComponent && mapComponent instanceof StandardMap) {
-                    updateStandard({
-                        type: 'update',
-                        update: (incoming) => {
-                            const component = incoming.byUniversalId[mapId]
-                            if (component instanceof StandardMap && component._payload instanceof StandardMapPayload) {
-                                if (typeof newTree === 'function') {
-                                    const positions = produce(component.positions, newTree)
-                                    component._payload._positions = positions
-                                }
-                                else {
-                                    component._payload._positions = newTree
-                                }
-                            }
-                            return incoming
+            onChange: (change) => {
+                updateStandard({
+                    type: 'update',
+                    update: (incoming) => {
+                        if (typeof change === 'function') {
+                            return produce(incoming, change)
                         }
-                    })
-                }
+                        else {
+                            return change
+                        }
+                    }
+                })
             },
             onTick,
             onStabilize: onStability
@@ -120,29 +112,22 @@ export class MapDThree extends Object {
     // in the incoming map tree.
     //
     update(inherited: StandardForm, editable: StandardForm, updateStandard: (action: UpdateStandardPayload) => void, mapId: `MAP#${string}`): void {
-        this.tree.update(inherited, editable, (newTree) => {
+        this.tree.update(inherited, editable, (change) => {
             const mapComponent = editable.byUniversalId[mapId]
             if (mapComponent && mapComponent instanceof StandardMap) {
                 updateStandard({
                     type: 'update',
-                    update: (draft) => {
-                        const component = draft.byId[mapId]
-                        if (component instanceof StandardMap) {
-                            const base = component.clone()
-                            if (typeof newTree === 'function') {
-                                const positions = produce(base.positions, newTree)
-                                base._payload._positions = positions
-                            }
-                            else {
-                                base._payload._positions = newTree
-                            }
+                    update: (incoming) => {
+                        if (typeof change === 'function') {
+                            return produce(incoming, change)
                         }
-                        return draft
+                        else {
+                            return change
+                        }
                     }
                 })
             }
-        },
-)
+        })
         this.tree.checkStability()
     }
 

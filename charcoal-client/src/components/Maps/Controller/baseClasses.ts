@@ -88,7 +88,7 @@ type MapDispatchSelectParent = {
 
 type MapDispatchAddRoom = {
     type: 'AddRoom';
-    roomId?: string;
+    roomId?: `ROOM#${string}`;
     x: number;
     y: number;
 }
