@@ -5,12 +5,9 @@ import MapDThreeTree from './MapDThreeTree'
 import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
-import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
-import { isStandardMap } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { UpdateStandardPayload } from '../../../../slices/personalAssets/reducers'
-import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
-import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
-import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
+import StandardMap, { StandardMapPayload } from '@tonylb/mtw-wml/ts/standardize/components/map'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
@@ -50,11 +47,11 @@ export class MapDThree extends Object {
     onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
     onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
 
-    constructor({ standardForm, updateStandard, mapId, tree, onStability, onTick, onExitDrag, onAddExit }: {
-        standardForm: StandardFormData;
+    constructor({ inherited, editable, updateStandard, mapId, onStability, onTick, onExitDrag, onAddExit }: {
+        inherited: StandardForm;
+        editable: StandardForm;
         updateStandard: (action: UpdateStandardPayload) => void;
-        mapId: string;
-        tree: GenericTree<SchemaTag>;
+        mapId: `MAP#${string}`;
         onStability?: SimCallback;
         onTick?: SimCallback;
         onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void;
@@ -62,16 +59,17 @@ export class MapDThree extends Object {
     }) {
         super()
         this.tree = new MapDThreeTree({
-            tree,
-            standardForm,
+            mapId,
+            inherited,
+            editable,
             onChange: (newTree) => {
-                const mapComponent = standardForm.byId[mapId]
-                if (mapComponent && isStandardMap(mapComponent)) {
+                const mapComponent = editable.byUniversalId[mapId]
+                if (mapComponent && mapComponent instanceof StandardMap) {
                     updateStandard({
                         type: 'update',
                         update: (incoming) => {
-                            const component = incoming.byId[mapId]
-                            if (component instanceof StandardMap) {
+                            const component = incoming.byUniversalId[mapId]
+                            if (component instanceof StandardMap && component._payload instanceof StandardMapPayload) {
                                 if (typeof newTree === 'function') {
                                     const positions = produce(component.positions, newTree)
                                     component._payload._positions = positions
@@ -121,10 +119,10 @@ export class MapDThree extends Object {
     // Do NOT use it to respond to simulation-level changes in the simulations themselves ... only semantic changes
     // in the incoming map tree.
     //
-    update(tree: GenericTree<SchemaTag>, standardForm: StandardFormData, updateStandard: (action: UpdateStandardPayload) => void, mapId: string): void {
-        this.tree.update(tree, standardForm, (newTree) => {
-            const mapComponent = standardForm.byId[mapId]
-            if (mapComponent && isStandardMap(mapComponent)) {
+    update(inherited: StandardForm, editable: StandardForm, updateStandard: (action: UpdateStandardPayload) => void, mapId: `MAP#${string}`): void {
+        this.tree.update(inherited, editable, (newTree) => {
+            const mapComponent = editable.byUniversalId[mapId]
+            if (mapComponent && mapComponent instanceof StandardMap) {
                 updateStandard({
                     type: 'update',
                     update: (draft) => {

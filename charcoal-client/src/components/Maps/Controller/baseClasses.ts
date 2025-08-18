@@ -5,6 +5,7 @@ import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaSelectedTag } from "@tonylb/mtw-base/ts/schema/condition"
 import { SchemaAssetTag } from "@tonylb/mtw-base/ts/schema/asset"
 import { SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
+import { StandardPosition } from "@tonylb/mtw-wml/ts/standardize/components/position"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
 
@@ -115,22 +116,14 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchToggleBranchVisibility
 
 export type MapContextPosition = {
-    id: string;
-    parentId: string;
-    roomId: string;
-    name: string;
-    x: number;
-    y: number;
+    position: StandardPosition;
+    name: string
 }
 
 export type MapTreeSchemaTags = SchemaAssetTag | SchemaSelectedTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag
 
 export type MapContextType = {
-    mapId: string;
-    nodeId: string;
-    tree: GenericTree<MapTreeSchemaTags>;
-    selectedPositions: GenericTree<MapTreeSchemaTags>;
-    updateSelected: (newValue: GenericTree<SchemaTag>) => void;
+    mapId: `MAP#${string}`;
     UI: {
         //
         // The Map editor can conceivably need data for:
