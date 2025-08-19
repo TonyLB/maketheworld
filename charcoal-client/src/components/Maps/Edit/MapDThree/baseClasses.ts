@@ -6,7 +6,6 @@ import {
 
 export type SimNode = SimulationNodeDatum & {
     id: `ROOM#${string}`;
-    roomId: string;
     x: number;
     y: number;
 }

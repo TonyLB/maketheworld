@@ -6,6 +6,7 @@ import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaCondi
 import { SchemaAssetTag } from "@tonylb/mtw-base/ts/schema/asset"
 import { SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { StandardPosition } from "@tonylb/mtw-wml/ts/standardize/components/position"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
 
@@ -23,7 +24,7 @@ export const isMapTreeRoomWithPosition = (node: MapTreeItem): node is MapTreeRoo
 )
 
 type MapContextExitDrag = {
-    sourceRoomId: string;
+    sourceRoomId: `ROOM#${string}`;
     x: number;
     y: number;
 }
@@ -48,14 +49,15 @@ type MapDispatchDragExit = {
 
 type MapDispatchSetNode = {
     type: 'SetNode',
-    roomId: string;
+    roomId: `ROOM#${string}`;
     x: number;
     y: number;
 }
 
 type MapDispatchUpdateTree = {
     type: 'UpdateTree';
-    tree: GenericTree<SchemaTag>;
+    inherited: StandardForm;
+    editable: StandardForm;
 }
 
 type MapContextItemSelectedLayer = {

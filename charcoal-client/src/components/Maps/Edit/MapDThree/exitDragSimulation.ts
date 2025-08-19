@@ -13,47 +13,41 @@ type MapNodes = SimNode[]
 export class ExitDragD3Layer extends Object {
     nodes: MapNodes = []
     getSourceNodes: () => MapNodes
-    sourceRoomId: string
+    sourceRoomId: `ROOM#${string}`
     double: boolean = false
     invalidTargets: string[] = []
     ticksLocked: boolean = false
-    onTick: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void = () => {}
+    onTick: (dragTarget: { sourceRoomId: `ROOM#${string}`, x: number, y: number }) => void = () => {}
     simulation: Simulation<SimNode, SimulationLinkDatum<SimNode>>
 
-    constructor(getNodes: () => MapNodes, sourceRoomId: string, double: boolean, invalidTargets: string[]) {
+    constructor(getNodes: () => MapNodes, sourceRoomId: `ROOM#${string}`, double: boolean, invalidTargets: string[]) {
         super()
         this.getSourceNodes = getNodes
         this.sourceRoomId = sourceRoomId
         this.double = double
         this.invalidTargets = invalidTargets
         this.nodes = [
-            ...getNodes().map(({ id, roomId, fx, fy, x, y }) => ({
+            ...getNodes().map(({ id, fx, fy, x, y }) => ({
                 id,
-                roomId,
                 x: fx ?? x,
                 y: fy ?? y,
-                cascadeNode: true,
-                reference: { tag: 'Room' as const, key: '', index: 0 }
             })),
             {
-                id: 'DRAG-TARGET',
-                roomId: 'DRAG-TARGET',
+                id: 'ROOM#DRAG-TARGET',
                 x: 0,
-                y: 0,
-                cascadeNode: false,
-                reference: { tag: 'Room' as const, key: '', index: 0 }
+                y: 0
             }
         ]
         this.simulation = forceSimulation(this.nodes)
             .force("cascade", cascadeForce(this.getSourceNodes, this.nodes))
-            .force("seeker", exitSeekerForce(this.nodes).id(({ roomId }) => (roomId)).invalidTargets(this.invalidTargets))
+            .force("seeker", exitSeekerForce(this.nodes).id(({ id }) => (id)).invalidTargets(this.invalidTargets))
             .alphaTarget(0.5)
             .alphaDecay(0.15)
             .on("tick", () => {
                 if (this.ticksLocked)  {
                     return
                 }
-                const dragTarget = this.nodes.find(({ roomId }) => (roomId === 'DRAG-TARGET'))
+                const dragTarget = this.nodes.find(({ id }) => (id === 'ROOM#DRAG-TARGET'))
                 if (dragTarget) {
                     const { x, y } = dragTarget
                     this.onTick({ sourceRoomId: this.sourceRoomId, x: x ?? 0, y: y ?? 0 })
@@ -71,7 +65,7 @@ export class ExitDragD3Layer extends Object {
     endDrag() {
         this.simulation.force("dragX", null).force("dragY", null).alpha(0).tick(1)
         this.ticksLocked = true
-        this.onTick({ sourceRoomId: '', x: 0, y: 0 })
+        this.onTick({ sourceRoomId: 'ROOM#', x: 0, y: 0 })
     }
 }
 

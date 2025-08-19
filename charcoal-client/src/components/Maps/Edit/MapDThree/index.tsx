@@ -44,8 +44,8 @@ export class MapDThree extends Object {
     stable: boolean = true
     onStability: SimCallback = () => {}
     onTick: SimCallback = () => {}
-    onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
-    onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
+    onExitDrag?: (dragTarget: { sourceRoomId: `ROOM#${string}`, x: number, y: number }) => void
+    onAddExit?: (fromRoomId: `ROOM#${string}`, toRoomId: `ROOM#${string}`, double: boolean) => void
 
     constructor({ inherited, editable, updateStandard, mapId, onStability, onTick, onExitDrag, onAddExit }: {
         inherited: StandardForm;
@@ -54,8 +54,8 @@ export class MapDThree extends Object {
         mapId: `MAP#${string}`;
         onStability?: SimCallback;
         onTick?: SimCallback;
-        onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void;
-        onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
+        onExitDrag?: (dragTarget: { sourceRoomId: `ROOM#${string}`, x: number, y: number }) => void;
+        onAddExit?: (fromRoomId: `ROOM#${string}`, toRoomId: `ROOM#${string}`, double: boolean) => void
     }) {
         super()
         this.tree = new MapDThreeTree({
@@ -93,8 +93,8 @@ export class MapDThree extends Object {
     setCallbacks(props: {
             onTick?: SimCallback,
             onStability?: SimCallback;
-            onExitDrag?: (props: { sourceRoomId: string; x: number; y: number }) => void;
-            onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
+            onExitDrag?: (props: { sourceRoomId: `ROOM#${string}`; x: number; y: number }) => void;
+            onAddExit?: (fromRoomId: `ROOM#${string}`, toRoomId: `ROOM#${string}`, double: boolean) => void
         }) {
         const { onTick, onStability, onExitDrag, onAddExit } = props
         this.tree.setCallbacks({ onTick, onStability })
@@ -140,7 +140,7 @@ export class MapDThree extends Object {
     //
     // dragExit creates (if needed) a dragging layer and passes data into its simulation
     //
-    dragExit({ roomId, x, y, double }: { roomId: string, x: number, y: number, double: boolean }): void {
+    dragExit({ roomId, x, y, double }: { roomId: `ROOM#${string}`, x: number, y: number, double: boolean }): void {
         if (!this.exitDragLayer) {
             this.exitDragLayer = new ExitDragD3Layer(() => (this.nodes), roomId, double, getInvalidExits(this, roomId, double))
             if (this.onExitDrag) {
@@ -152,15 +152,15 @@ export class MapDThree extends Object {
     endDrag(): void {
         this.tree.endDrag()
         if (this.exitDragLayer) {
-            const dragNode = this.exitDragLayer.nodes.find(({ roomId }) => (roomId === 'DRAG-TARGET'))
+            const dragNode = this.exitDragLayer.nodes.find(({ id }) => (id === 'ROOM#DRAG-TARGET'))
             if (dragNode && this.onAddExit) {
                 const invalidExits = getInvalidExits(this, this.exitDragLayer.sourceRoomId, this.exitDragLayer.double)
                 const closeTargets = this.nodes
                     .map(({ fx, x, fy, y, ...rest }) => ({ x: fx ?? (x || 0), y: fy ?? (y || 0), ...rest }))
                     .filter(({ x, y }) => (Math.abs((dragNode.x || 0) - x) < 30 && Math.abs((dragNode.y || 0) - y)))
-                    .filter(({ roomId }) => (!invalidExits.includes(roomId)))
-                    .map(({ roomId, x, y }) => ({
-                        roomId,
+                    .filter(({ id }) => (!invalidExits.includes(id)))
+                    .map(({ id, x, y }) => ({
+                        id,
                         distance: Math.pow((dragNode.x || 0) - (x || 0), 2) + Math.pow((dragNode.y || 0) - (y || 0), 2)
                     }))
                     .filter(({ distance }) => (distance < 900))
@@ -172,7 +172,7 @@ export class MapDThree extends Object {
                     // TODO: Figure out why there's a set-state problem if this setTimeout is omitted
                     //
                     setTimeout(() => {
-                        addExit(exitDragLayer.sourceRoomId, closeTargets[0].roomId, exitDragLayer.double)
+                        addExit(exitDragLayer.sourceRoomId, closeTargets[0].id, exitDragLayer.double)
                     }, 0)
                 }
             }
