@@ -6,10 +6,7 @@ import { MapTreeExit } from '../../Controller/baseClasses'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 import { useDispatch } from 'react-redux'
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
-import { SchemaAssetTag } from '@tonylb/mtw-base/ts/schema/asset'
-import { SchemaExitTag, SchemaPositionTag, SchemaRoomTag } from '@tonylb/mtw-base/ts/schema/components'
-import { SchemaConditionTag } from '@tonylb/mtw-base/ts/schema/condition'
-import { SchemaNameTag } from '@tonylb/mtw-base/ts/schema/example'
+import { SchemaExitTag, SchemaRoomTag } from '@tonylb/mtw-base/ts/schema/components'
 import { SchemaOutputTag } from '@tonylb/mtw-base/ts/schema'
 
 type MapAreaProps = {
@@ -17,7 +14,7 @@ type MapAreaProps = {
     editMode?: boolean;
 }
 
-export const treeToExits = (tree: GenericTree<SchemaAssetTag | SchemaRoomTag | SchemaConditionTag | SchemaExitTag | SchemaNameTag | SchemaOutputTag | SchemaPositionTag>): MapTreeExit[] => {
+export const treeToExits = (tree: GenericTree<SchemaRoomTag | SchemaExitTag | SchemaOutputTag>): MapTreeExit[] => {
     return tree.reduce<MapTreeExit[]>((
         previous,
         { data, children }

@@ -19,8 +19,8 @@ vi.mock('../../Library/Edit/LibraryAsset', () => ({
     })
 }))
 
-vi.mock('../../../slices/UI/mapEdit', () => ({
-    toggle: vi.fn()
+vi.mock('../../../slices/UI/navigationTabs', () => ({
+    setNavigationTab: vi.fn()
 }))
 
 vi.mock('../../../slices/personalAssets', () => ({

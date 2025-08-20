@@ -206,10 +206,11 @@ Removing conditionals from the D3.js system requires:
 - **Note**: Only after all functional code has been updated to not reference these types
 
 ### Phase 6: Functional Cleanup
-- Remove unused Redux `toggle` action from mapEdit slice
-- Remove unused `mapEditConditionsByMapId` and `mapEditConditionState` selectors
-- Clean up any remaining orphaned conditional-related code
-- Remove unused imports and dependencies
+- ✅ Remove unused Redux `toggle` action from mapEdit slice
+- ✅ Remove unused `mapEditConditionsByMapId` and `mapEditConditionState` selectors
+- ✅ Clean up any remaining orphaned conditional-related code
+- ✅ Remove unused imports and dependencies
+- ✅ Remove entire mapEdit Redux slice (no longer needed)
 - **Tutorial Cleanup**: Remove `renameNewRoom` tutorial item (moved to Phase 6 for cleanup)
 - **Note**: This phase focuses on removing backend infrastructure that's no longer needed
 
