@@ -191,11 +191,11 @@ Removing conditionals from the D3.js system requires:
 - ✅ Update layer display to show linear ancestry
 - **Note**: Still using conditional types during this phase
 
-### Phase 4: State Management Cleanup
+### Phase 4: State Management Cleanup ✅ COMPLETED
 - ✅ Remove conditional-related Redux actions
 - ✅ Simplify MapController to handle only asset inheritance
 - ✅ Remove visibility state management (`inheritedInvisible` context)
-- Update position management for simplified tree structure
+- ✅ Remove conditional-related state management (`isSchemaSelected`, `firstSelectedSubTree`, `MapDispatchToggleBranchVisibility`)
 - **Note**: Still using conditional types during this phase
 
 ### Phase 5: Type System Cleanup

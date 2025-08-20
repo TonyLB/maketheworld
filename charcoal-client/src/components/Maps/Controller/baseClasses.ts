@@ -100,11 +100,6 @@ type MapDispatchUnlockRoom = {
     roomId?: string;
 }
 
-type MapDispatchToggleBranchVisibility = {
-    type: 'ToggleVisibility';
-    key: string;
-}
-
 export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSetExitDrag |
     MapDispatchEndDrag |
@@ -114,8 +109,7 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSelectItem |
     MapDispatchSelectParent |
     MapDispatchAddRoom |
-    MapDispatchUnlockRoom |
-    MapDispatchToggleBranchVisibility
+    MapDispatchUnlockRoom
 
 export type MapContextPosition = {
     position: StandardPosition;

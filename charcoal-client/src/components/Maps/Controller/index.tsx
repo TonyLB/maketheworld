@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
-import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
+
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeSchemaTags, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
@@ -14,7 +14,7 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/components/map"
 import StandardRoom, { StandardRoomPayload } from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaSelected } from "@tonylb/mtw-base/ts/schema/condition"
+
 import { StandardKey } from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { excludeUndefined } from "../../../lib/lists"
 import StandardPosition, { StandardPositionSimple, StandardPositionSimpleBase } from "@tonylb/mtw-wml/ts/standardize/components/position"
@@ -55,17 +55,7 @@ export const mapTreeMemo = (standardForm: StandardForm, mapId: `MAP#${string}`):
     return mapSubset
 }
 
-const firstSelectedSubTree = (tree: GenericTree<MapTreeSchemaTags>): GenericTree<MapTreeSchemaTags> | undefined => (
-    tree.reduce<GenericTree<MapTreeSchemaTags> | undefined>((previous, { data , children }) => {
-        if (previous) {
-            return previous
-        }
-        if (isSchemaSelected(data)) {
-            return children
-        }
-        return firstSelectedSubTree(children)
-    }, undefined)
-)
+
 
 const localPositionsFromStandardForms = ({ inherited, local, mapId }: { inherited?: StandardForm; local: StandardForm, mapId: `MAP#${string}` }): MapContextPosition[] => {
     const localPositionsFromSingleStandardForm = (standardForm: StandardForm): MapContextPosition[] => {
