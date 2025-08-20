@@ -33,7 +33,7 @@ export const mapTranslate = ({
 }): { nodes: MapNodes, links: MapLinks } => {
     const map = standardForm.byUniversalId[mapId]
     if (!map) {
-        throw new Error(`Map ${mapId} not found in standardForm`)
+        return { nodes: [], links: [] }
     }
     if (!(map instanceof StandardMap)) {
         throw new Error(`Map ${mapId} is not a StandardMap`)
