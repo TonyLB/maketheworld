@@ -177,11 +177,11 @@ Removing conditionals from the D3.js system requires:
 - ✅ Remove orphaned ToggleVisibility action and visibility controls
 - **Note**: Still using conditional types during this phase
 
-### Phase 2: D3.js System Refactoring
-- Remove conditional layer creation from `mapTreeTranslate`
-- Simplify `MapDThreeTree` to handle only asset inheritance layers
-- Remove visibility system from D3.js simulation
-- Update force simulation to work with simplified layer structure
+### Phase 2: D3.js System Refactoring ✅ COMPLETED
+- ✅ Remove conditional layer creation from `mapTreeTranslate`
+- ✅ Simplify `MapDThreeTree` to handle only asset inheritance layers
+- ✅ Remove visibility system from D3.js simulation
+- ✅ Update force simulation to work with simplified layer structure
 - **Note**: Still using conditional types during this phase
 
 ### Phase 3: UI Component Updates
