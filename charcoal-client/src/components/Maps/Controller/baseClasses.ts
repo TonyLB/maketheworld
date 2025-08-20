@@ -1,10 +1,7 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import MapDThree from "../Edit/MapDThree"
-import { SchemaExitTag, SchemaPositionTag, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
-import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaSelectedTag } from "@tonylb/mtw-base/ts/schema/condition"
-import { SchemaAssetTag } from "@tonylb/mtw-base/ts/schema/asset"
-import { SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
+import { SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
+import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardPosition } from "@tonylb/mtw-wml/ts/standardize/components/position"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 
@@ -12,9 +9,8 @@ export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWa
 
 export type MapTreeExit = SchemaExitTag & { inherited?: boolean }
 export type MapTreeRoom = SchemaRoomTag & { name: GenericTree<SchemaOutputTag>, inherited?: boolean; }
-export type MapTreeCondition = SchemaConditionTag & { inherited?: boolean }
 
-export type MapTreeItem = MapTreeExit | MapTreeRoom | MapTreeCondition
+export type MapTreeItem = MapTreeExit | MapTreeRoom
 export const isMapTreeRoom = (node: MapTreeItem): node is MapTreeRoom => (node.tag === 'Room')
 export const isMapTreeRoomWithPosition = (node: MapTreeItem): node is MapTreeRoom & { x: number; y: number } => (
     node.tag === 'Room' && (
@@ -115,8 +111,6 @@ export type MapContextPosition = {
     position: StandardPosition;
     name: string
 }
-
-export type MapTreeSchemaTags = SchemaAssetTag | SchemaSelectedTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag
 
 export type MapContextType = {
     mapId: `MAP#${string}`;

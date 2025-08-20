@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 
-import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, MapTreeSchemaTags, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
+import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { addExitFactory } from "./addExit"
