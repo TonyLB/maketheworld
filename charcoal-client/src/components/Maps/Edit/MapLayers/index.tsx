@@ -9,7 +9,7 @@ import AcceptIcon from '@mui/icons-material/CheckCircle'
 import CancelIcon from '@mui/icons-material/Cancel'
 import PositionIcon from '@mui/icons-material/ControlCamera'
 import EditIcon from '@mui/icons-material/Edit'
-import { grey } from '@mui/material/colors'
+
 import { UnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from './RenameIcon'
@@ -38,7 +38,6 @@ type MapLayersProps = {
 
 type MapLayersContextType = {
     mapId: string;
-    inheritedInvisible?: boolean;
 }
 
 const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
@@ -47,7 +46,6 @@ export const useMapLayersContext = () => (useContext(MapLayersContext))
 const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inherited?: boolean; newestRoom?: boolean }> = ({ roomId, name, inherited, children, newestRoom }) => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
-    const { inheritedInvisible } = useMapLayersContext()
     const { standardForm, updateStandard, AssetId } = useLibraryAsset()
     const [renaming, setRenaming] = useState<boolean>(false)
     const [nameEdit, setNameEdit] = useState<string>('')
@@ -86,8 +84,8 @@ const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inh
             <ListItemIcon>
                 {
                     inherited
-                        ? <CopyAllIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
-                        : <HomeIcon sx={{ color: inheritedInvisible ? grey[500] : 'black' }} />
+                        ? <CopyAllIcon sx={{ color: 'black' }} />
+                        : <HomeIcon sx={{ color: 'black' }} />
                 }
             </ListItemIcon>
             <ListItemText
@@ -157,13 +155,12 @@ const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inh
 }
 
 const ExitLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ name, inherited }) => {
-    const { inheritedInvisible } = useMapLayersContext()
     return <ListItem dense disablePadding sx={{ paddingLeft: '1em'}}>
         <ListItemIcon>
             {
                 inherited
-                    ? <CopyAllIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
-                    : <ArrowIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
+                    ? <CopyAllIcon fontSize="small" sx={{ fontSize: '12px', color: 'black' }} />
+                    : <ArrowIcon fontSize="small" sx={{ fontSize: '12px', color: 'black' }} />
             }
         </ListItemIcon>
         <ListItemText primary={`to: ${name}`} />
@@ -171,10 +168,9 @@ const ExitLayer: FunctionComponent<{ name: string, inherited?: boolean }> = ({ n
 }
 
 const PositionLayer: FunctionComponent<{ x: number, y: number, inherited?: boolean }> = ({ x, y, inherited }) => {
-    const { inheritedInvisible } = useMapLayersContext()
     return <ListItem dense disablePadding sx={{ paddingLeft: '1em'}}>
         <ListItemIcon>
-            <PositionIcon fontSize="small" sx={{ fontSize: '12px', color: inheritedInvisible ? grey[500] : 'black' }} />
+            <PositionIcon fontSize="small" sx={{ fontSize: '12px', color: 'black' }} />
         </ListItemIcon>
         <ListItemText primary={`X: ${x}, Y: ${y}`} />
     </ListItem>
