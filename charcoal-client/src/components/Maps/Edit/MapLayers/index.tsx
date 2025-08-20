@@ -1,8 +1,7 @@
 import React, { FunctionComponent, useCallback, useContext, useMemo, useRef, useState } from 'react'
 
-import ExpandLess from '@mui/icons-material/ExpandLess'
-import ExpandMore from '@mui/icons-material/ExpandMore'
-import { Box, Button, Collapse, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, TextField } from '@mui/material'
+
+import { Box, IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText, TextField } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import CopyAllIcon from '@mui/icons-material/CopyAll'
 import ArrowIcon from '@mui/icons-material/CallMade'
@@ -11,32 +10,30 @@ import CancelIcon from '@mui/icons-material/Cancel'
 import PositionIcon from '@mui/icons-material/ControlCamera'
 import EditIcon from '@mui/icons-material/Edit'
 import { grey } from '@mui/material/colors'
-import { useMapContext } from '../../Controller'
-import { GenericTree, GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { UnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from './RenameIcon'
 import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
-import IfElseTree from '../../../Library/Edit/IfElseTree'
-import { EditSchema, useEditContext } from '../../../Library/Edit/EditContext'
-import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
+
+
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { requestLLMGeneration } from '../../../../slices/personalAssets'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
-import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import { SchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/ts/schema'
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
+import { StandardExit } from '@tonylb/mtw-wml/ts/standardize/components/exit'
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
-import { StandardRender, StandardRenderRemove, StandardRenderReplace } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+import { unique } from '@tonylb/mtw-base/ts/utils/lists'
+import { excludeUndefined } from '@tonylb/mtw-base/ts/utils/lists'
 
 type MapLayersProps = {
-    mapId: string;
+    mapId: `MAP#${string}`;
 }
 
 type MapLayersContextType = {
@@ -47,29 +44,26 @@ type MapLayersContextType = {
 const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
-const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: boolean; newestRoom?: boolean }> = ({ roomId, name, inherited, children, newestRoom }) => {
-    const { UI: { itemSelected }, mapDispatch } = useMapContext()
+const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inherited?: boolean; newestRoom?: boolean }> = ({ roomId, name, inherited, children, newestRoom }) => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const { inheritedInvisible } = useMapLayersContext()
     const { standardForm, updateStandard, AssetId } = useLibraryAsset()
-    const [open, setOpen] = useState<boolean>(false)
     const [renaming, setRenaming] = useState<boolean>(false)
     const [nameEdit, setNameEdit] = useState<string>('')
-    const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
     const onRename = useCallback((value: string) => {
-        const roomComponent = standardForm.byId[roomId]
+        const roomComponent = standardForm.byUniversalId[roomId]
         if (!(roomComponent && roomComponent instanceof StandardRoom)) {
             return
         }
         dispatch(addOnboardingComplete(['renameNewRoom']))
-        if (value !== schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) || roomId) {
+        if (value !== roomComponent.shortName?.toJSON() || roomId) {
             updateStandard({
                 type: 'update',
                 update: (draft: StandardForm) => {
-                    const base = draft.byId[roomId]
+                    const base = draft.byUniversalId[roomId]
                     if (base instanceof StandardRoom) {
-                        base._payload._shortName = new StandardRender([value])
+                        base._payload._shortName = new StandardLiteral(value)
                     }
                     return draft
                 }
@@ -154,26 +148,11 @@ const RoomLayer: FunctionComponent<{ roomId: string; name: string; inherited?: b
                 anchorEl={editRef as any}
                 placement='top'
                 checkPoints={['navigateRoom']}
-                condition={newestRoom}
+                condition={false}
             />
-            {
-                childrenPresent &&
-                (open
-                    ? <ExpandLess
-                        onClick={(event) => {
-                            event.stopPropagation()
-                            setOpen(false)
-                        }}
-                    />
-                    : <ExpandMore
-                        onClick={(event) => {
-                            event.stopPropagation()
-                            setOpen(true)
-                        }}
-                    />)
-            }
+
         </ListItemButton>
-        { childrenPresent && <Collapse in={open} timeout="auto" unmountOnExit><List component="div" disablePadding sx={{ paddingLeft: '1em' }}>{children}</List></Collapse> }
+
     </React.Fragment>
 }
 
@@ -201,142 +180,127 @@ const PositionLayer: FunctionComponent<{ x: number, y: number, inherited?: boole
     </ListItem>
 }
 
-const ConditionLayer: FunctionComponent<{ src: string, conditionId: string }> = ({ src, conditionId, children }) => {
-    const [open, setOpen] = useState<boolean>(false)
-    const childrenPresent = useMemo<boolean>(() => (Boolean(React.Children.count(children))), [children])
-
-    return <React.Fragment>
-        <ListItem dense>
-            <ListItemText primary={`If: ${src}`} />
-            {
-                childrenPresent && (open ? <ExpandLess onClick={() => { setOpen(false) }} /> : <ExpandMore onClick={() => { setOpen(true) }} />)
-            }
-        </ListItem>
-        { childrenPresent && 
-            <Collapse in={open} timeout="auto" unmountOnExit>
-                <List component="div" disablePadding sx={{ paddingLeft: '1em' }}>{ children }</List>
-            </Collapse>
-        }
-    </React.Fragment>
-}
-
-const AddIfButton: FunctionComponent<{}> = () => {
-    const { value, onChange } = useEditContext()
-    const onClick = useCallback(() => {
-        onChange([
-            ...value,
-            {
-                data: { tag: 'If' },
-                children: [{
-                    data: { tag: 'Statement', if: '' },
-                    children: []
-                }]
-            }
-        ])
-    }, [value, onChange])
-    return <ListItem>
-        <ListItemText sx={{ textAlign: 'center' }}><Button variant="contained" onClick={onClick}>Add If</Button></ListItemText>
-    </ListItem>
-}
-
-const MapStubRender: FunctionComponent<{}> = () => {
-    const { value } = useEditContext()
-    return <React.Fragment>
-        { value.map((node, index) => (<MapItemLayer item={node} key={`MapStub-${index}`} />)) }
-        <AddIfButton />
-    </React.Fragment>
-}
-
-//
-// MapItemLayer component accepts any of GenericTreeNode<MapItem>, and farms out the top-level
-// data render to the appropriate component, passing children that are recursive calls of MapItemLayer on the
-// children values
-//
-const MapItemLayer: FunctionComponent<{ item: GenericTreeNode<SchemaTag>, highlightID?: string }> = ({ item, highlightID }) => {
-    const render = useCallback(() => (<MapStubRender />), [])
-    const { standardForm, updateStandard } = useLibraryAsset()
-    const { data } = item
-    const { tree, mapDispatch, mapId } = useMapContext()
-    const component = useMemo<StandardComponent | undefined>(() => (standardForm.byId[mapId]), [standardForm, mapId])
-    const onClick = useCallback((id: string) => {
-        mapDispatch({ type: 'SelectItem', item: undefined })
-        mapDispatch({ type: 'SelectParent', item: id })
-    }, [mapDispatch])
-    const isNewestRoom = useMemo(() => {
-        const newRoomIndex = (data: SchemaTag): number => {
-            if (data.tag === 'Room' && Boolean(data.key.match(/^Room[\d]+$/))) {
-                const roomIndex = parseInt(data.key.slice(4))
-                return roomIndex
-            }
-            return -1    
-        }
-        const thisRoomIndex = newRoomIndex(data)
-        if (thisRoomIndex !== -1) {
-            return !tree.find(({ data }) => (newRoomIndex(data) > thisRoomIndex))
-        }
-        return false
-    }, [tree, data])
-    switch(data.tag) {
-        case 'Room':
-            const roomComponent = standardForm.byId[data.key]
-            return <RoomLayer
-                roomId={data.key}
-                name={(roomComponent && roomComponent instanceof StandardRoom) ? schemaOutputToString(ignoreWrapped(roomComponent.shortName)?.children ?? []) || data.key : data.key}
-                newestRoom={isNewestRoom}
-            >
-                { item.children.map((child, index) => (<MapItemLayer key={`${data.key}-Child-${index}`} item={child} />)) }
-            </RoomLayer>
-        case 'Position':
-            return <PositionLayer x={data.x} y={data.y} />
-        case 'Exit':
-            const destinationComponent = standardForm.byId[data.to]
-            const exitName = (destinationComponent && destinationComponent instanceof StandardRoom) ? schemaOutputToString(ignoreWrapped(destinationComponent.shortName)?.children ?? []) : ''
-            return <ExitLayer name={exitName || data.to} />
-        case 'If':
-            return <EditSchema
-                value={item.children ?? []}
-                onChange={(value) => { 
-                    if (typeof value !== 'function') {
-                        if (component && component instanceof StandardMap) {
-                            updateStandard({
-                                type: 'update',
-                                update: (draft: StandardForm) => {
-                                    const base = draft.byId[mapId]
-                                    if (base instanceof StandardMap) {
-                                        base._payload._name = value.length ?
-                                            { data: { tag: 'Name' }, children: value as GenericTree<SchemaOutputTag> }
-                                            : undefined
-                                    }
-                                    return draft
-                                }
-                            })
-                        }
-                    }
-                }}
-            >
-                <IfElseTree
-                    render={render}
-                    showSelected={true}
-                    onClick={onClick}
-                />
-            </EditSchema>
-        default:
-            return null
-    }
-}
-
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
-    const { tree } = useMapContext()
+    const { standardForm, localStandardForm } = useLibraryAsset()
+    
+    // Get the map component to access its positions
+    const mapComponent = standardForm.byUniversalId[mapId]
+    
+    // Get the local map component to see what's defined locally
+    const localMapComponent = localStandardForm.byUniversalId[mapId]
+    
+    // Build the room layout from local map data and local room exits
+    const roomLayers = useMemo(() => {
+        if (!mapComponent || !(mapComponent instanceof StandardMap)) {
+            return []
+        }
+        
+        if (!(localMapComponent instanceof StandardMap)) {
+            return []
+        }
+        
+        // Collect all rooms that should be shown:
+        // 1. Rooms with positions in the local map
+        // 2. Rooms in the combined map, with local exits that connect to positioned rooms
+        
+        // Get rooms with local positions
+        const positionedRooms = unique(localMapComponent.positions
+            .map((position) => position.room._payload.plain.universalKey)
+            .filter((roomId): roomId is `ROOM#${string}` => 
+                Boolean(roomId && roomId.startsWith('ROOM#'))
+            )
+        )
+        
+        // Get rooms that have local exits connecting to positioned rooms
+        const allPositionedRooms = mapComponent.positions
+            .map((position) => position.room._payload.plain.universalKey)
+            .filter(excludeUndefined)
+            .map((roomId) => standardForm.byUniversalId[roomId as ComponentUUID])
+            .filter(excludeUndefined)
+            .filter((component): component is StandardRoom => 
+                component instanceof StandardRoom
+            )
+        const allPositionedRoomIds = unique(allPositionedRooms
+            .map((room) => room.universalKey)
+            .filter(excludeUndefined)
+            .filter((roomId): roomId is `ROOM#${string}` => 
+                Boolean(roomId && roomId.startsWith('ROOM#'))
+            )
+        ) as `ROOM#${string}`[]
+        
+        // Helper function to get relevant exits from a room
+        const getRelevantExits = (room: StandardRoom): StandardExit[] => {
+            return room.exits.filter((exit) => {
+                const destinationId = exit._payload.plain.to
+                const destinationKey = destinationId.universalKey
+                return destinationKey && allPositionedRoomIds.includes(destinationKey as `ROOM#${string}`)
+            })
+        }
+        
+        const roomsWithRelevantExits = allPositionedRooms
+            .filter((room) => getRelevantExits(room).length > 0)
+            .map((room) => room.universalKey)
+            .filter((roomId): roomId is ComponentUUID => 
+                typeof roomId === 'string' && roomId.startsWith('ROOM#')
+            )
+        
+        // Combine and deduplicate all rooms that should be shown
+        const roomsToShow = unique([...positionedRooms, ...roomsWithRelevantExits]) as `ROOM#${string}`[]
+        
+        // Build the room layers for all rooms that should be shown
+        return Array.from(roomsToShow).map((roomId) => {
+            const roomComponent = standardForm.byUniversalId[roomId as ComponentUUID]
+            if (!(roomComponent && roomComponent instanceof StandardRoom)) {
+                return null
+            }
+            
+            const roomKey = roomComponent.key
+            const roomName = roomComponent.shortName?._payload.plain.toJSON() ?? roomKey ?? 'Room'
+            
+            // Check if this room has a position in the local map
+            const position = localMapComponent.positions.find((pos) => 
+                pos.room._payload.plain.universalKey === roomId
+            )
+            
+            return (
+                <RoomLayer
+                    key={roomId}
+                    roomId={roomId}
+                    name={roomName}
+                    newestRoom={false}
+                >
+                    {/* Position information if available */}
+                    {position && (
+                        <PositionLayer x={position.x} y={position.y} />
+                    )}
+                    
+                    {/* Exits from this room */}
+                    {getRelevantExits(roomComponent).map((exit, index) => {                        
+                        const destinationComponent = standardForm._lookup(exit._payload.plain.to)
+                        const exitName = (destinationComponent && destinationComponent instanceof StandardRoom) 
+                            ? destinationComponent.shortName?._payload.plain.toJSON() ?? destinationComponent.key ?? ''
+                            : ''
+                        
+                        return (
+                            <ExitLayer 
+                                key={`${roomId}-exit-${index}`} 
+                                name={exitName} 
+                            />
+                        )
+                    })}
+                </RoomLayer>
+            )
+        }).filter(Boolean) // Remove any null entries
+    }, [mapComponent, localMapComponent, standardForm, localStandardForm, mapId])
+    
     return <MapLayersContext.Provider value={{ mapId }}>
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em' }}>Unshown Rooms</Box>
         <UnshownRooms />
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em', marginTop: '0.5em' }}>Map Layers</Box>
         <Box sx={{position: "relative", zIndex: 0 }}>
-            { tree.map((item, index) => (<MapItemLayer key={`MapLayerBase-${index}`} item={item} />))}
-            <AddIfButton />
+            {roomLayers}
         </Box>
     </MapLayersContext.Provider>
-
 }
 
 export default MapLayers

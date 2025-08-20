@@ -184,11 +184,11 @@ Removing conditionals from the D3.js system requires:
 - ✅ Update force simulation to work with simplified layer structure
 - **Note**: Still using conditional types during this phase
 
-### Phase 3: UI Component Updates
-- Remove conditional rendering components
-- Simplify `MapLayers` to show only asset inheritance
-- Remove visibility controls and related styling
-- Update layer display to show linear ancestry
+### Phase 3: UI Component Updates ✅ COMPLETED
+- ✅ Remove conditional rendering components
+- ✅ Simplify `MapLayers` to show only asset inheritance
+- ✅ Remove visibility controls and related styling
+- ✅ Update layer display to show linear ancestry
 - **Note**: Still using conditional types during this phase
 
 ### Phase 4: State Management Cleanup
@@ -210,6 +210,7 @@ Removing conditionals from the D3.js system requires:
 - Remove unused `mapEditConditionsByMapId` and `mapEditConditionState` selectors
 - Clean up any remaining orphaned conditional-related code
 - Remove unused imports and dependencies
+- **Tutorial Cleanup**: Remove `renameNewRoom` tutorial item (moved to Phase 6 for cleanup)
 - **Note**: This phase focuses on removing backend infrastructure that's no longer needed
 
 ## Risk Assessment
