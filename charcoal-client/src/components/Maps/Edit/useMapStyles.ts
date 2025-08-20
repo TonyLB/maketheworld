@@ -77,17 +77,8 @@ export const useMapStyles = makeStyles((theme: Theme) => ({
         width: "100%",
         height: "100%",
         display: 'grid',
-        gridTemplateAreas: `"visibilityControl content"`,
-        gridTemplateColumns: "20px 1fr"
-    },
-    visibilityControl: {
-        gridArea: 'visibilityControl',
-        paddingTop: "4px"
-    },
-    overriddenVisibilityControl: {
-        gridArea: 'visibilityControl',
-        paddingTop: "4px",
-        opacity: "0.4",
+        gridTemplateAreas: `"content"`,
+        gridTemplateColumns: "1fr"
     },
     renderContent: {
         gridArea: 'content',

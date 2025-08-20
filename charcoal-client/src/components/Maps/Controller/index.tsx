@@ -7,7 +7,7 @@ import { SimNode } from "../Edit/MapDThree/baseClasses"
 import { addExitFactory } from "./addExit"
 import { addRoomFactory } from "./addRoom"
 import { useDispatch } from "react-redux"
-import { toggle } from "../../../slices/UI/mapEdit"
+
 import { addImport } from "../../../slices/personalAssets"
 import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
@@ -209,9 +209,7 @@ export const MapController: FunctionComponent<{ mapId: `MAP#${string}` }> = ({ c
                     }
                 }
                 return
-            case 'ToggleVisibility':
-                dispatch(toggle({ mapId, key: action.key }))
-                return
+
         }
     }, [AssetId, mapD3, mapId, dispatchParentId, setToolSelected, setItemSelected, editable, updateStandard, dispatch])
     useEffect(() => {

@@ -169,11 +169,12 @@ Removing conditionals from the D3.js system requires:
 
 ## Implementation Planning
 
-### Phase 1: Tree Processing Simplification
-- Refactor `extractRoomsHelper` to handle only room/exit nodes
-- Simplify `combinedTree` reordering logic
-- Remove conditional processing from tree traversal
-- Update room extraction to work with linear ancestry
+### Phase 1: Tree Processing Simplification ✅ COMPLETED
+- ✅ Refactor `extractRoomsHelper` to handle only room/exit nodes
+- ✅ Simplify `combinedTree` reordering logic
+- ✅ Remove conditional processing from tree traversal
+- ✅ Update room extraction to work with linear ancestry
+- ✅ Remove orphaned ToggleVisibility action and visibility controls
 - **Note**: Still using conditional types during this phase
 
 ### Phase 2: D3.js System Refactoring
@@ -203,6 +204,13 @@ Removing conditionals from the D3.js system requires:
 - Update `MapTreeSchemaTags` to exclude conditional types
 - Remove conditional-related type guards
 - **Note**: Only after all functional code has been updated to not reference these types
+
+### Phase 6: Functional Cleanup
+- Remove unused Redux `toggle` action from mapEdit slice
+- Remove unused `mapEditConditionsByMapId` and `mapEditConditionState` selectors
+- Clean up any remaining orphaned conditional-related code
+- Remove unused imports and dependencies
+- **Note**: This phase focuses on removing backend infrastructure that's no longer needed
 
 ## Risk Assessment
 
