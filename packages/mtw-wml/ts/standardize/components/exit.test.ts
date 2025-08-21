@@ -8,7 +8,7 @@ describe('StandardExit', () => {
         const testSource = deIndentWML(`
             <Exit to=(test)>Test Exit</Exit>
         `)
-        const testExit = new StandardExit(testSource)
+        const testExit = StandardExit.create(testSource)
         expect(testExit.toJSON()).toEqual({ to: { key: 'test', tag: 'Room' }, description: 'Test Exit' })
         expect(schemaToWML(testExit.schema)).toEqual(testSource)
     })
@@ -19,7 +19,7 @@ describe('StandardExit', () => {
             <Exit to=(test)>Test Exit</Exit>
         `)
         schema.loadWML(testSource)
-        const testExit = new StandardExit(schema.schema)
+        const testExit = StandardExit.create(schema.schema)
         expect(testExit.toJSON()).toEqual({ to: { key: 'test', tag: 'Room' }, description: 'Test Exit' })
         expect(schemaToWML(testExit.schema)).toEqual(testSource)
     })
@@ -29,12 +29,12 @@ describe('StandardExit', () => {
             to: { key: 'test', tag: 'Room' },
             description: 'Test Exit'
         }
-        const testExit = new StandardExit(testExitData)
+        const testExit = StandardExit.create(testExitData)
         expect(testExit.toJSON()).toEqual(testExitData)
     })
 
     it('should merge correctly', () => {
-        expect(schemaToWML(new StandardExit('<Exit to=(test)>One</Exit>')?.merge(new StandardExit('<Exit to=(test)>Two</Exit>'))?.schema ?? [])).toEqual(deIndentWML('<Exit to=(test)>OneTwo</Exit>'))
+        expect(schemaToWML(StandardExit.create('<Exit to=(test)>One</Exit>')?.merge(StandardExit.create('<Exit to=(test)>Two</Exit>'))?.schema ?? [])).toEqual(deIndentWML('<Exit to=(test)>OneTwo</Exit>'))
     })
 
     it('should correctly parse a StandardExitRemove', () => {
@@ -45,12 +45,12 @@ describe('StandardExit', () => {
                 description: 'Test Exit'
             }
         } as const
-        const testExitRemove = new StandardExit(testExitData)
+        const testExitRemove = StandardExit.create(testExitData)
         expect(testExitRemove._payload).toBeInstanceOf(StandardExitRemove)
     })
 
     it('should correctly remap references', () => {
-        const testExit = new StandardExit(`<Exit to=(test)>Test Exit</Exit>`)
+        const testExit = StandardExit.create(`<Exit to=(test)>Test Exit</Exit>`)
         const remappedExit = testExit.remapReferences({ mapTo: 'universal', mappings: [new StandardKey({ tag: 'Room', key: 'test', universalKey: 'ROOM#universalTest' })] })
         expect(schemaToWML(remappedExit.schema)).toEqual(`<Exit to=(ROOM#universalTest)>Test Exit</Exit>`)
     })

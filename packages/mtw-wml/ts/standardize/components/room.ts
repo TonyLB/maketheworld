@@ -48,7 +48,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     fromJSON(props: StandardRoomData) {
         const { shortName } = props
         this._shortName = shortName ? new StandardLiteral(shortName) : undefined
-        this._exits = props.exits?.map((exitData) => (new StandardExit(exitData))) ?? []
+        this._exits = props.exits?.map((exitData) => (StandardExit.create(exitData))) ?? []
         this._features = new ReferenceList(props.features?.map((reference) => (new StandardReference(reference))) ?? [])
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
         this._characters = new ReferenceList(props.characters?.map((reference) => (new StandardReference(reference))) ?? [])
@@ -66,7 +66,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .prune({ match: 'Room' })
                 .reorderedSiblings([['Exit'], ['If']])
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
-            this._exits = exitTagTree.tree.map((exitData) => (new StandardExit([exitData])))
+            this._exits = exitTagTree.tree.map((exitData) => (StandardExit.create([exitData])))
             this._features = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map((node => (childReferenceFactory([node])))))
             this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node])))))
             this._characters = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaCharacter)).map((node => (childReferenceFactory([node])))))

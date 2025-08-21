@@ -39,7 +39,7 @@ export const addExitFactory = ({ standardForm, editable, addImport, updateStanda
             const draft = standard._clone()
             const sourceComponent = draft.byUniversalId[from]
             if (sourceComponent && sourceComponent instanceof StandardRoom) {
-                const newExit = new StandardExit({
+                const newExit = StandardExit.create({
                     from,
                     to,
                     name: exitName

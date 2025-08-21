@@ -275,6 +275,10 @@ export class StandardExitReplace implements StandardEditableWrapper<StandardExit
 export class StandardExit {
     _payload: StandardExitSimple | StandardExitRemove | StandardExitReplace;
 
+    static create(arg: any): StandardExit {
+        return new StandardExit(arg);
+    }
+
     constructor(arg: any) {
         if (arg instanceof StandardExitSimple || arg instanceof StandardExitRemove || arg instanceof StandardExitReplace) {
             this._payload = arg
@@ -315,7 +319,7 @@ export class StandardExit {
     merge(incoming: StandardExit): StandardExit | undefined {
         const merged = this._payload.merge(incoming._payload)
         if (merged) {
-            return new StandardExit(merged)
+            return StandardExit.create(merged)
         }
         return undefined
     }
@@ -323,7 +327,7 @@ export class StandardExit {
         if (incoming) {
             const diff = this._payload.diff(incoming._payload)
             if (diff) {
-                return new StandardExit(diff)
+                return StandardExit.create(diff)
             }
             return undefined
         }
@@ -331,10 +335,10 @@ export class StandardExit {
             const reversedDelta = this._payload._delta
             if (reversedDelta) {
                 if (reversedDelta.add) {
-                    return new StandardExit(new StandardExitRemove(new StandardExitBase(reversedDelta.add)))
+                    return StandardExit.create(new StandardExitRemove(new StandardExitBase(reversedDelta.add)))
                 }
                 if (reversedDelta.remove) {
-                    return new StandardExit(new StandardExitSimple(reversedDelta.remove))
+                    return StandardExit.create(new StandardExitSimple(reversedDelta.remove))
                 }
             }
             return undefined
@@ -342,19 +346,19 @@ export class StandardExit {
     }
     mapContents(callback: (incoming: StandardExitData) => StandardExitData): StandardExit {
         if (this._payload instanceof StandardExitSimple) {
-            return new StandardExit(callback(this._payload.payload.toJSON()))
+            return StandardExit.create(callback(this._payload.payload.toJSON()))
         }
         if (this._payload instanceof StandardExitRemove) {
-            return new StandardExit(new StandardExitRemove(new StandardExitBase(callback(this._payload.match.toJSON()))))
+            return StandardExit.create(new StandardExitRemove(new StandardExitBase(callback(this._payload.match.toJSON()))))
         }
         if (this._payload instanceof StandardExitReplace) {
-            return new StandardExit(new StandardExitReplace((new StandardExitSimple(callback(this._payload.match.toJSON()))).payload, (new StandardExitSimple(callback(this._payload.payload.toJSON()))).payload))
+            return StandardExit.create(new StandardExitReplace((new StandardExitSimple(callback(this._payload.match.toJSON()))).payload, (new StandardExitSimple(callback(this._payload.payload.toJSON()))).payload))
         }
         throw new Error('Invalid StandardExit payload')
     }
     remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): StandardExit {
         const remappedPayload = this._payload.remapReferences(props)
-        return new StandardExit(remappedPayload)
+        return StandardExit.create(remappedPayload)
     }
 
 }
@@ -384,11 +388,11 @@ export const diffStandardExitList = (base: StandardExit[], incoming: StandardExi
             }
         }
         else if (baseItem) {
-            const remove = new StandardExit(new StandardExitRemove(baseItem._payload.plain))
+            const remove = StandardExit.create(new StandardExitRemove(baseItem._payload.plain))
             return [...previous, remove]
         }
         else if (incomingItem) {
-            const add = new StandardExit(new StandardExitSimple(incomingItem._payload.plain))
+            const add = StandardExit.create(new StandardExitSimple(incomingItem._payload.plain))
             return [...previous, add]
         }
         return previous
