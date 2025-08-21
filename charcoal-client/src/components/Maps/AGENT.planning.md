@@ -211,8 +211,10 @@ Removing conditionals from the D3.js system requires:
 - ✅ Clean up any remaining orphaned conditional-related code
 - ✅ Remove unused imports and dependencies
 - ✅ Remove entire mapEdit Redux slice (no longer needed)
+- **Create StandardExitPlain**: Implement display-friendly wrapper for StandardExit to address deep property nesting (see `packages/mtw-wml/ts/standardize/components/AGENT.edits.planning.md`)
+- **Apply to exitExtraction**: Update utility to return StandardExitPlain instances with clean API
 - **Tutorial Cleanup**: Remove `renameNewRoom` tutorial item (moved to Phase 6 for cleanup)
-- **Note**: This phase focuses on removing backend infrastructure that's no longer needed
+- **Note**: This phase focuses on removing backend infrastructure that's no longer needed and implementing StandardExitPlain for exitExtraction
 
 ## Risk Assessment
 
