@@ -211,14 +211,14 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         protected constructor() {}
         
         // Factory method that decides which subtype to return
-        static create(constructorProps: StandardEditableData<DataType> | FinalType | GenericTree<SchemaTag> | string): GeneratedV2EditableClass {
+        static create(constructorProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string): GeneratedV2EditableClass {
             // First check if it's a StandardEditableData of the appropriate type
             if (props.typeguard(constructorProps)) {
                 return new GeneratedV2EditablePlainClass(constructorProps)
             }
             
             // Handle string by parsing to schema tree
-            const factoryProps: StandardEditableData<DataType> | FinalType | GenericTree<SchemaTag> = typeof constructorProps === 'string' ? treeFromWML(constructorProps) : constructorProps
+            const factoryProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> = typeof constructorProps === 'string' ? treeFromWML(constructorProps) : constructorProps
             
             // Check if it's a StandardEditableData after parsing
             if (props.typeguard(factoryProps)) {
@@ -259,24 +259,103 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         }
     }
     
-    // Concrete Plain subtype
+    // Concrete Plain subtype - stores the payload directly
     class GeneratedV2EditablePlainClass extends GeneratedV2EditableClass {
-        constructor(public data: StandardEditableData<DataType> | FinalType | GenericTree<SchemaTag>) {
+        public readonly payload: FinalType | undefined
+        
+        constructor(data: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag>) {
             super()
+            // Parse and store the payload
+            if (data instanceof props.payload) {
+                // If it's already a payload instance, use it directly
+                this.payload = data
+            } else if (props.typeguard(data)) {
+                // If it's the right data type, create a payload from it
+                this.payload = props.payloadFactory(data)
+            } else {
+                // Parse the data and create a payload
+                const delta = props.payloadFactory(data as GenericTree<SchemaTag>)
+                if (delta) {
+                    this.payload = delta
+                }
+            }
         }
     }
     
-    // Concrete Remove subtype
+    // Concrete Remove subtype - stores the match payload
     class GeneratedV2EditableRemoveClass extends GeneratedV2EditableClass {
-        constructor(public data: StandardEditableData<DataType> | FinalType | GenericTree<SchemaTag>) {
+        public readonly match: FinalType | undefined
+        
+        constructor(data: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string) {
             super()
+            // Parse and store the match payload
+            if (data instanceof props.payload) {
+                // If it's already a payload instance, use it directly
+                this.match = data
+            } else if (props.typeguard(data)) {
+                // If it's the right data type, create a payload from it
+                this.match = props.payloadFactory(data)
+            } else if (typeof data === 'object' && data !== null && 'tag' in data && data.tag === 'Remove' && 'match' in data) {
+                // Handle Remove object structure - extract the match data
+                const removeData = data as { tag: 'Remove'; match: PayloadDataType<FinalType> }
+                if (props.typeguard(removeData.match)) {
+                    this.match = props.payloadFactory(removeData.match)
+                }
+            } else if (Array.isArray(data) && data.length > 0 && data[0].data.tag === 'Remove') {
+                // Handle Remove schema tree - extract the children data
+                const removeSchema = data[0] as { data: { tag: 'Remove' }; children: GenericTree<SchemaTag> }
+                this.match = props.payloadFactory(removeSchema.children)
+            } else {
+                // Parse the data and create a payload
+                const delta = props.payloadFactory(data as GenericTree<SchemaTag>)
+                if (delta) {
+                    this.match = delta
+                }
+            }
         }
     }
     
-    // Concrete Replace subtype
+    // Concrete Replace subtype - stores both match and payload
     class GeneratedV2EditableReplaceClass extends GeneratedV2EditableClass {
-        constructor(public data: StandardEditableData<DataType> | FinalType | GenericTree<SchemaTag>) {
+        public readonly match: FinalType | undefined
+        public readonly payload: FinalType | undefined
+        
+        constructor(data: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string) {
             super()
+            // Parse and store both match and payload
+            if (data instanceof props.payload) {
+                // If it's already a payload instance, use it directly
+                this.payload = data
+            } else if (props.typeguard(data)) {
+                // For Replace, we need both match and payload, but we only have one data source
+                // This is a limitation - we'd need more context to properly split this
+                // For now, store as payload and let the user handle the split
+                this.payload = props.payloadFactory(data)
+            } else if (typeof data === 'object' && data !== null && 'tag' in data && data.tag === 'Replace' && 'match' in data && 'payload' in data) {
+                // Handle Replace object structure - extract the match and payload data
+                const replaceData = data as { tag: 'Replace'; match: PayloadDataType<FinalType>; payload: PayloadDataType<FinalType> }
+                if (props.typeguard(replaceData.match) && props.typeguard(replaceData.payload)) {
+                    this.match = props.payloadFactory(replaceData.match)
+                    this.payload = props.payloadFactory(replaceData.payload)
+                }
+            } else if (Array.isArray(data) && data.length > 0 && data[0].data.tag === 'Replace') {
+                // Handle Replace schema tree - extract the ReplaceMatch and ReplacePayload data
+                const replaceSchema = data[0] as { data: { tag: 'Replace' }; children: GenericTree<SchemaTag> }
+                const matchNode = replaceSchema.children.find(child => child.data.tag === 'ReplaceMatch')
+                const payloadNode = replaceSchema.children.find(child => child.data.tag === 'ReplacePayload')
+                
+                if (matchNode && payloadNode) {
+                    this.match = props.payloadFactory(matchNode.children)
+                    this.payload = props.payloadFactory(payloadNode.children)
+                }
+            } else {
+                // Parse the data and create a payload
+                const delta = props.payloadFactory(data as GenericTree<SchemaTag>)
+                if (delta) {
+                    // Similar limitation - we'd need to parse the Replace structure properly
+                    this.payload = delta
+                }
+            }
         }
     }
     
