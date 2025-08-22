@@ -600,22 +600,83 @@ describe('v2StandardEditableFactory', () => {
         // Use the same factoryProps as the standardEditableFactory tests
         const { EditableClass, PlainClass, RemoveClass, ReplaceClass } = v2StandardEditableFactory(factoryProps, 'StandardTest');
 
-        it('should create StandardTestContent for simple string', () => {
+        it('should create PlainClass for simple data object', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const component = EditableClass.create(data);
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(PlainClass);
+            expect((component as any).data).toBe(data);
+        });
+
+        it('should create PlainClass for simple string', () => {
             const component = EditableClass.create('Test');
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(PlainClass);
         });
 
-        it('should create StandardTestRemove for <Remove> tag', () => {
+        it('should create RemoveClass for <Remove> tag', () => {
             const component = EditableClass.create('<Remove>Test</Remove>');
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(RemoveClass);
         });
 
-        it('should create StandardTestReplace for <Replace> tag', () => {
-            const component = EditableClass.create('<Replace><Remove>Old</Remove><Test /></Replace>');
+        it('should create ReplaceClass for <Replace> tag', () => {
+            const component = EditableClass.create('<Replace>Old</Replace><With>New</With>');
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(ReplaceClass);
+        });
+
+        it('should create RemoveClass for Remove object', () => {
+            const removeData = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } };
+            const component = EditableClass.create(removeData);
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(RemoveClass);
+            expect((component as any).data).toBe(removeData);
+        });
+
+        it('should create ReplaceClass for Replace object', () => {
+            const replaceData = { 
+                tag: 'Replace' as const, 
+                match: { id: 1, name: 'Old' }, 
+                payload: { id: 2, name: 'New' } 
+            };
+            const component = EditableClass.create(replaceData);
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(ReplaceClass);
+            expect((component as any).data).toBe(replaceData);
+        });
+
+        it('should create PlainClass for schema tree', () => {
+            const schema: GenericTree<SchemaTag> = [{ data: { tag: 'String', value: 'Test' }, children: [] }];
+            const component = EditableClass.create(schema);
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(PlainClass);
+            expect((component as any).data).toBe(schema);
+        });
+
+        it('should create RemoveClass for Remove schema tree', () => {
+            const schema: GenericTree<SchemaTag> = [{ 
+                data: { tag: 'Remove' as const }, 
+                children: [{ data: { tag: 'String', value: 'Test' }, children: [] }] 
+            }];
+            const component = EditableClass.create(schema);
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(RemoveClass);
+            expect((component as any).data).toBe(schema);
+        });
+
+        it('should create ReplaceClass for Replace schema tree', () => {
+            const schema: GenericTree<SchemaTag> = [{ 
+                data: { tag: 'Replace' as const }, 
+                children: [
+                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: { tag: 'String', value: 'Old' }, children: [] }] },
+                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: { tag: 'String', value: 'New' }, children: [] }] }
+                ] 
+            }];
+            const component = EditableClass.create(schema);
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(ReplaceClass);
+            expect((component as any).data).toBe(schema);
         });
     });
 })

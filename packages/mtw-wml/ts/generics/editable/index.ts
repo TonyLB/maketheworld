@@ -211,34 +211,71 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         protected constructor() {}
         
         // Factory method that decides which subtype to return
-        static create(format: string): GeneratedV2EditableClass {
-            if (format.includes('<Replace>')) {
-                return new GeneratedV2EditableReplaceClass(format)
-            } else if (format.includes('<Remove>')) {
-                return new GeneratedV2EditableRemoveClass(format)
-            } else {
-                return new GeneratedV2EditablePlainClass(format)
+        static create(constructorProps: StandardEditableData<DataType> | FinalType | GenericTree<SchemaTag> | string): GeneratedV2EditableClass {
+            // First check if it's a StandardEditableData of the appropriate type
+            if (props.typeguard(constructorProps)) {
+                return new GeneratedV2EditablePlainClass(constructorProps)
             }
+            
+            // Handle string by parsing to schema tree
+            const factoryProps: StandardEditableData<DataType> | FinalType | GenericTree<SchemaTag> = typeof constructorProps === 'string' ? treeFromWML(constructorProps) : constructorProps
+            
+            // Check if it's a StandardEditableData after parsing
+            if (props.typeguard(factoryProps)) {
+                return new GeneratedV2EditablePlainClass(factoryProps)
+            }
+            
+            // Handle schema tree parsing for Remove/Replace tags
+            if ((Array.isArray(factoryProps) && factoryProps.every(isSchemaTreeNode)) || typeof factoryProps === 'string') {
+                const schema = typeof factoryProps === 'string' ? treeFromWML(factoryProps) : factoryProps
+                if (schema.length === 0) {
+                    return new GeneratedV2EditablePlainClass(schema)
+                }
+                
+                const firstElement = schema[0]
+                if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
+                    return new GeneratedV2EditableRemoveClass(schema)
+                }
+                else if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
+                    return new GeneratedV2EditableReplaceClass(schema)
+                }
+                else {
+                    return new GeneratedV2EditablePlainClass(schema)
+                }
+            }
+            
+            // Handle Remove/Replace objects
+            if (typeof factoryProps === 'object' && factoryProps !== null && 'tag' in factoryProps) {
+                if (factoryProps.tag === 'Remove' && 'match' in factoryProps && props.typeguard(factoryProps.match)) {
+                    return new GeneratedV2EditableRemoveClass(factoryProps)
+                }
+                if (factoryProps.tag === 'Replace' && 'match' in factoryProps && 'payload' in factoryProps && props.typeguard(factoryProps.match) && props.typeguard(factoryProps.payload)) {
+                    return new GeneratedV2EditableReplaceClass(factoryProps)
+                }
+            }
+            
+            // Default to plain
+            return new GeneratedV2EditablePlainClass(factoryProps)
         }
     }
     
     // Concrete Plain subtype
     class GeneratedV2EditablePlainClass extends GeneratedV2EditableClass {
-        constructor(format: string) {
+        constructor(public data: StandardEditableData<DataType> | FinalType | GenericTree<SchemaTag>) {
             super()
         }
     }
     
     // Concrete Remove subtype
     class GeneratedV2EditableRemoveClass extends GeneratedV2EditableClass {
-        constructor(format: string) {
+        constructor(public data: StandardEditableData<DataType> | FinalType | GenericTree<SchemaTag>) {
             super()
         }
     }
     
     // Concrete Replace subtype
     class GeneratedV2EditableReplaceClass extends GeneratedV2EditableClass {
-        constructor(format: string) {
+        constructor(public data: StandardEditableData<DataType> | FinalType | GenericTree<SchemaTag>) {
             super()
         }
     }
