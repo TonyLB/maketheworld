@@ -188,3 +188,116 @@ See `charcoal-client/src/components/Maps/AGENT.planning.md` Phase 7 for Maps-spe
 - **Breaking Changes**: Are there unexpected compatibility issues?
 - **Performance Impact**: Any measurable performance degradation?
 - **Developer Feedback**: Qualitative assessment of the new patterns
+
+## Phase 4: v2ComponentClassFactory Architecture (NEW)
+
+### Overview
+Implement a new factory pattern that creates abstract parent classes with concrete subtype instances, enabling the ergonomic `instanceof` pattern while maintaining the discriminated union semantics.
+
+### Design Pattern
+Based on ChatGPT's recommendation, implement a factory method that returns appropriate subtypes:
+
+```typescript
+// Abstract parent class prevents direct instantiation
+abstract class StandardExit {
+    protected constructor() {}
+    
+    // Factory method decides which subtype to return
+    static create(format: ExitFormat): StandardExit {
+        switch (format.kind) {
+            case "plain":
+                return new StandardExitPlain(format.data);
+            case "remove":
+                return new StandardExitRemove(format.match);
+            case "replace":
+                return new StandardExitReplace(format.match, format.newData);
+        }
+    }
+}
+
+// Concrete subtypes implement specific functionality
+class StandardExitPlain extends StandardExit {
+    constructor(public data: ExitData) { super(); }
+    // Plain exit implementation
+}
+
+class StandardExitRemove extends StandardExit {
+    constructor(public match: ExitData) { super(); }
+    // Remove edit implementation
+}
+
+class StandardExitReplace extends StandardExit {
+    constructor(public match: ExitData, public newData: ExitData) { super(); }
+    // Replace edit implementation
+}
+```
+
+### Implementation Strategy
+
+#### Phase 4.1: Create v2ComponentClassFactory
+- **Location**: `packages/mtw-wml/ts/standardize/components/component.ts`
+- **Function**: `v2ComponentClassFactory(payloadClass, className)`
+- **Returns**: Abstract parent class + concrete subtype classes
+- **Pattern**: Factory method with protected constructor
+
+#### Phase 4.2: Refactor StandardExit to v2 Pattern
+- **Create**: `StandardExitV2` abstract class with `create()` factory
+- **Subtypes**: `StandardExitPlainV2`, `StandardExitRemoveV2`, `StandardExitReplaceV2`
+- **Migration**: Update existing `StandardExit.create()` calls to use new factory
+- **Testing**: Ensure all existing functionality preserved
+
+#### Phase 4.3: Extend to Other Components
+- **StandardRoomV2**: Abstract + Plain/Remove/Replace subtypes
+- **StandardFeatureV2**: Abstract + Plain/Remove/Replace subtypes
+- **StandardCharacterV2**: Abstract + Plain/Remove/Replace subtypes
+
+### Benefits of v2 Architecture
+
+#### Developer Experience
+- **Natural instanceof**: `if (exit instanceof StandardExitPlain)` works as expected
+- **Type Safety**: TypeScript can infer specific subtypes from instanceof checks
+- **IntelliSense**: IDE provides appropriate methods/properties for each subtype
+- **Cleaner Code**: No more `_payload instanceof` checks
+
+#### Architecture Consistency
+- **Unified Pattern**: All components follow the same factory + subtype structure
+- **Extensible**: Easy to add new subtypes or modify existing ones
+- **Testable**: Each subtype can be tested independently
+- **Maintainable**: Clear separation of concerns between edit states
+
+#### Performance
+- **No Wrapper Overhead**: Direct subtype instances, no payload indirection
+- **Eliminates instanceof Chains**: Direct instanceof checks on concrete classes
+- **Memory Efficient**: Single object instead of wrapper + payload
+
+### Migration Path
+
+#### Incremental Approach
+1. **Parallel Implementation**: Create v2 classes alongside existing ones
+2. **Factory Method Update**: Modify existing `create()` methods to use v2 factory
+3. **Gradual Migration**: Update code to use v2 classes over time
+4. **Deprecation**: Mark old classes as deprecated after migration complete
+
+#### Backward Compatibility
+- **Existing API**: All current `StandardExit.create()` calls continue to work
+- **Type Compatibility**: v2 classes can be used anywhere v1 classes are expected
+- **Gradual Rollout**: No breaking changes during migration
+
+### Success Criteria for v2 Implementation
+
+#### Functional Requirements
+- **Factory Pattern**: `StandardExit.create()` returns appropriate subtype
+- **Instanceof Support**: `instanceof StandardExitPlain` works correctly
+- **Type Safety**: TypeScript can infer subtypes from instanceof checks
+- **Performance**: No measurable performance degradation
+
+#### Code Quality Requirements
+- **Clean Architecture**: Clear separation between abstract and concrete classes
+- **Consistent Pattern**: All components follow the same v2 structure
+- **Testability**: Each subtype can be tested independently
+- **Documentation**: Clear examples of factory usage and subtype checking
+
+#### Migration Requirements
+- **Incremental**: Can be implemented alongside existing classes
+- **Non-Breaking**: Existing code continues to work unchanged
+- **Measurable**: Clear metrics for migration progress and success

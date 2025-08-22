@@ -303,3 +303,53 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         }
     }
 }
+
+// v2ComponentClassFactory - Creates abstract parent class with concrete subtype instances
+export const v2ComponentClassFactory = <D extends StandardComponentData, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(
+    Base: TBase, 
+    className: string
+) => {
+    // Simple abstract class for testing
+    abstract class GeneratedV2ComponentClass {
+        protected constructor() {}
+        
+        // Factory method that decides which subtype to return
+        static create(format: string): GeneratedV2ComponentClass {
+            if (format.includes('<Replace>')) {
+                return new GeneratedV2ComponentReplaceClass(format)
+            } else if (format.includes('<Remove>')) {
+                return new GeneratedV2ComponentRemoveClass(format)
+            } else {
+                return new GeneratedV2ComponentPlainClass(format)
+            }
+        }
+    }
+    
+    // Concrete Plain subtype
+    class GeneratedV2ComponentPlainClass extends GeneratedV2ComponentClass {
+        constructor(format: string) {
+            super()
+        }
+    }
+    
+    // Concrete Remove subtype
+    class GeneratedV2ComponentRemoveClass extends GeneratedV2ComponentClass {
+        constructor(format: string) {
+            super()
+        }
+    }
+    
+    // Concrete Replace subtype
+    class GeneratedV2ComponentReplaceClass extends GeneratedV2ComponentClass {
+        constructor(format: string) {
+            super()
+        }
+    }
+    
+    return {
+        GeneratedV2ComponentClass,
+        GeneratedV2ComponentPlainClass,
+        GeneratedV2ComponentRemoveClass,
+        GeneratedV2ComponentReplaceClass
+    }
+}

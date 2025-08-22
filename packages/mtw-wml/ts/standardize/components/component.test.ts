@@ -17,6 +17,7 @@
 import { StandardRoom } from './room'
 import { GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import { ComponentConstructorMethods, v2ComponentClassFactory } from './component'
 
 // Type for schema data that includes origin property
 type SchemaWithOrigin = SchemaTag & {
@@ -103,3 +104,41 @@ describe('componentClassFactory origin handling (via StandardRoom)', () => {
         expect((schema.data as SchemaWithOrigin).origin).toEqual([])
     })
 })
+
+describe('v2ComponentClassFactory', () => {
+    describe('create method', () => {
+        // Simple test class for Image tag
+        class StandardTestPayload implements ComponentConstructorMethods<{ tag: 'Image' }> {
+            tag = 'Image' as const;
+            
+            fromJSON(data: any): void {}
+            fromSchema(node: any): void {}
+            subset(options: any): this { return this; }
+            merge(incoming: any): this { return this; }
+            toJSON(): any { return {}; }
+            schema(): any { return { data: { tag: 'ShortName' }, children: [] }; }
+            referencedKeys(): any[] { return []; }
+            mapContents(callback: any): this { return this; }
+        }
+        
+        const { GeneratedV2ComponentClass, GeneratedV2ComponentPlainClass, GeneratedV2ComponentRemoveClass, GeneratedV2ComponentReplaceClass } = v2ComponentClassFactory(StandardTestPayload, 'StandardTest');
+        
+        it('should create StandardTestContent for simple <Image /> tag', () => {
+            const component = GeneratedV2ComponentClass.create('<Image />');
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(GeneratedV2ComponentPlainClass);
+        });
+        
+        it('should create StandardTestRemove for <Remove> tag', () => {
+            const component = GeneratedV2ComponentClass.create('<Remove><Image /></Remove>');
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(GeneratedV2ComponentRemoveClass);
+        });
+        
+        it('should create StandardTestReplace for <Replace> tag', () => {
+            const component = GeneratedV2ComponentClass.create('<Replace><Image /></Replace><With><Image /></With>');
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(GeneratedV2ComponentReplaceClass);
+        });
+    });
+});
