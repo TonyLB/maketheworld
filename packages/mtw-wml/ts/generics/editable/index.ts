@@ -213,6 +213,27 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         // Abstract getter that must be implemented by concrete types
         abstract get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>>;
         
+        // Factory method that creates instances from delta objects
+        static fromDelta(delta: StandardEditableDataDelta<PayloadDataType<FinalType>>): GeneratedV2EditableClass {
+            const { add, remove } = delta;
+            
+            if (add && remove) {
+                // Both add and remove present = Replace
+                const replaceData = { tag: 'Replace' as const, match: remove, payload: add };
+                return new GeneratedV2EditableReplaceClass(replaceData);
+            } else if (remove) {
+                // Only remove present = Remove
+                const removeData = { tag: 'Remove' as const, match: remove };
+                return new GeneratedV2EditableRemoveClass(removeData);
+            } else if (add) {
+                // Only add present = Plain
+                return new GeneratedV2EditablePlainClass(add);
+            } else {
+                // Empty delta - this shouldn't normally happen in practice
+                throw new Error('Cannot create component from empty delta - no add or remove data provided');
+            }
+        }
+        
         // Factory method that decides which subtype to return
         static create(constructorProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string): GeneratedV2EditableClass {
             // First check if it's a StandardEditableData of the appropriate type

@@ -737,5 +737,52 @@ describe('v2StandardEditableFactory', () => {
             expect(typeof delta.remove).toBe('object');
             expect(typeof delta.add).toBe('object');
         });
+
+        // fromDelta static method tests
+        it('should create PlainClass from add-only delta', () => {
+            const delta = { add: { id: 1, name: 'Test' } };
+            const component = EditableClass.fromDelta(delta);
+            
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(PlainClass);
+            expect((component as any).payload).toBeDefined();
+        });
+
+        it('should create RemoveClass from remove-only delta', () => {
+            const delta = { remove: { id: 1, name: 'Test' } };
+            const component = EditableClass.fromDelta(delta);
+            
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(RemoveClass);
+            expect((component as any).match).toBeDefined();
+        });
+
+        it('should create ReplaceClass from add+remove delta', () => {
+            const delta = { 
+                remove: { id: 1, name: 'Old' }, 
+                add: { id: 2, name: 'New' } 
+            };
+            const component = EditableClass.fromDelta(delta);
+            
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(ReplaceClass);
+            expect((component as any).match).toBeDefined();
+            expect((component as any).payload).toBeDefined();
+        });
+
+        it('should throw error for empty delta', () => {
+            const delta = {};
+            expect(() => EditableClass.fromDelta(delta)).toThrow('Cannot create component from empty delta');
+        });
+
+        it('should round-trip through _delta and fromDelta', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const originalComponent = EditableClass.create(data);
+            const delta = originalComponent._delta;
+            const recreatedComponent = EditableClass.fromDelta(delta);
+            
+            expect(recreatedComponent).toBeInstanceOf(PlainClass);
+            expect(recreatedComponent._delta).toEqual(delta);
+        });
     });
 })
