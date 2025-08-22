@@ -99,6 +99,8 @@ if (exit instanceof ReplaceClass) {
 - **String-based Dispatching**: `create` method analyzes WML content for subtype selection
 - **Clean Naming**: `EditableClass`, `PlainClass`, `RemoveClass`, `ReplaceClass`
 - **Comprehensive Testing**: All tests passing with instanceof validation
+- **Delta Operations**: `_delta` getter, `fromDelta` factory method, and `toJSON`/`schema` methods
+- **Merge/Diff Operations**: Full implementation of merge and diff operations operating on deltas
 
 ### 🔄 In Progress
 - **Integration Planning**: How to integrate with existing StandardExit architecture

@@ -219,8 +219,24 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         // Abstract getter that must be implemented by concrete types
         abstract get schema(): GenericTree<SchemaTag>;
         
+        // Merge method that operates on deltas
+        merge(other: GeneratedV2EditableClass): GeneratedV2EditableClass | undefined {
+            const baseDelta = this._delta;
+            const incomingDelta = other._delta;
+            const mergedDelta = addDelta(props.add, props.subtract, props.diff)(baseDelta, incomingDelta);
+            return GeneratedV2EditableClass.fromDelta(mergedDelta);
+        }
+
+        // Diff method that operates on deltas
+        diff(other: GeneratedV2EditableClass): GeneratedV2EditableClass | undefined {
+            const baseDelta = this._delta;
+            const incomingDelta = other._delta;
+            const resultDelta = diffDelta(props.add, props.subtract, props.diff)(baseDelta, incomingDelta);
+            return GeneratedV2EditableClass.fromDelta(resultDelta);
+        }
+        
         // Factory method that creates instances from delta objects
-        static fromDelta(delta: StandardEditableDataDelta<PayloadDataType<FinalType>>): GeneratedV2EditableClass {
+        static fromDelta(delta: StandardEditableDataDelta<PayloadDataType<FinalType>>): GeneratedV2EditableClass | undefined {
             const { add, remove } = delta;
             
             if (add && remove) {
@@ -235,8 +251,8 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
                 // Only add present = Plain
                 return new GeneratedV2EditablePlainClass(add);
             } else {
-                // Empty delta - this shouldn't normally happen in practice
-                throw new Error('Cannot create component from empty delta - no add or remove data provided');
+                // Empty delta - represents no content (completely removed content)
+                return undefined;
             }
         }
         

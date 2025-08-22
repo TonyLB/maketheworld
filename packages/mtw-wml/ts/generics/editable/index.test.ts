@@ -611,12 +611,11 @@ describe('v2StandardEditableFactory', () => {
      // ✅ create() factory method for various input types
      // ✅ toJSON() methods on all generated classes
      // ✅ _delta getter for extracting deltas
-     // ✅ fromDelta() factory method for delta reconstruction
+     // ✅ fromDelta() factory method for delta reconstruction (returns undefined for empty deltas)
      // ✅ schema getters on all generated classes
-     // ❌ merge/diff operations
+     // ✅ merge/diff operations (operating on deltas, can return undefined when no content remains)
      //
-     // TODO: Next phase functionality:
-     // 1. Add tests for merge/diff operations once those are implemented
+     // All functionality now complete for feature parity with standardEditableFactory!
 
     describe('create method', () => {
         it('should create PlainClass for simple data object', () => {
@@ -752,8 +751,8 @@ describe('v2StandardEditableFactory', () => {
             
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(PlainClass);
-            expect(component.toJSON()).toEqual(delta.add);
-            expect(schemaToWML(component.schema)).toEqual('Test');
+            expect(component!.toJSON()).toEqual(delta.add);
+            expect(schemaToWML(component!.schema)).toEqual('Test');
         });
 
         it('should create RemoveClass from remove-only delta', () => {
@@ -762,8 +761,8 @@ describe('v2StandardEditableFactory', () => {
             
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(RemoveClass);
-            expect(component.toJSON()).toEqual({ tag: 'Remove', match: delta.remove });
-            expect(schemaToWML(component.schema)).toEqual('<Remove>Test</Remove>');
+            expect(component!.toJSON()).toEqual({ tag: 'Remove', match: delta.remove });
+            expect(schemaToWML(component!.schema)).toEqual('<Remove>Test</Remove>');
         });
 
         it('should create ReplaceClass from add+remove delta', () => {
@@ -775,13 +774,14 @@ describe('v2StandardEditableFactory', () => {
             
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(ReplaceClass);
-            expect(component.toJSON()).toEqual({ tag: 'Replace', match: delta.remove, payload: delta.add });
-            expect(schemaToWML(component.schema)).toEqual('<Replace>Old</Replace><With>New</With>');
+            expect(component!.toJSON()).toEqual({ tag: 'Replace', match: delta.remove, payload: delta.add });
+            expect(schemaToWML(component!.schema)).toEqual('<Replace>Old</Replace><With>New</With>');
         });
 
-        it('should throw error for empty delta', () => {
+        it('should return undefined for empty delta', () => {
             const delta = {};
-            expect(() => EditableClass.fromDelta(delta)).toThrow('Cannot create component from empty delta');
+            const result = EditableClass.fromDelta(delta);
+            expect(result).toBeUndefined();
         });
 
         it('should round-trip through _delta and fromDelta', () => {
@@ -790,12 +790,107 @@ describe('v2StandardEditableFactory', () => {
             const delta = originalComponent._delta;
             const recreatedComponent = EditableClass.fromDelta(delta);
             
+            expect(recreatedComponent).toBeDefined();
             expect(recreatedComponent).toBeInstanceOf(PlainClass);
-            expect(recreatedComponent._delta).toEqual(delta);
-            expect(recreatedComponent.toJSON()).toEqual(data);
-            expect(schemaToWML(recreatedComponent.schema)).toEqual('Test');
+            expect(recreatedComponent!._delta).toEqual(delta);
+            expect(recreatedComponent!.toJSON()).toEqual(data);
+            expect(schemaToWML(recreatedComponent!.schema)).toEqual('Test');
+        });
+    });
+
+    describe('merge', () => {
+        it('should correctly merge two content tags', () => {
+            const data1: TestData = { id: 1, name: 'Test' };
+            const data2: TestData = { id: 2, name: 'Test2' };
+            const editable1 = EditableClass.create(data1);
+            const editable2 = EditableClass.create(data2);
+            
+            const merged = editable1.merge(editable2);
+            expect(merged).toBeDefined();
+            expect(merged).toBeInstanceOf(PlainClass);
+            expect(merged!.toJSON()).toEqual({ id: 1, name: 'TestTest2' });
         });
 
+        it('should correctly merge a remove into a matching content tag', () => {
+            const data1: TestData = { id: 1, name: 'Test' };
+            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } };
+            const editable1 = EditableClass.create(data1);
+            const editable2 = EditableClass.create(data2);
+            
+            const merged = editable1.merge(editable2);
+            // When content is completely removed, result should be undefined
+            expect(merged).toBeUndefined();
+        });
 
+        it('should correctly merge remove into a longer content tag', () => {
+            const data1: TestData = { id: 1, name: 'TestOne' };
+            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'One' } };
+            const editable1 = EditableClass.create(data1);
+            const editable2 = EditableClass.create(data2);
+            
+            const merged = editable1.merge(editable2);
+            expect(merged).toBeDefined();
+            expect(merged).toBeInstanceOf(PlainClass);
+            expect(merged!.toJSON()).toEqual({ id: 1, name: 'Test' });
+        });
+
+        it('should correctly merge remove into a shorter content tag', () => {
+            const data1: TestData = { id: 1, name: 'One' };
+            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'TestOne' } };
+            const editable1 = EditableClass.create(data1);
+            const editable2 = EditableClass.create(data2);
+            
+            const merged = editable1.merge(editable2);
+            expect(merged).toBeDefined();
+            expect(merged).toBeInstanceOf(RemoveClass);
+            expect(merged!.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'Test' } });
+        });
+
+        it('should throw a merge conflict error when merging remove into conflicting content', () => {
+            const data1: TestData = { id: 1, name: 'Test' };
+            const data2 = { tag: 'Remove' as const, match: { id: 1, name: 'Different' } };
+            const editable1 = EditableClass.create(data1);
+            const editable2 = EditableClass.create(data2);
+            
+            expect(() => editable1.merge(editable2)).toThrow();
+        });
+    });
+
+    describe('diff', () => {
+        it('should correctly diff two content tags', () => {
+            const data1: TestData = { id: 1, name: 'Test' };
+            const data2: TestData = { id: 2, name: 'TestTest2' };
+            const editable1 = EditableClass.create(data1);
+            const editable2 = EditableClass.create(data2);
+            
+            const diffed = editable1.diff(editable2);
+            expect(diffed).toBeDefined();
+            expect(diffed).toBeInstanceOf(PlainClass);
+            expect(diffed!.toJSON()).toEqual({ id: 1, name: 'Test2' });
+        });
+
+        it('should correctly diff remove from a longer content tag', () => {
+            const data1: TestData = { id: 1, name: 'TestOne' };
+            const data2: TestData = { id: 1, name: 'Test' };
+            const editable1 = EditableClass.create(data1);
+            const editable2 = EditableClass.create(data2);
+            
+            const diffed = editable1.diff(editable2);
+            expect(diffed).toBeDefined();
+            expect(diffed).toBeInstanceOf(RemoveClass);
+            expect(diffed!.toJSON()).toEqual({ tag: 'Remove', match: { id: 1, name: 'One' } });
+        });
+
+        it('should correctly diff remove from a shorter content tag', () => {
+            const data1: TestData = { id: 1, name: 'Test' };
+            const data2: TestData = { id: 1, name: 'TestOne' };
+            const editable1 = EditableClass.create(data1);
+            const editable2 = EditableClass.create(data2);
+            
+            const diffed = editable1.diff(editable2);
+            expect(diffed).toBeDefined();
+            expect(diffed).toBeInstanceOf(PlainClass);
+            expect(diffed!.toJSON()).toEqual({ id: 1, name: 'One' });
+        });
     });
 })
