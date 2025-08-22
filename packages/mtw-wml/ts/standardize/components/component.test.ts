@@ -121,24 +121,24 @@ describe('v2ComponentClassFactory', () => {
             mapContents(callback: any): this { return this; }
         }
         
-        const { GeneratedV2ComponentClass, GeneratedV2ComponentPlainClass, GeneratedV2ComponentRemoveClass, GeneratedV2ComponentReplaceClass } = v2ComponentClassFactory(StandardTestPayload, 'StandardTest');
+        const { ComponentClass, PlainClass, RemoveClass, ReplaceClass } = v2ComponentClassFactory(StandardTestPayload, 'StandardTest');
         
-        it('should create StandardTestContent for simple <Image /> tag', () => {
-            const component = GeneratedV2ComponentClass.create('<Image />');
+                it('should create StandardTestContent for simple <Image /> tag', () => {
+            const component = ComponentClass.create('<Image />');
             expect(component).toBeDefined();
-            expect(component).toBeInstanceOf(GeneratedV2ComponentPlainClass);
+            expect(component).toBeInstanceOf(PlainClass);
         });
-        
+
         it('should create StandardTestRemove for <Remove> tag', () => {
-            const component = GeneratedV2ComponentClass.create('<Remove><Image /></Remove>');
+            const component = ComponentClass.create('<Remove><Image /></Remove>');
             expect(component).toBeDefined();
-            expect(component).toBeInstanceOf(GeneratedV2ComponentRemoveClass);
+            expect(component).toBeInstanceOf(RemoveClass);
         });
-        
+
         it('should create StandardTestReplace for <Replace> tag', () => {
-            const component = GeneratedV2ComponentClass.create('<Replace><Image /></Replace><With><Image /></With>');
+            const component = ComponentClass.create('<Replace><Image /></Replace><With><Image /></With>');
             expect(component).toBeDefined();
-            expect(component).toBeInstanceOf(GeneratedV2ComponentReplaceClass);
+            expect(component).toBeInstanceOf(ReplaceClass);
         });
     });
 });

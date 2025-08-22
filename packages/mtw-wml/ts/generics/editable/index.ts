@@ -200,3 +200,53 @@ export const standardEditableFactory = <FinalType extends StandardEditablePayloa
         }
     }
 }
+
+// v2StandardEditableFactory - Creates abstract parent class with concrete subtype instances
+export const v2StandardEditableFactory = <DataType, FinalType extends StandardEditablePayload<DataType>>(
+    props: StandardEditableFactoryProps<DataType, FinalType>, 
+    className: string
+) => {
+    // Abstract parent class
+    abstract class GeneratedV2EditableClass {
+        protected constructor() {}
+        
+        // Factory method that decides which subtype to return
+        static create(format: string): GeneratedV2EditableClass {
+            if (format.includes('<Replace>')) {
+                return new GeneratedV2EditableReplaceClass(format)
+            } else if (format.includes('<Remove>')) {
+                return new GeneratedV2EditableRemoveClass(format)
+            } else {
+                return new GeneratedV2EditablePlainClass(format)
+            }
+        }
+    }
+    
+    // Concrete Plain subtype
+    class GeneratedV2EditablePlainClass extends GeneratedV2EditableClass {
+        constructor(format: string) {
+            super()
+        }
+    }
+    
+    // Concrete Remove subtype
+    class GeneratedV2EditableRemoveClass extends GeneratedV2EditableClass {
+        constructor(format: string) {
+            super()
+        }
+    }
+    
+    // Concrete Replace subtype
+    class GeneratedV2EditableReplaceClass extends GeneratedV2EditableClass {
+        constructor(format: string) {
+            super()
+        }
+    }
+    
+    return {
+        EditableClass: GeneratedV2EditableClass,
+        PlainClass: GeneratedV2EditablePlainClass,
+        RemoveClass: GeneratedV2EditableRemoveClass,
+        ReplaceClass: GeneratedV2EditableReplaceClass
+    }
+}

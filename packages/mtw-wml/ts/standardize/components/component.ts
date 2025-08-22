@@ -347,9 +347,9 @@ export const v2ComponentClassFactory = <D extends StandardComponentData, TBase e
     }
     
     return {
-        GeneratedV2ComponentClass,
-        GeneratedV2ComponentPlainClass,
-        GeneratedV2ComponentRemoveClass,
-        GeneratedV2ComponentReplaceClass
+        ComponentClass: GeneratedV2ComponentClass,
+        PlainClass: GeneratedV2ComponentPlainClass,
+        RemoveClass: GeneratedV2ComponentRemoveClass,
+        ReplaceClass: GeneratedV2ComponentReplaceClass
     }
 }

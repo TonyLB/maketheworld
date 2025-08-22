@@ -1,5 +1,5 @@
 import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
-import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps, StandardEditableWrapper } from './index'
+import { StandardEditablePayload, standardEditableFactory, StandardEditableFactoryProps, StandardEditableWrapper, v2StandardEditableFactory } from './index'
 import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize'
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
@@ -593,4 +593,29 @@ describe('standardEditableFactory', () => {
 
     })
 
+})
+
+describe('v2StandardEditableFactory', () => {
+    describe('create method', () => {
+        // Use the same factoryProps as the standardEditableFactory tests
+        const { EditableClass, PlainClass, RemoveClass, ReplaceClass } = v2StandardEditableFactory(factoryProps, 'StandardTest');
+
+        it('should create StandardTestContent for simple string', () => {
+            const component = EditableClass.create('Test');
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(PlainClass);
+        });
+
+        it('should create StandardTestRemove for <Remove> tag', () => {
+            const component = EditableClass.create('<Remove>Test</Remove>');
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(RemoveClass);
+        });
+
+        it('should create StandardTestReplace for <Replace> tag', () => {
+            const component = EditableClass.create('<Replace><Remove>Old</Remove><Test /></Replace>');
+            expect(component).toBeDefined();
+            expect(component).toBeInstanceOf(ReplaceClass);
+        });
+    });
 })
