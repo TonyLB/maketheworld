@@ -612,12 +612,11 @@ describe('v2StandardEditableFactory', () => {
      // ✅ toJSON() methods on all generated classes
      // ✅ _delta getter for extracting deltas
      // ✅ fromDelta() factory method for delta reconstruction
-     // ❌ schema getters on the generated classes  
+     // ✅ schema getters on all generated classes
      // ❌ merge/diff operations
      //
      // TODO: Next phase functionality:
-     // 1. Implement schema getters on the generated classes  
-     // 2. Add tests for merge/diff operations once those are implemented
+     // 1. Add tests for merge/diff operations once those are implemented
 
     describe('create method', () => {
         it('should create PlainClass for simple data object', () => {
@@ -632,18 +631,21 @@ describe('v2StandardEditableFactory', () => {
             const component = EditableClass.create('Test');
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(PlainClass);
+            expect(schemaToWML(component.schema)).toEqual('Test');
         });
 
         it('should create RemoveClass for <Remove> tag', () => {
             const component = EditableClass.create('<Remove>Test</Remove>');
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(RemoveClass);
+            expect(schemaToWML(component.schema)).toEqual('<Remove>Test</Remove>');
         });
 
         it('should create ReplaceClass for <Replace> tag', () => {
             const component = EditableClass.create('<Replace>Old</Replace><With>New</With>');
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(ReplaceClass);
+            expect(schemaToWML(component.schema)).toEqual('<Replace>Old</Replace><With>New</With>');
         });
 
         it('should create RemoveClass for Remove object', () => {
@@ -671,7 +673,8 @@ describe('v2StandardEditableFactory', () => {
             const component = EditableClass.create(schema);
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(PlainClass);
-            expect((component as any).payload).toBeDefined();
+            expect(component.toJSON()).toEqual({ id: 0, name: 'Test' });
+            expect(schemaToWML(component.schema)).toEqual('Test');
         });
 
         it('should create RemoveClass for Remove schema tree', () => {
@@ -682,7 +685,8 @@ describe('v2StandardEditableFactory', () => {
             const component = EditableClass.create(schema);
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(RemoveClass);
-            expect((component as any).match).toBeDefined();
+            expect(component.toJSON()).toEqual({ tag: 'Remove', match: { id: 0, name: 'Test' } });
+            expect(schemaToWML(component.schema)).toEqual('<Remove>Test</Remove>');
         });
 
         it('should create ReplaceClass for Replace schema tree', () => {
@@ -696,7 +700,8 @@ describe('v2StandardEditableFactory', () => {
             const component = EditableClass.create(schema);
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(ReplaceClass);
-            expect((component as any).payload).toBeDefined();
+            expect(component.toJSON()).toEqual({ tag: 'Replace', match: { id: 0, name: 'Old' }, payload: { id: 0, name: 'New' } });
+            expect(schemaToWML(component.schema)).toEqual('<Replace>Old</Replace><With>New</With>');
         });
     });
 
@@ -748,6 +753,7 @@ describe('v2StandardEditableFactory', () => {
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(PlainClass);
             expect(component.toJSON()).toEqual(delta.add);
+            expect(schemaToWML(component.schema)).toEqual('Test');
         });
 
         it('should create RemoveClass from remove-only delta', () => {
@@ -757,6 +763,7 @@ describe('v2StandardEditableFactory', () => {
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(RemoveClass);
             expect(component.toJSON()).toEqual({ tag: 'Remove', match: delta.remove });
+            expect(schemaToWML(component.schema)).toEqual('<Remove>Test</Remove>');
         });
 
         it('should create ReplaceClass from add+remove delta', () => {
@@ -769,6 +776,7 @@ describe('v2StandardEditableFactory', () => {
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(ReplaceClass);
             expect(component.toJSON()).toEqual({ tag: 'Replace', match: delta.remove, payload: delta.add });
+            expect(schemaToWML(component.schema)).toEqual('<Replace>Old</Replace><With>New</With>');
         });
 
         it('should throw error for empty delta', () => {
@@ -784,6 +792,8 @@ describe('v2StandardEditableFactory', () => {
             
             expect(recreatedComponent).toBeInstanceOf(PlainClass);
             expect(recreatedComponent._delta).toEqual(delta);
+            expect(recreatedComponent.toJSON()).toEqual(data);
+            expect(schemaToWML(recreatedComponent.schema)).toEqual('Test');
         });
 
 

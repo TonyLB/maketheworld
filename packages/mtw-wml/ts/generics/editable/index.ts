@@ -216,6 +216,9 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         // Abstract method that must be implemented by concrete types
         abstract toJSON(): StandardEditableData<PayloadDataType<FinalType>>;
         
+        // Abstract getter that must be implemented by concrete types
+        abstract get schema(): GenericTree<SchemaTag>;
+        
         // Factory method that creates instances from delta objects
         static fromDelta(delta: StandardEditableDataDelta<PayloadDataType<FinalType>>): GeneratedV2EditableClass {
             const { add, remove } = delta;
@@ -315,6 +318,10 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
             return this.payload?.toJSON() as PayloadDataType<FinalType>;
         }
+        
+        get schema(): GenericTree<SchemaTag> {
+            return this.payload?.schema ?? [];
+        }
     }
     
     // Concrete Remove subtype - stores the match payload
@@ -355,6 +362,14 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         
         toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
             return { tag: 'Remove' as const, match: this.match?.toJSON() as PayloadDataType<FinalType> };
+        }
+        
+        get schema(): GenericTree<SchemaTag> {
+            if (!this.match) return [];
+            return [{ 
+                data: { tag: 'Remove' as const }, 
+                children: this.match.schema 
+            }];
         }
     }
     
@@ -411,6 +426,17 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
                 match: this.match?.toJSON() as PayloadDataType<FinalType>, 
                 payload: this.payload?.toJSON() as PayloadDataType<FinalType> 
             };
+        }
+        
+        get schema(): GenericTree<SchemaTag> {
+            if (!this.match || !this.payload) return [];
+            return [{ 
+                data: { tag: 'Replace' as const }, 
+                children: [
+                    { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
+                    { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
+                ]
+            }];
         }
     }
     
