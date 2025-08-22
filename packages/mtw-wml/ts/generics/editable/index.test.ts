@@ -599,23 +599,25 @@ describe('v2StandardEditableFactory', () => {
     // Use the same factoryProps as the standardEditableFactory tests
     const { EditableClass, PlainClass, RemoveClass, ReplaceClass } = v2StandardEditableFactory(factoryProps, 'StandardTest');
 
-    // NOTE: Current test limitations - these tests only verify that the correct class types
-    // are instantiated and that the payload/match properties are defined. They do NOT verify
-    // that the payload/match properties contain the correct data.
-    //
-    // This is a temporary compromise because the v2StandardEditableFactory classes don't yet
-    // implement the full StandardEditableWrapper interface (toJSON, schema, merge, diff, etc.).
-    //
-    // TODO: As we extend the functionality of v2StandardEditableFactory, we should:
-    // 1. Implement toJSON() methods on the generated classes
-    // 2. Implement schema getters on the generated classes  
-    // 3. Update these tests to verify the actual payload/match data using toJSON()
-    // 4. Add tests for merge/diff operations once those are implemented
-    // 5. Add tests that verify the payload properties contain the expected data structure
-    //
-    // Example of future robust testing:
-    // expect(component.payload?.toJSON()).toEqual(expectedData)
-    // expect(component.payload?.schema).toEqual(expectedSchema)
+         // NOTE: Robust testing approach - these tests verify that:
+     // 1. The correct class types are instantiated (instanceof checks)
+     // 2. The data round-trips correctly through create() and toJSON()
+     // 3. The _delta getter works correctly with fromDelta()
+     //
+     // This unified approach tests both the creation logic AND the serialization logic
+     // simultaneously, providing comprehensive coverage without separate test sections.
+     //
+     // The v2StandardEditableFactory classes now implement:
+     // ✅ create() factory method for various input types
+     // ✅ toJSON() methods on all generated classes
+     // ✅ _delta getter for extracting deltas
+     // ✅ fromDelta() factory method for delta reconstruction
+     // ❌ schema getters on the generated classes  
+     // ❌ merge/diff operations
+     //
+     // TODO: Next phase functionality:
+     // 1. Implement schema getters on the generated classes  
+     // 2. Add tests for merge/diff operations once those are implemented
 
     describe('create method', () => {
         it('should create PlainClass for simple data object', () => {
@@ -623,7 +625,7 @@ describe('v2StandardEditableFactory', () => {
             const component = EditableClass.create(data);
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(PlainClass);
-            expect((component as any).payload).toBeDefined();
+            expect(component.toJSON()).toEqual(data);
         });
 
         it('should create PlainClass for simple string', () => {
@@ -649,7 +651,7 @@ describe('v2StandardEditableFactory', () => {
             const component = EditableClass.create(removeData);
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(RemoveClass);
-            expect((component as any).match).toBeDefined();
+            expect(component.toJSON()).toEqual(removeData);
         });
 
         it('should create ReplaceClass for Replace object', () => {
@@ -661,7 +663,7 @@ describe('v2StandardEditableFactory', () => {
             const component = EditableClass.create(replaceData);
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(ReplaceClass);
-            expect((component as any).payload).toBeDefined();
+            expect(component.toJSON()).toEqual(replaceData);
         });
 
         it('should create PlainClass for schema tree', () => {
@@ -745,7 +747,7 @@ describe('v2StandardEditableFactory', () => {
             
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(PlainClass);
-            expect((component as any).payload).toBeDefined();
+            expect(component.toJSON()).toEqual(delta.add);
         });
 
         it('should create RemoveClass from remove-only delta', () => {
@@ -754,7 +756,7 @@ describe('v2StandardEditableFactory', () => {
             
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(RemoveClass);
-            expect((component as any).match).toBeDefined();
+            expect(component.toJSON()).toEqual({ tag: 'Remove', match: delta.remove });
         });
 
         it('should create ReplaceClass from add+remove delta', () => {
@@ -766,8 +768,7 @@ describe('v2StandardEditableFactory', () => {
             
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(ReplaceClass);
-            expect((component as any).match).toBeDefined();
-            expect((component as any).payload).toBeDefined();
+            expect(component.toJSON()).toEqual({ tag: 'Replace', match: delta.remove, payload: delta.add });
         });
 
         it('should throw error for empty delta', () => {
@@ -784,5 +785,7 @@ describe('v2StandardEditableFactory', () => {
             expect(recreatedComponent).toBeInstanceOf(PlainClass);
             expect(recreatedComponent._delta).toEqual(delta);
         });
+
+
     });
 })

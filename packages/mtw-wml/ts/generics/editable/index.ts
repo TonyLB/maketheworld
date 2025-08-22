@@ -213,6 +213,9 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         // Abstract getter that must be implemented by concrete types
         abstract get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>>;
         
+        // Abstract method that must be implemented by concrete types
+        abstract toJSON(): StandardEditableData<PayloadDataType<FinalType>>;
+        
         // Factory method that creates instances from delta objects
         static fromDelta(delta: StandardEditableDataDelta<PayloadDataType<FinalType>>): GeneratedV2EditableClass {
             const { add, remove } = delta;
@@ -308,6 +311,10 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
             return { add: this.payload?.toJSON() as PayloadDataType<FinalType> }
         }
+        
+        toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
+            return this.payload?.toJSON() as PayloadDataType<FinalType>;
+        }
     }
     
     // Concrete Remove subtype - stores the match payload
@@ -344,6 +351,10 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         
         get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
             return { remove: this.match?.toJSON() as PayloadDataType<FinalType> }
+        }
+        
+        toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
+            return { tag: 'Remove' as const, match: this.match?.toJSON() as PayloadDataType<FinalType> };
         }
     }
     
@@ -392,6 +403,14 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         
         get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
             return { remove: this.match?.toJSON() as PayloadDataType<FinalType>, add: this.payload?.toJSON() as PayloadDataType<FinalType> }
+        }
+        
+        toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
+            return { 
+                tag: 'Replace' as const, 
+                match: this.match?.toJSON() as PayloadDataType<FinalType>, 
+                payload: this.payload?.toJSON() as PayloadDataType<FinalType> 
+            };
         }
     }
     
