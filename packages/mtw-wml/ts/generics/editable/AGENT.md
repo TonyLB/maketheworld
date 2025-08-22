@@ -101,6 +101,7 @@ if (exit instanceof ReplaceClass) {
 - **Comprehensive Testing**: All tests passing with instanceof validation
 - **Delta Operations**: `_delta` getter, `fromDelta` factory method, and `toJSON`/`schema` methods
 - **Merge/Diff Operations**: Full implementation of merge and diff operations operating on deltas
+- **StandardEditableWrapper Interface**: Complete compatibility with clone, plain, and nestedSchema methods
 
 ### 🔄 In Progress
 - **Integration Planning**: How to integrate with existing StandardExit architecture
@@ -129,6 +130,12 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
 - **`PlainClass`**: For simple content (no edit tags)
 - **`RemoveClass`**: For `<Remove>` operations
 - **`ReplaceClass`**: For `<Replace>` operations
+
+### Interface Compatibility
+All generated classes implement the `StandardEditableWrapper` interface:
+- **`clone()`**: Creates deep copies of instances
+- **`plain`**: Returns the underlying payload data
+- **`nestedSchema(tag)`**: Returns schema representation (compatibility method)
 
 ### WML Parsing Logic
 ```typescript

@@ -207,7 +207,7 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
     className: string
 ) => {
     // Abstract parent class
-    abstract class GeneratedV2EditableClass {
+    abstract class GeneratedV2EditableClass implements StandardEditableWrapper<FinalType> {
         protected constructor() {}
         
         // Abstract getter that must be implemented by concrete types
@@ -218,6 +218,17 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         
         // Abstract getter that must be implemented by concrete types
         abstract get schema(): GenericTree<SchemaTag>;
+        
+        // Abstract method that must be implemented by concrete types
+        abstract clone(): GeneratedV2EditableClass;
+        
+        // Abstract getter that must be implemented by concrete types
+        abstract get plain(): FinalType | undefined;
+        
+        // Nested schema method that returns the schema (same as schema getter for compatibility)
+        nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
+            return this.schema;
+        }
         
         // Merge method that operates on deltas
         merge(other: GeneratedV2EditableClass): GeneratedV2EditableClass | undefined {
@@ -338,6 +349,18 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         get schema(): GenericTree<SchemaTag> {
             return this.payload?.schema ?? [];
         }
+        
+        clone(): GeneratedV2EditableClass {
+            if (this.payload) {
+                return new GeneratedV2EditablePlainClass(this.payload);
+            } else {
+                return new GeneratedV2EditablePlainClass([] as GenericTree<SchemaTag>);
+            }
+        }
+        
+        get plain(): FinalType | undefined {
+            return this.payload;
+        }
     }
     
     // Concrete Remove subtype - stores the match payload
@@ -386,6 +409,18 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
                 data: { tag: 'Remove' as const }, 
                 children: this.match.schema 
             }];
+        }
+        
+        clone(): GeneratedV2EditableClass {
+            if (this.match) {
+                return new GeneratedV2EditableRemoveClass(this.match);
+            } else {
+                return new GeneratedV2EditableRemoveClass([] as GenericTree<SchemaTag>);
+            }
+        }
+        
+        get plain(): FinalType | undefined {
+            return this.match;
         }
     }
     
@@ -453,6 +488,23 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
                     { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
                 ]
             }];
+        }
+        
+        clone(): GeneratedV2EditableClass {
+            if (this.match && this.payload) {
+                const replaceData = { 
+                    tag: 'Replace' as const, 
+                    match: this.match.toJSON() as PayloadDataType<FinalType>, 
+                    payload: this.payload.toJSON() as PayloadDataType<FinalType> 
+                };
+                return new GeneratedV2EditableReplaceClass(replaceData);
+            } else {
+                return new GeneratedV2EditableReplaceClass([] as GenericTree<SchemaTag>);
+            }
+        }
+        
+        get plain(): FinalType | undefined {
+            return this.payload;
         }
     }
     

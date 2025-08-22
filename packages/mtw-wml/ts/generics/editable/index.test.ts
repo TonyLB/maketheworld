@@ -614,6 +614,7 @@ describe('v2StandardEditableFactory', () => {
      // ✅ fromDelta() factory method for delta reconstruction (returns undefined for empty deltas)
      // ✅ schema getters on all generated classes
      // ✅ merge/diff operations (operating on deltas, can return undefined when no content remains)
+     // ✅ StandardEditableWrapper interface compatibility (clone, plain, nestedSchema methods)
      //
      // All functionality now complete for feature parity with standardEditableFactory!
 
@@ -795,6 +796,83 @@ describe('v2StandardEditableFactory', () => {
             expect(recreatedComponent!._delta).toEqual(delta);
             expect(recreatedComponent!.toJSON()).toEqual(data);
             expect(schemaToWML(recreatedComponent!.schema)).toEqual('Test');
+        });
+    });
+
+    describe('miscellaneous', () => {
+        it('should clone PlainClass correctly', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const originalComponent = EditableClass.create(data);
+            const clonedComponent = originalComponent.clone();
+            
+            expect(clonedComponent).toBeInstanceOf(PlainClass);
+            expect(clonedComponent).not.toBe(originalComponent); // Different instance
+            expect(clonedComponent.toJSON()).toEqual(originalComponent.toJSON());
+            expect(clonedComponent.schema).toEqual(originalComponent.schema);
+        });
+        
+        it('should clone RemoveClass correctly', () => {
+            const removeData = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } };
+            const originalComponent = EditableClass.create(removeData);
+            const clonedComponent = originalComponent.clone();
+            
+            expect(clonedComponent).toBeInstanceOf(RemoveClass);
+            expect(clonedComponent).not.toBe(originalComponent); // Different instance
+            expect(clonedComponent.toJSON()).toEqual(originalComponent.toJSON());
+            expect(clonedComponent.schema).toEqual(originalComponent.schema);
+        });
+        
+        it('should clone ReplaceClass correctly', () => {
+            const replaceData = { 
+                tag: 'Replace' as const, 
+                match: { id: 1, name: 'Old' }, 
+                payload: { id: 2, name: 'New' } 
+            };
+            const originalComponent = EditableClass.create(replaceData);
+            const clonedComponent = originalComponent.clone();
+            
+            expect(clonedComponent).toBeInstanceOf(ReplaceClass);
+            expect(clonedComponent).not.toBe(originalComponent); // Different instance
+            expect(clonedComponent.toJSON()).toEqual(originalComponent.toJSON());
+            expect(clonedComponent.schema).toEqual(originalComponent.schema);
+        });
+        
+        it('should provide correct plain property for PlainClass', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const component = EditableClass.create(data);
+            
+            expect(component.plain).toBeDefined();
+            expect(component.plain).toBeInstanceOf(testClass);
+            expect(component.plain!.toJSON()).toEqual(data);
+        });
+        
+        it('should provide correct plain property for RemoveClass', () => {
+            const removeData = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } };
+            const component = EditableClass.create(removeData);
+            
+            expect(component.plain).toBeDefined();
+            expect(component.plain).toBeInstanceOf(testClass);
+            expect(component.plain!.toJSON()).toEqual({ id: 1, name: 'Test' });
+        });
+        
+        it('should provide correct plain property for ReplaceClass', () => {
+            const replaceData = { 
+                tag: 'Replace' as const, 
+                match: { id: 1, name: 'Old' }, 
+                payload: { id: 2, name: 'New' } 
+            };
+            const component = EditableClass.create(replaceData);
+            
+            expect(component.plain).toBeInstanceOf(testClass);
+            expect(component.plain!.toJSON()).toEqual({ id: 2, name: 'New' });
+        });
+        
+        it('should provide nestedSchema method that returns schema', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const component = EditableClass.create(data);
+            
+            const nestedSchema = component.nestedSchema({ tag: 'String', value: 'Test' });
+            expect(nestedSchema).toEqual(component.schema);
         });
     });
 
