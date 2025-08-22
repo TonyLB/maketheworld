@@ -210,6 +210,9 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
     abstract class GeneratedV2EditableClass {
         protected constructor() {}
         
+        // Abstract getter that must be implemented by concrete types
+        abstract get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>>;
+        
         // Factory method that decides which subtype to return
         static create(constructorProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string): GeneratedV2EditableClass {
             // First check if it's a StandardEditableData of the appropriate type
@@ -280,6 +283,10 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
                 }
             }
         }
+        
+        get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
+            return { add: this.payload?.toJSON() as PayloadDataType<FinalType> }
+        }
     }
     
     // Concrete Remove subtype - stores the match payload
@@ -312,6 +319,10 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
                     this.match = delta
                 }
             }
+        }
+        
+        get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
+            return { remove: this.match?.toJSON() as PayloadDataType<FinalType> }
         }
     }
     
@@ -356,6 +367,10 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
                     this.payload = delta
                 }
             }
+        }
+        
+        get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
+            return { remove: this.match?.toJSON() as PayloadDataType<FinalType>, add: this.payload?.toJSON() as PayloadDataType<FinalType> }
         }
     }
     

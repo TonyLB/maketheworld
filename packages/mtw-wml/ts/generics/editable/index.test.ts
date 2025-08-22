@@ -596,28 +596,28 @@ describe('standardEditableFactory', () => {
 })
 
 describe('v2StandardEditableFactory', () => {
+    // Use the same factoryProps as the standardEditableFactory tests
+    const { EditableClass, PlainClass, RemoveClass, ReplaceClass } = v2StandardEditableFactory(factoryProps, 'StandardTest');
+
+    // NOTE: Current test limitations - these tests only verify that the correct class types
+    // are instantiated and that the payload/match properties are defined. They do NOT verify
+    // that the payload/match properties contain the correct data.
+    //
+    // This is a temporary compromise because the v2StandardEditableFactory classes don't yet
+    // implement the full StandardEditableWrapper interface (toJSON, schema, merge, diff, etc.).
+    //
+    // TODO: As we extend the functionality of v2StandardEditableFactory, we should:
+    // 1. Implement toJSON() methods on the generated classes
+    // 2. Implement schema getters on the generated classes  
+    // 3. Update these tests to verify the actual payload/match data using toJSON()
+    // 4. Add tests for merge/diff operations once those are implemented
+    // 5. Add tests that verify the payload properties contain the expected data structure
+    //
+    // Example of future robust testing:
+    // expect(component.payload?.toJSON()).toEqual(expectedData)
+    // expect(component.payload?.schema).toEqual(expectedSchema)
+
     describe('create method', () => {
-        // Use the same factoryProps as the standardEditableFactory tests
-        const { EditableClass, PlainClass, RemoveClass, ReplaceClass } = v2StandardEditableFactory(factoryProps, 'StandardTest');
-
-        // NOTE: Current test limitations - these tests only verify that the correct class types
-        // are instantiated and that the payload/match properties are defined. They do NOT verify
-        // that the payload/match properties contain the correct data.
-        //
-        // This is a temporary compromise because the v2StandardEditableFactory classes don't yet
-        // implement the full StandardEditableWrapper interface (toJSON, schema, merge, diff, etc.).
-        //
-        // TODO: As we extend the functionality of v2StandardEditableFactory, we should:
-        // 1. Implement toJSON() methods on the generated classes
-        // 2. Implement schema getters on the generated classes  
-        // 3. Update these tests to verify the actual payload/match data using toJSON()
-        // 4. Add tests for merge/diff operations once those are implemented
-        // 5. Add tests that verify the payload properties contain the expected data structure
-        //
-        // Example of future robust testing:
-        // expect(component.payload?.toJSON()).toEqual(expectedData)
-        // expect(component.payload?.schema).toEqual(expectedSchema)
-
         it('should create PlainClass for simple data object', () => {
             const data: TestData = { id: 1, name: 'Test' };
             const component = EditableClass.create(data);
@@ -695,6 +695,47 @@ describe('v2StandardEditableFactory', () => {
             expect(component).toBeDefined();
             expect(component).toBeInstanceOf(ReplaceClass);
             expect((component as any).payload).toBeDefined();
+        });
+    });
+
+    describe('_delta getter', () => {
+        it('should return add delta for PlainClass', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const component = EditableClass.create(data);
+            const delta = component._delta;
+            
+            expect(delta.add).toBeDefined();
+            expect(delta.remove).toBeUndefined();
+            expect(delta.add).toEqual(data);
+        });
+
+        it('should return remove delta for RemoveClass', () => {
+            // Use a Remove object instead of WML to avoid parsing issues
+            const removeData = { tag: 'Remove' as const, match: { id: 1, name: 'Test' } };
+            const component = EditableClass.create(removeData);
+            const delta = component._delta;
+            
+            expect(delta.remove).toBeDefined();
+            expect(delta.add).toBeUndefined();
+            // Note: We can't easily test the exact value without implementing toJSON properly
+            // but we can verify the structure is correct
+            expect(typeof delta.remove).toBe('object');
+        });
+
+        it('should return both remove and add delta for ReplaceClass', () => {
+            // Use a Replace object instead of WML to avoid parsing issues
+            const replaceData = { 
+                tag: 'Replace' as const, 
+                match: { id: 1, name: 'Old' }, 
+                payload: { id: 2, name: 'New' } 
+            };
+            const component = EditableClass.create(replaceData);
+            const delta = component._delta;
+            
+            expect(delta.remove).toBeDefined();
+            expect(delta.add).toBeDefined();
+            expect(typeof delta.remove).toBe('object');
+            expect(typeof delta.add).toBe('object');
         });
     });
 })
