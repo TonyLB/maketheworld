@@ -874,6 +874,26 @@ describe('v2StandardEditableFactory', () => {
             const nestedSchema = component.nestedSchema({ tag: 'String', value: 'Test' });
             expect(nestedSchema).toEqual(component.schema);
         });
+
+        it('should provide remapReferences method for PlainClass', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const component = EditableClass.create(data);
+            expect(typeof component.remapReferences).toBe('function');
+            // Note: This test doesn't verify the actual remapping logic since TestPayload doesn't implement remapReferences
+            // In a real implementation, this would test the actual remapping behavior
+        });
+
+        it('should provide remapReferences method for RemoveClass', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const component = EditableClass.create({ tag: 'Remove', match: data });
+            expect(typeof component.remapReferences).toBe('function');
+        });
+
+        it('should provide remapReferences method for ReplaceClass', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const component = EditableClass.create({ tag: 'Replace', match: data, payload: data });
+            expect(typeof component.remapReferences).toBe('function');
+        });
     });
 
     describe('merge', () => {
