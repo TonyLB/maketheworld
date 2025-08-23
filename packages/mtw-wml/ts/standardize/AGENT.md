@@ -195,140 +195,93 @@ The merge operation:
 
 ### Subset Operations
 
-StandardForm's `subset()` operation is a powerful feature that extracts specific components from an asset along with their minimum supporting information. This is particularly crucial for handling imported components and maintaining referential integrity.
+StandardForm's `subset()` operation extracts specific components from an asset along with their minimum supporting information. This is crucial for handling imported components and maintaining referential integrity without importing everything from all assets.
 
-#### What Subset Does
+#### Core Concepts
 
-Subset reaches into an Asset and returns **only** the components specified, along with the minimum supporting information from other components that those components reference. This cascading behavior ensures that all necessary context is preserved without importing everything from all assets.
+- **Selective Extraction**: Returns only specified components plus minimal supporting context
+- **Cascading References**: Automatically includes components referenced by selected components
+- **Request Types**: Different levels of detail (`Full`, `Stub`, `ShortName`, `Exit`)
+- **Cascade Conditions**: Explicit control over which reference types trigger cascading
 
-#### Why Subset is Important
+#### Key Use Cases
 
-When a user wants to **edit** a component that they import from another Asset, Subset allows us to select all the relevant inherited information from the ancestry of imports in an internally consistent format, without needing to import **everything** from all of those assets.
+- **Editing Imported Components**: Extract relevant inherited information without full imports
+- **Minimal Context**: Get just enough supporting data to maintain referential integrity
+- **Chained References**: Follow reference chains through multiple levels of components
 
-#### Basic Subset Examples
+#### Current Questions in Need of Answers
 
+The subset functionality has some unclear behaviors that need investigation:
+
+1. **API Design**: Should the current `cascadeConditions` API be refactored to better reflect semantic relationships rather than internal function structure? [Answered: YES]
+
+2. **Connection vs. Condition Semantics**: Are we really talking about "conditions" or should we be thinking in terms of "connections" between components? [Answered: YES]
+
+3. **Abstraction Level**: What's the right abstraction for expressing the graph traversal we want to perform?
+
+#### Planning: Toward Better Abstractions
+
+**Current API Problems**: The `cascadeConditions` API is oriented around internal function structure rather than semantic relationships. Terms like `conditionType` and `cascadeType` obscure the fact that we're really traversing component connection graphs.
+
+**Better API Direction**: Refactor to recursive `cascadeConditions` that leverage existing subset logic:
+- **`cascadeConditions`**: Array of `Omit<StandardFormSubsetRequest, 'keys'>` objects
+- **Recursive Structure**: Each cascade step can have its own `requestType` and nested `cascadeConditions`
+- **Keys Auto-derived**: The subset function provides keys based on previous step's results
+
+**Key Insight**: The recursive part is **traversal logic** - determining what requests to make for each discovered key. The existing `subset` conflict resolution (when multiple paths request different detail levels for the same key) should be preserved and leveraged.
+
+**Use Case Alignment**: This better reflects our complex use cases:
+1. **Import Context**: Follow Exit/Link/Position connections to build inheritance trees
+2. **Map Editing**: Follow Position connections to get rooms, then Exit connections from those rooms (sequential, not parallel)
+
+**Example Structure**:
 ```typescript
-// Create subset with specific components
-const subset = asset.subset([
-    { requestType: 'Full', keys: [{ key: 'mainHall' }] },
-    { requestType: 'Stub', keys: [{ key: 'kitchen' }] }
-])
-// Result: mainHall with full details, kitchen with minimal stub info
-```
-
-#### Cascade Examples
-
-Subset can automatically include referenced components through cascade conditions:
-
-```typescript
-// Cascade requests for linked components
-const subsetWithLinks = asset.subset([
+{
+  requestType: 'Full',
+  keys: [mapKey],
+  cascadeConditions: [
     {
-        requestType: 'Full',
-        keys: [{ key: 'mainHall' }],
-        cascadeConditions: [
+      connectionType: 'Position',
+      cascadeArguments: [
+        {
+          requestType: 'Exits',
+          cascadeConditions: [
             {
-                conditionType: 'Exit',
-                cascadeType: 'Full',
-                chainCascade: true
+              connectionType: 'Exit',
+              cascadeArguments: [{ requestType: 'ShortName' }]
             }
-        ]
+          ]
+        }
+      ]
     }
-])
-// Result: mainHall + all rooms it has exits to (with full details)
+  ]
+}
 ```
 
-#### Inheritance and Import Context
+**Next Steps**: Implement the recursive API through systematic refactoring:
 
-The real power of Subset emerges when dealing with imported components:
+1. **Update Types**: Modify `StandardFormSubsetRequest` and related interfaces to support recursive `cascadeConditions` structure
+2. **Simplify Documentation**: Replace detailed structure examples with overview/guide information linking to relevant code
+3. **Update Unit Tests**: Modify `subset` unit tests to use new argument types and correctly convey intent (tests will fail initially)
+4. **Refactor Implementation**: Update `subset` code to support recursive cascade logic and make tests pass
+5. **Code Review & Elegance**: Review refactored code for opportunities to improve elegance and clarity now that the API better aligns with data needs
+6. **System Migration**: Examine all `subset` usage throughout the system and refactor to use new API, confirming functionality with local unit tests
 
-```typescript
-// Asset with imported components
-const assetWithImports = new StandardForm(`<Asset key=(UserEdit)>
-    <Room key=(mainHall)>
-        <Exit to=(kitchen)>kitchen</Exit>
-        <Feature key=(fountain)>
-            <Example uuid=(fountain-example)>
-                <Description>Beautiful marble fountain</Description>
-            </Example>
-        </Feature>
-    </Room>
-    <Room key=(kitchen) uuid=(KITCHEN#imported-uuid)>
-        <Example uuid=(kitchen-example)>
-            <Description>Cozy kitchen</Description>
-        </Example>
-    </Room>
-</Asset>`)
+**Migration Strategy**: Implement alongside old API, migrate usage systematically, then deprecate old API once migration is complete.
 
-// Extract just the mainHall for editing, with minimal kitchen context
-const editingSubset = assetWithImports.subset([
-    { requestType: 'Full', keys: [{ key: 'mainHall' }] },
-    { requestType: 'Stub', keys: [{ key: 'kitchen' }] }
-])
+#### Implementation Notes
 
-// Result: mainHall with full details, kitchen with just enough info
-// to maintain the exit reference, without importing the entire kitchen
-// from its source asset
-```
+- See `StandardForm.subset()` method for core logic
+- Cascade logic handled in `cascadeRequests()` function
+- Reference extraction via `component.referencedKeys()` method
+- Request processing in `requestOutput()` function
 
-#### Cascade Chain Examples
+#### Related Components
 
-Subset can chain cascades through multiple levels of references:
-
-```typescript
-// Complex asset with multiple reference levels
-const complexAsset = new StandardForm(`<Asset key=(Complex)>
-    <Room key=(entrance)>
-        <Exit to=(mainHall)>main hall</Exit>
-    </Room>
-    <Room key=(mainHall)>
-        <Exit to=(kitchen)>kitchen</Exit>
-        <Exit to=(library)>library</Exit>
-    </Room>
-    <Room key=(kitchen)>
-        <Exit to=(pantry)>pantry</Exit>
-    </Room>
-    <Room key=(library)>
-        <Exit to=(study)>study</Exit>
-    </Room>
-</Asset>`)
-
-// Extract entrance with chained cascade through exits
-const chainedSubset = complexAsset.subset([
-    {
-        requestType: 'Full',
-        keys: [{ key: 'entrance' }],
-        cascadeConditions: [
-            {
-                conditionType: 'Exit',
-                cascadeType: 'Full',
-                chainCascade: true  // This causes the cascade to continue
-            }
-        ]
-    }
-])
-
-// Result: entrance + mainHall + kitchen + pantry + library + study
-// All rooms in the chain are included with full details
-```
-
-#### Request Types
-
-Subset supports different levels of detail for included components:
-
-- **`Full`**: Complete component with all properties and content
-- **`Stub`**: Minimal component with just key/universalKey for reference
-- **`ShortName`**: Component with just the name/shortName for display
-- **`Exit`**: Component with just exit information
-
-```typescript
-// Mixed request types for different levels of detail
-const mixedSubset = asset.subset([
-    { requestType: 'Full', keys: [{ key: 'mainHall' }] },
-    { requestType: 'ShortName', keys: [{ key: 'kitchen' }] },
-    { requestType: 'Stub', keys: [{ key: 'pantry' }] }
-])
-```
+- `StandardFormSubsetRequest` interface defines request structure
+- `StandardFormSubsetRequestExit` for exit-specific requests
+- Cascade condition types: `Exit`, `Link`, `Position`, `Direct`
 
 ### Diff Operations
 
