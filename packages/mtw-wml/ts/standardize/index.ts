@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetRequestExit, StandardFormSubsetRequestFull, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
+import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetRequestExitsAndShortName, StandardFormSubsetRequestFull, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { excludeUndefined } from "../lib/lists"
 import { isStandardComponentData, isStandardForm, StandardFormData } from "./components/dataTypes"
 import SchemaTagTree from "../tagTree/schema"
@@ -512,7 +512,7 @@ export class StandardForm {
         const cascadeRequests = (newRequests: StandardFormSubsetRequest[], priorRequests: StandardFormSubsetRequest[] = []): StandardFormSubsetRequest[] => {
             const mergedRequests = newRequests.reduce(mergeIntoRequestList, priorRequests)
             const cascadeList = newRequests.reduce<StandardFormSubsetRequest[]>((previous, request) => {
-                if (request.requestType !== 'Full' && request.requestType !== 'Exit') {
+                if (request.requestType !== 'Full' && request.requestType !== 'ExitsAndShortName') {
                     return previous
                 }
                 const cascadeFunction: (referenceKey: StandardKey) => StandardFormSubsetRequest[] = (key) => ([
@@ -595,13 +595,13 @@ export class StandardForm {
             if (request.requestType === 'Full') {
                 return [component]
             }
-            if (request.requestType === 'Stub' || request.requestType === 'ShortName' || request.requestType === 'Exit') {
+            if (request.requestType === 'Stub' || request.requestType === 'ShortName' || request.requestType === 'ExitsAndShortName') {
                 const returnValue = component.clone()
                 if (returnValue instanceof StandardRoom) {
                     returnValue._payload = new StandardRoomPayload()
-                    if ((request.requestType === 'ShortName' || request.requestType === 'Exit') && component instanceof StandardRoom) {
+                    if ((request.requestType === 'ShortName' || request.requestType === 'ExitsAndShortName') && component instanceof StandardRoom) {
                         returnValue._payload._shortName = component._payload._shortName
-                        if (request.requestType === 'Exit') {
+                        if (request.requestType === 'ExitsAndShortName') {
                             returnValue._payload._exits = component.exits
                         }
                     }
