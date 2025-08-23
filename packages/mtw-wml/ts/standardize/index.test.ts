@@ -2161,9 +2161,61 @@ describe('StandardForm', () => {
                 </Asset>
             `)
             const subset = test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })] }])
+            //
+            // Note that the Example link cannot be resolved by `requestType: 'Full'`, because it is implicitly a reference
+            // to an Example component, which is not included in the subset due to the lack of cascades.
+            //
             expect(schemaToWML([subset.schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
+                    <Room key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
+                        <Exit to=(testRoomTwo)>exit</Exit>
+                    </Room>
+                </Asset>
+            `))
+        })
+
+        it('should properly subset an asset with full content with a direct cascade', () => {
+            const test = new StandardForm(`
+                <Asset key=(test)>
+                    <Knowledge key=(testKnowledge) />
+                    <Room key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
+                        <Example uuid=(001)>
+                            <Description><Link to=(FEATURE#testFeature)>link</Link></Description>
+                        </Example>
+                        <Exit to=(testRoomTwo)>exit</Exit>
+                    </Room>
+                    <Room key=(testRoomTwo) />
                     <Feature uuid=(testFeature) key=(testFeature) />
+                </Asset>
+            `)
+            const subset = test.subset([{
+                requestType: 'Full',
+                keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })],
+                cascadeConditions: [{
+                    graph: [
+                        {
+                            name: 'room',
+                            requestType: 'Full',
+                            transitions: [
+                                { connectionType: 'Direct', targetNode: 'nested' }
+                            ]
+                        },
+                        {
+                            name: 'nested',
+                            requestType: 'Full',
+                            transitions: []
+                        }
+                    ],
+                    startNodes: ['room']
+                }]
+            }])
+            //
+            // Now the nested Example component can be written into schema
+            //
+            expect(schemaToWML([subset.schema])).toEqual(deIndentWML(`
+                <Asset key=(test)>
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
                         <Example uuid=(001)>
@@ -2173,7 +2225,6 @@ describe('StandardForm', () => {
                         </Example>
                         <Exit to=(testRoomTwo)>exit</Exit>
                     </Room>
-                    <Room key=(testRoomTwo) />
                 </Asset>
             `))
         })    
@@ -2199,7 +2250,6 @@ describe('StandardForm', () => {
                         <ShortName>Test Room</ShortName>
                         <Exit to=(testRoomTwo)>exit</Exit>
                     </Room>
-                    <Room key=(testRoomTwo) />
                 </Asset>
             `))
         })
@@ -2223,8 +2273,21 @@ describe('StandardForm', () => {
                 requestType: 'Full',
                 keys: [new StandardKey(`MAP#testMap`)],
                 cascadeConditions: [{ 
-                    connectionType: 'Position', 
-                    cascadeArguments: [{ requestType: 'ExitsAndShortName' }]
+                    graph: [
+                        {
+                            name: 'map',
+                            requestType: 'Full',
+                            transitions: [
+                                { connectionType: 'Position', targetNode: 'room' }
+                            ]
+                        },
+                        {
+                            name: 'room',
+                            requestType: 'ExitsAndShortName',
+                            transitions: []
+                        }
+                    ],
+                    startNodes: ['map']
                 }]
             }])
             expect(results.byUniversalId['ROOM#room1']).toBeInstanceOf(StandardRoom)
@@ -2296,7 +2359,36 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })], cascadeConditions: [{ connectionType: 'Link', cascadeArguments: [{ requestType: 'Stub' }] }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{
+                requestType: 'Full',
+                keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })],
+                cascadeConditions: [
+                    {
+                        graph: [
+                            {
+                                name: 'room',
+                                requestType: 'Full',
+                                transitions: [
+                                    { connectionType: 'Direct', targetNode: 'example' }
+                                ]
+                            },
+                            {
+                                name: 'example',
+                                requestType: 'Full',
+                                transitions: [
+                                    { connectionType: 'Link', targetNode: 'feature' }
+                                ]
+                            },
+                            {
+                                name: 'feature',
+                                requestType: 'Stub',
+                                transitions: []
+                            }
+                        ],
+                        startNodes: ['room']
+                    }
+                ]
+            }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Feature uuid=(testFeature) key=(testFeature) />
                     <Room key=(testRoom)>
@@ -2331,7 +2423,38 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })], cascadeConditions: [{ connectionType: 'Link', cascadeArguments: [{ requestType: 'Full' }] }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ 
+                requestType: 'Full', 
+                keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })], 
+                cascadeConditions: [
+                    {
+                        graph: [
+                            {
+                                name: 'room',
+                                requestType: 'Full',
+                                transitions: [
+                                    { connectionType: 'Direct', targetNode: 'example' }
+                                ]
+                            },
+                            {
+                                name: 'example',
+                                requestType: 'Full', 
+                                transitions: [
+                                    { connectionType: 'Link', targetNode: 'feature' }
+                                ]
+                            },
+                            {
+                                name: 'feature',
+                                requestType: 'Full',
+                                transitions: [
+                                    { connectionType: 'Direct', targetNode: 'example' }
+                                ]
+                            }
+                        ],
+                        startNodes: ['room']
+                    }
+                ]
+            }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Feature uuid=(testFeature) key=(testFeature)>
                         <Example uuid=(featureExample)>
@@ -2368,7 +2491,25 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testFeature', tag: 'Feature' })], cascadeConditions: [{ connectionType: 'Link', cascadeArguments: [{ requestType: 'Full' }] }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testFeature', tag: 'Feature' })], cascadeConditions: [{ 
+                graph: [
+                    {
+                        name: 'feature',
+                        requestType: 'Full',
+                        transitions: [
+                            { connectionType: 'Direct', targetNode: 'example' }
+                        ]
+                    },
+                    {
+                        name: 'example',
+                        requestType: 'Full',
+                        transitions: [
+                            { connectionType: 'Link', targetNode: 'feature' }
+                        ]
+                    }
+                ],
+                startNodes: ['feature']
+            }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Feature uuid=(testFeature) key=(testFeature)>
                         <Example uuid=(exampleOne)>
@@ -2403,7 +2544,23 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testMap', tag: 'Map' })], cascadeConditions: [{ connectionType: 'Position', cascadeArguments: [{ requestType: 'Stub' }] }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'Full', keys: [new StandardKey({ key: 'testMap', tag: 'Map' })], cascadeConditions: [{ 
+                graph: [
+                    {
+                        name: 'map',
+                        requestType: 'Full',
+                        transitions: [
+                            { connectionType: 'Position', targetNode: 'room' }
+                        ]
+                    },
+                    {
+                        name: 'room',
+                        requestType: 'Stub',
+                        transitions: []
+                    }
+                ],
+                startNodes: ['map']
+            }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom) />
                     <Map key=(testMap)>
@@ -2430,7 +2587,23 @@ describe('StandardForm', () => {
                     <Knowledge key=(testKnowledge) />
                 </Asset>
             `)
-            expect(schemaToWML([test.subset([{ requestType: 'ExitsAndShortName', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })], cascadeConditions: [{ connectionType: 'Exit', cascadeArguments: [{ requestType: 'ExitsAndShortName' }] }] }]).schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([test.subset([{ requestType: 'ExitsAndShortName', keys: [new StandardKey({ key: 'testRoom', tag: 'Room' })], cascadeConditions: [{ 
+                graph: [
+                    {
+                        name: 'room',
+                        requestType: 'ExitsAndShortName',
+                        transitions: [
+                            { connectionType: 'Exit', targetNode: 'exitTarget' }
+                        ]
+                    },
+                    {
+                        name: 'exitTarget',
+                        requestType: 'ExitsAndShortName',
+                        transitions: []
+                    }
+                ],
+                startNodes: ['room']
+            }] }]).schema])).toEqual(deIndentWML(`
                 <Asset key=(test)>
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
@@ -2444,7 +2617,7 @@ describe('StandardForm', () => {
         it('should demonstrate recursive cascade structure for map editing', () => {
             const test = new StandardForm(`
                 <Asset key=(test)>
-                    <Map key=(testMap)>
+                    <Map uuid=(testMap)>
                         <Room key=(room1)><Position x="0" y="0" /></Room>
                         <Room key=(room2)><Position x="100" y="100" /></Room>
                     </Map>
@@ -2469,26 +2642,36 @@ describe('StandardForm', () => {
                 keys: [new StandardKey(`MAP#testMap`)],
                 cascadeConditions: [
                     {
-                        connectionType: 'Position',
-                        cascadeArguments: [
+                        graph: [
                             {
-                                requestType: 'ExitsAndShortName',
-                                cascadeConditions: [
-                                    {
-                                        connectionType: 'Exit',
-                                        cascadeArguments: [{ requestType: 'ShortName' }]
-                                    }
+                                name: 'map',
+                                requestType: 'Full',
+                                transitions: [
+                                    { connectionType: 'Position', targetNode: 'room' }
                                 ]
+                            },
+                            {
+                                name: 'room',
+                                requestType: 'ExitsAndShortName',
+                                transitions: [
+                                    { connectionType: 'Exit', targetNode: 'exitTarget' }
+                                ]
+                            },
+                            {
+                                name: 'exitTarget',
+                                requestType: 'ShortName',
+                                transitions: []
                             }
-                        ]
+                        ],
+                        startNodes: ['map']
                     }
                 ]
             }])
             
             // Should include the map, positioned rooms, and exit targets with short names
             expect(results.byUniversalId['MAP#testMap']).toBeInstanceOf(StandardMap)
-            expect(results.byUniversalId['ROOM#room1']).toBeInstanceOf(StandardRoom)
-            expect(results.byUniversalId['ROOM#room2']).toBeInstanceOf(StandardRoom)
+            expect(results.byId['room1']).toBeInstanceOf(StandardRoom)
+            expect(results.byId['room2']).toBeInstanceOf(StandardRoom)
         })
 
     })

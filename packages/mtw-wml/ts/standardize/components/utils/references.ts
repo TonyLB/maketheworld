@@ -95,7 +95,7 @@ export const exitReferenceKeys = (list: StandardExit[]): string[] => {
             return []
         })
         .flat(1)
-        .map((key) => (key.universalKey ?? ''))
+        .map((key) => (key.universalKey ?? key.key ?? ''))
         .filter(excludeUndefined)
     )
 }

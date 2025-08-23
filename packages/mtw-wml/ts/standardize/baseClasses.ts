@@ -243,10 +243,19 @@ export type StandardFormSubsetRequestExitsAndShortName = {
     cascadeConditions?: StandardFormSubsetCascadeCondition[];
 }
 
-// New recursive cascade condition type
+// New directed graph cascade condition type
+export type StandardFormSubsetCascadeGraphNode = {
+    name: string;
+    requestType: StandardFormSubsetRequest['requestType'];
+    transitions: ({
+        connectionType: StandardComponentReferenceKey['referenceType'];
+        targetNode: string; // Reference to another node by name
+    })[];
+}
+
 export type StandardFormSubsetCascadeCondition = {
-    connectionType: StandardComponentReferenceKey['referenceType'];
-    cascadeArguments?: Omit<StandardFormSubsetRequest, 'keys'>[];
+    graph: StandardFormSubsetCascadeGraphNode[];
+    startNodes: string[]; // Names of nodes to start traversal from
 }
 
 export type StandardFormSubsetRequest =
@@ -279,20 +288,7 @@ export const standardFormSubsetRequestPriority = (request?: StandardFormSubsetRe
 // if a new request can be merged with an existing one.
 //
 export const standardFormSubsetRequestMatch = (a: StandardFormSubsetRequest) => (b: StandardFormSubsetRequest): boolean => {
-    if (a.requestType !== b.requestType) {
-        return false
-    }
-    switch(a.requestType) {
-        case 'Full':
-        case 'ExitsAndShortName':
-            if (b.requestType !== a.requestType) {
-                return false
-            }
-            return deepEqual(a.cascadeConditions, b.cascadeConditions)
-        case 'ShortName':
-        case 'Stub':
-            return true
-        default:
-            return false
-    }
+    // For merging purposes, we only care about requestType matching
+    // cascadeConditions are used during traversal, not merging
+    return a.requestType === b.requestType
 }
