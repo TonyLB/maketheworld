@@ -22,9 +22,17 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
             requestType: 'Full',
             keys: fullKeys.map((key) => (new StandardKey(key))),
             cascadeConditions: [
-                { conditionType: 'Exit', cascadeType: 'ShortName' },
-                { conditionType: 'Link', cascadeType: 'ShortName' },
-                { conditionType: 'Position', cascadeType: 'ShortName' }
+                { graph: [
+                    { name: 'start', requestType: 'Full', transitions: [
+                        { connectionType: 'Exit', targetNode: 'exitTarget' },
+                        { connectionType: 'Direct', targetNode: 'example' }
+                    ] },
+                    { name: 'example', requestType: 'Full', transitions: [
+                        { connectionType: 'Link', targetNode: 'linkedComponent' }
+                    ] },
+                    { name: 'linkedComponent', requestType: 'Stub', transitions: [] },
+                    { name: 'exitTarget', requestType: 'ShortName', transitions: [] }
+                ], startNodes: ['start'] }
             ]
         },
         { requestType: 'ShortName', keys: stubKeys.map((key) => (new StandardKey(key))) }
