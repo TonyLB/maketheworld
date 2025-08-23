@@ -211,10 +211,11 @@ Removing conditionals from the D3.js system requires:
 - ✅ Clean up any remaining orphaned conditional-related code
 - ✅ Remove unused imports and dependencies
 - ✅ Remove entire mapEdit Redux slice (no longer needed)
-- **Create StandardExitPlain**: Implement display-friendly wrapper for StandardExit to address deep property nesting (see `packages/mtw-wml/ts/standardize/components/AGENT.edits.planning.md`)
-- **Apply to exitExtraction**: Update utility to return StandardExitPlain instances with clean API
-- **Tutorial Cleanup**: Remove `renameNewRoom` tutorial item (moved to Phase 6 for cleanup)
-- **Note**: This phase focuses on removing backend infrastructure that's no longer needed and implementing StandardExitPlain for exitExtraction
+- ✅ **Create StandardExitPlain**: Implement display-friendly wrapper for StandardExit to address deep property nesting (see `packages/mtw-wml/ts/standardize/components/AGENT.edits.planning.md`)
+- ✅ **Create MapExit class**: Extend StandardExitPlain to include `from` property and solve "Hardcoded Data" technical debt (see `AGENT.md`)
+- 🔄 **Apply to exitExtraction**: Update utility to return MapExit instances with clean API
+- 🔄 **Tutorial Cleanup**: Remove `renameNewRoom` tutorial item (moved to Phase 6 for cleanup)
+- **Note**: This phase focuses on creating MapExit class first, then implementing exitExtraction to return MapExit instances, enabling dynamic exit data loading instead of hardcoded test data
 
 ## Risk Assessment
 
@@ -255,11 +256,13 @@ Removing conditionals from the D3.js system requires:
 
 ## Next Steps
 
-1. **Review and Approve**: This planning document needs review and approval
-2. **Implementation Order**: Determine the optimal order for the implementation phases
-3. **Testing Strategy**: Plan comprehensive testing for each phase
-4. **Rollback Plan**: Prepare rollback strategy if issues arise
-5. **Timeline**: Establish realistic timeline for implementation
+1. ✅ **Create MapExit Class**: Extend `StandardExitPlain` to include `from` property for tracking exit source rooms
+2. 🔄 **Update exitExtraction Tests**: Refactor unit tests to expect `MapExit` objects instead of `StandardExitPlain`
+3. 🔄 **Complete exitExtraction Implementation**: Implement `extractExitsFromStandardForm` to return `MapExit` instances from StandardForm data
+4. 🔄 **Integrate with MapList**: Replace hardcoded test data with dynamic exit loading using the new MapExit class
+5. 🔄 **Clean up Tutorial Items**: Remove `renameNewRoom` tutorial item and any other conditional-related tutorial content
+6. 🔄 **Final Testing**: Verify that Maps component works correctly without conditionals and with dynamic exit data
+7. 🔄 **Documentation Update**: Update Maps AGENT.md to reflect completed migration and new architecture
 
 ---
 

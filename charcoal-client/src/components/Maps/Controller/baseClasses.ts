@@ -4,6 +4,7 @@ import { SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/compone
 import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardPosition } from "@tonylb/mtw-wml/ts/standardize/components/position"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { StandardExitPlain } from "@tonylb/mtw-wml/ts/standardize/components/exit"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
 
@@ -18,6 +19,52 @@ export const isMapTreeRoomWithPosition = (node: MapTreeItem): node is MapTreeRoo
         typeof node.y !== 'undefined'
     )
 )
+
+/**
+ * MapExit extends StandardExitPlain to add map-specific context
+ * including the source room identifier for tracking exit origins
+ */
+export class MapExit extends StandardExitPlain {
+    private _from: `ROOM#${string}`
+
+    constructor(exit: StandardExitPlain, from: `ROOM#${string}`) {
+        // Call the parent constructor with the exit's data
+        super(exit.toJSON())
+        this._from = from
+    }
+
+    /**
+     * Get the source room identifier
+     */
+    get from(): `ROOM#${string}` {
+        return this._from
+    }
+
+    /**
+     * Get the exit description if available
+     */
+    get description(): string | undefined {
+        if (!this.payload?.description) return undefined
+        const desc = this.payload.description.toJSON()
+        if (typeof desc === 'string') return desc
+        // For complex description types, return undefined for now
+        return undefined
+    }
+
+    /**
+     * Create a new MapExit with updated from room
+     */
+    withFrom(from: `ROOM#${string}`): MapExit {
+        return new MapExit(this, from)
+    }
+
+    /**
+     * Create a new MapExit with updated exit data
+     */
+    withExit(exit: StandardExitPlain): MapExit {
+        return new MapExit(exit, this._from)
+    }
+}
 
 type MapContextExitDrag = {
     sourceRoomId: `ROOM#${string}`;
