@@ -210,27 +210,39 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
     props: StandardEditableFactoryProps<DataType, FinalType>, 
     className: string
 ) => {
-    // Abstract parent class
-    abstract class GeneratedV2EditableClass implements StandardEditableWrapper<FinalType> {
-        protected constructor() {}
+    // Concrete parent class with stub implementations (to allow InstanceType to work)
+    class GeneratedV2EditableClass implements StandardEditableWrapper<FinalType> {
+        constructor() {}
         
-        // Abstract getter that must be implemented by concrete types
-        abstract get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>>;
+        // Stub getter that must be implemented by concrete types
+        get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
+            throw new Error('_delta getter must be implemented by concrete subclass');
+        }
         
-        // Abstract method that must be implemented by concrete types
-        abstract toJSON(): StandardEditableData<PayloadDataType<FinalType>>;
+        // Stub method that must be implemented by concrete types
+        toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
+            throw new Error('toJSON() must be implemented by concrete subclass');
+        }
         
-        // Abstract getter that must be implemented by concrete types
-        abstract get schema(): GenericTree<SchemaTag>;
+        // Stub getter that must be implemented by concrete types
+        get schema(): GenericTree<SchemaTag> {
+            throw new Error('schema getter must be implemented by concrete subclass');
+        }
         
-        // Abstract method that must be implemented by concrete types
-        abstract clone(): GeneratedV2EditableClass;
+        // Stub method that must be implemented by concrete types
+        clone(): GeneratedV2EditableClass {
+            throw new Error('clone() must be implemented by concrete subclass');
+        }
         
-        // Abstract getter that must be implemented by concrete types
-        abstract get plain(): FinalType | undefined;
+        // Stub getter that must be implemented by concrete types
+        get plain(): FinalType | undefined {
+            throw new Error('plain getter must be implemented by concrete subclass');
+        }
         
-        // Abstract method that must be implemented by concrete types
-        abstract remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass;
+        // Stub method that must be implemented by concrete types
+        remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass {
+            throw new Error('remapReferences() must be implemented by concrete subclass');
+        }
         
         // Nested schema method that returns the schema (same as schema getter for compatibility)
         nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
@@ -345,19 +357,19 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             }
         }
         
-        get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
+        override get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
             return { add: this.payload?.toJSON() as PayloadDataType<FinalType> }
         }
         
-        toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
+        override toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
             return this.payload?.toJSON() as PayloadDataType<FinalType>;
         }
         
-        get schema(): GenericTree<SchemaTag> {
+        override get schema(): GenericTree<SchemaTag> {
             return this.payload?.schema ?? [];
         }
         
-        clone(): GeneratedV2EditableClass {
+        override clone(): GeneratedV2EditableClass {
             if (this.payload) {
                 return new GeneratedV2EditablePlainClass(this.payload);
             } else {
@@ -365,11 +377,11 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             }
         }
         
-        get plain(): FinalType | undefined {
+        override get plain(): FinalType | undefined {
             return this.payload;
         }
         
-        remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass {
+        override remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass {
             if (this.payload && 'remapReferences' in this.payload) {
                 const remappedPayload = (this.payload as any).remapReferences(props);
                 return new GeneratedV2EditablePlainClass(remappedPayload);
@@ -410,15 +422,15 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             }
         }
         
-        get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
+        override get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
             return { remove: this.match?.toJSON() as PayloadDataType<FinalType> }
         }
         
-        toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
+        override toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
             return { tag: 'Remove' as const, match: this.match?.toJSON() as PayloadDataType<FinalType> };
         }
         
-        get schema(): GenericTree<SchemaTag> {
+        override get schema(): GenericTree<SchemaTag> {
             if (!this.match) return [];
             return [{ 
                 data: { tag: 'Remove' as const }, 
@@ -426,7 +438,7 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             }];
         }
         
-        clone(): GeneratedV2EditableClass {
+        override clone(): GeneratedV2EditableClass {
             if (this.match) {
                 return new GeneratedV2EditableRemoveClass(this.match);
             } else {
@@ -434,11 +446,11 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             }
         }
         
-        get plain(): FinalType | undefined {
+        override get plain(): FinalType | undefined {
             return this.match;
         }
         
-        remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass {
+        override remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass {
             if (this.match && 'remapReferences' in this.match) {
                 const remappedMatch = (this.match as any).remapReferences(props);
                 return new GeneratedV2EditableRemoveClass(remappedMatch);
@@ -490,11 +502,11 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             }
         }
         
-        get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
+        override get _delta(): StandardEditableDataDelta<PayloadDataType<FinalType>> {
             return { remove: this.match?.toJSON() as PayloadDataType<FinalType>, add: this.payload?.toJSON() as PayloadDataType<FinalType> }
         }
         
-        toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
+        override toJSON(): StandardEditableData<PayloadDataType<FinalType>> {
             return { 
                 tag: 'Replace' as const, 
                 match: this.match?.toJSON() as PayloadDataType<FinalType>, 
@@ -502,7 +514,7 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             };
         }
         
-        get schema(): GenericTree<SchemaTag> {
+        override get schema(): GenericTree<SchemaTag> {
             if (!this.match || !this.payload) return [];
             return [{ 
                 data: { tag: 'Replace' as const }, 
@@ -513,7 +525,7 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             }];
         }
         
-        clone(): GeneratedV2EditableClass {
+        override clone(): GeneratedV2EditableClass {
             if (this.match && this.payload) {
                 const replaceData = { 
                     tag: 'Replace' as const, 
@@ -526,11 +538,11 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             }
         }
         
-        get plain(): FinalType | undefined {
+        override get plain(): FinalType | undefined {
             return this.payload;
         }
         
-        remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass {
+        override remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass {
             let remappedMatch = this.match;
             let remappedPayload = this.payload;
             

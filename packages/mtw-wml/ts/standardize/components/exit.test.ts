@@ -46,7 +46,7 @@ describe('StandardExit', () => {
             }
         } as const
         const testExitRemove = StandardExit.create(testExitData)
-        expect(testExitRemove._payload).toBeInstanceOf(StandardExitRemove)
+        expect(testExitRemove).toBeInstanceOf(StandardExitRemove)
     })
 
     it('should correctly remap references', () => {

@@ -1,5 +1,5 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
+import { StandardEditableDataDelta, v2StandardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
 import { isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
@@ -96,276 +96,31 @@ const standardExitDiff = (base: StandardExitData, incoming: StandardExitData): {
     return { add: incoming, remove: base }
 }
 
-export const { constructorDelta: factory, typeguard: isStandardExitData, merge, diff } = standardEditableFactory({
+// Create v2 editable factory for StandardExit
+export const { EditableClass, PlainClass, RemoveClass, ReplaceClass } = v2StandardEditableFactory({
     typeguard: isSimpleExitData,
     payloadFactory: payloadFactory,
     payload: StandardExitBase,
     add: standardExitAdd,
     subtract: standardExitSubtract,
     diff: standardExitDiff
-})
+}, 'StandardExit')
 
-const fromDelta = (delta: { add?: StandardExitData, remove?: StandardExitData }): StandardExitSimple | StandardExitRemove | StandardExitReplace | undefined => {
-    const { add, remove } = delta
-    if (add) {
-        if (remove) {
-            return new StandardExitReplace(new StandardExitBase(remove), new StandardExitBase(add))
-        }
-        return new StandardExitSimple(new StandardExitBase(add))
-    }
-    if (remove) {
-        return new StandardExitRemove(new StandardExitBase(remove))
-    }
-    return undefined
-}
+// Create type aliases for all classes
+export type StandardExit = InstanceType<typeof EditableClass>;
+export type StandardExitSimple = InstanceType<typeof PlainClass>;
+export type StandardExitRemove = InstanceType<typeof RemoveClass>;
+export type StandardExitReplace = InstanceType<typeof ReplaceClass>;
 
-export class StandardExitSimple implements StandardEditableWrapper<StandardExitBase> {
-    payload: StandardExitBase
-    constructor(data: StandardExitBase | StandardEditableData<StandardExitData> | GenericTree<SchemaTag> | string) {
-        if (data instanceof StandardExitBase) {
-            this.payload = data
-            return
-        }
-        const delta = factory(data)
-        if (delta && delta.add && !delta.remove) {
-            this.payload = delta.add
-            return
-        }
-        throw new Error('Invalid data in TestContentClass')
-    }
-    get schema() {
-        return this.payload.schema
-    }
-    get description() {
-        return this.payload.description
-    }
-    nestedSchema(tag) {
-        return [{ data: tag, children: this.schema }]
-    }
-    get _delta(): StandardEditableDataDelta<StandardExitData> {
-        return { add: this.payload.toJSON() }
-    }
-    clone() {
-        return new StandardExitSimple(this.payload)
-    }
-    toJSON: () => StandardEditableData<StandardExitData> = () => this.payload.toJSON()
-    get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardExitBase>): StandardExitSimple | StandardExitRemove | StandardExitReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardExitBase>): StandardExitSimple | StandardExitRemove | StandardExitReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-    remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): StandardExitSimple {
-        const returnValue = this.clone()
-        returnValue.payload = returnValue.payload.remapReferences(props)
-        return returnValue
-    }
-}
-
-export class StandardExitRemove implements StandardEditableWrapper<StandardExitBase> {
-    match: StandardExitBase
-    constructor(data: StandardExitBase | StandardEditableData<StandardExitData> | GenericTree<SchemaTag>) {
-        if (data instanceof StandardExitBase) {
-            this.match = data
-            return
-        }
-        const delta = factory(data)
-        if (delta && !delta.add && delta.remove) {
-            this.match = delta.remove
-            return
-        }
-        console.log(`Invalid data: ${JSON.stringify(data)}`)
-        throw new Error('Invalid data in TestRemoveClass')
-    }
-    get schema() {
-        return [{ data: { tag: 'Remove' as const }, children: this.match.schema }]
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Remove' as const },
-            children: [{ data: tag, children: this.match.schema }]
-        }]
-    }
-    get _delta(): StandardEditableDataDelta<StandardExitData> {
-        return { remove: this.match.toJSON() }
-    }
-    clone() {
-        return new StandardExitRemove(this.match)
-    }
-    toJSON: () => StandardEditableData<StandardExitData> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
-    get plain() { return this.match }
-    merge(other: StandardEditableWrapper<StandardExitBase>): StandardExitSimple | StandardExitRemove | StandardExitReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardExitBase>): StandardExitSimple | StandardExitRemove | StandardExitReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-    remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): StandardExitRemove {
-        const returnValue = this.clone()
-        returnValue.match = returnValue.match.remapReferences(props)
-        return returnValue
-    }
-}
-
-export class StandardExitReplace implements StandardEditableWrapper<StandardExitBase> {
-    match: StandardExitBase
-    payload: StandardExitBase
-    constructor(...args: [StandardEditableData<StandardExitData> | GenericTree<SchemaTag>] | [StandardExitBase, StandardExitBase]) {
-        if (args.length === 2) {
-            this.match = args[0]
-            this.payload = args[1]
-            return
-        }
-        const delta = factory(args[0])
-        if (delta && delta.add && delta.remove) {
-            this.match = delta.remove
-            this.payload = delta.add
-            return
-        }
-        throw new Error('Invalid data in TestRemoveClass')
-    }
-    get schema() {
-        return [{ data: { tag: 'Replace' as const }, children: [
-            { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
-            { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
-        ] }]
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Replace' as const },
-            children: [
-                {
-                    data: { tag: 'ReplaceMatch' as const },
-                    children: [{ data: tag, children: this.match.schema }]
-                },
-                {
-                    data: { tag: 'ReplacePayload' as const },
-                    children: [{ data: tag, children: this.payload.schema }]
-                }
-            ]
-        }]
-    }
-    get _delta(): StandardEditableDataDelta<StandardExitData> {
-        return { remove: this.match.toJSON(), add: this.payload.toJSON() }
-    }
-    clone() {
-        return new StandardExitReplace(this.match, this.payload)
-    }
-    toJSON: () => StandardEditableData<StandardExitData> = () => ({
-        tag: 'Replace' as const,
-        match: this.match.toJSON(),
-        payload: this.payload.toJSON()
-    })
-    get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardExitBase>): StandardExitSimple | StandardExitRemove | StandardExitReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardExitBase>): StandardExitSimple | StandardExitRemove | StandardExitReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-    remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): StandardExitReplace {
-        const returnValue = this.clone()
-        returnValue.match = returnValue.match.remapReferences(props)
-        returnValue.payload = returnValue.payload.remapReferences(props)
-        return returnValue
-    }
-}
-
-export class StandardExit {
-    _payload: StandardExitSimple | StandardExitRemove | StandardExitReplace;
-
-    static create(arg: any): StandardExit {
-        return new StandardExit(arg);
-    }
-
-    constructor(arg: any) {
-        if (arg instanceof StandardExitSimple || arg instanceof StandardExitRemove || arg instanceof StandardExitReplace) {
-            this._payload = arg
-            return
-        }
-        const delta = factory(arg)
-        if (!delta) {
-            console.log(`Invalid argument to StandardExit constructor: ${JSON.stringify(arg, null, 4)}`)
-            throw new Error('Invalid argument to StandardExit constructor')
-        }
-        if (delta.add) {
-            if (delta.remove) {
-                this._payload = new StandardExitReplace(arg)
-                return
-            }
-            this._payload = new StandardExitSimple(arg)
-            return
-        }
-        if (delta.remove) {
-            this._payload = new StandardExitRemove(arg)
-            return
-        }
-        throw new Error('Invalid argument to StandardExit constructor')
-    }
-
-    get schema(): GenericTree<SchemaTag> {
-        return this._payload.schema
-    }
-
-    nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
-        return this._payload.nestedSchema(tag)
-    }
-
-    toJSON(): StandardEditableData<StandardExitData> {
-        return this._payload.toJSON()
-    }
-
-    merge(incoming: StandardExit): StandardExit | undefined {
-        const merged = this._payload.merge(incoming._payload)
-        if (merged) {
-            return StandardExit.create(merged)
-        }
-        return undefined
-    }
-    diff(incoming: StandardExit | undefined): StandardExit | undefined {
-        if (incoming) {
-            const diff = this._payload.diff(incoming._payload)
-            if (diff) {
-                return StandardExit.create(diff)
-            }
-            return undefined
-        }
-        else {
-            const reversedDelta = this._payload._delta
-            if (reversedDelta) {
-                if (reversedDelta.add) {
-                    return StandardExit.create(new StandardExitRemove(new StandardExitBase(reversedDelta.add)))
-                }
-                if (reversedDelta.remove) {
-                    return StandardExit.create(new StandardExitSimple(reversedDelta.remove))
-                }
-            }
-            return undefined
-        }
-    }
-    mapContents(callback: (incoming: StandardExitData) => StandardExitData): StandardExit {
-        if (this._payload instanceof StandardExitSimple) {
-            return StandardExit.create(callback(this._payload.payload.toJSON()))
-        }
-        if (this._payload instanceof StandardExitRemove) {
-            return StandardExit.create(new StandardExitRemove(new StandardExitBase(callback(this._payload.match.toJSON()))))
-        }
-        if (this._payload instanceof StandardExitReplace) {
-            return StandardExit.create(new StandardExitReplace((new StandardExitSimple(callback(this._payload.match.toJSON()))).payload, (new StandardExitSimple(callback(this._payload.payload.toJSON()))).payload))
-        }
-        throw new Error('Invalid StandardExit payload')
-    }
-    remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): StandardExit {
-        const remappedPayload = this._payload.remapReferences(props)
-        return StandardExit.create(remappedPayload)
-    }
-
-}
+// Export the classes for runtime use
+export const StandardExit = EditableClass;
+export const StandardExitSimple = PlainClass;
+export const StandardExitRemove = RemoveClass;
+export const StandardExitReplace = ReplaceClass;
 
 export const mergeStandardExitList = (list: StandardExit[]): StandardExit[] => {
     return list.reduce<StandardExit[]>((previous, current) => {
-        const findMatchIndex = previous.findIndex((item) => (item._payload.plain.to.equals(current._payload.plain.to)))
+        const findMatchIndex = previous.findIndex((item) => ((current.plain?.to && item.plain?.to.equals(current.plain?.to)) ?? false))
         if (findMatchIndex === -1) {
             return [...previous, current]
         }
@@ -379,7 +134,7 @@ export const mergeStandardExitList = (list: StandardExit[]): StandardExit[] => {
 }
 
 export const diffStandardExitList = (base: StandardExit[], incoming: StandardExit[]): StandardExit[] => {
-    const zipper = zipperList<StandardExit>((a, b) => (a._payload.plain.to.equals(b._payload.plain.to)))(base, incoming)
+    const zipper = zipperList<StandardExit>((a, b) => ((b.plain?.to && a.plain?.to.equals(b.plain?.to)) ?? false))(base, incoming)
     return zipper.reduce<StandardExit[]>((previous, { base: baseItem, incoming: incomingItem }) => {
         if (baseItem && incomingItem) {
             const diff = baseItem.diff(incomingItem)
@@ -388,12 +143,14 @@ export const diffStandardExitList = (base: StandardExit[], incoming: StandardExi
             }
         }
         else if (baseItem) {
-            const remove = StandardExit.create(new StandardExitRemove(baseItem._payload.plain))
-            return [...previous, remove]
+            const { add, remove } = baseItem._delta
+            const invert = StandardExit.fromDelta({ add: remove, remove: add })
+            if (invert) {
+                return [...previous, invert]
+            }
         }
         else if (incomingItem) {
-            const add = StandardExit.create(new StandardExitSimple(incomingItem._payload.plain))
-            return [...previous, add]
+            return [...previous, incomingItem]
         }
         return previous
     }, [])
