@@ -19,14 +19,15 @@ import { StandardKey } from "@tonylb/mtw-wml/ts/standardize/components/reference
 import { excludeUndefined } from "../../../lib/lists"
 import StandardPosition, { StandardPositionSimple, StandardPositionSimpleBase } from "@tonylb/mtw-wml/ts/standardize/components/position"
 import { StandardExitPlain } from "@tonylb/mtw-wml/ts/standardize/components/exit"
+import { extractExitsFromStandardForm } from "../exitExtraction"
 
-const MapContext = React.createContext<MapContextType>({
-    mapId: 'MAP#',
+export const MapContext = React.createContext<MapContextType>({
+    mapId: 'MAP#default',
     UI: {
         toolSelected: 'Select',
         exitDrag: { sourceRoomId: 'ROOM#', x: 0, y: 0 }
     },
-    mapD3: new MapDThree({ inherited: new StandardForm('inherited'), editable: new StandardForm('editable'), updateStandard: () => {}, mapId: 'MAP#', onAddExit: () => {}, onExitDrag: () => {} }),
+    mapD3: {} as MapDThree, // Placeholder - will be properly initialized in MapController
     mapDispatch: () => {},
     localPositions: []
 })
@@ -46,13 +47,23 @@ export const mapTreeMemo = (standardForm: StandardForm, mapId: `MAP#${string}`):
         cascadeConditions: [{ conditionType: 'Position', cascadeType: 'Exit' }]
     }])
     mapSubset._key = 'mapTree'
+    
+    // Filter each room's exits to only include those whose target rooms exist in the subset
     mapSubset._components.forEach((component) => {
         if (component instanceof StandardRoom && component._payload instanceof StandardRoomPayload) {
-            component._payload._exits = component.exits.filter((exit) => (
-                exit instanceof StandardExitPlain && Boolean(mapSubset._lookup(exit.payload.to))
-            ))
+            // Filter the room's exits to only include those where target rooms exist in the map subset
+            component._payload._exits = component.exits.filter((exit) => {
+                if (!(exit instanceof StandardExitPlain)) return false
+                
+                const targetRoom = exit.payload?.to
+                if (!targetRoom) return false
+                
+                // Check if the target room exists in the map subset
+                return Boolean(mapSubset._lookup(targetRoom))
+            })
         }
     })
+    
     return mapSubset
 }
 

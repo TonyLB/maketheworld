@@ -8,7 +8,7 @@ import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { excludeUndefined } from "../../../lib/lists"
 import { StandardReferenceData } from "../dataTypes/reference"
-import { StandardExit } from "../exit"
+import { StandardExit, StandardExitPlain, StandardExitRemove, StandardExitReplace } from "../exit"
 
 export const linkReferenceKeys = (mappings: StandardKey[]) => (tree: GenericTree<SchemaTag>): StandardKey[] => {
     return unique(tree
@@ -77,9 +77,33 @@ export const positionReferenceKeys = (tree: GenericTree<SchemaTag>): string[] =>
 }
 
 export const exitReferenceKeys = (list: StandardExit[]): string[] => {
-    return unique(list
-        .map((exit) => (exit._payload.plain.to))
+    const keys: StandardKey[] = []
+    
+    for (const exit of list) {
+        if (exit instanceof StandardExitPlain) {
+            // StandardExitPlain: return reference to payload.to
+            if (exit.payload?.to) {
+                keys.push(exit.payload.to)
+            }
+        } else if (exit instanceof StandardExitRemove) {
+            // StandardExitRemove: return reference to match.to
+            if (exit.match?.to) {
+                keys.push(exit.match.to)
+            }
+        } else if (exit instanceof StandardExitReplace) {
+            // StandardExitReplace: return references from both match.to and payload.to
+            if (exit.match?.to) {
+                keys.push(exit.match.to)
+            }
+            if (exit.payload?.to) {
+                keys.push(exit.payload.to)
+            }
+        }
+    }
+    
+    return unique(keys
         .map((key) => (key.key ?? key.universalKey ?? ''))
+        .filter((keyString): keyString is string => Boolean(keyString))
     )
 }
 

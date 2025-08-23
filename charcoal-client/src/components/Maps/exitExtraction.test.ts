@@ -181,6 +181,63 @@ describe('extractExitsFromStandardForm', () => {
                 expect(room2Exit.name).toBe('to room three')
             }
         })
+
+        it('should filter out exits to rooms not positioned in the map', () => {
+            const standardForm = new StandardForm(`
+                <Asset key=(testAsset)>
+                    <Map uuid=(testMap)>
+                        <Name>Test Map</Name>
+                        <Room uuid=(room1)>
+                            <Position x="100" y="100" />
+                            <ShortName>Room One</ShortName>
+                            <Exit to=(ROOM#room2)>to room two</Exit>
+                            <Exit to=(ROOM#room3)>to room three</Exit>
+                        </Room>
+                        <Room uuid=(room2)>
+                            <Position x="200" y="200" />
+                            <ShortName>Room Two</ShortName>
+                            <Exit to=(ROOM#room1)>to room one</Exit>
+                        </Room>
+                        <Room uuid=(room3)>
+                            <ShortName>Room Three</ShortName>
+                        </Room>
+                    </Map>
+                </Asset>
+            `)
+            const result = extractExitsFromStandardForm(standardForm, 'MAP#testMap')
+            
+            // Should only include exits between positioned rooms
+            expect(result).toHaveLength(2)
+            
+            const exitTargets = result.map(exit => {
+                if (exit instanceof MapExit) {
+                    return exit.to
+                }
+                return ''
+            })
+            
+            // Should include exit to room2 (positioned)
+            expect(exitTargets).toContain('ROOM#room2')
+            // Should NOT include exit to room3 (not positioned)
+            expect(exitTargets).not.toContain('ROOM#room3')
+            
+            // Verify the specific exits we expect
+            const room1ToRoom2 = result.find(exit => {
+                if (exit instanceof MapExit) {
+                    return exit.from === 'ROOM#room1' && exit.to === 'ROOM#room2'
+                }
+                return false
+            })
+            const room2ToRoom1 = result.find(exit => {
+                if (exit instanceof MapExit) {
+                    return exit.from === 'ROOM#room2' && exit.to === 'ROOM#room1'
+                }
+                return false
+            })
+            
+            expect(room1ToRoom2).toBeDefined()
+            expect(room2ToRoom1).toBeDefined()
+        })
     })
 
     describe('exit properties', () => {
@@ -306,28 +363,6 @@ describe('extractExitsFromStandardForm', () => {
     })
 
     describe('edge cases', () => {
-        it('should handle exits to non-existent rooms', () => {
-            const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
-                    <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
-                        <Room uuid=(room1)>
-                            <Position x="100" y="100" />
-                            <ShortName>Room One</ShortName>
-                            <Exit to=(ROOM#nonexistent)>to nowhere</Exit>
-                        </Room>
-                    </Map>
-                </Asset>
-            `)
-            const result = extractExitsFromStandardForm(standardForm, 'MAP#testMap')
-            
-            expect(result).toHaveLength(1)
-            expect(result[0]).toBeInstanceOf(MapExit)
-            if (result[0] instanceof MapExit) {
-                expect(result[0].to).toBe('ROOM#nonexistent')
-            }
-        })
-
         it('should handle exits with missing name data', () => {
             const standardForm = new StandardForm(`
                 <Asset key=(testAsset)>

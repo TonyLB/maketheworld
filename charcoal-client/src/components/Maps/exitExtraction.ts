@@ -21,6 +21,13 @@ export const extractExitsFromStandardForm = (
         return []
     }
 
+    // Create a set of room IDs that have positions in the map for fast lookup
+    const positionedRoomIds = new Set(
+        mapComponent.positions
+            .map(position => position.room.universalKey)
+            .filter((roomId): roomId is ComponentUUID => roomId !== undefined)
+    )
+
     // Extract all exits from all rooms in the map
     return mapComponent.positions
         .map(position => position.room.universalKey)
@@ -34,6 +41,11 @@ export const extractExitsFromStandardForm = (
                 .filter((exit): exit is StandardExitPlain => 
                     exit instanceof StandardExitPlain
                 )
+                .filter(exit => {
+                    // Only include exits whose target rooms have positions in the map
+                    const targetRoomId = exit.payload?.to?.universalKey
+                    return targetRoomId && positionedRoomIds.has(targetRoomId)
+                })
                 .map(exit => new MapExit(exit, room.universalKey as `ROOM#${string}`))
         )
 }

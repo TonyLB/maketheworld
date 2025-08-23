@@ -17,8 +17,29 @@ export type StandardExitData = {
     description?: StandardEditableData<string>;
 }
 
+// Typeguard for plain exit data
 const isSimpleExitData = (value: any): value is StandardExitData => {
     return (typeof value === 'object' && value !== null && 'to' in value && isStandardReferenceData(value.to) && (!value.description || isStandardLiteralData(value.description)))
+}
+
+// Comprehensive typeguard that handles all three cases: plain, remove, and replace
+export const isStandardExitData = (value: any): value is StandardExitData | StandardEditableData<StandardExitData> => {
+    // Handle plain exit data
+    if (isSimpleExitData(value)) {
+        return true
+    }
+    
+    // Handle Remove structure
+    if (typeof value === 'object' && value !== null && value.tag === 'Remove' && 'match' in value) {
+        return isSimpleExitData(value.match)
+    }
+    
+    // Handle Replace structure  
+    if (typeof value === 'object' && value !== null && value.tag === 'Replace' && 'match' in value && 'payload' in value) {
+        return isSimpleExitData(value.match) && isSimpleExitData(value.payload)
+    }
+    
+    return false
 }
 
 //

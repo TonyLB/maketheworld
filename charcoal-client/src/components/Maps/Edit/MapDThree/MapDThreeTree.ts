@@ -5,6 +5,7 @@ import { isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import { extractExitsFromStandardForm } from '../../exitExtraction'
 
 export type SimulationTreeNode = SimulationReturn & {
     onChange: (newValue: SimulationTreeNode['nodes']) => void;
@@ -22,7 +23,7 @@ type MapDThreeTreeProps = {
 //
 // mapTranslate converts a StandardForm and mapId into the nodes and links for a MapDThreeTree.
 // It first translates all the positions in the Map component referenced by mapId into nodes.
-// Then is translates all the exits on rooms referenced in the positions into links.
+// Then it translates all the exits on rooms referenced in the positions into links.
 //
 export const mapTranslate = ({
     mapId,
@@ -33,29 +34,29 @@ export const mapTranslate = ({
 }): { nodes: MapNodes, links: MapLinks } => {
     const map = standardForm.byUniversalId[mapId]
     if (!map) {
-        return { nodes: [], links: [] }
+        throw new Error(`Map ${mapId} not found in standardForm`)
     }
     if (!(map instanceof StandardMap)) {
         throw new Error(`Map ${mapId} is not a StandardMap`)
     }
+    
     const nodes: MapNodes = map.positions.map((position) => ({
             id: position._payload.plain.room.universalKey,
             x: position._payload.plain.x,
             y: position._payload.plain.y,
         }))
         .filter((node): node is SimNode => (Boolean(node.id && isSchemaComponentUUID(node.id) && node.id.startsWith('ROOM#'))))
-    const links: MapLinks = nodes.map(({ id }) => {
-            const room = standardForm.byUniversalId[id]
-            if (!room || !(room instanceof StandardRoom)) {
-                return []
-            }
-            return room.exits.map<MapLinks[number]>((exit) => ({
-                id: `${id}:${exit._payload.plain.to.universalKey}`,
-                source: id ?? '',
-                target: exit._payload.plain.to.universalKey ?? ''
-            }))
-            .filter(({ target }) => (target))
-        }).flat(1)
+    
+    // Use the exitExtraction utility to get all exits from the map
+    const exits = extractExitsFromStandardForm(standardForm, mapId)
+    
+    // Transform exits into D3.js link format
+    const links: MapLinks = exits.map((exit) => ({
+        id: `${exit.from}:${exit.to}`,
+        source: exit.from,
+        target: exit.to
+    }))
+    
     return { nodes, links }
 }
 

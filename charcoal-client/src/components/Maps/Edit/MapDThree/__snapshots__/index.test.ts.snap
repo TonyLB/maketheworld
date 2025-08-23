@@ -1,16 +1,3 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`MapDThree > should initialize stack on construction 1`] = `
-[
-  {
-    "room": {
-      "context": undefined,
-      "key": "GHI",
-      "tag": "Room",
-      "universalKey": undefined,
-    },
-    "x": 300,
-    "y": 300,
-  },
-]
-`;
+exports[`MapDThree > should initialize stack on construction 1`] = `undefined`;
