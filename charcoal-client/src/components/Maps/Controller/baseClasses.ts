@@ -41,6 +41,20 @@ export class MapExit extends StandardExitPlain {
     }
 
     /**
+     * Get the target room identifier
+     */
+    get to(): string {
+        return this.payload?.to.universalKey ?? ''
+    }
+
+    /**
+     * Get the exit name/description if available
+     */
+    get name(): string | undefined {
+        return this.description
+    }
+
+    /**
      * Get the exit description if available
      */
     get description(): string | undefined {

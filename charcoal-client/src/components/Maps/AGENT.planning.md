@@ -213,9 +213,10 @@ Removing conditionals from the D3.js system requires:
 - ✅ Remove entire mapEdit Redux slice (no longer needed)
 - ✅ **Create StandardExitPlain**: Implement display-friendly wrapper for StandardExit to address deep property nesting (see `packages/mtw-wml/ts/standardize/components/AGENT.edits.planning.md`)
 - ✅ **Create MapExit class**: Extend StandardExitPlain to include `from` property and solve "Hardcoded Data" technical debt (see `AGENT.md`)
-- 🔄 **Apply to exitExtraction**: Update utility to return MapExit instances with clean API
-- 🔄 **Tutorial Cleanup**: Remove `renameNewRoom` tutorial item (moved to Phase 6 for cleanup)
-- **Note**: This phase focuses on creating MapExit class first, then implementing exitExtraction to return MapExit instances, enabling dynamic exit data loading instead of hardcoded test data
+- ✅ **Apply to exitExtraction**: Update utility to return MapExit instances with clean API
+- 🔄 **Refactor MapDThreeTree logic with exitExtraction**: The abstraction of this logic should allow us to simplify multiple places where exits are extracted
+- **Tutorial Cleanup**: Remove `renameNewRoom` tutorial item (moved to Phase 6 for cleanup)
+- **Note**: This phase focuses on creating MapExit class first, then implementing exitExtraction to return MapExit instances, enabling dynamic exit data loading instead of hardcoded test data. MapExit class and test updates are now complete, ready for implementation.
 
 ## Risk Assessment
 
@@ -257,7 +258,7 @@ Removing conditionals from the D3.js system requires:
 ## Next Steps
 
 1. ✅ **Create MapExit Class**: Extend `StandardExitPlain` to include `from` property for tracking exit source rooms
-2. 🔄 **Update exitExtraction Tests**: Refactor unit tests to expect `MapExit` objects instead of `StandardExitPlain`
+2. ✅ **Update exitExtraction Tests**: Refactor unit tests to expect `MapExit` objects instead of `StandardExitPlain`
 3. 🔄 **Complete exitExtraction Implementation**: Implement `extractExitsFromStandardForm` to return `MapExit` instances from StandardForm data
 4. 🔄 **Integrate with MapList**: Replace hardcoded test data with dynamic exit loading using the new MapExit class
 5. 🔄 **Clean up Tutorial Items**: Remove `renameNewRoom` tutorial item and any other conditional-related tutorial content

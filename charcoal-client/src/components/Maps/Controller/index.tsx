@@ -18,6 +18,7 @@ import { isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardKey } from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { excludeUndefined } from "../../../lib/lists"
 import StandardPosition, { StandardPositionSimple, StandardPositionSimpleBase } from "@tonylb/mtw-wml/ts/standardize/components/position"
+import { StandardExitPlain } from "@tonylb/mtw-wml/ts/standardize/components/exit"
 
 const MapContext = React.createContext<MapContextType>({
     mapId: 'MAP#',
@@ -48,14 +49,12 @@ export const mapTreeMemo = (standardForm: StandardForm, mapId: `MAP#${string}`):
     mapSubset._components.forEach((component) => {
         if (component instanceof StandardRoom && component._payload instanceof StandardRoomPayload) {
             component._payload._exits = component.exits.filter((exit) => (
-                Boolean(mapSubset._lookup(exit._payload.plain.to))
+                exit instanceof StandardExitPlain && Boolean(mapSubset._lookup(exit.payload.to))
             ))
         }
     })
     return mapSubset
 }
-
-
 
 const localPositionsFromStandardForms = ({ inherited, local, mapId }: { inherited?: StandardForm; local: StandardForm, mapId: `MAP#${string}` }): MapContextPosition[] => {
     const localPositionsFromSingleStandardForm = (standardForm: StandardForm): MapContextPosition[] => {

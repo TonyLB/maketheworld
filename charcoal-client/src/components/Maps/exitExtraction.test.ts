@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { extractExitsFromStandardForm } from '../exitExtraction'
-import { MapExit } from '../baseClasses'
+import { extractExitsFromStandardForm } from './exitExtraction'
+import { MapExit } from './Controller/baseClasses'
 
 describe('extractExitsFromStandardForm', () => {
     describe('basic functionality', () => {
