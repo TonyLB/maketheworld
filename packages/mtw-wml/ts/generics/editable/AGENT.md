@@ -9,7 +9,7 @@ The current `StandardEditable` architecture uses a complex edit pattern that han
 ## Current Edit Pattern Architecture
 
 ### How It Works
-1. **Base Classes**: `StandardExitBase`, `StandardExitSimple`, `StandardExitRemove`, `StandardExitReplace` handle different edit states
+1. **Base Classes**: `StandardExitBase`, `StandardExitPlain`, `StandardExitRemove`, `StandardExitReplace` handle different edit states
 2. **Wrapper Class**: `StandardExit` acts as a facade, delegating to the appropriate base class
 3. **Payload Access**: Data is accessed via `._payload.plain` to get the resolved state
 4. **State Management**: Components can transition between edit states during WML operations
@@ -17,7 +17,7 @@ The current `StandardEditable` architecture uses a complex edit pattern that han
 ### Example: StandardExit Structure
 ```typescript
 // Complex state handling
-exit._payload instanceof StandardExitSimple    // Basic exit
+exit._payload instanceof StandardExitPlain    // Basic exit
 exit._payload instanceof StandardExitRemove    // Exit marked for removal  
 exit._payload instanceof StandardExitReplace   // Exit being replaced
 
@@ -39,7 +39,7 @@ exit._payload.plain.description?.value        // Exit name
 **Problem**: Display logic must handle edit states that aren't relevant
 **Impact**: UI components become more complex than necessary
 **Examples**:
-- Maps component needs to check `instanceof StandardExitSimple` before rendering
+- Maps component needs to check `instanceof StandardExitPlain` before rendering
 - Room editor must handle `StandardExitRemove` states during display
 
 ### 3. Inconsistent Access Patterns

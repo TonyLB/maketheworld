@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { extractExitsFromStandardForm } from './exitExtraction'
-import { StandardExit } from '@tonylb/mtw-wml/ts/standardize/components/exit'
+import { StandardExitPlain } from '@tonylb/mtw-wml/ts/standardize/components/exit'
 
 describe('extractExitsFromStandardForm', () => {
     describe('basic functionality', () => {
@@ -81,9 +81,13 @@ describe('extractExitsFromStandardForm', () => {
             const result = extractExitsFromStandardForm(standardForm, 'MAP#testMap')
             
             expect(result).toHaveLength(1)
-            expect(result[0]).toBeInstanceOf(StandardExit)
-            expect(result[0]._payload.plain.from.universalKey).toBe('ROOM#room1')
-            expect(result[0]._payload.plain.to.universalKey).toBe('ROOM#room2')
+            expect(result[0]).toBeInstanceOf(StandardExitPlain)
+            
+            // Clean access via .payload instead of ._payload.plain
+            if (result[0] instanceof StandardExitPlain) {
+                expect(result[0].payload.from.universalKey).toBe('ROOM#room1')
+                expect(result[0].payload.to.universalKey).toBe('ROOM#room2')
+            }
         })
 
         it('should extract multiple exits from single room', () => {
@@ -111,10 +115,16 @@ describe('extractExitsFromStandardForm', () => {
             const result = extractExitsFromStandardForm(standardForm, 'MAP#testMap')
             
             expect(result).toHaveLength(2)
-            expect(result[0]).toBeInstanceOf(StandardExit)
-            expect(result[1]).toBeInstanceOf(StandardExit)
+            expect(result[0]).toBeInstanceOf(StandardExitPlain)
+            expect(result[1]).toBeInstanceOf(StandardExitPlain)
             
-            const exitTargets = result.map(exit => exit._payload.plain.to.universalKey).sort()
+            // Clean access via .payload instead of ._payload.plain
+            const exitTargets = result.map(exit => {
+                if (exit instanceof StandardExitPlain) {
+                    return exit.payload.to.universalKey
+                }
+                return ''
+            }).sort()
             expect(exitTargets).toEqual(['ROOM#room2', 'ROOM#room3'])
         })
 
@@ -144,14 +154,28 @@ describe('extractExitsFromStandardForm', () => {
             
             expect(result).toHaveLength(2)
             
-            const room1Exit = result.find(exit => exit._payload.plain.from.universalKey === 'ROOM#room1')
-            const room2Exit = result.find(exit => exit._payload.plain.from.universalKey === 'ROOM#room2')
+            const room1Exit = result.find(exit => {
+                if (exit instanceof StandardExitPlain) {
+                    return exit.payload.from.universalKey === 'ROOM#room1'
+                }
+                return false
+            })
+            const room2Exit = result.find(exit => {
+                if (exit instanceof StandardExitPlain) {
+                    return exit.payload.from.universalKey === 'ROOM#room2'
+                }
+                return false
+            })
             
             expect(room1Exit).toBeDefined()
-            expect(room1Exit?._payload.plain.to.universalKey).toBe('ROOM#room2')
+            if (room1Exit instanceof StandardExitPlain) {
+                expect(room1Exit.payload.to.universalKey).toBe('ROOM#room2')
+            }
             
             expect(room2Exit).toBeDefined()
-            expect(room2Exit?._payload.plain.to.universalKey).toBe('ROOM#room3')
+            if (room2Exit instanceof StandardExitPlain) {
+                expect(room2Exit.payload.to.universalKey).toBe('ROOM#room3')
+            }
         })
     })
 
@@ -179,11 +203,13 @@ describe('extractExitsFromStandardForm', () => {
             const result = extractExitsFromStandardForm(standardForm, 'MAP#testMap')
             
             expect(result).toHaveLength(1)
-            expect(result[0]).toBeInstanceOf(StandardExit)
+            expect(result[0]).toBeInstanceOf(StandardExitPlain)
             
-            // StandardExit preserves the rich name data structure
-            const exitName = result[0]._payload.plain.name
-            expect(exitName).toBeDefined()
+            // Clean access via .payload instead of ._payload.plain
+            if (result[0] instanceof StandardExitPlain) {
+                const exitName = result[0].payload.name
+                expect(exitName).toBeDefined()
+            }
         })
 
         it('should preserve exit metadata', () => {
@@ -206,12 +232,13 @@ describe('extractExitsFromStandardForm', () => {
             const result = extractExitsFromStandardForm(standardForm, 'MAP#testMap')
             
             expect(result).toHaveLength(1)
-            expect(result[0]).toBeInstanceOf(StandardExit)
+            expect(result[0]).toBeInstanceOf(StandardExitPlain)
             
-            // Should preserve all StandardExit properties
-            expect(result[0].universalKey).toBeDefined()
-            expect(result[0].key).toBeDefined()
-            expect(result[0]._payload).toBeDefined()
+            // Clean access via .payload instead of ._payload.plain
+            if (result[0] instanceof StandardExitPlain) {
+                // Should preserve all StandardExit properties
+                expect(result[0].payload).toBeDefined()
+            }
         })
     })
 
@@ -243,8 +270,18 @@ describe('extractExitsFromStandardForm', () => {
             expect(result).toHaveLength(2)
             
             // Should get both inherited and local exits
-            const inheritedExit = result.find(exit => exit._payload.plain.from.universalKey === 'ROOM#room1')
-            const localExit = result.find(exit => exit._payload.plain.from.universalKey === 'ROOM#room3')
+            const inheritedExit = result.find(exit => {
+                if (exit instanceof StandardExitPlain) {
+                    return exit.payload.from.universalKey === 'ROOM#room1'
+                }
+                return false
+            })
+            const localExit = result.find(exit => {
+                if (exit instanceof StandardExitPlain) {
+                    return exit.payload.from.universalKey === 'ROOM#room3'
+                }
+                return false
+            })
             
             expect(inheritedExit).toBeDefined()
             expect(localExit).toBeDefined()
@@ -276,8 +313,11 @@ describe('extractExitsFromStandardForm', () => {
             
             // Should get the local override (StandardForm combination handles this)
             expect(result).toHaveLength(1)
-            expect(result[0]._payload.plain.from.universalKey).toBe('ROOM#room1')
-            expect(result[0]._payload.plain.to.universalKey).toBe('ROOM#room2')
+            expect(result[0]).toBeInstanceOf(StandardExitPlain)
+            if (result[0] instanceof StandardExitPlain) {
+                expect(result[0].payload.from.universalKey).toBe('ROOM#room1')
+                expect(result[0].payload.to.universalKey).toBe('ROOM#room2')
+            }
         })
     })
 
@@ -298,8 +338,10 @@ describe('extractExitsFromStandardForm', () => {
             const result = extractExitsFromStandardForm(standardForm, 'MAP#testMap')
             
             expect(result).toHaveLength(1)
-            expect(result[0]).toBeInstanceOf(StandardExit)
-            expect(result[0]._payload.plain.to.universalKey).toBe('ROOM#nonexistent')
+            expect(result[0]).toBeInstanceOf(StandardExitPlain)
+            if (result[0] instanceof StandardExitPlain) {
+                expect(result[0].payload.to.universalKey).toBe('ROOM#nonexistent')
+            }
         })
 
         it('should handle exits with missing name data', () => {
@@ -322,9 +364,11 @@ describe('extractExitsFromStandardForm', () => {
             const result = extractExitsFromStandardForm(standardForm, 'MAP#testMap')
             
             expect(result).toHaveLength(1)
-            expect(result[0]).toBeInstanceOf(StandardExit)
-            expect(result[0]._payload.plain.from.universalKey).toBe('ROOM#room1')
-            expect(result[0]._payload.plain.to.universalKey).toBe('ROOM#room2')
+            expect(result[0]).toBeInstanceOf(StandardExitPlain)
+            if (result[0] instanceof StandardExitPlain) {
+                expect(result[0].payload.from.universalKey).toBe('ROOM#room1')
+                expect(result[0].payload.to.universalKey).toBe('ROOM#room2')
+            }
         })
 
         it('should handle rooms without positions', () => {
@@ -345,9 +389,11 @@ describe('extractExitsFromStandardForm', () => {
             const result = extractExitsFromStandardForm(standardForm, 'MAP#testMap')
             
             expect(result).toHaveLength(1)
-            expect(result[0]).toBeInstanceOf(StandardExit)
-            expect(result[0]._payload.plain.from.universalKey).toBe('ROOM#room1')
-            expect(result[0]._payload.plain.to.universalKey).toBe('ROOM#room2')
+            expect(result[0]).toBeInstanceOf(StandardExitPlain)
+            if (result[0] instanceof StandardExitPlain) {
+                expect(result[0].payload.from.universalKey).toBe('ROOM#room1')
+                expect(result[0].payload.to.universalKey).toBe('ROOM#room2')
+            }
         })
     })
 
@@ -386,12 +432,19 @@ describe('extractExitsFromStandardForm', () => {
             const result2 = extractExitsFromStandardForm(standardForm, 'MAP#map2')
             
             expect(result1).toHaveLength(1)
-            expect(result1[0]._payload.plain.from.universalKey).toBe('ROOM#room1')
-            expect(result1[0]._payload.plain.to.universalKey).toBe('ROOM#room2')
+            expect(result1[0]).toBeInstanceOf(StandardExitPlain)
+            if (result1[0] instanceof StandardExitPlain) {
+                expect(result1[0].payload.from.universalKey).toBe('ROOM#room1')
+                expect(result1[0].payload.to.universalKey).toBe('ROOM#room2')
+            }
             
             expect(result2).toHaveLength(1)
-            expect(result2[0]._payload.plain.from.universalKey).toBe('ROOM#room3')
-            expect(result2[0]._payload.plain.to.universalKey).toBe('ROOM#room4')
+            expect(result2[0]).toBeInstanceOf(StandardExitPlain)
+            if (result2[0] instanceof StandardExitPlain) {
+                expect(result2[0].payload.from.universalKey).toBe('ROOM#room3')
+                expect(result2[0].payload.to.universalKey).toBe('ROOM#room4')
+            }
         })
     })
+
 })

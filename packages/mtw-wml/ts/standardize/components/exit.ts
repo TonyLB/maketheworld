@@ -108,13 +108,13 @@ export const { EditableClass, PlainClass, RemoveClass, ReplaceClass } = v2Standa
 
 // Create type aliases for all classes
 export type StandardExit = InstanceType<typeof EditableClass>;
-export type StandardExitSimple = InstanceType<typeof PlainClass>;
+export type StandardExitPlain = InstanceType<typeof PlainClass>;
 export type StandardExitRemove = InstanceType<typeof RemoveClass>;
 export type StandardExitReplace = InstanceType<typeof ReplaceClass>;
 
 // Export the classes for runtime use
 export const StandardExit = EditableClass;
-export const StandardExitSimple = PlainClass;
+export const StandardExitPlain = PlainClass;
 export const StandardExitRemove = RemoveClass;
 export const StandardExitReplace = ReplaceClass;
 
