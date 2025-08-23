@@ -77,33 +77,26 @@ export const positionReferenceKeys = (tree: GenericTree<SchemaTag>): string[] =>
 }
 
 export const exitReferenceKeys = (list: StandardExit[]): string[] => {
-    const keys: StandardKey[] = []
-    
-    for (const exit of list) {
-        if (exit instanceof StandardExitPlain) {
-            // StandardExitPlain: return reference to payload.to
-            if (exit.payload?.to) {
-                keys.push(exit.payload.to)
+    return unique(list
+        .map(exit => {
+            if (exit instanceof StandardExitPlain) {
+                // StandardExitPlain: return reference to payload.to
+                return exit.payload?.to ? [exit.payload.to] : []
+            } else if (exit instanceof StandardExitRemove) {
+                // StandardExitRemove: return reference to match.to
+                return exit.match?.to ? [exit.match.to] : []
+            } else if (exit instanceof StandardExitReplace) {
+                // StandardExitReplace: return references from both match.to and payload.to
+                return [
+                    ...(exit.match?.to ? [exit.match.to] : []),
+                    ...(exit.payload?.to ? [exit.payload.to] : [])
+                ]
             }
-        } else if (exit instanceof StandardExitRemove) {
-            // StandardExitRemove: return reference to match.to
-            if (exit.match?.to) {
-                keys.push(exit.match.to)
-            }
-        } else if (exit instanceof StandardExitReplace) {
-            // StandardExitReplace: return references from both match.to and payload.to
-            if (exit.match?.to) {
-                keys.push(exit.match.to)
-            }
-            if (exit.payload?.to) {
-                keys.push(exit.payload.to)
-            }
-        }
-    }
-    
-    return unique(keys
-        .map((key) => (key.key ?? key.universalKey ?? ''))
-        .filter((keyString): keyString is string => Boolean(keyString))
+            return []
+        })
+        .flat(1)
+        .map((key) => (key.universalKey ?? ''))
+        .filter(excludeUndefined)
     )
 }
 
