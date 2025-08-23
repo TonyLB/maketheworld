@@ -24,7 +24,7 @@ import {
 import { useActiveCharacter } from '../ActiveCharacter'
 import CharacterDescription from './CharacterDescription'
 import { useDispatch } from 'react-redux'
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
@@ -36,7 +36,7 @@ interface MessageProps {
 export const Message = ({ message, ...rest }: MessageProps) => {
     const { CharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
-    const onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void = useCallback((to) => {
+    const onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraCharacterId) => void = useCallback((to) => {
         dispatch(socketDispatchPromise({
             message: 'link',
             to,

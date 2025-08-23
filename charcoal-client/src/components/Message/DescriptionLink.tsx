@@ -9,7 +9,7 @@ import {
 import { blue, grey } from '@mui/material/colors'
 
 import { useActiveCharacter } from '../ActiveCharacter'
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, isEphemeraActionId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 import { SchemaLinkTag } from '@tonylb/mtw-base/ts/schema/renderTree'
 
@@ -82,7 +82,7 @@ export const DescriptionLinkFeatureChip: FunctionComponent<DescriptionLinkChipPr
 
 interface DescriptionLinkProps {
     link: RenderTreeNode & { data: SchemaLinkTag };
-    onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void;
+    onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraCharacterId) => void;
 }
 
 export const DescriptionLink = ({ link, onClickLink }: DescriptionLinkProps) => {
@@ -98,10 +98,7 @@ export const DescriptionLink = ({ link, onClickLink }: DescriptionLinkProps) => 
             if (isEphemeraFeatureId(link.data.to)) {
                 dispatch(addOnboardingComplete(['featureLink']))
             }
-            if (isEphemeraActionId(link.data.to)) {
-                dispatch(addOnboardingComplete(['actionLink']))
-            }
-            onClickLink(link.data.to as EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId)
+            onClickLink(link.data.to as EphemeraFeatureId | EphemeraKnowledgeId | EphemeraCharacterId)
             // dispatch(socketDispatchPromise({
             //     message: 'link',
             //     to: link.to,

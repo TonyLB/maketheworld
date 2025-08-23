@@ -213,8 +213,8 @@ const onboardingChaptersRaw: DeepReadonly<OnboardingChapter[]> = [
                         icon: <Chip label="out" icon={<ExitIcon fontSize="small" />} />
                     },
                     {
-                        key: 'actionLink',
-                        text: `Somewhere in the details of this room you will find highlights on something you could DO (like "ring the bell"). Press one of those highlights to take action in the world.`
+                        key: 'knowledgeLink',
+                        text: `Some knowledge items in the room may be highlighted. Press those highlights to learn more about the world and its lore.`
                     }
                 ]
             },

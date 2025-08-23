@@ -29,7 +29,7 @@ type ComponentDescriptionProps = {
     children?: ReactChild | ReactChildren;
     icon: ReactElement;
     bevel?: string;
-    onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void;
+    onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraCharacterId) => void;
     toolActions?: ReactElement;
 }
 

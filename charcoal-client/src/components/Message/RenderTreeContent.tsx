@@ -6,7 +6,7 @@ import { RenderTree, RenderTreeNode } from "@tonylb/mtw-base/ts/renderTree";
 
 interface RenderTreeContentProps {
     list: RenderTree;
-    onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void;
+    onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraCharacterId) => void;
 }
 
 const RenderTreeContent: FunctionComponent<RenderTreeContentProps> = ({ list, onClickLink }) => {
