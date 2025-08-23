@@ -22,25 +22,7 @@ const isSimpleExitData = (value: any): value is StandardExitData => {
     return (typeof value === 'object' && value !== null && 'to' in value && isStandardReferenceData(value.to) && (!value.description || isStandardLiteralData(value.description)))
 }
 
-// Comprehensive typeguard that handles all three cases: plain, remove, and replace
-export const isStandardExitData = (value: any): value is StandardExitData | StandardEditableData<StandardExitData> => {
-    // Handle plain exit data
-    if (isSimpleExitData(value)) {
-        return true
-    }
-    
-    // Handle Remove structure
-    if (typeof value === 'object' && value !== null && value.tag === 'Remove' && 'match' in value) {
-        return isSimpleExitData(value.match)
-    }
-    
-    // Handle Replace structure  
-    if (typeof value === 'object' && value !== null && value.tag === 'Replace' && 'match' in value && 'payload' in value) {
-        return isSimpleExitData(value.match) && isSimpleExitData(value.payload)
-    }
-    
-    return false
-}
+
 
 //
 // StandardExitBase holds the contents for a simple StandardExit
@@ -118,7 +100,7 @@ const standardExitDiff = (base: StandardExitData, incoming: StandardExitData): {
 }
 
 // Create v2 editable factory for StandardExit
-export const { EditableClass, PlainClass, RemoveClass, ReplaceClass } = v2StandardEditableFactory({
+export const { EditableClass, PlainClass, RemoveClass, ReplaceClass, dataTypeguard } = v2StandardEditableFactory({
     typeguard: isSimpleExitData,
     payloadFactory: payloadFactory,
     payload: StandardExitBase,
@@ -138,6 +120,10 @@ export const StandardExit = EditableClass;
 export const StandardExitPlain = PlainClass;
 export const StandardExitRemove = RemoveClass;
 export const StandardExitReplace = ReplaceClass;
+
+// Export the comprehensive typeguard from v2StandardEditableFactory
+// This handles all three cases: plain, remove, and replace
+export const isStandardExitData = dataTypeguard;
 
 export const mergeStandardExitList = (list: StandardExit[]): StandardExit[] => {
     return list.reduce<StandardExit[]>((previous, current) => {

@@ -597,7 +597,80 @@ describe('standardEditableFactory', () => {
 
 describe('v2StandardEditableFactory', () => {
     // Use the same factoryProps as the standardEditableFactory tests
-    const { EditableClass, PlainClass, RemoveClass, ReplaceClass } = v2StandardEditableFactory(factoryProps, 'StandardTest');
+    const { EditableClass, PlainClass, RemoveClass, ReplaceClass, dataTypeguard } = v2StandardEditableFactory(factoryProps, 'StandardTest');
+
+    describe('dataTypeguard', () => {
+        it('should accept plain data that matches the base typeguard', () => {
+            const validData: TestData = { id: 1, name: 'Test' };
+            expect(dataTypeguard(validData)).toBe(true);
+        });
+        
+        it('should reject plain data that does not match the base typeguard', () => {
+            const invalidData = { id: 'not a number', name: 'Test' };
+            expect(dataTypeguard(invalidData)).toBe(false);
+        });
+        
+        it('should accept Remove structure with valid match data', () => {
+            const removeData = {
+                tag: 'Remove' as const,
+                match: { id: 1, name: 'Test' }
+            };
+            expect(dataTypeguard(removeData)).toBe(true);
+        });
+        
+        it('should reject Remove structure with invalid match data', () => {
+            const removeData = {
+                tag: 'Remove' as const,
+                match: { id: 'not a number', name: 'Test' }
+            };
+            expect(dataTypeguard(removeData)).toBe(false);
+        });
+        
+        it('should accept Replace structure with valid match and payload data', () => {
+            const replaceData = {
+                tag: 'Replace' as const,
+                match: { id: 1, name: 'Old' },
+                payload: { id: 2, name: 'New' }
+            };
+            expect(dataTypeguard(replaceData)).toBe(true);
+        });
+        
+        it('should reject Replace structure with invalid match data', () => {
+            const replaceData = {
+                tag: 'Replace' as const,
+                match: { id: 'not a number', name: 'Old' },
+                payload: { id: 2, name: 'New' }
+            };
+            expect(dataTypeguard(replaceData)).toBe(false);
+        });
+        
+        it('should reject Replace structure with invalid payload data', () => {
+            const replaceData = {
+                tag: 'Replace' as const,
+                match: { id: 1, name: 'Old' },
+                payload: { id: 'not a number', name: 'New' }
+            };
+            expect(dataTypeguard(replaceData)).toBe(false);
+        });
+        
+        it('should reject objects with wrong tag names', () => {
+            const wrongTagData = {
+                tag: 'WrongTag',
+                match: { id: 1, name: 'Test' }
+            };
+            expect(dataTypeguard(wrongTagData)).toBe(false);
+        });
+        
+        it('should reject null values', () => {
+            expect(dataTypeguard(null)).toBe(false);
+        });
+        
+        it('should reject primitive values', () => {
+            expect(dataTypeguard('string')).toBe(false);
+            expect(dataTypeguard(42)).toBe(false);
+            expect(dataTypeguard(true)).toBe(false);
+        });
+    });
 
          // NOTE: Robust testing approach - these tests verify that:
      // 1. The correct class types are instantiated (instanceof checks)

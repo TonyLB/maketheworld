@@ -210,6 +210,25 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
     props: StandardEditableFactoryProps<DataType, FinalType>, 
     className: string
 ) => {
+    // Create a comprehensive dataTypeguard that handles edit-wrapped data
+    const dataTypeguard = (value: any): value is StandardEditableData<DataType> => {
+        // Handle plain data using the base typeguard
+        if (props.typeguard(value)) {
+            return true
+        }
+        
+        // Handle Remove structure
+        if (typeof value === 'object' && value !== null && value.tag === 'Remove' && 'match' in value) {
+            return props.typeguard(value.match)
+        }
+        
+        // Handle Replace structure  
+        if (typeof value === 'object' && value !== null && value.tag === 'Replace' && 'match' in value && 'payload' in value) {
+            return props.typeguard(value.match) && props.typeguard(value.payload)
+        }
+        
+        return false
+    }
     // Concrete parent class with stub implementations (to allow InstanceType to work)
     class GeneratedV2EditableClass implements StandardEditableWrapper<FinalType> {
         constructor() {}
@@ -570,6 +589,7 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         EditableClass: GeneratedV2EditableClass,
         PlainClass: GeneratedV2EditablePlainClass,
         RemoveClass: GeneratedV2EditableRemoveClass,
-        ReplaceClass: GeneratedV2EditableReplaceClass
+        ReplaceClass: GeneratedV2EditableReplaceClass,
+        dataTypeguard
     }
 }
