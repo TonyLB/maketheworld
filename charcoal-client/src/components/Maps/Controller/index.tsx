@@ -44,7 +44,18 @@ export const mapTreeMemo = (standardForm: StandardForm, mapId: `MAP#${string}`):
     const mapSubset = standardForm.subset([{
         requestType: 'Full',
         keys: [new StandardKey(mapId)],
-        cascadeConditions: [{ conditionType: 'Position', cascadeType: 'Exit' }]
+        cascadeConditions: [{
+            graph: [
+                { name: 'map', requestType: 'Full', transitions: [
+                    { connectionType: 'Position', targetNode: 'room' }
+                ] },
+                { name: 'room', requestType: 'ExitsAndShortName', transitions: [
+                    { connectionType: 'Exit', targetNode: 'exitTarget' }
+                ] },
+                { name: 'exitTarget', requestType: 'ShortName', transitions: [] }
+            ],
+            startNodes: ['map']
+        }]
     }])
     mapSubset._key = 'mapTree'
     

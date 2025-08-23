@@ -1,3 +1,0 @@
-// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
-
-exports[`MapDThree > should initialize stack on construction 1`] = `undefined`;

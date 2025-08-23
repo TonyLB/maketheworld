@@ -57,7 +57,7 @@ describe('mapTreeMemo', () => {
                 </Asset>
             `
             const standardForm = new StandardForm(testWML)
-            console.log(JSON.stringify(standardForm.toJSON(), null, 2))
+    
             const result = mapTreeMemo(standardForm, 'MAP#testMap')
             
             expect(result).toBeInstanceOf(StandardForm)
@@ -129,7 +129,7 @@ describe('mapTreeMemo', () => {
             `
             const standardForm = new StandardForm(testWML)
             const result = mapTreeMemo(standardForm, 'MAP#testMap')
-            console.log(JSON.stringify(result.toJSON(), null, 2))
+    
 
             const room1 = result.byUniversalId['ROOM#room1']
             const room2 = result.byUniversalId['ROOM#room2']
