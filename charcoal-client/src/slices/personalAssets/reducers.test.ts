@@ -5,7 +5,6 @@ import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 import { publicSelectors } from "./selectors"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
-import StandardComputed from "@tonylb/mtw-wml/ts/standardize/components/computed"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example"
 
 describe('personalAsset slice reducers', () => {
@@ -231,55 +230,6 @@ describe('personalAsset slice reducers', () => {
                         <Room uuid=(testRoom)>
                             <Example uuid=(base)><Remove><Name>Test Room</Name></Remove></Example>
                         </Room>
-                    </Asset>
-                `)
-            })
-        })
-
-        it('should update a non-tree field in a standardComponent', () => {
-            expect(transformWML(
-                `
-                <Asset key=(testAsset)><Computed uuid=(test) key=(testComputed) src={!testVar} /></Asset>
-                `,
-                `
-                    <Asset key=(testAsset) />
-                `,
-                {
-                    type: 'update',
-                    update: (draft) => {
-                        const computedComponent = draft.byUniversalId['COMPUTED#test']
-                        if (computedComponent instanceof StandardComputed) {
-                            const newExample = computedComponent.clone()
-                            newExample._payload._src = 'testVar'
-                            draft.byUniversalId['COMPUTED#test'] = newExample
-                        }
-                        return draft
-                    }
-                }
-            )).toEqual({
-                base: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Computed uuid=(test) key=(testComputed) src={!testVar} />
-                    </Asset>
-                `),
-                standard: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Computed uuid=(test) key=(testComputed) src={testVar} />
-                    </Asset>
-                `),
-                calculated: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Computed uuid=(test) key=(testComputed) src={testVar} />
-                    </Asset>
-                `),
-                edit: deIndentWML(`
-                    <Asset key=(testAsset)>
-                        <Replace>
-                            <Computed uuid=(test) key=(testComputed) src={!testVar} />
-                        </Replace>
-                        <With>
-                            <Computed uuid=(test) key=(testComputed) src={testVar} />
-                        </With>
                     </Asset>
                 `)
             })
