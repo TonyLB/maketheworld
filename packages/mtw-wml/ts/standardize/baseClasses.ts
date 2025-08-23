@@ -19,6 +19,7 @@ import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, Schema
 import { StandardKey } from "./components/reference";
 import { deepEqual } from "../lib/objects";
 import { StandardReferenceData } from "./components/dataTypes/reference";
+import { StandardComponentReferenceKey } from "./components/baseClasses";
 
 /**
  * Semantic modes that StandardForm can operate in, indicating how the form should be interpreted
@@ -221,11 +222,7 @@ export const isStandardNDJSON = (value: any): value is StandardNDJSON => {
 export type StandardFormSubsetRequestFull = {
     requestType: 'Full',
     keys: StandardKey[];
-    cascadeConditions?: {
-        conditionType: 'Link' | 'Position' | 'Exit';
-        cascadeType: StandardFormSubsetRequest["requestType"];
-        chainCascade?: boolean;
-    }[];
+    cascadeConditions?: StandardFormSubsetCascadeCondition[];
 }
 
 export type StandardFormSubsetRequestStub = {
@@ -241,11 +238,13 @@ export type StandardFormSubsetRequestShortName = {
 export type StandardFormSubsetRequestExit = {
     requestType: 'Exit',
     keys: StandardKey[];
-    cascadeConditions?: {
-        conditionType: 'Link' | 'Position' | 'Exit';
-        cascadeType: StandardFormSubsetRequest["requestType"];
-        chainCascade?: boolean;
-    }[];
+    cascadeConditions?: StandardFormSubsetCascadeCondition[];
+}
+
+// New recursive cascade condition type
+export type StandardFormSubsetCascadeCondition = {
+    connectionType: StandardComponentReferenceKey['referenceType'];
+    cascadeArguments?: Omit<StandardFormSubsetRequest, 'keys'>[];
 }
 
 export type StandardFormSubsetRequest =

@@ -199,89 +199,61 @@ StandardForm's `subset()` operation extracts specific components from an asset a
 
 #### Core Concepts
 
-- **Selective Extraction**: Returns only specified components plus minimal supporting context
-- **Cascading References**: Automatically includes components referenced by selected components
-- **Request Types**: Different levels of detail (`Full`, `Stub`, `ShortName`, `Exit`)
-- **Cascade Conditions**: Explicit control over which reference types trigger cascading
+- **Selective Extraction**: Returns specified components plus minimal supporting context
+- **Cascading References**: Follows component connections to include referenced components
+- **Request Types**: Detail levels from `Full` to `Stub` (see `StandardFormSubsetRequest` types)
+- **Cascade Conditions**: Recursive control over which connections to follow and how deeply
 
 #### Key Use Cases
 
-- **Editing Imported Components**: Extract relevant inherited information without full imports
-- **Minimal Context**: Get just enough supporting data to maintain referential integrity
-- **Chained References**: Follow reference chains through multiple levels of components
+- **Import Context Building**: Extract inheritance trees for imported components
+- **Map Editing**: Get positioned rooms and their exits for map visualization
+- **Minimal Subsets**: Maintain referential integrity with minimal supporting data
 
 #### Current Questions in Need of Answers
 
-The subset functionality has some unclear behaviors that need investigation:
-
-1. **API Design**: Should the current `cascadeConditions` API be refactored to better reflect semantic relationships rather than internal function structure? [Answered: YES]
-
-2. **Connection vs. Condition Semantics**: Are we really talking about "conditions" or should we be thinking in terms of "connections" between components? [Answered: YES]
-
-3. **Abstraction Level**: What's the right abstraction for expressing the graph traversal we want to perform?
+1. ✅ **API Design**: Should `cascadeConditions` API be refactored? [Answered: YES]
+2. ✅ **Connection vs. Condition Semantics**: Are we talking about "connections"? [Answered: YES]  
+3. **Abstraction Level**: What's the right abstraction for graph traversal?
 
 #### Planning: Toward Better Abstractions
 
-**Current API Problems**: The `cascadeConditions` API is oriented around internal function structure rather than semantic relationships. Terms like `conditionType` and `cascadeType` obscure the fact that we're really traversing component connection graphs.
+**Current API Problems**: `cascadeConditions` API is oriented around internal function structure rather than semantic relationships. Terms like `conditionType` and `cascadeType` obscure the fact that we're traversing component connection graphs.
 
-**Better API Direction**: Refactor to recursive `cascadeConditions` that leverage existing subset logic:
-- **`cascadeConditions`**: Array of `Omit<StandardFormSubsetRequest, 'keys'>` objects
-- **Recursive Structure**: Each cascade step can have its own `requestType` and nested `cascadeConditions`
-- **Keys Auto-derived**: The subset function provides keys based on previous step's results
+**Better API Direction**: Recursive `cascadeConditions` that leverage existing subset logic:
+- **Structure**: Array of `Omit<StandardFormSubsetRequest, 'keys'>` objects
+- **Recursion**: Each cascade step can have its own `requestType` and nested `cascadeConditions`
+- **Keys**: Auto-derived by the subset function based on previous step results
 
-**Key Insight**: The recursive part is **traversal logic** - determining what requests to make for each discovered key. The existing `subset` conflict resolution (when multiple paths request different detail levels for the same key) should be preserved and leveraged.
+**Key Insight**: Recursive traversal logic determines what requests to make for each discovered key, while preserving existing conflict resolution.
 
-**Use Case Alignment**: This better reflects our complex use cases:
+**Use Case Alignment**: Better reflects complex traversal patterns:
 1. **Import Context**: Follow Exit/Link/Position connections to build inheritance trees
-2. **Map Editing**: Follow Position connections to get rooms, then Exit connections from those rooms (sequential, not parallel)
+2. **Map Editing**: Sequential traversal: Position → Exit (not parallel)
 
-**Example Structure**:
-```typescript
-{
-  requestType: 'Full',
-  keys: [mapKey],
-  cascadeConditions: [
-    {
-      connectionType: 'Position',
-      cascadeArguments: [
-        {
-          requestType: 'Exits',
-          cascadeConditions: [
-            {
-              connectionType: 'Exit',
-              cascadeArguments: [{ requestType: 'ShortName' }]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
+**Example Structure**: See `StandardFormSubsetRequest` and `StandardFormSubsetCascadeCondition` types in `baseClasses.ts` for the complete recursive structure definition.
 
 **Next Steps**: Implement the recursive API through systematic refactoring:
 
-1. **Update Types**: Modify `StandardFormSubsetRequest` and related interfaces to support recursive `cascadeConditions` structure
-2. **Simplify Documentation**: Replace detailed structure examples with overview/guide information linking to relevant code
+1. ✅ **Update Types**: Modify `StandardFormSubsetRequest` and related interfaces to support recursive `cascadeConditions` structure
+2. ✅ **Simplify Documentation**: Replace detailed structure examples with overview/guide information linking to relevant code
 3. **Update Unit Tests**: Modify `subset` unit tests to use new argument types and correctly convey intent (tests will fail initially)
 4. **Refactor Implementation**: Update `subset` code to support recursive cascade logic and make tests pass
 5. **Code Review & Elegance**: Review refactored code for opportunities to improve elegance and clarity now that the API better aligns with data needs
 6. **System Migration**: Examine all `subset` usage throughout the system and refactor to use new API, confirming functionality with local unit tests
 
-**Migration Strategy**: Implement alongside old API, migrate usage systematically, then deprecate old API once migration is complete.
-
 #### Implementation Notes
 
-- See `StandardForm.subset()` method for core logic
-- Cascade logic handled in `cascadeRequests()` function
-- Reference extraction via `component.referencedKeys()` method
-- Request processing in `requestOutput()` function
+- **Core Logic**: `StandardForm.subset()` method in `index.ts`
+- **Cascade Processing**: `cascadeRequests()` function handles recursive cascade logic
+- **Reference Extraction**: `component.referencedKeys()` method provides connection information
+- **Request Processing**: `requestOutput()` function determines component output detail levels
 
 #### Related Components
 
-- `StandardFormSubsetRequest` interface defines request structure
-- `StandardFormSubsetRequestExit` for exit-specific requests
-- Cascade condition types: `Exit`, `Link`, `Position`, `Direct`
+- **Request Types**: `StandardFormSubsetRequest` union type in `baseClasses.ts`
+- **Cascade Conditions**: `StandardFormSubsetCascadeCondition` type with recursive structure
+- **Reference Types**: Uses `StandardComponentReferenceKey['referenceType']` for connection types
 
 ### Diff Operations
 
