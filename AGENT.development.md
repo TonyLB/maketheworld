@@ -124,7 +124,7 @@ The following migrations must be completed in this specific order due to depende
     - [x] **Test Rich Text Functionality**: Verify plain text, links, and formatting still work correctly (completed - comprehensive test suite created with 48 test cases)
     - [x] **Update Tests**: Remove conditional-related test cases from all test suites
 
-- [ ] **State-Item System Removal - Structural Conditionals**: Remove conditional logic from structural UI components
+- [x] **State-Item System Removal - Structural Conditionals**: Remove conditional logic from structural UI components ✅ **COMPLETED**
     - [x] **Audit Conditional Components**: Document all components using `IfElseTree` and `ListWithConditions` ✅ **COMPLETED**
         - **Findings**: 
           - **Core Conditional Components**: `IfElseTree.tsx` and `ListWithConditions.tsx` (to be removed entirely)
@@ -133,8 +133,8 @@ The following migrations must be completed in this specific order due to depende
           - **Test Files**: `IfElseTree.test.tsx`, `ListWithConditions.test.tsx` and their snapshots (to be removed)
           - **Isolation Level**: Conditional components are much more isolated than expected
     - [x] **Remove IfElseTree from Maps**: Remove conditional editing from map layer components *(NOT NEEDED - Maps components don't use conditionals)*
-         - [x] **Refactor RoomExitEditor**: Remove `ListWithConditions` usage and simplify to basic list editing ✅ **COMPLETED**
-    - [ ] **Remove Conditional UI Components**: Delete `IfElseTree` and `ListWithConditions` components entirely
+    - [x] **Refactor RoomExitEditor**: Remove `ListWithConditions` usage and simplify to basic list editing ✅ **COMPLETED**
+    - [x] **Remove Conditional UI Components**: Delete `IfElseTree` and `ListWithConditions` components entirely ✅ **COMPLETED**
 
 - [ ] **State-Item System Removal - Link Items**: Remove link items that reference Action components
     - [ ] **Audit Link Item Usage**: Identify all components that create or handle link items to Actions
@@ -153,7 +153,7 @@ The following migrations must be completed in this specific order due to depende
 - [ ] **Frontend Test Updates**: Update frontend test suites to reflect new component interfaces
 - [ ] **UI Behavior Migration**: Convert dynamic UI behaviors to static or example-driven patterns
 
-**Current Status**: Phase 2C is approximately 65% complete. The StandardRender system has been fully cleaned of Action link support and thoroughly tested, the Rich Text Conditionals workstream is complete, and the Structural Conditionals audit is complete. The conditional components are much more isolated than expected - only RoomExitEditor needs refactoring, and Maps components are completely clean.
+**Current Status**: Phase 2C is approximately 75% complete. The StandardRender system has been fully cleaned of Action link support and thoroughly tested, the Rich Text Conditionals workstream is complete, and the Structural Conditionals workstream is complete. All conditional components have been removed and the RoomExitEditor has been refactored to work without them.
 
 ##### **Phase 2D: WML Parser and Schema Analysis** *(To be determined)*
 - [ ] **WML Parser Dependency Audit**: Review WML parser for Variable/Computed/Action tag handling
