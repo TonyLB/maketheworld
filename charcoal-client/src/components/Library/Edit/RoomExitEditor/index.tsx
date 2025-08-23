@@ -1,183 +1,283 @@
 import React, { FunctionComponent, useCallback, useMemo } from "react"
 import Box from "@mui/material/Box"
-import { useLibraryAsset } from "../LibraryAsset"
-import ExitIcon from '@mui/icons-material/CallMade'
+import List from "@mui/material/List"
+import ListItem from "@mui/material/ListItem"
+import ListItemButton from "@mui/material/ListItemButton"
+import ListItemIcon from "@mui/material/ListItemIcon"
+import ListItemText from "@mui/material/ListItemText"
+import IconButton from "@mui/material/IconButton"
+import TextField from "@mui/material/TextField"
 import Select, { SelectChangeEvent } from "@mui/material/Select"
 import MenuItem from "@mui/material/MenuItem"
 import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
-import { TextField } from "@mui/material"
-import { useOnboardingCheckpoint } from "../../../Onboarding/useOnboarding"
-import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { treeTypeGuard } from "@tonylb/mtw-wml/ts/tree/filter"
+import { useLibraryAsset } from "../LibraryAsset"
+import ExitIcon from '@mui/icons-material/CallMade'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
 import SidebarTitle from "../SidebarTitle"
-import { ignoreWrapped } from "@tonylb/mtw-wml/ts/schema/utils"
-import { StandardFormSchema, useStandardFormContext } from "../StandardFormContext"
-import { EditSchema, useEditNodeContext } from "../EditContext"
-import ListWithConditions from "../ListWithConditions"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
-import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { isSchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
+import { StandardExit } from "@tonylb/mtw-wml/ts/standardize/components/exit"
 
 type RoomExitEditorProps = {
     RoomId: string;
-    onChange: (value: string) => void;
 }
 
-const ExitTargetSelector: FunctionComponent<{ RoomId: string; target: string; inherited?: boolean; onChange: (event: SelectChangeEvent<string>) => void }> = ({ RoomId, target, inherited, onChange }) => {
-    const { readonly, standardForm: baseStandardForm, inheritedStandardForm } = useLibraryAsset()
-    const standardForm = useMemo(() => (inherited ? new StandardForm(inheritedStandardForm) : baseStandardForm), [baseStandardForm, inherited, inheritedStandardForm])
+const ExitTargetSelector: FunctionComponent<{ 
+    target: string; 
+    RoomId: string; 
+    onChange: (target: string) => void;
+    disabled?: boolean;
+}> = ({ target, RoomId, onChange, disabled }) => {
+    const { readonly, standardForm } = useLibraryAsset()
     
     const roomNamesInScope = useMemo<Record<string, string>>(() => {
-        const roomKeys = Object.values(standardForm.byId).filter((component): component is StandardRoom => (component instanceof StandardRoom)).map(({ key }) => (key))
-        const roomNamesInScope = Object.assign({},
-            ...roomKeys
-                .map((key) => {
-                    if (key === RoomId) {
-                        return []
-                    }
+        const roomKeys = Object.values(standardForm.byId)
+            .filter((component): component is StandardRoom => (component instanceof StandardRoom))
+            .map(({ key }) => (key))
+        
+        const roomNamesInScope: Record<string, string> = {}
+        roomKeys
+            .filter(key => key !== RoomId) // Don't show current room as target
+            .forEach((key) => {
+                if (key) { // Ensure key is defined
                     const component = standardForm.byId[key]
-                    if (!(component && component instanceof StandardRoom)) {
-                        return []
+                    if (component && component instanceof StandardRoom) {
+                        // Get room name from shortName or use key as fallback
+                        let roomName = key
+                        if (component.shortName) {
+                            const shortNameData = component.shortName.toJSON()
+                            if (typeof shortNameData === 'string') {
+                                roomName = shortNameData
+                            }
+                        }
+                        roomNamesInScope[key] = roomName
                     }
-                    return [{ [key]: schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || key }]
-                }).flat(1)
-        )
+                }
+            })
         return roomNamesInScope
     }, [RoomId, standardForm])
-    const onChangeHandler = useCallback((event: SelectChangeEvent<string>) => {
-        if (!readonly) {
-            onChange(event)
-        }
-    }, [onChange, readonly])
 
-    return <FormControl sx={{ m: 1, minWidth: 120 }} size="small">
-        <InputLabel id="select-small">Target</InputLabel>
-        <Select
-            sx={{ background: 'white' }}
-            labelId="select-small"
-            id="select-small"
-            value={target in roomNamesInScope ? target : ''}
-            label="Target"
-            onChange={onChangeHandler}
-            disabled={readonly || inherited}
-        >
-            <MenuItem key='#empty' value=''></MenuItem>
-            {
-                Object.entries(roomNamesInScope).map(([key, name]) => {
-                    return <MenuItem key={key} value={key}>{ name }</MenuItem>
-                })
-            }
-        </Select>
-    </FormControl>
+    const handleChange = useCallback((event: SelectChangeEvent<string>) => {
+        if (!readonly && !disabled) {
+            onChange(event.target.value)
+        }
+    }, [onChange, readonly, disabled])
+
+    return (
+        <FormControl size="small" disabled={readonly || disabled}>
+            <InputLabel>Target Room</InputLabel>
+            <Select
+                value={target}
+                label="Target Room"
+                onChange={handleChange}
+                sx={{ minWidth: 150, background: 'white' }}
+            >
+                <MenuItem value="">
+                    <em>Select target room...</em>
+                </MenuItem>
+                {Object.entries(roomNamesInScope).map(([key, name]) => (
+                    <MenuItem key={key} value={key}>
+                        {name}
+                    </MenuItem>
+                ))}
+            </Select>
+        </FormControl>
+    )
 }
 
-const EditExit: FunctionComponent<{}> = () => {
-    const { readonly, standardForm } = useLibraryAsset()
-    const { componentKey } = useStandardFormContext()
-    const { data, children, onChange } = useEditNodeContext()
+const ExitEditor: FunctionComponent<{
+    exit: StandardExit;
+    onUpdate: (exit: StandardExit) => void;
+    onDelete: () => void;
+    disabled?: boolean;
+    currentRoomId: string;
+}> = ({ exit, onUpdate, onDelete, disabled, currentRoomId }) => {
+    const { readonly } = useLibraryAsset()
+    const isDisabled = readonly || disabled
 
-    const nameTree = useMemo(() => (treeTypeGuard({ tree: children, typeGuard: isSchemaOutputTag })), [children])
-    const name = useMemo(() => (schemaOutputToString(nameTree)), [nameTree])
-    const targetName = useMemo(() => {
-        if (!(isSchemaExit(data) && data.to)) {
-            return ''
+    const handleDescriptionChange = useCallback((newDescription: string) => {
+        if (!isDisabled) {
+            // Create a new exit with updated description
+            const updatedExit = StandardExit.create({
+                to: exit.plain?.to.toJSON() || { tag: 'Room', key: '' },
+                description: newDescription ? newDescription : undefined
+            })
+            onUpdate(updatedExit)
         }
-        const targetComponent = standardForm.byId[data.to]
-        if (!(targetComponent && targetComponent instanceof StandardRoom)) {
-            return ''
+    }, [exit, onUpdate, isDisabled])
+
+    const handleTargetChange = useCallback((newTarget: string) => {
+        if (!isDisabled && newTarget) {
+            // Create a new exit with updated target
+            const updatedExit = StandardExit.create({
+                to: { tag: 'Room', key: newTarget },
+                description: exit.plain?.description?.toJSON()
+            })
+            onUpdate(updatedExit)
         }
-        return schemaOutputToString(ignoreWrapped(targetComponent.shortName)?.children ?? []) ?? targetComponent.key
-    }, [data, standardForm])
-    useOnboardingCheckpoint('addExit', { requireSequence: true, condition: Boolean(name)})
-    useOnboardingCheckpoint('addExitBack', { requireSequence: true, condition: Boolean(isSchemaExit(data) && data.from !== componentKey && name)})
-    if (!isSchemaExit(data)) {
-        return null
-    }
-    const targetElement = <ExitTargetSelector
-        target={data.to}
-        RoomId={data.from}
-        onChange={(event) => {
-            onChange({ data: { ...data, key: `${data.from}#${event.target.value}`, to: event.target.value }, children: nameTree })
-        }}
-    />
-    return <Box
-        sx={{
-            width: "calc(100% - 0.5em)",
-            display: "inline-flex",
-            flexDirection: "row",
-            borderRadius: '0.5em',
-            padding: '0.1em',
-            margin: '0.25em',
-            alignItems: "center"
-        }}
-    >
-        <Box sx={{ display: 'flex', marginRight: '0.5em' }} ><ExitIcon sx={{ fill: "grey" }} /></Box>
-        <Box sx={{
-            display: 'flex',
-            minWidth: '12em'
-        }}>
-            <TextField
-                sx={{ background: 'white' }}
-                hiddenLabel
-                size="small"
-                required
-                value={name}
-                onChange={(event) => { onChange({ data, children: [{ data: { tag: 'String', value: event.target.value }, children: [] }]}) }}
-                disabled={readonly}
-                placeholder={targetName}
-            />
-        </Box>
-        <Box sx={{ display: 'flex', flexGrow: 1, alignItems: "center" }}>{ targetElement }</Box>
-    </Box>
+    }, [exit, onUpdate, isDisabled])
+
+    // Get the current description text safely
+    const currentDescription = useMemo(() => {
+        if (exit.plain?.description) {
+            return exit.plain.description.toJSON()
+        }
+        return ''
+    }, [exit.plain?.description])
+
+    // Get the current target safely
+    const currentTarget = useMemo(() => {
+        if (exit.plain?.to) {
+            return exit.plain.to.key || ''
+        }
+        return ''
+    }, [exit.plain?.to])
+
+    return (
+        <ListItem
+            sx={{
+                border: '1px solid #e0e0e0',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                backgroundColor: 'white'
+            }}
+            secondaryAction={
+                <IconButton
+                    edge="end"
+                    aria-label="delete exit"
+                    onClick={onDelete}
+                    disabled={isDisabled}
+                    color="error"
+                >
+                    <DeleteIcon />
+                </IconButton>
+            }
+        >
+            <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ExitIcon sx={{ color: 'grey', fontSize: 20 }} />
+                    <TextField
+                        label="Exit Name"
+                        value={currentDescription}
+                        onChange={(e) => handleDescriptionChange(e.target.value)}
+                        disabled={isDisabled}
+                        size="small"
+                        sx={{ flexGrow: 1 }}
+                        placeholder="Enter exit name..."
+                    />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ExitTargetSelector
+                        target={currentTarget}
+                        RoomId={currentRoomId}
+                        onChange={handleTargetChange}
+                        disabled={isDisabled}
+                    />
+                </Box>
+            </Box>
+        </ListItem>
+    )
 }
 
 export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const { standardForm, updateStandard } = useLibraryAsset()
 
-    const component: StandardRoom = useMemo(() => {
+    const room = useMemo(() => {
         if (RoomId) {
             const component = standardForm.byId[RoomId]
             if (component && component instanceof StandardRoom) {
                 return component
             }
         }
-        return new StandardRoom({
-            key: RoomId,
-            tag: 'Room',
-            exits: [],
-            themes: []
-        })
+        return null
     }, [RoomId, standardForm])
-    const render = useCallback(() => (<EditExit />), [])
 
-    return <SidebarTitle title="Exits" minHeight="5em">
-        <EditSchema
-            value={component?.exits ?? []}
-            onChange={(value) => {
-                if (typeof value !== 'function') {
-                    updateStandard({
-                        type: 'update',
-                        update: (component) => {
-                            const base = component.byId[RoomId]
-                            if (base instanceof StandardRoom) {
-                                base._payload._exits = value
-                            }
-                            return component
-                        }
+    const exits = useMemo(() => room?.exits || [], [room])
+
+    const addExit = useCallback(() => {
+        if (!room) return
+
+        updateStandard({
+            type: 'update',
+            update: (component) => {
+                const base = component.byId[RoomId]
+                if (base instanceof StandardRoom) {
+                    // Create a new empty exit
+                    const newExit = StandardExit.create({
+                        to: { tag: 'Room', key: '' },
+                        description: undefined
                     })
+                    base._payload._exits.push(newExit)
                 }
-            }}
-        >
-            <ListWithConditions
-                render={render}
-                typeGuard={isSchemaExit}
-                label="Exit"
-                defaultNode={{ tag: 'Exit', from: RoomId, to: '', key: `${RoomId}#` }}
-            />
-        </EditSchema>
-    </SidebarTitle>
+                return component
+            }
+        })
+    }, [room, RoomId, updateStandard])
+
+    const updateExit = useCallback((index: number, updatedExit: StandardExit) => {
+        if (!room) return
+
+        updateStandard({
+            type: 'update',
+            update: (component) => {
+                const base = component.byId[RoomId]
+                if (base instanceof StandardRoom) {
+                    base._payload._exits[index] = updatedExit
+                }
+                return component
+            }
+        })
+    }, [room, RoomId, updateStandard])
+
+    const deleteExit = useCallback((index: number) => {
+        if (!room) return
+
+        updateStandard({
+            type: 'update',
+            update: (component) => {
+                const base = component.byId[RoomId]
+                if (base instanceof StandardRoom) {
+                    base._payload._exits.splice(index, 1)
+                }
+                return component
+            }
+        })
+    }, [room, RoomId, updateStandard])
+
+    if (!room) {
+        return (
+            <SidebarTitle title="Exits" minHeight="5em">
+                <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
+                    Room not found
+                </Box>
+            </SidebarTitle>
+        )
+    }
+
+    return (
+        <SidebarTitle title="Exits" minHeight="5em">
+            <List>
+                {exits.map((exit, index) => (
+                    <ExitEditor
+                        key={`${RoomId}-exit-${index}`}
+                        exit={exit}
+                        onUpdate={(updatedExit) => updateExit(index, updatedExit)}
+                        onDelete={() => deleteExit(index)}
+                        currentRoomId={RoomId}
+                    />
+                ))}
+                <ListItem>
+                    <ListItemButton onClick={addExit} sx={{ justifyContent: 'center' }}>
+                        <ListItemIcon>
+                            <AddIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="Add Exit" />
+                    </ListItemButton>
+                </ListItem>
+            </List>
+        </SidebarTitle>
+    )
 }
 
 export default RoomExitEditor
