@@ -5,7 +5,8 @@ export enum ParsePropertyTypes {
     Literal,
     Expression,
     Boolean,
-    Asset
+    Asset,
+    AssetList
 }
 
 type ParsePropertyBase = {
@@ -37,7 +38,12 @@ export type ParsePropertyAsset = {
     value: AssetUUID;
 } & ParsePropertyBase
 
-export type ParseProperty = ParsePropertyKey | ParsePropertyLiteral | ParsePropertyExpression | ParsePropertyBoolean | ParsePropertyAsset
+export type ParsePropertyAssetList = {
+    type: ParsePropertyTypes.AssetList;
+    value: AssetUUID[];
+} & ParsePropertyBase
+
+export type ParseProperty = ParsePropertyKey | ParsePropertyLiteral | ParsePropertyExpression | ParsePropertyBoolean | ParsePropertyAsset | ParsePropertyAssetList
 
 export enum ParseTypes {
     Open,

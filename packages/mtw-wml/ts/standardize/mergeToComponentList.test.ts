@@ -44,6 +44,38 @@ describe('mergeToComponentList', () => {
         })
     })
 
+    it('should merge origin properties correctly when merging components', () => {
+        const universalKeyMappings: StandardKey[] = [
+            new StandardKey({ key: 'foo', tag: 'Room', universalKey: 'ROOM#uuid-foo' })
+        ]
+        
+        // Create base component with origin
+        const base = new StandardRoom(`<Room uuid=(uuid-foo) key=(foo) />`)
+            .withOrigin(['ASSET#base', 'ASSET#inherited'])
+        
+        // Create incoming component with different origin
+        const value = new StandardRoom(`<Room key=(foo)><ShortName>Test</ShortName></Room>`)
+            .withOrigin(['ASSET#incoming', 'ASSET#new'])
+        
+        const prev: StandardComponent[] = [base]
+        const result = mergeToComponentList(universalKeyMappings)(prev, value)
+        
+        expect(result.length).toBe(1)
+        
+        // Verify that origins are merged and deduplicated
+        const mergedComponent = result[0] as StandardRoom
+        expect(mergedComponent.origin).toEqual([
+            'ASSET#base',
+            'ASSET#inherited', 
+            'ASSET#incoming',
+            'ASSET#new'
+        ])
+        
+        // Verify other properties are merged correctly
+        expect(mergedComponent.shortName?.toJSON()).toBe('Test')
+        expect(mergedComponent.universalKey).toBe('ROOM#uuid-foo')
+    })
+
 })
 
 describe('mergeUniversalKeyMappings', () => {

@@ -19,6 +19,16 @@ describe('character tags', () => {
             expect(isSchemaCharacter(schema)).toBe(true)
         })
 
+        it('should return true for valid SchemaCharacterTag with origin', () => {
+            const schema = { tag: 'Character', key: 'char1', origin: ['ASSET#123', 'ASSET#456'] }
+            expect(isSchemaCharacter(schema)).toBe(true)
+        })
+
+        it('should return true for valid SchemaCharacterTag with empty origin array', () => {
+            const schema = { tag: 'Character', key: 'char1', origin: [] }
+            expect(isSchemaCharacter(schema)).toBe(true)
+        })
+
         it('should return false for invalid SchemaCharacterTag', () => {
             const schema = { tag: 'Invalid', key: 'char1' }
             expect(isSchemaCharacter(schema)).toBe(false)

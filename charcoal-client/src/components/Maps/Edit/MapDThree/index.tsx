@@ -5,12 +5,9 @@ import MapDThreeTree from './MapDThreeTree'
 import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
-import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
-import { isStandardMap } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { UpdateStandardPayload } from '../../../../slices/personalAssets/reducers'
-import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
-import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
-import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
+import StandardMap, { StandardMapPayload } from '@tonylb/mtw-wml/ts/standardize/components/map'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
@@ -47,43 +44,36 @@ export class MapDThree extends Object {
     stable: boolean = true
     onStability: SimCallback = () => {}
     onTick: SimCallback = () => {}
-    onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
-    onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
+    onExitDrag?: (dragTarget: { sourceRoomId: `ROOM#${string}`, x: number, y: number }) => void
+    onAddExit?: (fromRoomId: `ROOM#${string}`, toRoomId: `ROOM#${string}`, double: boolean) => void
 
-    constructor({ standardForm, updateStandard, mapId, tree, onStability, onTick, onExitDrag, onAddExit }: {
-        standardForm: StandardFormData;
+    constructor({ inherited, editable, updateStandard, mapId, onStability, onTick, onExitDrag, onAddExit }: {
+        inherited: StandardForm;
+        editable: StandardForm;
         updateStandard: (action: UpdateStandardPayload) => void;
-        mapId: string;
-        tree: GenericTree<SchemaTag>;
+        mapId: `MAP#${string}`;
         onStability?: SimCallback;
         onTick?: SimCallback;
-        onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void;
-        onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
+        onExitDrag?: (dragTarget: { sourceRoomId: `ROOM#${string}`, x: number, y: number }) => void;
+        onAddExit?: (fromRoomId: `ROOM#${string}`, toRoomId: `ROOM#${string}`, double: boolean) => void
     }) {
         super()
         this.tree = new MapDThreeTree({
-            tree,
-            standardForm,
-            onChange: (newTree) => {
-                const mapComponent = standardForm.byId[mapId]
-                if (mapComponent && isStandardMap(mapComponent)) {
-                    updateStandard({
-                        type: 'update',
-                        update: (incoming) => {
-                            const component = incoming.byId[mapId]
-                            if (component instanceof StandardMap) {
-                                if (typeof newTree === 'function') {
-                                    const positions = produce(component.positions, newTree)
-                                    component._payload._positions = positions
-                                }
-                                else {
-                                    component._payload._positions = newTree
-                                }
-                            }
-                            return incoming
+            mapId,
+            inherited,
+            editable,
+            onChange: (change) => {
+                updateStandard({
+                    type: 'update',
+                    update: (incoming) => {
+                        if (typeof change === 'function') {
+                            return produce(incoming, change)
                         }
-                    })
-                }
+                        else {
+                            return change
+                        }
+                    }
+                })
             },
             onTick,
             onStabilize: onStability
@@ -103,8 +93,8 @@ export class MapDThree extends Object {
     setCallbacks(props: {
             onTick?: SimCallback,
             onStability?: SimCallback;
-            onExitDrag?: (props: { sourceRoomId: string; x: number; y: number }) => void;
-            onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
+            onExitDrag?: (props: { sourceRoomId: `ROOM#${string}`; x: number; y: number }) => void;
+            onAddExit?: (fromRoomId: `ROOM#${string}`, toRoomId: `ROOM#${string}`, double: boolean) => void
         }) {
         const { onTick, onStability, onExitDrag, onAddExit } = props
         this.tree.setCallbacks({ onTick, onStability })
@@ -121,30 +111,23 @@ export class MapDThree extends Object {
     // Do NOT use it to respond to simulation-level changes in the simulations themselves ... only semantic changes
     // in the incoming map tree.
     //
-    update(tree: GenericTree<SchemaTag>, standardForm: StandardFormData, updateStandard: (action: UpdateStandardPayload) => void, mapId: string): void {
-        this.tree.update(tree, standardForm, (newTree) => {
-            const mapComponent = standardForm.byId[mapId]
-            if (mapComponent && isStandardMap(mapComponent)) {
+    update(inherited: StandardForm, editable: StandardForm, updateStandard: (action: UpdateStandardPayload) => void, mapId: `MAP#${string}`): void {
+        this.tree.update(inherited, editable, (change) => {
+            const mapComponent = editable.byUniversalId[mapId]
+            if (mapComponent && mapComponent instanceof StandardMap) {
                 updateStandard({
                     type: 'update',
-                    update: (draft) => {
-                        const component = draft.byId[mapId]
-                        if (component instanceof StandardMap) {
-                            const base = component.clone()
-                            if (typeof newTree === 'function') {
-                                const positions = produce(base.positions, newTree)
-                                base._payload._positions = positions
-                            }
-                            else {
-                                base._payload._positions = newTree
-                            }
+                    update: (incoming) => {
+                        if (typeof change === 'function') {
+                            return produce(incoming, change)
                         }
-                        return draft
+                        else {
+                            return change
+                        }
                     }
                 })
             }
-        },
-)
+        })
         this.tree.checkStability()
     }
 
@@ -157,7 +140,7 @@ export class MapDThree extends Object {
     //
     // dragExit creates (if needed) a dragging layer and passes data into its simulation
     //
-    dragExit({ roomId, x, y, double }: { roomId: string, x: number, y: number, double: boolean }): void {
+    dragExit({ roomId, x, y, double }: { roomId: `ROOM#${string}`, x: number, y: number, double: boolean }): void {
         if (!this.exitDragLayer) {
             this.exitDragLayer = new ExitDragD3Layer(() => (this.nodes), roomId, double, getInvalidExits(this, roomId, double))
             if (this.onExitDrag) {
@@ -169,15 +152,15 @@ export class MapDThree extends Object {
     endDrag(): void {
         this.tree.endDrag()
         if (this.exitDragLayer) {
-            const dragNode = this.exitDragLayer.nodes.find(({ roomId }) => (roomId === 'DRAG-TARGET'))
+            const dragNode = this.exitDragLayer.nodes.find(({ id }) => (id === 'ROOM#DRAG-TARGET'))
             if (dragNode && this.onAddExit) {
                 const invalidExits = getInvalidExits(this, this.exitDragLayer.sourceRoomId, this.exitDragLayer.double)
                 const closeTargets = this.nodes
                     .map(({ fx, x, fy, y, ...rest }) => ({ x: fx ?? (x || 0), y: fy ?? (y || 0), ...rest }))
                     .filter(({ x, y }) => (Math.abs((dragNode.x || 0) - x) < 30 && Math.abs((dragNode.y || 0) - y)))
-                    .filter(({ roomId }) => (!invalidExits.includes(roomId)))
-                    .map(({ roomId, x, y }) => ({
-                        roomId,
+                    .filter(({ id }) => (!invalidExits.includes(id)))
+                    .map(({ id, x, y }) => ({
+                        id,
                         distance: Math.pow((dragNode.x || 0) - (x || 0), 2) + Math.pow((dragNode.y || 0) - (y || 0), 2)
                     }))
                     .filter(({ distance }) => (distance < 900))
@@ -189,7 +172,7 @@ export class MapDThree extends Object {
                     // TODO: Figure out why there's a set-state problem if this setTimeout is omitted
                     //
                     setTimeout(() => {
-                        addExit(exitDragLayer.sourceRoomId, closeTargets[0].roomId, exitDragLayer.double)
+                        addExit(exitDragLayer.sourceRoomId, closeTargets[0].id, exitDragLayer.double)
                     }, 0)
                 }
             }

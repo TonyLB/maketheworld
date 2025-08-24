@@ -3,11 +3,13 @@ import { StandardComponent } from "./components/baseClasses"
 import { mergeWithEdits } from "./components/edits"
 import { excludeUndefined } from "../lib/lists"
 import { StandardKey } from "./components/reference"
+import { unique } from "@tonylb/mtw-base/ts/utils/lists"
 
 const mergeHelper = (base: StandardComponent, value: StandardComponent): StandardComponent | undefined => {
     const merged = mergeWithEdits(base, value)
     if (merged) {
-        return merged
+        const origin = unique([...(base.origin ?? []), ...(value.origin ?? [])])
+        return merged.withOrigin(origin.length ? origin : undefined)
     }
     else {
         return undefined

@@ -179,7 +179,19 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
     override withImport(fromAsset: AssetUUID): StandardComponent {
         return new StandardMessage(super.withImport(fromAsset) as StandardMessage)
     }
+
+    override withOrigin(origin: AssetUUID[]): StandardComponent {
+        return new StandardMessage(super.withOrigin(origin) as StandardMessage)
+    }
     
+    override withLeastCommonContext(context: StandardKey[]): StandardComponent {
+        return new StandardMessage(super.withLeastCommonContext(context) as StandardMessage)
+    }
+
+    override withChild(child: StandardReference): StandardComponent {
+        return new StandardMessage(super.withChild(child) as StandardMessage)
+    }
+
 }
 
 export default StandardMessage

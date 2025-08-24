@@ -209,6 +209,10 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         return new StandardExample(super.withImport(fromAsset) as StandardExample)
     }
 
+    override withOrigin(origin: AssetUUID[]): StandardComponent {
+        return new StandardExample(super.withOrigin(origin) as StandardExample)
+    }
+
     override withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
         return new StandardExample(super.withLeastCommonContext(leastCommonContext) as StandardExample)
     }

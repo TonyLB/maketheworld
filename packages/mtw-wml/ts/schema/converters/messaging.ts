@@ -15,13 +15,15 @@ const messagingTemplates = {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
-        as: { type: ParsePropertyTypes.Key }
+        as: { type: ParsePropertyTypes.Key },
+        origin: { type: ParsePropertyTypes.AssetList }
     },
     Moment: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
-        as: { type: ParsePropertyTypes.Key }
+        as: { type: ParsePropertyTypes.Key },
+        origin: { type: ParsePropertyTypes.AssetList }
     },
 } as const
 
@@ -68,7 +70,8 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MESSAGE')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'from', type: 'key', value: tag.from ?? '' },
-                    { key: 'as', type: 'key', value: tag.as ?? '' }
+                    { key: 'as', type: 'key', value: tag.as ?? '' },
+                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
                 ],
                 node: { data: tag, children }
             })
@@ -83,7 +86,8 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MOMENT')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'from', type: 'key', value: tag.from ?? '' },
-                    { key: 'as', type: 'key', value: tag.as ?? '' }
+                    { key: 'as', type: 'key', value: tag.as ?? '' },
+                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
                 ],
                 node: { data: tag, children }
             })

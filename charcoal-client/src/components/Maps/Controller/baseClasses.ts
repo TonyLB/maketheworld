@@ -1,18 +1,17 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import MapDThree from "../Edit/MapDThree"
-import { SchemaExitTag, SchemaPositionTag, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
-import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { SchemaConditionFallthroughTag, SchemaConditionStatementTag, SchemaConditionTag, SchemaSelectedTag } from "@tonylb/mtw-base/ts/schema/condition"
-import { SchemaAssetTag } from "@tonylb/mtw-base/ts/schema/asset"
-import { SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
+import { SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
+import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
+import { StandardPosition } from "@tonylb/mtw-wml/ts/standardize/components/position"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { StandardExitPlain } from "@tonylb/mtw-wml/ts/standardize/components/exit"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
 
 export type MapTreeExit = SchemaExitTag & { inherited?: boolean }
 export type MapTreeRoom = SchemaRoomTag & { name: GenericTree<SchemaOutputTag>, inherited?: boolean; }
-export type MapTreeCondition = SchemaConditionTag & { inherited?: boolean }
 
-export type MapTreeItem = MapTreeExit | MapTreeRoom | MapTreeCondition
+export type MapTreeItem = MapTreeExit | MapTreeRoom
 export const isMapTreeRoom = (node: MapTreeItem): node is MapTreeRoom => (node.tag === 'Room')
 export const isMapTreeRoomWithPosition = (node: MapTreeItem): node is MapTreeRoom & { x: number; y: number } => (
     node.tag === 'Room' && (
@@ -21,8 +20,68 @@ export const isMapTreeRoomWithPosition = (node: MapTreeItem): node is MapTreeRoo
     )
 )
 
+/**
+ * MapExit extends StandardExitPlain to add map-specific context
+ * including the source room identifier for tracking exit origins
+ */
+export class MapExit extends StandardExitPlain {
+    private _from: `ROOM#${string}`
+
+    constructor(exit: StandardExitPlain, from: `ROOM#${string}`) {
+        // Call the parent constructor with the exit's data
+        super(exit.toJSON())
+        this._from = from
+    }
+
+    /**
+     * Get the source room identifier
+     */
+    get from(): `ROOM#${string}` {
+        return this._from
+    }
+
+    /**
+     * Get the target room identifier
+     */
+    get to(): string {
+        return this.payload?.to.universalKey ?? ''
+    }
+
+    /**
+     * Get the exit name/description if available
+     */
+    get name(): string | undefined {
+        return this.description
+    }
+
+    /**
+     * Get the exit description if available
+     */
+    get description(): string | undefined {
+        if (!this.payload?.description) return undefined
+        const desc = this.payload.description.toJSON()
+        if (typeof desc === 'string') return desc
+        // For complex description types, return undefined for now
+        return undefined
+    }
+
+    /**
+     * Create a new MapExit with updated from room
+     */
+    withFrom(from: `ROOM#${string}`): MapExit {
+        return new MapExit(this, from)
+    }
+
+    /**
+     * Create a new MapExit with updated exit data
+     */
+    withExit(exit: StandardExitPlain): MapExit {
+        return new MapExit(exit, this._from)
+    }
+}
+
 type MapContextExitDrag = {
-    sourceRoomId: string;
+    sourceRoomId: `ROOM#${string}`;
     x: number;
     y: number;
 }
@@ -47,14 +106,15 @@ type MapDispatchDragExit = {
 
 type MapDispatchSetNode = {
     type: 'SetNode',
-    roomId: string;
+    roomId: `ROOM#${string}`;
     x: number;
     y: number;
 }
 
 type MapDispatchUpdateTree = {
     type: 'UpdateTree';
-    tree: GenericTree<SchemaTag>;
+    inherited: StandardForm;
+    editable: StandardForm;
 }
 
 type MapContextItemSelectedLayer = {
@@ -87,7 +147,7 @@ type MapDispatchSelectParent = {
 
 type MapDispatchAddRoom = {
     type: 'AddRoom';
-    roomId?: string;
+    roomId?: `ROOM#${string}`;
     x: number;
     y: number;
 }
@@ -95,11 +155,6 @@ type MapDispatchAddRoom = {
 type MapDispatchUnlockRoom = {
     type: 'UnlockRoom';
     roomId?: string;
-}
-
-type MapDispatchToggleBranchVisibility = {
-    type: 'ToggleVisibility';
-    key: string;
 }
 
 export type MapDispatchAction = MapDispatchSetTool |
@@ -111,26 +166,15 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchSelectItem |
     MapDispatchSelectParent |
     MapDispatchAddRoom |
-    MapDispatchUnlockRoom |
-    MapDispatchToggleBranchVisibility
+    MapDispatchUnlockRoom
 
 export type MapContextPosition = {
-    id: string;
-    parentId: string;
-    roomId: string;
-    name: string;
-    x: number;
-    y: number;
+    position: StandardPosition;
+    name: string
 }
 
-export type MapTreeSchemaTags = SchemaAssetTag | SchemaSelectedTag | SchemaExitTag | SchemaNameTag | SchemaRoomTag | SchemaPositionTag | SchemaConditionTag | SchemaConditionStatementTag | SchemaConditionFallthroughTag | SchemaOutputTag
-
 export type MapContextType = {
-    mapId: string;
-    nodeId: string;
-    tree: GenericTree<MapTreeSchemaTags>;
-    selectedPositions: GenericTree<MapTreeSchemaTags>;
-    updateSelected: (newValue: GenericTree<SchemaTag>) => void;
+    mapId: `MAP#${string}`;
     UI: {
         //
         // The Map editor can conceivably need data for:

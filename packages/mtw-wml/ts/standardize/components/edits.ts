@@ -159,6 +159,12 @@ export class StandardRemove implements StandardComponent {
     withChild(): StandardComponent {
         return this.clone()        
     }
+
+    withOrigin(origin: AssetUUID[] | undefined): StandardComponent {
+        const returnValue = this.clone()
+        returnValue._match = returnValue._match.withOrigin(origin)
+        return returnValue
+    }
 }
 
 //
@@ -350,6 +356,13 @@ export class StandardReplace implements StandardComponent {
 
     withChild(): StandardComponent {
         return this.clone()        
+    }
+
+    withOrigin(origin: AssetUUID[] | undefined): StandardComponent {
+        const returnValue = this.clone()
+        returnValue._match = returnValue._match.withOrigin(origin)
+        returnValue._payload = returnValue._payload.withOrigin(origin)
+        return returnValue
     }
 }
 

@@ -43,7 +43,7 @@ import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { deepEqual } from '../../lib/objects'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
-import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { AssetUUID, ComponentUUID, isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 const autoSaveDebounce = new Debounce()
 
@@ -323,7 +323,8 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
                         update: (draft: StandardForm) => {
                             const room = draft.byId[roomId]
                             if (room instanceof StandardRoom) {
-                                const example = draft.byId[`${roomId}.${room.examples[0].key}`]
+                                const exampleKey = room.examples.payload[0].universalKey
+                                const example = exampleKey && isSchemaComponentUUID(exampleKey) ? draft.byUniversalId[exampleKey] : undefined
                                 if (example instanceof StandardExample) {
                                     if (description) {
                                         example._payload._description = new StandardRender([description.trim()])

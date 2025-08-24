@@ -41,7 +41,6 @@ import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 import ImageHeader from './ImageHeader'
 import DraftLockout from './DraftLockout'
-import JSHeader from './JSHeader'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
@@ -50,9 +49,6 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
-import StandardVariable from '@tonylb/mtw-wml/ts/standardize/components/variable'
-import StandardComputed from '@tonylb/mtw-wml/ts/standardize/components/computed'
-import StandardAction from '@tonylb/mtw-wml/ts/standardize/components/action'
 import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 import { RecentlyVisited } from './RecentlyVisited'
 import { LabelledIndentBox } from './LabelledIndentBox'
@@ -61,7 +57,7 @@ import EditCharacter from './EditCharacter'
 
 type AssetEditFormProps = {}
 
-const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action'; onAdd: () => void }> = ({ type, onAdd }) => (
+const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image'; onAdd: () => void }> = ({ type, onAdd }) => (
     <Button
         onClick={onAdd}
         variant='contained'
@@ -86,12 +82,9 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const knowledges = useMemo<StandardKnowledge[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardKnowledge => (value instanceof StandardKnowledge))), [standardForm])
     const maps = useMemo<StandardMap[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardMap => (value instanceof StandardMap))), [standardForm])
     const images = useMemo<StandardImage[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardImage => (value instanceof StandardImage))), [standardForm])
-    const variables = useMemo<StandardVariable[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardVariable => (value instanceof StandardVariable))), [standardForm])
-    const computes = useMemo<StandardComputed[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardComputed => (value instanceof StandardComputed))), [standardForm])
-    const actions = useMemo<StandardAction[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardAction => (value instanceof StandardAction))), [standardForm])
 
     const dispatch = useDispatch()
-    const addAsset = useCallback((tag: 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image' | 'Variable' | 'Computed' | 'Action') => () => {
+    const addAsset = useCallback((tag: 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image') => () => {
         switch(tag) {
             case 'Room':
                 dispatch(addOnboardingComplete(['addRoom']))
@@ -189,28 +182,6 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                                 onClick={() => {}}
                             />))
                         : null
-                    }
-                    { (variables || [])
-                        .map((variable) => (<JSHeader
-                            key={variable.key}
-                            item={variable}
-                            getJS={(item) => (item.default)}
-                            maxHeight="4em"
-                        />))
-                    }
-                    { (computes || []).map((compute) => (<JSHeader
-                            key={compute.key}
-                            item={compute}
-                            getJS={(item) => (item.src)}
-                            maxHeight="8em"
-                        />))
-                    }
-                    { (actions || []).map((action) => (<JSHeader
-                            key={action.key}
-                            item={action}
-                            getJS={(item) => (item.src)}
-                            maxHeight="32em"
-                        />))
                     }
                 </List>
             </Box>

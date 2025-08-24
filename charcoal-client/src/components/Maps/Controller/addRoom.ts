@@ -1,41 +1,46 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { UpdateStandardPayload } from "../../../slices/personalAssets/reducers"
-import { StandardFormData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room";
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import StandardPosition from "@tonylb/mtw-wml/ts/standardize/components/position"
+import StandardMap from "@tonylb/mtw-wml/ts/standardize/components/map"
+import { v4 as uuidv4 } from 'uuid'
 
-export const addRoomFactory = ({ standard, updateStandard, updateSelected, selectedPositions }: { standard: StandardFormData, updateStandard: (action: UpdateStandardPayload) => void, updateSelected: (newTree: GenericTree<SchemaTag>) => void, selectedPositions: GenericTree<SchemaTag> }) => ({ roomId, x, y }: { roomId?: string; x?: number; y?: number }) => {
+export const addRoomFactory = ({
+    mapId,
+    standard,
+    updateStandard
+}: {
+    mapId: `MAP#${string}`,
+    standard: StandardForm,
+    updateStandard: (action: UpdateStandardPayload) => void
+}) => ({ roomId, x, y }: { roomId?: `ROOM#${string}`; x?: number; y?: number }) => {
     //
     // Create a next synthetic key that doesn't conflict with the existing standardForm
     //
     let nextIndex = 1
     while (`Room${nextIndex}` in standard.byId) { nextIndex++ }
-    const defaultedRoomId = roomId ?? `Room${nextIndex}`
+    const roomKey = `Room${nextIndex}`
+    const defaultedRoomId = roomId ?? `ROOM#${uuidv4()}`
 
     updateStandard({
         type: 'update',
         update: (draft) => {
-            if (!(defaultedRoomId in draft.byId)) {
-                draft.byId[defaultedRoomId] = new StandardRoom(defaultedRoomId)
+            const returnValue = draft._clone()
+            returnValue.byId[roomKey] = new StandardRoom({
+                tag: 'Room',
+                key: roomKey,
+                universalKey: defaultedRoomId
+            })
+            const mapComponent = returnValue.byUniversalId[mapId]
+            if (mapComponent && mapComponent instanceof StandardMap) {
+                mapComponent.positions.push(new StandardPosition({
+                    room: defaultedRoomId,
+                    x: x ?? 0,
+                    y: y ?? 0
+                }))
             }
-            return draft
+            return returnValue
         }
     })
 
-    //
-    // TODO: ISS-4347: Create updateSelection function in mapContext which allows updates localized to the
-    // place in the ancestor-hierarchy of the selection (as recorded in mapTree) that is legal
-    // for the action in question
-    //
-    // TODO: Use updateSelection in place of updateStandard to make the update to the appropriate
-    // place in the mapTree hierarchy automatically.
-    //
-
-    updateSelected([
-        ...selectedPositions,
-        {
-            data: { tag: 'Room', key: defaultedRoomId },
-            children: []
-        }
-    ])
 }

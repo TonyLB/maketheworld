@@ -13,7 +13,7 @@ export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
             callback: (token) => {}
         })
         const valueStartIdx = sourceStream.position
-        while(sourceStream.lookAhead(1).match(/[A-Za-z0-9\-\#\_\.]/)) {
+        while(sourceStream.lookAhead(1).match(/[A-Za-z0-9\-\#\_\.\,]/)) {
             sourceStream.consume(1)
         }    
         const value = sourceStream.source.slice(valueStartIdx, sourceStream.position)

@@ -200,7 +200,7 @@ const createStandardExitFromLegacy = (legacyExit: RoomExit): StandardExit => {
         description: legacyExit.Name  // Convert string name to StandardLiteral
     }
     
-    return new StandardExit(exitData)
+    return StandardExit.create(exitData)
 }
 ```
 

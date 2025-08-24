@@ -4,7 +4,7 @@ import { StandardComponent } from "./baseClasses"
 import { StandardImageData } from "./dataTypes/image"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image";
-import { StandardKey } from "./reference";
+import StandardReference, { StandardKey } from "./reference";
 
 export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData> {
     tag = 'Image' as const;
@@ -84,7 +84,19 @@ export class StandardImage extends componentClassFactory(StandardImagePayload, '
     override withImport(fromAsset: AssetUUID): StandardComponent {
         return new StandardImage(super.withImport(fromAsset) as StandardImage)
     }
+
+    override withOrigin(origin: AssetUUID[]): StandardComponent {
+        return new StandardImage(super.withOrigin(origin) as StandardImage)
+    }
     
+    override withLeastCommonContext(context: StandardKey[]): StandardComponent {
+        return new StandardImage(super.withLeastCommonContext(context) as StandardImage)
+    }
+
+    override withChild(child: StandardReference): StandardComponent {
+        return new StandardImage(super.withChild(child) as StandardImage)
+    }
+
 }
 
 export default StandardImage

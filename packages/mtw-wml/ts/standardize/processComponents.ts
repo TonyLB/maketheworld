@@ -2,12 +2,12 @@ import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/baseClasses"
 import { StandardRemove, StandardReplace } from "./components/edits"
-import { isSchemaAsset, isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"
+import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardKey } from "./components/reference"
+import StandardRoom from "./components/room"
 
 export type ComponentProcessingTemplate = {
     key: ComponentTag;
@@ -144,11 +144,14 @@ export const processComponents = (props: {
                 }
 
                 //
-                // Localize the key for the component if it has a parent tag
+                // Localize the key for the component if it has a parent tag, EXCEPT for the case where the component
+                // is a room within a map. Because of the way maps display positions, we need to keep the room at a
+                // higher level, so that the position can be displayed separately from the room.
                 //
                 const localizedComponent = parentTag
-                    ? component
-                        .withLeastCommonContext(componentContext)
+                    ? component instanceof StandardRoom
+                        ? component.withLeastCommonContext(componentContext.filter(({ tag }) => (tag !== 'Map')))
+                        : component.withLeastCommonContext(componentContext)
                     : component
 
                 //

@@ -37,7 +37,7 @@ describe('RoomExit', () => {
 
     it('should render StandardExit with description', () => {
         // Create a StandardExit with description using WML
-        const exit = new StandardExit(`
+        const exit = StandardExit.create(`
             <Exit to=(ROOM#target-room)>
                 Test Exit
             </Exit>
@@ -54,7 +54,7 @@ describe('RoomExit', () => {
 
     it('should render StandardExit with object reference', () => {
         // Create a StandardExit with object reference using WML
-        const exit = new StandardExit(`
+        const exit = StandardExit.create(`
             <Exit to=(ROOM#target-room)>
                 Object Exit
             </Exit>
@@ -70,7 +70,7 @@ describe('RoomExit', () => {
     })
 
     it('should handle click and dispatch moveCharacter', () => {
-        const exit = new StandardExit({
+        const exit = StandardExit.create({
             tag: 'Exit',
             key: 'clickable-exit',
             to: 'ROOM#target-room',
@@ -99,7 +99,7 @@ describe('RoomExit', () => {
     })
 
     it('should handle missing description gracefully', () => {
-        const exit = new StandardExit(`
+        const exit = StandardExit.create(`
             <Exit to=(ROOM#target-room) />
         `)
 
@@ -113,7 +113,7 @@ describe('RoomExit', () => {
     })
 
     it('should handle missing target room gracefully', () => {
-        const exit = new StandardExit(`
+        const exit = StandardExit.create(`
             <Exit to=(unknown-room)>
                 No Target Exit
             </Exit>

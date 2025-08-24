@@ -36,6 +36,10 @@ export const isSchemaExample = (schema: any): schema is SchemaExampleTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
         optional: { as: CheckTypes.STRING, key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
-        values: { tag: 'Example', from: isSchemaAssetUUID }
+        values: { 
+            tag: 'Example', 
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
+        }
     })(schema)
 )

@@ -34,7 +34,8 @@ export const isSchemaCharacter = (schema: any): schema is SchemaCharacterTag => 
         },
         values: {
             tag: 'Character',
-            from: isSchemaAssetUUID
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
         }
     })(schema)
 )

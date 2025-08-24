@@ -6,6 +6,26 @@ import parse from '../simpleParser'
 import { deIndentWML } from '../schema/utils'
 
 describe('SchemaTagTree', () => {
+    it('should not condense universal key variants', () => {
+        const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(test)>
+                <Map uuid=(map1)>
+                    <Room uuid=(room1)><Position x="0" y="0" /></Room>
+                    <Room uuid=(room2)><Position x="100" y="100" /></Room>
+                </Map>
+            </Asset>
+        `))))
+        const tagTree = new SchemaTagTree(testTree)
+        expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
+            <Asset key=(test)>
+                <Map uuid=(map1)>
+                    <Room uuid=(room1)><Position x="0" y="0" /></Room>
+                    <Room uuid=(room2)><Position x="100" y="100" /></Room>
+                </Map>
+            </Asset>
+        `))
+    })
+
     it('should condense order-independent entries', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset key=(test)>

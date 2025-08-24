@@ -36,6 +36,7 @@ export interface StandardComponent {
     withKey(key: string): StandardComponent;
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;
+    origin?: AssetUUID[];
     withFileName(key: string | undefined): StandardComponent;
     tag: ComponentTag | 'Remove' | 'Replace';
     toJSON(options?: StandardToJSONOptions): StandardComponentData;
@@ -53,4 +54,5 @@ export interface StandardComponent {
     withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent;
     withChild(child: StandardReference): StandardComponent;
     withImport(fromAsset: AssetUUID): StandardComponent;
+    withOrigin(origin: AssetUUID[] | undefined): StandardComponent;
 }

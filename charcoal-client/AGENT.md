@@ -322,5 +322,11 @@ case 'SayMessage':
 - **State Management**: Complex interdependencies between different state slices
 - **Testing Coverage**: Need for expanded test coverage across component modes
 - **Type Safety**: Opportunities for enhanced TypeScript integration
+- **RoomExitEditor Refactoring**: The RoomExitEditor component was recently refactored to remove conditional logic dependencies, but needs further review for:
+  - Proper error handling and validation
+  - User experience improvements (better feedback, loading states)
+  - Performance optimization for large exit lists
+  - Accessibility enhancements
+  - Integration with the broader StandardExit API patterns
 
 This documentation will continue to evolve as the client system grows and new patterns emerge. The fundamental distinction between authoring and playing modes remains central to the user experience design.

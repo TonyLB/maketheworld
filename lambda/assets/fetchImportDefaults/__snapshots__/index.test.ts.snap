@@ -6,11 +6,19 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Room uuid=(testImportFoo) key=(testImportFoo)>
+    <Room
+        uuid=(testImportFoo)
+        key=(testImportFoo)
+        origin=(ASSET#testImportAssetOne,ASSET#testFinal)
+    >
         <ShortName>StubFoo</ShortName>
     </Room>
-    <Room uuid=(testNonImportTwo) key=(testNonImportTwo)>
-        <Exit to=(ROOM#testImportFoo)>test exit</Exit>
+    <Room
+        uuid=(testNonImportTwo)
+        key=(testNonImportTwo)
+        origin=(ASSET#testFinal)
+    >
+        <Exit to=(testImportFoo)>test exit</Exit>
     </Room>
 </Asset>",
     },
@@ -25,11 +33,21 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Room uuid=(testStubOne)><ShortName>Asset Three</ShortName></Room>
-    <Room uuid=(stub)><ShortName>AssetThreeStub</ShortName></Room>
-    <Room uuid=(testStubOne) />
-    <Room uuid=(testImportThree) key=(testImportThree)>
-        <Example uuid=(testImportTwoExample)>
+    <Room
+        uuid=(testStubOne)
+        origin=(ASSET#testImportAssetThree,ASSET#testImportAssetTwo)
+    >
+        <ShortName>Asset Three</ShortName>
+    </Room>
+    <Room uuid=(stub) origin=(ASSET#testImportAssetThree)>
+        <ShortName>AssetThreeStub</ShortName>
+    </Room>
+    <Room
+        uuid=(testImportThree)
+        key=(testImportThree)
+        origin=(ASSET#testImportAssetThree,ASSET#testImportAssetTwo,ASSET#testFinal)
+    >
+        <Example uuid=(testImportTwoExample) origin=(ASSET#testImportAssetTwo)>
             <Description>Asset Two</Description>
         </Example>
         <Exit to=(ROOM#stub)>test exit</Exit>
@@ -48,11 +66,17 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Feature uuid=(testFeature) key=(featureImport) />
-    <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures)>
-        <Example uuid=(testRoomWithFeaturesExample)>
-            <Description><Link to=(testFeature)>Test</Link></Description>
-        </Example>
+    <Feature
+        uuid=(testFeature)
+        key=(featureImport)
+        origin=(ASSET#testImportAssetFour,ASSET#testFinal)
+    />
+    <Room
+        uuid=(testRoomWithFeatures)
+        key=(testRoomWithFeatures)
+        origin=(ASSET#testImportAssetFour,ASSET#testFinal)
+    >
+        
     </Room>
 </Asset>",
     },
@@ -67,13 +91,24 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Room uuid=(testImportOne) key=(testImportOne)>
-        <Example uuid=(testImportOneExample)>
+    <Room
+        uuid=(testImportOne)
+        key=(testImportOne)
+        origin=(ASSET#testImportAssetOne,ASSET#testFinal)
+    >
+        <Example
+            uuid=(testImportOneExample)
+            origin=(ASSET#testImportAssetOne,ASSET#testFinal)
+        >
             <Description>OneTwo</Description>
         </Example>
-        <Exit to=(ROOM#testImportStubOne)>test exit one</Exit>
+        <Exit to=(testImportStubOne)>test exit one</Exit>
     </Room>
-    <Room uuid=(testImportStubOne) key=(testImportStubOne)>
+    <Room
+        uuid=(testImportStubOne)
+        key=(testImportStubOne)
+        origin=(ASSET#testImportAssetOne,ASSET#testFinal)
+    >
         <ShortName>StubTwo</ShortName>
     </Room>
 </Asset>",
@@ -89,13 +124,17 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
-    <Room uuid=(testNonImport) key=(testNonImport)>
-        <Example uuid=(testNonImportExample)>
+    <Room uuid=(testNonImport) key=(testNonImport) origin=(ASSET#testFinal)>
+        <Example uuid=(testNonImportExample) origin=(ASSET#testFinal)>
             <Description>DescriptionOne</Description>
         </Example>
-        <Exit to=(ROOM#testNonImportStub)>test exit</Exit>
+        <Exit to=(testNonImportStub)>test exit</Exit>
     </Room>
-    <Room uuid=(testNonImportStub) key=(testNonImportStub)>
+    <Room
+        uuid=(testNonImportStub)
+        key=(testNonImportStub)
+        origin=(ASSET#testFinal)
+    >
         <ShortName>StubOne</ShortName>
     </Room>
 </Asset>",

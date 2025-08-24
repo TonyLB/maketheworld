@@ -141,7 +141,7 @@ Include specific guidance for AI assistants:
 #### **Testing Patterns**
 - **Client (Vitest)**: Use `npm test` for watch mode, `npm test -- --run` for single run
 - **Packages (Jest)**: Use `npm run test` for watch mode, `npm run test -- --watchAll=false` for single run
-- **Specific Files**: `npm test -- --run src/path/to/test.ts` (client) or `npm run test src/path/to/test.ts` (packages)
+- **Specific Files**: `npm test -- --run src/path/to/test.ts` (client) or `npm run test -- src/path/to/test.ts` (packages)
 - **Test Coverage**: Follow existing test patterns and naming conventions
 - **Client Testing Standards**: See [`charcoal-client/AGENT.testing.md`](charcoal-client/AGENT.testing.md) for detailed Vitest patterns and React component testing
 

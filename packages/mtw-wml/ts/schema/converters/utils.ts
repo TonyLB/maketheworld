@@ -1,7 +1,7 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../simpleParser/baseClasses"
 import { ConverterMapValidateProperties, PrintMapOptionsChange, PrintMapOptionsFactory, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 export const validateProperties = <V extends ValidationTemplate>(template: V) => (parse: ParseTagOpen | ParseTagSelfClosure): ValidationTemplateOutput<V> => {
     const unmatchedKey = parse.properties.find(({ key }) => (!((key ?? 'DEFAULT') in template)))
@@ -13,10 +13,29 @@ export const validateProperties = <V extends ValidationTemplate>(template: V) =>
         if (required && !matchedKey) {
             throw new Error(`Property '${key}' is required in '${parse.tag}' items.`)
         }
-        if (matchedKey && (matchedKey.type !== type && !(type === ParsePropertyTypes.Asset && matchedKey.type === ParsePropertyTypes.Key))) {
-            const typeLabel = type === ParsePropertyTypes.Boolean ? 'Boolean' : type === ParsePropertyTypes.Expression ? 'Expression' : type === ParsePropertyTypes.Literal ? 'Literal' : 'Key'
+
+        if (type === ParsePropertyTypes.AssetList) {
+            if (matchedKey && matchedKey.type === ParsePropertyTypes.AssetList) {
+                return { [key]: matchedKey.value }
+            } else if (matchedKey && matchedKey.type === ParsePropertyTypes.Asset) {
+                return { [key]: [matchedKey.value] }
+            } else if (matchedKey && matchedKey.type === ParsePropertyTypes.Key) {
+                if (!isSchemaAssetUUID(matchedKey.value)) {
+                    throw new Error(`Property '${key}' must be of AssetList type in '${parse.tag}' items.`)
+                }
+                return { [key]: [matchedKey.value] }
+            }
+        }
+
+        if (matchedKey && (matchedKey.type !== type &&!(type === ParsePropertyTypes.Asset && matchedKey.type === ParsePropertyTypes.Key))) {
+            const typeLabel = type === ParsePropertyTypes.Boolean ? 'Boolean' : 
+                             type === ParsePropertyTypes.Expression ? 'Expression' : 
+                             type === ParsePropertyTypes.Literal ? 'Literal' : 
+                             type === ParsePropertyTypes.AssetList ? 'AssetList' :
+                             type === ParsePropertyTypes.Asset ? 'Asset' : 'Key'
             throw new Error(`Property '${key}' must be of ${typeLabel} type in '${parse.tag}' items.`)
         }
+        
         if (matchedKey) {
             return { [key]: matchedKey.value }
         }

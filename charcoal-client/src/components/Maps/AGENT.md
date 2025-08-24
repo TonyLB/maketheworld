@@ -1,14 +1,11 @@
 # Maps Components - Agent Navigation Guide
 
-**⚠️ MIGRATION IN PROGRESS** - This component system is actively being migrated from legacy patterns to modern React architecture. Expect continued refactoring and structural changes.
-
 ## Overview
 
 The Maps components provide visual map creation, editing, and viewing capabilities for the Make The World platform. This system handles both authoring (map creation/editing) and playing (character map navigation) contexts, with a primary focus on **conflict resolution and layer management** for maps that combine content from multiple asset layers.
 
 ### Key Concepts
 
-- **Multi-Layer Conflict Resolution**: System capable of merging and resolving conflicts from sibling and cousin asset layers
 - **Room Positioning Intelligence**: Automatic layout that prevents overlapping rooms from different asset layers
 - **Forward-Only Data Flow**: Changes percolate forward to later layers without bleeding back to parent assets
 - **Dual Context Architecture**: Separate editing and viewing modes with different data access patterns
@@ -18,7 +15,7 @@ The Maps components provide visual map creation, editing, and viewing capabiliti
 
 ### Primary Intent
 
-The Map system's fundamental purpose is to **resolve spatial conflicts** when multiple asset layers contribute rooms to the same map area. This is particularly critical when:
+The Map system's fundamental purpose is to **resolve spatial conflicts** when multiple asset layers contribute rooms to the same map area through linear or parallel inheritance. This is particularly critical when:
 
 - Room A (in parent asset) has nothing above/north of it
 - Room B (in child asset 1) is added directly to the north
@@ -29,9 +26,10 @@ Without conflict resolution, these rooms would overlap, creating a poor user exp
 ### Key Responsibilities
 
 - **Conflict Resolution**: Automatically position rooms to avoid overlaps from different asset layers
-- **Layer Management**: Maintain separation between asset layers while enabling visual coherence
+- **Linear Layer Management**: Maintain separation between inherited and editable layers while enabling visual coherence
 - **Spatial Intelligence**: Use connection graphs to position rooms as close as possible to sensible connections
 - **Asset Boundary Preservation**: Prevent child assets from unintentionally affecting parent asset data
+- **Dynamic Exit Loading**: Use MapExit class and exitExtraction for clean, maintainable exit data management
 
 ## Component Architecture
 
@@ -67,9 +65,10 @@ Maps/
 
 ### Core Methods
 
-- **mapTreeMemo**: Converts StandardForm data to map tree structure
+- **mapTreeMemo**: Converts StandardForm data to map tree structure using modern graph traversal patterns
 - **MapDThree**: D3.js integration class for interactive visualization and conflict resolution (see [`AGENT.d3.md`](AGENT.d3.md) for details)
 - **useMapContext**: React hook for accessing map state and actions
+- **exitExtraction**: Utility for extracting MapExit instances from StandardForm data
 
 ### Configuration
 
@@ -151,10 +150,10 @@ Maps/
 
 ### Current State
 
-- **Active Migration**: Converting from legacy patterns to modern React
 - **Router Version**: TODO for react-router-dom@6+ migration
 - **Component Deprecation**: MapHome component usage decision pending
-- **State Management**: Complex context-based state with Redux integration
+- **State Management**: Simplified context-based state with Redux integration
+- **Architecture**: Conditional and Visibility systems removed, simplified linear inheritance model
 
 ### Migration Patterns
 
@@ -165,11 +164,11 @@ Maps/
 
 ### Technical Debt
 
-- **Hardcoded Data**: MapList uses static test data instead of dynamic loading
 - **Position Management**: TODO for aligning localPositions with MapD3 understanding
 - **Tree ID Deprecation**: ISS-4368 refactoring needed for parentID removal
 - **File URL Extraction**: TODO for extracting from defaultAppearances
 - **D3.js Integration**: Multiple TODO items for D3.js optimization
+- **Router Migration**: TODO for react-router-dom@6+ migration
 
 ## Key Questions Requiring Answers
 
@@ -204,27 +203,3 @@ Maps/
 - **Performance Optimization**: Address D3.js integration bottlenecks and memory management
 - **Type Safety**: Complete migration to TypeScript with comprehensive type coverage
 - **Component Modernization**: Convert remaining legacy components to modern React patterns
-
-## Migration Planning
-
-**⚠️ MIGRATION IN PROGRESS** - The Maps component is undergoing a system-wide refactor to remove both the Conditional system and the Visibility system. See [`AGENT.planning.md`](AGENT.planning.md) for detailed planning and implementation details.
-
-### What's Being Removed
-
-- **Conditional System**: All `SchemaConditionTag`, `SchemaConditionStatementTag`, and `SchemaConditionFallthroughTag` functionality
-- **Visibility System**: Layer visibility controls, conditional visibility logic, and D3.js visibility filtering
-
-### Expected Outcome
-
-- **Simplified Tree Structure**: Linear ancestry tree without conditional branching
-- **Cleaner D3.js System**: All layers always visible, simpler force simulation
-- **Reduced Complexity**: Eliminate nested change handlers and visibility state management
-- **Better Performance**: Remove visibility filtering overhead and conditional processing
-
-### Current Status
-
-- **Planning Phase**: Migration planning document created and under review
-- **Implementation**: Awaiting planning approval and implementation timeline
-- **Documentation**: This section will be updated as migration progresses
-
-

@@ -71,7 +71,8 @@ export const isSchemaRoom = (schema: any): schema is SchemaRoomTag => (
         optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
         values: {
             tag: 'Room',
-            from: isSchemaAssetUUID
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
         }
     })(schema)
 )
@@ -82,7 +83,8 @@ export const isSchemaFeature = (schema: any): schema is SchemaFeatureTag => (
         optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
         values: {
             tag: 'Feature',
-            from: isSchemaAssetUUID
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
         }
     })(schema)
 )
@@ -91,7 +93,11 @@ export const isSchemaKnowledge = (schema: any): schema is SchemaKnowledgeTag => 
     checkTypes({
         required: { tag: CheckTypes.STRING},
         optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
-        values: { tag: 'Knowledge', from: isSchemaAssetUUID }
+        values: { 
+            tag: 'Knowledge', 
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
+        }
     })(schema)
 )
 
@@ -103,7 +109,11 @@ export const isSchemaMap = (schema: any): schema is SchemaMapTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
         optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
-        values: { tag: 'Map', from: isSchemaAssetUUID }
+        values: { 
+            tag: 'Map', 
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
+        }
     })(schema)
 )
 
@@ -111,7 +121,11 @@ export const isSchemaMessage = (schema: any): schema is SchemaMessageTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
         optional: { key: CheckTypes.STRING, from: CheckTypes.STRING },
-        values: { tag: 'Message', from: isSchemaAssetUUID }
+        values: { 
+            tag: 'Message', 
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
+        }
     })(schema)
 )
 
@@ -119,6 +133,10 @@ export const isSchemaMoment = (schema: any): schema is SchemaMomentTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
         optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
-        values: { tag: 'Moment', from: isSchemaAssetUUID }
+        values: { 
+            tag: 'Moment', 
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
+        }
     })(schema)
 )

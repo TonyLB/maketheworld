@@ -19,6 +19,18 @@ import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, Schema
 import { StandardKey } from "./components/reference";
 import { deepEqual } from "../lib/objects";
 import { StandardReferenceData } from "./components/dataTypes/reference";
+import { StandardComponentReferenceKey } from "./components/baseClasses";
+
+/**
+ * Semantic modes that StandardForm can operate in, indicating how the form should be interpreted
+ * and used in different contexts.
+ * 
+ * @see {@link ./AGENT.md#semantic-modes AGENT.md - Semantic Modes} for detailed explanation of each mode
+ */
+export type StandardFormSemanticMode = 
+    | 'direct-representation'    // Mode 1: Direct representation of a single asset
+    | 'edits-to-apply'           // Mode 2: Edits to be applied to a single asset  
+    | 'aggregation'              // Mode 3: Aggregation of content from multiple assets
 
 export type StandardRemove = {
     key?: string;
@@ -164,6 +176,7 @@ export type StandardAsset = {
 
 export type SerializeNDJSONMixin = {
     from?: AssetUUID;
+    origin?: AssetUUID[];  // Array of ancestor asset UUIDs in inheritance chain (from StandardBaseData)
     universalKey?: string;
     fileName?: string;
 }
@@ -194,7 +207,8 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] 
                 universalKey: 'string',
             }
         ),
-        (!line?.from || isSchemaAssetUUID(line.from))
+        (!line?.from || isSchemaAssetUUID(line.from)),
+        (!line?.origin || (Array.isArray(line.origin) && line.origin.every(isSchemaAssetUUID)))
     )
 }
 
@@ -208,36 +222,45 @@ export const isStandardNDJSON = (value: any): value is StandardNDJSON => {
 export type StandardFormSubsetRequestFull = {
     requestType: 'Full',
     keys: StandardKey[];
-    cascadeConditions?: {
-        conditionType: 'Link' | 'Position' | 'Exit';
-        cascadeType: StandardFormSubsetRequest["requestType"];
-        chainCascade?: boolean;
-    }[];
+    cascadeConditions?: StandardFormSubsetCascadeCondition[];
 }
 
 export type StandardFormSubsetRequestStub = {
     requestType: 'Stub',
     keys: StandardKey[];
+    cascadeConditions?: StandardFormSubsetCascadeCondition[];
 }
 
 export type StandardFormSubsetRequestShortName = {
     requestType: 'ShortName',
     keys: StandardKey[];
+    cascadeConditions?: StandardFormSubsetCascadeCondition[];
 }
 
-export type StandardFormSubsetRequestExit = {
-    requestType: 'Exit',
+export type StandardFormSubsetRequestExitsAndShortName = {
+    requestType: 'ExitsAndShortName',
     keys: StandardKey[];
-    cascadeConditions?: {
-        conditionType: 'Link' | 'Position' | 'Exit';
-        cascadeType: StandardFormSubsetRequest["requestType"];
-        chainCascade?: boolean;
-    }[];
+    cascadeConditions?: StandardFormSubsetCascadeCondition[];
+}
+
+// New directed graph cascade condition type
+export type StandardFormSubsetCascadeGraphNode = {
+    name: string;
+    requestType: StandardFormSubsetRequest['requestType'];
+    transitions: ({
+        connectionType: StandardComponentReferenceKey['referenceType'];
+        targetNode: string; // Reference to another node by name
+    })[];
+}
+
+export type StandardFormSubsetCascadeCondition = {
+    graph: StandardFormSubsetCascadeGraphNode[];
+    startNodes: string[]; // Names of nodes to start traversal from
 }
 
 export type StandardFormSubsetRequest =
     StandardFormSubsetRequestFull |
-    StandardFormSubsetRequestExit |
+    StandardFormSubsetRequestExitsAndShortName |
     StandardFormSubsetRequestShortName |
     StandardFormSubsetRequestStub
 
@@ -248,12 +271,14 @@ export const standardFormSubsetRequestPriority = (request?: StandardFormSubsetRe
     switch(request.requestType) {
         case 'Full':
             return 1
-        case 'Exit':
+        case 'ExitsAndShortName':
             return 2
         case 'ShortName':
             return 3
         case 'Stub':
             return 4
+        default:
+            return Infinity
     }
 }
 
@@ -263,18 +288,7 @@ export const standardFormSubsetRequestPriority = (request?: StandardFormSubsetRe
 // if a new request can be merged with an existing one.
 //
 export const standardFormSubsetRequestMatch = (a: StandardFormSubsetRequest) => (b: StandardFormSubsetRequest): boolean => {
-    if (a.requestType !== b.requestType) {
-        return false
-    }
-    switch(a.requestType) {
-        case 'Full':
-        case 'Exit':
-            if (b.requestType !== a.requestType) {
-                return false
-            }
-            return deepEqual(a.cascadeConditions, b.cascadeConditions)
-        case 'ShortName':
-        case 'Stub':
-            return true
-    }
+    // For merging purposes, we only care about requestType matching
+    // cascadeConditions are used during traversal, not merging
+    return a.requestType === b.requestType
 }

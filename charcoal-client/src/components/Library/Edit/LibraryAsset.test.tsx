@@ -17,7 +17,6 @@ const mockStore = configureStore()
 const currentWML = `
 <Asset key=(Test)>
     <Import from=(BASE)>
-        <Variable key=(basePower) as=(power) />
         <Room key=(DEF) />
     </Import>
     <Feature key=(clockTower)>
