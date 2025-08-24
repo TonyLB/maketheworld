@@ -13,7 +13,7 @@ import { StandardMessageData } from "./components/dataTypes/message";
 import { StandardMomentData } from "./components/dataTypes/moment";
 import { StandardRoomData } from "./components/dataTypes/room";
 import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
-import { StandardVariableData } from "./components/dataTypes/variable";
+
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardKey } from "./components/reference";
@@ -74,7 +74,7 @@ export const isStandardMap = isStandardFactory<StandardMapData>("Map")
 export const isStandardMessage = isStandardFactory<StandardMessageData>("Message")
 export const isStandardMoment = isStandardFactory<StandardMomentData>("Moment")
 export const isStandardAction = isStandardFactory<StandardActionData>("Action")
-export const isStandardVariable = isStandardFactory<StandardVariableData>("Variable")
+
 export const isStandardComputed = isStandardFactory<StandardComputedData>("Computed")
 export const isStandardImage = isStandardFactory<StandardImageData>("Image")
 
@@ -124,13 +124,7 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, uni
                 key,
                 universalKey
             }
-        case 'Variable':
-            return {
-                tag: 'Variable' as const,
-                key,
-                universalKey,
-                default: ''
-            }
+
         case 'Computed':
             return {
                 tag: 'Computed' as const,
