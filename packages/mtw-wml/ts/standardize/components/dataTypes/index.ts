@@ -3,7 +3,7 @@ import type { SerializeNDJSONMixin, StandardComponentData, StandardComponentTag 
 import { isSchemaTreeNode } from "../../../schema"
 import { StandardActionData, isStandardAction } from "./action"
 import { isStandardCharacter, StandardCharacterData } from "./character"
-import { StandardComputedData, isStandardComputed } from "./computed"
+
 import { isStandardExample, StandardExampleData } from "./example"
 import { StandardFeatureData, isStandardFeature } from "./feature"
 import { StandardImageData, isStandardImage } from "./image"
@@ -16,7 +16,7 @@ import { StandardRoomData, isStandardRoom } from "./room"
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
-export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardAction, isStandardComputed, isStandardImage }
+export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardAction, isStandardImage }
 
 export type StandardComponentNonEditData =
     StandardCharacterData |
@@ -28,7 +28,7 @@ export type StandardComponentNonEditData =
     StandardMessageData |
     StandardMomentData |
 
-    StandardComputedData |
+
     StandardActionData |
     StandardImageData
 
@@ -59,7 +59,7 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardMessage(value) ||
     isStandardMoment(value) ||
 
-    isStandardComputed(value) ||
+
     isStandardAction(value) ||
     isStandardImage(value)
 )

@@ -3,7 +3,7 @@ import { isStandardComponentData, StandardComponentNonEditData } from "./compone
 import { StandardBaseData } from "./components/dataTypes/abstract";
 import { StandardActionData } from "./components/dataTypes/action";
 import { StandardCharacterData } from "./components/dataTypes/character";
-import { StandardComputedData } from "./components/dataTypes/computed";
+
 import { StandardExampleData } from "./components/dataTypes/example";
 import { StandardFeatureData } from "./components/dataTypes/feature";
 import { StandardImageData } from "./components/dataTypes/image";
@@ -75,7 +75,7 @@ export const isStandardMessage = isStandardFactory<StandardMessageData>("Message
 export const isStandardMoment = isStandardFactory<StandardMomentData>("Moment")
 export const isStandardAction = isStandardFactory<StandardActionData>("Action")
 
-export const isStandardComputed = isStandardFactory<StandardComputedData>("Computed")
+
 export const isStandardImage = isStandardFactory<StandardImageData>("Image")
 
 export const isStandardRemove = isStandardFactory<StandardRemove>("Remove")
@@ -125,13 +125,7 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, uni
                 universalKey
             }
 
-        case 'Computed':
-            return {
-                tag: 'Computed' as const,
-                key,
-                universalKey,
-                src: '',
-            }
+
         case 'Action':
             return {
                 tag: 'Action' as const,
