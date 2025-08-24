@@ -12,11 +12,11 @@ import { StandardMapData, isStandardMap } from "./map"
 import { StandardMessageData, isStandardMessage } from "./message"
 import { StandardMomentData, isStandardMoment } from "./moment"
 import { StandardRoomData, isStandardRoom } from "./room"
-import { StandardVariableData, isStandardVariable } from "./variable"
+
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
-export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardAction, isStandardVariable, isStandardComputed, isStandardImage }
+export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardAction, isStandardComputed, isStandardImage }
 
 export type StandardComponentNonEditData =
     StandardCharacterData |
@@ -27,7 +27,7 @@ export type StandardComponentNonEditData =
     StandardMapData |
     StandardMessageData |
     StandardMomentData |
-    StandardVariableData |
+
     StandardComputedData |
     StandardActionData |
     StandardImageData
@@ -58,7 +58,7 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardMap(value) ||
     isStandardMessage(value) ||
     isStandardMoment(value) ||
-    isStandardVariable(value) ||
+
     isStandardComputed(value) ||
     isStandardAction(value) ||
     isStandardImage(value)
