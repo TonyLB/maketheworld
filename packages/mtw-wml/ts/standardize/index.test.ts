@@ -1003,58 +1003,6 @@ describe('StandardForm', () => {
         `))
     })
 
-    it('should render variables correctly', () => {
-        const test = new StandardForm(`<Asset key=(Test)>
-            <Variable uuid=(testVar) key=(testVar) default={false} />
-            <Room uuid=(testRoomOne) key=(testRoomOne)>
-                <Example uuid=(testRoomOneBase) key=(base)><Description>Test Room One</Description></Example>
-                <Exit to=(testRoomTwo)>two</Exit>
-            </Room>
-        </Asset>`)
-        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
-            <Asset key=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase) key=(base)>
-                        <Description>Test Room One</Description>
-                    </Example>
-                    <Exit to=(testRoomTwo)>two</Exit>
-                </Room>
-                <Variable uuid=(testVar) key=(testVar) default={false} />
-            </Asset>
-        `))
-    })
-
-    it('should render computes', () => {
-        const test = new StandardForm(`<Asset key=(Test)>
-            <Computed uuid=(computeOne) key=(computeOne) src={computeThree} />
-            <Computed uuid=(computeTwo) key=(computeTwo) src={!computeOne} />
-            <Computed uuid=(computeThree) key=(computeThree) src={!testVar} />
-            <Variable uuid=(testVar) key=(testVar) default={false} />
-        </Asset>`)
-        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
-            <Asset key=(Test)>
-                <Variable uuid=(testVar) key=(testVar) default={false} />
-                <Computed uuid=(computeOne) key=(computeOne) src={computeThree} />
-                <Computed uuid=(computeThree) key=(computeThree) src={!testVar} />
-                <Computed uuid=(computeTwo) key=(computeTwo) src={!computeOne} />
-            </Asset>
-        `))
-    })
-
-    it('should render actions correctly', () => {
-        const test = new StandardForm(`<Asset key=(Test)>
-            <Action uuid=(actionOne) key=(actionOne) src={testVar = !testVar} />
-            <Computed uuid=(computeOne) key=(computeOne) src={!testVar} />
-            <Variable uuid=(testVar) key=(testVar) default={false} />
-        </Asset>`)
-        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
-            <Asset key=(Test)>
-                <Variable uuid=(testVar) key=(testVar) default={false} />
-                <Computed uuid=(computeOne) key=(computeOne) src={!testVar} />
-                <Action uuid=(actionOne) key=(actionOne) src={testVar = !testVar} />
-            </Asset>
-        `))
-    })
 
     it('should handle complex WML parsing with nested character references', () => {
         const complexWML = deIndentWML(`
@@ -1380,12 +1328,11 @@ describe('StandardForm', () => {
     it('should render Replace tags correctly', () => {
         const testSource = deIndentWML(`
             <Asset key=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne) />
                 <Replace>
-                    <Variable uuid=(testVariable) key=(testVariable) default={true} />
+                    <Room uuid=(testRoomOne)><ShortName>Original</ShortName></Room>
                 </Replace>
                 <With>
-                    <Variable uuid=(testVariable) key=(testVariable) default={false} />
+                    <Room uuid=(testRoomOne)><ShortName>Changed</ShortName></Room>
                 </With>
             </Asset>
         `)
@@ -2710,9 +2657,6 @@ describe('StandardForm', () => {
                     <Room key=(testRoom) />The door opens!
                 </Message>
                 <Moment uuid=(007) key=(openDoorMoment)><Message key=(openDoor) /></Moment>
-                <Variable uuid=(008) key=(open) default={false} />
-                <Computed uuid=(009) key=(closed) src={!open} />
-                <Action uuid=(010) key=(toggleOpen) src={open = !open} />
             </Asset>
         `)
         const testSource = new StandardForm(testWML)
@@ -2726,9 +2670,6 @@ describe('StandardForm', () => {
         expect(test.byId.testMap.universalKey).toEqual('MAP#005')
         expect(test.byId.openDoor.universalKey).toEqual('MESSAGE#006')
         expect(test.byId.openDoorMoment.universalKey).toEqual('MOMENT#007')
-        expect(test.byId.open.universalKey).toEqual('VARIABLE#008')
-        expect(test.byId.closed.universalKey).toEqual('COMPUTED#009')
-        expect(test.byId.toggleOpen.universalKey).toEqual('ACTION#010')
     })
 
     it('should group sub-components correctly in JSON', () => {
