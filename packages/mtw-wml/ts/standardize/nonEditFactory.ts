@@ -1,9 +1,7 @@
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isStandardAction, isStandardCharacter, isStandardComputed, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, isStandardVariable, StandardComponentData } from "./baseClasses"
-import StandardAction from "./components/action"
+import { isStandardCharacter, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardComponentData } from "./baseClasses"
 import StandardCharacter from "./components/character"
 import { StandardComponent } from "./components/baseClasses"
-import StandardComputed from "./components/computed"
 import StandardFeature from "./components/feature"
 import StandardExample from "./components/example"
 import StandardImage from "./components/image"
@@ -12,12 +10,10 @@ import StandardMap from "./components/map"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
 import StandardRoom from "./components/room"
-import StandardVariable from "./components/variable"
 import { isStandardExample } from "./components/dataTypes/example"
 import { isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
-import { isSchemaAction, isSchemaComputed, isSchemaVariable } from "@tonylb/mtw-base/ts/schema/computation"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 import { ComponentTag } from "./components/dataTypes/abstract"
 import { isSchemaTreeNode } from "../schema"
@@ -52,15 +48,6 @@ export const standardNonEditComponentFactory = (arg: StandardComponentData | Gen
     if ((!isSchemaTreeNode(arg) && isStandardMoment(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaMoment)(arg))) {
         return new StandardMoment(arg)
     }
-    if ((!isSchemaTreeNode(arg) && isStandardVariable(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaVariable)(arg))) {
-        return new StandardVariable(arg)
-    }
-    if ((!isSchemaTreeNode(arg) && isStandardComputed(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaComputed)(arg))) {
-        return new StandardComputed(arg)
-    }
-    if ((!isSchemaTreeNode(arg) && isStandardAction(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaAction)(arg))) {
-        return new StandardAction(arg)
-    }
     if ((!isSchemaTreeNode(arg) && isStandardImage(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaImage)(arg))) {
         return new StandardImage(arg)
     }
@@ -88,12 +75,6 @@ export const standardComponentByTag = (tag: ComponentTag, key: string): Standard
             return new StandardMessage(key)
         case "Moment":
             return new StandardMoment(key)
-        case "Variable":
-            return new StandardVariable(key)
-        case "Computed":
-            return new StandardComputed(key)
-        case "Action":
-            return new StandardAction(key)
         case "Image":
             return new StandardImage(key)
         default:
