@@ -96,8 +96,8 @@ The following migrations must be completed in this specific order due to depende
 - [x] **Component Interface Updates**: Update component props and interfaces to remove legacy dependencies ✅ **COMPLETED**
 
 ##### **Phase 2D: WML Parser and Schema Analysis** *(Core Removal + Cleanup)*
-- [ ] **Update StandardForm Component Templates**: Remove Variable, Computed, and Action from component processing templates
-- [ ] **Update Component Factory Functions**: Remove Variable/Computed/Action creation logic from `standardNonEditComponentFactory` and `standardComponentByTag`
+- [x] **Update StandardForm Component Templates**: Remove Variable, Computed, and Action from component processing templates
+- [x] **Update Component Factory Functions**: Remove Variable/Computed/Action creation logic from `standardNonEditComponentFactory` and `standardComponentByTag`
 - [ ] **Update Component Processing**: Remove Variable/Computed/Action handling from `processComponents` function
 - [ ] **Remove Variable/Computed/Action Components from StandardForm**: Ensure that StandardForm has no code specific to these classes
 - [ ] **Deprecate Variable/Computed/Action Components**: Remove StandardVariable, StandardComputed, and StandardAction classes and their data types
