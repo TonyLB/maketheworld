@@ -1,7 +1,7 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import type { SerializeNDJSONMixin, StandardComponentData, StandardComponentTag } from "../../baseClasses"
 import { isSchemaTreeNode } from "../../../schema"
-import { StandardActionData, isStandardAction } from "./action"
+
 import { isStandardCharacter, StandardCharacterData } from "./character"
 
 import { isStandardExample, StandardExampleData } from "./example"
@@ -16,7 +16,7 @@ import { StandardRoomData, isStandardRoom } from "./room"
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
-export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardAction, isStandardImage }
+export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardImage }
 
 export type StandardComponentNonEditData =
     StandardCharacterData |
@@ -29,7 +29,7 @@ export type StandardComponentNonEditData =
     StandardMomentData |
 
 
-    StandardActionData |
+
     StandardImageData
 
 export type StandardRemoveData = {
@@ -60,7 +60,7 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardMoment(value) ||
 
 
-    isStandardAction(value) ||
+
     isStandardImage(value)
 )
 

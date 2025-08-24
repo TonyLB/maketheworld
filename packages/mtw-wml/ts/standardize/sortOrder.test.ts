@@ -12,8 +12,8 @@ describe('standardComponentSortOrder', () => {
             'Room1.Feature2': 'Feature',
             'Room2': 'Room',
             'Room2.Feature1': 'Feature',
-            'Room1.Feature1.Sub1': 'Action',
-            'Room1.Feature1.Sub2': 'Action'
+            'Room1.Feature1.Sub1': 'Knowledge',
+            'Room1.Feature1.Sub2': 'Knowledge'
         }
         return new StandardReferenceSimple({ key, tag: (tagMap[key] || 'Room') as ComponentTag })
     }
@@ -52,7 +52,7 @@ describe('standardComponentSortOrder', () => {
 
     it('should order deeply nested subcomponents after their ancestors', () => {
         const parent = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
-        const child = new StandardReferenceSimple({ key: 'Feature1.Sub1', tag: 'Action' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
+        const child = new StandardReferenceSimple({ key: 'Feature1.Sub1', tag: 'Knowledge' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
         expect(sortOrder(parent, child)).toBeLessThan(0)
         expect(sortOrder(child, parent)).toBeGreaterThan(0)
     })
