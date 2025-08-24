@@ -52,17 +52,15 @@ The following migrations must be completed in this specific order due to depende
 ---
 
 ### **Phase 2: Variable/Computed/Action System Removal** *(Core Dependency)*
-**Duration Estimate**: 6-8 weeks  
+**Duration Estimate**: 5-7 weeks  
 **Risk Level**: High  
 **Goal**: Systematically remove programming-language-based authoring system
 
 **Sub-Phase Breakdown**:
 - **Phase 2A**: Remove Ephemera Usage (1-2 weeks) - ✅ **COMPLETED**
 - **Phase 2B**: Dependencies Properties Assessment (1-2 weeks) - ✅ **COMPLETED**
-- **Phase 2C**: Frontend Component Analysis (1-2 weeks) - 🔄 **IN PROGRESS**
-- **Phase 2D**: WML Parser and Schema Analysis (1-2 weeks) - *(To be determined)*  
-- **Phase 2E**: Asset Content and Storage Analysis (1-2 weeks) - *(To be determined)*
-- **Phase 2F**: Final Cleanup and Validation (1 week) - *(To be determined)*
+- **Phase 2C**: Frontend Component Analysis (1-2 weeks) - ✅ **COMPLETED**
+- **Phase 2D**: WML Parser and Schema Analysis (3-4 weeks) - *(Core Removal + Cleanup)*
 
 #### **Objectives**
 - Document all Variable/Computed/Action dependencies
@@ -97,41 +95,28 @@ The following migrations must be completed in this specific order due to depende
 - [x] **JavaScript Editing Removal**: Remove Variable, Computed, and Action editing from frontend ✅ **COMPLETED**
 - [x] **Component Interface Updates**: Update component props and interfaces to remove legacy dependencies ✅ **COMPLETED**
 
-##### **Phase 2D: WML Parser and Schema Analysis** *(To be determined)*
-- [ ] **WML Parser Dependency Audit**: Review WML parser for Variable/Computed/Action tag handling
-- [ ] **Schema Validation Review**: Analyze all schema validation layers for deprecated tag support
-- [ ] **Import/Export System Review**: Review asset import/export systems for legacy tag handling
-- [ ] **WML Processing Pipeline**: Audit WML processing pipeline for Variable/Computed/Action dependencies
-- [ ] **Parser Test Suite Updates**: Update WML parser tests to reflect new tag restrictions
-- [ ] **Update Conditional Converters**: Remove conditional tag support from WML schema converters
-- [ ] **Remove Conditional Print Maps**: Remove conditional rendering from WML print system
-- [ ] **Update Component Processing**: Remove conditional wrapping from `processComponents` function
-- [ ] **Update Rich Text Conversion**: Remove conditional handling from rich text conversion functions
-
-##### **Phase 2E: Asset Content and Storage Analysis** *(To be determined)*
-- [ ] **Asset Content Analysis**: Identify all assets using Variable/Computed/Action/Condition tags
-- [ ] **Storage System Audit**: Review S3, DynamoDB, and cache systems for deprecated tag representations
-- [ ] **Migration Strategy Development**: Develop approach for converting existing dynamic content to static/example-driven
-- [ ] **Content Backup Planning**: Plan comprehensive backup strategy for assets containing deprecated tags
-- [ ] **Migration Tool Design**: Design tools to remove deprecated tags from existing assets
-
-##### **Phase 2F: Deprecate Tags from Storage Systems**
+##### **Phase 2D: WML Parser and Schema Analysis** *(Core Removal + Cleanup)*
+- [ ] **Update StandardForm Component Templates**: Remove Variable, Computed, and Action from component processing templates
+- [ ] **Update Component Factory Functions**: Remove Variable/Computed/Action creation logic from `standardNonEditComponentFactory` and `standardComponentByTag`
+- [ ] **Update Component Processing**: Remove Variable/Computed/Action handling from `processComponents` function
+- [ ] **Remove Variable/Computed/Action Components from StandardForm**: Ensure that StandardForm has no code specific to these classes
+- [ ] **Deprecate Variable/Computed/Action Components**: Remove StandardVariable, StandardComputed, and StandardAction classes and their data types
+- [ ] **Remove WML Schema Support**: Remove Variable, Computed, and Action tag support from WML schema converters
+- [ ] **Update WML Print Maps**: Remove Variable/Computed/Action rendering from WML print system
+- [ ] **Remove Conditional Tag Support**: Remove If/ElseIf/Else conditional tag support from WML schema
+- [ ] **Update Parser Test Suite**: Update WML parser tests to reflect removed tag restrictions
+- [ ] **Clean Up Type Guards**: Remove Variable/Computed/Action type guards and related imports
+- [ ] **Update Import/Export Systems**: Remove legacy tag handling from asset import/export systems
 - [ ] **WML Parser Deprecation**: Update WML parser to reject Variable/Computed/Action/Condition tags
-- [ ] **Asset Migration Tools**: Build tools to remove deprecated tags from existing assets
-- [ ] **Asset Content Cleanup**: Run migration tools to strip deprecated tags from all stored assets
 - [ ] **Schema Validation Updates**: Remove deprecated tag support from all schema validation layers
 - [ ] **Interface Type Removal**: Remove Variable/Computed/Action/Condition types from `mtw-interfaces`
-- [ ] **Storage Format Cleanup**: Ensure no deprecated tags remain in S3, DynamoDB, or cached representations
 - [ ] **Import/Export Updates**: Update asset import/export to reject files containing deprecated tags
-- [ ] **Backup Deprecated Content**: Archive final state of assets containing deprecated tags before cleanup
 
 #### **Success Criteria**
 - No Variable/Computed/Action code remains in Ephemera Lambda
 - All frontend components have been updated to remove legacy dependencies
 - WML parser rejects Variable/Computed/Action/Condition tags at all parsing layers
-- All existing assets have been cleaned of deprecated tags
 - No deprecated tag types remain in `mtw-interfaces` or schema validation
-- Storage systems (S3, DynamoDB, caches) contain no deprecated tag representations
 - System functions with static content where dynamic behavior was removed
 - Performance improvements from removing complex dependency calculations
 - Asset import/export tools reject files containing deprecated tags
@@ -142,7 +127,6 @@ The following migrations must be completed in this specific order due to depende
 - **Enables**: Asset caching migration, proper domain separation
 
 #### **Risk Mitigation**
-- **Content Loss Risk**: Comprehensive asset backup before migration
 - **Functionality Loss Risk**: Clear documentation of removed capabilities for future LLM-mediated replacement
 - **Performance Risk**: Monitoring to ensure static fallbacks don't create performance issues
 
@@ -263,13 +247,13 @@ Comprehensive risk mitigation across all phases:
 ```
 Phase 1: Message Format ✅ COMPLETED
     ↓
-Phase 2: Variable/Computed/Action Removal (6-8 weeks)
+Phase 2: Variable/Computed/Action Removal (5-7 weeks)
     ↓
 Phase 3: Asset Caching Migration (3-4 weeks)
     ↓
 Phase 4: LLM-Mediated System (6-8 weeks)
 
-Remaining Estimated Duration: 13-20 weeks
+Remaining Estimated Duration: 11-18 weeks
 ```
 
 ### **Critical Path**
@@ -341,11 +325,10 @@ This document is part of the project's comprehensive documentation system:
 - [x] **Migration Strategy Development**: Comprehensive plan for systematic removal ✅ **COMPLETED**
 
 ### **Phase 2: System Removal** 🔄 **IN PROGRESS (80% Complete)**
-- [x] **Phase 2A: Backend Infrastructure** ✅ **COMPLETED (100%)**
-- [x] **Phase 2B: WML Parser Updates** ✅ **COMPLETED (100%)**
+- [x] **Phase 2A: Remove Ephemera Usage** ✅ **COMPLETED (100%)**
+- [x] **Phase 2B: Dependencies Properties Assessment** ✅ **COMPLETED (100%)**
 - [x] **Phase 2C: Frontend Component Analysis** ✅ **COMPLETED (100%)**
 - [ ] **Phase 2D: WML Parser and Schema Analysis** ⏳ **PENDING (0%)**
-- [ ] **Phase 2E: Final Integration and Testing** ⏳ **PENDING (0%)**
 
 ### **Phase 3: Validation and Cleanup** ⏳ **PENDING (0%)**
 - [ ] **Comprehensive Testing**: Full system validation after migration
