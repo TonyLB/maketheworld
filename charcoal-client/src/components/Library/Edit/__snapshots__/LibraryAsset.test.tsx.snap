@@ -4,7 +4,6 @@ exports[`LibraryAsset context provider > should provide currentWML 1`] = `
 "
 <Asset key=(Test)>
     <Import from=(BASE)>
-        <Variable key=(basePower) as=(power) />
         <Room key=(DEF) />
     </Import>
     <Feature key=(clockTower)>
