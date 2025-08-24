@@ -28,20 +28,15 @@ import { StandardReferenceData } from "./components/dataTypes/reference"
 import StandardReference, { ReferenceList, StandardKey } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
-import StandardAction from "./components/action"
-import StandardComputed from "./components/computed"
 import StandardImage from "./components/image"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
-import StandardVariable from "./components/variable"
 import StandardExample from "./components/example"
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
     return (value instanceof StandardRemove) ||
         (value instanceof StandardReplace) ||
-        (value instanceof StandardAction) ||
         (value instanceof StandardCharacter) ||
-        (value instanceof StandardComputed) ||
         (value instanceof StandardFeature) ||
         (value instanceof StandardImage) ||
         (value instanceof StandardKnowledge) ||
@@ -49,8 +44,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
         (value instanceof StandardMessage) ||
         (value instanceof StandardMoment) ||
         (value instanceof StandardRoom) ||
-        (value instanceof StandardExample) ||
-        (value instanceof StandardVariable)
+        (value instanceof StandardExample)
 }
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
@@ -192,7 +186,7 @@ export class StandardForm {
                 this._metaData = node.children.filter(wrappedNodeTypeGuard(isSchemaMeta))
 
                 //
-                // Templates for the following component tags: 'Character', 'Image', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action'
+                // Templates for the following component tags: 'Character', 'Image', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Example'
                 //
                 const componentTemplates: ComponentProcessingTemplate[] = [
                     { 
@@ -215,9 +209,6 @@ export class StandardForm {
                         legalParents: ['Moment']
                     },
                     { key: 'Moment' },
-                    { key: 'Variable' },
-                    { key: 'Computed' },
-                    { key: 'Action' },
                     {
                         key: 'Example',
                         legalParents: ['Room', 'Feature', 'Knowledge']
