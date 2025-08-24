@@ -26,7 +26,7 @@ export const standardComponentSortOrder = (referenceA: StandardReferenceSimple |
         ? differingB
         : referenceB
     
-    const componentKeys: ComponentTag[] = ['Character', 'Image', 'Feature', 'Knowledge', 'Room', 'Map', 'Message', 'Moment', 'Computed', 'Action']
+    const componentKeys: ComponentTag[] = ['Character', 'Image', 'Feature', 'Knowledge', 'Room', 'Map', 'Message', 'Moment', 'Action']
     const indexA = componentKeys.indexOf(elementToCompareA.tag)
     const indexB = componentKeys.indexOf(elementToCompareB.tag)
     if (indexA !== indexB) {
