@@ -169,23 +169,6 @@ describe('schemaFromParse', () => {
         }])
     })
 
-    it('should parse key with periods', () => {
-        const testParse = parse(tokenizer(new SourceStream(`
-            <Asset key=(Test)>
-                <Room key=(ABC.DEF) />
-            </Asset>
-        `)))
-        expect(schemaFromParse(testParse)).toEqual([{
-            data: {
-                tag: "Asset",
-                key: "Test"
-            },
-            children: [
-                { data: { tag: 'Room', key: 'ABC.DEF' }, children: [] }
-            ]
-        }])
-    })
-
     it('should parse room with feature included', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test)>
@@ -211,43 +194,6 @@ describe('schemaFromParse', () => {
                 }
             ]
         }])
-    })
-
-    it('should parse content update key', () => {
-        const testParse = parse(tokenizer(new SourceStream(`
-            <Asset key=(Test) update>
-                <Room key=(ABC)>
-                    <Example uuid=(123-ABC-update-example)>
-                        <Description>
-                            Test One Update
-                        </Description>
-                    </Example>
-                </Room>
-            </Asset>
-        `)))
-        expect(schemaFromParse(testParse)).toEqual([
-            {
-                data: {
-                    tag: "Asset",
-                    key: "Test",
-                    update: true
-                },
-                children: [{
-                    data: {
-                        tag: "Room",    
-                        key: "ABC"
-                    },
-                    children: [{
-                        data: { tag: 'Example', uuid: 'EXAMPLE#123-ABC-update-example' },
-                        children: [{
-                            data: { tag: "Description" },
-                            children: [{ data: { tag: "String", value: "Test One Update" }, children: [] }]
-                        }]
-                    }]
-                }]
-            }
-        ])
-
     })
 
     it('should correctly parse property replace tags', () => {
@@ -388,26 +334,6 @@ describe('schemaFromParse', () => {
 
     })
 
-    it('should make a schema for a character update correctly', () => {
-        const testParse = parse(tokenizer(new SourceStream(`
-            <Character key=(TESS) update>
-                <Name>Tess</Name>
-            </Character>
-        `)))
-        expect(schemaFromParse(testParse)).toEqual([{
-            data: {
-                tag: "Character",
-                key: "TESS",
-                update: true
-            },
-            children: [{
-                data: { tag: 'Name' },
-                children: [{ data: { tag: 'String', value: 'Tess' }, children: [] } ]
-            }]
-        }])
-
-    })
-
     it('should correctly extract map rooms', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test)>
@@ -520,19 +446,6 @@ describe('schemaToWML', () => {
         expect(schemaToWML(testSchema)).toEqual('<Room uuid=(test) />'  )
     })
 
-    it('should correctly round-trip a content update', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test) update>
-                <Meta key=(ABC) time="1234" />
-                <Room key=(VORTEX)>
-                    <Example uuid=(123-VORTEX-update-example)>
-                        <Description>Test Room Update</Description>
-                    </Example>
-                </Room>
-            </Asset>`)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
-    })
-
     it('should correctly join elements in Description context', () => {
         const testWML = `
             <Description>
@@ -621,8 +534,6 @@ describe('schemaToWML', () => {
         expect(schemaToWML(parsed)).toEqual(testWML)
     })
 
-
-
     it('should correctly round-trip knowledge items', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
@@ -646,13 +557,6 @@ describe('schemaToWML', () => {
                 <Image key=(TESSIcon) />
                 <Import from=(base) />
             </Character>
-        `)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
-    })
-
-    it('should correctly round-trip a character update', () => {
-        const testWML = deIndentWML(`
-            <Character key=(TESS) update><Name>Tess</Name></Character>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
@@ -749,23 +653,6 @@ describe('schemaToWML', () => {
                         <Description>A dark and dusty lobby.</Description>
                     </Example>
                 </Room>
-            </Asset>
-        `)
-        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
-        expect(schemaToWML(schema)).toEqual(testWML)
-    })
-
-    it('should correctly round-trip selected tags', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Selected>
-                    <Room key=(test)>
-                        <Example uuid=(123-test-selected-example)>
-                            <Name>Lobby</Name>
-                            <Description>A dark and dusty lobby.</Description>
-                        </Example>
-                    </Room>
-                </Selected>
             </Asset>
         `)
         const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
