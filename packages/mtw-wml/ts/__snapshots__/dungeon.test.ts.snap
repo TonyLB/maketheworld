@@ -1004,41 +1004,5 @@ Array [
     "tag": "Map",
     "universalKey": undefined,
   },
-  Object {
-    "context": undefined,
-    "default": "false",
-    "key": "orcAppeased",
-    "tag": "Variable",
-    "universalKey": undefined,
-  },
-  Object {
-    "context": undefined,
-    "default": "false",
-    "key": "orcDefeated",
-    "tag": "Variable",
-    "universalKey": undefined,
-  },
-  Object {
-    "context": undefined,
-    "default": "false",
-    "key": "passageCleared",
-    "tag": "Variable",
-    "universalKey": undefined,
-  },
-  Object {
-    "context": undefined,
-    "dependencies": undefined,
-    "key": "pieAccessible",
-    "src": "orcAppeased || orcDefeated",
-    "tag": "Computed",
-    "universalKey": undefined,
-  },
-  Object {
-    "context": undefined,
-    "key": "clearPassage",
-    "src": " passageCleared = true ",
-    "tag": "Action",
-    "universalKey": undefined,
-  },
 ]
 `;
