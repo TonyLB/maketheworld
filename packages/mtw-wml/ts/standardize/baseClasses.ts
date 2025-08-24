@@ -1,7 +1,7 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree";
 import { isStandardComponentData, StandardComponentNonEditData } from "./components/dataTypes";
 import { StandardBaseData } from "./components/dataTypes/abstract";
-import { StandardActionData } from "./components/dataTypes/action";
+
 import { StandardCharacterData } from "./components/dataTypes/character";
 
 import { StandardExampleData } from "./components/dataTypes/example";
@@ -73,7 +73,7 @@ export const isStandardKnowledge = isStandardFactory<StandardKnowledgeData>("Kno
 export const isStandardMap = isStandardFactory<StandardMapData>("Map")
 export const isStandardMessage = isStandardFactory<StandardMessageData>("Message")
 export const isStandardMoment = isStandardFactory<StandardMomentData>("Moment")
-export const isStandardAction = isStandardFactory<StandardActionData>("Action")
+
 
 
 export const isStandardImage = isStandardFactory<StandardImageData>("Image")
@@ -126,13 +126,7 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, uni
             }
 
 
-        case 'Action':
-            return {
-                tag: 'Action' as const,
-                key,
-                universalKey,
-                src: '',
-            }
+
         case 'Map':
             return {
                 tag: 'Map' as const,
