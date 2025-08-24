@@ -74,20 +74,20 @@ describe('wml simple parser', () => {
                     <Use key=(overview) type="Room" />
                 </Import>
                 <Room key=(ABC)>
-                    <Name>Vortex</Name>
-                    <Description>
-                        <Space />
-                        Vortex
-                        <Link to=(toggleOpen)>(toggle)</Link>
-                    </Description>
+                    <Example uuid=(123-VORTEX-example)>
+                        <Name>Vortex</Name>
+                        <Description>
+                            <Space />
+                            Vortex
+                            <Link to=(GHI)>(knowledge)</Link>
+                        </Description>
+                    </Example>
+                    <Exit to=(DEF)>welcome</Exit>
                 </Room>
-                <If {open}>
-                    <Room key=(ABC)>
-                        <Exit to=(DEF)>welcome</Exit>
-                    </Room>
-                </If>
                 <Room key=(DEF)>
-                    <Name>Welcome</Name>
+                    <Example uuid=(123-Welcome-example)>
+                        <Name>Welcome</Name>
+                    </Example>
                     <Exit to=(ABC)>vortex</Exit>
                 </Room>
                 <Knowledge key=(GHI)>
@@ -96,9 +96,6 @@ describe('wml simple parser', () => {
                         There is so much to know!
                     </Description>
                 </Knowledge>
-                <Variable key=(open) default={false} />
-                <Action key=(toggleOpen) src={open = !open} />
-                <Computed key=(closed) src={!open} />
                 <Moment key=(openDoorMoment)>
                     <Message key=(openDoor)>
                         The door opens!
@@ -121,28 +118,28 @@ describe('wml simple parser', () => {
             ] },
             { type: ParseTypes.Close, tag: 'Import' },
             { type: ParseTypes.Open, tag: 'Room', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'ABC' }] },
+            { type: ParseTypes.Open, tag: 'Example', properties: [{ type: ParsePropertyTypes.Key, key: 'uuid', value: '123-VORTEX-example' }] },
             { type: ParseTypes.Open, tag: 'Name', properties: [] },
             { type: ParseTypes.Text, text: 'Vortex' },
             { type: ParseTypes.Close, tag: 'Name' },
             { type: ParseTypes.Open, tag: 'Description', properties: [] },
             { type: ParseTypes.SelfClosure, tag: 'Space', properties: [] },
             { type: ParseTypes.Text, text: ' Vortex ' },
-            { type: ParseTypes.Open, tag: 'Link', properties: [{ type: ParsePropertyTypes.Key, key: 'to', value: 'toggleOpen' }] },
-            { type: ParseTypes.Text, text: '(toggle)' },
+            { type: ParseTypes.Open, tag: 'Link', properties: [{ type: ParsePropertyTypes.Key, key: 'to', value: 'GHI' }] },
+            { type: ParseTypes.Text, text: '(knowledge)' },
             { type: ParseTypes.Close, tag: 'Link' },
             { type: ParseTypes.Close, tag: 'Description' },
-            { type: ParseTypes.Close, tag: 'Room' },
-            { type: ParseTypes.Open, tag: 'If', properties: [{ type: ParsePropertyTypes.Expression, value: 'open' }] },
-            { type: ParseTypes.Open, tag: 'Room', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'ABC' }] },
+            { type: ParseTypes.Close, tag: 'Example' },
             { type: ParseTypes.Open, tag: 'Exit', properties: [{ type: ParsePropertyTypes.Key, key: 'to', value: 'DEF' }] },
             { type: ParseTypes.Text, text: 'welcome' },
             { type: ParseTypes.Close, tag: 'Exit' },
             { type: ParseTypes.Close, tag: 'Room' },
-            { type: ParseTypes.Close, tag: 'If' },
             { type: ParseTypes.Open, tag: 'Room', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'DEF' }] },
+            { type: ParseTypes.Open, tag: 'Example', properties: [{ type: ParsePropertyTypes.Key, key: 'uuid', value: '123-Welcome-example' }] },
             { type: ParseTypes.Open, tag: 'Name', properties: [] },
             { type: ParseTypes.Text, text: 'Welcome' },
             { type: ParseTypes.Close, tag: 'Name' },
+            { type: ParseTypes.Close, tag: 'Example' },
             { type: ParseTypes.Open, tag: 'Exit', properties: [{ type: ParsePropertyTypes.Key, key: 'to', value: 'ABC' }] },
             { type: ParseTypes.Text, text: 'vortex' },
             { type: ParseTypes.Close, tag: 'Exit' },
@@ -155,18 +152,6 @@ describe('wml simple parser', () => {
             { type: ParseTypes.Text, text: 'There is so much to know!' },
             { type: ParseTypes.Close, tag: 'Description' },
             { type: ParseTypes.Close, tag: 'Knowledge' },
-            { type: ParseTypes.SelfClosure, tag: 'Variable', properties: [
-                { type: ParsePropertyTypes.Key, key: 'key', value: 'open' },
-                { type: ParsePropertyTypes.Expression, key: 'default', value: 'false' }
-            ] },
-            { type: ParseTypes.SelfClosure, tag: 'Action', properties: [
-                { type: ParsePropertyTypes.Key, key: 'key', value: 'toggleOpen' },
-                { type: ParsePropertyTypes.Expression, key: 'src', value: 'open = !open' }
-            ] },
-            { type: ParseTypes.SelfClosure, tag: 'Computed', properties: [
-                { type: ParsePropertyTypes.Key, key: 'key', value: 'closed' },
-                { type: ParsePropertyTypes.Expression, key: 'src', value: '!open' }
-            ] },
             { type: ParseTypes.Open, tag: 'Moment', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'openDoorMoment' }] },
             { type: ParseTypes.Open, tag: 'Message', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'openDoor' }] },
             { type: ParseTypes.Text, text: 'The door opens! ' },
