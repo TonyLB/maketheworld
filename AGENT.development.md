@@ -111,24 +111,38 @@ The following migrations must be completed in this specific order due to depende
 - **StandardVariable**: Completely removed class, data types, tests, and all references
 - **StandardComputed**: Completely removed class, data types, tests, and all references  
 - **StandardAction**: Completely removed class, data types, tests, and all references
-- **System Impact**: All tests passing (72 suites, 734 tests) with no functionality loss
 - **Code Cleanup**: Removed imports, type guards, union types, and sort order references
 
-**Remaining Phase 2D Tasks:**
-- [ ] **Remove WML Schema Support**: Remove Variable, Computed, and Action tag support from WML schema converters
-- [ ] **Update WML Print Maps**: Remove Variable/Computed/Action rendering from WML print system
-- [ ] **Remove Conditional Tag Support**: Remove If/ElseIf/Else conditional tag support from WML schema
-- [ ] **Update Parser Test Suite**: Update WML parser tests to reflect removed tag restrictions
-- [ ] **Clean Up Type Guards**: Remove Variable/Computed/Action type guards and related imports
-- [ ] **Update Import/Export Systems**: Remove legacy tag handling from asset import/export systems
-- [ ] **WML Parser Deprecation**: Update WML parser to reject Variable/Computed/Action/Condition tags
-- [ ] **Schema Validation Updates**: Remove deprecated tag support from all schema validation layers
+
+**Remaining Phase 2D Tasks (Reordered for Test-First Approach):**
+
+#### **Phase 2D.1: Test Suite Assessment and Cleanup** *(Test Coverage Preservation)*
+- [x] **Audit Test Dependencies**: Identify all unit tests that depend on Variable/Computed/Action/If/ElseIf/Else tags ✅ **COMPLETED**
+- [ ] **Update mtw-wml Test Suite**: Replace deprecated tag usage with supported alternatives in mtw-wml test files
+- [ ] **Verify mtw-wml Test Coverage**: Ensure all mtw-wml tests pass and maintain coverage of remaining functionality
+- [ ] **Update Other Package Tests**: Address test dependencies in mtw-base, mtw-interfaces, and lambda packages
+
+#### **Phase 2D.2: Remove Dependent Functionality** *(Least to Greatest Consequence)*
+- [ ] **Remove Print Map Dependencies**: Remove Variable/Computed/Action and If/ElseIf/Else rendering from WML print system
+- [ ] **Remove Schema Validation Dependencies**: Remove deprecated tag support from schema validation layers
+- [ ] **Remove Import/Export Dependencies**: Remove legacy tag handling from asset import/export systems
+
+#### **Phase 2D.3: Remove Core Schema Support** *(Core Converter Removal)*
+- [ ] **Remove WML Schema Converters**: Remove Variable, Computed, and Action tag support from WML schema converters
+- [ ] **Remove Conditional Schema Converters**: Remove If/ElseIf/Else conditional tag support from WML schema
+- [ ] **Update Parser Integration**: Remove deprecated converters from main converterMap and printMap
 - [ ] **Interface Type Removal**: Remove Variable/Computed/Action/Condition types from `mtw-interfaces`
-- [ ] **Import/Export Updates**: Update asset import/export to reject files containing deprecated tags
+
+#### **Phase 2D.4: Final Parser Updates** *(Parser Rejection Implementation)*
+- [ ] **WML Parser Deprecation**: Update WML parser to reject Variable/Computed/Action/Condition tags
+- [ ] **Schema Validation Updates**: Remove deprecated tag support from all remaining validation layers
+- [ ] **Remove Type Guard Dependencies**: Remove Variable/Computed/Action type guards and related imports (including in `packages/mtw-base`)
+- [ ] **Remove extractDependencies Utility**: Remove Variable/Computed/Action dependency extraction functionality from lambda/wml utilities
 
 #### **Success Criteria**
 - ✅ **No Variable/Computed/Action code remains in mtw-wml package** - All classes, data types, and tests removed
 - ✅ **All frontend components have been updated to remove legacy dependencies** - StandardForm updated in Phase 2C
+- ⏳ **All unit tests pass and maintain coverage** - Test suite cleanup needed before converter removal
 - ⏳ **WML parser rejects Variable/Computed/Action/Condition tags at all parsing layers** - Still needs implementation
 - ⏳ **No deprecated tag types remain in `mtw-interfaces` or schema validation** - Still needs implementation
 - ✅ **System functions with static content where dynamic behavior was removed** - Core components successfully removed
