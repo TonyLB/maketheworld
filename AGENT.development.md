@@ -96,9 +96,9 @@ The following migrations must be completed in this specific order due to depende
 - [x] **Component Interface Updates**: Update component props and interfaces to remove legacy dependencies ✅ **COMPLETED**
 
 ##### **Phase 2D: WML Parser and Schema Analysis** *(Core Removal + Cleanup)*
-**Status**: 🟢 **CORE COMPONENT REMOVAL COMPLETED** - Variable/Computed/Action classes successfully removed  
-**Progress**: 2/8 major tasks completed (25%)  
-**Next Focus**: WML Schema and Parser updates
+**Status**: 🟢 **PRINT MAP DEPENDENCIES REMOVED** - Variable/Computed/Action and If/ElseIf/Else rendering successfully removed  
+**Progress**: 3/8 major tasks completed (37.5%)  
+**Next Focus**: Schema validation dependencies removal
 - [x] **Update StandardForm Component Templates**: Remove Variable, Computed, and Action from component processing templates
 - [x] **Update Component Factory Functions**: Remove Variable/Computed/Action creation logic from `standardNonEditComponentFactory` and `standardComponentByTag`
 - [x] **Update Component Processing**: Remove Variable/Computed/Action handling from `processComponents` function
@@ -113,7 +113,6 @@ The following migrations must be completed in this specific order due to depende
 - **StandardAction**: Completely removed class, data types, tests, and all references
 - **Code Cleanup**: Removed imports, type guards, union types, and sort order references
 
-
 **Remaining Phase 2D Tasks (Reordered for Test-First Approach):**
 
 #### **Phase 2D.1: Test Suite Assessment and Cleanup** *(Test Coverage Preservation)* ✅ **COMPLETED**
@@ -123,7 +122,7 @@ The following migrations must be completed in this specific order due to depende
 - [x] **Update Other Package Tests**: Address test dependencies in mtw-base, mtw-interfaces, and lambda packages ✅ **COMPLETED**
 
 #### **Phase 2D.2: Remove Dependent Functionality** *(Least to Greatest Consequence)*
-- [ ] **Remove Print Map Dependencies**: Remove Variable/Computed/Action and If/ElseIf/Else rendering from WML print system
+- [x] **Remove Print Map Dependencies**: Remove Variable/Computed/Action and If/ElseIf/Else rendering from WML print system ✅ **COMPLETED**
 - [ ] **Remove Schema Validation Dependencies**: Remove deprecated tag support from schema validation layers
 - [ ] **Remove Import/Export Dependencies**: Remove legacy tag handling from asset import/export systems
 - [ ] **Remove Selected System**: Remove `defaultSelected` function, `SchemaSelectedTag`, and `selected` properties (all conditional-dependent)
@@ -133,6 +132,7 @@ The following migrations must be completed in this specific order due to depende
 - [ ] **Remove Conditional Schema Converters**: Remove If/ElseIf/Else conditional tag support from WML schema
 - [ ] **Update Parser Integration**: Remove deprecated converters from main converterMap and printMap
 - [ ] **Interface Type Removal**: Remove Variable/Computed/Action/Condition types from `mtw-interfaces`
+- [ ] **Base Type Removal**: Remove Variable/Computed/Action/Condition types from `mtw-base`
 
 **⚠️ IMPORTANT: Systems We Are NOT Removing (Different from Conditionals)**
 - **`cascadeConditions`**: Graph-based traversal system for asset subsetting (spatial relationships, exits, component references)
@@ -174,7 +174,7 @@ The following migrations must be completed in this specific order due to depende
 **Next Phase**: WML Schema and Parser updates to complete Phase 2D
 
 **Phase 2D.1 Status**: ✅ **COMPLETED** - All test dependencies on deprecated tags removed, all package tests updated  
-**Phase 2D.2 Status**: ⏳ **READY TO PROCEED** - Test suite cleanup enables safe removal of dependent functionality
+**Phase 2D.2 Status**: ✅ **COMPLETED** - Print map dependencies removed, system can no longer render deprecated tags to WML
 
 ---
 

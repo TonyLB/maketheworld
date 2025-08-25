@@ -1,10 +1,8 @@
 import { isSchemaAction, isSchemaComputed, isSchemaVariable, SchemaActionTag, SchemaComputedTag, SchemaVariableTag } from "@tonylb/mtw-base/ts/schema/computation"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
-import { tagRender } from "./tagRender"
+import { ConverterMapEntry } from "./baseClasses"
 import { validateProperties } from "./utils"
-import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
-import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
+import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 
 const computationTemplates = {
     Variable: {
@@ -61,55 +59,4 @@ export const computationConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
-}
-
-export const computationPrintMap: Record<string, PrintMapEntry> = {
-    Variable: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
-        isSchemaVariable(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Variable',
-                properties: [
-                    { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('VARIABLE')(tag.uuid) : '' },
-                    { key: 'key', type: 'key', value: tag.key ?? '' },
-                    { key: 'default', type: 'expression', value: tag.default ?? '' },
-                    { key: 'from', type: 'key', value: tag.from ?? '' },
-                    { key: 'as', type: 'key', value: tag.as ?? '' }
-                ],
-                node: { data: tag, children: [] }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-    ),
-    Computed: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
-        isSchemaComputed(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Computed',
-                properties: [
-                    { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('COMPUTED')(tag.uuid) : '' },
-                    { key: 'key', type: 'key', value: tag.key ?? '' },
-                    { key: 'src', type: 'expression', value: tag.src },
-                    { key: 'from', type: 'key', value: tag.from ?? '' },
-                    { key: 'as', type: 'key', value: tag.as ?? '' }
-                ],
-                node: { data: tag, children: [] }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-    ),
-    Action: ({ tag: { data: tag }, ...args }: PrintMapEntryArguments) => (
-        isSchemaAction(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Action',
-                properties: [
-                    { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('ACTION')(tag.uuid) : '' },
-                    { key: 'key', type: 'key', value: tag.key ?? '' },
-                    { key: 'src', type: 'expression', value: tag.src },
-                    { key: 'from', type: 'key', value: tag.from ?? '' },
-                    { key: 'as', type: 'key', value: tag.as ?? '' }
-                ],
-                node: { data: tag, children: [] }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-    )
 }

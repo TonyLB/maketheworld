@@ -1,12 +1,9 @@
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
-import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
-import { tagRender } from "./tagRender"
+import { ConverterMapEntry } from "./baseClasses"
 import { validateProperties } from "./utils"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { wrapperCombine } from "./quantumRender/combine"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement, SchemaConditionFallthroughTag, SchemaConditionStatementTag } from "@tonylb/mtw-base/ts/schema/condition"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { PrintMapResult, PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 
 const conditionalTemplates = {
     If: {
@@ -121,64 +118,5 @@ export const conditionalConverters: Record<string, ConverterMapEntry> = {
                 children: [...previous.children, node]
             }
         }
-    }
-}
-
-export const conditionalPrintMap: Record<string, PrintMapEntry> = {
-    Statement: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
-        const { persistentOnly } = args.options
-        if (!isSchemaConditionStatement(tag)) {
-            return [{ printMode: PrintMode.naive, output: '' }]
-        }
-        const siblings = args.options.siblings ?? []
-        if (siblings.length === 0) {
-            return tagRender({
-                ...args,
-                tag: 'If',
-                properties: [
-                    { type: 'expression', value: tag.if },
-                    ...( persistentOnly ? [] : [{ key: 'selected', type: 'boolean' as const, value: tag.selected ?? false }])
-                ],
-                node: { data: tag, children }
-            })    
-        }
-        else {
-            return tagRender({
-                ...args,
-                tag: 'ElseIf',
-                properties: [
-                    { type: 'expression', value: tag.if },
-                    ...( persistentOnly ? [] : [{ key: 'selected', type: 'boolean' as const, value: tag.selected ?? false }])
-                ],
-                node: { data: tag, children }
-            })    
-        }
-    },
-    Fallthrough: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
-        const { persistentOnly } = args.options
-        if (!isSchemaConditionFallthrough(tag)) {
-            return [{ printMode: PrintMode.naive, output: '' }]
-        }
-        return tagRender({
-            ...args,
-            tag: 'Else',
-            properties: persistentOnly ? [] : [{ key: 'selected', type: 'boolean' as const, value: tag.selected ?? false }],
-            node: { data: tag, children }
-        })    
-    },
-    If: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
-        if (!isSchemaCondition(tag)) {
-            return [{ printMode: PrintMode.naive, output: '' }]
-        }
-        const outputs: PrintMapResult[][] = children
-            .reduce<{ returnValue: PrintMapResult[][]; siblings: GenericTree<SchemaTag> }>((previous, node) => {
-                const newOptions = { ...args.options, siblings: previous.siblings, context: [...args.options.context, node.data] }
-                const newOutput = args.schemaToWML({ tag: node, ...args, options: newOptions })
-                return {
-                    returnValue: [...previous.returnValue, newOutput],
-                    siblings: [...previous.siblings, node]
-                }
-            }, { returnValue: [], siblings: [] }).returnValue
-        return wrapperCombine(...outputs)
     }
 }

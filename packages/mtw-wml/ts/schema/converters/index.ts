@@ -3,8 +3,8 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { validateProperties } from "./utils"
 import { characterConverters, characterPrintMap } from "./character"
 import { componentConverters, componentPrintMap } from "./components"
-import { computationConverters, computationPrintMap } from "./computation"
-import { conditionalConverters, conditionalPrintMap } from "./conditionals"
+import { computationConverters } from "./computation"
+import { conditionalConverters } from "./conditionals"
 import { editConverters, editPrintMap } from './edit'
 import { authorizationConverters, authorizationPrintMap } from "./authorization"
 import { importExportConverters, importExportPrintMap } from "./importExport"
@@ -62,8 +62,6 @@ export const printMap: Record<string, PrintMapEntry> = {
     ...examplePrintMap,
     ...characterPrintMap,
     ...componentPrintMap,
-    ...computationPrintMap,
-    ...conditionalPrintMap,
     ...editPrintMap,
     ...importExportPrintMap,
     ...messagingPrintMap,
