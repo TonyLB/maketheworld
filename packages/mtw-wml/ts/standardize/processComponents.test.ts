@@ -48,13 +48,13 @@ describe("processComponents", () => {
                 <Room key=(test)>
                     <Example uuid=(testRoomExample)>
                         <Name>Test Room</Name>
-                        <Summary>One<br /><If {false}>Two</If></Summary>
+                        <Summary>One<br />Two</Summary>
                         <Description>Three</Description>
                     </Example>
                 </Room>
                 <Feature key=(testFeature)>
                     <Example uuid=(testFeatureExample)>
-                        <Description><If {false}>Four</If></Description>
+                        <Description>Four</Description>
                     </Example>
                 </Feature>
             </Asset>
@@ -72,15 +72,13 @@ describe("processComponents", () => {
             deIndentWML(`
                 <Example uuid=(testRoomExample)>
                     <Name>Test Room</Name>
-                    <Summary>One<br /><If {false}>Two</If></Summary>
+                    <Summary>One<br />Two</Summary>
                     <Description>Three</Description>
                 </Example>
             `),
             '<Feature key=(testFeature)><Example uuid=(testFeatureExample) /></Feature>',
             deIndentWML(`
-                <Example uuid=(testFeatureExample)>
-                    <Description><If {false}>Four</If></Description>
-                </Example>
+                <Example uuid=(testFeatureExample)><Description>Four</Description></Example>
             `)
         ])
     })
@@ -91,7 +89,7 @@ describe("processComponents", () => {
                 <Room key=(test)>
                     <Example uuid=(testRoomExample)>
                         <Name>Test Room</Name>
-                        <Summary>One<br /><If {false}>Two</If></Summary>
+                        <Summary>One<br />Two</Summary>
                         <Description>Three</Description>
                     </Example>
                     <Feature key=(testLocal)>
@@ -120,7 +118,7 @@ describe("processComponents", () => {
             deIndentWML(`
                 <Example uuid=(testRoomExample)>
                     <Name>Test Room</Name>
-                    <Summary>One<br /><If {false}>Two</If></Summary>
+                    <Summary>One<br />Two</Summary>
                     <Description>Three</Description>
                 </Example>
             `),
