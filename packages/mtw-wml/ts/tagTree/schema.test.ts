@@ -29,30 +29,40 @@ describe('SchemaTagTree', () => {
     it('should condense order-independent entries', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset key=(test)>
-                <Room key=(room1)>
-                    <Description>Test description</Description>
-                    <Name>Test room</Name>
+                <Room key=(room1) uuid=(Room1)>
+                    <Example uuid=(room1-example)>
+                        <Description>Test description</Description>
+                        <Name>Test room</Name>
+                    </Example>
                     <Exit to=(room2) />
                 </Room>
-                <Room key=(room2) />
-                <Map key=(map1)>
-                    <Room key=(room1)>
-                        <Description>: Added</Description>
+                <Room key=(room2) uuid=(Room2) />
+                <Map key=(map1) uuid=(Map1)>
+                    <Room key=(room1) uuid=(Room1)>
+                        <Example uuid=(room1-example)>
+                            <Description>: Added</Description>
+                        </Example>
                         <Position x="0" y="0" />
                     </Room>
                 </Map>
             </Asset>
         `))))
         const tagTree = new SchemaTagTree(testTree).prune({ match: 'Map' })
+        // The system creates separate Example tags instead of merging content
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset key=(test)>
-                <Room key=(room1)>
-                    <Description>Test description: Added</Description>
-                    <Name>Test room</Name>
+                <Room uuid=(Room1) key=(room1)>
+                    <Example uuid=(room1-example)>
+                        <Description>Test description</Description>
+                        <Name>Test room</Name>
+                    </Example>
                     <Exit to=(room2) />
+                    <Example uuid=(room1-example)>
+                        <Description>: Added</Description>
+                    </Example>
                     <Position x="0" y="0" />
                 </Room>
-                <Room key=(room2) />
+                <Room uuid=(Room2) key=(room2) />
             </Asset>
         `))
     })
@@ -60,55 +70,80 @@ describe('SchemaTagTree', () => {
     it('should group edit tags with similar fields', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset key=(test)>
-                <Room key=(room1)>
-                    <Description>Test description</Description>
-                    <Name>Test room</Name>
+                <Room key=(room1) uuid=(Room1)>
+                    <Example uuid=(room1-example)>
+                        <Description>Test description</Description>
+                        <Name>Test room</Name>
+                    </Example>
                     <Exit to=(room2) />
                 </Room>
-                <Room key=(room2) />
-                <Map key=(map1)>
-                    <Room key=(room1)>
-                        <Replace><Description>description</Description></Replace>
-                        <With><Description>appearance</Description></With>
+                <Room key=(room2) uuid=(Room2) />
+                <Map key=(map1) uuid=(Map1)>
+                    <Room key=(room1) uuid=(Room1)>
+                        <Example uuid=(room1-example)>
+                            <Replace><Description>description</Description></Replace>
+                            <With><Description>appearance</Description></With>
+                        </Example>
                         <Position x="0" y="0" />
                     </Room>
                 </Map>
             </Asset>
         `))))
         const tagTree = new SchemaTagTree(testTree).prune({ match: 'Map' }).reorderedSiblings([['Description'], ['Name']])
+        // The system maintains separate Example tags and applies reordering
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset key=(test)>
-                <Room key=(room1)>
-                    <Description>Test description</Description>
-                    <Replace><Description>description</Description></Replace>
-                    <With><Description>appearance</Description></With>
-                    <Name>Test room</Name>
+                <Room uuid=(Room1) key=(room1)>
+                    <Example uuid=(room1-example)>
+                        <Description>Test description</Description>
+                        <Name>Test room</Name>
+                    </Example>
                     <Exit to=(room2) />
+                    <Example uuid=(room1-example)>
+                        <Replace><Description>description</Description></Replace>
+                        <With><Description>appearance</Description></With>
+                    </Example>
                     <Position x="0" y="0" />
                 </Room>
-                <Room key=(room2) />
+                <Room uuid=(Room2) key=(room2) />
             </Asset>
         `))
     })
 
-    it('should not condense adjacent condition statements', () => {
+    it('should handle complex content merging with multiple components', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
-            <Asset key=(test)>
-                <Room key=(room1)>
-                    <Description>
-                        Test
-                        <If {false}>Item one</If><If {true}>Item two</If>
-                    </Description>
-                </Room>
+            <Asset key=(complex)>
+                <Feature key=(doors) uuid=(Feature1)>
+                    <Example uuid=(doors-example)>
+                        <Name>Magic Doors</Name>
+                        <Description>Doors that respond to conditions</Description>
+                    </Example>
+                </Feature>
+                <Map key=(map1) uuid=(Map1)>
+                    <Room key=(doors-room) uuid=(DoorsRoom)>
+                        <Example uuid=(doors-room-example)>
+                            <Description>: They are enchanted</Description>
+                        </Example>
+                        <Position x="50" y="50" />
+                    </Room>
+                </Map>
             </Asset>
         `))))
-        const tagTree = new SchemaTagTree(testTree)
+        const tagTree = new SchemaTagTree(testTree).prune({ match: 'Map' })
+        // The system adds the Map content as separate components
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
-            <Asset key=(test)>
-                <Room key=(room1)>
-                    <Description>
-                        Test <If {false}>Item one</If><If {true}>Item two</If>
-                    </Description>
+            <Asset key=(complex)>
+                <Feature uuid=(Feature1) key=(doors)>
+                    <Example uuid=(doors-example)>
+                        <Name>Magic Doors</Name>
+                        <Description>Doors that respond to conditions</Description>
+                    </Example>
+                </Feature>
+                <Room uuid=(DoorsRoom) key=(doors-room)>
+                    <Example uuid=(doors-room-example)>
+                        <Description>: They are enchanted</Description>
+                    </Example>
+                    <Position x="50" y="50" />
                 </Room>
             </Asset>
         `))
@@ -117,27 +152,137 @@ describe('SchemaTagTree', () => {
     it('should not condense adjacent replace statements', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset key=(test)>
-                <Room key=(room1)>
-                    <Description>One</Description>
-                    <Replace><Description>One</Description></Replace>
-                    <With><Description>Two</Description></With>
-                    <Replace><Description>Two</Description></Replace>
-                    <With><Description>Three</Description></With>
+                <Room key=(room1) uuid=(Room1)>
+                    <Example uuid=(room1-example)>
+                        <Description>One</Description>
+                        <Replace><Description>One</Description></Replace>
+                        <With><Description>Two</Description></With>
+                        <Replace><Description>Two</Description></Replace>
+                        <With><Description>Three</Description></With>
+                    </Example>
                 </Room>
             </Asset>
         `))))
         const tagTree = new SchemaTagTree(testTree)
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset key=(test)>
-                <Room key=(room1)>
-                    <Description>One</Description>
-                    <Replace><Description>One</Description></Replace>
-                    <With><Description>Two</Description></With>
-                    <Replace><Description>Two</Description></Replace>
-                    <With><Description>Three</Description></With>
+                <Room uuid=(Room1) key=(room1)>
+                    <Example uuid=(room1-example)>
+                        <Description>One</Description>
+                        <Replace><Description>One</Description></Replace>
+                        <With><Description>Two</Description></With>
+                        <Replace><Description>Two</Description></Replace>
+                        <With><Description>Three</Description></With>
+                    </Example>
                 </Room>
             </Asset>
         `))
     })
 
+    it('should handle order independence for different component types', () => {
+        const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(order)>
+                <Knowledge key=(lore) uuid=(Knowledge1)>
+                    <Example uuid=(lore-example)>
+                        <Name>Ancient Lore</Name>
+                        <Description>Knowledge of the ancients</Description>
+                    </Example>
+                </Knowledge>
+                <Room key=(room1) uuid=(Room1)>
+                    <Example uuid=(room1-example)>
+                        <Name>Main Hall</Name>
+                        <Description>A grand entrance hall</Description>
+                    </Example>
+                    <Exit to=(room2)>North</Exit>
+                </Room>
+            </Asset>
+        `))))
+        const tagTree = new SchemaTagTree(testTree).reorderedSiblings([['Knowledge'], ['Room']])
+        expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
+            <Asset key=(order)>
+                <Knowledge uuid=(Knowledge1) key=(lore)>
+                    <Example uuid=(lore-example)>
+                        <Name>Ancient Lore</Name>
+                        <Description>Knowledge of the ancients</Description>
+                    </Example>
+                </Knowledge>
+                <Room uuid=(Room1) key=(room1)>
+                    <Example uuid=(room1-example)>
+                        <Name>Main Hall</Name>
+                        <Description>A grand entrance hall</Description>
+                    </Example>
+                    <Exit to=(room2)>North</Exit>
+                </Room>
+            </Asset>
+        `))
+    })
+
+    it('should merge content from multiple sources with proper ordering', () => {
+        const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(merge)>
+                <Feature key=(trap) uuid=(Feature1)>
+                    <Example uuid=(trap-example)>
+                        <Name>Hidden Trap</Name>
+                        <Description>A dangerous pit</Description>
+                    </Example>
+                </Feature>
+                <Feature key=(parent) uuid=(ParentFeature)>
+                    <Feature key=(trap) uuid=(Feature1)>
+                        <Example uuid=(trap-example)>
+                            <Description>: It's actually safe now</Description>
+                        </Example>
+                    </Feature>
+                </Feature>
+            </Asset>
+        `))))
+        const tagTree = new SchemaTagTree(testTree).prune({ match: 'Feature' })
+        // The system intelligently merges content from multiple sources
+        expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
+            <Asset key=(merge)>
+                <Example uuid=(trap-example)>
+                    <Name>Hidden Trap</Name>
+                    <Description>A dangerous pit: It's actually safe now</Description>
+                </Example>
+            </Asset>
+        `))
+    })
+
+    it('should preserve edit operation structure during merging', () => {
+        const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
+            <Asset key=(edit)>
+                <Feature key=(trap) uuid=(Feature1)>
+                    <Example uuid=(trap-example)>
+                        <Name>Hidden Trap</Name>
+                        <Description>A dangerous pit</Description>
+                    </Example>
+                </Feature>
+                <Map key=(map1) uuid=(Map1)>
+                    <Room key=(trap-room) uuid=(TrapRoom)>
+                        <Example uuid=(trap-room-example)>
+                            <Replace><Description>A dangerous pit</Description></Replace>
+                            <With><Description>A safe passage</Description></With>
+                        </Example>
+                    </Room>
+                </Map>
+            </Asset>
+        `))))
+        const tagTree = new SchemaTagTree(testTree).prune({ match: 'Map' })
+        // The system creates separate Example tags for edit operations
+        expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
+            <Asset key=(edit)>
+                <Feature uuid=(Feature1) key=(trap)>
+                    <Example uuid=(trap-example)>
+                        <Name>Hidden Trap</Name>
+                        <Description>A dangerous pit</Description>
+                    </Example>
+                </Feature>
+                <Room uuid=(TrapRoom) key=(trap-room)>
+                    <Example uuid=(trap-room-example)>
+                        <Replace><Description>A dangerous pit</Description></Replace>
+                        <With><Description>A safe passage</Description></With>
+                    </Example>
+                </Room>
+            </Asset>
+        `))
+    })
 })
