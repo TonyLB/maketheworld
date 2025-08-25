@@ -1,4 +1,4 @@
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMapId, EphemeraRoomId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
 import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
 import { checkAll, checkTypes } from "./utils";
@@ -95,7 +95,7 @@ export type ActionAPIMessage = {
 
 export type LinkAPIMessage = {
     message: 'link';
-    to: EphemeraFeatureId | EphemeraActionId | EphemeraCharacterId | EphemeraKnowledgeId;
+    to: EphemeraFeatureId | EphemeraCharacterId | EphemeraKnowledgeId;
     CharacterId?: EphemeraCharacterId;
     directResponse?: boolean;
 }
@@ -162,7 +162,7 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
             return Boolean(
                 checkTypes(message, { to: 'string' }, { CharacterId: 'string' })
                 && (!message.CharacterId || isEphemeraCharacterId(message.CharacterId))
-                && (isEphemeraFeatureId(message.to) || isEphemeraActionId(message.to) || isEphemeraCharacterId(message.to) || isEphemeraKnowledgeId(message.to))
+                && (isEphemeraFeatureId(message.to) || isEphemeraCharacterId(message.to) || isEphemeraKnowledgeId(message.to))
             )
         case 'command':
             return Boolean(
