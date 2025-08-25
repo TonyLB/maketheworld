@@ -61,38 +61,7 @@ export const assertInstance = <C extends { new (...args: any[]) : any }>(value: 
     throw new Error('Type mismatch')
 }
 
-export const defaultSelected = <Extra extends {}>(tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
-    tree.map((node) => {
-        if (treeNodeTypeguard(isSchemaCondition)(node)) {
-            const indexOfFirstSelected = node.children.findIndex(({ data }) => ((isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)) && (data.selected ?? false) ))
-            if (indexOfFirstSelected !== -1) {
-                return {
-                    ...node,
-                    children: defaultSelected(node.children.map((child, index) => (
-                        treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child)
-                            ? { ...child, data: { ...child.data, selected: index === indexOfFirstSelected ? true : undefined } }
-                            : child
-                    )))
-                }
-            }
-            else {
-                const fallThroughIndex = node.children.findIndex(treeNodeTypeguard(isSchemaConditionFallthrough))
-                return {
-                    ...node,
-                    children: defaultSelected(node.children.map((child, index) => (
-                        treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child)
-                            ? { ...child, data: { ...child.data, selected: index === fallThroughIndex } }
-                            : child
-                    )))
-                }
-            }
-        }
-        return {
-            ...node,
-            children: defaultSelected(node.children)
-        }
-    })
-)
+
 
 export const hasName = (component: StandardComponent): component is StandardComponent & HasName => {
     return (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardMap)

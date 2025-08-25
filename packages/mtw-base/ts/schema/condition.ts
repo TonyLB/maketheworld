@@ -1,9 +1,7 @@
 import { SchemaBase, SchemaWrapper } from "./baseClasses";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
 
-export type SchemaSelectedTag = {
-    tag: 'Selected';
-} & SchemaBase
+
 
 export type SchemaConditionTag = {
     tag: 'If';
@@ -21,9 +19,7 @@ export type SchemaConditionFallthroughTag = {
     selected?: boolean;
 } & SchemaBase
 
-export const isSchemaSelected = (schema: any): schema is SchemaSelectedTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'Selected' } })(schema)
-)
+
 
 export const isSchemaCondition = (schema: any): schema is SchemaConditionTag => (
     checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'If' } })(schema)
