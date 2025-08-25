@@ -116,22 +116,28 @@ The following migrations must be completed in this specific order due to depende
 
 **Remaining Phase 2D Tasks (Reordered for Test-First Approach):**
 
-#### **Phase 2D.1: Test Suite Assessment and Cleanup** *(Test Coverage Preservation)*
+#### **Phase 2D.1: Test Suite Assessment and Cleanup** *(Test Coverage Preservation)* ✅ **COMPLETED**
 - [x] **Audit Test Dependencies**: Identify all unit tests that depend on Variable/Computed/Action/If/ElseIf/Else tags ✅ **COMPLETED**
-- [ ] **Update mtw-wml Test Suite**: Replace deprecated tag usage with supported alternatives in mtw-wml test files
-- [ ] **Verify mtw-wml Test Coverage**: Ensure all mtw-wml tests pass and maintain coverage of remaining functionality
+- [x] **Update mtw-wml Test Suite**: Replace deprecated tag usage with supported alternatives in mtw-wml test files ✅ **COMPLETED**
+- [x] **Verify mtw-wml Test Coverage**: Ensure all mtw-wml tests pass and maintain coverage of remaining functionality ✅ **COMPLETED**
 - [ ] **Update Other Package Tests**: Address test dependencies in mtw-base, mtw-interfaces, and lambda packages
 
 #### **Phase 2D.2: Remove Dependent Functionality** *(Least to Greatest Consequence)*
 - [ ] **Remove Print Map Dependencies**: Remove Variable/Computed/Action and If/ElseIf/Else rendering from WML print system
 - [ ] **Remove Schema Validation Dependencies**: Remove deprecated tag support from schema validation layers
 - [ ] **Remove Import/Export Dependencies**: Remove legacy tag handling from asset import/export systems
+- [ ] **Remove Selected System**: Remove `defaultSelected` function, `SchemaSelectedTag`, and `selected` properties (all conditional-dependent)
 
 #### **Phase 2D.3: Remove Core Schema Support** *(Core Converter Removal)*
 - [ ] **Remove WML Schema Converters**: Remove Variable, Computed, and Action tag support from WML schema converters
 - [ ] **Remove Conditional Schema Converters**: Remove If/ElseIf/Else conditional tag support from WML schema
 - [ ] **Update Parser Integration**: Remove deprecated converters from main converterMap and printMap
 - [ ] **Interface Type Removal**: Remove Variable/Computed/Action/Condition types from `mtw-interfaces`
+
+**⚠️ IMPORTANT: Systems We Are NOT Removing (Different from Conditionals)**
+- **`cascadeConditions`**: Graph-based traversal system for asset subsetting (spatial relationships, exits, component references)
+- **Frontend UI Selection States**: React component state management (tabs, items, tools) - completely independent of WML
+- **Edit System Tags**: `<Replace>`, `<With>`, `<Remove>` - part of the asset editing system, not conditionals
 
 #### **Phase 2D.4: Final Parser Updates** *(Parser Rejection Implementation)*
 - [ ] **WML Parser Deprecation**: Update WML parser to reject Variable/Computed/Action/Condition tags
@@ -142,7 +148,7 @@ The following migrations must be completed in this specific order due to depende
 #### **Success Criteria**
 - ✅ **No Variable/Computed/Action code remains in mtw-wml package** - All classes, data types, and tests removed
 - ✅ **All frontend components have been updated to remove legacy dependencies** - StandardForm updated in Phase 2C
-- ⏳ **All unit tests pass and maintain coverage** - Test suite cleanup needed before converter removal
+- ✅ **All unit tests pass and maintain coverage** - Test suite cleanup completed in Phase 2D.1
 - ⏳ **WML parser rejects Variable/Computed/Action/Condition tags at all parsing layers** - Still needs implementation
 - ⏳ **No deprecated tag types remain in `mtw-interfaces` or schema validation** - Still needs implementation
 - ✅ **System functions with static content where dynamic behavior was removed** - Core components successfully removed
@@ -166,6 +172,9 @@ The following migrations must be completed in this specific order due to depende
 **Impact**: Eliminated legacy JavaScript-based dynamic behavior system  
 **System Status**: All tests passing, no functionality loss, clean codebase  
 **Next Phase**: WML Schema and Parser updates to complete Phase 2D
+
+**Phase 2D.1 Status**: ✅ **COMPLETED** - All test dependencies on deprecated tags removed  
+**Phase 2D.2 Status**: ⏳ **READY TO PROCEED** - Test suite cleanup enables safe removal of dependent functionality
 
 ---
 

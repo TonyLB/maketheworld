@@ -1,5 +1,5 @@
 import { Schema, schemaToWML } from '../schema'
-import { StandardForm, defaultSelected } from '.'
+import { StandardForm } from '.'
 import { deIndentWML } from '../schema/utils'
 import { GenericTree, GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
@@ -16,66 +16,6 @@ jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
     }
 })
 
-
-xdescribe('defaultSelected', () => {
-    const schemaTest = (wml: string): GenericTree<SchemaTag> => {
-        const schema = new Schema()
-        schema.loadWML(wml)
-        return schema.schema
-    }
-    
-    it('should leave WML unchanged when selected exists', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Room key=(ABC)>
-                    <Example key=(base)>
-                        <If {true}><Exit to=(DEF)>Test Exit</Exit></If>
-                        <ElseIf {false} selected><Exit to=(GHI)>Test Exit</Exit></ElseIf>
-                    </Example>
-                </Room>
-            </Asset>
-        `)
-        expect(schemaToWML(defaultSelected(schemaTest(testWML)))).toEqual(testWML)
-    })
-
-    it('should not add default select when no fallthrough', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Room key=(ABC)>
-                    <Example key=(base)>
-                        <If {true}><Exit to=(DEF)>Test Exit</Exit></If>
-                        <ElseIf {false}><Exit to=(GHI)>Test Exit</Exit></ElseIf>
-                    </Example>
-                </Room>
-            </Asset>
-        `)
-        expect(schemaToWML(defaultSelected(schemaTest(testWML)))).toEqual(testWML)
-    })
-
-    it('should add default select on fallthrough when available', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Room key=(ABC)>
-                    <Example key=(base)>
-                        <If {true}><Exit to=(DEF)>Test Exit</Exit></If>
-                        <Else><Exit to=(GHI)>Test Exit</Exit></Else>
-                    </Example>
-                </Room>
-            </Asset>
-        `)
-        expect(schemaToWML(defaultSelected(schemaTest(testWML)))).toEqual(deIndentWML(`
-            <Asset key=(Test)>
-                <Room key=(ABC)>
-                    <Example key=(base)>
-                        <If {true}><Exit to=(DEF)>Test Exit</Exit></If>
-                        <Else selected><Exit to=(GHI)>Test Exit</Exit></Else>
-                    </Example>
-                </Room>
-            </Asset>
-        `))
-    })
-
-})
 
 describe('StandardForm', () => {
 
@@ -402,14 +342,12 @@ describe('StandardForm', () => {
                     <Description>Three</Description>
                 </Example>
             </Room>
-            <If {false}>
-                <Room key=(test)>
-                    <Example key=(testExample)><Summary>Two</Summary></Example>
-                </Room>
-                <Feature uuid=(testFeature) key=(testFeature)>
-                    <Example uuid=(testFeatureBase) key=(base)><Description>Four</Description></Example>
-                </Feature>
-            </If>
+            <Room key=(test)>
+                <Example key=(testExample)><Summary>Two</Summary></Example>
+            </Room>
+            <Feature uuid=(testFeature) key=(testFeature)>
+                <Example uuid=(testFeatureBase) key=(base)><Description>Four</Description></Example>
+            </Feature>
             <Room key=(test)>
                 <Example key=(testExample)><Name>Test Room</Name></Example>
             </Room>
@@ -418,13 +356,13 @@ describe('StandardForm', () => {
             <Asset key=(Test)>
                 <Feature uuid=(testFeature) key=(testFeature)>
                     <Example uuid=(testFeatureBase) key=(base)>
-                        <Description><If {false}>Four</If></Description>
+                        <Description>Four</Description>
                     </Example>
                 </Feature>
                 <Room uuid=(test) key=(test)>
                     <Example uuid=(testRoomExample) key=(testExample)>
                         <Name>Test Room</Name>
-                        <Summary>One<br /><If {false}>Two</If></Summary>
+                        <Summary>One<br />Two</Summary>
                         <Description>Three</Description>
                     </Example>
                 </Room>
