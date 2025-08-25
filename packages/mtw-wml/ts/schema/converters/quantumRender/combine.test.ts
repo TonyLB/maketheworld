@@ -39,33 +39,33 @@ describe('quantumRender combine', () => {
                 { printMode: PrintMode.naive, output: '<Exit to=(target) />' }
             ],
             [
-                { printMode: PrintMode.naive, output: '<If {true}><Description>Pretty</Description></If><Else><Description>Ugly</Description></If>'},
-                { printMode: PrintMode.nested, output: '<If {true}><Description>Pretty</Description></If>\n<Else><Description>Ugly</Description></If>'},
-                { printMode: PrintMode.nested, output: '<If {true}>\n    <Description>Pretty</Description>\n</If>\n<Else>\n    <Description>Ugly</Description>\n</If>'}
+                { printMode: PrintMode.naive, output: '<Replace><Description>Pretty</Description></Replace><With><Description>Ugly</Description></With>'},
+                { printMode: PrintMode.nested, output: '<Replace><Description>Pretty</Description></Replace>\n<With><Description>Ugly</Description></With>'},
+                { printMode: PrintMode.nested, output: '<Replace>\n    <Description>Pretty</Description>\n</Replace>\n<With>\n    <Description>Ugly</Description>\n</With>'}
             ],
         )).toEqual([
-            { printMode: PrintMode.naive, output: '<Exit to=(target) /><If {true}><Description>Pretty</Description></If><Else><Description>Ugly</Description></If>' },
-            { printMode: PrintMode.nested, output: '<Exit to=(target) />\n<If {true}><Description>Pretty</Description></If>\n<Else><Description>Ugly</Description></If>'},
-            { printMode: PrintMode.nested, output: '<Exit to=(target) />\n<If {true}>\n    <Description>Pretty</Description>\n</If>\n<Else>\n    <Description>Ugly</Description>\n</If>'}
+            { printMode: PrintMode.naive, output: '<Exit to=(target) /><Replace><Description>Pretty</Description></Replace><With><Description>Ugly</Description></With>' },
+            { printMode: PrintMode.nested, output: '<Exit to=(target) />\n<Replace><Description>Pretty</Description></Replace>\n<With><Description>Ugly</Description></With>'},
+            { printMode: PrintMode.nested, output: '<Exit to=(target) />\n<Replace>\n    <Description>Pretty</Description>\n</Replace>\n<With>\n    <Description>Ugly</Description>\n</With>'}
         ])
     })
 
     it('should line up row-level iterations in a given nesting level', () => {
         expect(combine(
             [
-                { printMode: PrintMode.naive, output: '<If {true}><Name>Garden</Name></If><Else><Name>Wasteland</Name></If>'},
-                { printMode: PrintMode.nested, output: '<If {true}><Name>Garden</Name></If>\n<Else><Name>Wasteland</Name></If>'},
-                { printMode: PrintMode.nested, output: '<If {true}>\n    <Name>Garden</Name>\n</If>\n<Else>\n    <Name>Wasteland</Name>\n</If>'}
+                { printMode: PrintMode.naive, output: '<Replace><Name>Garden</Name></Replace><With><Name>Wasteland</Name></With>'},
+                { printMode: PrintMode.nested, output: '<Replace><Name>Garden</Name></Replace>\n<With><Name>Wasteland</Name></With>'},
+                { printMode: PrintMode.nested, output: '<Replace>\n    <Name>Garden</Name>\n</Replace>\n<With>\n    <Name>Wasteland</Name>\n</With>'}
             ],
             [
-                { printMode: PrintMode.naive, output: '<If {true}><Description>Pretty</Description></If><Else><Description>Ugly</Description></If>'},
-                { printMode: PrintMode.nested, output: '<If {true}><Description>Pretty</Description></If>\n<Else><Description>Ugly</Description></If>'},
-                { printMode: PrintMode.nested, output: '<If {true}>\n    <Description>Pretty</Description>\n</If>\n<Else>\n    <Description>Ugly</Description>\n</If>'}
+                { printMode: PrintMode.naive, output: '<Replace><Description>Pretty</Description></Replace><With><Description>Ugly</Description></With>'},
+                { printMode: PrintMode.nested, output: '<Replace><Description>Pretty</Description></Replace>\n<With><Description>Ugly</Description></With>'},
+                { printMode: PrintMode.nested, output: '<Replace>\n    <Description>Pretty</Description>\n</Replace>\n<With>\n    <Description>Ugly</Description>\n</With>'}
             ],
         )).toEqual([
-            { printMode: PrintMode.naive, output: '<If {true}><Name>Garden</Name></If><Else><Name>Wasteland</Name></If><If {true}><Description>Pretty</Description></If><Else><Description>Ugly</Description></If>' },
-            { printMode: PrintMode.nested, output: '<If {true}><Name>Garden</Name></If>\n<Else><Name>Wasteland</Name></If>\n<If {true}><Description>Pretty</Description></If>\n<Else><Description>Ugly</Description></If>'},
-            { printMode: PrintMode.nested, output: '<If {true}>\n    <Name>Garden</Name>\n</If>\n<Else>\n    <Name>Wasteland</Name>\n</If>\n<If {true}>\n    <Description>Pretty</Description>\n</If>\n<Else>\n    <Description>Ugly</Description>\n</If>'}
+            { printMode: PrintMode.naive, output: '<Replace><Name>Garden</Name></Replace><With><Name>Wasteland</Name></With><Replace><Description>Pretty</Description></Replace><With><Description>Ugly</Description></With>' },
+            { printMode: PrintMode.nested, output: '<Replace><Name>Garden</Name></Replace>\n<With><Name>Wasteland</Name></With>\n<Replace><Description>Pretty</Description></Replace>\n<With><Description>Ugly</Description></With>'},
+            { printMode: PrintMode.nested, output: '<Replace>\n    <Name>Garden</Name>\n</Replace>\n<With>\n    <Name>Wasteland</Name>\n</With>\n<Replace>\n    <Description>Pretty</Description>\n</Replace>\n<With>\n    <Description>Ugly</Description>\n</With>'}
         ])
     })
 })

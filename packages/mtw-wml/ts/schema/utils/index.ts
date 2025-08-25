@@ -2,23 +2,12 @@ import { isSchemaTaggedMessageLegalContents, SchemaTag, SchemaTaggedMessageLegal
 import { EditWrappedStandardNode } from "../../standardize/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaDescription, isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaCondition } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaEdit, isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
 
 export const extractNameFromContents = (contents: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return contents.map((item) => {
         if (isSchemaName(item.data)) {
             return item.children.filter(({ data }) => (isSchemaTaggedMessageLegalContents(data)))
-        }
-        if (isSchemaCondition(item.data)) {
-            const children = extractNameFromContents(item.children)
-            if (children.length) {
-                const conditionGroup = {
-                    ...item,
-                    children
-                } as GenericTreeNodeFiltered<SchemaTaggedMessageLegalContents, SchemaTag>
-                return [conditionGroup]
-            }
         }
         return []
     }).flat(1)
@@ -28,16 +17,6 @@ export const extractDescriptionFromContents = (contents: GenericTree<SchemaTag>)
     const returnValue = contents.map((item) => {
         if (isSchemaDescription(item.data)) {
             return item.children.filter(({ data }) => (isSchemaTaggedMessageLegalContents(data)))
-        }
-        if (isSchemaCondition(item.data)) {
-            const children = extractDescriptionFromContents(item.children)
-            if (children.length) {
-                const conditionGroup = {
-                    ...item,
-                    children
-                } as GenericTreeNodeFiltered<SchemaTaggedMessageLegalContents, SchemaTag>
-                return [conditionGroup]
-            }
         }
         return []
     }).flat(1)

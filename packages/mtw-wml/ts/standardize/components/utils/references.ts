@@ -1,13 +1,11 @@
 import { unique } from "../../../list"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import StandardReference, { StandardReferenceRemove, StandardReferenceReplace, StandardReferenceSimple, StandardKey } from "../reference"
+import StandardReference, { StandardReferenceReplace, StandardKey } from "../reference"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { excludeUndefined } from "../../../lib/lists"
-import { StandardReferenceData } from "../dataTypes/reference"
 import { StandardExit, StandardExitPlain, StandardExitRemove, StandardExitReplace } from "../exit"
 
 export const linkReferenceKeys = (mappings: StandardKey[]) => (tree: GenericTree<SchemaTag>): StandardKey[] => {
@@ -27,41 +25,6 @@ export const linkReferenceKeys = (mappings: StandardKey[]) => (tree: GenericTree
         .flat(1)
     )
 }
-
-export const dependencyReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
-    return unique(tree
-        .map(({ data, children }) => {
-            if (isSchemaConditionStatement(data)) {
-                return [
-                    ...(data.dependencies ?? []),
-                    ...dependencyReferenceKeys(children)
-                ]
-            }
-            else {
-                return dependencyReferenceKeys(children)
-            }
-        })
-        .flat(1)
-    )
-}
-
-// export const directReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
-//     return unique(tree
-//         .map(({ data, children }) => {
-//             if (isImportable(data)) {
-//                 return [
-//                     data.key,
-//                     ...linkReferenceKeys(children)
-//                 ]
-//             }
-//             else {
-//                 return linkReferenceKeys(children)
-//             }
-//         })
-//         .flat(1)
-//         .filter(excludeUndefined)
-//     )
-// }
 
 export const positionReferenceKeys = (tree: GenericTree<SchemaTag>): string[] => {
     const tagTree = new SchemaTagTree(tree)

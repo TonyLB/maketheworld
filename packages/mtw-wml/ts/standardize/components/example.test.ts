@@ -124,7 +124,7 @@ describe('StandardExample class', () => {
     it('should return condensed RenderSchema on JSON', () => {
         const test = new StandardExample(`
             <Example key=(testExample)>
-                <Name>Lobby<If {active}><Space />(lit)</If></Name>
+                <Name>Lobby (lit)</Name>
                 <Summary>Summary</Summary>
                 <Description>A plain lobby.</Description>
             </Example>
@@ -132,7 +132,7 @@ describe('StandardExample class', () => {
         expect(test.toJSON()).toEqual({
             key: 'testExample',
             tag: 'Example',
-            name: ['Lobby', { data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: 'active' }, children: [{ data: { tag: 'Space' }, children: [] }, '(lit)'] }] }],
+            name: ['Lobby (lit)'],
             summary: ['Summary'],
             description: ['A plain lobby.']
         })

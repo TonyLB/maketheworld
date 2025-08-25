@@ -18,45 +18,34 @@ describe('schemaFromParse', () => {
             <Asset key=(Test)>
                 <Meta key=(ABC) time="1234" />
                 <Import from=(BASE)>
-                    <Variable key=(basePower) as=(power) />
                     <Room key=(overview) />
                     <Knowledge key=(baseInfo) />
                 </Import>
                 <Room uuid=(123-abc) key=(ABC)>
                     <ShortName>Vortex</ShortName>
-                    <Example key=(Example1)>
+                    <Example uuid=(123-Example1)>
                         <Name>Vortex</Name>
                         <Description>
                             <Space />
-                            Vortex<If {open}>
-                                : Open
-                            </If><ElseIf {!closed}>
-                                : Indeterminate
-                            </ElseIf><Else>
-                                : Closed
-                            </Else>
-                            <Link to=(toggleOpen)>(toggle)</Link>
+                            Vortex
+                            <Link to=(GHI)>(knowledge)</Link>
                         </Description>
                     </Example>
                 </Room>
-                <If {open}>
-                    <Room key=(ABC)>
-                        <Exit to=(DEF)>welcome</Exit>
-                    </Room>
-                </If>
                 <Room key=(DEF)>
-                    <Name>Welcome</Name>
-                    <Exit to=(DEF)>vortex</Exit>
+                    <Example uuid=(123-DEF-example)>
+                        <Name>Welcome</Name>
+                    </Example>
+                    <Exit to=(ABC)>vortex</Exit>
                 </Room>
                 <Knowledge key=(GHI)>
-                    <Name>Learn</Name>
-                    <Description>
-                        There is so much to know!
-                    </Description>
+                    <Example uuid=(123-GHI-example)>
+                        <Name>Learn</Name>
+                        <Description>
+                            There is so much to know!
+                        </Description>
+                    </Example>
                 </Knowledge>
-                <Variable key=(open) default={false} />
-                <Action key=(toggleOpen) src={open = !open} />
-                <Computed key=(closed) src={!open} />
                 <Moment key=(openDoorMoment)>
                     <Message key=(openDoor)>
                         The door opens!
@@ -81,13 +70,11 @@ describe('schemaFromParse', () => {
                         from: "BASE",
                         mapping: {
                             baseInfo: { key: "baseInfo", type: "Knowledge" },
-                            overview: { key: "overview", type: "Room" },
-                            power: { key: "basePower", type: "Variable" }
+                            overview: { key: "overview", type: "Room" }
                         },
                         tag: "Import"
                     },
                     children: [
-                        { data: { tag: 'Variable', key: 'basePower', as: 'power' }, children: [] },
                         { data: { tag: 'Room', key: 'overview' }, children: [] },
                         { data: { tag: 'Knowledge', key: 'baseInfo' }, children: [] }
                     ]
@@ -104,7 +91,7 @@ describe('schemaFromParse', () => {
                         children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
                     },
                     {
-                        data: { tag: 'Example', key: 'Example1' },
+                        data: { tag: 'Example', uuid: 'EXAMPLE#123-Example1' },
                         children: [                    {
                             data: { tag: 'Name' },
                             children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
@@ -113,63 +100,30 @@ describe('schemaFromParse', () => {
                             data: { tag: "Description" },
                             children: [
                                 { data: { tag: "Space" }, children: [] },
-                                { data: { tag: "String", value: "Vortex" }, children: [] },
-                                {
-                                    data: { tag: "If" },
-                                    children: [
-                                        { data: { tag: "Statement", if: "open" }, children: [{ data: { tag: "String", value: ": Open" }, children: [] }] },
-                                        { data: { tag: "Statement", if: "!closed" }, children: [{ data: { tag: "String", value: ": Indeterminate" }, children: [] }] },
-                                        { data: { tag: "Fallthrough" }, children: [{ data: { tag: "String", value: ": Closed" }, children: [] }] }
-                                    ],
-                                },
-                                {
-                                    data: {
-                                        tag: "String",
-                                        value: " "    
-                                    },
-                                    children: []
-                                },
+                                { data: { tag: "String", value: "Vortex " }, children: [] },
                                 {
                                     data: {
                                         tag: "Link",
-                                        text: "(toggle)",
-                                        to: "toggleOpen"    
+                                        text: "(knowledge)",
+                                        to: "GHI"    
                                     },
-                                    children: [{ data: { tag: 'String', value: '(toggle)' }, children: [] }]
+                                    children: [{ data: { tag: 'String', value: '(knowledge)' }, children: [] }]
                                 },
                             ],
                         }]
                     }],
                 },
                 {
-                    data: { tag: "If" },
-                    children: [{
-                        data: { tag: 'Statement', if: "open" },
-                        children: [{
-                            data: {
-                                tag: "Room",
-                                display: undefined,
-                                key: "ABC"
-                            },
-                            children: [{
-                                data: { tag: "Exit", to: "DEF" },
-                                children: [{ data: { tag: "String", value: "welcome" }, children: [] }],
-                            }],
-                        }],
-                    }]
-                },
-                {
                     data: {
                         tag: "Room",
-                        display: undefined,
                         key: "DEF"
                     },
                     children: [{
-                        data: { tag: 'Name' },
-                        children: [{ data: { tag: 'String', value: 'Welcome' }, children: [] }]
+                        data: { tag: 'Example', uuid: 'EXAMPLE#123-DEF-example' },
+                        children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Welcome' }, children: [] }] }]
                     },
                     {
-                        data: { tag: "Exit", to: "DEF" },
+                        data: { tag: "Exit", to: "ABC" },
                         children: [{ data: { tag: "String", value: "vortex" }, children: [] }],
                     }],
                 },
@@ -178,37 +132,16 @@ describe('schemaFromParse', () => {
                         tag: "Knowledge",
                         key: "GHI"
                     },
-                    children: [
-                        { data: { tag: 'Name' }, children : [{ data: { tag: 'String', value: 'Learn' }, children: [] }] },
-                        {
-                            data: { tag: 'Description' },
-                            children: [{ data: { tag: 'String', value: 'There is so much to know!' }, children: [] }]
-                        }
-                    ],
-                },
-                {
-                    data: {
-                        tag: "Variable",    
-                        default: "false",
-                        key: "open",
-                    },
-                    children: []
-                },
-                {
-                    data: {
-                        key: "toggleOpen",
-                        src: "open = !open",
-                        tag: "Action",
-                    },
-                    children: []
-                },
-                {
-                    data: {
-                        key: "closed",
-                        src: "!open",
-                        tag: "Computed",
-                    },
-                    children: []
+                    children: [{
+                        data: { tag: 'Example', uuid: 'EXAMPLE#123-GHI-example' },
+                        children: [
+                            { data: { tag: 'Name' }, children : [{ data: { tag: 'String', value: 'Learn' }, children: [] }] },
+                            {
+                                data: { tag: 'Description' },
+                                children: [{ data: { tag: 'String', value: 'There is so much to know!' }, children: [] }]
+                            }
+                        ]
+                    }],
                 },
                 {
                     data: {
@@ -232,23 +165,6 @@ describe('schemaFromParse', () => {
                         }],
                     }],
                 }
-            ]
-        }])
-    })
-
-    it('should parse key with periods', () => {
-        const testParse = parse(tokenizer(new SourceStream(`
-            <Asset key=(Test)>
-                <Room key=(ABC.DEF) />
-            </Asset>
-        `)))
-        expect(schemaFromParse(testParse)).toEqual([{
-            data: {
-                tag: "Asset",
-                key: "Test"
-            },
-            children: [
-                { data: { tag: 'Room', key: 'ABC.DEF' }, children: [] }
             ]
         }])
     })
@@ -280,161 +196,14 @@ describe('schemaFromParse', () => {
         }])
     })
 
-    it('should parse content update key', () => {
-        const testParse = parse(tokenizer(new SourceStream(`
-            <Asset key=(Test) update>
-                <Room key=(ABC)>
-                    <Description>
-                        Test One Update
-                    </Description>
-                </Room>
-            </Asset>
-        `)))
-        expect(schemaFromParse(testParse)).toEqual([
-            {
-                data: {
-                    tag: "Asset",
-                    key: "Test",
-                    update: true
-                },
-                children: [{
-                    data: {
-                        tag: "Room",    
-                        key: "ABC"
-                    },
-                    children: [{
-                        data: { tag: "Description" },
-                        children: [{ data: { tag: "String", value: "Test One Update" }, children: [] }]
-                    }]
-                }]
-            }
-        ])
-
-    })
-
-    it('should combine conditional elements at every level', () => {
-        const testParse = parse(tokenizer(new SourceStream(`
-            <Asset key=(Test)>
-                <Room key=(ABC)>
-                    <Description>
-                        Test One
-                        <If {open}>Test Two</If>
-                    </Description>
-                    <If {open}>
-                        <Description>
-                            Test Three
-                        </Description>
-                    </If>
-                </Room>
-                <If {open}>
-                    <Room key=(ABC)>
-                        <Description>Test Four</Description>
-                    </Room>
-                </If>
-                <Variable key=(open) default={false} />
-            </Asset>
-        `)))
-        expect(schemaFromParse(testParse)).toEqual([
-            {
-                data: {
-                    tag: "Asset",
-                    key: "Test"
-                },
-                children: [
-                    {
-                        data: {
-                            tag: "Room",    
-                            key: "ABC"
-                        },
-                        children: [{
-                            data: { tag: "Description" },
-                            children: [
-                                { data: { tag: "String", value: "Test One " }, children: [] },
-                                {
-                                    data: { tag: "If" },
-                                    children: [{
-                                        data: { tag: "Statement", if: "open" },
-                                        children: [{ data: { tag: "String", value: "Test Two" }, children: [] }],
-                                    }]
-                                },
-                            ],
-                        },
-                        {
-                            data: { tag: "If" },
-                            children: [{
-                                data: { tag: "Statement", if: "open" },
-                                children: [{
-                                    data: { tag: "Description" },
-                                    children: [{ data: { tag: "String", value: "Test Three" }, children: [] }],
-                                }],
-                            }]    
-                        }]
-                    },
-                    {
-                        data: { tag: "If" },
-                        children: [{
-                            data: { tag: "Statement", if: "open" },
-                            children: [{
-                                data: {
-                                    tag: "Room",
-                                    key: "ABC"
-                                },
-                                children: [{
-                                    data: { tag: "Description" },
-                                    children: [{ data: { tag: "String", value: "Test Four" }, children: [] }],
-                                }]
-                            }]
-                        }]
-                    },
-                    {
-                        data: {
-                            default: "false",
-                            key: "open",
-                            tag: "Variable"    
-                        },
-                        children: []
-                    }
-                ]
-            }
-        ])
-    })
-
-    it('should correctly parse adjacent empty conditionals', () => {
-        const testWML = `
-            <Asset key=(test)>
-                <Room key=(room1) />
-                <If {true}><Room key=(room1)><Name>Lobby</Name></Room></If>
-                <If {false} />
-            </Asset>
-        `
-        const testParse = parse(tokenizer(new SourceStream(testWML)))
-        expect(schemaFromParse(testParse)).toEqual([{
-            data: {
-                tag: "Asset",
-                key: "test"
-            },
-            children: [
-                { data: { tag: 'Room', key: 'room1' }, children: [] },
-                {
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'true' },
-                        children: [
-                            { data: { tag: 'Room', key: 'room1' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }] }
-                        ]
-                    }]
-                },
-                { data: { tag: 'If' }, children: [{ data: { tag: 'Statement', if: 'false' }, children: [] }] }
-            ]
-        }])
-    })
-
     it('should correctly parse property replace tags', () => {
         const testWML = `
             <Asset key=(test)>
                 <Room key=(room1)>
-                    <Replace><Name>Lobby</Name></Replace>
-                    <With><Name>Foyer</Name></With>
+                    <Example uuid=(123-room1-replace-example)>
+                        <Replace><Name>Lobby</Name></Replace>
+                        <With><Name>Foyer</Name></With>
+                    </Example>
                 </Room>
             </Asset>
         `
@@ -448,17 +217,20 @@ describe('schemaFromParse', () => {
                 {
                     data: { tag: 'Room', key: 'room1' },
                     children: [{
-                        data: { tag: 'Replace' },
-                        children: [
-                            {
-                                data: { tag: 'ReplaceMatch' },
-                                children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }]
-                            },
-                            {
-                                data: { tag: 'ReplacePayload' },
-                                children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }] }]
-                            }
-                        ]
+                        data: { tag: 'Example', uuid: 'EXAMPLE#123-room1-replace-example' },
+                        children: [{
+                            data: { tag: 'Replace' },
+                            children: [
+                                {
+                                    data: { tag: 'ReplaceMatch' },
+                                    children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }]
+                                },
+                                {
+                                    data: { tag: 'ReplacePayload' },
+                                    children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }] }]
+                                }
+                            ]
+                        }]
                     }]
                 }
             ]
@@ -467,8 +239,8 @@ describe('schemaFromParse', () => {
 
     it('should correctly parse component replace tags', () => {
         const testWML = `
-            <Replace><Room key=(room1)><Name>Lobby</Name></Room></Replace>
-            <With><Room key=(room1)><Name>Foyer</Name></Room></With>
+            <Replace><Room key=(room1)><Example uuid=(123-room1-replace-component-example)><Name>Lobby</Name></Example></Room></Replace>
+            <With><Room key=(room1)><Example uuid=(123-room1-replace-component-example-2)><Name>Foyer</Name></Example></Room></With>
         `
         const testParse = parse(tokenizer(new SourceStream(testWML)))
         expect(schemaFromParse(testParse)).toEqual([{
@@ -478,14 +250,14 @@ describe('schemaFromParse', () => {
                     data: { tag: 'ReplaceMatch' },
                     children: [{
                         data: { tag: 'Room', key: 'room1' },
-                        children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }]
+                        children: [{ data: { tag: 'Example', uuid: 'EXAMPLE#123-room1-replace-component-example' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }] }]
                     }]
                 },
                 {
                     data: { tag: 'ReplacePayload' },
                     children: [{
                         data: { tag: 'Room', key: 'room1' },
-                        children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }] }]
+                        children: [{ data: { tag: 'Example', uuid: 'EXAMPLE#123-room1-replace-component-example-2' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }] }] }]
                     }]
                 }
             ]
@@ -562,21 +334,6 @@ describe('schemaFromParse', () => {
 
     })
 
-    it('should make a schema for a character update correctly', () => {
-        const testParse = parse(tokenizer(new SourceStream(`
-            <Character key=(TESS) update><Name>Tess</Name></Character>
-        `)))
-        expect(schemaFromParse(testParse)).toEqual([{
-            data: {
-                tag: "Character",
-                key: "TESS",
-                update: true
-            },
-            children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Tess' }, children: [] } ] }]
-        }])
-
-    })
-
     it('should correctly extract map rooms', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset key=(Test)>
@@ -584,11 +341,8 @@ describe('schemaFromParse', () => {
                     <Image key=(image1) />
                     <Name>Test Map</Name>
                     <Room key=(ABC)><Position x="100" y="0" /></Room>
-                    <If {open}>
-                        <Room key=(DEF)><Position x="-100" y="0" /></Room>
-                    </If>
+                    <Room key=(DEF)><Position x="-100" y="0" /></Room>
                 </Map>
-                <Variable key=(open) default={false} />
             </Asset>
         `)))
         expect(schemaFromParse(testParse)).toEqual([{
@@ -616,23 +370,13 @@ describe('schemaFromParse', () => {
                             children: [{ data: { tag: 'Position', x: 100, y: 0 }, children: [] }]
                         },
                         {
-                            data: { tag: 'If' },
-                            children: [{
-                                data: { tag: "Statement", if: "open" },
-                                children: [{
-                                    data: {
-                                        tag: "Room",
-                                        key: "DEF"
-                                    },
-                                    children: [{ data: { tag: 'Position', x: -100, y: 0 }, children: [] }]
-                                }]
-                            }]
+                            data: {
+                                tag: "Room",
+                                key: "DEF"
+                            },
+                            children: [{ data: { tag: 'Position', x: -100, y: 0 }, children: [] }]
                         }
                     ]
-                },
-                {
-                    data: { tag: 'Variable', key: 'open', default: 'false' },
-                    children: []
                 }
             ]
         }])
@@ -684,9 +428,6 @@ describe('schemaToWML', () => {
                         <Room key=(VORTEX) />Something happened
                     </Message>
                 </Moment>
-                <Variable uuid=(123-variable) key=(lights) default={true} />
-                <Action uuid=(123-action) key=(flipLightSwitch) src={ lights = !lights } />
-                <Computed uuid=(123-computed) key=(dark) src={ !lights } />
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
@@ -705,20 +446,11 @@ describe('schemaToWML', () => {
         expect(schemaToWML(testSchema)).toEqual('<Room uuid=(test) />'  )
     })
 
-    it('should correctly round-trip a content update', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test) update>
-                <Meta key=(ABC) time="1234" />
-                <Room key=(VORTEX)><Description>Test Room Update</Description></Room>
-            </Asset>`)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
-    })
-
     it('should correctly join elements in Description context', () => {
         const testWML = `
             <Description>
-                Test: <If {true}>lengthy philosophical argument when true</If>
-                <Else>equally lengthy and annoying discussion when false</Else>.
+                Test: <Link to=(diatribe)>lengthy philosophical argument</Link>
+                <Link to=(rant)>equally lengthy and annoying discussion</Link>
             </Description>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(deIndentWML(testWML))
     })
@@ -743,19 +475,21 @@ describe('schemaToWML', () => {
                     <Exit to=(welcome)>Welcome room</Exit>
                 </Room>
                 <Feature key=(doors)>
-                    <Name>Drifting doors</Name>
-                    <Description>Doors drifting in space</Description>
+                    <Example uuid=(123-doors-example)>
+                        <Name>Drifting doors</Name>
+                        <Description>Doors drifting in space</Description>
+                    </Example>
                 </Feature>
                 <Room key=(welcome)>
                     <ShortName>Welcome</ShortName>
-                    <Name>Welcome room</Name>
-                    <Description>
-                        A clean and sterile welcome room. The lights are
-                        <If {lights}>on</If><Else>off</Else>.
-                    </Description>
+                    <Example uuid=(123-welcome-example)>
+                        <Name>Welcome room</Name>
+                        <Description>
+                            A clean and sterile welcome room. The lights are on.
+                        </Description>
+                    </Example>
                     <Exit to=(VORTEX)>vortex</Exit>
                 </Room>
-                <Variable key=(lights) default={true} />
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
@@ -765,7 +499,9 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset key=(test)>
                 <Room key=(room1)>
-                    <Replace><Name>Lobby</Name></Replace><With><Name>Foyer</Name></With>
+                    <Example uuid=(123-room1-edit-example)>
+                        <Replace><Name>Lobby</Name></Replace><With><Name>Foyer</Name></With>
+                    </Example>
                     <Remove><Exit to=(room2)>out</Exit></Remove>
                 </Room>
             </Asset>
@@ -789,33 +525,25 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(VORTEX)><Exit to=(ROOM#target)>Exit to nowhere</Exit></Room>
-                <Room uuid=(target)><Name>Nowhere</Name></Room>
+                <Room uuid=(target)>
+                    <Example uuid=(123-target-example)><Name>Nowhere</Name></Example>
+                </Room>
             </Asset>
         `)
         const parsed = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
         expect(schemaToWML(parsed)).toEqual(testWML)
     })
 
-    it('should correctly round-trip variables and actions', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Variable key=(lights) default={true} />
-                <Variable key=(power) default={true} />
-                <Computed key=(illumination) src={lights && power} />
-                <Action key=(flipLightSwitch) src={
-                    lights = !lights
-                } />
-            </Asset>
-        `)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
-    })
-
     it('should correctly round-trip knowledge items', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Knowledge key=(test)>
-                    <Name>Learning is power!</Name>
-                    <Description>There is so very much to see and discover!</Description>
+                    <Example uuid=(123-knowledge-test-example)>
+                        <Name>Learning is power!</Name>
+                        <Description>
+                            There is so very much to see and discover!
+                        </Description>
+                    </Example>
                 </Knowledge>
             </Asset>
         `)
@@ -833,62 +561,12 @@ describe('schemaToWML', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-    it('should correctly round-trip a character update', () => {
-        const testWML = deIndentWML(`
-            <Character key=(TESS) update><Name>Tess</Name></Character>
-        `)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
-    })
-
-    it('should correctly round-trip asset-level conditions', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Feature key=(doors)>
-                    <Name>Drifting doors</Name>
-                    <Description>Doors drifting in space</Description>
-                </Feature>
-                <If {lights}>
-                    <Feature key=(doors)>
-                        <Description>, lit from a distant star</Description>
-                    </Feature>
-                </If>
-                <Else>
-                    <Feature key=(doors)>
-                        <Description>, dark and cold</Description>
-                    </Feature>
-                </Else>
-                <Variable key=(lights) default={true} />
-            </Asset>
-        `)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
-    })
-
-    it('should correctly round-trip nested description conditions', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Feature key=(doors)>
-                    <Name>Drifting doors</Name>
-                    <Description>
-                        Doors drifting in space, <If {lights}>
-                            <If {solar}>lit from a distant star</If>
-                            <Else>lit by a swelling moon</Else>
-                        </If>
-                        <Else>
-                            dark and cold
-                        </Else>
-                    </Description>
-                </Feature>
-                <Variable key=(lights) default={true} />
-                <Variable key=(solar) default={true} />
-            </Asset>
-        `)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
-    })
-
     it('should correctly round-trip nested remove tags', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
-                <Room key=(room1)><Remove><Feature key=(base) /></Remove></Room>
+                <Room key=(room1)>
+                    <Remove><Example uuid=(123-room1-remove-example) /></Remove>
+                </Room>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
@@ -897,111 +575,44 @@ describe('schemaToWML', () => {
     it('should correctly round-trip remove with nested tags', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
-                <Remove><Room key=(room1)><Feature key=(base) /></Room></Remove>
+                <Remove>
+                    <Room key=(room1)><Example uuid=(123-room1-remove-example) /></Room>
+                </Remove>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-    it('should correctly not persist ui select properties', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Feature key=(doors)>
-                    <Description>
-                        Doors drifting in space,
-                        <If {lights} selected>lit from a distant star</If>
-                        <Else>dark and cold</Else>
-                    </Description>
-                </Feature>
-                <Variable key=(lights) default={true} />
-            </Asset>
-        `)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))), { persistentOnly: true })).toEqual(deIndentWML(`
-            <Asset key=(Test)>
-                <Feature key=(doors)>
-                    <Description>
-                        Doors drifting in space,
-                        <If {lights}>lit from a distant star</If><Else>dark and cold</Else>
-                    </Description>
-                </Feature>
-                <Variable key=(lights) default={true} />
-            </Asset>
-        `))
-        const testTwoWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Feature key=(doors)>
-                    <Description>
-                        Doors drifting in space, <If {lights}>lit from a distant star</If>
-                        <Else selected>dark and cold</Else>
-                    </Description>
-                </Feature>
-                <Variable key=(lights) default={true} />
-            </Asset>
-        `)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testTwoWML)))))).toEqual(testTwoWML)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testTwoWML)))), { persistentOnly: true })).toEqual(deIndentWML(`
-            <Asset key=(Test)>
-                <Feature key=(doors)>
-                    <Description>
-                        Doors drifting in space,
-                        <If {lights}>lit from a distant star</If><Else>dark and cold</Else>
-                    </Description>
-                </Feature>
-                <Variable key=(lights) default={true} />
-            </Asset>
-        `))
-    })
 
     it('should correctly round-trip nested line-wrapped text', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Feature key=(doors)>
-                    <Name>Drifting doors</Name>
-                    <Description>
-                        <If {lights}>
+                    <Example uuid=(123-doors-linewrapped-example)>
+                        <Name>Drifting doors</Name>
+                        <Description>
                             Testing a long text string that will require line wrapping to
                             render in its entirety
-                        </If>
-                    </Description>
+                        </Description>
+                    </Example>
                 </Feature>
-                <Variable key=(lights) default={true} />
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
-    })
-
-    it('should correctly round-trip space tags in connected conditionals', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Variable key=(testVar) default={false} />
-                <Room key=(test)>
-                    <Description>
-                        Test <If {testVar}>
-                            <Space />TestTwo
-                        </If><If {!testVar}>
-                            <Space />TestThree
-                        </If>
-                    </Description>
-                </Room>
-            </Asset>
-        `)
-        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
-        expect(schemaToWML(schema)).toEqual(testWML)
     })
 
     it('should correctly escape special characters', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(test)>
-                    <Description>
-                        Test \\\\ \\< \\>
-                    </Description>
+                    <Example uuid=(123-test-escape-example)>
+                        <Description>Test \\\\ \\< \\></Description>
+                    </Example>
                 </Room>
             </Asset>
         `)
         const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
-        expect(schemaToWML(schema)).toEqual('<Asset key=(Test)>\n    <Room key=(test)><Description>Test \\\\ \\< \\></Description></Room>\n</Asset>')
+        expect(schemaToWML(schema)).toEqual(testWML)
     })
 
     it('should correctly round-trip import', () => {
@@ -1011,8 +622,11 @@ describe('schemaToWML', () => {
                     <Room key=(Room1) as=(test) />
                     <Room key=(testTwo) />
                 </Import>
-                <Variable key=(testVar) default={false} />
-                <Room key=(test)><Description>Test</Description></Room>
+                <Room key=(test)>
+                    <Example uuid=(123-test-import-example)>
+                        <Description>Test</Description>
+                    </Example>
+                </Room>
             </Asset>
         `)
         const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
@@ -1034,24 +648,11 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Room key=(test)>
-                    <Name>Lobby <If {true}>in the dark</If></Name>
-                    <Description>A dark and dusty lobby.</Description>
-                </Room>
-            </Asset>
-        `)
-        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
-        expect(schemaToWML(schema)).toEqual(testWML)
-    })
-
-    it('should correctly round-trip selected tags', () => {
-        const testWML = deIndentWML(`
-            <Asset key=(Test)>
-                <Selected>
-                    <Room key=(test)>
-                        <Name>Lobby</Name>
+                    <Example uuid=(123-test-freetext-example)>
+                        <Name>Lobby in the dark</Name>
                         <Description>A dark and dusty lobby.</Description>
-                    </Room>
-                </Selected>
+                    </Example>
+                </Room>
             </Asset>
         `)
         const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))

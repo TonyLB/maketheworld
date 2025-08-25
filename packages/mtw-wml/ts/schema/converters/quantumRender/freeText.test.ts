@@ -74,36 +74,4 @@ describe('description schemaToWML', () => {
         expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0, context: [] })[0].output).toMatchSnapshot()
     })
 
-    it('should correctly handle sequential complex conditions', () => {
-        const testSchema: SchemaTagPrintItem[] = [
-            {
-                type: 'adjacentGroup',
-                tags: [
-                    { data: { tag: 'String', value: 'Test' }, children: [] },
-                    {
-                        data: { tag: 'If' },
-                        children: [{
-                            data: { tag: 'Statement', if: 'testVar' },
-                            children: [
-                                { data: { tag: 'Space' }, children: [] },
-                                { data: { tag: 'String', value: 'TestTwo' }, children: [] }
-                            ]
-                        }]
-                    },
-                    {
-                        data: { tag: 'If' },
-                        children: [{
-                            data: { tag: 'Statement', if: '!testVar' },
-                            children: [
-                                { data: { tag: 'Space' }, children: [] },
-                                { data: { tag: 'String', value: 'TestThree' }, children: [] }
-                            ]
-                        }]
-                    }
-                ]
-            }
-        ]
-        expect(schemaDescriptionToWML(schemaToWML)(testSchema, { indent: 0, padding: 0, context: [] })[0].output).toMatchSnapshot()
-    })
-
 })

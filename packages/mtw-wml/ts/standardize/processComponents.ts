@@ -4,7 +4,6 @@ import { StandardComponent } from "./components/baseClasses"
 import { StandardRemove, StandardReplace } from "./components/edits"
 import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
-import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardKey } from "./components/reference"
 import StandardRoom from "./components/room"
@@ -14,22 +13,12 @@ export type ComponentProcessingTemplate = {
     legalParents?: ComponentTag[];
 }
 
-type ConditionalContextItem = {
-    previousStatementConditions: string[];
-} & ({
-    condition: string;
-    fallthrough: false;
-} | {
-    fallthrough: true;
-})
-
 //
 // processComponents takes a list of component templates and a tag tree, and extracts the standard byId object.
 //
 export const processComponents = (props: {
     componentTemplates: ComponentProcessingTemplate[];
     schema: GenericTree<SchemaTag>;
-    conditionalContext?: ConditionalContextItem[];
     componentContext?: StandardKey[];
     inContextOfRemove?: boolean;
 }): StandardComponent[] => {
@@ -39,7 +28,6 @@ export const processComponents = (props: {
     const {
         componentTemplates,
         schema,
-        conditionalContext = [],
         componentContext = [],
         inContextOfRemove = false,
     } = props
@@ -96,36 +84,6 @@ export const processComponents = (props: {
             throw new Error('Replace must have both a ReplaceMatch and a ReplacePayload')
         }
 
-        //
-        // If the item is a condition, process each sub-statement with the condition added to the context.
-        //
-        if (treeNodeTypeguard(isSchemaCondition)(item)) {
-            const { accumulated } = item.children.reduce<{ accumulated: StandardComponent[]; contextItem?: ConditionalContextItem; }>(({ accumulated, contextItem }, item) => {
-                if (contextItem?.fallthrough) {
-                    throw new Error('A statement or fallthrough occurring after a fallthrough node is an error.')
-                }
-                if (treeNodeTypeguard(isSchemaConditionStatement)(item)) {
-                    const { if: condition } = item.data
-                    const newContextItem: ConditionalContextItem = { condition, fallthrough: false, previousStatementConditions: contextItem ? [...contextItem.previousStatementConditions, contextItem.condition] : [] }
-                    return {
-                        accumulated: [...accumulated, ...processComponents({ ...props, schema: item.children, conditionalContext: [...conditionalContext, newContextItem] })],
-                        contextItem: newContextItem
-                    }
-                }
-                if (treeNodeTypeguard(isSchemaConditionFallthrough)(item)) {
-                    if (contextItem?.fallthrough) {
-                        throw new Error('A statement or fallthrough occurring after a fallthrough node is an error.')
-                    }
-                    const newContextItem: ConditionalContextItem = { fallthrough: true, previousStatementConditions: contextItem ? [...contextItem.previousStatementConditions, contextItem.condition] : [] }
-                    return {
-                        accumulated: [...accumulated, ...processComponents({ ...props, schema: item.children, conditionalContext: [...conditionalContext, newContextItem] })],
-                        contextItem: newContextItem
-                    }
-                }
-                return { accumulated, contextItem }
-            }, { accumulated: previous })
-            return accumulated
-        }
         if (treeNodeTypeguard(isSchemaComponent)(item)) {
             const template = componentTemplates.find(({ key }) => (key === item.data.tag))
             if (template) {
@@ -154,28 +112,7 @@ export const processComponents = (props: {
                         : component.withLeastCommonContext(componentContext)
                     : component
 
-                //
-                // Wrap the component contents in conditional statements as necessary
-                //
-                const conditionalWrappedComponent = conditionalContext.reduceRight((previous, conditionItem) => {
-                    return previous.mapContents((content): GenericTree<SchemaTag> => {
-                        if (content.length) {
-                            return [{
-                                data: { tag: 'If' as const },
-                                children: [
-                                    ...conditionItem.previousStatementConditions.map((condition) => ({ data: { tag: 'Statement' as const, if: condition }, children: [] })),
-                                    conditionItem.fallthrough
-                                        ? { data: { tag: 'Fallthrough' as const }, children: content }
-                                        : { data: { tag: 'Statement' as const, if: conditionItem.condition }, children: content }
-                                ]
-                            }]
-                        }
-                        else {
-                            return []
-                        }
-                    })
-                }, localizedComponent)
-                const editWrappedComponent = inContextOfRemove ? new StandardRemove(conditionalWrappedComponent) : conditionalWrappedComponent
+                const editWrappedComponent = inContextOfRemove ? new StandardRemove(localizedComponent) : localizedComponent
                 return [
                     ...previous,
                     editWrappedComponent,

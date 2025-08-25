@@ -124,12 +124,8 @@ describe('StandardRender', () => {
         const schema = new Schema()
         schema.loadWML(`
             Example<Link to=(Feature1)>Link</Link><br />
-            <If {true}>
-                True<Link to=(Feature2)>Link</Link>
-            </If>
-            <Else>
-                False<Space />
-            </Else>
+            One<Link to=(Feature2)>Link</Link>
+            Two<Space />
         `)
         const render = new StandardRender(schema.schema)
         expect(render.schema).toEqual(schema.schema)
@@ -163,26 +159,17 @@ describe('StandardRender', () => {
         `)
         const incomingSchema = new Schema()
         incomingSchema.loadWML(`
-            <If {true}>
-                True<Link to=(Feature2)>Link</Link>
-            </If>
-            <Else>
-                False<Space />
-            </Else>
+            One<Link to=(Feature2)>Link</Link>
+            Two<Space />
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
         expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
             Example
             <Link to=(Feature1)>Link</Link>
-            <If {true}>
-                True
-                <Link to=(Feature2)>Link</Link>
-            </If>
-            <Else>
-                False
-                <Space />
-            </Else>
+            One
+            <Link to=(Feature2)>Link</Link>
+            Two<Space />
         `))
     })
 

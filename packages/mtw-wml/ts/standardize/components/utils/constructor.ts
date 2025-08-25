@@ -5,38 +5,7 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaReplaceMatchTag, SchemaReplacePayloadTag } from "@tonylb/mtw-base/ts/schema/edit"
 
-export const defaultSelected = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
-    tree.map((node) => {
-        if (treeNodeTypeguard(isSchemaCondition)(node)) {
-            const indexOfFirstSelected = node.children.findIndex(({ data }) => ((isSchemaConditionStatement(data) || isSchemaConditionFallthrough(data)) && (data.selected ?? false) ))
-            if (indexOfFirstSelected !== -1) {
-                return {
-                    ...node,
-                    children: defaultSelected(node.children.map((child, index) => (
-                        treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child)
-                            ? { ...child, data: { ...child.data, selected: index === indexOfFirstSelected ? true : undefined } }
-                            : child
-                    )))
-                }
-            }
-            else {
-                const fallThroughIndex = node.children.findIndex(treeNodeTypeguard(isSchemaConditionFallthrough))
-                return {
-                    ...node,
-                    children: defaultSelected(node.children.map((child, index) => (
-                        treeNodeTypeguard(isSchemaConditionStatement)(child) || treeNodeTypeguard(isSchemaConditionFallthrough)(child)
-                            ? { ...child, data: { ...child.data, selected: index === fallThroughIndex } }
-                            : child
-                    )))
-                }
-            }
-        }
-        return {
-            ...node,
-            children: defaultSelected(node.children)
-        }
-    })
-)
+
 
 export const outputNodeUnedited = <T extends SchemaTag, ChildType extends SchemaTag>(
     node: GenericTreeNodeFiltered<T, SchemaTag> | undefined,
@@ -44,7 +13,7 @@ export const outputNodeUnedited = <T extends SchemaTag, ChildType extends Schema
     defaultValue: T
 ): EditInternalStandardNode<T, ChildType> => {
     return node
-        ? { ...node, children: treeTypeGuard({ tree: defaultSelected(node.children), typeGuard }) }
+        ? { ...node, children: treeTypeGuard({ tree: node.children, typeGuard }) }
         : { data: defaultValue, children: [] }
 }
 

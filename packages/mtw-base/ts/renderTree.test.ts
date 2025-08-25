@@ -10,11 +10,8 @@ describe('renderTree tests', () => {
 
         it('should return true for valid object RenderTreeNode', () => {
             const node = {
-                data: { tag: 'If' },
-                children: [{
-                    data: { tag: 'Statement', if: 'true' },
-                    children: ["child1", "child2"]
-                }]
+                data: { tag: 'Link', to: 'url', text: 'text' },
+                children: ["text"]
             };
             expect(isRenderTreeNode(node)).toBe(true);
         });
@@ -29,11 +26,8 @@ describe('renderTree tests', () => {
 
         it('should return false for object RenderTreeNode with invalid children', () => {
             const node = {
-                data: { tag: 'If' },
-                children: [{
-                    data: { tag: 'Statement', if: 'true' },
-                    children: ["child1", 123]
-                }]
+                data: { tag: 'Link', to: 'url', text: 'text' },
+                children: [123]
             };
             expect(isRenderTreeNode(node)).toBe(false);
         });
@@ -48,11 +42,8 @@ describe('renderTree tests', () => {
                     children: []
                 },
                 {
-                    data: { tag: 'If' },
-                    children: [{
-                        data: { tag: 'Statement', if: 'true' },
-                        children: ["child1", "child2"]
-                    }]
+                    data: { tag: 'Space' },
+                    children: []
                 }
             ];
             expect(isRenderTree(tree)).toBe(true);
@@ -73,9 +64,9 @@ describe('renderTree tests', () => {
             const tree = [
                 "valid string node",
                 {
-                    data: { tag: 'If' },
+                    data: { tag: 'Link', to: 'url', text: 'text' },
                     children: [{
-                        data: { tag: 'Statement', if: 'true' },
+                        data: { tag: 'Space' },
                         children: ["child1", 123]
                     }]
                 }

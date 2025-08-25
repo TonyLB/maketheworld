@@ -7,7 +7,6 @@ import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/generi
 import { isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
-import { isSchemaSelected, SchemaSelectedTag } from "@tonylb/mtw-base/ts/schema/condition"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 
 const importExportTemplates = {
@@ -68,13 +67,7 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             tag: 'Image',
             ...validateProperties(importExportTemplates.Image)(parseOpen)
         })
-    },
-    Selected: {
-        initialize: ({ parseOpen }): SchemaSelectedTag => ({
-            tag: 'Selected',
-            ...validateProperties(importExportTemplates.Selected)(parseOpen)
-        })
-    }    
+    }
 }
 
 export const importExportPrintMap: Record<string, PrintMapEntry> = {
@@ -112,16 +105,6 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'key', type: 'key', value: tag.key },
                     ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
                 ],
-                node: { data: tag, children }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-    ),
-    Selected: ({ tag: { data: tag, children }, ...args}: PrintMapEntryArguments) => (
-        isSchemaSelected(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Selected',
-                properties: [],
                 node: { data: tag, children }
             })
             : [{ printMode: PrintMode.naive, output: '' }]

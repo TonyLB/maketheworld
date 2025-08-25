@@ -72,14 +72,7 @@ export const isEphemeraMapId = isEphemeraTaggedId<'MAP'>('MAP')
 export type EphemeraCharacterId = EphemeraWrappedId<'CHARACTER'>
 export const isEphemeraCharacterId = isEphemeraTaggedId<'CHARACTER'>('CHARACTER')
 
-export type EphemeraActionId = EphemeraWrappedId<'ACTION'>
-export const isEphemeraActionId = isEphemeraTaggedId<'ACTION'>('ACTION')
 
-export type EphemeraVariableId = EphemeraWrappedId<'VARIABLE'>
-export const isEphemeraVariableId = isEphemeraTaggedId<'VARIABLE'>('VARIABLE')
-
-export type EphemeraComputedId = EphemeraWrappedId<'COMPUTED'>
-export const isEphemeraComputedId = isEphemeraTaggedId<'COMPUTED'>('COMPUTED')
 
 export type EphemeraMessageId = EphemeraWrappedId<'MESSAGE'>
 export const isEphemeraMessageId = isEphemeraTaggedId<'MESSAGE'>('MESSAGE')
@@ -91,7 +84,7 @@ export type EphemeraImageId = EphemeraWrappedId<'IMAGE'>
 export const isEphemeraImageId = isEphemeraTaggedId<'IMAGE'>('IMAGE')
 
 
-export type EphemeraId = EphemeraWrappedId<'ASSET' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'ACTION' | 'VARIABLE' | 'COMPUTED' | 'MESSAGE' | 'MOMENT' | 'IMAGE'>
+export type EphemeraId = EphemeraWrappedId<'ASSET' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'MESSAGE' | 'MOMENT' | 'IMAGE'>
 export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraAssetId(value) ||
     isEphemeraExampleId(value) ||
@@ -100,9 +93,6 @@ export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraRoomId(value) ||
     isEphemeraMapId(value) ||
     isEphemeraCharacterId(value) ||
-    isEphemeraActionId(value) ||
-    isEphemeraVariableId(value) ||
-    isEphemeraComputedId(value) ||
     isEphemeraMessageId(value) ||
     isEphemeraMomentId(value) ||
     isEphemeraImageId(value)

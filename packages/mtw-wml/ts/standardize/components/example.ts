@@ -4,7 +4,7 @@ import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
-import linkReferenceKeys, { dependencyReferenceKeys, ReferenceFormat } from "./utils/references"
+import linkReferenceKeys, { ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
@@ -108,13 +108,11 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
-    referencedKeys(mapping: StandardKey[]): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    referencedKeys(mapping: StandardKey[]): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
         const renderTrees = [this._name?.toJSON(), this._summary?.toJSON(), this._description?.toJSON()].filter(excludeUndefined)
         return [
             ...linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1)))
-                .map((key) => ({ referenceType: 'Link' as const, key })),
-            ...dependencyReferenceKeys(renderTreeToSchema(renderTrees.flat(1)))
-                .map((key) => ({ referenceType: 'Dependency' as const, key: new StandardKey(key) }))
+                .map((key) => ({ referenceType: 'Link' as const, key }))
         ]
     }
 

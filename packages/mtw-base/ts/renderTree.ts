@@ -1,6 +1,6 @@
 import { GenericTree } from "./genericTree";
 import { isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "./schema";
-import { isSchemaCondition, isSchemaConditionFallthrough, isSchemaConditionStatement } from "./schema/condition";
+
 import { isSchemaRemove, isSchemaReplace } from "./schema/edit";
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "./schema/renderTree";
 import { excludeUndefined } from "./utils/lists";
@@ -54,9 +54,6 @@ export const schemaToRenderTree = (tree: GenericTree<SchemaTag> | RenderTree): R
             return node.data.value
         }
         else if (
-            isSchemaCondition(node.data) ||
-            isSchemaConditionStatement(node.data) ||
-            isSchemaConditionFallthrough(node.data) ||
             isSchemaLink(node.data) ||
             isSchemaSpacer(node.data) ||
             isSchemaLineBreak(node.data)

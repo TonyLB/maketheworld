@@ -16,7 +16,7 @@ describe('keysByTag selector', () => {
                 </Room>
                 <Room key=(room2) />
                 <Feature key=(feature1) />
-                <If {true}><Feature key=(feature2) /></If>
+                <Feature key=(feature2) />
             </Asset>
         `)
         expect(selectKeysByTag('Room')(testOne.schema)).toEqual(['room1', 'room2'])

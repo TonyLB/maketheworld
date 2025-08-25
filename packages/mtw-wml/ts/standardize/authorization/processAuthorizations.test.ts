@@ -18,9 +18,6 @@ const componentTemplates: ComponentProcessingTemplate[] = [
     { key: 'Map' },
     { key: 'Message', legalParents: ['Moment'] },
     { key: 'Moment' },
-    { key: 'Variable' },
-    { key: 'Computed' },
-    { key: 'Action' },
     { key: 'Example', legalParents: ['Room', 'Feature', 'Knowledge'] }
 ]
 

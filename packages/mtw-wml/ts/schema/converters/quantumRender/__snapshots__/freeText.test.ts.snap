@@ -1,15 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`description schemaToWML should correctly handle sequential complex conditions 1`] = `
-"Test<If {testVar}>
-    <Space />
-    TestTwo
-</If><If {!testVar}>
-    <Space />
-    TestThree
-</If>"
-`;
-
 exports[`description schemaToWML should word wrap descriptions 1`] = `
 "A short first section <Link to=(clockTower)>clockTower</Link> then a long enough
 second section that it will start testing the word-wrap functionality at eighty
