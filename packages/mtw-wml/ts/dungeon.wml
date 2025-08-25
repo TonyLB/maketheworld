@@ -59,12 +59,4 @@
             <Link to=(orc)>orc</Link>.
         </Example>
     </Room>
-    <Variable key=(passageCleared) default={false} />
-    <Action
-        key=(clearPassage)
-        src={ passageCleared = true }
-    />
-    <Variable key=(orcAppeased) default={false} />
-    <Variable key=(orcDefeated) default={false} />
-    <Computed key=(pieAccessible) src={orcAppeased || orcDefeated} />
 </Asset>
