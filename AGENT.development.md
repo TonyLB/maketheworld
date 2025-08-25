@@ -96,9 +96,9 @@ The following migrations must be completed in this specific order due to depende
 - [x] **Component Interface Updates**: Update component props and interfaces to remove legacy dependencies ✅ **COMPLETED**
 
 ##### **Phase 2D: WML Parser and Schema Analysis** *(Core Removal + Cleanup)*
-**Status**: 🟢 **SELECTED SYSTEM REMOVED** - Variable/Computed/Action and If/ElseIf/Else selection logic successfully removed  
-**Progress**: 5/8 major tasks completed (62.5%)  
-**Next Focus**: Core schema support removal
+**Status**: 🟢 **CORE SCHEMA CONVERTERS REMOVED** - Variable/Computed/Action and If/ElseIf/Else schema converters successfully removed  
+**Progress**: 6/8 major tasks completed (75%)  
+**Next Focus**: Interface type removal
 - [x] **Update StandardForm Component Templates**: Remove Variable, Computed, and Action from component processing templates
 - [x] **Update Component Factory Functions**: Remove Variable/Computed/Action creation logic from `standardNonEditComponentFactory` and `standardComponentByTag`
 - [x] **Update Component Processing**: Remove Variable/Computed/Action handling from `processComponents` function
@@ -127,9 +127,9 @@ The following migrations must be completed in this specific order due to depende
 - [x] **Remove Selected System**: Remove `defaultSelected` function, `SchemaSelectedTag`, and `selected` properties (all conditional-dependent)
 
 #### **Phase 2D.3: Remove Core Schema Support** *(Core Converter Removal)*
-- [ ] **Remove WML Schema Converters**: Remove Variable, Computed, and Action tag support from WML schema converters
-- [ ] **Remove Conditional Schema Converters**: Remove If/ElseIf/Else conditional tag support from WML schema
-- [ ] **Update Parser Integration**: Remove deprecated converters from main converterMap and printMap
+- [x] **Remove WML Schema Converters**: Remove Variable, Computed, and Action tag support from WML schema converters ✅ **COMPLETED**
+- [x] **Remove Conditional Schema Converters**: Remove If/ElseIf/Else conditional tag support from WML schema ✅ **COMPLETED**
+- [x] **Update Parser Integration**: Remove deprecated converters from main converterMap and printMap ✅ **COMPLETED**
 - [ ] **Interface Type Removal**: Remove Variable/Computed/Action/Condition types from `mtw-interfaces`
 - [ ] **Base Type Removal**: Remove Variable/Computed/Action/Condition types from `mtw-base`
 

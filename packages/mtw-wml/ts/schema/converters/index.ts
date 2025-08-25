@@ -3,8 +3,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { validateProperties } from "./utils"
 import { characterConverters, characterPrintMap } from "./character"
 import { componentConverters, componentPrintMap } from "./components"
-import { computationConverters } from "./computation"
-import { conditionalConverters } from "./conditionals"
+
 import { editConverters, editPrintMap } from './edit'
 import { authorizationConverters, authorizationPrintMap } from "./authorization"
 import { importExportConverters, importExportPrintMap } from "./importExport"
@@ -34,8 +33,6 @@ export const converterMap: Record<string, ConverterMapEntry> = {
     ...exampleConverters,
     ...characterConverters,
     ...componentConverters,
-    ...computationConverters,
-    ...conditionalConverters,
     ...editConverters,
     ...importExportConverters,
     ...messagingConverters,
