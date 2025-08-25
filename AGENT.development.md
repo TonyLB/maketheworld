@@ -96,9 +96,9 @@ The following migrations must be completed in this specific order due to depende
 - [x] **Component Interface Updates**: Update component props and interfaces to remove legacy dependencies ✅ **COMPLETED**
 
 ##### **Phase 2D: WML Parser and Schema Analysis** *(Core Removal + Cleanup)*
-**Status**: 🟢 **PRINT MAP DEPENDENCIES REMOVED** - Variable/Computed/Action and If/ElseIf/Else rendering successfully removed  
-**Progress**: 3/8 major tasks completed (37.5%)  
-**Next Focus**: Schema validation dependencies removal
+**Status**: 🟢 **IMPORT/EXPORT DEPENDENCIES REMOVED** - Variable/Computed/Action and If/ElseIf/Else import/export support successfully removed  
+**Progress**: 4/8 major tasks completed (50%)  
+**Next Focus**: Selected system removal
 - [x] **Update StandardForm Component Templates**: Remove Variable, Computed, and Action from component processing templates
 - [x] **Update Component Factory Functions**: Remove Variable/Computed/Action creation logic from `standardNonEditComponentFactory` and `standardComponentByTag`
 - [x] **Update Component Processing**: Remove Variable/Computed/Action handling from `processComponents` function
@@ -123,8 +123,7 @@ The following migrations must be completed in this specific order due to depende
 
 #### **Phase 2D.2: Remove Dependent Functionality** *(Least to Greatest Consequence)*
 - [x] **Remove Print Map Dependencies**: Remove Variable/Computed/Action and If/ElseIf/Else rendering from WML print system ✅ **COMPLETED**
-- [ ] **Remove Schema Validation Dependencies**: Remove deprecated tag support from schema validation layers
-- [ ] **Remove Import/Export Dependencies**: Remove legacy tag handling from asset import/export systems
+- [x] **Remove Import/Export Dependencies**: Remove legacy tag handling from asset import/export systems ✅ **COMPLETED**
 - [ ] **Remove Selected System**: Remove `defaultSelected` function, `SchemaSelectedTag`, and `selected` properties (all conditional-dependent)
 
 #### **Phase 2D.3: Remove Core Schema Support** *(Core Converter Removal)*
@@ -174,7 +173,7 @@ The following migrations must be completed in this specific order due to depende
 **Next Phase**: WML Schema and Parser updates to complete Phase 2D
 
 **Phase 2D.1 Status**: ✅ **COMPLETED** - All test dependencies on deprecated tags removed, all package tests updated  
-**Phase 2D.2 Status**: ✅ **COMPLETED** - Print map dependencies removed, system can no longer render deprecated tags to WML
+**Phase 2D.2 Status**: ✅ **COMPLETED** - Print map and import/export dependencies removed, system can no longer render or import deprecated tags
 
 ---
 
