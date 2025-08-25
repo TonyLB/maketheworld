@@ -3,15 +3,14 @@ import { assetWorkspaceFromAssetId } from "./utilities/assets"
 import { formatImage } from "./formatImage"
 import { s3Client, sfnClient, snsClient } from "./clients"
 import { ParseWMLAPIImage } from "@tonylb/mtw-interfaces/ts/asset"
-import { extractDependenciesFromJS } from "./utilities/extractDependencies"
+
 import { dbRegister } from "./serialize/dbRegister"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { PublishCommand } from "@aws-sdk/client-sns"
-import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
+
 import StandardImage from "@tonylb/mtw-wml/ts/standardize/components/image"
-import { isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
-import { isSchemaComputed } from "@tonylb/mtw-base/ts/schema/computation"
+
 
 type ParseWMLHandlerArguments = {
     address: AssetWorkspaceAddress;
@@ -59,30 +58,7 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
                 return
             }
             
-            //
-            // Use static analysis of JS code to extract dependencies from the WML elements that use JS
-            //
-            assetWorkspace.standard = assetWorkspace.standard.mapContents((tree) => (tree.map((node) => {
-                if (treeNodeTypeguard(isSchemaConditionStatement)(node)) {
-                    return {
-                        ...node,
-                        data: {
-                            ...node.data,
-                            dependencies: extractDependenciesFromJS(node.data.if)
-                        }
-                    }
-                }
-                if (isSchemaComputed(node.data)) {
-                    return {
-                        ...node,
-                        data: {
-                            ...node.data,
-                            dependencies: extractDependenciesFromJS(node.data.src),
-                        }
-                    }
-                }
-                return node
-            })))
+
             await Promise.all([
                 assetWorkspace.pushJSON(),
                 assetWorkspace.pushWML(),

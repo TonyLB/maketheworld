@@ -97,7 +97,7 @@ The following migrations must be completed in this specific order due to depende
 
 ##### **Phase 2D: WML Parser and Schema Analysis** *(Core Removal + Cleanup)*
 **Status**: 🟢 **PHASE 2D.3 COMPLETED** - All core schema support successfully removed  
-**Progress**: 8/8 major tasks completed (100%)  
+**Progress**: 12/13 major tasks completed (92.3%)  
 **Next Focus**: Phase 2D.4 - Final Parser Updates
 - [x] **Update StandardForm Component Templates**: Remove Variable, Computed, and Action from component processing templates
 - [x] **Update Component Factory Functions**: Remove Variable/Computed/Action creation logic from `standardNonEditComponentFactory` and `standardComponentByTag`
@@ -139,10 +139,13 @@ The following migrations must be completed in this specific order due to depende
 - **Edit System Tags**: `<Replace>`, `<With>`, `<Remove>` - part of the asset editing system, not conditionals
 
 #### **Phase 2D.4: Final Parser Updates** *(Parser Rejection Implementation)*
-- [ ] **WML Parser Deprecation**: Update WML parser to reject Variable/Computed/Action/Condition tags
-- [ ] **Schema Validation Updates**: Remove deprecated tag support from all remaining validation layers
-- [ ] **Remove Type Guard Dependencies**: Remove Variable/Computed/Action type guards and related imports (including in `packages/mtw-base`)
-- [ ] **Remove extractDependencies Utility**: Remove Variable/Computed/Action dependency extraction functionality from lambda/wml utilities
+- [x] **WML Parser Deprecation**: Update WML parser to reject Variable/Computed/Action/Condition tags ✅ **COMPLETED**
+- [x] **Schema Validation Updates**: Remove deprecated tag support from all remaining validation layers ✅ **COMPLETED**
+- [x] **Remove Type Guard Dependencies**: Remove Variable/Computed/Action type guards and related imports (including in `packages/mtw-base`) ✅ **COMPLETED**
+- [x] **Remove extractDependencies Utility**: Remove Variable/Computed/Action dependency extraction functionality from lambda/wml utilities ✅ **COMPLETED**
+- [ ] **Fix wml lambda unit tests**: Correct unit tests in lambda that have been broken by migration
+- [ ] **Fix asset lambda unit tests**: Correct unit tests in lambda that have been broken by migration
+- [ ] **Fix ephemera lambda unit tests**: Correct unit tests in lambda that have been broken by migration
 
 #### **Success Criteria**
 - ✅ **No Variable/Computed/Action code remains in mtw-wml package** - All classes, data types, and tests removed
