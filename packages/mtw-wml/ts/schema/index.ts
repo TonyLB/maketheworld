@@ -128,8 +128,6 @@ class SchemaAggregator {
         const closingItem = this.contextStack.slice(-1)[0]
         if (closingItem.data.tag !== tag) {
             if (!(
-                (['If', 'ElseIf'].includes(tag) && closingItem.data.tag === 'Statement') ||
-                (tag === 'Else' && closingItem.data.tag === 'Fallthrough') ||
                 (tag === 'Replace' && closingItem.data.tag === 'ReplaceMatch') ||
                 (tag === 'With' && closingItem.data.tag === 'ReplacePayload')
             )) {
@@ -288,7 +286,6 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
                 tag,
                 key: ''
             }
-        case 'If':
         case 'Replace':
         case 'Description':
             return { tag }

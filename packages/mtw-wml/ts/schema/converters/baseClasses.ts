@@ -49,11 +49,11 @@ export type ConverterMapEntry = {
     // already exist on contextStack, and the aggregate function is used to turn that wrapper object (together with
     // its current children) into the new wrapper object (with, presumably, updated children)
     //
-    wrapper?: 'If' | 'Replace';
+    wrapper?: 'Replace';
     aggregate?: (previous: GenericTreeNode<SchemaTag>, node: GenericTreeNode<SchemaTag>) => GenericTreeNode<SchemaTag>;
 }
 
-export const isSchemaWrapper = (tag: SchemaTag['tag']): tag is 'If' => (['If'].includes(tag))
+export const isSchemaWrapper = (tag: SchemaTag['tag']): tag is 'Replace' => (['Replace'].includes(tag))
 
 export type SchemaToWMLOptions = {
     indent: number;

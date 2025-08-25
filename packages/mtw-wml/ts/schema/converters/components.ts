@@ -135,7 +135,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         typeCheckContents: (item) => (isSchemaMapContents(item) || isSchemaName(item)),
         validateContents: {
             isValid: (tag) => (true),
-            branchTags: ['If', 'Room'],
+            branchTags: ['Room'],
             leafTags: ['Position', 'Image']
         },
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMapTag, SchemaTag> => {

@@ -60,7 +60,7 @@ The following migrations must be completed in this specific order due to depende
 - **Phase 2A**: Remove Ephemera Usage (1-2 weeks) - ✅ **COMPLETED**
 - **Phase 2B**: Dependencies Properties Assessment (1-2 weeks) - ✅ **COMPLETED**
 - **Phase 2C**: Frontend Component Analysis (1-2 weeks) - ✅ **COMPLETED**
-- **Phase 2D**: WML Parser and Schema Analysis (3-4 weeks) - *(Core Removal + Cleanup)*
+- **Phase 2D**: WML Parser and Schema Analysis (3-4 weeks) - *(Core Removal + Cleanup)* - 🟢 **87.5% COMPLETE**
 
 #### **Objectives**
 - Document all Variable/Computed/Action dependencies
@@ -96,9 +96,9 @@ The following migrations must be completed in this specific order due to depende
 - [x] **Component Interface Updates**: Update component props and interfaces to remove legacy dependencies ✅ **COMPLETED**
 
 ##### **Phase 2D: WML Parser and Schema Analysis** *(Core Removal + Cleanup)*
-**Status**: 🟢 **CORE SCHEMA CONVERTERS REMOVED** - Variable/Computed/Action and If/ElseIf/Else schema converters successfully removed  
-**Progress**: 7/8 major tasks completed (87.5%)  
-**Next Focus**: Base type removal
+**Status**: 🟢 **PHASE 2D.3 COMPLETED** - All core schema support successfully removed  
+**Progress**: 8/8 major tasks completed (100%)  
+**Next Focus**: Phase 2D.4 - Final Parser Updates
 - [x] **Update StandardForm Component Templates**: Remove Variable, Computed, and Action from component processing templates
 - [x] **Update Component Factory Functions**: Remove Variable/Computed/Action creation logic from `standardNonEditComponentFactory` and `standardComponentByTag`
 - [x] **Update Component Processing**: Remove Variable/Computed/Action handling from `processComponents` function
@@ -126,12 +126,12 @@ The following migrations must be completed in this specific order due to depende
 - [x] **Remove Import/Export Dependencies**: Remove legacy tag handling from asset import/export systems
 - [x] **Remove Selected System**: Remove `defaultSelected` function, `SchemaSelectedTag`, and `selected` properties (all conditional-dependent)
 
-#### **Phase 2D.3: Remove Core Schema Support** *(Core Converter Removal)*
+#### **Phase 2D.3: Remove Core Schema Support** *(Core Converter Removal)* ✅ **COMPLETED**
 - [x] **Remove WML Schema Converters**: Remove Variable, Computed, and Action tag support from WML schema converters ✅ **COMPLETED**
 - [x] **Remove Conditional Schema Converters**: Remove If/ElseIf/Else conditional tag support from WML schema ✅ **COMPLETED**
 - [x] **Update Parser Integration**: Remove deprecated converters from main converterMap and printMap ✅ **COMPLETED**
 - [x] **Interface Type Removal**: Remove Variable/Computed/Action/Condition types from `mtw-interfaces` ✅ **COMPLETED**
-- [ ] **Base Type Removal**: Remove Variable/Computed/Action/Condition types from `mtw-base`
+- [x] **Base Type Removal**: Remove Variable/Computed/Action/Condition types from `mtw-base` ✅ **COMPLETED**
 
 **⚠️ IMPORTANT: Systems We Are NOT Removing (Different from Conditionals)**
 - **`cascadeConditions`**: Graph-based traversal system for asset subsetting (spatial relationships, exits, component references)
