@@ -41,6 +41,34 @@ Represents line break elements.
 Represents explicit spacing elements.
 - **Properties**: None (structural element)
 
+**⚠️ CRITICAL**: `<Space />` elements are **boundary markers** and can only appear at the very beginning or end of a RenderTree, never in the middle. See [Space Element Positioning](#space-element-positioning) for details.
+
+## Space Element Positioning
+
+### Rules for `<Space />` Elements
+
+`<Space />` tags represent **explicit boundary spacing** and follow strict positioning rules:
+
+1. **Leading `<Space />`**: Only at the very beginning of content
+   - Indicates content should start with explicit spacing
+   - Example: `<Space />Hello World` → renders as " Hello World"
+
+2. **Trailing `<Space />`**: Only at the very end of content
+   - Indicates content should end with explicit spacing  
+   - Example: `Hello World<Space />` → renders as "Hello World "
+
+3. **Internal spacing**: Always represented as literal spaces, never as `<Space />` tags
+   - Merge operations normalize internal spacing to literal characters
+   - Example: `Hello<Space />World` → becomes "Hello World" during merge
+
+### Why This Design?
+
+- **WML whitespace behavior**: WML is a whitespace-ignoring system where `<Description>     Some text</Description>` is equivalent to `<Description>Some text</Description>`. To represent meaningful spacing, we need explicit tags.
+- **Semantic clarity**: `<Space />` tags indicate intentional boundary spacing that should be preserved
+- **Simplified processing**: Internal spacing uses literal spaces for easier merge/diff operations
+- **Consistent output**: All consumers get the same semantic representation
+- **Predictable behavior**: Users can rely on spacing intent being preserved
+
 ## Usage Patterns
 
 ### Constructor Overloads
@@ -101,6 +129,7 @@ StandardRender automatically normalizes content during operations:
 2. **Line Break Normalization**: Multiple line breaks are reduced to single breaks
 3. **String Joining**: Adjacent strings are automatically joined
 4. **Link Preservation**: Links maintain their references and display text
+5. **Space Tag Restoration**: Leading/trailing spaces are automatically converted back to `<Space />` tags
 
 ### Merge Logic
 
@@ -109,7 +138,9 @@ The merge operation follows these rules:
 1. **String Concatenation**: Adjacent strings are joined with normalized whitespace
 2. **Element Preservation**: Non-string elements (links, breaks, spaces) are preserved
 3. **Whitespace Normalization**: Multiple spaces and breaks are normalized
-4. **Conflict Detection**: Incompatible changes throw `MergeConflictError`
+4. **Space Tag Conversion**: Internal `<Space />` tags are converted to literal spaces during merge
+5. **Semantic Restoration**: Constructor automatically restores boundary `<Space />` tags
+6. **Conflict Detection**: Incompatible changes throw `MergeConflictError`
 
 ### Diff Operations
 

@@ -1212,11 +1212,6 @@ describe('StandardForm', () => {
         expect(room1['_origin']).toEqual(['ASSET#789'])
         expect(feature1?.['_origin']).toEqual(['ASSET#101', 'ASSET#102'])
         
-        // Debug logging to see what's in the Character schema
-        console.log('Character _origin:', char1['_origin'])
-        console.log('Character schema:', JSON.stringify(char1.schema, null, 2))
-        console.log('Form schema:', JSON.stringify(form.schema, null, 2))
-        
         const finalWML = schemaToWML([form.schema])
         expect(finalWML).toEqual(originWML)
     })

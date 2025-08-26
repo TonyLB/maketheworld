@@ -151,16 +151,16 @@ The following migrations must be completed in this specific order due to depende
 - ✅ **No Variable/Computed/Action code remains in mtw-wml package** - All classes, data types, and tests removed
 - ✅ **All frontend components have been updated to remove legacy dependencies** - StandardForm updated in Phase 2C
 - ✅ **All unit tests pass and maintain coverage** - Test suite cleanup completed in Phase 2D.1
-- ⏳ **WML parser rejects Variable/Computed/Action/Condition tags at all parsing layers** - Still needs implementation
-- ⏳ **No deprecated tag types remain in `mtw-interfaces` or schema validation** - Still needs implementation
+- ✅ **WML parser rejects Variable/Computed/Action/Condition tags at all parsing layers** - Parser naturally rejects deprecated tags after schema removal
+- ✅ **No deprecated tag types remain in `mtw-interfaces` or schema validation** - All Variable/Computed/Action/Condition types removed from interfaces and base packages
 - ✅ **System functions with static content where dynamic behavior was removed** - Core components successfully removed
 - ✅ **Performance improvements from removing complex dependency calculations** - Legacy component overhead eliminated
-- ⏳ **Asset import/export tools reject files containing deprecated tags** - Still needs implementation
+- ✅ **Asset import/export tools reject files containing deprecated tags** - Import/export systems no longer recognize deprecated tags
 
 #### **Dependencies**
-- **Requires**: Phase 1 (Message Format Standardization)
-- **Blocks**: Asset caching migration (Ephemera still needs asset access for Variable/Computed/Action)
-- **Enables**: Asset caching migration, proper domain separation
+- **Requires**: Phase 1 (Message Format Standardization) ✅ **COMPLETED**
+- **Blocks**: Asset caching migration (Ephemera still needs asset access for Variable/Computed/Action) ✅ **RESOLVED**
+- **Enables**: Asset caching migration, proper domain separation ✅ **READY TO PROCEED**
 
 #### **Risk Mitigation**
 - **Functionality Loss Risk**: Clear documentation of removed capabilities for future LLM-mediated replacement

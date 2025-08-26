@@ -46,7 +46,23 @@ export class StandardRenderSimpleBase implements StandardEditablePayload<RenderT
         return renderTreeToSchema(this.data)
     }
     constructor(data: RenderTree) {
-        this.data = data
+        const firstElement = data.length > 0 ? data[0] : undefined
+        const afterCheckingForLeadingSpace = firstElement && typeof firstElement === 'string' && firstElement.startsWith(' ')
+            ? [
+                { data: { tag: 'Space' as const }, children: [] },
+                ...(firstElement.length > 1 ? [firstElement.slice(1)] : []),
+                ...data.slice(1)
+            ]
+            : data
+        const lastElement = afterCheckingForLeadingSpace.length > 0 ? afterCheckingForLeadingSpace[afterCheckingForLeadingSpace.length - 1] : undefined
+        const afterCheckingForTrailingSpace = lastElement && typeof lastElement === 'string' && lastElement.endsWith(' ')
+            ? [
+                ...afterCheckingForLeadingSpace.slice(0, -1),
+                ...(lastElement.length > 1 ? [lastElement.slice(0, -1)] : []),
+                { data: { tag: 'Space' as const }, children: [] }
+            ]
+            : afterCheckingForLeadingSpace
+        this.data = afterCheckingForTrailingSpace
     }
     clone() {
         return new StandardRenderSimpleBase(JSON.parse(JSON.stringify(this.data)))
@@ -370,7 +386,7 @@ export class StandardRenderRemove implements StandardEditableWrapper<StandardRen
             this.match = delta.remove
             return
         }
-        console.log(`Invalid data: ${JSON.stringify(data)}`)
+        // console.log(`Invalid data: ${JSON.stringify(data)}`)
         throw new Error('Invalid data in TestRemoveClass')
     }
     get schema() {
