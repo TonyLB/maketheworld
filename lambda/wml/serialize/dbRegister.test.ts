@@ -51,8 +51,6 @@ describe('dbRegister', () => {
                         <ShortName>Welcome</ShortName>
                     </Room>
                     <Feature key=(clockTower) />
-                    <Variable key=(power) default={true} />
-                    <Action key=(togglePower) src={power = !power} />
                 </Asset>
             `)
         } as any)
