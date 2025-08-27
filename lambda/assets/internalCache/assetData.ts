@@ -1,3 +1,4 @@
+import { isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { DeferredCache } from './deferredCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -40,7 +41,19 @@ export class AssetData {
                 })) || []
                 const standardForm = new StandardForm([
                     { tag: 'Asset', key: AssetId.split('#').slice(1)[0], universalKey: AssetId },
-                    ...ndjsonLines.filter(isStandardNDJSONLine)
+                    ...ndjsonLines
+                        .map(({ DataCategory, AssetId, ...line }) => (isSchemaComponentUUID(AssetId) ?
+                            {
+                                universalKey: AssetId,
+                                ...line
+                            }
+                            : {}
+                        ))
+                        .filter(isStandardNDJSONLine)
+                        .map((line) => ({
+                            ...line,
+                            _origin: [AssetId]
+                        }))
                 ])
                 return {
                     AssetId,
