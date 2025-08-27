@@ -33,14 +33,14 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset key=(testFinal)>
+    <Room uuid=(stub) origin=(ASSET#testImportAssetThree)>
+        <ShortName>AssetThreeStub</ShortName>
+    </Room>
     <Room
         uuid=(testStubOne)
         origin=(ASSET#testImportAssetThree,ASSET#testImportAssetTwo)
     >
         <ShortName>Asset Three</ShortName>
-    </Room>
-    <Room uuid=(stub) origin=(ASSET#testImportAssetThree)>
-        <ShortName>AssetThreeStub</ShortName>
     </Room>
     <Room
         uuid=(testImportThree)

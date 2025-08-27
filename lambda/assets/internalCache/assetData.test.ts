@@ -30,8 +30,8 @@ describe('AssetData cache class', () => {
     it('should return the data from the database when found', async () => {
         const assetId = 'ASSET#Test'
         const mockData = [
-            { tag: 'Room', key: 'Room1', AssetId: `ROOM#ABCDEF`, DataCategory: 'ASSET#Test', shortName: 'Lobby', exits: [], examples: [{ tag: 'Example', key: 'base' }] },
-            { tag: 'Example', key: 'Room1.base', AssetId: 'EXAMPLE#GHIJKL', DataCategory: 'ASSET#Test', name: ['Plain lobby'], description: ['A featureless lobby'], summary: [] }
+            { tag: 'Room', key: 'Room1', AssetId: `ROOM#ABCDEF`, DataCategory: 'ASSET#Test', shortName: 'Lobby', exits: [], examples: ['EXAMPLE#GHIJKL'] },
+            { tag: 'Example', AssetId: 'EXAMPLE#GHIJKL', DataCategory: 'ASSET#Test', context: ['ROOM#ABCDEF'], name: ['Plain lobby'], description: ['A featureless lobby'], summary: [] }
         ]
         assetDBMock.query.mockResolvedValue(mockData)
         const result = await assetData.get([assetId])
@@ -43,9 +43,9 @@ describe('AssetData cache class', () => {
         ])
         expect(schemaToWML([result[0].standardForm.schema])).toEqual(deIndentWML(`
             <Asset key=(Test)>
-                <Room key=(Room1)>
+                <Room uuid=(ABCDEF) key=(Room1)>
                     <ShortName>Lobby</ShortName>
-                    <Example key=(base)>
+                    <Example uuid=(GHIJKL)>
                         <Name>Plain lobby</Name>
                         <Description>A featureless lobby</Description>
                     </Example>

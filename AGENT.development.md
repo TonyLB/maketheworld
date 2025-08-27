@@ -143,8 +143,8 @@ The following migrations must be completed in this specific order due to depende
 - [x] **Schema Validation Updates**: Remove deprecated tag support from all remaining validation layers ✅ **COMPLETED**
 - [x] **Remove Type Guard Dependencies**: Remove Variable/Computed/Action type guards and related imports (including in `packages/mtw-base`) ✅ **COMPLETED**
 - [x] **Remove extractDependencies Utility**: Remove Variable/Computed/Action dependency extraction functionality from lambda/wml utilities ✅ **COMPLETED**
-- [ ] **Fix wml lambda unit tests**: Correct unit tests in lambda that have been broken by migration
-- [ ] **Fix asset lambda unit tests**: Correct unit tests in lambda that have been broken by migration
+- [x] **Fix wml lambda unit tests**: Correct unit tests in lambda that have been broken by migration
+- [x] **Fix asset lambda unit tests**: Correct unit tests in lambda that have been broken by migration ✅ **COMPLETED**
 - [ ] **Fix ephemera lambda unit tests**: Correct unit tests in lambda that have been broken by migration
 
 #### **Success Criteria**

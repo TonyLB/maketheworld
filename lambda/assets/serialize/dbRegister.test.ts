@@ -47,8 +47,6 @@ describe('dbRegister', () => {
                     </Map>
                     <Room key=(Welcome)><Name>Welcome</Name></Room>
                     <Feature key=(clockTower) />
-                    <Variable key=(power) default={true} />
-                    <Action key=(togglePower) src={power = !power} />
                 </Asset>
             `).withUpdatedUniversalKeys((key) => (key === 'Welcome' ? 'ROOM#12345' : undefined))
         } as any)
