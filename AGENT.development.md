@@ -225,7 +225,7 @@ Some tasks can be done in parallel across phases:
 ### **Technical Success**
 - [x] **Message Format Standardization**: All perception messages use unified WML/Standard format with strongly-typed metadata ✅ COMPLETED
 - [ ] Domain-Authoritative Event Mesh fully implemented
-- [ ] No legacy Variable/Computed/Action code remains
+- [x] No legacy Variable/Computed/Action code remains
 - [ ] Assets Lambda has complete authority over component materialized views
 - [ ] Ephemera Lambda focused solely on real-time character state and AI interactions
 - [ ] Event flows respect proper domain boundaries
