@@ -2,6 +2,7 @@ import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
 import internalCache from '../internalCache'
 import { EphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
+import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 
 const getCurrentRoom = async (CharacterId: EphemeraCharacterId) => {
     const { RoomId } = await internalCache.CharacterMeta.get(CharacterId) || {}
@@ -14,12 +15,15 @@ const getCurrentRoom = async (CharacterId: EphemeraCharacterId) => {
         
         if (roomComponent instanceof StandardRoom) {
             // Transform exits to the format expected by parseCommand
-            const exits = roomComponent.exits.map(exit => {
-                const exitData = exit._payload.plain.toJSON()
-                const exitName = typeof exitData.description === 'string' ? exitData.description : 'Unknown Exit'
-                const targetRoomId = typeof exitData.to === 'string' ? exitData.to : exitData.to.universalKey || ''
-                return { Name: exitName, RoomId: targetRoomId }
-            })
+            const exits = roomComponent.exits
+                .map((exit) => exit.plain)
+                .filter(excludeUndefined)
+                .map(exit => {
+                    const exitData = exit.toJSON()
+                    const exitName = typeof exitData.description === 'string' ? exitData.description : 'Unknown Exit'
+                    const targetRoomId = typeof exitData.to === 'string' ? exitData.to : exitData.to.universalKey || ''
+                    return { Name: exitName, RoomId: targetRoomId }
+                })
             
             // Transform characters to the format expected by parseCommand
             // Note: We need to resolve character references to get actual character data

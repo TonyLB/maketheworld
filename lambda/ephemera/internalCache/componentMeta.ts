@@ -82,7 +82,6 @@ export class ComponentMetaData {
                 AssetId: EphemeraId,
                 DataCategory: assetId
             }));
-            console.log('DEBUG - ComponentMeta DynamoDB Query Keys:', JSON.stringify(queryKeys, null, 2));
             
             // Use the new getAllFields option to get all attributes from DynamoDB
             const returnValues = await assetDB.getItems<Omit<StandardComponentData, 'universalKey' | 'tag'> & { DataCategory?: AssetUUID, AssetId: ComponentUUID }>({
@@ -90,19 +89,13 @@ export class ComponentMetaData {
                 getAllFields: true
             });
             
-            console.log('DEBUG - ComponentMeta DynamoDB Raw Response:', JSON.stringify(returnValues, null, 2));
             const filteredResults = returnValues
                 .filter((value) => {
                     // Filter out records with invalid or missing DataCategory
                     const assetId = value.DataCategory ?? ''
                     const isValid = isSchemaAssetUUID(assetId)
-                    if (!isValid) {
-                        console.log(`DEBUG - Filtering out invalid DataCategory: "${value.DataCategory}" (becomes "${assetId}") for EphemeraId: ${EphemeraId}`);
-                    }
                     return isValid
                 });
-            
-            console.log('DEBUG - ComponentMeta Filtered Results Count:', filteredResults.length, 'of', returnValues.length);
             
             return filteredResults
                 .map((value) => {

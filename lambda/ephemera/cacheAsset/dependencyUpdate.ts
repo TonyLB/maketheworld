@@ -4,13 +4,8 @@ import internalCache from "../internalCache"
 import { EphemeraKeyMappingMixin } from "./baseClasses"
 import GraphUpdate from "@tonylb/mtw-utilities/ts/graphStorage/update"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
-import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isStandardComputed, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardRoom, isStandardVariable, StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { isStandardMap, isStandardRoom, StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaDescription, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaEdit } from "@tonylb/mtw-base/ts/schema/edit"
-import { isSchemaCondition, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isStandardExample } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes/example"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
@@ -94,7 +89,7 @@ const extractDependenciesFromEphemeraItem = (item: StandardComponentData & Ephem
 }
 
 const assetBacklink = (context: string) => (item: StandardComponentData) => {
-    if (isStandardComputed(item) || isStandardVariable(item) || isStandardRoom(item) || isStandardExample(item)) {
+    if (isStandardRoom(item) || isStandardExample(item)) {
         return {
             target: AssetKey(context),
             context,

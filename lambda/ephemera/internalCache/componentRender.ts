@@ -7,35 +7,29 @@ import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
 
 import {
     EphemeraCharacterId,
-
     EphemeraFeatureId,
     EphemeraKnowledgeId,
     EphemeraMapId,
     EphemeraMessageId,
     EphemeraRoomId,
-
     isEphemeraCharacterId,
-
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraMapId,
     isEphemeraMessageId,
     isEphemeraRoomId,
-
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { RoomCharacterListItem } from './baseClasses';
 import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta';
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
-import { treeTypeGuard } from '@tonylb/mtw-wml/ts/tree/filter';
 import { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
 import { CacheRoomCharacterListsData } from './roomCharacterLists';
-import { AssetUUID, ComponentUUID, isSchemaComponentUUID, SchemaOutputTag, SchemaTag } from '@tonylb/mtw-base/ts/schema';
-import { isSchemaCondition } from '@tonylb/mtw-base/ts/schema/condition';
+import { AssetUUID, ComponentUUID, SchemaOutputTag } from '@tonylb/mtw-base/ts/schema';
 import { EphemeraCondition } from '../cacheAsset/baseClasses';
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
-import StandardReference, { StandardKey } from '@tonylb/mtw-wml/ts/standardize/components/reference';
+import { StandardKey } from '@tonylb/mtw-wml/ts/standardize/components/reference';
 import { mergeStandardExitList } from '@tonylb/mtw-wml/ts/standardize/components/exit';
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room';
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal';
@@ -48,7 +42,6 @@ import { StandardKnowledgeData } from '@tonylb/mtw-wml/ts/standardize/components
 import { StandardMapData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/map';
 import { StandardFeatureData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/feature';
 import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character';
-import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -66,21 +59,6 @@ type ComponentDescriptionCache = {
 type ComponentRenderGetOptions = {
     priorRenderChain?: string[];
     header?: boolean;
-}
-
-// Conditional tag evaluation removed - Conditional tags no longer supported
-// Returns empty array since all conditional content is now skipped
-export const evaluateSchemaConditionals = <T extends SchemaTag>(_evaluateCode?: any, _typeGuard?: any) => async (tree: GenericTree<T>, _mapping?: any): Promise<GenericTree<T>> => {
-    // Filter out any conditional nodes and return only non-conditional content
-    const finalTree = tree.filter((node) => {
-        const { data } = node
-        // Skip any conditional nodes - they evaluate to "nothing"
-        if (isSchemaCondition(data)) {
-            return false
-        }
-        return true
-    })
-    return finalTree
 }
 
 const generateCacheKey = (CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions) => (`${CharacterId}::${EphemeraId}::${(options && 'header' in options && options.header) ? 'true' : 'false'}`)
@@ -184,7 +162,10 @@ export class ComponentRenderData {
 
             const [roomCharacterList, exits, shortName] = await Promise.all([
                 this._roomCharacterList(EphemeraId),
-                mergeStandardExitList(assetData.map((asset) => asset.exits || []).flat(1)).map((exit) => exit._payload.plain.toJSON()),
+                mergeStandardExitList(assetData.map((asset) => asset.exits || []).flat(1))
+                    .map((exit) => exit.plain)
+                    .filter(excludeUndefined)
+                    .map((exit) => exit.toJSON()),
                 assetData
                     .map((component) => component.shortName)
                     .filter(excludeUndefined)
@@ -306,8 +287,13 @@ export class ComponentRenderData {
                     roomId: ephemeraId,
                     name: mergedRoom?.shortName?._payload?.plain?.toJSON?.() as string,
                     exits: (mergedRoom?.exits ?? [])
-                        .filter((exit) => (Boolean(merged && merged.positions.find((position) => (position.room._payload.plain.equals(exit._payload.plain.to))))))
-                        .map((exit) => ({ description: exit._payload.plain.description?._payload?.plain?.toJSON?.() ?? '' as string, to: exit._payload.plain.to.toJSON() as EphemeraRoomId })),
+                        .map((exit) => exit.plain)
+                        .filter(excludeUndefined)
+                        .filter((exit) => (Boolean(
+                            merged &&
+                            merged.positions.find((position) => (position.room._payload.plain.equals(exit.to)))
+                        )))
+                        .map((exit) => ({ description: exit.description?._payload?.plain?.toJSON?.() ?? '' as string, to: exit.to.toJSON() as EphemeraRoomId })),
                     x: position.x,
                     y: position.y
                 }
