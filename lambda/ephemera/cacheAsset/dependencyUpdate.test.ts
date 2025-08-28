@@ -51,7 +51,6 @@ describe('dependencyUpdate', () => {
                         data: { tag: 'If', conditions: [{ if: 'active' }] },
                         children: [{ data: { tag: 'String', value: 'The lights are on ' }, children: [] }]
                     }],
-                    // stateMapping removed - Variable/Computed functionality no longer exists
                     keyMapping: {}
                 },
             },
@@ -66,61 +65,15 @@ describe('dependencyUpdate', () => {
                     key: 'LMNO',
                     tag: 'Map',
                     positions: [{ data: { tag: 'Room', key: 'room1' }, children: [] }],
-                    // stateMapping removed - Variable/Computed functionality no longer exists
                     keyMapping: { room1: 'ROOM#DEF' }
-                }
-            },
-            {
-                key: {
-                    EphemeraId: 'VARIABLE#QRS',
-                    DataCategory: 'ASSET#test'
-                },
-                action: {
-                    EphemeraId: 'VARIABLE#QRS',
-                    DataCategory: 'ASSET#test',
-                    key: 'powered',
-                    tag: 'Variable',
-                    default: 'false'
-                },
-            },
-            {
-                key: {
-                    EphemeraId: 'VARIABLE#TUV',
-                    DataCategory: 'ASSET#test'
-                },
-                action: {
-                    EphemeraId: 'VARIABLE#TUV',
-                    DataCategory: 'ASSET#test',
-                    key: 'switchedOn',
-                    tag: 'Variable',
-                    default: 'true'
-                },
-            },
-            {
-                key: {
-                    EphemeraId: 'COMPUTED#XYZ',
-                    DataCategory: 'ASSET#test'
-                },
-                action: {
-                    EphemeraId: 'COMPUTED#XYZ',
-                    DataCategory: 'ASSET#test',
-                    key: 'active',
-                    tag: 'Computed',
-                    src: 'powered && switchedOn',
-                    // dependencies: [
-                    //     { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
-                    //     { key: 'powered', EphemeraId: 'VARIABLE#QRS' }
-                    // ],
-                    // stateMapping removed - Variable/Computed functionality no longer exists
                 }
             }
         ])
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledTimes(3) // Only Room, Example, Map processed - Variable/Computed removed
         const testSetEdge = (itemId: string, edges: any[]) => ([{ itemId, edges, options: { direction: 'back', contextFilter: expect.any(Function) } }])
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('ROOM#ABC', []))
-        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('EXAMPLE#DEF', [{ target: 'ASSET#test', context: 'test', data: { scopedId: 'GHI.base' } }])) // stateMapping dependencies removed
+        expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('EXAMPLE#DEF', [{ target: 'ASSET#test', context: 'test' }]))
         expect(GraphUpdateMock.mock.instances[0].setEdges).toHaveBeenCalledWith(testSetEdge('MAP#LMNO', [{ target: 'ASSET#test', context: 'test' }, { target: 'ROOM#DEF', data: { scopedId: 'room1' }, context: 'test' }]))
-        // Variable/Computed expectations removed - functionality no longer exists
     })
 
     it('should create internal connections from links', async () => {
@@ -143,7 +96,6 @@ describe('dependencyUpdate', () => {
                     key: 'Base.base',
                     tag: 'Example',
                     name: [{ tag: 'String', value: 'Feature Base Test' }],
-                    // stateMapping removed - Variable/Computed functionality no longer exists
                     keyMapping: {}
                 }
             },
@@ -166,7 +118,6 @@ describe('dependencyUpdate', () => {
                     tag: 'Example',
                     name: [{ data: { tag: 'String', value: 'Feature Test' }, children: [] }],
                     description: [{ data: { tag: 'Link', to: 'Base', text: 'Forward' }, children: [] }],
-                    // stateMapping removed - Variable/Computed functionality no longer exists
                     keyMapping: { Base: 'FEATURE#Base' }
                 }
             },
