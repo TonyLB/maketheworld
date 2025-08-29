@@ -2,42 +2,39 @@
 
 ## Overview
 
-The Image Format Processing function handles the transformation of uploaded images into standardized formats for Make The World assets. It currently uses UUID-based naming but is planned for migration to universalKey-based storage for improved system elegance.
+The Image Format Processing function handles the transformation of uploaded images into standardized formats for Make The World assets. This system has been completely redesigned to use universalKey-based storage with S3 event-driven processing for improved reliability and separation of concerns.
 
-## Current Architecture
+## Current Implementation Details
 
-### Processing Pipeline
+### Available Code and Libraries
 
-The format image function operates as part of the WML parsing pipeline:
+The current system has several useful components that we can leverage for the new architecture:
 
+#### Image Processing Core
 ```typescript
-export const formatImage = (s3Client: S3Client) => async ({ 
-    fromFileName, 
-    width, 
-    height 
-}): Promise<string | undefined>
-```
-
-**Process Flow**:
-1. **Input Retrieval**: Reads uploaded image from `UPLOAD_BUCKET`
-2. **Image Processing**: Resizes and converts using Jimp library
-3. **Output Storage**: Saves processed image to `IMAGES_BUCKET`
-4. **Filename Return**: Returns processed filename for WML association
-
-### Current Implementation
-
-```typescript
-// Current UUID-based naming
-const toFileName = `IMAGE-${uuidv4()}`
-
-// Processing steps
+// Current image processing implementation using Jimp
 const beforeBuffer = await jimp.read(contents)
 const afterBuffer = await beforeBuffer
     .resize(width, height, jimp.RESIZE_BEZIER)
     .deflateLevel(5)
     .getBufferAsync(jimp.MIME_PNG)
+```
 
-// Storage
+**Available Processing Capabilities:**
+- **Input Formats**: JPEG, PNG, GIF, BMP, TIFF
+- **Output Format**: PNG with deflate compression
+- **Quality**: Level 5 deflate compression
+- **Resize Algorithm**: Bezier interpolation
+- **Dimensions**: Configurable width/height parameters
+
+#### S3 Integration
+```typescript
+// Current S3 operations
+const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
+    Bucket: process.env.UPLOAD_BUCKET,
+    Key: fromFileName
+}))
+
 await s3Client.send(new PutObjectCommand({
     Bucket: process.env.IMAGES_BUCKET,
     Key: `${toFileName}.png`,
@@ -46,13 +43,16 @@ await s3Client.send(new PutObjectCommand({
 }))
 ```
 
-### Integration Points
+**Available Infrastructure:**
+- S3 client setup and configuration
+- Environment variable configuration for buckets
+- Stream-to-buffer conversion utilities
+- Error handling patterns
 
-#### WML Parse Integration
+#### WML Integration
 ```typescript
-// In parseWML.ts
+// Current WML parse integration (to be replaced)
 const imageFiles = await Promise.all([
-    // ... WML loading
     ...(images.map(async ({ key, fileName }) => {
         const final = await formatImage(s3Client)({ 
             fromFileName: fileName, 
@@ -64,210 +64,177 @@ const imageFiles = await Promise.all([
 ])
 ```
 
-#### StandardImage Association
+**Available Patterns:**
+- Component creation and association
+- StandardImage component handling
+- Asset workspace integration
+
+#### Upload Endpoint Reference
 ```typescript
-// Update WML component with processed filename
-imageFiles.forEach(({ key, fileName }) => {
-    const imageComponent = newStandard.byId[key]
-    if (imageComponent instanceof StandardImage) {
-        newStandard.byUniversalId[key] = imageComponent.withFileName(fileName)
-    }
+// Existing upload functionality in assets lambda (to be referenced)
+// Location: lambda/assets/upload/
+// Currently handles presigned URL generation (in wrong place)
+// Can be used as reference for our new implementation
+```
+
+**Available Infrastructure:**
+- Existing presigned URL generation patterns
+- Upload bucket configuration
+- Client upload flow patterns
+
+## New Architecture
+
+### Processing Pipeline
+
+The new image processing system operates as an independent, event-driven pipeline:
+
+```typescript
+// Client requests upload capability
+const presignedUrl = await getPresignedUploadUrl({
+    imageType: 'map' | 'character' | 'general',
+    targetResolution: '1200x800' | '400x300'
 })
+
+// Client uploads directly to uploads bucket
+// Filename: IMAGE-${universalKey}.${extension}
+// S3 tags include: requestId, sessionId, processing parameters
+
+// S3 ObjectCreated event triggers image processing lambda
+// Processing lambda reads metadata from S3 object tags
+// Stores processed image as IMAGE-${universalKey}.png in images bucket
+// Publishes success/error to PubSub for client notification
 ```
 
-## Proposed Universal Key Solution
+### Key Benefits
 
-### Architecture Overview
+1. **End-to-End Control**: Backend generates all universalKey values, preventing abuse
+2. **Event-Driven Processing**: S3 events trigger processing, eliminating tight coupling
+3. **Guaranteed Consistency**: StandardImage components only created after processing confirms success
+4. **Separation of Concerns**: Image processing decoupled from WML lambda
+5. **Client Experience**: Immediate in-memory preview, background processing, guaranteed file availability
 
-The system can be simplified by using the component's `universalKey` as the filename:
+### S3 Bucket Strategy
 
-```typescript
-// Current: IMAGE-${uuidv4()}.png
-// Proposed: ${universalKey}.png
-```
+- **Uploads Bucket**: Receives raw images with `IMAGE-${universalKey}.${extension}` naming
+- **Images Bucket**: Stores processed images as `IMAGE-${universalKey}.png`
+- **CloudFront**: Serves processed images with appropriate caching
 
-### Benefits
+### Metadata and Processing Parameters
 
-1. **Direct Association**: File name directly corresponds to component identity
-2. **Eliminated Properties**: No need for separate fileName property storage
-3. **Automatic Cleanup**: File deletion when component is removed
-4. **Predictable URLs**: Client can construct URLs directly from universalKey
-5. **Reduced Complexity**: Single source of truth for image location
+S3 object tags include:
+- `requestId`: Links processing back to client request
+- `sessionId`: Enables PubSub delivery to specific client session
+- `imageType`: Determines processing approach and resolution
+  - `"map"`: High resolution (1200x800) for detailed viewing
+  - `"character"`: Medium resolution (300x300) for character portraits
 
-### Implementation Plan
+**Note**: Resolution is hard-coded per image type, eliminating the need for separate `targetResolution` parameter.
 
-#### Phase 1: Universal Key Integration
-```typescript
-// Proposed implementation
-export const formatImage = (s3Client: S3Client) => async ({ 
-    fromFileName, 
-    universalKey,  // New parameter
-    width, 
-    height 
-}): Promise<string | undefined> => {
-    const toFileName = universalKey // Use universalKey directly
-    
-    // ... processing logic ...
-    
-    await s3Client.send(new PutObjectCommand({
-        Bucket: process.env.IMAGES_BUCKET,
-        Key: `${toFileName}.png`,
-        Body: afterBuffer,
-        ContentType: 'image/png'
-    }))
-    
-    return toFileName
-}
-```
+## Implementation Plan
 
-#### Phase 2: WML Integration Update
-```typescript
-// Updated WML parse integration
-const imageFiles = await Promise.all([
-    // ... WML loading
-    ...(images.map(async ({ key, fileName, universalKey }) => {
-        const final = await formatImage(s3Client)({ 
-            fromFileName: fileName,
-            universalKey,  // Pass universalKey
-            width: 1200, 
-            height: 800 
-        })
-        return { key, fileName: final }
-    }))
-])
-```
+### Phase 1: Core Infrastructure
+1. **Presigned URL Generation**: Backend endpoint for secure upload requests
+2. **S3 Event Handling**: Lambda triggered by ObjectCreated events
+3. **Image Processing**: Core image transformation logic (leveraging existing Jimp code)
+4. **PubSub Integration**: Success/error notification system
 
-#### Phase 3: Property Elimination
-```typescript
-// No longer need to update fileName properties
-// Component can access image directly via universalKey
-const imageComponent = newStandard.byId[key]
-if (imageComponent instanceof StandardImage) {
-    // No property update needed - image accessible via universalKey
-    newStandard.byUniversalId[key] = imageComponent
-}
-```
+### Phase 2: Client Integration
+1. **Upload Flow**: Client-side drag-and-drop with immediate preview
+2. **Processing Status**: Real-time feedback during image processing
+3. **WML Integration**: Safe addition of Image tags after processing confirmation
+
+### Phase 3: Advanced Features
+1. **Multiple Resolutions**: Support for different image types and sizes
+2. **Format Optimization**: Automatic format selection based on content
+3. **Error Recovery**: Retry mechanisms and user feedback
 
 ## Technical Details
 
-### Current Processing Parameters
+### Processing Parameters
 
-- **Input Formats**: JPEG, PNG, GIF, BMP, TIFF
-- **Output Format**: PNG with deflate compression
-- **Dimensions**: 1200x800 pixels (configurable)
-- **Quality**: Level 5 deflate compression
-- **Resize Algorithm**: Bezier interpolation
+- **Map Images**: High resolution (1200x800) for detailed viewing
+- **Character Portraits**: Medium resolution (400x300) for UI elements
+- **Image Types**: Limited to "map" and "character" contexts only
+- **Resolution Strategy**: Hard-coded per image type, no dynamic resolution selection
 
-### Proposed Enhancements
+### Security Considerations
 
-#### Universal Key Validation
-```typescript
-const validateUniversalKey = (universalKey: string): boolean => {
-    // Validate universalKey format
-    // Ensure it's safe for S3 object names
-    // Check for conflicts
-}
-```
+- **UniversalKey Generation**: Backend controls all key generation
+- **Upload Restrictions**: Uploads bucket only accessible via presigned URLs
+- **Processing Validation**: All processing parameters validated from S3 tags
 
-#### URL Safety
-```typescript
-const sanitizeUniversalKey = (universalKey: string): string => {
-    // Convert to URL-safe format
-    // Handle special characters
-    // Ensure uniqueness
-}
-```
+### Error Handling
 
-#### Error Handling
-```typescript
-const handleProcessingError = (error: Error, universalKey: string) => {
-    // Log error with universalKey context
-    // Clean up partial files
-    // Notify monitoring systems
-}
-```
+- **Processing Failures**: Detailed error messages via PubSub
+- **Format Issues**: Automatic fallback to supported formats
+- **Client Notification**: Real-time feedback for user experience
+- **Error Investigation**: Leverage Jimp's error information as we implement
+- **SNS Integration**: Use existing lightweight SNS client for PubSub delivery
+
+### Lambda Architecture
+
+- **Separate Lambda**: New image processing lambda in `lambda/imageProcessor/` directory
+- **SNS Integration**: Leverage existing SNS setup for lightweight PubSub
+- **Event-Driven**: Triggered by S3 ObjectCreated events from uploads bucket
+- **Independent Scaling**: Separate from WML lambda for better resource utilization
 
 ## Integration Points
 
 ### Dependencies
-- **S3**: File storage for uploaded and processed images
-- **Jimp**: Image processing library
-- **WML System**: Component universalKey generation
-- **Asset Cache**: Component data storage
+- **S3**: File storage and event triggering
+- **Lambda**: Image processing and PubSub publishing
+- **CloudFront**: Image serving and caching
+- **WML System**: StandardImage component creation
 
 ### Cross-References
-- **[Upload System](../assets/upload/)**: Image upload process
+- **[Upload System](../assets/upload/)**: Legacy system being replaced
 - **[WML Parse](../parseWML.ts)**: Integration with WML processing
-- **[Client Display](../../charcoal-client/)**: Image serving
-- **[Asset Properties](../assets/README.images.md)**: Current image association
+- **[Client Display](../../charcoal-client/)**: Image serving and display
+- **[PubSub System](../subscriptions/)**: Client notification delivery
 
-## Usage Patterns
+## Migration Notes
 
-### Current Usage
-```typescript
-// Process uploaded image
-const processedFileName = await formatImage(s3Client)({
-    fromFileName: 'IMAGE-abc123.jpg',
-    width: 1200,
-    height: 800
-})
+### Current State
+- **Image Processing**: Completely disabled in current system
+- **fileName Properties**: Stubbed out and non-functional
+- **WML Integration**: No active image processing during parsing
 
-// Result: 'IMAGE-def456' (stored as IMAGE-def456.png)
-```
+### Target State
+- **Event-Driven Processing**: S3 events trigger independent processing
+- **UniversalKey Association**: Direct file association via component universalKey
+- **Client-Driven Workflow**: Images added to WML only after processing confirmation
 
-### Proposed Usage
-```typescript
-// Process uploaded image with universalKey
-const processedFileName = await formatImage(s3Client)({
-    fromFileName: 'IMAGE-abc123.jpg',
-    universalKey: 'component-uuid-123',
-    width: 1200,
-    height: 800
-})
-
-// Result: 'component-uuid-123' (stored as component-uuid-123.png)
-```
-
-## Error Handling
-
-### Current Issues
-- **UUID Collisions**: Rare but possible UUID conflicts
-- **Orphaned Files**: Processed files without associated components
-- **Property Mismatches**: fileName properties pointing to non-existent files
-
-### Proposed Improvements
-- **Universal Key Validation**: Validate universalKey before processing
-- **Automatic Cleanup**: File deletion with component removal
-- **Conflict Resolution**: Clear strategy for universal key conflicts
-- **Error Recovery**: Better error handling and recovery mechanisms
+### No Backward Compatibility Required
+- Previous image system thoroughly disabled
+- No existing image data to migrate
+- Clean slate for new architecture implementation
 
 ## Development Notes
 
-### Current State
-- **UUID-Based System**: Functional but complex
-- **Property Dependencies**: Requires fileName property updates
-- **Manual Cleanup**: Orphaned file cleanup needed
+### Key Files to Create/Modify
+- `presignedUrl/index.ts`: Generate secure upload URLs
+- `imageProcessor/index.ts`: S3 event-driven image processing (leveraging existing Jimp code)
+- `notifications/index.ts`: PubSub integration for client feedback
 
-### Future State
-- **Universal Key System**: Simplified and elegant
-- **Direct Associations**: No separate property tracking
-- **Automatic Management**: Self-maintaining system
+### Lambda Separation Benefits
+- **WML Lambda**: Lighter build (no image processing libraries)
+- **Image Lambda**: Focused on image processing and optimization
+- **Better Resource Utilization**: Independent scaling and deployment
 
-### Migration Strategy
-1. **Dual System Support**: Support both UUID and universalKey systems
-2. **Gradual Migration**: Migrate assets one by one
-3. **Backward Compatibility**: Maintain existing functionality
-4. **Cleanup Phase**: Remove old system after migration
+### Code Reuse Strategy
+- **Leverage Existing**: Jimp processing logic, S3 operations, error handling
+- **Refactor**: Extract reusable image processing functions
+- **Replace**: WML integration patterns with new event-driven approach
 
 ## Navigation Tips
 
-### Key Files
-- `index.ts`: Main image processing implementation
-- `parseWML.ts`: WML integration
-- `upload/index.ts`: Upload system integration
+### Key Systems
+- **Upload Management**: Presigned URL generation and S3 upload handling
+- **Image Processing**: S3 event-driven transformation pipeline
+- **Client Notification**: PubSub-based status updates
+- **WML Integration**: Safe component creation after processing
 
-### Related Systems
-- **[Upload System](../assets/upload/)**: Image upload process
-- **[WML Parse](../parseWML.ts)**: WML processing integration
-- **[Client Display](../../charcoal-client/)**: Image serving
-- **[Asset Cache](../assets/cacheAsset/)**: Component storage
+### Related Documentation
+- **[WML Components](../../packages/mtw-wml/ts/standardize/components/)**: StandardImage implementation
+- **[Asset Workspace](../../packages/mtw-asset-workspace/)**: WML processing integration
+- **[Client Architecture](../../charcoal-client/)**: Frontend image handling
