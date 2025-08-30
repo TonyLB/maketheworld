@@ -1402,6 +1402,24 @@ Resources:
         Policies:
           - DynamoDBReadPolicy:
               TableName: !Sub '${TablePrefix}_assets'
+  ImageProcessorFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        Tracing: Active
+        CodeUri: lambda/imageProcessor/build/
+        Handler: lambda.handler
+        MemorySize: 256
+        Runtime: nodejs18.x
+        Timeout: 5
+        Environment:
+          Variables:
+            UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
+            IMAGES_BUCKET: !Sub '${TablePrefix}-images'
+        Policies:
+          - S3FullAccessPolicy:
+              BucketName: !Ref UploadBucket
+          - S3FullAccessPolicy:
+              BucketName: !Ref ImageBucket
   WMLFunction:
       Type: AWS::Serverless::Function
       Properties:
