@@ -1419,6 +1419,14 @@ Resources:
           # Need to specify the name rather than the reference so SAM doesn't spot the circular dependency
           - S3CrudPolicy:
               BucketName: !Sub '${TablePrefix}-uploads'
+          - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObjectTagging
+              Resource:
+                Fn::Sub:
+                    - "arn:aws:s3:::${UploadBucket}/*"
+                    - UploadBucket: !Sub '${TablePrefix}-uploads'
           - S3CrudPolicy:
               BucketName: !Ref ImageBucket
         Events:
