@@ -1415,6 +1415,7 @@ Resources:
           Variables:
             UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
             IMAGES_BUCKET: !Sub '${TablePrefix}-images'
+            FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
         Policies:
           # Need to specify the name rather than the reference so SAM doesn't spot the circular dependency
           - S3CrudPolicy:
@@ -1429,6 +1430,8 @@ Resources:
                     - UploadBucket: !Sub '${TablePrefix}-uploads'
           - S3CrudPolicy:
               BucketName: !Ref ImageBucket
+          - SNSPublishMessagePolicy:
+              TopicName: !GetAtt MTWFeedbackTopic.TopicName
         Events:
           S3ObjectCreated:
             Type: S3
