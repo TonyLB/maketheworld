@@ -1221,9 +1221,9 @@ Resources:
                   USER_POOL_ID: !Ref UserPool
                   WEB_SOCKET_URI: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
           Policies:
-              - S3FullAccessPolicy:
+              - S3CrudPolicy:
                   BucketName: !Ref ClientBucket
-              - S3FullAccessPolicy:
+              - S3CrudPolicy:
                   BucketName: !Ref AssetBucket
           Events:
             Initialize:
@@ -1416,10 +1416,22 @@ Resources:
             UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
             IMAGES_BUCKET: !Sub '${TablePrefix}-images'
         Policies:
-          - S3FullAccessPolicy:
-              BucketName: !Ref UploadBucket
-          - S3FullAccessPolicy:
+          # Need to specify the name rather than the reference so SAM doesn't spot the circular dependency
+          - S3CrudPolicy:
+              BucketName: !Sub '${TablePrefix}-uploads'
+          - S3CrudPolicy:
               BucketName: !Ref ImageBucket
+        Events:
+          S3ObjectCreated:
+            Type: S3
+            Properties:
+              Bucket: !Ref UploadBucket
+              Events: s3:ObjectCreated:*
+              Filter:
+                S3Key:
+                  Rules:
+                    - Name: prefix
+                      Value: 'IMAGE-'
   WMLFunction:
       Type: AWS::Serverless::Function
       Properties:
