@@ -1,5 +1,6 @@
 import { S3Client, GetObjectCommand, GetObjectTaggingCommand } from '@aws-sdk/client-s3'
 import type { Readable } from 'stream'
+import jimp from 'jimp'
 
 // Initialize S3 client
 const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' })
@@ -93,6 +94,10 @@ export const processImageUpload = async (record: S3Event['Records'][0]) => {
         // Log results for testing
         console.log(`Successfully loaded image data: ${imageData.length} bytes`)
         console.log(`Object tags received:`, objectTags)
+
+        // Read image with Jimp to get resolution
+        const image = await jimp.read(imageData)
+        console.log(`Image resolution: ${image.getWidth()}x${image.getHeight()}`)
 
     } catch (error) {
         console.error(`Error processing image ${objectKey}:`, error)
