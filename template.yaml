@@ -1221,9 +1221,9 @@ Resources:
                   USER_POOL_ID: !Ref UserPool
                   WEB_SOCKET_URI: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
           Policies:
-              - S3FullAccessPolicy:
+              - S3CrudPolicy:
                   BucketName: !Ref ClientBucket
-              - S3FullAccessPolicy:
+              - S3CrudPolicy:
                   BucketName: !Ref AssetBucket
           Events:
             Initialize:
@@ -1402,6 +1402,47 @@ Resources:
         Policies:
           - DynamoDBReadPolicy:
               TableName: !Sub '${TablePrefix}_assets'
+  ImageProcessorFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        Tracing: Active
+        CodeUri: lambda/imageProcessor/build/
+        Handler: lambda.handler
+        MemorySize: 256
+        Runtime: nodejs18.x
+        Timeout: 5
+        Environment:
+          Variables:
+            UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
+            IMAGES_BUCKET: !Sub '${TablePrefix}-images'
+            FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
+        Policies:
+          # Need to specify the name rather than the reference so SAM doesn't spot the circular dependency
+          - S3CrudPolicy:
+              BucketName: !Sub '${TablePrefix}-uploads'
+          - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObjectTagging
+              Resource:
+                Fn::Sub:
+                    - "arn:aws:s3:::${UploadBucket}/*"
+                    - UploadBucket: !Sub '${TablePrefix}-uploads'
+          - S3CrudPolicy:
+              BucketName: !Ref ImageBucket
+          - SNSPublishMessagePolicy:
+              TopicName: !GetAtt MTWFeedbackTopic.TopicName
+        Events:
+          S3ObjectCreated:
+            Type: S3
+            Properties:
+              Bucket: !Ref UploadBucket
+              Events: s3:ObjectCreated:*
+              Filter:
+                S3Key:
+                  Rules:
+                    - Name: prefix
+                      Value: 'IMAGE-'
   WMLFunction:
       Type: AWS::Serverless::Function
       Properties:
