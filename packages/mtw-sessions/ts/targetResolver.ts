@@ -87,7 +87,7 @@ export class TargetResolver {
      * @param targets Array of targets including SESSION#, CONNECTION#, and exclusion patterns
      * @returns Promise resolving to array of unique connection IDs
      */
-    async resolve(targets: ResolvableTarget[]): Promise<string[]> {
+    async resolve(targets: ResolvableTarget[]): Promise<`CONNECTION#${string}`[]> {
         // Extract different target types
         const sessionTargets = this.extractSessionTargets(targets)
         const connectionTargets = this.extractConnectionTargets(targets)
@@ -107,6 +107,6 @@ export class TargetResolver {
         const allExclusions = unique(connectionExclusions, sessionExclusionConnections)
         const finalConnections = this.applyExclusions(allConnections, allExclusions)
         
-        return finalConnections
+        return finalConnections.map((connectionId) => (`CONNECTION#${connectionId}` as const))
     }
 }
