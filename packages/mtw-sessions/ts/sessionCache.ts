@@ -1,5 +1,4 @@
-import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheConstructor } from './baseClasses'
+import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 export class CacheSessionConnectionsData {
     ConnectionsBySessionId: Record<string, Promise<string[] | undefined>> = {};
