@@ -22,6 +22,7 @@
     "@tonylb/mtw-base": "file:../../packages/mtw-base",
     "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
     "@tonylb/mtw-internal-bus": "file:../../packages/mtw-internal-bus",
+    "@tonylb/mtw-sessions": "file:../../packages/mtw-sessions",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
     "@tonylb/mtw-wml": "file:../../packages/mtw-wml",
     "aws-xray-sdk": "^3.5.1",

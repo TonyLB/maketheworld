@@ -1,4 +1,3 @@
-import { jest, expect } from '@jest/globals'
 import { produce } from 'immer'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')

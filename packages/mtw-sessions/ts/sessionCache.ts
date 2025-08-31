@@ -28,5 +28,3 @@ export class CacheSessionConnectionsData {
         this.ConnectionsBySessionId[sessionId] = Promise.resolve(connections)
     }
 }
-
-export default CacheSessionConnectionsData

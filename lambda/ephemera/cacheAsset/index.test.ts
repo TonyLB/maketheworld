@@ -1,5 +1,3 @@
-import { jest, expect } from '@jest/globals'
-
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import {
     ephemeraDB

@@ -6,9 +6,9 @@ import { CachePlayerLibraryData } from './playerLibrary'
 import { MetaData } from './meta'
 import { CachePlayerSettingData } from './playerSettings'
 import { GraphCacheType, graphDBHandler, GraphNodeType } from './graph'
-import { CacheSessionConnectionsData } from './sessionConnections'
+import { CacheSessionConnectionsData } from '@tonylb/mtw-sessions/ts/sessionCache'
 import { CachePlayerSessionsData } from './playerSessions'
-import { CacheBase as GraphCacheBase, GraphDBHandler } from "@tonylb/mtw-utilities/ts/graphStorage/cache/baseClasses"
+import { CacheBase as GraphCacheBase } from "@tonylb/mtw-utilities/ts/graphStorage/cache/baseClasses"
 import GraphCache from "@tonylb/mtw-utilities/ts/graphStorage/cache"
 import GraphNode from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphNode"
 import GraphEdge from "@tonylb/mtw-utilities/ts/graphStorage/cache/graphEdge"

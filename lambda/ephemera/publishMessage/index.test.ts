@@ -92,7 +92,14 @@ describe('PublishMessage', () => {
             Name: '',
             SessionIds: ['Z456']
         }])
-        cacheMock.SessionConnections.get.mockImplementation(async (sessionId) => (sessionId === 'Z123' ? ['Y123'] : ['Y456'] ))
+        cacheMock.CharacterSessions.get.mockImplementation(async (characterId) => {
+            return characterId === 'CHARACTER#123' ? ['Z123'] : ['Z456']
+        })
+        cacheMock.SessionConnections.get.mockImplementation(async (sessionIds) => {
+            // sessionIds is an array, not a single string
+            const returnValue = (sessionIds.includes('Z123')) ? ['Y123'] : ['Y456']
+            return returnValue
+        })
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',

@@ -62,38 +62,32 @@ interface SNSMessageAttributes {
 
 ### **Phase 1: Core Infrastructure Updates** 🔄 READY TO START
 1. **Update SNS Message Parsing** ❌
-   - Add support for `SessionId` MessageAttribute
-   - Maintain backward compatibility with `ConnectionIds`
-   - Implement message format validation
+   - Refactor `ConnectionIds` to accept `Targets`, which are either `CONNECTION#${string}` or `SESSION#${string}` (using `TargetResolver` class)
+   - Fix all current publishing to the SNS Topic to use Targets instead of ConnectionIds
+   - Update message format validation
 
-2. **Session Connection Resolution** ❌
-   - Implement `SESSION#${sessionId}` connection lookup
-   - Query `connectionDB` for active session connections
-   - Handle session disconnection scenarios
-
-3. **Connection Validation** ❌
-   - Validate connection status before delivery
-   - Implement automatic connection cleanup
+2. **Connection Validation** ❌
+   - Implement automatic connection cleanup if it's not already present
    - Handle connection errors gracefully
 
 ### **Phase 2: Delivery System Updates** ❌ NOT STARTED
-4. **Modern Delivery Pipeline** ❌
+3. **Modern Delivery Pipeline** ❌
    - Replace direct connection delivery with session-based delivery
    - Implement connection pooling for efficiency
    - Add delivery confirmation and retry logic
 
-5. **Error Handling & Cleanup** ❌
+4. **Error Handling & Cleanup** ❌
    - Implement modern connection error handling
    - Add automatic connection cleanup for invalid sessions
    - Handle partial delivery failures
 
 ### **Phase 3: Testing & Validation** ❌ NOT STARTED
-6. **Integration Testing** ❌
+5. **Integration Testing** ❌
    - Test with modern SNS message formats
    - Validate session connection resolution
    - Test error scenarios and cleanup
 
-7. **Backward Compatibility** ❌
+6. **Backward Compatibility** ❌
    - Ensure legacy `ConnectionIds` messages still work
    - Test mixed message format scenarios
    - Validate no breaking changes
