@@ -17,7 +17,7 @@ This document outlines the step-by-step implementation plan for building the Ima
 - ✅ Basic Jimp image reading working
 - ✅ **Complete image processing pipeline implemented and tested**
 - ✅ **S3 put operations to images bucket working**
-- ❌ No SNS notifications
+- ❌ No SNS notifications (infrastructure ready)
 - ❌ Limited error handling for processing failures
 
 ## Existing Code to Integrate
@@ -35,6 +35,16 @@ The `lambda/wml/formatImage/AGENT.md` document identifies several existing compo
 - **Operations**: GetObject from upload bucket, PutObject to images bucket
 - **Configuration**: Environment variable setup for bucket names
 - **Integration**: Can reuse S3 client patterns and error handling
+
+### SNS Integration Patterns
+- **Location**: Multiple lambda functions throughout the codebase
+- **Best Practices**:
+  - **Client Setup**: Use `AWSXRay.captureAWSv3Client(new SNSClient({ region: process.env.AWS_REGION }))`
+  - **Message Structure**: JSON.stringify payload with `messageType` and relevant data
+  - **MessageAttributes**: Always include `RequestId`, `ConnectionIds` (as JSON string array), and `Type` ('Success'/'Error')
+  - **Error Handling**: Send error notifications with descriptive error messages in attributes
+  - **Topic**: Use `FEEDBACK_TOPIC` environment variable (already configured)
+- **Examples**: `lambda/wml/parseWML.ts`, `lambda/assets/returnValue/index.ts`, `lambda/deliverMessageSync/app.ts`
 
 ### WML Integration Examples
 - **Location**: Existing StandardImage component handling
@@ -59,9 +69,9 @@ The `lambda/wml/formatImage/AGENT.md` document identifies several existing compo
    - ✅ Set up environment variable handling
    - ✅ Configure proper IAM permissions
 
-3. **SNS Client Configuration** ❌
+3. **SNS Client Configuration** 🔄 INFRASTRUCTURE READY
    - ❌ Initialize SNS client for notifications
-   - ❌ Set up topic ARN configuration
+   - ✅ Set up topic ARN configuration (`FEEDBACK_TOPIC` environment variable)
    - ❌ Prepare notification message structure
 
 ### Phase 2: Image Processing Core ✅ COMPLETED
@@ -139,13 +149,13 @@ The `lambda/wml/formatImage/AGENT.md` document identifies several existing compo
 ### Environment Variables Needed
 - ✅ `UPLOADS_BUCKET`: Source bucket for raw images
 - ✅ `IMAGES_BUCKET`: Destination bucket for processed images
-- ❌ `SNS_TOPIC_ARN`: Topic for processing notifications
+- ✅ `FEEDBACK_TOPIC`: SNS topic for processing notifications
 - ✅ `AWS_REGION`: AWS region for service configuration
 
 ### IAM Permissions Required
 - ✅ S3 read access to uploads bucket
 - ✅ S3 write access to images bucket
-- ❌ SNS publish permissions
+- ✅ SNS publish permissions
 - ✅ CloudWatch logging permissions
 
 ### Error Handling Strategy
