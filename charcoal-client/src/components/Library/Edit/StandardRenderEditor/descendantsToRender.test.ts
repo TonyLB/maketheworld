@@ -127,7 +127,7 @@ describe('descendantsToRender', () => {
                 { data: { tag: 'br' }, children: [] },
                 'With ',
                 { data: { tag: 'Link', to: 'testFeature', text: 'link' }, children: [] },
-                ' '
+                { data: { tag: 'Space' }, children: [] }
             ])
         })
 

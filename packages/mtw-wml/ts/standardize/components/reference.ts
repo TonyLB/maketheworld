@@ -469,7 +469,7 @@ export class StandardReference {
     get key(): string | undefined {
         return this._payload.key
     }
-    get universalKey(): string | undefined {
+    get universalKey(): ComponentUUID | undefined {
         return this._payload.universalKey
     }
     get tag(): ComponentTag {
