@@ -3,7 +3,8 @@ import { SNSClient, PublishCommand } from '@aws-sdk/client-sns'
 import type { Readable } from 'stream'
 import jimp from 'jimp'
 import AWSXRay from 'aws-xray-sdk'
-import { SessionKey } from '@tonylb/mtw-utilities/ts/types'
+import { enforceTypedKey, SessionKey } from '@tonylb/mtw-utilities/ts/types'
+import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 
 // Initialize S3 client
 const s3Client = AWSXRay.captureAWSv3Client(new S3Client({ region: process.env.AWS_REGION || 'us-east-1' }))
@@ -243,6 +244,21 @@ export const processImageUpload = async (record: S3Event['Records'][0]) => {
         await storeProcessedImage(processedKey, processedImage)
         
         console.log(`Successfully processed and stored image: ${processedKey}`)
+
+        // Publish EventBridge event for the added image
+        try {
+            await eventBridgeClient.send([{
+                DetailType: 'Image Added',
+                Detail: {
+                    ComponentUUID: enforceTypedKey('IMAGE')(processedKey.endsWith('.png') ? processedKey.slice(0, -4) : processedKey),
+                    imageType: objectTags.imageType
+                }
+            }])
+            console.log(`Published EventBridge event: Image Added for ${processedKey}`)
+        } catch (eventError) {
+            console.error('Failed to publish EventBridge event:', eventError)
+            // Don't throw - event publishing failure shouldn't break the main flow
+        }
 
         // Send success notification
         await sendSuccessNotification({
