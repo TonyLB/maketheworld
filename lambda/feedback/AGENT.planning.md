@@ -70,6 +70,64 @@ interface SNSMessageAttributes {
    - Implement automatic connection cleanup if it's not already present
    - Handle connection errors gracefully
 
+## SNS Publishing References to Update
+
+The following files need to be updated to replace `ConnectionIds` with `Targets` when publishing to the `FEEDBACK_TOPIC`:
+
+### **Lambda Functions** (8 files)
+- `lambda/wml/parseWML.ts` - Lines 103, 116: ParseWML success/error messages
+- `lambda/llm/app.ts` - Line 30: LLM generation success messages  
+- `lambda/deliverMessageSync/app.ts` - Lines 34, 47: Message sync notifications
+- `lambda/assets/app.ts` - Line 240: MetaData API responses
+- `lambda/assets/fetchImportDefaults/index.ts` - Line 49: FetchImports responses
+- `lambda/assets/returnValue/index.ts` - Line 19: ReturnValue messages
+- `lambda/assets/player/info.ts` - Line 34: Player info responses
+- `lambda/assets/libraryUpdate/index.ts` - Line 24: Library update notifications
+
+### **Step Functions** (6 files)
+- `stepFunctions/applyWMLEdit.asl.yaml` - Lines 136, 156: WML edit timeout/error notifications
+- `stepFunctions/backupAsset.asl.yaml` - Line 112: Asset backup notifications
+- `stepFunctions/publishWML.asl.yaml` - Line 79: WML publish notifications
+- `stepFunctions/parseWML.asl.yaml` - Line 122: WML parse notifications
+- `stepFunctions/llmGenerate.asl.yaml` - Line 79: LLM generation notifications
+- `stepFunctions/cacheAssets.asl.yaml` - Line 112: Asset cache notifications
+
+### **Update Pattern**
+Each location follows this pattern:
+```typescript
+// Current (to be replaced):
+ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([connectionId]) }
+
+// New (using TargetResolver):
+Targets: { DataType: 'String.Array', StringValue: JSON.stringify(['CONNECTION#' + connectionId]) }
+```
+
+### **Special Cases**
+- `lambda/assets/player/info.ts`: Already resolves multiple connections per player, needs to convert to `CONNECTION#` format
+- `lambda/assets/libraryUpdate/index.ts`: Already resolves multiple connections per library subscription, needs to convert to `CONNECTION#` format
+- Step Functions: Use `States.JsonToString(States.Array('CONNECTION#' + $.args.connectionId))` pattern
+
+## Existing Test Coverage
+
+The following lambda functions have existing unit tests that verify SNS publishing behavior:
+
+### **Tested Functions** (2 files)
+- `lambda/assets/returnValue/index.test.ts` - Tests SNS message content validation
+- `lambda/assets/fetchImportDefaults/index.test.ts` - Tests SNS message content with snapshots
+
+### **Untested Functions** (6 files)
+- `lambda/wml/parseWML.ts` - No existing tests
+- `lambda/llm/app.ts` - No existing tests  
+- `lambda/deliverMessageSync/app.ts` - No existing tests
+- `lambda/assets/app.ts` - No existing tests
+- `lambda/assets/player/info.ts` - No existing tests
+- `lambda/assets/libraryUpdate/index.ts` - No existing tests
+
+### **Test Update Strategy**
+1. **Update existing tests** to verify new `Targets` format instead of `ConnectionIds`
+2. **Add new tests** for untested functions to validate SNS publishing behavior
+3. **Test both formats** during transition period to ensure backward compatibility
+
 ### **Phase 2: Delivery System Updates** ❌ NOT STARTED
 3. **Modern Delivery Pipeline** ❌
    - Replace direct connection delivery with session-based delivery
