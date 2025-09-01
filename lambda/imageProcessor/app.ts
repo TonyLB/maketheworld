@@ -3,7 +3,9 @@ import { SNSClient, PublishCommand } from '@aws-sdk/client-sns'
 import type { Readable } from 'stream'
 import jimp from 'jimp'
 import AWSXRay from 'aws-xray-sdk'
-import { SessionKey } from '@tonylb/mtw-utilities/ts/types'
+import { enforceTypedKey, SessionKey } from '@tonylb/mtw-utilities/ts/types'
+import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 // Initialize S3 client
 const s3Client = AWSXRay.captureAWSv3Client(new S3Client({ region: process.env.AWS_REGION || 'us-east-1' }))
@@ -149,11 +151,12 @@ export const storeProcessedImage = async (key: string, imageBuffer: Buffer): Pro
     console.log(`Stored processed image: ${key}`)
 }
 
-export const sendSuccessNotification = async ({ requestId, sessionId, processedKey, originalKey }: {
+export const sendSuccessNotification = async ({ requestId, sessionId, processedKey, originalKey, componentUUID }: {
     requestId: string
     sessionId: string
     processedKey: string
     originalKey: string
+    componentUUID: ComponentUUID
 }): Promise<void> => {
     if (!process.env.FEEDBACK_TOPIC) {
         console.warn('FEEDBACK_TOPIC not configured, skipping success notification')
@@ -167,6 +170,7 @@ export const sendSuccessNotification = async ({ requestId, sessionId, processedK
                 messageType: 'ImageProcessing',
                 processedKey,
                 originalKey,
+                componentUUID,
                 status: 'Success'
             }),
             MessageAttributes: {
@@ -240,14 +244,31 @@ export const processImageUpload = async (record: S3Event['Records'][0]) => {
         
         // Store processed image to images bucket
         const processedKey = objectKey.replace(/\.[^/.]+$/, '.png') // Replace extension with .png
+        const componentUUID = enforceTypedKey('IMAGE')((processedKey.endsWith('.png') ? processedKey.slice(0, -4) : processedKey).replace(/^IMAGE-/, 'IMAGE#'))
         await storeProcessedImage(processedKey, processedImage)
         
         console.log(`Successfully processed and stored image: ${processedKey}`)
+
+        // Publish EventBridge event for the added image
+        try {
+            await eventBridgeClient.send([{
+                DetailType: 'Image Added',
+                Detail: {
+                    ComponentUUID: componentUUID,
+                    imageType: objectTags.imageType
+                }
+            }])
+            console.log(`Published EventBridge event: Image Added for ${processedKey}`)
+        } catch (eventError) {
+            console.error('Failed to publish EventBridge event:', eventError)
+            // Don't throw - event publishing failure shouldn't break the main flow
+        }
 
         // Send success notification
         await sendSuccessNotification({
             requestId: objectTags.requestId,
             sessionId: objectTags.sessionId,
+            componentUUID,
             processedKey,
             originalKey: objectKey
         })

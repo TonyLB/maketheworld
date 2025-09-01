@@ -1416,6 +1416,8 @@ Resources:
             UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
             IMAGES_BUCKET: !Sub '${TablePrefix}-images'
             FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
+            EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+            EVENT_BRIDGE_SOURCE_NAME: 'mtw.wml'
         Policies:
           # Need to specify the name rather than the reference so SAM doesn't spot the circular dependency
           - S3CrudPolicy:
@@ -1432,6 +1434,11 @@ Resources:
               BucketName: !Ref ImageBucket
           - SNSPublishMessagePolicy:
               TopicName: !GetAtt MTWFeedbackTopic.TopicName
+          - Statement:
+            - Effect: Allow
+              Resource: '*'
+              Action:
+                - events:PutEvents
         Events:
           S3ObjectCreated:
             Type: S3
