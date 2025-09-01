@@ -1,9 +1,13 @@
 import { S3Client, GetObjectCommand, GetObjectTaggingCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns'
 import type { Readable } from 'stream'
 import jimp from 'jimp'
+import AWSXRay from 'aws-xray-sdk'
+import { SessionKey } from '@tonylb/mtw-utilities/ts/types'
 
 // Initialize S3 client
-const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' })
+const s3Client = AWSXRay.captureAWSv3Client(new S3Client({ region: process.env.AWS_REGION || 'us-east-1' }))
+const snsClient = AWSXRay.captureAWSv3Client(new SNSClient({ region: process.env.AWS_REGION || 'us-east-1' }))
 
 // Image processing settings based on type
 const processingSettings = {
@@ -145,6 +149,68 @@ export const storeProcessedImage = async (key: string, imageBuffer: Buffer): Pro
     console.log(`Stored processed image: ${key}`)
 }
 
+export const sendSuccessNotification = async ({ requestId, sessionId, processedKey, originalKey }: {
+    requestId: string
+    sessionId: string
+    processedKey: string
+    originalKey: string
+}): Promise<void> => {
+    if (!process.env.FEEDBACK_TOPIC) {
+        console.warn('FEEDBACK_TOPIC not configured, skipping success notification')
+        return
+    }
+
+    try {
+        await snsClient.send(new PublishCommand({
+            TopicArn: process.env.FEEDBACK_TOPIC,
+            Message: JSON.stringify({
+                messageType: 'ImageProcessing',
+                processedKey,
+                originalKey,
+                status: 'Success'
+            }),
+            MessageAttributes: {
+                RequestId: { DataType: 'String', StringValue: requestId },
+                Targets: { DataType: 'String.Array', StringValue: JSON.stringify([SessionKey(sessionId)]) },
+                Type: { DataType: 'String', StringValue: 'Success' }
+            }
+        }))
+        console.log(`Sent success notification for request ${requestId} to session ${sessionId}`)
+    } catch (error) {
+        console.error('Failed to send success notification:', error)
+        // Don't throw - notification failure shouldn't break the main flow
+    }
+}
+
+export const sendErrorNotification = async ({ requestId, sessionId, originalKey, error }: {
+    requestId: string
+    sessionId: string
+    originalKey: string
+    error: Error
+}): Promise<void> => {
+    if (!process.env.FEEDBACK_TOPIC) {
+        console.warn('FEEDBACK_TOPIC not configured, skipping error notification')
+        return
+    }
+
+    try {
+        await snsClient.send(new PublishCommand({
+            TopicArn: process.env.FEEDBACK_TOPIC,
+            Message: '{}',
+            MessageAttributes: {
+                RequestId: { DataType: 'String', StringValue: requestId },
+                Targets: { DataType: 'String.Array', StringValue: JSON.stringify([SessionKey(sessionId)]) },
+                Type: { DataType: 'String', StringValue: 'Error' },
+                Error: { DataType: 'String', StringValue: `Image processing failed: ${error.message}` }
+            }
+        }))
+        console.log(`Sent error notification for request ${requestId} to session ${sessionId}`)
+    } catch (notificationError) {
+        console.error('Failed to send error notification:', notificationError)
+        // Don't throw - notification failure shouldn't break the main flow
+    }
+}
+
 export const processImageUpload = async (record: S3Event['Records'][0]) => {
     const bucketName = record.s3.bucket.name
     const objectKey = record.s3.object.key
@@ -178,8 +244,30 @@ export const processImageUpload = async (record: S3Event['Records'][0]) => {
         
         console.log(`Successfully processed and stored image: ${processedKey}`)
 
+        // Send success notification
+        await sendSuccessNotification({
+            requestId: objectTags.requestId,
+            sessionId: objectTags.sessionId,
+            processedKey,
+            originalKey: objectKey
+        })
+
     } catch (error) {
         console.error(`Error processing image ${objectKey}:`, error)
+        
+        // Try to get object tags for error notification (if we have them)
+        try {
+            const objectTags = await getObjectTags(bucketName, objectKey)
+            await sendErrorNotification({
+                requestId: objectTags.requestId,
+                sessionId: objectTags.sessionId,
+                originalKey: objectKey,
+                error: error as Error
+            })
+        } catch (tagError) {
+            console.warn(`Could not send error notification for ${objectKey}:`, tagError)
+        }
+        
         throw error
     }
 }
@@ -196,6 +284,20 @@ export const handler = async (event: S3Event) => {
                         await processImageUpload(record)
                     } catch (error) {
                         console.error(`Error processing record ${record.s3.object.key}:`, error)
+                        
+                        // Try to send error notification for this record
+                        try {
+                            const objectTags = await getObjectTags(record.s3.bucket.name, record.s3.object.key)
+                            await sendErrorNotification({
+                                requestId: objectTags.requestId,
+                                sessionId: objectTags.sessionId,
+                                originalKey: record.s3.object.key,
+                                error: error as Error
+                            })
+                        } catch (tagError) {
+                            console.warn(`Could not send error notification for ${record.s3.object.key}:`, tagError)
+                        }
+                        
                         // Don't re-throw - other records process independently
                     }
                 }
