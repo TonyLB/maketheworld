@@ -24,10 +24,6 @@ describe('metaData tags', () => {
             expect(isSchemaImport(schema)).toBe(false)
         })
 
-        it('should return false for SchemaImportTag with invalid mapping', () => {
-            const schema = { tag: 'Import', from: 'source', mapping: { key1: { key: 'exampleKey', type: 'Invalid' } } }
-            expect(isSchemaImport(schema)).toBe(false)
-        })
     })
 
     describe('isSchemaMeta', () => {

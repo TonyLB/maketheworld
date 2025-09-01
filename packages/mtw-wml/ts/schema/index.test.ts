@@ -619,10 +619,10 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset key=(Test)>
                 <Import from=(BASE)>
-                    <Room key=(Room1) as=(test) />
-                    <Room key=(testTwo) />
+                    <Room uuid=(Room1) key=(test) />
+                    <Room uuid=(testTwo) />
                 </Import>
-                <Room key=(test)>
+                <Room uuid=(test)>
                     <Example uuid=(123-test-import-example)>
                         <Description>Test</Description>
                     </Example>
