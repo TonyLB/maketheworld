@@ -1,5 +1,42 @@
 # Make The World - AI Navigation Guide
 
+**🚨 CRITICAL: AI EDIT TOOLS ARE (HOPEFULLY TEMPORARILY) BROKEN - READ THIS SECTION FIRST**
+
+**⚠️ STOP: Do NOT use any AI edit tools until you read this section completely**
+
+## What's Broken
+- **ALL AI edit tools** (`edit_file`, `search_replace`) are fundamentally broken
+- **Multiple edits to the same file** will each be applied to a fresh copy of the file prior to _any_ edits, so only the most recent edit will survive
+- **No workaround exists** for incremental development
+- **This is a confirmed Cursor-wide bug** affecting all users
+
+## What This Means for You
+1. **You CANNOT make multiple edits** to the same file
+2. **You CAN make single, comprehensive edits** that include all needed changes
+3. **Every edit must be planned completely** before execution
+4. **Manual verification required** after any AI editing
+
+## Required Workflow
+1. **Plan your complete changes** before editing anything
+2. **Make ONE comprehensive edit** that includes everything
+3. **Do NOT attempt multiple edits** to the same file
+4. **Stop and have user Verify content** after any edit operation
+
+## Why This Matters
+- **Your work will be lost** if you ignore this warning
+- **You will enter unconstrained loops** because you will continuously backtrack to try to fix edits, causing more edits to need to fix
+- **You will generate unconstrained cost** because of the infinite loop of token generation
+- **You cannot be an effective collaborator** using multiple edits
+- **This bug affects the entire Cursor user base**
+- **No exceptions exist** - the tools are fundamentally broken
+
+## Quick Reference (Common Agent Failures)
+- **Client testing**: `npm test` (watch) or `npm test -- --run` (single run)
+- **Package testing**: `npm run test` (watch) or `npm run test -- --watchAll=false` (single run)
+- **Detailed testing procedures**: See below for comprehensive testing patterns and examples
+
+---
+
 ## Project Overview
 
 Make The World is a collaborative world-building platform that enables users to create, share, and interact with rich narrative environments. The system uses a custom World Markup Language (WML) for data representation and provides real-time interaction through a microservices architecture.
@@ -228,3 +265,26 @@ Include specific guidance for AI assistants:
 3. **Follow Cross-References**: Use links to explore related systems
 4. **Study Examples**: Code examples often clarify concepts
 5. **Read Development Notes**: Understand current limitations and future plans 
+
+**🚨 CRITICAL: READ THIS FIRST - Cursor Edit Tool Issues**
+
+**IMMEDIATE REQUIREMENT**: This project has identified critical bugs with Cursor's AI edit tools that can destroy your work.
+
+**Known Issues**:
+- **BOTH `edit_file` AND `search_replace` tools are failing** to preserve file context
+- This is a fundamental Cursor bug affecting ALL AI edit tools
+- The issue stems from Cursor applying AI edits to outdated file versions
+- **UPDATED**: Our initial testing was incomplete - both tools have context preservation failures
+
+**Required Actions**:
+1. **Avoid ALL AI edit tools** for files with complex content structure
+2. **Use manual editing** for critical file modifications
+3. **Accept each edit manually** before requesting the next one (if you must use AI tools)
+4. **Verify file content** after each edit operation
+5. **Use Git commits** before any AI editing sessions for easy rollback
+6. **Consider alternative approaches** like copy-paste or manual file creation
+
+**Why This Matters**:
+- **ALL AI edit tools are unreliable** in this project
+- Previous workaround recommendations were incorrect
+- Manual editing may be the only safe option until Cursor fixes this bug 
