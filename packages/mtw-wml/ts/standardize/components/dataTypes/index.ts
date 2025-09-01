@@ -58,9 +58,6 @@ export const isStandardNonEdit = (value: any): value is StandardComponentNonEdit
     isStandardMap(value) ||
     isStandardMessage(value) ||
     isStandardMoment(value) ||
-
-
-
     isStandardImage(value)
 )
 
