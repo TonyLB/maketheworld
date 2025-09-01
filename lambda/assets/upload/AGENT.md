@@ -18,13 +18,14 @@ The upload system operates in two phases:
    - Creates presigned URLs for direct client upload
    - Supports multiple image formats (JPEG, PNG, GIF, etc.)
 
-2. **Image Processing** (`lambda/wml/formatImage/index.ts`):
+2. **Image Processing** (`lambda/wml/formatImage/index.ts`) - **DEPRECATED**:
    ```typescript
    const toFileName = `IMAGE-${uuidv4()}`
    ```
-   - Processes uploaded images with Jimp library
-   - Resizes to 1200x800 and converts to PNG
-   - Stores in `IMAGES_BUCKET` with format: `IMAGE-${uuidv4()}.png`
+   - **DEPRECATED**: This system has been replaced by the new `imageProcessor` lambda
+   - **Old System**: Processed uploaded images with Jimp library, resized to 1200x800 and converted to PNG
+   - **New System**: The `lambda/imageProcessor/` lambda provides the new image processing pipeline
+   - **Migration**: See `lambda/imageProcessor/AGENT.md` for the current and future image processing architecture
 
 ### Current Flow
 
@@ -129,8 +130,8 @@ return `${appBaseURL}/images/${universalKey}.png`
 - **Asset Cache**: Component data storage
 
 ### Cross-References
-- **[WML Parse System](../../wml/parseWML.ts)**: Image processing integration
-- **[Format Image](../../wml/formatImage/)**: Image processing function
+- **[WML Parse System](../../wml/parseWML.ts)**: Image processing integration (deprecated - now uses applyEdit)
+- **[Format Image](../../wml/formatImage/)**: **DEPRECATED** - Old image processing function, replaced by `lambda/imageProcessor/`
 - **[Client Image Display](../../charcoal-client/src/components/Library/Edit/LibraryAsset.tsx)**: Image serving
 - **[Asset Properties](../README.images.md)**: Current image association system
 
@@ -148,8 +149,8 @@ const uploadResult = await uploadURLMessage({
 })
 
 // Client uploads to presigned URL
-// WML parse processes images
-// Format image creates processed version
+// **DEPRECATED**: Old WML parse + formatImage pipeline
+// **NEW**: imageProcessor lambda handles image processing automatically via S3 events
 // Properties updated with fileName
 ```
 
@@ -212,8 +213,9 @@ const uploadResult = await uploadURLMessage({
 ### Key Files
 - `index.ts`: Main upload implementation
 - `README.images.md`: Current image documentation
-- `formatImage/index.ts`: Image processing function
-- `parseWML.ts`: WML integration
+- `formatImage/index.ts`: **DEPRECATED** - Old image processing function
+- `parseWML.ts`: **DEPRECATED** - Old WML integration, replaced by applyEdit flow
+- **NEW**: `lambda/imageProcessor/` - Current image processing pipeline
 
 ### Related Systems
 - **[WML System](../../wml/)**: Component processing

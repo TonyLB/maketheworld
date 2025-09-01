@@ -111,7 +111,7 @@ type LibraryAssetContextType = {
 - **[Asset System](../../../lambda/assets/)**: Asset management backend
 - **[WML System](../../../packages/mtw-wml/)**: Content parsing and validation
 - **[Image Upload](../../../lambda/assets/upload/)**: Image upload process
-- **[Image Processing](../../../lambda/wml/formatImage/)**: Image processing system
+- **[Image Processing](../../../lambda/wml/formatImage/)**: **DEPRECATED** - Old image processing system, replaced by `lambda/imageProcessor/`
 
 ## Usage Patterns
 
@@ -310,5 +310,5 @@ charcoal-client/src/
 ### Related Systems
 - **[Asset System](../../../lambda/assets/)**: Asset management backend
 - **[Image Upload](../../../lambda/assets/upload/)**: Image upload process
-- **[Image Processing](../../../lambda/wml/formatImage/)**: Image processing system
+- **[Image Processing](../../../lambda/wml/formatImage/)**: **DEPRECATED** - Old image processing system, replaced by `lambda/imageProcessor/`
 - **[WML System](../../../packages/mtw-wml/)**: Content parsing and validation

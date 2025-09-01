@@ -85,6 +85,22 @@ The Image Processor Lambda sits between the upload system and the WML processing
 - **Resource Management**: Properly handle S3 streams and buffers
 - **Timeout Handling**: Set appropriate lambda timeout for large image processing
 
+## Development Notes
+
+### Current State
+- **✅ Fully Functional**: Complete image processing pipeline implemented and tested
+- **✅ Core Processing**: Jimp integration with type-specific image transformation
+- **✅ S3 Operations**: GetObject from uploads bucket, PutObject to images bucket
+- **✅ Notification System**: SNS integration with success/error notifications
+- **✅ Error Handling**: Comprehensive error handling with client-friendly messages
+- **✅ Event-Driven**: S3 ObjectCreated events trigger automatic processing
+
+### Environment Configuration
+- **✅ UPLOADS_BUCKET**: Source bucket for raw images
+- **✅ IMAGES_BUCKET**: Destination bucket for processed images  
+- **✅ FEEDBACK_TOPIC**: SNS topic for processing notifications
+- **✅ AWS_REGION**: AWS region for service configuration
+
 ## Navigation Tips
 
 ### Getting Started
@@ -94,29 +110,11 @@ The Image Processor Lambda sits between the upload system and the WML processing
 4. **Study Usage Patterns**: Review common scenarios and best practices
 
 ### Key Files
-- **`app.ts`**: Main lambda handler and entry point
+- **`app.ts`**: Main lambda handler with complete image processing pipeline
 - **`package.json`**: Dependencies and build configuration
-- **`AGENT.planning.md`**: Implementation roadmap and task breakdown
 
 ### Related Documentation
 - **[WML System](../../packages/mtw-wml/ts/AGENT.md)**: Core markup language and component system
 - **[Asset Workspace](../../packages/mtw-asset-workspace/AGENT.md)**: Asset processing and management
 - **[Lambda Functions](../README.md)**: Overview of all lambda services
 - **[Client Architecture](../../charcoal-client/AGENT.md)**: Frontend system and image display
-
-## Development Notes
-
-### Current State
-- **Basic Structure**: Lambda stub with TypeScript setup and dependencies
-- **Dependencies Installed**: S3, SNS, Jimp, and AWS SDK packages ready
-- **Build Configuration**: ESBuild setup for TypeScript compilation
-- **Missing Implementation**: Core processing logic, S3 operations, and notifications
-
-### Implementation Status
-- **✅ Setup Complete**: Basic lambda structure and dependencies
-- **🔄 In Progress**: Documentation and planning phase
-- **❌ Not Started**: Core processing logic and S3 integration
-- **❌ Not Started**: Notification system and error handling
-- **❌ Not Started**: Testing and validation framework
-
-See **[AGENT.planning.md](AGENT.planning.md)** for detailed implementation roadmap and task breakdown.

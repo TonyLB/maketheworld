@@ -1,6 +1,6 @@
 import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts"
 import { assetWorkspaceFromAssetId } from "./utilities/assets"
-import { formatImage } from "./formatImage"
+// import { formatImage } from "./formatImage"
 import { s3Client, sfnClient, snsClient } from "./clients"
 import { ParseWMLAPIImage } from "@tonylb/mtw-interfaces/ts/asset"
 
@@ -36,6 +36,11 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
         catch {}
 
         assetWorkspace.setWorkspaceLookup(assetWorkspaceFromAssetId)
+        
+        // TODO: formatImage function is being deprecated - image processing functionality has been removed
+        // If parseWMLHandler is ever used in the future, it will need an appropriate replacement for image processing
+        // The old image processing code has been commented out below:
+        /*
         const imageFiles = (await Promise.all([
             uploadName ? assetWorkspace.loadWMLFrom(uploadName, true) : assetWorkspace.loadWML(),
             ...((images || []).map(async ({ key, fileName }) => {
@@ -43,6 +48,11 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
                 return { key, fileName: final }
             }))
         ])).slice(1) as ParseWMLAPIImage[]
+        */
+        
+        // For now, set imageFiles to empty array since image processing is disabled
+        const imageFiles: ParseWMLAPIImage[] = []
+        
         if (imageFiles.length && assetWorkspace.standard) {
             assetWorkspace.status.json = 'Dirty'
             const newStandard = assetWorkspace.standard._clone()

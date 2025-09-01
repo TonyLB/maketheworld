@@ -35,7 +35,6 @@ interface S3Event {
     }>;
 }
 
-// Replicate the existing formatImage pattern for stream handling
 const streamToBuffer = async (stream: Readable): Promise<Buffer> => {
     const chunks: Buffer[] = []
     for await (let chunk of stream) {
@@ -58,7 +57,6 @@ export const getImageFromS3 = async (bucketName: string, objectKey: string): Pro
         throw new Error('No response body from S3')
     }
 
-    // Use the existing formatImage pattern: streamToBuffer function
     const contents = await streamToBuffer(response.Body as Readable)
     
     return contents
@@ -116,7 +114,7 @@ async function processImage(image: any, tags: ImageProcessingTags): Promise<Buff
     const settings = processingSettings[imageType as keyof typeof processingSettings]
     console.log(`Processing image as ${imageType} with dimensions: ${settings.width}x${settings.height}`)
     
-    // Suppress Jimp DEP0005 warning (following formatImage pattern)
+    // Suppress Jimp DEP0005 warning
     const origWarning = process.emitWarning
     process.emitWarning = function(...args) {
         if (args[2] !== 'DEP0005') {
@@ -126,7 +124,7 @@ async function processImage(image: any, tags: ImageProcessingTags): Promise<Buff
     }
     
     try {
-        // Transform image using formatImage pattern
+        // Transform image using Jimp
         const processedBuffer = await image
             .resize(settings.width, settings.height, jimp.RESIZE_BEZIER)
             .deflateLevel(5)
@@ -225,7 +223,7 @@ export const processImageUpload = async (record: S3Event['Records'][0]) => {
     try {
         // Parallel calls: get image data and object tags
         const [imageData, objectTags] = await Promise.all([
-            // Get the image data from S3 (following formatImage pattern)
+            // Get the image data from S3
             getImageFromS3(bucketName, objectKey),
             // Get the S3 object tags for processing parameters
             getObjectTags(bucketName, objectKey)
