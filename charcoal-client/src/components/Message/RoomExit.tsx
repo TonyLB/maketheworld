@@ -6,10 +6,9 @@ import ExitIcon from '@mui/icons-material/ExitToApp'
 
 import { moveCharacter } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
-import { RoomExit as RoomExitType } from '@tonylb/mtw-interfaces/ts/messages'
 import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
-import { StandardExit } from '@tonylb/mtw-wml/ts/standardize/components/exit'
+import { StandardExit, StandardExitData } from '@tonylb/mtw-wml/ts/standardize/components/exit'
 
 interface RoomExitProps {
     exit: StandardExit;  // Only accept Standard format
@@ -17,7 +16,10 @@ interface RoomExitProps {
 }
 
 export const RoomExit = ({ exit }: RoomExitProps) => {
-    const exitData = exit._payload.plain.toJSON()
+    if (!(exit instanceof StandardExit)) {
+        return <Chip label="Unknown Exit" icon={<ExitIcon />} />
+    }
+    const exitData = exit.toJSON() as StandardExitData
     const exitName = typeof exitData.description === 'string' ? exitData.description : 'Unknown Exit'
     const targetRoomId = typeof exitData.to === 'string' ? exitData.to : exitData.to.universalKey || ''
 

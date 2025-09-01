@@ -375,38 +375,5 @@ describe('AssetWorkspace', () => {
 
         })
 
-        it('should look up import namespace mappings', async () => {
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Library'
-            })
-            testWorkspace.setWorkspaceLookup(async () => ({
-                loadJSON: jest.fn(),
-                standard: new StandardForm(`
-                    <Asset key=(testAsset)>
-                        <Room key=(base) />
-                        <Feature key=(Feature2) />
-                        <Export><Feature key=(Feature2) as=(testFeature) /></Export>
-                    </Asset>
-                `).withUpdatedUniversalKeys((key) => (key === 'base'
-                    ? 'testImport'
-                    : key === 'Feature2' ? 'testFeature' : undefined))
-            } as any))
-            uuidv4Mock.mockImplementation(uuidMockFactory())
-            const testSource = `
-                <Asset key=(Test)>
-                    <Import from=(testAsset)>
-                        <Room key=(base) as=(a123) />
-                        <Feature key=(Feature2) as=(c789) />
-                    </Import>
-                    <Room key=(a123)><Exit to=(b456)>welcome</Exit></Room>
-                    <Room key=(b456)><Exit to=(a123)>vortex</Exit></Room>
-                </Asset>
-            `
-            await testWorkspace.setWML(testSource)
-
-            expect(testWorkspace.standard?.toJSON()).toMatchSnapshot()
-        })
-
     })
 })

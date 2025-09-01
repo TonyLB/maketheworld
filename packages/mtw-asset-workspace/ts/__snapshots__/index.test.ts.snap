@@ -51,22 +51,8 @@ Object {
       "context": undefined,
       "exits": Array [
         Object {
-          "children": Array [
-            Object {
-              "children": Array [],
-              "data": Object {
-                "tag": "String",
-                "value": "welcome",
-              },
-            },
-          ],
-          "data": Object {
-            "from": "a123",
-            "key": "a123#b456",
-            "tag": "Exit",
-            "to": "b456",
-          },
-          "wrapperTag": undefined,
+          "description": "welcome",
+          "to": "ROOM#UUID-1",
         },
       ],
       "key": "a123",
@@ -78,105 +64,14 @@ Object {
       "context": undefined,
       "exits": Array [
         Object {
-          "children": Array [
-            Object {
-              "children": Array [],
-              "data": Object {
-                "tag": "String",
-                "value": "vortex",
-              },
-            },
-          ],
-          "data": Object {
-            "from": "b456",
-            "key": "b456#a123",
-            "tag": "Exit",
-            "to": "a123",
-          },
-          "wrapperTag": undefined,
+          "description": "vortex",
+          "to": "ROOM#UUID-0",
         },
       ],
       "key": "b456",
       "shortName": undefined,
       "tag": "Room",
       "universalKey": "ROOM#UUID-1",
-    },
-  ],
-  "key": "Test",
-  "metaData": Array [],
-}
-`;
-
-exports[`AssetWorkspace setWML should look up import namespace mappings 1`] = `
-Object {
-  "components": Array [
-    Object {
-      "context": undefined,
-      "key": "Feature2",
-      "tag": "Feature",
-      "universalKey": "FEATURE#UUID-0",
-    },
-    Object {
-      "context": undefined,
-      "exits": Array [
-        Object {
-          "children": Array [
-            Object {
-              "children": Array [],
-              "data": Object {
-                "tag": "String",
-                "value": "welcome",
-              },
-            },
-          ],
-          "data": Object {
-            "from": "a123",
-            "key": "a123#b456",
-            "tag": "Exit",
-            "to": "b456",
-          },
-          "wrapperTag": undefined,
-        },
-      ],
-      "key": "a123",
-      "shortName": undefined,
-      "tag": "Room",
-      "universalKey": "ROOM#UUID-1",
-    },
-    Object {
-      "context": undefined,
-      "exits": Array [
-        Object {
-          "children": Array [
-            Object {
-              "children": Array [],
-              "data": Object {
-                "tag": "String",
-                "value": "vortex",
-              },
-            },
-          ],
-          "data": Object {
-            "from": "b456",
-            "key": "b456#a123",
-            "tag": "Exit",
-            "to": "a123",
-          },
-          "wrapperTag": undefined,
-        },
-      ],
-      "key": "b456",
-      "shortName": undefined,
-      "tag": "Room",
-      "universalKey": "ROOM#UUID-2",
-    },
-    Object {
-      "context": undefined,
-      "exits": Array [],
-      "key": "base",
-      "shortName": undefined,
-      "tag": "Room",
-      "universalKey": "ROOM#UUID-3",
     },
   ],
   "key": "Test",

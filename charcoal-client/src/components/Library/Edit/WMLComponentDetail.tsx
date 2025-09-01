@@ -17,26 +17,22 @@ import RoomExitEditor from './RoomExitEditor'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { useDispatch } from 'react-redux'
-import { rename as renameNavigationTab } from '../../../slices/UI/navigationTabs'
 
 import TitledBox from '../../TitledBox'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import SchemaTagTree from '@tonylb/mtw-wml/ts/tagTree/schema'
+import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
-import { addOnboardingComplete } from '../../../slices/player/index.api'
 
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { hasName, hasShortName, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { isSchemaAsset, isSchemaCharacter, isSchemaWithKey, SchemaOutputTag, SchemaTag, SchemaWithKey } from '@tonylb/mtw-base/ts/schema'
-import { SchemaAssetTag, SchemaStoryTag } from '@tonylb/mtw-base/ts/schema/asset'
-import { SchemaCharacterTag } from '@tonylb/mtw-base/ts/schema/character'
-import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
+import { SchemaOutputTag } from '@tonylb/mtw-base/ts/schema'
 import ExampleEditor from './ExampleEditor'
-import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import { excludeUndefined } from '../../../lib/lists'
 
 const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
     const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
@@ -69,7 +65,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             hasShortName(component) && (
                 <TitledBox title="Short Name">
                     <StandardLiteralEditor
-                        value={component.shortName}
+                        value={component.shortName ?? new StandardLiteral('')}
                         onChange={(newShortName) => {
                             updateStandard({
                                 type: 'update',
@@ -89,10 +85,15 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
             )
         }
         {
-            (component.examples.map(({ key }) => (<ExampleEditor key={key} componentId={`${component.key}.${key}`} />)))
+            (component.examples
+                .payload
+                .filter((reference) => (reference instanceof StandardReference))
+                .map((reference) => (reference.universalKey))
+                .filter(excludeUndefined)
+                .map((universalKey) => (<ExampleEditor componentId={universalKey} />)))
         }
         {
-            (component instanceof StandardRoom) && <RoomExitEditor RoomId={ComponentId || ''} onChange={() => {}} />
+            (component instanceof StandardRoom) && <RoomExitEditor RoomId={ComponentId || ''} />
         }
     </Box>
     : <Box />
@@ -129,34 +130,19 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         componentId: ComponentId || ''
     })
     const onKeyChange = useCallback((toKey: string) => {
-        updateStandard({
-            type: 'renameKey',
-            from: ComponentId ?? '',
-            to: toKey
-        })
-        dispatch(renameNavigationTab({
-            fromHRef: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
-            toHRef: `/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`,
-            componentId: toKey
-        }))
-        navigate(`/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`)
+        // updateStandard({
+        //     type: 'renameKey',
+        //     from: ComponentId ?? '',
+        //     to: toKey
+        // })
+        // dispatch(renameNavigationTab({
+        //     fromHRef: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
+        //     toHRef: `/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`,
+        //     componentId: toKey
+        // }))
+        // navigate(`/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`)
     }, [updateStandard, ComponentId, navigate, assetKey, dispatch, tag])
-    const allExportKeys = useMemo(() => {
-        const tagTree = new SchemaTagTree(standardForm.metaData)
-            .filter({ match: 'Export' })
-            .prune({ match: 'Export' })
-        const exportMappings: Record<string, string> = Object.assign({}, ...tagTree.tree.map((node) => {
-            const isSchemaWithKeyOtherThanAsset = (data: SchemaTag): data is Exclude<SchemaWithKey, SchemaAssetTag | SchemaStoryTag | SchemaCharacterTag> => (isSchemaWithKey(data) && !(isSchemaAsset(data) || isSchemaCharacter(data)))
-            if (treeNodeTypeguard(isSchemaWithKeyOtherThanAsset)(node)) {
-                return { [node.data.key]: node.data.as ?? node.data.key }
-            }
-            else {
-                return {}
-            }
-        }))
-        return Object.keys(standardForm.byId).map((key) => (exportMappings[key] ?? key))
-    }, [standardForm])
-    const nameValidate = useCallback((toKey: string) => (!(toKey !== ComponentId && (allExportKeys.includes(toKey)))), [ComponentId, allExportKeys])
+    const nameValidate = useCallback((toKey: string) => (!(toKey !== ComponentId)), [ComponentId])
     if (!(ComponentId && ComponentId in standardForm.byId)) {
         return <Box />
     }

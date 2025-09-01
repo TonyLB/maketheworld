@@ -6,7 +6,7 @@ import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchema
 import { isSchemaEdit, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaEditTag, SchemaReplaceTag } from "./edit"
 import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaExampleTag, SchemaNameTag, SchemaSummaryTag } from "./example"
 import { isSchemaImage, SchemaImageTag } from "./image"
-import { isSchemaImport, isSchemaMeta, SchemaExportTag, SchemaImportTag, SchemaMetaTag } from "./metaData"
+import { isSchemaImport, isSchemaMeta, SchemaImportTag, SchemaMetaTag } from "./metaData"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaWhitespaceTag } from "./renderTree"
 
 export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaGrantTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag | SchemaMapTag | SchemaRoomTag | SchemaMessageTag | SchemaMomentTag
@@ -41,7 +41,6 @@ export type SchemaTag = SchemaAssetTag |
     SchemaCharacterTag |
     SchemaImageTag |
     SchemaImportTag |
-    SchemaExportTag |
     SchemaMetaTag |
     SchemaExitTag |
     SchemaDescriptionTag |

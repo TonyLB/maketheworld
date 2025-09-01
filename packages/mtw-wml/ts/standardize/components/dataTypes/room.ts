@@ -1,12 +1,8 @@
-import { StandardReferenceData } from "./reference";
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
+import { StandardReferenceData } from "./reference"
 import { StandardBaseData } from "./abstract"
-import { checkAll, checkTypes } from "./typeguards";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { StandardRemoveData } from ".";
-import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
-import { isStandardExitData, StandardExitData } from "../exit";
-import { is } from "immer/dist/internal";
+import { checkAll, checkTypes } from "./typeguards"
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
+import { isStandardExitData, StandardExitData } from "../exit"
 
 export type StandardRoomData = {
     tag: 'Room';
@@ -22,6 +18,7 @@ export const isStandardRoom = (arg: any): arg is StandardRoomData => {
         return false
     }
 
+    console.log(`isStandardRoom: ${JSON.stringify(arg, null, 2)}`)
     return checkAll(
         ('tag' in arg && arg.tag === 'Room'),
         (!('exits' in arg) || (Array.isArray(arg.exits) && arg.exits.every(isStandardExitData))),

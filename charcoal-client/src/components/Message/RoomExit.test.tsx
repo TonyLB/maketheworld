@@ -71,8 +71,6 @@ describe('RoomExit', () => {
 
     it('should handle click and dispatch moveCharacter', () => {
         const exit = StandardExit.create({
-            tag: 'Exit',
-            key: 'clickable-exit',
             to: 'ROOM#target-room',
             description: 'Clickable Exit'
         })

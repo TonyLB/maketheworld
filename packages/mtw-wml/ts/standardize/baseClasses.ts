@@ -174,7 +174,7 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] 
             checkTypes(
                 line,
                 {
-                    universalKey: 'string'
+                    key: 'string'
                 },
                 {}
             )
