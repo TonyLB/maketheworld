@@ -25,21 +25,18 @@ const componentTemplates = {
         key: { type: ParsePropertyTypes.Key },
         display: { type: ParsePropertyTypes.Literal },
         from: { type: ParsePropertyTypes.Asset },
-        as: { type: ParsePropertyTypes.Key },
         origin: { type: ParsePropertyTypes.AssetList }
     },
     Feature: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
-        as: { type: ParsePropertyTypes.Key },
         origin: { type: ParsePropertyTypes.AssetList }
     },
     Knowledge: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
-        as: { type: ParsePropertyTypes.Key },
         origin: { type: ParsePropertyTypes.AssetList }
     },
     Position: {
@@ -50,7 +47,6 @@ const componentTemplates = {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
-        as: { type: ParsePropertyTypes.Key },
         origin: { type: ParsePropertyTypes.AssetList }
     }
 } as const
@@ -190,7 +186,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('ROOM')(tag.uuid) : '' },
                 ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
                 { key: 'from', type: 'key', value: tag.from ?? '' },
-                { key: 'as', type: 'key', value: tag.as ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
             ],
             node: { data: tag, children }
@@ -211,7 +206,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('FEATURE')(tag.uuid) : '' },
                 ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
                 { key: 'from', type: 'key', value: tag.from ?? '' },
-                { key: 'as', type: 'key', value: tag.as ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
             ],
             node: { data: tag, children }
@@ -231,7 +225,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('KNOWLEDGE')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'from', type: 'key', value: tag.from ?? '' },
-                { key: 'as', type: 'key', value: tag.as ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
             ],
             node: { data: tag, children }
@@ -265,7 +258,6 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MAP')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'from', type: 'key', value: tag.from ?? '' },
-                { key: 'as', type: 'key', value: tag.as ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
             ],
             node: { data: tag, children }

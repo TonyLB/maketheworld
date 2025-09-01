@@ -9,6 +9,5 @@ export type SchemaWrapper = {
 
 export type SchemaImportableBase = SchemaBase & {
     from?: AssetUUID;
-    as?: string;
     origin?: AssetUUID[];
 }

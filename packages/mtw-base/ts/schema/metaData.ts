@@ -33,8 +33,7 @@ export const isSchemaImport = (schema: any): schema is SchemaImportTag => (
         required: { tag: CheckTypes.STRING, from: CheckTypes.STRING, mapping: CheckTypes.OBJECT },
         optional: { key: CheckTypes.STRING },
         values: {
-            tag: 'Import',
-            mapping: (mapping: Record<string, any>) => Object.values(mapping).every(isSchemaImportMapping)
+            tag: 'Import'
         }
     })(schema)
 )

@@ -121,7 +121,6 @@ export const examplePrintMap: Record<string, PrintMapEntry> = {
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('EXAMPLE')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'from', type: 'key', value: tag.from ?? '' },
-                { key: 'as', type: 'key', value: tag.as ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
             ],
             node: { data: tag, children }

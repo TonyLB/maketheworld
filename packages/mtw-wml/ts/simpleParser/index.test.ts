@@ -70,8 +70,7 @@ describe('wml simple parser', () => {
         const testTokens = tokenizer(new SourceStream(`
             <Asset key=(Test) fileName="test">
                 <Import from=(BASE)>
-                    <Use key=(basePower) type="Variable" as=(power) />
-                    <Use key=(overview) type="Room" />
+                    <Room uuid=(123) key=(ABC) />
                 </Import>
                 <Room key=(ABC)>
                     <Example uuid=(123-VORTEX-example)>
@@ -107,14 +106,9 @@ describe('wml simple parser', () => {
         expect(parse(testTokens)).toEqual([
             { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'Test' }, { type: ParsePropertyTypes.Literal, key: 'fileName', value: 'test' }] },
             { type: ParseTypes.Open, tag: 'Import', properties: [{ type: ParsePropertyTypes.Key, key: 'from', value: 'BASE'}]},
-            { type: ParseTypes.SelfClosure, tag: 'Use', properties: [
-                { type: ParsePropertyTypes.Key, key: 'key', value: 'basePower' },
-                { type: ParsePropertyTypes.Literal, key: 'type', value: 'Variable' },
-                { type: ParsePropertyTypes.Key, key: 'as', value: 'power' }
-            ] },
-            { type: ParseTypes.SelfClosure, tag: 'Use', properties: [
-                { type: ParsePropertyTypes.Key, key: 'key', value: 'overview' },
-                { type: ParsePropertyTypes.Literal, key: 'type', value: 'Room' }
+            { type: ParseTypes.SelfClosure, tag: 'Room', properties: [
+                { type: ParsePropertyTypes.Key, key: 'uuid', value: '123' },
+                { type: ParsePropertyTypes.Key, key: 'key', value: 'ABC' }
             ] },
             { type: ParseTypes.Close, tag: 'Import' },
             { type: ParseTypes.Open, tag: 'Room', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'ABC' }] },
