@@ -4,6 +4,7 @@
 import { unmarshall } from "@aws-sdk/util-dynamodb"
 import { PublishCommand, SNSClient } from "@aws-sdk/client-sns"
 import AWSXRay from 'aws-xray-sdk'
+import { ConnectionKey } from '@tonylb/mtw-utilities/ts/types'
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -32,7 +33,7 @@ export const handler = async (event: any) => {
                 }),
                 MessageAttributes: {
                     RequestId: { DataType: 'String', StringValue: RequestId },
-                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+                    Targets: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionKey(ConnectionId)]) },
                     Type: { DataType: 'String', StringValue: 'Success' }
                 }
             }))
@@ -45,7 +46,7 @@ export const handler = async (event: any) => {
                     messages
                 }),
                 MessageAttributes: {
-                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+                    Targets: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionKey(ConnectionId)]) },
                     Type: { DataType: 'String', StringValue: 'Success' }
                 }
             }))

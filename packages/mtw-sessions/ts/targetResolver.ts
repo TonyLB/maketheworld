@@ -9,6 +9,15 @@ export interface InternalCacheWithSessionConnections {
 // Target types that can be resolved
 export type ResolvableTarget = `SESSION#${string}` | `CONNECTION#${string}` | `!SESSION#${string}` | `!CONNECTION#${string}`
 
+export const isResolvableTarget = (target: any): target is ResolvableTarget => (
+    typeof target === 'string' && (
+        target.startsWith('SESSION#') ||
+        target.startsWith('CONNECTION#') ||
+        target.startsWith('!SESSION#') ||
+        target.startsWith('!CONNECTION#')
+    )
+)
+
 export class TargetResolver {
     private internalCache: InternalCacheWithSessionConnections
 

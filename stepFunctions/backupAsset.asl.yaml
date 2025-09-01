@@ -110,12 +110,12 @@ States:
                 RequestId:
                     DataType: String
                     "StringValue.$": "$.args.requestId"
-                ConnectionIds:
+                Targets:
                     DataType: String.Array
-                    "StringValue.$": "States.JsonToString(States.Array($.args.connectionId))"
+                    "StringValue.$": "States.JsonToString(States.Array(States.Format('CONNECTION#{}', $.args.connectionId)))"
                 Error:
                     DataType: String
-                    StringValue: "Error while caching assets"
+                    StringValue: "Error while backing up asset"
     Failure:
         Type: Fail
     Done:

@@ -1,18 +1,34 @@
 import { apiClient } from "./clients"
+import { TargetResolver, isResolvableTarget } from '@tonylb/mtw-sessions/ts/targetResolver'
+import internalCache from './internalCache'
+
+const targetResolver = new TargetResolver(internalCache)
 
 export const handler = async (event) => {
 
     await Promise.all(event.Records.map(async ({ Sns }) => {
         if (
-            Sns.MessageAttributes.ConnectionIds?.Type !== 'String' ||
-            !Array.isArray(JSON.parse(Sns.MessageAttributes.ConnectionIds.Value)) ||
+            Sns.MessageAttributes.Targets?.Type !== 'String' ||
+            !Array.isArray(JSON.parse(Sns.MessageAttributes.Targets.Value)) ||
             Sns.MessageAttributes.RequestId?.Type !== 'String' ||
             Sns.MessageAttributes.Type?.Type !== 'String'
         ) {
             throw new Error(`Incoming message format failure (${JSON.stringify(Sns.MessageAttributes, null, 4)})`)
         }
-        const connectionIds = JSON.parse(Sns.MessageAttributes.ConnectionIds.Value) as string[]
+        const targets = JSON.parse(Sns.MessageAttributes.Targets.Value) as any[]
         const RequestId = Sns.MessageAttributes.RequestId.Value
+        
+        // Validate that all targets are valid ResolvableTargets
+        if (!targets.every(isResolvableTarget)) {
+            throw new Error(`Invalid targets format: ${JSON.stringify(targets)}`)
+        }
+        
+        // Resolve targets to connection IDs using TargetResolver
+        const resolvedTargets = await targetResolver.resolve(targets)
+        const connectionIds = resolvedTargets
+            .map(target => target.replace('CONNECTION#', ''))
+            .filter(connectionId => connectionId.length > 0) // Filter out empty connection IDs
+        
         switch(Sns.MessageAttributes.Type.Value) {
             case 'Success':
                 const Data = JSON.stringify({

@@ -37,17 +37,26 @@ import internalCache from "../internalCache"
 import returnValueMessage from './index'
 
 const snsClientMock = snsClient as jest.Mocked<typeof snsClient>
-const internalCacheMock = jest.mocked(internalCache, true)
+const internalCacheMock = jest.mocked(internalCache)
 
 describe('ReturnValueMessage', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        internalCacheMock.Connection.get.mockResolvedValue("TestConnection")
+        
+        // Mock the internalCache.Connection.get method to return different values based on the key
+        internalCacheMock.Connection.get.mockImplementation((key: string) => {
+            if (key === 'connectionId') {
+                return Promise.resolve("TestConnection")
+            } else if (key === 'RequestId') {
+                return Promise.resolve("TestRequestId")
+            }
+            return Promise.resolve(undefined)
+        })
     })
 
-    it('should call snsClient against registered connectionId', async () => {
+    it('should call snsClient with Targets format for registered connectionId', async () => {
         await returnValueMessage({
             payloads: [{
                 type: 'ReturnValue',
@@ -56,6 +65,19 @@ describe('ReturnValueMessage', () => {
                 }
             }]
         })
+        
+        // Check the message content
         expect((snsClientMock.send.mock.calls[0][0].input as any).Message).toEqual('{"result":"ActionSuccessful"}')
+        
+        // Check the Targets format in MessageAttributes
+        const messageAttributes = (snsClientMock.send.mock.calls[0][0].input as any).MessageAttributes
+        expect(messageAttributes.Targets.DataType).toEqual('String.Array')
+        expect(messageAttributes.Targets.StringValue).toEqual('["CONNECTION#TestConnection"]')
+        
+        // Check other required attributes
+        expect(messageAttributes.RequestId.DataType).toEqual('String')
+        expect(messageAttributes.RequestId.StringValue).toEqual('TestRequestId')
+        expect(messageAttributes.Type.DataType).toEqual('String')
+        expect(messageAttributes.Type.StringValue).toEqual('Success')
     })
 })

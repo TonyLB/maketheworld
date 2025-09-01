@@ -25,7 +25,7 @@ import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import messageBus from "./messageBus/index.js"
 import { sfnClient, snsClient } from "./clients"
 import { assetWorkspaceFromAssetId } from "./utilities/assets"
-import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
+import { AssetKey, ConnectionKey } from "@tonylb/mtw-utilities/ts/types"
 import { healGlobalValues } from "./selfHealing/globalValues"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { PublishCommand } from "@aws-sdk/client-sns"
@@ -238,7 +238,7 @@ export const handler = async (event, context) => {
                         }),
                         MessageAttributes: {
                             RequestId: { DataType: 'String', StringValue: request.RequestId },
-                            ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([connectionId]) },
+                            Targets: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionKey(connectionId)]) },
                             Type: { DataType: 'String', StringValue: 'Success' }
                         }
                     }))

@@ -124,6 +124,16 @@ describe('fetchImportsMessage', () => {
             { AssetId: 'ASSET#importTestThree', address: { zone: 'Canon', fileName: 'testThree' } },
             { AssetId: 'ASSET#importTestFour', address: { zone: 'Canon', fileName: 'testFour' } }
         ])
+        
+        // Mock the internalCache.Connection.get method to return different values based on the key
+        internalCacheMock.Connection.get.mockImplementation((key: string) => {
+            if (key === 'connectionId') {
+                return Promise.resolve("TestConnection")
+            } else if (key === 'RequestId') {
+                return Promise.resolve("TestRequestId")
+            }
+            return Promise.resolve(undefined)
+        })
         jest.spyOn(FetchImportsJSONHelper.prototype, 'get').mockImplementation(async (assetId: `ASSET#${string}`) => {
             let standard: StandardForm = new StandardForm('test')
             switch(assetId) {
@@ -175,6 +185,27 @@ describe('fetchImportsMessage', () => {
     it('should properly stub out features in room description', async () => {
         await fetchImportsMessage({ payloads: [{ type: 'FetchImports', importsFromAsset: [{ assetId: 'ASSET#testFinal', keys: ['ROOM#testRoomWithFeatures'] }] }], messageBus })
         expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()
+    })
+
+    it('should send SNS message with Targets format instead of ConnectionIds', async () => {
+        await fetchImportsMessage({ payloads: [{ type: 'FetchImports', importsFromAsset: [{ assetId: 'ASSET#testFinal', keys: ['ROOM#testNonImport'] }] }], messageBus })
+        
+        // Check the SNS message attributes format
+        const messageAttributes = (snsClientMock.send.mock.calls[0][0].input as any).MessageAttributes
+        
+        // Should have Targets instead of ConnectionIds
+        expect(messageAttributes.Targets).toBeDefined()
+        expect(messageAttributes.Targets.DataType).toEqual('String.Array')
+        expect(messageAttributes.Targets.StringValue).toEqual('["CONNECTION#TestConnection"]')
+        
+        // Should not have ConnectionIds
+        expect(messageAttributes.ConnectionIds).toBeUndefined()
+        
+        // Check other required attributes
+        expect(messageAttributes.RequestId.DataType).toEqual('String')
+        expect(messageAttributes.RequestId.StringValue).toEqual('TestRequestId')
+        expect(messageAttributes.Type.DataType).toEqual('String')
+        expect(messageAttributes.Type.StringValue).toEqual('Success')
     })
 
 })

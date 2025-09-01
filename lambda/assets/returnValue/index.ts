@@ -3,6 +3,7 @@ import { ReturnValueMessage, isReturnValueMessage, MessageBus } from "../message
 import internalCache from '../internalCache'
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { snsClient } from "../clients"
+import { ConnectionKey } from '@tonylb/mtw-utilities/ts/types'
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -17,7 +18,7 @@ export const returnValueMessage = async ({ payloads }: { payloads: ReturnValueMe
                 Message: JSON.stringify(payload.body),
                 MessageAttributes: {
                     RequestId: { DataType: 'String', StringValue: RequestId || '' },
-                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+                    Targets: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionKey(ConnectionId)]) },
                     Type: { DataType: 'String', StringValue: 'Success' }
                 }
             }))
