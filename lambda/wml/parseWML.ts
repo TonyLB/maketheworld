@@ -8,6 +8,7 @@ import { dbRegister } from "./serialize/dbRegister"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { PublishCommand } from "@aws-sdk/client-sns"
+import { ConnectionKey } from '@tonylb/mtw-utilities/ts/types'
 
 import StandardImage from "@tonylb/mtw-wml/ts/standardize/components/image"
 
@@ -101,7 +102,7 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
                 }),
                 MessageAttributes: {
                     RequestId: { DataType: 'String', StringValue: requestId },
-                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([connectionId]) },
+                    Targets: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionKey(connectionId)]) },
                     Type: { DataType: 'String', StringValue: 'Success' }
                 }
             }))
@@ -114,7 +115,7 @@ export const parseWMLHandler = async (event: ParseWMLHandlerArguments) => {
                 Message: '{}',
                 MessageAttributes: {
                     RequestId: { DataType: 'String', StringValue: requestId },
-                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([connectionId]) },
+                    Targets: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionKey(connectionId)]) },
                     Type: { DataType: 'String', StringValue: 'Error' },
                     Error: { DataType: 'String', StringValue: 'Internal error in ParseWML' }
                 }

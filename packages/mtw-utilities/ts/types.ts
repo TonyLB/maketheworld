@@ -8,9 +8,9 @@ export const splitType = (value: string) => {
     return ['', '']
 }
 
-type ComponentKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'VARIABLE' | 'COMPUTED' | 'ACTION'
+type PrefixKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'VARIABLE' | 'COMPUTED' | 'ACTION' | 'CONNECTION' | 'SESSION'
 
-export const enforceTypedKey = <T extends ComponentKey>(key: T) => (value: string): `${T}#${string}` => {
+export const enforceTypedKey = <T extends PrefixKey>(key: T) => (value: string): `${T}#${string}` => {
     const [checkType, checkForTwoSections] = splitType(value)
     if (checkForTwoSections) {
         if (checkType !== key) {
@@ -21,7 +21,7 @@ export const enforceTypedKey = <T extends ComponentKey>(key: T) => (value: strin
     return `${key}#${value}`
 }
 
-export const stripTypedKey = <T extends ComponentKey>(key: T) => (value: string): string => {
+export const stripTypedKey = <T extends PrefixKey>(key: T) => (value: string): string => {
     if (value.startsWith(`${key}#`)) {
         return value.slice(key.length + 1)
     }
@@ -31,6 +31,8 @@ export const stripTypedKey = <T extends ComponentKey>(key: T) => (value: string)
 export const AssetKey = enforceTypedKey('ASSET')
 export const CharacterKey = enforceTypedKey('CHARACTER')
 export const RoomKey = enforceTypedKey('ROOM')
+export const ConnectionKey = enforceTypedKey('CONNECTION')
+export const SessionKey = enforceTypedKey('SESSION')
 
 export const extractConstrainedTag = <O extends string>(typeGuard: (value: string) => value is O) =>  (value: string): O => {
     const [upperTag] = splitType(value)

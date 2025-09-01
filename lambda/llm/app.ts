@@ -1,6 +1,7 @@
 import { roomGeneratePrompt } from "./roomGenerate"
 import { snsClient } from './clients'
 import { PublishCommand } from "@aws-sdk/client-sns"
+import { ConnectionKey } from '@tonylb/mtw-utilities/ts/types'
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -28,7 +29,7 @@ export const handler = async (event) => {
                             }),
                             MessageAttributes: {
                                 RequestId: { DataType: 'String', StringValue: event.RequestId },
-                                ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([event.ConnectionId]) },
+                                Targets: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionKey(event.ConnectionId)]) },
                                 Type: { DataType: 'String', StringValue: 'Success' }
                             }
                         }))

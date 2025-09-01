@@ -4,11 +4,11 @@ import internalCache from '../internalCache'
 import { FetchImportsJSONHelper, InheritanceGraph } from "./baseClasses"
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
-import { stripImportAndExport } from "./utils"
 import recursiveFetchImports from "./recursiveFetchImports"
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { snsClient } from "../clients"
 import { PublishCommand } from "@aws-sdk/client-sns"
+import { ConnectionKey } from '@tonylb/mtw-utilities/ts/types'
 
 const { FEEDBACK_TOPIC } = process.env
 
@@ -47,7 +47,7 @@ export const fetchImportsMessage = async ({ payloads }: { payloads: FetchImports
                 }),
                 MessageAttributes: {
                     RequestId: { DataType: 'String', StringValue: RequestId },
-                    ConnectionIds: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionId]) },
+                    Targets: { DataType: 'String.Array', StringValue: JSON.stringify([ConnectionKey(ConnectionId ?? '')]) },
                     Type: { DataType: 'String', StringValue: 'Success' }
                 }
             }))
