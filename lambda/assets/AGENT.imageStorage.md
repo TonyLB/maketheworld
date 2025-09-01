@@ -13,15 +13,17 @@ The Image Storage System manages the upload, processing, storage, and serving of
 - **Current Naming**: `IMAGE-${uuidv4()}.${fileExtension}`
 - **Process**: Creates unique S3 object names using UUID
 
-#### 2. Image Processing (`lambda/wml/formatImage/`)
-- **Purpose**: Processes uploaded images into standardized formats
+#### 2. Image Processing (`lambda/wml/formatImage/`) - **DEPRECATED**:
+- **Purpose**: **DEPRECATED** - Old image processing system, replaced by `lambda/imageProcessor/`
 - **Current Naming**: `IMAGE-${uuidv4()}.png`
-- **Process**: Resizes to 1200x800, converts to PNG, stores in `IMAGES_BUCKET`
+- **Process**: **DEPRECATED** - Old system that resized to 1200x800, converted to PNG, stored in `IMAGES_BUCKET`
+- **Replacement**: The `lambda/imageProcessor/` lambda provides the new image processing pipeline
 
-#### 3. WML Integration (`lambda/wml/parseWML/`)
-- **Purpose**: Associates processed images with WML components
-- **Current Process**: Updates `fileName` properties in asset JSON
-- **Integration**: Links processed filenames to StandardImage components
+#### 3. WML Integration (`lambda/wml/parseWML/`) - **DEPRECATED**:
+- **Purpose**: **DEPRECATED** - Old system that associated processed images with WML components
+- **Current Process**: **DEPRECATED** - Old system that updated `fileName` properties in asset JSON
+- **Integration**: **DEPRECATED** - Old system that linked processed filenames to StandardImage components
+- **Replacement**: The new `applyEdit` flow handles WML changes without image processing
 
 #### 4. Client Serving (`charcoal-client/src/components/Library/Edit/`)
 - **Purpose**: Generates image URLs for client display
@@ -183,10 +185,10 @@ if (imageComponent instanceof StandardImage) {
 
 ### Cross-References
 - **[Upload System](upload/)**: Image upload process
-- **[Format Image](../../wml/formatImage/)**: Image processing function
+- **[Format Image](../../wml/formatImage/)**: **DEPRECATED** - Old image processing function, replaced by `lambda/imageProcessor/`
 - **[Client Display](../../../charcoal-client/src/components/Library/Edit/)**: Image serving
 - **[Asset Properties](README.images.md)**: Current image association system
-- **[WML Parse](../../wml/parseWML.ts)**: WML integration
+- **[WML Parse](../../wml/parseWML.ts)**: **DEPRECATED** - Old WML integration, replaced by applyEdit flow
 
 ## Error Handling
 
@@ -231,9 +233,10 @@ if (imageComponent instanceof StandardImage) {
 
 ### Key Files
 - `upload/index.ts`: Upload implementation
-- `formatImage/index.ts`: Image processing
-- `parseWML.ts`: WML integration
+- `formatImage/index.ts`: **DEPRECATED** - Old image processing function
+- `parseWML.ts`: **DEPRECATED** - Old WML integration function
 - `LibraryAsset.tsx`: Client image handling
+- **NEW**: `lambda/imageProcessor/` - Current image processing pipeline
 
 ### Related Systems
 - **[WML System](../../wml/)**: Component processing
@@ -255,8 +258,8 @@ const uploadResult = await uploadURLMessage({
 })
 
 // Client uploads to presigned URL
-// WML parse processes images
-// Format image creates processed version
+// **DEPRECATED**: Old WML parse + formatImage pipeline
+// **NEW**: imageProcessor lambda handles image processing automatically via S3 events
 // Properties updated with fileName
 ```
 
