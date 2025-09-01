@@ -22,11 +22,6 @@ export type SchemaImportTag = {
     mapping: Record<string, SchemaImportMapping>;
 } & SchemaBase
 
-export type SchemaExportTag = {
-    tag: 'Export';
-    mapping: Record<string, SchemaImportMapping>
-} & SchemaBase
-
 export type SchemaMetaTag = {
     tag: 'Meta';
     key: string;

@@ -13,7 +13,6 @@ const importExportTemplates = {
     Import: {
         from: { required: true, type: ParsePropertyTypes.Key },
     },
-    Export: {},
     Meta: {
         key: { required: true, type: ParsePropertyTypes.Key },
         time: { required: true, type: ParsePropertyTypes.Literal }
