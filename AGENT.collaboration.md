@@ -1,7 +1,5 @@
 # Collaborative Authoring - Agent Navigation Guide
 
-This is a skeleton document, to be filled out in greater detail section by section
-
 ## Overview
 
 The collaboration system enables community-driven world-building through multiple phases of development, from initial creation to ongoing maintenance. The system balances creative freedom with stability, rewarding quality contributions while maintaining narrative coherence.
@@ -35,8 +33,6 @@ The collaboration system operates through distinct phases, each with different n
 - Quality content naturally rises to prominence through community feedback
 - Moderation remains effective even with limited human oversight
 - System adapts to changing player patterns and preferences
-
-## Collaboration Modes
 
 ## Collaboration Modes
 
