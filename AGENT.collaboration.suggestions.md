@@ -1,86 +1,121 @@
-# Stream of Consciousness
-
-Purpose of suggestions is to organize and constrain the ways in which changes can be applied to existing assets, so that review can be done meaningfully
-
-On the one hand, one could certainly conceive of an update that would need to be reviewed simultaneously across a large number of different assets, working
-together to create a single change ... those kind of changes to code-files happen in Git repositories all the time.
-
-But on the other hand: Code repositories are organized along principles of hierarchical modularity, where multiple files are _supposed_ to have intricate
-interdependencies. Should our assets have the same dependency structures? Probably not: Code repositories frequently have an upside-down tree, where
-many sub-modules are inherited by a module that pulls everything together. The WML asset system expects individual root-level assets to present independent
-content, and for later inheriting modules to _modify_ that content rather than aggregating it into higher-order structures.
-
-In that structure, asking somebody to review "One asset with small changes to assets A, B, and C" is asking them to understand *all* of A, B, and C just to
-handle a single review. Maybe it makes sense to constrain the ways that people can suggest _changing_ an asset so that they can only apply their changes
-to one asset at a time.
-
-*Plus*, this is much, _much_ more technically feasible in terms of avoiding deadlock: We already have an `atomicLock` operator on our S3 files for
-assets, and if the merging of an asset into underlying files requires gaining atomic locks on _multiple_ assets then we run very serious deadlock
-risks.
-
-So I'm thinking about restricting _alteration_ of existing assets (at least the ones that need review) as requiring (as part of publishing to the review
-process) that the _subset_ of things that are being changed in an individual asset get extracted from any larger Draft document, before being reviewed
-for merger (and applied).
-
-There are a couple of specific cases to consider in that design. Given a draft document that _imports_ from Asset C and now wants to publish a Suggestion
-to change Asset C, you could encounter:
-- Changes that the user _doesn't_ want to publish (they only want to propose some of the changes they've drafted)
-- Imports from other Assets that the user wants to _introduce_ into Asset C, from Asset B that C already imports (probably not a big deal)
-- Imports that the user wants to introduce to Asset C, from Asset A that C _doesn't_ currently import (probably a big deal, should be flagged to user and in
-review ... must evaluate graph structure to avoid circularity)
-- Changes that the user wants to publish, but which include references to things not imported into C (and which imports the user doesn't want to introduce)
-that need to be selectively filtered out
-- New elements entirely, which the user wants to flag as suggestions for being added *into* Asset C ... so you can't _just_ subset based on imports from Asset C,
-you need a UI to let people select what they're publishing
-
-The end result of the publishing process should be an Asset that can be *merged* into C (using, probably, the `applyWML` outlet of the WML lambda) if review is
-approved. For the Bootstrapping mode of collaboration (our current focus), this Suggestion/Apply process would be one of the major ways of updating and
-expanding existing assets.
-
 # Asset Suggestions - Agent Navigation Guide
 
 ## Overview
 
-The Asset Suggestions system creates a structured pathway for community members to contribute improvements to existing world content, transforming individual creative work into community-driven world evolution. Rather than allowing direct modifications to established assets, the system channels creative energy through a proposal-and-review process that builds community consensus while preserving narrative stability.
+The Asset Suggestions system is a specific publishing mode within the broader publishing framework that enables community members to propose improvements to existing world content. As one of three publishing types (Suggestion, New, Choice), suggestions address the unique challenge of collaborative refinement on assets where the community feels shared ownership and investment.
 
 ### Purpose
 
-The suggestions system addresses a fundamental tension in collaborative world-building: how to enable community creativity while maintaining the coherence and stability that makes shared fictional worlds compelling. By requiring that changes be proposed rather than directly applied, the system creates space for discussion, refinement, and collective decision-making about the world's evolution.
+Suggestions solve a critical community challenge: how to enable collaborative improvement of established world content without disrupting the narrative stability that makes shared fictional worlds compelling. Unlike creating entirely new content, suggestions require the community to collectively decide how to evolve existing elements that players have already invested in and built stories around.
+
+The system transforms the potentially contentious process of "changing someone else's work" into a structured community dialogue about "how can we make this better together." By requiring proposals rather than direct modifications, suggestions create space for discussion, refinement, and collective decision-making about the world's evolution.
+
+This mode directly supports the core collaboration goals defined in [`AGENT.collaboration.md`](AGENT.collaboration.md): it expands **Universal Creative Access** by giving everyone clear pathways to propose improvements, while protecting **Narrative Stability** by coordinating changes to established assets through phase-appropriate evaluation.
 
 ### Context
 
-This system operates within the broader collaboration framework described in [`AGENT.collaboration.md`](AGENT.collaboration.md), particularly supporting the **Bootstrapping** and **Collaborative Storming** phases where rapid content iteration and community evaluation are essential. During these phases, the world needs both creative expansion and quality control, and suggestions provide the structured mechanism for balancing these needs.
+This system operates within the broader publishing framework described in [`AGENT.collaboration.publishing.md`](AGENT.collaboration.publishing.md), specifically implementing the **Suggestion** publishing type. It supports the **Bootstrapping** and **Collaborative Storming** phases where rapid content iteration and community evaluation are essential, but focuses on the refinement of existing content rather than the creation of new content. The Suggestion process is **phase-aware**: in Bootstrapping, the system may allow direct application to maintain momentum; in later phases, it shifts toward proposal-and-evaluation before application. These behaviors operationalize the balance between **Universal Creative Access** and **Narrative Stability** documented in [`AGENT.collaboration.md`](AGENT.collaboration.md).
 
 ### Key Concepts
 
-- **Suggestion**: A community member's proposed improvement to existing world content, presented for community evaluation
+- **Suggestion**: A proposed modification to an existing asset, stored as a separate edit-mode asset that can be applied using the existing `applyWML` functionality
 - **Target Asset**: The specific existing asset that a suggestion aims to modify or enhance
-- **Publishing Workflow**: The process by which authors transform their draft work into community proposals
-- **Review Process**: The community evaluation and decision-making system for suggestions (future development)
-- **Community Consensus**: The collective decision-making that determines which suggestions become part of the canonical world
+- **Single-Asset Constraint**: Technical limitation ensuring suggestions only modify one target asset to prevent deadlock risks and simplify review processes
+- **Content Extraction**: The process of identifying and selecting specific changes from a larger draft document to create a focused suggestion
+- **Import Safety**: Suggestions may introduce new import dependencies but should be clearly flagged for special attention; the only hard prevention is against introducing circular dependencies
+- **Community Refinement**: The collaborative process of improving existing content through community discussion and consensus
 
 ### Core Goals
 
-- **Channel Creative Energy**: Provide clear pathways for community members to contribute to world development
-- **Build Community Consensus**: Create opportunities for discussion and collective decision-making about world changes
-- **Preserve Narrative Stability**: Ensure that world changes reflect community agreement rather than individual preferences
-- **Enable Quality Improvement**: Allow the community to collectively refine and enhance existing content
-- **Support Collaborative Learning**: Help community members understand and contribute to established world elements
+- **Enable Collaborative Refinement**: Provide structured pathways for community members to improve existing world content
+- **Build Shared Ownership**: Create opportunities for the community to collectively invest in and improve established elements
+- **Preserve Narrative Continuity**: Ensure that improvements to existing content maintain the coherence and continuity that players depend on
+- **Facilitate Community Dialogue**: Create spaces for discussion and consensus-building about how to evolve shared world elements
+- **Support Incremental Improvement**: Allow the community to make thoughtful, considered improvements to existing content over time
+- **Phase-Appropriate Evaluation**: Adapt the level of evaluation required based on collaboration phase (e.g., lighter in Bootstrapping, stronger in later phases)
 
 ### Key Principles
 
-- **Proposal-Based Change**: All modifications to existing assets must be proposed and evaluated, not directly applied
-- **Community Ownership**: The community collectively decides which suggestions enhance the world
-- **Respect for Existing Work**: Suggestions build upon and improve existing content rather than replacing it arbitrarily
-- **Clear Contribution Pathways**: The system makes it obvious how community members can contribute to world development
-- **Balanced Innovation**: Encourage creative improvements while maintaining the coherence that makes the world compelling
+- **Respect for Existing Investment**: Suggestions acknowledge that existing content represents community investment and should be improved rather than replaced
+- **Single-Asset Focus**: Each suggestion targets exactly one existing asset to maintain system stability and simplify community evaluation
+- **Phase-Appropriate Application**: During Bootstrapping, direct application of changes may be allowed to maintain momentum; in later phases, modifications should be proposed and evaluated before application
+- **Community Consensus**: The community collectively decides which suggestions enhance the world and preserve its essential character
+- **Incremental Evolution**: Encourage thoughtful, community-considered improvements that build upon rather than disrupt established foundations
 
 ### Success Metrics
+
+- **Phase Fit**: Suggestion workflows adapt correctly to the current collaboration phase (Bootstrapping vs later phases)
+- **Momentum Preservation**: In Bootstrapping, direct application enables rapid iteration without blocking progress
+- **Quality Assurance**: In later phases, proposal-and-evaluation improves content quality and community trust
+- **Shared Ownership**: Community participation in refinement increases perceived ownership of established assets
+- **Continuity Protection**: Changes preserve narrative continuity for players invested in existing content
+- **Constructive Dialogue**: Suggestions drive healthy discussion leading to consensual improvements
 
 ## User Roles
 
 ### Author UI
 
+- **Phase-Aware Controls**: UI reflects whether direct application is allowed (Bootstrapping) or proposal submission is required (later phases)
+- **Guided Extraction**: Tools help authors select focused changes appropriate for suggestions
+- **Import Signals**: Clearly flag new imports for special attention and prevent circular dependencies
+ - **Diff Preview**: Human-readable before/after view scoped to the target asset
+ - **Status Lifecycle**: Clear states (Draft → Submitted → Under Review → Approved/Applied → Deferred) with surfaceable history
+
 ### Reviewer UI
 
+- **Phase-Aware Workflows**: In Bootstrapping, lightweight visibility/rollback; in later phases, proposal review and approval flows
+- **Continuity Checks**: Support evaluation for impact on established assets and storylines
+- **Consensus Tools**: Mechanisms for discussion and decision-making appropriate to the phase
+ - **Audit Trail**: Persistent record of diffs, decisions, rationale, and applied changes for transparency
+
 ## What tech needs to be developed
+
+### Core Suggestion Infrastructure
+
+#### Suggestion Creation and Targeting
+- **Target Asset Selector**: Choose the single target asset for refinement
+- **Draft Diff Engine**: Compute diffs between draft and target to isolate relevant changes
+- **Guided Extraction Logic**: Identify publishable changes; show exclusions with reasons
+- **Import Analysis**: Detect new imports, flag for attention, prevent circular dependencies
+
+#### Suggestion Lifecycle Management
+- **Phase-Aware State Machine**: Configure per-phase flows (e.g., direct apply in Bootstrapping; proposal-review-apply later)
+- **Status Tracking**: States and transitions (Draft → Submitted → Under Review → Approved/Applied → Deferred → Withdrawn)
+- **Audit Trail Storage**: Persist diffs, rationale, decisions, and applied changes
+
+### Author UI Components
+- **Create Suggestion Panel**: From draft editor, select changes and target asset
+- **Diff Preview**: Human-readable before/after comparison scoped to target asset
+- **Phase Indicator**: Clear messaging for direct apply vs proposal submission
+- **Import Warnings**: Prominent flags for new imports; link to impacted references
+- **Submission Workflow**: Single-asset submission with status feedback
+
+### Reviewer UI Components (Phase-Dependent)
+- **Queue/Inbox**: List of pending suggestions with priority and impact hints
+- **Contextual Diff View**: Compare suggestion against current asset with references
+- **Continuity Prompts**: Checklists for story/faction/knowledge impact
+- **Decision Actions**: Approve, Request Changes, Defer, Rollback (Bootstrapping)
+- **Discussion Threads**: Threaded comments tied to diff hunks
+- **Audit Trail Viewer**: Full history of decisions and applied changes
+
+### Backend Services
+- **Suggestions API**: Create/update/read suggestion records and lifecycles
+- **Diff/Extraction Service**: Server-side computation for robust, consistent diffs
+- **Import Graph Service**: Analyze dependencies and detect cycles
+- **Apply Engine Integration**: Integrate with `applyWML` to apply approved suggestions
+- **Event Publishing**: Emit events for lifecycle transitions for notifications/analytics
+
+### Data Model Extensions
+- **Suggestion Entity**: Target asset, author, diff payload, imports introduced, phase at creation
+- **Decision Records**: Reviewer, decision, rationale, timestamps, applied change references
+- **Status Timeline**: Immutable sequence of state transitions
+
+### Integration Requirements
+- **WML/Standard Compliance**: Ensure diffs and application respect existing format
+- **Domain Boundaries**: Respect WML → Assets → Ephemera domain authority and event flow
+- **Notifications**: Hooks for notifying interested authors/reviewers on status changes
+
+### Phase Configuration
+- **Bootstrapping Profile**: Direct apply permitted, lightweight acknowledge, rollback available
+- **Later Phases Profile**: Proposal submission, review gates, stronger consensus tools
+- **Feature Flags**: Toggle behaviors per environment/community maturity
