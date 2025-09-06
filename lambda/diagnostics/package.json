@@ -13,7 +13,6 @@
   "dependencies": {
     "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
-    "aws-xray-sdk": "^3.5.1",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
