@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { splitType } from '@tonylb/mtw-utilities/dist/types'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { splitType } from '@tonylb/mtw-utilities/ts/types'
 import { newGuestName } from "./guestNames"
 
 import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider"

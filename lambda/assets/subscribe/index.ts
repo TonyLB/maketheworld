@@ -1,8 +1,8 @@
-import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { connectionDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { LibrarySubscribeMessage, LibraryUnsubscribeMessage, MessageBus } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
-import { unique } from "@tonylb/mtw-utilities/dist/lists"
-import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
+import { unique } from "@tonylb/mtw-utilities/ts/lists"
+import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
 
 export const librarySubscribeMessage = async ({ payloads, messageBus }: { payloads: LibrarySubscribeMessage[], messageBus: MessageBus }): Promise<void> => {
     const sessionId = await internalCache.Connection.get('sessionId')

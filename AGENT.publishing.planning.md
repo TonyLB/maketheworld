@@ -51,7 +51,72 @@ Draft Editor → [Update Button] → Target Asset Selector → Direct Applicatio
 
 ## Implementation Plan
 
-### Phase 1: Core Publishing UI (Week 1)
+### Phase 0: Import Navigator (Week 1)
+**Purpose**: Create a phase-appropriate import system for building content from scratch
+
+**Problem Statement**:
+- Current draft system relies on "recently visited" imports
+- Bootstrapping phase needs access to all available content
+- Empty world requires different import patterns than populated world
+- Need phase-aware import UI that scales from Bootstrapping to later phases
+
+**User Flow**:
+```
+Draft Editor → [Import Button] → Import Navigator → Content Selection → Import to Draft
+```
+
+**Technical Requirements**:
+- Phase-aware import interface (Bootstrapping vs later phases)
+- Content discovery and selection UI
+- Integration with existing import system
+- Navigation between Draft Editor and Import Navigator
+
+**Current System Analysis**:
+- **Recently Visited**: Client-side calculation from message cache, searches backward for distinct RoomHeader entries
+- **Primitives Asset**: Auto-created on deployment with `VORTEX` room and `knowledgeRoot` knowledge item
+- **Import Mechanism**: Uses `addImport` action with assetId, fromAsset, uuid, and tag
+- **Current UI**: `RecentlyVisited.tsx` component with collapsible asset lists and download buttons
+
+**Bootstrapping Phase Design Decisions**:
+- **Content Scope**: Show ALL available content (primitives + any other assets)
+- **Organization Structure**: Zone → Asset → Components (not by component type)
+- **UI Layout**: Tabular layout with search/filter capability
+- **Rationale**: Search/filter requires tabular layout; component nesting within rooms makes type-based sections impractical
+
+**Detailed UI Design**:
+- **Tab Structure**: Three tabs (Canon, Library, Personal) with separate page content
+- **Table Columns**: Asset | Component Short Name | Type | Import Button
+- **Component Nesting**: Nested components listed under parent with light styling differences
+- **Data Requirements**: Need `shortName` for Features and Knowledge (Rooms already have ShortName, Maps have Name)
+- **Data Source**: Filtered sub-source of Assets system with on-demand snapshots and subscription updates
+
+**Open Questions** (to be resolved during implementation):
+- **Data Source Architecture**: How to create filtered sub-source of Assets system
+- **API Response Structure**: Exact format for zone/asset/component data
+- **Subscription and Updates**: Real-time update handling across zones
+- **Frontend Component Hierarchy**: Detailed component structure and organization
+- **Integration Points**: Navigation from Draft Editor to Import Navigator
+- **Phase Detection**: How to determine Bootstrapping vs later phases
+
+## Short-Term Implementation Steps
+
+### Step 1: Implement `shortName` for Features and Knowledge
+**Purpose**: Enable display of meaningful component names in Import Navigator
+**Scope**: Extend existing component schemas to include `shortName` field
+**Dependencies**: None - can be implemented independently
+
+### Step 2: Backend Phase Information API
+**Purpose**: Provide client with current collaboration phase information
+**Scope**: New API endpoint or configuration mechanism
+**Dependencies**: None - can be implemented independently
+
+### Step 3: Content Headers Data Sub-source
+**Purpose**: Create filtered data stream for Import Navigator content
+**Scope**: New backend service that aggregates asset/component data by zone
+**Dependencies**: Step 1 (shortName implementation)
+**Integration**: Use existing `cacheAsset` as entry point
+
+### Phase 1: Core Publishing UI (Week 2)
 **Frontend Components**:
 - Extend `WMLEdit.tsx` with publishing buttons
 - Zone selector for new assets (Personal/Library/Canon)
@@ -63,7 +128,7 @@ Draft Editor → [Update Button] → Target Asset Selector → Direct Applicatio
 - Add suggestion creation endpoints
 - Integrate with existing asset movement
 
-### Phase 2: Content Processing (Week 2)
+### Phase 2: Content Processing (Week 3)
 **Content Extraction**:
 - Diff computation between draft and target assets
 - Smart filtering of publishable changes
@@ -74,7 +139,7 @@ Draft Editor → [Update Button] → Target Asset Selector → Direct Applicatio
 - Basic status tracking (Draft → Applied)
 - Direct application during Bootstrapping phase
 
-### Phase 3: Integration & Testing (Week 3)
+### Phase 3: Integration & Testing (Week 4)
 **End-to-End Testing**:
 - Test publishing workflows with refactored WML system
 - Validate asset movement between zones
@@ -136,22 +201,37 @@ Draft Content → Publishing UI → Step Function/API → Asset Workspace → S3
 
 ## Next Steps
 
-1. **Validate Current Systems** (1-2 days)
-   - Test refactored WML system with existing `applyEdit`
-   - Verify `publishWML` step function works correctly
-   - Confirm asset movement between zones functions
+1. **Implement shortName for Features and Knowledge** (1-2 days)
+   - Extend component schemas to include shortName field
+   - Update existing Features and Knowledge components
+   - Test with existing asset system
 
-2. **Implement Publish to New Asset** (3-4 days)
+2. **Implement Backend Phase Information API** (1-2 days)
+   - Create API endpoint for collaboration phase information
+   - Add configuration mechanism for phase detection
+   - Test phase information delivery to client
+
+3. **Implement Content Headers Data Sub-source** (2-3 days)
+   - Create filtered data stream for Import Navigator content
+   - Integrate with existing cacheAsset system
+   - Test data aggregation across zones
+
+4. **Implement Import Navigator UI** (3-4 days)
+   - Create tabbed interface (Canon/Library/Personal)
+   - Implement filterable table with component nesting
+   - Test import workflow with empty world
+
+5. **Implement Publish to New Asset** (3-4 days)
    - Add publishing UI to draft editor
    - Extend `publishWML` step function
    - Test with Personal/Library/Canon zones
 
-3. **Implement Publish as Update** (3-4 days)
+6. **Implement Publish as Update** (3-4 days)
    - Add update UI and target asset selection
    - Implement content extraction logic
    - Integrate with existing `applyEdit` system
 
-4. **Integration Testing** (2-3 days)
+7. **Integration Testing** (2-3 days)
    - End-to-end workflow testing
    - Bug fixes and polish
    - Documentation and handoff

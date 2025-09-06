@@ -1,12 +1,11 @@
 import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3"
-import AWSXRay from 'aws-xray-sdk'
 import { streamToString } from "./stream"
 
 const params = { region: process.env.AWS_REGION }
 
 const { S3_BUCKET = 'Test', UPLOAD_BUCKET = 'Test' } = process.env;
 
-const internalS3Client = (params.region ? AWSXRay.captureAWSv3Client(new S3Client(params)) : { send: async () => { return { Body: undefined } } }) as S3Client
+const internalS3Client = (params.region ? new S3Client(params) : { send: async () => { return { Body: undefined } } }) as S3Client
 
 export const s3Client = {
     async check({ Key }: {

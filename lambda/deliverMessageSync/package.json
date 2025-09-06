@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-sns": "^3.529.1",
-    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
-    "aws-xray-sdk": "^3.5.1"
+    "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities"
   }
 }

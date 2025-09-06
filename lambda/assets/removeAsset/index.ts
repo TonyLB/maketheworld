@@ -1,7 +1,7 @@
 import { RemoveAssetMessage, MessageBus } from "../messageBus/baseClasses"
 
-import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
-import { AssetKey } from "@tonylb/mtw-utilities/dist/types"
+import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 import internalCache from "../internalCache"
 import eventBridgeClient from "@tonylb/mtw-utilities/ts/eventBridge"
 // import { healPlayer } from "../selfHealing/player"

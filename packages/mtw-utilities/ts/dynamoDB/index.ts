@@ -6,7 +6,6 @@ import {
     QueryCommand,
     AttributeValue
 } from "@aws-sdk/client-dynamodb"
-import AWSXRay from 'aws-xray-sdk'
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
 import { asyncSuppressExceptions } from '../errors'
@@ -28,7 +27,7 @@ const connectionsTable = `${TABLE_PREFIX}_connections`
 const deltaTable = `${TABLE_PREFIX}_message_delta`
 
 const params = { region: process.env.AWS_REGION }
-const dbClient = AWSXRay.captureAWSv3Client(new DynamoDBClient(params))
+const dbClient = new DynamoDBClient(params)
 
 export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, options: { retryErrors: string[], retryCallback?: () => Promise<void> }): Promise<T | undefined> => {
     let retries = 0

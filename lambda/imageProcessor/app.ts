@@ -2,14 +2,13 @@ import { S3Client, GetObjectCommand, GetObjectTaggingCommand, PutObjectCommand }
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns'
 import type { Readable } from 'stream'
 import jimp from 'jimp'
-import AWSXRay from 'aws-xray-sdk'
 import { enforceTypedKey, SessionKey } from '@tonylb/mtw-utilities/ts/types'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 // Initialize S3 client
-const s3Client = AWSXRay.captureAWSv3Client(new S3Client({ region: process.env.AWS_REGION || 'us-east-1' }))
-const snsClient = AWSXRay.captureAWSv3Client(new SNSClient({ region: process.env.AWS_REGION || 'us-east-1' }))
+const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' })
+const snsClient = new SNSClient({ region: process.env.AWS_REGION || 'us-east-1' })
 
 // Image processing settings based on type
 const processingSettings = {

@@ -185,6 +185,7 @@ Resources:
       #     EntryPoints: 
       #       - app.ts
       Properties:
+          Tracing: Active
           CodeUri: lambda/authentication/build/
           Handler: lambda.handler
           MemorySize: 512
@@ -221,6 +222,7 @@ Resources:
   ConnectionFunction:
       Type: AWS::Serverless::Function
       Properties:
+        Tracing: Active
         CodeUri: lambda/connections/build/
         Handler: lambda.handler
         MemorySize: 256
@@ -296,6 +298,7 @@ Resources:
   SubscriptionsFunction:
       Type: AWS::Serverless::Function
       Properties:
+        Tracing: Active
         CodeUri: lambda/subscriptions/build/
         Handler: lambda.handler
         MemorySize: 256
@@ -341,6 +344,7 @@ Resources:
   DBStreamFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Tracing: Active
       CodeUri: lambda/dbStream/build/
       Handler: lambda.handler
       MemorySize: 128
@@ -1126,6 +1130,7 @@ Resources:
   FeedbackFunction:
       Type: AWS::Serverless::Function
       Properties:
+        Tracing: Active
         CodeUri: lambda/feedback/build
         Handler: lambda.handler
         MemorySize: 128
@@ -1169,6 +1174,7 @@ Resources:
           EntryPoints: 
             - app.ts
       Properties:
+          Tracing: Active
           CodeUri: lambda/cognitoEvent/
           Runtime: nodejs18.x
           Handler: app.handler
@@ -1207,6 +1213,7 @@ Resources:
           EntryPoints: 
             - app.ts
       Properties:
+          Tracing: Active
           CodeUri: lambda/initialize/
           Runtime: nodejs18.x
           Handler: app.handler
@@ -1250,6 +1257,7 @@ Resources:
       #     EntryPoints: 
       #       - app.ts
       Properties:
+          Tracing: Active
           CodeUri: lambda/assets/build/
           Handler: lambda.handler
           MemorySize: 1024
@@ -1368,6 +1376,7 @@ Resources:
       #     EntryPoints: 
       #       - app.ts
       Properties:
+        Tracing: Active
         CodeUri: lambda/deliverMessageSync/build/
         Handler: lambda.handler
         MemorySize: 256

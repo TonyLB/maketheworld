@@ -1,4 +1,4 @@
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 import { AssetClientPlayerSettings } from '@tonylb/mtw-interfaces/ts/asset'
 

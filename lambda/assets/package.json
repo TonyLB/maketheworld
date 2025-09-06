@@ -25,7 +25,6 @@
     "@tonylb/mtw-sessions": "file:../../packages/mtw-sessions",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
     "@tonylb/mtw-wml": "file:../../packages/mtw-wml",
-    "aws-xray-sdk": "^3.5.1",
     "immer": "^9.0.12",
     "uuid": "^8.3.2"
   },

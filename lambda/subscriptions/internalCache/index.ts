@@ -1,7 +1,7 @@
 import { CacheConstructor, CacheBase } from './baseClasses'
 
-import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
-import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
+import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
+import { delayPromise } from '@tonylb/mtw-utilities/ts/dynamoDB/delayPromise'
 import CacheCharacterSessions from './characterSessions'
 import CacheSessionConnections from './sessionConnections'
 import CachePlayerSessions from './playerSessions'
