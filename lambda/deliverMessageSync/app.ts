@@ -3,12 +3,11 @@
 
 import { unmarshall } from "@aws-sdk/util-dynamodb"
 import { PublishCommand, SNSClient } from "@aws-sdk/client-sns"
-import AWSXRay from 'aws-xray-sdk'
 import { ConnectionKey } from '@tonylb/mtw-utilities/ts/types'
 
 const { FEEDBACK_TOPIC } = process.env
 
-const snsClient = AWSXRay.captureAWSv3Client(new SNSClient({ region: process.env.AWS_REGION }))
+const snsClient = new SNSClient({ region: process.env.AWS_REGION })
 
 export const handler = async (event: any) => {
 
