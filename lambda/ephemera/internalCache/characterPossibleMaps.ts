@@ -1,6 +1,6 @@
 import { EphemeraCharacterId, EphemeraMapId, EphemeraRoomId, isEphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import CacheCharacterMetaData from './characterMeta';
-import { DeferredCache } from './deferredCache';
+import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache';
 import { GraphCacheType } from './graph';
 
 const generateCacheKey = (CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId) => (`${CharacterId}::${EphemeraId}`)

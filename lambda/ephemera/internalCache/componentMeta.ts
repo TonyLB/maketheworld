@@ -1,6 +1,6 @@
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
-import { DeferredCache } from './deferredCache'
+import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 
 import { EphemeraKeyMappingMixin, tagFromEphemeraWrappedId } from '../cacheAsset/baseClasses'
 import {

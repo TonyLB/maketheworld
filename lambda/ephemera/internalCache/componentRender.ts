@@ -1,5 +1,5 @@
 import { ComponentMetaData } from './componentMeta'
-import { DeferredCache } from './deferredCache'
+import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 
 import { RoomDescribeData, MapDescribeData, RoomExit } from '@tonylb/mtw-interfaces/ts/messages'
 import CacheGlobalData from './global';

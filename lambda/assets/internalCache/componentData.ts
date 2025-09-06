@@ -1,5 +1,5 @@
 import { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { DeferredCache } from './deferredCache'
+import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { isStandardNDJSONLine, StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'

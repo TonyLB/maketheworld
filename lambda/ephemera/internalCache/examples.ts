@@ -4,7 +4,7 @@ import {
     EphemeraRoomId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { DeferredCache } from './deferredCache'
+import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema'

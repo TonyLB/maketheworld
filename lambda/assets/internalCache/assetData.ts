@@ -1,5 +1,5 @@
 import { isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { DeferredCache } from './deferredCache'
+import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { isStandardNDJSONLine, StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
