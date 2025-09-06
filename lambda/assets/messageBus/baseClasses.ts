@@ -94,6 +94,11 @@ export type DecacheAssetMessage = {
     assetId: string;
 }
 
+export type CollaborationStatusMessage = {
+    type: 'CollaborationStatus';
+    RequestId?: string;
+}
+
 export type MessageType = ReturnValueMessage |
     FetchLibraryMessage |
     FetchImportsMessage |
@@ -108,7 +113,8 @@ export type MessageType = ReturnValueMessage |
     LibraryUpdateMessage |
     RemoveAssetMessage |
     CacheAssetMessage |
-    DecacheAssetMessage
+    DecacheAssetMessage |
+    CollaborationStatusMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
@@ -125,5 +131,6 @@ export const isLibraryUpdateMessage = (prop: MessageType): prop is LibraryUpdate
 export const isRemoveAssetMessage = (prop: MessageType): prop is RemoveAssetMessage => (prop.type === 'RemoveAsset')
 export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')
 export const isDecacheAssetMessage = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
+export const isCollaborationStatusMessage = (prop: MessageType): prop is CollaborationStatusMessage => (prop.type === 'CollaborationStatus')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

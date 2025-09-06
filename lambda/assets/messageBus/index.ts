@@ -14,7 +14,8 @@ import {
     isRemoveAssetMessage,
     isReturnValueMessage,
     isCacheAssetMessage,
-    isDecacheAssetMessage
+    isDecacheAssetMessage,
+    isCollaborationStatusMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
@@ -29,6 +30,7 @@ import removeAssetMessage from "../removeAsset"
 import returnValueMessage from "../returnValue"
 import cacheAssetMessage from "../cacheAsset"
 import decacheAssetMessage from "../decacheAsset"
+import collaborationStatusMessage from "../collaborationStatus"
 
 export const messageBus = new MessageBus()
 
@@ -121,6 +123,12 @@ messageBus.subscribe({
     priority: 9,
     filter: isReturnValueMessage,
     callback: returnValueMessage
+})
+messageBus.subscribe({
+    tag: 'CollaborationStatus',
+    priority: 5,
+    filter: isCollaborationStatusMessage,
+    callback: collaborationStatusMessage
 })
 
 export default messageBus
