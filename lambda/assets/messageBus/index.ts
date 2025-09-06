@@ -83,7 +83,7 @@ messageBus.subscribe({
     callback: librarySubscribeMessage
 })
 messageBus.subscribe({
-    tag: 'LibraryUnubscribe',
+    tag: 'LibraryUnsubscribe',
     priority: 5,
     filter: isLibraryUnsubscribeMessage,
     callback: libraryUnsubscribeMessage
