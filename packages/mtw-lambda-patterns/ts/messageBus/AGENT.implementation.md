@@ -7,7 +7,7 @@ This guide provides detailed code examples and implementation patterns for the M
 ### Basic Setup
 
 ```ts
-import { InternalMessageBus } from '@tonylb/mtw-internal-bus/ts'
+import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
 
 type MessagePayloadOne = {
     type: 'payloadOne';
@@ -69,7 +69,7 @@ lambda/[service]/messageBus/
 ### Message Type Definitions (`baseClasses.ts`)
 
 ```ts
-import { InternalMessageBus } from '@tonylb/mtw-internal-bus/ts'
+import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
 
 // Message type definitions
 export type FetchLibraryMessage = {

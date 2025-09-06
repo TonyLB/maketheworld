@@ -1,4 +1,4 @@
-import { InternalMessageBus } from '@tonylb/mtw-internal-bus/ts'
+import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { AssetPlayerSettingsAPIMessage } from '@tonylb/mtw-interfaces/ts/asset';
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema';

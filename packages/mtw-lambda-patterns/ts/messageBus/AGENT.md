@@ -15,7 +15,7 @@ The MessageBus system provides a two-tier architecture for decoupling different 
 
 ### Two-Tier Architecture
 
-#### **Generic InternalMessageBus** (`packages/mtw-internal-bus`)
+#### **Generic InternalMessageBus** (`packages/mtw-lambda-patterns/ts/messageBus`)
 - Low-level stream processing engine
 - Priority-based execution with parallel processing within priority groups
 - Type-safe filtering with TypeScript type guards
