@@ -22,6 +22,14 @@ Two-tier architecture for decoupling processing steps within individual lambda j
 - **[Implementation Guide](./ts/messageBus/AGENT.implementation.md)** - Code examples and patterns
 - **[Testing Guide](./ts/messageBus/AGENT.testing.md)** - Testing strategies
 
+### Internal Cache System (`ts/internalCache/`)
+
+Comprehensive caching layer providing deferred loading of asynchronous data sources with reusable patterns for common cache handler implementations.
+
+**Documentation:**
+- **[Internal Cache Guide](./ts/internalCache/AGENT.md)** - Navigation and concepts
+- **[Implementation Guide](./ts/internalCache/AGENT.implementation.md)** - Code examples and patterns
+
 ## Integration Points
 
 ### Dependencies

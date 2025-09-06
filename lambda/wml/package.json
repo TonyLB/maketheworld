@@ -19,6 +19,7 @@
     "@aws-sdk/lib-storage": "^3.624.0",
     "@tonylb/mtw-asset-workspace": "file:../../packages/mtw-asset-workspace",
     "@tonylb/mtw-base": "file:../../packages/mtw-base",
+    "@tonylb/mtw-lambda-patterns": "file:../../packages/mtw-lambda-patterns",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
     "jimp": "^0.22.10",
     "tar-stream": "^3.1.7"

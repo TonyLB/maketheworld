@@ -1,4 +1,4 @@
-import { DeferredCache } from './deferredCache'
+import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { isAssetWorkspaceAddress, AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 

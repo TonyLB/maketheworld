@@ -1,4 +1,4 @@
-import { Deferred, DeferredCache } from './deferredCache'
+import { Deferred, DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 
 describe('DeferredCache', () => {
     const testCache = new DeferredCache<string>()
