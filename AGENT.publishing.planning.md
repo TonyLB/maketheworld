@@ -87,7 +87,7 @@ Draft Editor → [Import Button] → Import Navigator → Content Selection → 
 - **Tab Structure**: Three tabs (Canon, Library, Personal) with separate page content
 - **Table Columns**: Asset | Component Short Name | Type | Import Button
 - **Component Nesting**: Nested components listed under parent with light styling differences
-- **Data Requirements**: Need `shortName` for Features and Knowledge (Rooms already have ShortName, Maps have Name)
+- **Data Requirements**: ✅ `shortName` now available for Features and Knowledge (Rooms already had ShortName, Maps have Name)
 - **Data Source**: Filtered sub-source of Assets system with on-demand snapshots and subscription updates
 
 **Open Questions** (to be resolved during implementation):
@@ -100,15 +100,34 @@ Draft Editor → [Import Button] → Import Navigator → Content Selection → 
 
 ## Short-Term Implementation Steps
 
-### Step 1: Implement `shortName` for Features and Knowledge
+### Step 1: Implement `shortName` for Features and Knowledge ✅ COMPLETED
 **Purpose**: Enable display of meaningful component names in Import Navigator
 **Scope**: Extend existing component schemas to include `shortName` field
 **Dependencies**: None - can be implemented independently
 
-### Step 2: Backend Phase Information API
+**Implementation Details**:
+- ✅ Added `shortName?: StandardEditableData<string>` to `StandardFeatureData` and `StandardKnowledgeData`
+- ✅ Updated payload classes to implement `HasShortName` interface
+- ✅ Added schema parsing for `<ShortName>` tags in WML
+- ✅ Updated `toJSON`, `schema`, `merge`, `diff`, and `equals` methods
+- ✅ Added comprehensive test coverage for all functionality
+- ✅ Updated `hasShortName` function to include Feature and Knowledge components
+- ✅ Updated client-side `WMLComponentDetail.tsx` to support editing shortName for Features and Knowledge
+- ✅ All existing `hasShortName` usages now automatically work with Features and Knowledge
+
+### Step 2: Backend Phase Information API ✅ COMPLETED
 **Purpose**: Provide client with current collaboration phase information
 **Scope**: New API endpoint or configuration mechanism
 **Dependencies**: None - can be implemented independently
+
+**Implementation Details**:
+- ✅ Added `collaborationStatus` API message type to `mtw-interfaces`
+- ✅ Created `AssetCollaborationStatusAPIMessage` and `AssetClientCollaborationStatus` types
+- ✅ Implemented messageBus handler in `lambda/assets/collaborationStatus/`
+- ✅ Added handler registration and API routing in main `app.ts`
+- ✅ Created comprehensive unit tests following established patterns
+- ✅ Returns `{ phase: 'Bootstrap' }` status as minimal implementation
+- ✅ Ready for client integration and future phase expansion
 
 ### Step 3: Content Headers Data Sub-source
 **Purpose**: Create filtered data stream for Import Navigator content
@@ -201,15 +220,16 @@ Draft Content → Publishing UI → Step Function/API → Asset Workspace → S3
 
 ## Next Steps
 
-1. **Implement shortName for Features and Knowledge** (1-2 days)
-   - Extend component schemas to include shortName field
-   - Update existing Features and Knowledge components
-   - Test with existing asset system
+1. **✅ Implement shortName for Features and Knowledge** (COMPLETED)
+   - ✅ Extended component schemas to include shortName field
+   - ✅ Updated existing Features and Knowledge components
+   - ✅ Tested with existing asset system
+   - ✅ Updated client-side editing interface
 
-2. **Implement Backend Phase Information API** (1-2 days)
-   - Create API endpoint for collaboration phase information
-   - Add configuration mechanism for phase detection
-   - Test phase information delivery to client
+2. **✅ Implement Backend Phase Information API** (COMPLETED)
+   - ✅ Created API endpoint for collaboration phase information
+   - ✅ Added configuration mechanism for phase detection
+   - ✅ Tested phase information delivery to client
 
 3. **Implement Content Headers Data Sub-source** (2-3 days)
    - Create filtered data stream for Import Navigator content

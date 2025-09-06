@@ -17,7 +17,8 @@ import {
     isAssetUnsubscribeAPIMessage,
     isMetaDataAPIMessage,
     isAssetPlayerSettingsAPIMessage,
-    isAssetLLMGenerateAPIMessage
+    isAssetLLMGenerateAPIMessage,
+    isAssetCollaborationStatusAPIMessage
 } from '@tonylb/mtw-interfaces/ts/asset.js'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 
@@ -35,14 +36,6 @@ import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
-
-const streamToBuffer = async (stream: Readable): Promise<Buffer> => {
-    const chunks: Buffer[] = []
-    for await (let chunk of stream) {
-      chunks.push(chunk)
-    }
-    return Buffer.concat(chunks)
-}
 
 export const handler = async (event, context) => {
 
@@ -212,7 +205,7 @@ export const handler = async (event, context) => {
         return
     }
     
-    if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'updatePlayerSettings', 'llmGenerate'].includes(request.message)) {
+    if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'updatePlayerSettings', 'llmGenerate', 'collaborationStatus'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {
@@ -334,6 +327,12 @@ export const handler = async (event, context) => {
                 statusCode: 200,
                 body: JSON.stringify({ messageType: 'Progress', progress: 1, of: 2 })
             }
+        }
+        if (isAssetCollaborationStatusAPIMessage(request)) {
+            messageBus.send({
+                type: 'CollaborationStatus',
+                RequestId: request.RequestId
+            })
         }
     }
     await messageBus.flush()

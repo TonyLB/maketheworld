@@ -84,6 +84,10 @@ export type AssetLLMGenerateRequestAPIMessage = {
     name: string;
 }
 
+export type AssetCollaborationStatusAPIMessage = {
+    message: 'collaborationStatus';
+}
+
 export type AssetAPIMessage = { RequestId?: string; connectionId?: string } & (
     FetchLibraryAPIMessage |
     MetaDataAPIMessage |
@@ -96,7 +100,8 @@ export type AssetAPIMessage = { RequestId?: string; connectionId?: string } & (
     AssetUnsubscribeAPIMessage |
     AssetWhoAmIAPIMessage |
     AssetPlayerSettingsAPIMessage |
-    AssetLLMGenerateRequestAPIMessage
+    AssetLLMGenerateRequestAPIMessage |
+    AssetCollaborationStatusAPIMessage
 )
 
 export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is FetchLibraryAPIMessage => (message.message === 'fetchLibrary')
@@ -111,6 +116,7 @@ export const isAssetUnsubscribeAPIMessage = (message: AssetAPIMessage): message 
 export const isAssetWhoAmIAPIMessage = (message: AssetAPIMessage): message is AssetWhoAmIAPIMessage => (message.message === 'whoAmI')
 export const isAssetPlayerSettingsAPIMessage = (message: AssetAPIMessage): message is AssetPlayerSettingsAPIMessage => (message.message === 'updatePlayerSettings')
 export const isAssetLLMGenerateAPIMessage = (message: AssetAPIMessage): message is AssetLLMGenerateRequestAPIMessage => (message.message === 'llmGenerate')
+export const isAssetCollaborationStatusAPIMessage = (message: AssetAPIMessage): message is AssetCollaborationStatusAPIMessage => (message.message === 'collaborationStatus')
 
 export type AssetClientPlayerAsset = {
     AssetId: string;
@@ -201,6 +207,14 @@ export type AssetClientLLMGenerate = {
     summary: string;
 }
 
+export type AssetClientCollaborationStatus = {
+    messageType: 'CollaborationStatus';
+    RequestId?: string;
+    status: {
+        phase: 'Bootstrap';
+    };
+}
+
 export type AssetClientMessage = AssetClientPlayerMessage |
     AssetClientLibraryMessage |
     AssetClientMetaDataMessage |
@@ -208,7 +222,8 @@ export type AssetClientMessage = AssetClientPlayerMessage |
     AssetClientUploadURL |
     AssetClientFetchImports |
     AssetClientParseWML |
-    AssetClientLLMGenerate
+    AssetClientLLMGenerate |
+    AssetClientCollaborationStatus
 
 export const isAssetClientMessage = (message: any): message is AssetClientMessage => {
     if (!('messageType' in message && typeof message.messageType === 'string')) {
