@@ -1,4 +1,4 @@
-import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
+import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
 
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"

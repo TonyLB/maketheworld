@@ -19,7 +19,7 @@
         "path": "./packages/mtw-sessions/tsconfig.ref.json"
       },
       {
-        "path": "./packages/mtw-internal-bus/tsconfig.ref.json"
+        "path": "./packages/mtw-lambda-patterns/tsconfig.ref.json"
       },
       {
         "path": "./packages/mtw-interfaces/tsconfig.ref.json"
@@ -29,6 +29,9 @@
       },
       {
         "path": "./packages/mtw-asset-workspace/tsconfig.ref.json"
+      },
+      {
+        "path": "./packages/mtw-lambda-patterns/tsconfig.ref.json"
       }
     ]
 }
