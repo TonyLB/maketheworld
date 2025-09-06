@@ -72,7 +72,9 @@ export const hasDescription = (component: StandardComponent): component is Stand
 
 export const hasShortName = (component: StandardComponent): component is StandardComponent & HasShortName => {
     return (component instanceof StandardRoom) ||
-        (component instanceof StandardCharacter)
+        (component instanceof StandardCharacter) ||
+        (component instanceof StandardFeature) ||
+        (component instanceof StandardKnowledge)
 }
 
 const lookupInComponentList = (componentList: StandardComponent[], key: StandardKey): StandardComponent | undefined => {

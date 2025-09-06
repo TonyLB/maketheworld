@@ -71,7 +71,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                                 type: 'update',
                                 update: (incoming: StandardForm) => {
                                     const base = incoming.byId[ComponentId]
-                                    if (base instanceof StandardRoom || base instanceof StandardCharacter) {
+                                    if (base instanceof StandardRoom || base instanceof StandardCharacter || base instanceof StandardFeature || base instanceof StandardKnowledge) {
                                         base._payload._shortName = newShortName
                                     }
                                     return incoming
