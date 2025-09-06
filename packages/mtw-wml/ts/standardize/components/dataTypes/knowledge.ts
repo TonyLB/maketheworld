@@ -5,6 +5,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardKnowledgeData = {
     tag: 'Knowledge';
+    shortName?: StandardEditableData<string>;
     examples?: StandardEditableData<StandardReferenceData>[];
 } & StandardBaseData
 
@@ -15,6 +16,10 @@ export const isStandardKnowledge = (arg: any): arg is StandardKnowledgeData => {
 
     return checkAll(
         ('tag' in arg && arg.tag === 'Knowledge'),
-        checkTypes(arg, {}, { key: 'string', universalKey: 'string' })
+        checkTypes(arg, {}, { 
+            key: 'string', 
+            universalKey: 'string',
+            shortName: 'literal'
+        })
     )
 }

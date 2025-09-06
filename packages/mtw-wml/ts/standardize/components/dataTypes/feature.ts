@@ -5,6 +5,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardFeatureData = {
     tag: 'Feature';
+    shortName?: StandardEditableData<string>;
     examples?: StandardEditableData<StandardReferenceData>[];
 } & StandardBaseData
 
@@ -18,7 +19,8 @@ export const isStandardFeature = (arg: any): arg is StandardFeatureData => {
         checkTypes(arg, {},
         {
             key: 'string',
-            universalKey: 'string'
+            universalKey: 'string',
+            shortName: 'literal'
         })
     )
 }

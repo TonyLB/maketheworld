@@ -13,13 +13,18 @@ import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaKnowledge } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
 import { renderReference } from "./utils/schema"
+import { HasShortName } from "./abstract"
+import { StandardLiteral } from "../literal"
+import SchemaTagTree from "../../tagTree/schema"
 
-export class StandardKnowledgePayload implements ComponentConstructorMethods<StandardKnowledgeData> {
+export class StandardKnowledgePayload implements HasShortName, ComponentConstructorMethods<StandardKnowledgeData> {
+    _shortName?: StandardLiteral;
     _examples: ReferenceList;
     tag = 'Knowledge' as const
 
     constructor(previous?: StandardKnowledgePayload) {
         if (previous) {
+            this._shortName = previous._shortName
             this._examples = previous._examples
         }
         else {
@@ -28,22 +33,32 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
     }
 
     fromJSON(props: StandardKnowledgeData) {
+        const { shortName } = props
+        this._shortName = shortName ? new StandardLiteral(shortName) : undefined
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaKnowledge)(node)) {
+            const tagTree = new SchemaTagTree(node.children)
+            const shortNameItem = tagTree
+                .filter({ match: 'ShortName' })
+                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
+                .tree
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
             this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node])))))
             return
         }
         throw new Error('Schema mismatch in StandardKnowledge constructor')
     }
 
+    get shortName() { return this._shortName }
     get examples() { return this._examples }
 
     toJSON(options: StandardToJSONOptions): Omit<StandardKnowledgeData, 'key' | 'universalKey'> {
         return {
             tag: 'Knowledge',
+            shortName: this?.shortName?.toJSON(),
             ...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {})
         }
     }
@@ -51,7 +66,10 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
     schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Knowledge', key, uuid: universalKey },
-            children: this.examples.schema,
+            children: [
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...this.examples.schema,
+            ]
         }
     }
 
@@ -59,12 +77,16 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
         const { key } = options
         return {
             data: { tag: 'Knowledge', key: key.key ?? '', uuid: key.universalKey },
-            children: this.examples.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
+            children: [
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...this.examples.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
+            ]
         }
     }
 
     merge(incoming: this): this {
         const returnValue = new StandardKnowledgePayload()
+        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         returnValue._examples = this.examples.merge(incoming.examples) ?? new ReferenceList([])
         return returnValue as this
     }
@@ -104,6 +126,7 @@ export class StandardKnowledgePayload implements ComponentConstructorMethods<Sta
 }
 
 export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
+    get shortName() { return this._payload.shortName }
     get examples() { return this._payload.examples }
 
     override clone(): StandardKnowledge {
@@ -122,6 +145,9 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         }
         const base = this.clone()
         base._payload = new StandardKnowledgePayload()
+        base._payload._shortName = this._payload._shortName
+            ? this._payload._shortName.diff(incoming._payload._shortName)
+            : incoming._payload._shortName
         base._payload._examples = examplesDiff
         return base
     }
@@ -130,7 +156,8 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         if (!(incoming instanceof StandardKnowledge)) {
             return false
         }
-        return !(this.examples.diff(incoming.examples)?.payload?.length)
+        return !(this.examples.diff(incoming.examples)?.payload?.length) &&
+            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
     }
     
     override merge(incoming: StandardComponent): StandardComponent {
