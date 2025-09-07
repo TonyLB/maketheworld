@@ -359,6 +359,17 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
             return checkAll(
                 checkTypes(message, { description: 'string', summary: 'string' }, { RequestId: 'string' })
             )
+        case 'CollaborationStatus':
+            return checkAll(
+                checkTypes(message, {}, {
+                    RequestId: 'string'
+                }),
+                'status' in message && typeof message.status === 'object',
+                checkTypes(message.status, {
+                    phase: 'string'
+                }),
+                ['Bootstrap', 'Storming', 'Normalization', 'Reboot'].includes(message.status.phase)
+            )
         default: return false
     }
 
