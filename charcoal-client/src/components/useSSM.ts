@@ -7,6 +7,7 @@ import { iterateAllSSMs as playerSSM } from '../slices/player'
 import { iterateAllSSMs as lifeLineSSM } from '../slices/lifeLine'
 import { iterateAllSSMs as librarySSM } from '../slices/library'
 import { iterateAllSSMs as personalAssetsSSM } from '../slices/personalAssets'
+import { iterateAllSSMs as collaborationStatusSSM } from '../slices/UI/collaborationStatus'
 
 export const useStateSeekingMachines = () => {
     const dispatch = useDispatch()
@@ -18,6 +19,7 @@ export const useStateSeekingMachines = () => {
         dispatch(lifeLineSSM)
         dispatch(librarySSM)
         dispatch(personalAssetsSSM)
+        dispatch(collaborationStatusSSM)
     }, [dispatch, heartbeat])
 }
 
