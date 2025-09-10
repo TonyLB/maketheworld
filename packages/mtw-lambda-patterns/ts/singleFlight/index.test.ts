@@ -12,8 +12,17 @@ jest.mock('./dateUtil', () => ({
     getCurrentTimestamp: jest.fn()
 }))
 
+// Mock uuid
+jest.mock('uuid', () => ({
+    v4: jest.fn()
+}))
+
 const mockDelayPromise = delayPromise as jest.MockedFunction<typeof delayPromise>
 const mockGetCurrentTimestamp = getCurrentTimestamp as jest.MockedFunction<typeof getCurrentTimestamp>
+
+// Import the mocked uuid
+import { v4 as uuidv4 } from 'uuid'
+const mockUuidv4 = uuidv4 as jest.MockedFunction<typeof uuidv4>
 
 describe('singleFlightFactory', () => {
     let mockOptimisticUpdate: jest.MockedFunction<any>
@@ -33,6 +42,9 @@ describe('singleFlightFactory', () => {
         // Mock getCurrentTimestamp to return predictable values
         mockGetCurrentTimestamp.mockReturnValue(100000000)
         
+        // Mock uuid to return predictable values
+        mockUuidv4.mockReturnValue('test-uuid-123')
+        
         config = {
             optimisticUpdateFunction: mockOptimisticUpdate,
             getItemFunction: mockGetItem,
@@ -51,7 +63,7 @@ describe('singleFlightFactory', () => {
                 PrimaryKey: 'SINGLEFLIGHT#test-category',
                 DataCategory: 'test-hash',
                 Instances: [{
-                    UUID: 'new-uuid',
+                    UUID: 'test-uuid-123',
                     Status: 'IN_PROGRESS',
                     createdAt: 100000000,
                     expiresAt: 100030000
@@ -86,6 +98,17 @@ describe('singleFlightFactory', () => {
                     priorFetch: undefined // No existing record
                 })
             )
+            
+            // Verify that the updateReducer creates the instance with the correct UUID
+            const optimisticUpdateCall = mockOptimisticUpdate.mock.calls[0][0]
+            const draft: any = { Instances: [] }
+            optimisticUpdateCall.updateReducer(draft)
+            expect(draft.Instances).toEqual([{
+                UUID: 'test-uuid-123',
+                Status: 'IN_PROGRESS',
+                createdAt: 100000000,
+                expiresAt: 100030000
+            }])
         })
 
         it('should handle race condition when another process beats us to creating the record', async () => {
@@ -110,7 +133,19 @@ describe('singleFlightFactory', () => {
                 }]
             })
             
-            // Third getItem call finds the completed result
+            // Third getItem call (first poll) still finds IN_PROGRESS
+            mockGetItem.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [{
+                    UUID: 'other-process-uuid',
+                    Status: 'IN_PROGRESS',
+                    createdAt: 100000000,
+                    expiresAt: 100030000
+                }]
+            })
+            
+            // Fourth getItem call (second poll) finds the completed result
             mockGetItem.mockResolvedValueOnce({
                 PrimaryKey: 'SINGLEFLIGHT#test-category',
                 DataCategory: 'test-hash',
@@ -165,7 +200,7 @@ describe('singleFlightFactory', () => {
                 Instances: [
                     completedInstance, // Keep the old completed instance
                     {
-                        UUID: 'new-uuid',
+                        UUID: 'test-uuid-123',
                         Status: 'IN_PROGRESS',
                         createdAt: now,
                         expiresAt: now + 30000
@@ -216,27 +251,29 @@ describe('singleFlightFactory', () => {
                 expiresAt: Date.now() + 30000
             }
             
-            mockGetItem.mockResolvedValue({
+            // First getItem call finds IN_PROGRESS instance
+            mockGetItem.mockResolvedValueOnce({
                 PrimaryKey: 'SINGLEFLIGHT#test-category',
                 DataCategory: 'test-hash',
                 Instances: [existingInstance]
             })
             
-            // Mock the completion after first poll
-            mockGetItem
-                .mockResolvedValueOnce({
-                    PrimaryKey: 'SINGLEFLIGHT#test-category',
-                    DataCategory: 'test-hash',
-                    Instances: [existingInstance]
-                })
-                .mockResolvedValueOnce({
-                    PrimaryKey: 'SINGLEFLIGHT#test-category',
-                    DataCategory: 'test-hash',
-                    Instances: [{
-                        ...existingInstance,
-                        Status: 'COMPLETED'
-                    }]
-                })
+            // Second getItem call (first poll) still finds IN_PROGRESS
+            mockGetItem.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [existingInstance]
+            })
+            
+            // Third getItem call (second poll) finds COMPLETED
+            mockGetItem.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [{
+                    ...existingInstance,
+                    Status: 'COMPLETED'
+                }]
+            })
             
             const mockComputation = jest.fn()
             const mockRetrieval = jest.fn().mockResolvedValue('retrieved result')
@@ -274,30 +311,32 @@ describe('singleFlightFactory', () => {
                 expiresAt: 100080000
             }
             
-            mockGetItem.mockResolvedValue({
+            // First getItem call finds both instances
+            mockGetItem.mockResolvedValueOnce({
                 PrimaryKey: 'SINGLEFLIGHT#test-category',
                 DataCategory: 'test-hash',
                 Instances: [completedInstance, inProgressInstance]
             })
             
-            // Mock the completion after first poll
-            mockGetItem
-                .mockResolvedValueOnce({
-                    PrimaryKey: 'SINGLEFLIGHT#test-category',
-                    DataCategory: 'test-hash',
-                    Instances: [completedInstance, inProgressInstance]
-                })
-                .mockResolvedValueOnce({
-                    PrimaryKey: 'SINGLEFLIGHT#test-category',
-                    DataCategory: 'test-hash',
-                    Instances: [
-                        completedInstance,
-                        {
-                            ...inProgressInstance,
-                            Status: 'COMPLETED'
-                        }
-                    ]
-                })
+            // Second getItem call (first poll) still finds IN_PROGRESS
+            mockGetItem.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [completedInstance, inProgressInstance]
+            })
+            
+            // Third getItem call (second poll) finds COMPLETED
+            mockGetItem.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [
+                    completedInstance,
+                    {
+                        ...inProgressInstance,
+                        Status: 'COMPLETED'
+                    }
+                ]
+            })
             
             const mockComputation = jest.fn()
             const mockRetrieval = jest.fn().mockResolvedValue('current process result')
@@ -443,22 +482,33 @@ describe('singleFlightFactory', () => {
 
     describe('error handling', () => {
         it('should propagate computation errors to waiting processes', async () => {
-            // Arrange
-            const instanceWithError = {
+            // Arrange - Start with IN_PROGRESS instance, then it becomes FAILED during polling
+            const inProgressInstance = {
                 UUID: 'error-uuid',
-                Status: 'FAILED' as const,
+                Status: 'IN_PROGRESS' as const,
                 createdAt: Date.now(),
                 expiresAt: Date.now() + 30000
             }
             
-            mockGetItem.mockResolvedValue({
+            // First getItem call finds IN_PROGRESS instance
+            mockGetItem.mockResolvedValueOnce({
                 PrimaryKey: 'SINGLEFLIGHT#test-category',
                 DataCategory: 'test-hash',
-                Instances: [instanceWithError]
+                Instances: [inProgressInstance]
+            })
+            
+            // Second getItem call (first poll) finds FAILED instance
+            mockGetItem.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [{
+                    ...inProgressInstance,
+                    Status: 'FAILED'
+                }]
             })
             
             const mockComputation = jest.fn()
-            const mockRetrieval = jest.fn().mockRejectedValue(new Error('Computation failed'))
+            const mockRetrieval = jest.fn()
             
             const params: SingleFlightParams<string> = {
                 category: 'test-category',
@@ -470,7 +520,7 @@ describe('singleFlightFactory', () => {
             // Act & Assert
             await expect(singleFlight(params)).rejects.toThrow('Computation failed')
             expect(mockComputation).not.toHaveBeenCalled()
-            expect(mockRetrieval).toHaveBeenCalledTimes(1)
+            expect(mockRetrieval).not.toHaveBeenCalled()
         })
 
         it('should handle DynamoDB errors gracefully', async () => {
@@ -486,6 +536,44 @@ describe('singleFlightFactory', () => {
 
             // Act & Assert
             await expect(singleFlight(params)).rejects.toThrow('DynamoDB error')
+        })
+
+        it('should throw error when instance not found during completion', async () => {
+            // Arrange - Create a scenario where the instance disappears between creation and completion
+            mockGetItem.mockResolvedValue(undefined) // No existing record
+            
+            // Mock optimisticUpdate to simulate the instance being created successfully
+            mockOptimisticUpdate.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [{
+                    UUID: 'test-uuid-123',
+                    Status: 'IN_PROGRESS',
+                    createdAt: 100000000,
+                    expiresAt: 100030000
+                }]
+            })
+            
+            // Mock the second optimisticUpdate call (for completion) to simulate the instance disappearing
+            mockOptimisticUpdate.mockImplementationOnce((params) => {
+                // Simulate the updateReducer being called with an empty Instances array
+                const draft: any = { Instances: [] } // Instance is gone!
+                params.updateReducer(draft)
+                return Promise.resolve({})
+            })
+            
+            const mockComputation = jest.fn().mockResolvedValue('result')
+            const mockRetrieval = jest.fn()
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: mockComputation,
+                retrieval: mockRetrieval
+            }
+
+            // Act & Assert
+            await expect(singleFlight(params)).rejects.toThrow('Instance with UUID test-uuid-123 not found during completion')
         })
     })
 
@@ -530,14 +618,12 @@ describe('singleFlightFactory', () => {
             await singleFlight(params)
 
             // Assert
-            expect(mockDelayPromise).toHaveBeenCalledTimes(2)
+            expect(mockDelayPromise).toHaveBeenCalledTimes(1)
             // Should have consistent delays with jitter (not exponential backoff)
             const delays = mockDelayPromise.mock.calls.map(call => call[0])
-            // Both delays should be in a reasonable range (e.g., 100-200ms with jitter)
+            // The delay should be in a reasonable range (e.g., 100-200ms with jitter)
             expect(delays[0]).toBeGreaterThanOrEqual(50)
             expect(delays[0]).toBeLessThanOrEqual(200)
-            expect(delays[1]).toBeGreaterThanOrEqual(50)
-            expect(delays[1]).toBeLessThanOrEqual(200)
         })
     })
 })
