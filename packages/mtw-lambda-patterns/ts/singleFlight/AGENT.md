@@ -115,6 +115,12 @@ The singleFlight pattern provides a straightforward wrapper that takes two funct
 2. **Retrieval Function**: How to fetch the stored result if you're not the lead process
 
 ```typescript
+const singleFlight = singleFlightFactory({ 
+    optimisticUpdateFunction, 
+    getItemFunction, 
+    primaryKey,
+    timeoutMs: 30000 // 30 second timeout for snapshot generation
+})
 const result = await singleFlight({
     category: 'snapshot-generation',
     argumentHash: computeArgumentHash(params),
@@ -129,7 +135,7 @@ const result = await singleFlight({
         // Fetch result from external data store
         return await fetchSnapshot(params);
     }
-});
+})
 ```
 
 ### **Key Benefits**

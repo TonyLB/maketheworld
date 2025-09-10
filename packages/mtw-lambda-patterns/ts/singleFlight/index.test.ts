@@ -1,0 +1,397 @@
+import { singleFlightFactory, SingleFlightConfig, SingleFlightParams } from './index'
+import { delayPromise } from '@tonylb/mtw-utilities/ts/dynamoDB/delayPromise'
+
+// Mock delayPromise
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/delayPromise', () => ({
+    delayPromise: jest.fn()
+}))
+
+const mockDelayPromise = delayPromise as jest.MockedFunction<typeof delayPromise>
+
+describe('singleFlightFactory', () => {
+    let mockOptimisticUpdate: jest.MockedFunction<any>
+    let mockGetItem: jest.MockedFunction<any>
+    let config: SingleFlightConfig
+    let singleFlight: ReturnType<typeof singleFlightFactory>
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        
+        mockOptimisticUpdate = jest.fn()
+        mockGetItem = jest.fn()
+        
+        // Mock delayPromise to resolve immediately
+        mockDelayPromise.mockResolvedValue(undefined)
+        
+        config = {
+            optimisticUpdateFunction: mockOptimisticUpdate,
+            getItemFunction: mockGetItem,
+            primaryKey: 'PrimaryKey',
+            timeoutMs: 30000
+        }
+        
+        singleFlight = singleFlightFactory(config)
+    })
+
+    describe('when no existing record exists', () => {
+        it('should create a new instance and become the leader', async () => {
+            // Arrange
+            mockGetItem.mockResolvedValue(undefined)
+            mockOptimisticUpdate.mockResolvedValue({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [{
+                    UUID: 'new-uuid',
+                    Status: 'IN_PROGRESS',
+                    createdAt: 100000000,
+                    expiresAt: 100030000
+                }]
+            })
+            
+            const mockComputation = jest.fn().mockResolvedValue('computation result')
+            const mockRetrieval = jest.fn()
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: mockComputation,
+                retrieval: mockRetrieval
+            }
+
+            // Act
+            const result = await singleFlight(params)
+
+            // Assert
+            expect(result).toBe('computation result')
+            expect(mockComputation).toHaveBeenCalledTimes(1)
+            expect(mockRetrieval).not.toHaveBeenCalled()
+            expect(mockOptimisticUpdate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    Key: {
+                        PrimaryKey: 'SINGLEFLIGHT#test-category',
+                        DataCategory: 'test-hash'
+                    },
+                    updateKeys: ['Instances'],
+                    updateReducer: expect.any(Function),
+                    priorFetch: undefined // No existing record
+                })
+            )
+        })
+
+        it('should handle race condition when another process beats us to creating the record', async () => {
+            // Arrange
+            // First getItem call returns undefined (no existing record)
+            mockGetItem.mockResolvedValueOnce(undefined)
+            
+            // First optimisticUpdate attempt fails due to race condition
+            const conditionalCheckError = new Error('ConditionalCheckFailedException') as any
+            conditionalCheckError.code = 'ConditionalCheckFailedException'
+            mockOptimisticUpdate.mockRejectedValueOnce(conditionalCheckError)
+            
+            // Second getItem call finds the record that the other process created
+            mockGetItem.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [{
+                    UUID: 'other-process-uuid',
+                    Status: 'IN_PROGRESS',
+                    createdAt: 100000000,
+                    expiresAt: 100030000
+                }]
+            })
+            
+            // Third getItem call finds the completed result
+            mockGetItem.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [{
+                    UUID: 'other-process-uuid',
+                    Status: 'COMPLETED',
+                    createdAt: 100000000,
+                    expiresAt: 100030000
+                }]
+            })
+            
+            const mockComputation = jest.fn()
+            const mockRetrieval = jest.fn().mockResolvedValue('other process result')
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: mockComputation,
+                retrieval: mockRetrieval
+            }
+
+            // Act
+            const result = await singleFlight(params)
+
+            // Assert
+            expect(result).toBe('other process result')
+            expect(mockComputation).not.toHaveBeenCalled() // We never became the leader
+            expect(mockRetrieval).toHaveBeenCalledTimes(1) // We got the result from the other process
+            expect(mockOptimisticUpdate).toHaveBeenCalledTimes(1) // Only the failed attempt
+            expect(mockDelayPromise).toHaveBeenCalled() // Should have polled with delay
+        })
+    })
+
+    describe('when an IN_PROGRESS instance exists', () => {
+        it('should associate with existing instance and wait for completion', async () => {
+            // Arrange
+            const existingInstance = {
+                UUID: 'existing-uuid',
+                Status: 'IN_PROGRESS' as const,
+                createdAt: Date.now(),
+                expiresAt: Date.now() + 30000
+            }
+            
+            mockGetItem.mockResolvedValue({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [existingInstance]
+            })
+            
+            // Mock the completion after first poll
+            mockGetItem
+                .mockResolvedValueOnce({
+                    PrimaryKey: 'SINGLEFLIGHT#test-category',
+                    DataCategory: 'test-hash',
+                    Instances: [existingInstance]
+                })
+                .mockResolvedValueOnce({
+                    PrimaryKey: 'SINGLEFLIGHT#test-category',
+                    DataCategory: 'test-hash',
+                    Instances: [{
+                        ...existingInstance,
+                        Status: 'COMPLETED'
+                    }]
+                })
+            
+            const mockComputation = jest.fn()
+            const mockRetrieval = jest.fn().mockResolvedValue('retrieved result')
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: mockComputation,
+                retrieval: mockRetrieval
+            }
+
+            // Act
+            const result = await singleFlight(params)
+
+            // Assert
+            expect(result).toBe('retrieved result')
+            expect(mockComputation).not.toHaveBeenCalled()
+            expect(mockRetrieval).toHaveBeenCalledTimes(1)
+            expect(mockDelayPromise).toHaveBeenCalled()
+        })
+    })
+
+    describe('when leader fails and times out', () => {
+        it('should self-promote and take over the instance', async () => {
+            // Arrange
+            const expiredInstance = {
+                UUID: 'expired-uuid',
+                Status: 'IN_PROGRESS' as const,
+                createdAt: Date.now() - 60000, // 1 minute ago
+                expiresAt: Date.now() - 30000  // 30 seconds ago (expired)
+            }
+            
+            mockGetItem.mockResolvedValue({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [expiredInstance]
+            })
+            
+            mockOptimisticUpdate.mockResolvedValue({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [{
+                    UUID: 'expired-uuid',
+                    Status: 'IN_PROGRESS',
+                    createdAt: 100000000,
+                    expiresAt: 100030000
+                }]
+            })
+            
+            const mockComputation = jest.fn().mockResolvedValue('self-promoted result')
+            const mockRetrieval = jest.fn()
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: mockComputation,
+                retrieval: mockRetrieval
+            }
+
+            // Act
+            const result = await singleFlight(params)
+
+            // Assert
+            expect(result).toBe('self-promoted result')
+            expect(mockComputation).toHaveBeenCalledTimes(1)
+            expect(mockRetrieval).not.toHaveBeenCalled()
+            expect(mockOptimisticUpdate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    Key: {
+                        PrimaryKey: 'SINGLEFLIGHT#test-category',
+                        DataCategory: 'test-hash'
+                    },
+                    updateKeys: ['Instances'],
+                    updateReducer: expect.any(Function)
+                })
+            )
+        })
+    })
+
+    describe('when multiple runs coexist', () => {
+        it('should handle Process A, B, C edge case correctly', async () => {
+            // Arrange: Process A creates instance
+            const instanceA = {
+                UUID: 'instance-a-uuid',
+                Status: 'IN_PROGRESS' as const,
+                createdAt: Date.now(),
+                expiresAt: Date.now() + 30000
+            }
+            
+            // Process B sees instance A and waits
+            mockGetItem
+                .mockResolvedValueOnce({
+                    PrimaryKey: 'SINGLEFLIGHT#test-category',
+                    DataCategory: 'test-hash',
+                    Instances: [instanceA]
+                })
+                .mockResolvedValueOnce({
+                    PrimaryKey: 'SINGLEFLIGHT#test-category',
+                    DataCategory: 'test-hash',
+                    Instances: [instanceA]
+                })
+                .mockResolvedValueOnce({
+                    PrimaryKey: 'SINGLEFLIGHT#test-category',
+                    DataCategory: 'test-hash',
+                    Instances: [{
+                        ...instanceA,
+                        Status: 'COMPLETED'
+                    }]
+                })
+            
+            const mockComputation = jest.fn()
+            const mockRetrieval = jest.fn().mockResolvedValue('process-a-result')
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: mockComputation,
+                retrieval: mockRetrieval
+            }
+
+            // Act: Process B waits and gets Process A's result
+            const result = await singleFlight(params)
+
+            // Assert: Process B gets Process A's result, not Process C's
+            expect(result).toBe('process-a-result')
+            expect(mockComputation).not.toHaveBeenCalled()
+            expect(mockRetrieval).toHaveBeenCalledTimes(1)
+        })
+    })
+
+    describe('error handling', () => {
+        it('should propagate computation errors to waiting processes', async () => {
+            // Arrange
+            const instanceWithError = {
+                UUID: 'error-uuid',
+                Status: 'FAILED' as const,
+                createdAt: Date.now(),
+                expiresAt: Date.now() + 30000
+            }
+            
+            mockGetItem.mockResolvedValue({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [instanceWithError]
+            })
+            
+            const mockComputation = jest.fn()
+            const mockRetrieval = jest.fn().mockRejectedValue(new Error('Computation failed'))
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: mockComputation,
+                retrieval: mockRetrieval
+            }
+
+            // Act & Assert
+            await expect(singleFlight(params)).rejects.toThrow('Computation failed')
+            expect(mockComputation).not.toHaveBeenCalled()
+            expect(mockRetrieval).toHaveBeenCalledTimes(1)
+        })
+
+        it('should handle DynamoDB errors gracefully', async () => {
+            // Arrange
+            mockGetItem.mockRejectedValue(new Error('DynamoDB error'))
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: jest.fn(),
+                retrieval: jest.fn()
+            }
+
+            // Act & Assert
+            await expect(singleFlight(params)).rejects.toThrow('DynamoDB error')
+        })
+    })
+
+    describe('polling behavior', () => {
+        it('should use consistent polling intervals with jitter', async () => {
+            // Arrange
+            const instance = {
+                UUID: 'polling-uuid',
+                Status: 'IN_PROGRESS' as const,
+                createdAt: Date.now(),
+                expiresAt: Date.now() + 30000
+            }
+            
+            mockGetItem
+                .mockResolvedValueOnce({
+                    PrimaryKey: 'SINGLEFLIGHT#test-category',
+                    DataCategory: 'test-hash',
+                    Instances: [instance]
+                })
+                .mockResolvedValueOnce({
+                    PrimaryKey: 'SINGLEFLIGHT#test-category',
+                    DataCategory: 'test-hash',
+                    Instances: [instance]
+                })
+                .mockResolvedValueOnce({
+                    PrimaryKey: 'SINGLEFLIGHT#test-category',
+                    DataCategory: 'test-hash',
+                    Instances: [{
+                        ...instance,
+                        Status: 'COMPLETED'
+                    }]
+                })
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: jest.fn(),
+                retrieval: jest.fn().mockResolvedValue('result')
+            }
+
+            // Act
+            await singleFlight(params)
+
+            // Assert
+            expect(mockDelayPromise).toHaveBeenCalledTimes(2)
+            // Should have consistent delays with jitter (not exponential backoff)
+            const delays = mockDelayPromise.mock.calls.map(call => call[0])
+            // Both delays should be in a reasonable range (e.g., 100-200ms with jitter)
+            expect(delays[0]).toBeGreaterThanOrEqual(50)
+            expect(delays[0]).toBeLessThanOrEqual(200)
+            expect(delays[1]).toBeGreaterThanOrEqual(50)
+            expect(delays[1]).toBeLessThanOrEqual(200)
+        })
+    })
+})
