@@ -1,12 +1,19 @@
 import { singleFlightFactory, SingleFlightConfig, SingleFlightParams } from './index'
 import { delayPromise } from '@tonylb/mtw-utilities/ts/dynamoDB/delayPromise'
+import { getCurrentTimestamp } from './dateUtil'
 
 // Mock delayPromise
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/delayPromise', () => ({
     delayPromise: jest.fn()
 }))
 
+// Mock dateUtil
+jest.mock('./dateUtil', () => ({
+    getCurrentTimestamp: jest.fn()
+}))
+
 const mockDelayPromise = delayPromise as jest.MockedFunction<typeof delayPromise>
+const mockGetCurrentTimestamp = getCurrentTimestamp as jest.MockedFunction<typeof getCurrentTimestamp>
 
 describe('singleFlightFactory', () => {
     let mockOptimisticUpdate: jest.MockedFunction<any>
@@ -22,6 +29,9 @@ describe('singleFlightFactory', () => {
         
         // Mock delayPromise to resolve immediately
         mockDelayPromise.mockResolvedValue(undefined)
+        
+        // Mock getCurrentTimestamp to return predictable values
+        mockGetCurrentTimestamp.mockReturnValue(100000000)
         
         config = {
             optimisticUpdateFunction: mockOptimisticUpdate,
@@ -132,6 +142,68 @@ describe('singleFlightFactory', () => {
             expect(mockOptimisticUpdate).toHaveBeenCalledTimes(1) // Only the failed attempt
             expect(mockDelayPromise).toHaveBeenCalled() // Should have polled with delay
         })
+
+        it('should create a new instance when only COMPLETED instances exist', async () => {
+            // Arrange
+            const completedInstance = {
+                UUID: 'old-completed-uuid',
+                Status: 'COMPLETED' as const,
+                createdAt: 100000000,
+                expiresAt: 100030000
+            }
+            
+            mockGetItem.mockResolvedValue({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [completedInstance]
+            })
+            
+            const now = Date.now()
+            mockOptimisticUpdate.mockResolvedValue({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [
+                    completedInstance, // Keep the old completed instance
+                    {
+                        UUID: 'new-uuid',
+                        Status: 'IN_PROGRESS',
+                        createdAt: now,
+                        expiresAt: now + 30000
+                    }
+                ]
+            })
+            
+            const mockComputation = jest.fn().mockResolvedValue('new computation result')
+            const mockRetrieval = jest.fn()
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: mockComputation,
+                retrieval: mockRetrieval
+            }
+
+            // Act
+            const result = await singleFlight(params)
+
+            // Assert
+            expect(result).toBe('new computation result')
+            expect(mockComputation).toHaveBeenCalledTimes(1)
+            expect(mockRetrieval).not.toHaveBeenCalled()
+            expect(mockOptimisticUpdate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    Key: {
+                        PrimaryKey: 'SINGLEFLIGHT#test-category',
+                        DataCategory: 'test-hash'
+                    },
+                    updateKeys: ['Instances'],
+                    updateReducer: expect.any(Function),
+                    priorFetch: expect.objectContaining({
+                        Instances: [completedInstance]
+                    })
+                })
+            )
+        })
     })
 
     describe('when an IN_PROGRESS instance exists', () => {
@@ -185,6 +257,67 @@ describe('singleFlightFactory', () => {
             expect(mockRetrieval).toHaveBeenCalledTimes(1)
             expect(mockDelayPromise).toHaveBeenCalled()
         })
+
+        it('should ignore COMPLETED instances and focus on IN_PROGRESS instance', async () => {
+            // Arrange
+            const completedInstance = {
+                UUID: 'old-completed-uuid',
+                Status: 'COMPLETED' as const,
+                createdAt: 100000000,
+                expiresAt: 100030000
+            }
+            
+            const inProgressInstance = {
+                UUID: 'current-uuid',
+                Status: 'IN_PROGRESS' as const,
+                createdAt: 100050000,
+                expiresAt: 100080000
+            }
+            
+            mockGetItem.mockResolvedValue({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [completedInstance, inProgressInstance]
+            })
+            
+            // Mock the completion after first poll
+            mockGetItem
+                .mockResolvedValueOnce({
+                    PrimaryKey: 'SINGLEFLIGHT#test-category',
+                    DataCategory: 'test-hash',
+                    Instances: [completedInstance, inProgressInstance]
+                })
+                .mockResolvedValueOnce({
+                    PrimaryKey: 'SINGLEFLIGHT#test-category',
+                    DataCategory: 'test-hash',
+                    Instances: [
+                        completedInstance,
+                        {
+                            ...inProgressInstance,
+                            Status: 'COMPLETED'
+                        }
+                    ]
+                })
+            
+            const mockComputation = jest.fn()
+            const mockRetrieval = jest.fn().mockResolvedValue('current process result')
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: mockComputation,
+                retrieval: mockRetrieval
+            }
+
+            // Act
+            const result = await singleFlight(params)
+
+            // Assert
+            expect(result).toBe('current process result')
+            expect(mockComputation).not.toHaveBeenCalled()
+            expect(mockRetrieval).toHaveBeenCalledTimes(1)
+            expect(mockDelayPromise).toHaveBeenCalled()
+        })
     })
 
     describe('when leader fails and times out', () => {
@@ -193,8 +326,8 @@ describe('singleFlightFactory', () => {
             const expiredInstance = {
                 UUID: 'expired-uuid',
                 Status: 'IN_PROGRESS' as const,
-                createdAt: Date.now() - 60000, // 1 minute ago
-                expiresAt: Date.now() - 30000  // 30 seconds ago (expired)
+                createdAt: 100000000 - 60000, // 1 minute ago
+                expiresAt: 100000000 - 30000  // 30 seconds ago (expired)
             }
             
             mockGetItem.mockResolvedValue({
@@ -246,12 +379,12 @@ describe('singleFlightFactory', () => {
 
     describe('when multiple runs coexist', () => {
         it('should handle Process A, B, C edge case correctly', async () => {
-            // Arrange: Process A creates instance
+            // Arrange: Process A creates instance UUID-1
             const instanceA = {
                 UUID: 'instance-a-uuid',
                 Status: 'IN_PROGRESS' as const,
-                createdAt: Date.now(),
-                expiresAt: Date.now() + 30000
+                createdAt: 100000000,
+                expiresAt: 100030000
             }
             
             // Process B sees instance A and waits
@@ -269,10 +402,19 @@ describe('singleFlightFactory', () => {
                 .mockResolvedValueOnce({
                     PrimaryKey: 'SINGLEFLIGHT#test-category',
                     DataCategory: 'test-hash',
-                    Instances: [{
-                        ...instanceA,
-                        Status: 'COMPLETED'
-                    }]
+                    Instances: [
+                        {
+                            ...instanceA,
+                            Status: 'COMPLETED'
+                        },
+                        // Process C has now created instance UUID-2, but Process B should ignore it
+                        {
+                            UUID: 'instance-c-uuid',
+                            Status: 'IN_PROGRESS' as const,
+                            createdAt: 100050000,
+                            expiresAt: 100080000
+                        }
+                    ]
                 })
             
             const mockComputation = jest.fn()
@@ -292,6 +434,10 @@ describe('singleFlightFactory', () => {
             expect(result).toBe('process-a-result')
             expect(mockComputation).not.toHaveBeenCalled()
             expect(mockRetrieval).toHaveBeenCalledTimes(1)
+            
+            // Verify that Process B was looking for the correct instance UUID
+            // This would be tested by ensuring the implementation correctly identifies
+            // which instance to poll based on the UUID it associated with
         })
     })
 
@@ -349,8 +495,8 @@ describe('singleFlightFactory', () => {
             const instance = {
                 UUID: 'polling-uuid',
                 Status: 'IN_PROGRESS' as const,
-                createdAt: Date.now(),
-                expiresAt: Date.now() + 30000
+                createdAt: 100000000,
+                expiresAt: 100030000
             }
             
             mockGetItem
