@@ -36,7 +36,7 @@ from their subscription.
 
 #### **Local DynamoDB Table**
 Each data source maintains a local DynamoDB table for replay data. This means that the Primary Key will be variable (`AssetId`, `EphemeraId`, and so on), but the general pattern
-will be that all stream records have a PK of `STREAM#${category}
+will be that all stream records have a PK of `STREAM#${category}`
 
 - **Snapshot Records**: DataCategory of `Meta::Snapshot`
 - **Event Records**: DataCategory of `EVENT#${epochTime}::${uuid}`
