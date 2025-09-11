@@ -22,6 +22,7 @@ export type DynamoUtils = {
     putItem: (item: Record<string, any>) => Promise<unknown>
     getItem: <Get>(args: DynamoGetItemArgs) => Promise<Get | undefined>
     query: <Q>(args: DynamoQueryArgs) => Promise<Q[]>
+    optimisticUpdate: (params: any) => Promise<any>
 }
 
 type SnapshotType<SnapshotPayload extends SerializableObject> = SnapshotPayload & {
@@ -33,33 +34,55 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     readonly internalCache: unknown
     readonly dynamo: DynamoUtils
     readonly pkName: string
+    readonly primaryKeyName: string
+    readonly snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>
     _snapshot: SnapshotType<SnapshotPayload> | undefined
 
-    constructor({ internalCache, dynamo, pkName }: { internalCache: unknown, dynamo: DynamoUtils, pkName: string }) {
+    constructor({ 
+        internalCache, 
+        dynamo, 
+        pkName, 
+        primaryKeyName,
+        snapshotContentGenerator
+    }: { 
+        internalCache: unknown, 
+        dynamo: DynamoUtils, 
+        pkName: string,
+        primaryKeyName: string,
+        snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>
+    }) {
         this.internalCache = internalCache
         this.dynamo = dynamo
         this.pkName = pkName
+        this.primaryKeyName = primaryKeyName
+        this.snapshotContentGenerator = snapshotContentGenerator
         this._snapshot = undefined
     }
 
-    async generateSnapshot(): Promise<SnapshotType<SnapshotPayload>> {
-        throw new Error('Not implemented')
+    async generateSnapshot(streamKey: string): Promise<SnapshotType<SnapshotPayload>> {
+        const now = Date.now()
+        const content = await this.snapshotContentGenerator(streamKey)
+        return {
+            ...content,
+            createdAt: now,
+            expiresAt: now + 300000 // 5 minutes default expiration
+        }
     }
 
-    async getSnapshot(): Promise<SnapshotPayload> {
+    async getSnapshot(streamKey: string): Promise<SnapshotPayload> {
         if (this._snapshot && Date.now() <= this._snapshot.expiresAt) {
             return this._snapshot
         }
 
-        const loaded = await this.loadSnapshotFromStore().catch(() => undefined)
+        const loaded = await this.loadSnapshotFromStore(streamKey).catch(() => undefined)
         if (loaded && Date.now() <= loaded.expiresAt) {
             this._snapshot = loaded
             return loaded
         }
 
-        const generated = await this.generateSnapshot()
+        const generated = await this.generateSnapshot(streamKey)
         this._snapshot = generated
-        await this.storeSnapshotToStore({ snapshot: generated }).catch(() => undefined)
+        await this.storeSnapshotToStore({ streamKey, snapshot: generated }).catch(() => undefined)
         return generated
     }
 
@@ -71,11 +94,11 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         throw new Error('Not implemented')
     }
 
-    protected async loadSnapshotFromStore(): Promise<SnapshotType<SnapshotPayload> | undefined> {
+    protected async loadSnapshotFromStore(streamKey: string): Promise<SnapshotType<SnapshotPayload> | undefined> {
         throw new Error('Not implemented')
     }
 
-    protected async storeSnapshotToStore({ snapshot: _snapshot }: { snapshot: SnapshotType<SnapshotPayload> }): Promise<void> {
+    protected async storeSnapshotToStore({ streamKey: _streamKey, snapshot: _snapshot }: { streamKey: string, snapshot: SnapshotType<SnapshotPayload> }): Promise<void> {
         throw new Error('Not implemented')
     }
 }
