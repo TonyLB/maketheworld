@@ -130,7 +130,13 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }
 
     protected async loadSnapshotFromStore(streamKey: string): Promise<SnapshotType<SnapshotPayload> | undefined> {
-        throw new Error('Not implemented')
+        const primaryKey = `STREAM#${this.dataSourceKey}::${streamKey}`
+        
+        const result = await this.dynamo.getItem<SnapshotType<SnapshotPayload>>({
+            Key: { [this.primaryKeyName]: primaryKey, DataCategory: 'Meta::Snapshot' }
+        })
+        
+        return result
     }
 
     protected async storeSnapshotToStore({ streamKey, snapshot }: { streamKey: string, snapshot: SnapshotType<SnapshotPayload> }): Promise<void> {
