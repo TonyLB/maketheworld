@@ -36,7 +36,6 @@ type SnapshotType<SnapshotPayload extends SerializableObject> = SnapshotPayload 
 export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends string | SerializableObject> {
     readonly internalCache: unknown
     readonly dynamo: DynamoUtils
-    readonly pkName: string
     readonly primaryKeyName: string
     readonly dataSourceKey: string
     readonly snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>
@@ -46,7 +45,6 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     constructor({ 
         internalCache, 
         dynamo, 
-        pkName, 
         primaryKeyName,
         dataSourceKey,
         snapshotContentGenerator,
@@ -54,7 +52,6 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }: { 
         internalCache: unknown, 
         dynamo: DynamoUtils, 
-        pkName: string,
         primaryKeyName: string,
         dataSourceKey: string,
         snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>,
@@ -62,7 +59,6 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }) {
         this.internalCache = internalCache
         this.dynamo = dynamo
-        this.pkName = pkName
         this.primaryKeyName = primaryKeyName
         this.dataSourceKey = dataSourceKey
         this.snapshotContentGenerator = snapshotContentGenerator
