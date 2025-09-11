@@ -3,6 +3,11 @@ import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 
 export type SerializableObject = Record<string, unknown>
 
+export type SnapshotType<SnapshotPayload extends SerializableObject> = SnapshotPayload & {
+    createdAt: number;
+    expiresAt: number;
+}
+
 export type DynamoGetItemArgs = {
     Key: Record<string, string>
     ProjectionFields?: string[]
@@ -26,11 +31,6 @@ export type DynamoUtils = {
     getItem: <Get>(args: DynamoGetItemArgs) => Promise<Get | undefined>
     query: <Q>(args: DynamoQueryArgs) => Promise<Q[]>
     optimisticUpdate: (params: any) => Promise<any>
-}
-
-type SnapshotType<SnapshotPayload extends SerializableObject> = SnapshotPayload & {
-    createdAt: number;
-    expiresAt: number;
 }
 
 export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends string | SerializableObject> {
@@ -133,8 +133,14 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         throw new Error('Not implemented')
     }
 
-    protected async storeSnapshotToStore({ streamKey: _streamKey, snapshot: _snapshot }: { streamKey: string, snapshot: SnapshotType<SnapshotPayload> }): Promise<void> {
-        throw new Error('Not implemented')
+    protected async storeSnapshotToStore({ streamKey, snapshot }: { streamKey: string, snapshot: SnapshotType<SnapshotPayload> }): Promise<void> {
+        const primaryKey = `STREAM#${this.dataSourceKey}::${streamKey}`
+        
+        await this.dynamo.putItem({
+            [this.primaryKeyName]: primaryKey,
+            DataCategory: 'Meta::Snapshot',
+            ...snapshot
+        })
     }
 }
 
