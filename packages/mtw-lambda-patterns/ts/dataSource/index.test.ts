@@ -410,6 +410,87 @@ describe('DataSource', () => {
         })
     })
 
+    describe('loadSnapshotFromStore', () => {
+        it('should load snapshot with correct primary key and DataCategory', async () => {
+            const streamKey = 'test-stream'
+            const storedSnapshot = {
+                id: 'stored-id',
+                name: 'Stored Snapshot',
+                value: 200,
+                createdAt: 100000000,
+                expiresAt: 100300000
+            }
+            
+            mockDynamo.getItem.mockResolvedValue(storedSnapshot)
+            
+            const result = await dataSource.loadSnapshotFromStore(streamKey)
+            
+            expect(mockDynamo.getItem).toHaveBeenCalledWith({
+                Key: {
+                    AssetId: 'STREAM#testDataSource::test-stream',
+                    DataCategory: 'Meta::Snapshot'
+                }
+            })
+            expect(result).toBe(storedSnapshot)
+        })
+
+        it('should return undefined when no snapshot is found', async () => {
+            const streamKey = 'test-stream'
+            
+            mockDynamo.getItem.mockResolvedValue(undefined)
+            
+            const result = await dataSource.loadSnapshotFromStore(streamKey)
+            
+            expect(mockDynamo.getItem).toHaveBeenCalledWith({
+                Key: {
+                    AssetId: 'STREAM#testDataSource::test-stream',
+                    DataCategory: 'Meta::Snapshot'
+                }
+            })
+            expect(result).toBeUndefined()
+        })
+
+        it('should use different primary key names based on constructor', async () => {
+            const dataSourceWithDifferentKey = new TestDataSource({
+                internalCache: mockInternalCache,
+                dynamo: mockDynamo,
+                primaryKeyName: 'EphemeraId',
+                dataSourceKey: 'differentDataSource',
+                snapshotContentGenerator: mockSnapshotContentGenerator
+            })
+            
+            const streamKey = 'test-stream'
+            const storedSnapshot = {
+                id: 'stored-id',
+                name: 'Stored Snapshot',
+                value: 200,
+                createdAt: 100000000,
+                expiresAt: 100300000
+            }
+            
+            mockDynamo.getItem.mockResolvedValue(storedSnapshot)
+            
+            const result = await dataSourceWithDifferentKey.loadSnapshotFromStore(streamKey)
+            
+            expect(mockDynamo.getItem).toHaveBeenCalledWith({
+                Key: {
+                    EphemeraId: 'STREAM#differentDataSource::test-stream',
+                    DataCategory: 'Meta::Snapshot'
+                }
+            })
+            expect(result).toBe(storedSnapshot)
+        })
+
+        it('should handle DynamoDB errors by letting them bubble up', async () => {
+            const streamKey = 'test-stream'
+            const dynamoError = new Error('DynamoDB connection failed')
+            
+            mockDynamo.getItem.mockRejectedValue(dynamoError)
+            
+            await expect(dataSource.loadSnapshotFromStore(streamKey)).rejects.toThrow('DynamoDB connection failed')
+        })
+    })
+
     describe('unimplemented methods', () => {
         it('should throw error for streamEvent', async () => {
             await expect(dataSource.streamEvent({ update: 'test' })).rejects.toThrow('Not implemented')
@@ -417,10 +498,6 @@ describe('DataSource', () => {
 
         it('should throw error for initializeSubscription', async () => {
             await expect(dataSource.initializeSubscription({ sessionId: 'SESSION#test' })).rejects.toThrow('Not implemented')
-        })
-
-        it('should throw error for loadSnapshotFromStore', async () => {
-            await expect(dataSource.loadSnapshotFromStore('test-stream')).rejects.toThrow('Not implemented')
         })
     })
 
