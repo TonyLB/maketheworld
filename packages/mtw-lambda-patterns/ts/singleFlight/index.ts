@@ -1,5 +1,5 @@
 import { delayPromise } from '@tonylb/mtw-utilities/ts/dynamoDB/delayPromise'
-import { getCurrentTimestamp } from './dateUtil'
+import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 import { v4 as uuidv4 } from 'uuid'
 
 export interface SingleFlightConfig {
