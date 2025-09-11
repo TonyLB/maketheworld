@@ -1,6 +1,6 @@
 import { singleFlightFactory, SingleFlightConfig, SingleFlightParams } from './index'
 import { delayPromise } from '@tonylb/mtw-utilities/ts/dynamoDB/delayPromise'
-import { getCurrentTimestamp } from './dateUtil'
+import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 
 // Mock delayPromise
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/delayPromise', () => ({
@@ -8,7 +8,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/delayPromise', () => ({
 }))
 
 // Mock dateUtil
-jest.mock('./dateUtil', () => ({
+jest.mock('../internalUtils/dateUtil', () => ({
     getCurrentTimestamp: jest.fn()
 }))
 
