@@ -2,6 +2,7 @@ import { singleFlightFactory, SingleFlightConfig } from '../singleFlight'
 import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
+import { PublishCommand } from '@aws-sdk/client-sns'
 
 export type SerializableObject = Record<string, unknown>
 
@@ -35,35 +36,47 @@ export type DynamoUtils = {
     optimisticUpdate: (params: any) => Promise<any>
 }
 
+export type SnsUtils = {
+    send: (command: PublishCommand) => Promise<unknown>
+}
+
 export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends string | SerializableObject> {
     readonly internalCache: unknown
     readonly dynamo: DynamoUtils
+    readonly sns: SnsUtils
     readonly primaryKeyName: string
     readonly dataSourceKey: string
     readonly snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>
     readonly singleFlight: ReturnType<typeof singleFlightFactory<SnapshotType<SnapshotPayload>>>
+    readonly feedbackTopicArn: string
     _snapshot: SnapshotType<SnapshotPayload> | undefined
 
     constructor({ 
         internalCache, 
-        dynamo, 
+        dynamo,
+        sns,
         primaryKeyName,
         dataSourceKey,
         snapshotContentGenerator,
+        feedbackTopicArn,
         snapshotTimeoutMs = 5000
     }: { 
         internalCache: unknown, 
-        dynamo: DynamoUtils, 
+        dynamo: DynamoUtils,
+        sns: SnsUtils,
         primaryKeyName: string,
         dataSourceKey: string,
         snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>,
+        feedbackTopicArn: string,
         snapshotTimeoutMs?: number
     }) {
         this.internalCache = internalCache
         this.dynamo = dynamo
+        this.sns = sns
         this.primaryKeyName = primaryKeyName
         this.dataSourceKey = dataSourceKey
         this.snapshotContentGenerator = snapshotContentGenerator
+        this.feedbackTopicArn = feedbackTopicArn
         this._snapshot = undefined
 
         // Initialize singleFlight for snapshot generation coordination
@@ -156,8 +169,105 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         ])
     }
 
-    async initializeSubscription({ sessionId }: { sessionId: `SESSION#${string}` }): Promise<void> {
-        throw new Error('Not implemented')
+    async initializeSubscription({ sessionId, streamKey }: { sessionId: `SESSION#${string}`, streamKey: string }): Promise<void> {
+        // Get the current snapshot for the stream
+        const snapshot = await this.getSnapshot(streamKey) as SnapshotType<SnapshotPayload>
+        
+        // Query for recent events since the snapshot was created
+        const recentEvents = await this.getRecentEvents(streamKey, snapshot.createdAt)
+        
+        // Deliver both snapshot and events via SNS Feedback
+        await this.deliverReplayData({ sessionId, streamKey, snapshot, events: recentEvents })
+    }
+
+    protected async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: UpdatePayload, timestamp: number, eventId: string }>> {
+        const primaryKey = `STREAM#${this.dataSourceKey}::${streamKey}`
+        
+        // Query for events with DataCategory starting with 'EVENT#' and timestamp >= sinceTimestamp
+        const events = await this.dynamo.query<{
+            DataCategory: string;
+            update: UpdatePayload;
+            timestamp: number;
+            eventId: string;
+        }>({
+            Key: { [this.primaryKeyName]: primaryKey },
+            KeyConditionExpression: 'begins_with(DataCategory, :eventPrefix)',
+            FilterExpression: 'timestamp >= :sinceTimestamp',
+            ExpressionAttributeValues: {
+                ':eventPrefix': 'EVENT#',
+                ':sinceTimestamp': sinceTimestamp
+            },
+            allFields: true
+        })
+        
+        // Sort by timestamp to ensure chronological order
+        return events ? events.sort((a, b) => a.timestamp - b.timestamp) : []
+    }
+
+    protected async deliverReplayData({ 
+        sessionId, 
+        streamKey, 
+        snapshot, 
+        events 
+    }: { 
+        sessionId: `SESSION#${string}`; 
+        streamKey: string; 
+        snapshot: SnapshotType<SnapshotPayload>; 
+        events: Array<{ update: UpdatePayload, timestamp: number, eventId: string }> 
+    }): Promise<void> {
+        // Send snapshot first
+        const snapshotCommand = new PublishCommand({
+            TopicArn: this.feedbackTopicArn,
+            Message: JSON.stringify({
+                messageType: 'DataSourceSnapshot',
+                dataSourceKey: this.dataSourceKey,
+                streamKey,
+                snapshot: {
+                    ...snapshot,
+                    // Remove internal fields that shouldn't be sent to client
+                    createdAt: undefined,
+                    expiresAt: undefined
+                }
+            }),
+            MessageAttributes: {
+                Targets: { 
+                    DataType: 'String.Array', 
+                    StringValue: JSON.stringify([sessionId]) 
+                },
+                Type: { 
+                    DataType: 'String', 
+                    StringValue: 'Success' 
+                }
+            }
+        })
+        await this.sns.send(snapshotCommand)
+
+        // Send events if any
+        if (events.length > 0) {
+            const eventsCommand = new PublishCommand({
+                TopicArn: this.feedbackTopicArn,
+                Message: JSON.stringify({
+                    messageType: 'DataSourceEvents',
+                    dataSourceKey: this.dataSourceKey,
+                    streamKey,
+                    events: events.map(({ update, timestamp }) => ({
+                        update,
+                        timestamp
+                    }))
+                }),
+                MessageAttributes: {
+                    Targets: { 
+                        DataType: 'String.Array', 
+                        StringValue: JSON.stringify([sessionId]) 
+                    },
+                    Type: { 
+                        DataType: 'String', 
+                        StringValue: 'Success' 
+                    }
+                }
+            })
+            await this.sns.send(eventsCommand)
+        }
     }
 
     protected async loadSnapshotFromStore(streamKey: string): Promise<SnapshotType<SnapshotPayload> | undefined> {
