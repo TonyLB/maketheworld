@@ -12,6 +12,27 @@ The DataSource pattern addresses three critical needs for data source implementa
 - **Event Streaming**: Stream filtered change events to subscribers for specific streams
 - **Replay Support**: Store and fetch snapshots and recent events for new subscriber onboarding to individual streams
 
+## Architecture Overview
+
+The DataSource pattern implements a dual-delivery architecture that efficiently handles both live events and historical replay:
+
+### **Live Event Pipeline**
+1. **Change Occurs**: Data source detects a change
+2. **Parallel Storage**: Change is stored to DynamoDB for replay + published to EventBridge
+3. **EventBridge Fan-out**: EventBridge distributes to all current subscribers
+4. **WebSocket Delivery**: Subscriptions lambda delivers to WebSocket connections
+
+### **Replay Pipeline**
+1. **New Subscriber**: Client requests subscription to specific streams
+2. **Targeted Replay**: `initializeSubscription` delivers historical data directly to session
+3. **SNS Feedback**: Replay data goes through SNS Feedback topic for targeted delivery
+4. **WebSocket Delivery**: SNS delivers directly to the requesting session's WebSocket
+
+This architecture ensures that:
+- **Live events** reach all current subscribers efficiently
+- **Replay events** reach only the requesting subscriber without unnecessary fan-out
+- **Complete context** is provided to new subscribers before they start receiving live events
+
 ## Technical Details
 
 ### Core Functionality
@@ -33,6 +54,15 @@ Provide the tools to distribute incremental changes for specific streams, *both*
 
 **Parallel Operations**: Executes DynamoDB storage and EventBridge publishing simultaneously for optimal performance.
 
+**Live vs Replay Event Delivery**:
+
+The DataSource pattern uses two different delivery mechanisms depending on the context:
+
+- **Live Events** (`streamEvent`): New changes are published to EventBridge for fan-out to all current subscribers
+- **Replay Events** (`initializeSubscription`): Historical data is delivered directly to a specific session via SNS Feedback
+
+This dual approach ensures efficient delivery while maintaining the correct scope for each type of event.
+
 **EventBridge Event Structure**:
 ```typescript
 {
@@ -47,9 +77,43 @@ Provide the tools to distribute incremental changes for specific streams, *both*
 ```
 
 #### **3. Replay Serialization**
-Deserialize data from the replay store for a specific stream and deliver it to the user in response to an `Initialize Subscription` message.
+Deserialize data from the replay store for a specific stream and deliver it directly to a specific subscriber via the Feedback SNS topic.
 
 **Purpose**: Enable new subscribers to catch up by receiving a snapshot plus all events since that snapshot for their specific stream, ensuring they have complete context when new events start arriving from their subscription.
+
+**Method**: `initializeSubscription({ sessionId, streamKey })`
+- **`sessionId`**: The specific session to deliver replay data to (format: `SESSION#${sessionId}`)
+- **`streamKey`**: The specific stream within the data source to replay
+
+**Delivery Mechanism**: Unlike live events that go through EventBridge for fan-out to all subscribers, replay events are delivered directly to a specific session via the Feedback SNS topic. This targeted delivery ensures:
+- **No EventBridge Fan-out**: Replay data doesn't get broadcast to all subscribers
+- **Direct Session Delivery**: Data goes straight to the requesting session
+- **Efficient Replay**: Only the specific subscriber gets the historical data they need
+
+**Replay Content**: The method delivers:
+1. **Current Snapshot**: The most recent materialized state for the stream
+2. **Recent Events**: Events that occurred since the snapshot was created
+3. **Complete Context**: Everything the subscriber needs to understand the current state
+
+**SNS Feedback Delivery**: Replay data is delivered via the Feedback SNS topic, which allows:
+- **Targeted Delivery**: Data goes directly to the specified `sessionId`
+- **No Fan-out**: Avoids broadcasting historical data to all subscribers
+- **Efficient Replay**: Only the requesting session receives the replay data
+- **WebSocket Integration**: SNS messages are delivered to the session's WebSocket connection
+
+**Usage Pattern**: Clients typically subscribe to multiple streams, so `initializeSubscription` is called multiple times in parallel:
+```typescript
+// Client subscribes to multiple streams
+const streamKeys = ['asset-123', 'asset-456', 'character-789'];
+
+// Initialize subscription for each stream in parallel
+await Promise.all(streamKeys.map(streamKey => 
+    dataSource.initializeSubscription({ 
+        sessionId: 'SESSION#user-123', 
+        streamKey 
+    })
+));
+```
 
 ### Data Storage Strategy
 

@@ -699,7 +699,7 @@ describe('DataSource', () => {
 
     describe('unimplemented methods', () => {
         it('should throw error for initializeSubscription', async () => {
-            await expect(dataSource.initializeSubscription({ sessionId: 'SESSION#test' })).rejects.toThrow('Not implemented')
+            await expect(dataSource.initializeSubscription({ sessionId: 'SESSION#test', streamKey: 'test-stream' })).rejects.toThrow('Not implemented')
         })
     })
 

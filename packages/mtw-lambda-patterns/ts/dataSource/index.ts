@@ -156,7 +156,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         ])
     }
 
-    async initializeSubscription({ sessionId }: { sessionId: `SESSION#${string}` }): Promise<void> {
+    async initializeSubscription({ sessionId, streamKey }: { sessionId: `SESSION#${string}`, streamKey: string }): Promise<void> {
         throw new Error('Not implemented')
     }
 
