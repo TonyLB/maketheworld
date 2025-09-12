@@ -25,14 +25,21 @@ jest.mock('uuid', () => ({
     v4: jest.fn(() => 'test-uuid-123')
 }))
 
+// Mock SNS
+jest.mock('@aws-sdk/client-sns', () => ({
+    PublishCommand: jest.fn().mockImplementation((params) => params)
+}))
+
 // Import the mocked modules after mocking
 import { singleFlightFactory } from '../singleFlight'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
+import { PublishCommand } from '@aws-sdk/client-sns'
 
 const mockSingleFlightFactory = singleFlightFactory as jest.MockedFunction<typeof singleFlightFactory>
 const mockEventBridgeClient = eventBridgeClient as jest.Mocked<typeof eventBridgeClient>
 const mockUuidv4 = uuidv4 as jest.MockedFunction<typeof uuidv4>
+const mockPublishCommand = PublishCommand as jest.MockedClass<typeof PublishCommand>
 
 type TestSnapshotPayload = {
     id: string
@@ -56,6 +63,7 @@ class TestDataSource<SnapshotPayload extends SerializableObject, UpdatePayload e
 describe('DataSource', () => {
     let mockInternalCache: unknown
     let mockDynamo: any
+    let mockSns: any
     let mockSnapshotContentGenerator: jest.MockedFunction<(streamKey: string) => Promise<TestSnapshotPayload>>
     let mockSingleFlight: jest.MockedFunction<any>
     let dataSource: TestDataSource<TestSnapshotPayload, TestUpdatePayload>
@@ -75,6 +83,11 @@ describe('DataSource', () => {
             getItem: jest.fn(),
             query: jest.fn(),
             optimisticUpdate: jest.fn()
+        }
+        
+        // Mock SNS utilities
+        mockSns = {
+            send: jest.fn().mockResolvedValue({})
         }
         
         // Mock snapshot content generator
@@ -103,9 +116,11 @@ describe('DataSource', () => {
         dataSource = new TestDataSource({
             internalCache: mockInternalCache,
             dynamo: mockDynamo,
+            sns: mockSns,
             primaryKeyName: 'AssetId',
             dataSourceKey: 'mtw.testDataSource',
             snapshotContentGenerator: mockSnapshotContentGenerator,
+            feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
             snapshotTimeoutMs: 5000
         })
     })
@@ -114,9 +129,11 @@ describe('DataSource', () => {
         it('should initialize with provided configuration', () => {
             expect(dataSource.internalCache).toBe(mockInternalCache)
             expect(dataSource.dynamo).toBe(mockDynamo)
+            expect(dataSource.sns).toBe(mockSns)
             expect(dataSource.primaryKeyName).toBe('AssetId')
             expect(dataSource.dataSourceKey).toBe('mtw.testDataSource')
             expect(dataSource.snapshotContentGenerator).toBe(mockSnapshotContentGenerator)
+            expect(dataSource.feedbackTopicArn).toBe('arn:aws:sns:us-east-1:123456789012:test-feedback')
             expect(dataSource._snapshot).toBeUndefined()
         })
 
@@ -133,9 +150,11 @@ describe('DataSource', () => {
             const dataSourceWithDefaults = new TestDataSource({
                 internalCache: mockInternalCache,
                 dynamo: mockDynamo,
+                sns: mockSns,
                 primaryKeyName: 'AssetId',
                 dataSourceKey: 'mtw.testDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
             })
             
             expect(mockSingleFlightFactory).toHaveBeenCalledWith(
@@ -375,9 +394,11 @@ describe('DataSource', () => {
             const dataSourceWithDifferentKey = new TestDataSource({
                 internalCache: mockInternalCache,
                 dynamo: mockDynamo,
+                sns: mockSns,
                 primaryKeyName: 'EphemeraId',
                 dataSourceKey: 'mtw.differentDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
             })
             
             const streamKey = 'test-stream'
@@ -474,9 +495,11 @@ describe('DataSource', () => {
             const dataSourceWithDifferentKey = new TestDataSource({
                 internalCache: mockInternalCache,
                 dynamo: mockDynamo,
+                sns: mockSns,
                 primaryKeyName: 'EphemeraId',
                 dataSourceKey: 'mtw.differentDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
             })
             
             const streamKey = 'test-stream'
@@ -579,9 +602,11 @@ describe('DataSource', () => {
             const dataSourceWithDifferentKey = new TestDataSource({
                 internalCache: mockInternalCache,
                 dynamo: mockDynamo,
+                sns: mockSns,
                 primaryKeyName: 'EphemeraId',
                 dataSourceKey: 'mtw.differentDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
             })
             
             const streamKey = 'test-stream'
@@ -697,9 +722,93 @@ describe('DataSource', () => {
         })
     })
 
-    describe('unimplemented methods', () => {
-        it('should throw error for initializeSubscription', async () => {
-            await expect(dataSource.initializeSubscription({ sessionId: 'SESSION#test', streamKey: 'test-stream' })).rejects.toThrow('Not implemented')
+    describe('initializeSubscription', () => {
+        it('should deliver snapshot and events via SNS', async () => {
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+            
+            // Mock getSnapshot to return a snapshot
+            const mockSnapshot = {
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt: 100000000,
+                expiresAt: 100005000
+            }
+            
+            // Mock the getSnapshot method by setting up the cache
+            dataSource._snapshot = mockSnapshot
+            
+            // Mock getRecentEvents to return some events
+            const mockEvents = [
+                { update: 'test-update-1', timestamp: 100001000, eventId: 'event-1' },
+                { update: 'test-update-2', timestamp: 100002000, eventId: 'event-2' }
+            ]
+            
+            // Mock the query method to return events
+            mockDynamo.query.mockResolvedValue(mockEvents)
+            
+            await dataSource.initializeSubscription({ sessionId, streamKey })
+            
+            // Verify SNS was called twice (snapshot + events)
+            expect(mockSns.send).toHaveBeenCalledTimes(2)
+            
+            // Verify snapshot message
+            const snapshotCall = mockSns.send.mock.calls[0][0]
+            expect(snapshotCall.TopicArn).toBe('arn:aws:sns:us-east-1:123456789012:test-feedback')
+            const snapshotMessage = JSON.parse(snapshotCall.Message)
+            expect(snapshotMessage).toMatchObject({
+                messageType: 'DataSourceSnapshot',
+                dataSourceKey: 'mtw.testDataSource',
+                streamKey: 'test-stream',
+                snapshot: {
+                    id: 'test-id',
+                    name: 'Test Snapshot',
+                    value: 42
+                }
+            })
+            expect(snapshotCall.MessageAttributes.Targets.StringValue).toBe(JSON.stringify([sessionId]))
+            
+            // Verify events message
+            const eventsCall = mockSns.send.mock.calls[1][0]
+            expect(eventsCall.TopicArn).toBe('arn:aws:sns:us-east-1:123456789012:test-feedback')
+            expect(JSON.parse(eventsCall.Message)).toMatchObject({
+                messageType: 'DataSourceEvents',
+                dataSourceKey: 'mtw.testDataSource',
+                streamKey: 'test-stream',
+                events: [
+                    { update: 'test-update-1', timestamp: 100001000 },
+                    { update: 'test-update-2', timestamp: 100002000 }
+                ]
+            })
+            expect(eventsCall.MessageAttributes.Targets.StringValue).toBe(JSON.stringify([sessionId]))
+        })
+        
+        it('should handle case with no events', async () => {
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+            
+            // Mock getSnapshot to return a snapshot
+            const mockSnapshot = {
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt: 100000000,
+                expiresAt: 100005000
+            }
+            
+            dataSource._snapshot = mockSnapshot
+            
+            // Mock getRecentEvents to return no events
+            mockDynamo.query.mockResolvedValue([])
+            
+            await dataSource.initializeSubscription({ sessionId, streamKey })
+            
+            // Should only call SNS once (snapshot only, no events message)
+            expect(mockSns.send).toHaveBeenCalledTimes(1)
+            
+            const snapshotCall = mockSns.send.mock.calls[0][0]
+            expect(JSON.parse(snapshotCall.Message).messageType).toBe('DataSourceSnapshot')
         })
     })
 
@@ -717,6 +826,7 @@ describe('DataSource', () => {
             const complexDataSource = new TestDataSource<ComplexSnapshot, string>({
                 internalCache: mockInternalCache,
                 dynamo: mockDynamo,
+                sns: mockSns,
                 primaryKeyName: 'AssetId',
                 dataSourceKey: 'mtw.complexDataSource',
                 snapshotContentGenerator: jest.fn().mockResolvedValue({
@@ -724,6 +834,7 @@ describe('DataSource', () => {
                     metadata: { version: 1, tags: ['test'] },
                     data: { key: 'value' }
                 }),
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
             })
             
             expect(complexDataSource).toBeDefined()
@@ -733,9 +844,11 @@ describe('DataSource', () => {
             const stringUpdateDataSource = new TestDataSource<TestSnapshotPayload, string>({
                 internalCache: mockInternalCache,
                 dynamo: mockDynamo,
+                sns: mockSns,
                 primaryKeyName: 'AssetId',
                 dataSourceKey: 'mtw.stringUpdateDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
             })
             
             expect(stringUpdateDataSource).toBeDefined()
@@ -750,9 +863,11 @@ describe('DataSource', () => {
             const objectUpdateDataSource = new TestDataSource<TestSnapshotPayload, ObjectUpdate>({
                 internalCache: mockInternalCache,
                 dynamo: mockDynamo,
+                sns: mockSns,
                 primaryKeyName: 'AssetId',
                 dataSourceKey: 'mtw.objectUpdateDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
             })
             
             expect(objectUpdateDataSource).toBeDefined()
