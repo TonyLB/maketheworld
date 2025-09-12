@@ -1,5 +1,7 @@
 import { singleFlightFactory, SingleFlightConfig } from '../singleFlight'
 import { getCurrentTimestamp } from '../internalUtils/dateUtil'
+import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
+import { v4 as uuidv4 } from 'uuid'
 
 export type SerializableObject = Record<string, unknown>
 
@@ -121,8 +123,37 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         return generated
     }
 
-    async streamEvent({ update: _update }: { update: UpdatePayload }): Promise<void> {
-        throw new Error('Not implemented')
+    async streamEvent({ update, streamKey, detailType }: { update: UpdatePayload, streamKey: string, detailType: string }): Promise<void> {
+        const now = getCurrentTimestamp()
+        const eventId = `${now}::${uuidv4()}`
+        
+        // Create the event record for DynamoDB storage
+        const eventRecord = {
+            [this.primaryKeyName]: `STREAM#${this.dataSourceKey}::${streamKey}`,
+            DataCategory: `EVENT#${eventId}`,
+            update,
+            timestamp: now,
+            streamKey
+        }
+
+        // Create the EventBridge event
+        const eventBridgeEvent = {
+            Source: this.dataSourceKey,
+            DetailType: detailType,
+            Detail: {
+                streamKey,
+                update,
+                timestamp: now
+            }
+        }
+
+        // Execute both operations in parallel
+        await Promise.all([
+            // Store event to DynamoDB for replay
+            this.dynamo.putItem(eventRecord),
+            // Publish to EventBridge for real-time subscribers
+            eventBridgeClient.send([eventBridgeEvent])
+        ])
     }
 
     async initializeSubscription({ sessionId }: { sessionId: `SESSION#${string}` }): Promise<void> {

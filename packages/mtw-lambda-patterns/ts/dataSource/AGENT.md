@@ -26,6 +26,26 @@ Provide the tools to distribute incremental changes for specific streams, *both*
 
 **Purpose**: Broadcast incremental changes to subscribers who are already synchronized with the current state for their specific stream.
 
+**Method**: `streamEvent({ update, streamKey, detailType })`
+- **`update`**: The incremental change data (string or object)
+- **`streamKey`**: Identifier for the specific stream within the data source
+- **`detailType`**: EventBridge DetailType for the event (e.g., `"Character Updated"`, `"Asset Modified"`)
+
+**Parallel Operations**: Executes DynamoDB storage and EventBridge publishing simultaneously for optimal performance.
+
+**EventBridge Event Structure**:
+```typescript
+{
+    Source: 'mtw.assets',           // dataSourceKey - identifies the publishing service
+    DetailType: 'Character Updated', // detailType parameter - describes the event type
+    Detail: {
+        streamKey: 'char-123',      // streamKey parameter - identifies the specific stream
+        update: { /* change data */ }, // update parameter - the actual change data
+        timestamp: 1703123456789    // when the event occurred
+    }
+}
+```
+
 #### **3. Replay Serialization**
 Deserialize data from the replay store for a specific stream and deliver it to the user in response to an `Initialize Subscription` message.
 
@@ -34,7 +54,7 @@ Deserialize data from the replay store for a specific stream and deliver it to t
 ### Data Storage Strategy
 
 #### **Local DynamoDB Table**
-Each data source maintains a local DynamoDB table for replay data across multiple subscribable streams. The Primary Key will be variable (`AssetId`, `EphemeraId`, and so on), but the general pattern will be that all stream records have a PK of `STREAM#${category}::${streamIdentifier}`.
+Each data source maintains a local DynamoDB table for replay data across multiple subscribable streams. The Primary Key will be variable (`AssetId`, `EphemeraId`, and so on), but the general pattern will be that all stream records have a PK of `STREAM#${dataSourceKey}::${streamIdentifier}`.
 
 This granular PK structure enables:
 - **Stream Isolation**: Each stream maintains its own snapshot and event history
@@ -46,13 +66,42 @@ This granular PK structure enables:
 - **Snapshot Records**: DataCategory of `Meta::Snapshot` - Contains the complete current state for a specific stream
 - **Event Records**: DataCategory of `EVENT#${epochTime}::${uuid}` - Contains incremental changes for a specific stream
 
+#### **Naming Conventions**
+
+**Data Source Keys**: The `dataSourceKey` parameter should use the full EventBridge source naming convention for consistency:
+
+- **Primary Data Sources**: Use the full EventBridge source name (e.g., `'mtw.assets'`, `'mtw.ephemera'`, `'mtw.connections'`)
+- **Sub-Sources**: For specialized data sources within a larger service, extend the pattern (e.g., `'mtw.assets.contentHeaders'`, `'mtw.assets.characterData'`)
+
+This naming convention ensures that:
+- **DynamoDB Keys**: Use the same identifier as EventBridge sources (`STREAM#mtw.assets::streamKey`)
+- **EventBridge Events**: Use the same source identifier (`Source: 'mtw.assets'`)
+- **Code Clarity**: Makes it immediately clear which service/system owns each data source
+- **Consistency**: Eliminates confusion between different naming schemes across the system
+
+**Examples**:
+```typescript
+// Primary data source
+const assetsDataSource = new DataSource({
+    dataSourceKey: 'mtw.assets',  // DynamoDB: STREAM#mtw.assets::assetId, EventBridge: Source: 'mtw.assets'
+    // ... other parameters
+});
+
+// Sub-source for specialized content
+const contentHeadersDataSource = new DataSource({
+    dataSourceKey: 'mtw.assets.contentHeaders',  // DynamoDB: STREAM#mtw.assets.contentHeaders::headerId, EventBridge: Source: 'mtw.assets.contentHeaders'
+    // ... other parameters
+});
+```
+
 ### Multi-Stream Architecture
 
 #### **Stream Differentiation**
 Each DataSource instance supports multiple independent streams, where each stream represents a distinct subset of data within the broader data category. For example:
-- **Asset DataSource**: Streams differentiated by `AssetId` - each asset has its own snapshot and event history
-- **Player DataSource**: Streams differentiated by `PlayerId` - each player has their own subscription stream
-- **Ephemera DataSource**: Streams differentiated by `EphemeraId` - each ephemeral object maintains its own state
+- **Asset DataSource** (`mtw.assets`): Streams differentiated by `AssetId` - each asset has its own snapshot and event history
+- **Player DataSource** (`mtw.players`): Streams differentiated by `PlayerId` - each player has their own subscription stream
+- **Ephemera DataSource** (`mtw.ephemera`): Streams differentiated by `EphemeraId` - each ephemeral object maintains its own state
+- **Content Headers Sub-Source** (`mtw.assets.contentHeaders`): Specialized streams for content header data within the assets service
 
 #### **Concurrent Stream Processing**
 The multi-stream architecture enables:
