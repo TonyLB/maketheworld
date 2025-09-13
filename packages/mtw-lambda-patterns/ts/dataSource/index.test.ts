@@ -63,6 +63,7 @@ class TestDataSource<SnapshotPayload extends SerializableObject, UpdatePayload e
 describe('DataSource', () => {
     let mockDynamo: any
     let mockSns: any
+    let mockMessageBus: any
     let mockSnapshotContentGenerator: jest.MockedFunction<(streamKey: string) => Promise<TestSnapshotPayload>>
     let mockSingleFlight: jest.MockedFunction<any>
     let dataSource: TestDataSource<TestSnapshotPayload, TestUpdatePayload>
@@ -85,6 +86,12 @@ describe('DataSource', () => {
         // Mock SNS utilities
         mockSns = {
             send: jest.fn().mockResolvedValue({})
+        }
+        
+        // Mock messageBus
+        mockMessageBus = {
+            send: jest.fn(),
+            subscribe: jest.fn()
         }
         
         // Mock snapshot content generator
@@ -113,6 +120,7 @@ describe('DataSource', () => {
         dataSource = new TestDataSource({
             dynamo: mockDynamo,
             sns: mockSns,
+            messageBus: mockMessageBus,
             primaryKeyName: 'AssetId',
             dataSourceKey: 'mtw.testDataSource',
             snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -145,6 +153,7 @@ describe('DataSource', () => {
             const dataSourceWithDefaults = new TestDataSource({
                 dynamo: mockDynamo,
                 sns: mockSns,
+                messageBus: mockMessageBus,
                 primaryKeyName: 'AssetId',
                 dataSourceKey: 'mtw.testDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -388,6 +397,7 @@ describe('DataSource', () => {
             const dataSourceWithDifferentKey = new TestDataSource({
                 dynamo: mockDynamo,
                 sns: mockSns,
+                messageBus: mockMessageBus,
                 primaryKeyName: 'EphemeraId',
                 dataSourceKey: 'mtw.differentDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -488,6 +498,7 @@ describe('DataSource', () => {
             const dataSourceWithDifferentKey = new TestDataSource({
                 dynamo: mockDynamo,
                 sns: mockSns,
+                messageBus: mockMessageBus,
                 primaryKeyName: 'EphemeraId',
                 dataSourceKey: 'mtw.differentDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -594,6 +605,7 @@ describe('DataSource', () => {
             const dataSourceWithDifferentKey = new TestDataSource({
                 dynamo: mockDynamo,
                 sns: mockSns,
+                messageBus: mockMessageBus,
                 primaryKeyName: 'EphemeraId',
                 dataSourceKey: 'mtw.differentDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -711,6 +723,26 @@ describe('DataSource', () => {
                 }
             }])
         })
+
+        it('should publish to messageBus for internal event coordination', async () => {
+            const streamKey = 'test-stream'
+            const update = 'test-update'
+            const detailType = 'Test Stream Event'
+            
+            await dataSource.streamEvent({ update, streamKey, detailType })
+            
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                messageType: 'StreamingEvent',
+                dataSourceKey: 'mtw.testDataSource',
+                event: {
+                    streamKey: 'test-stream',
+                    update: 'test-update',
+                    timestamp: 100000000,
+                    detailType: 'Test Stream Event'
+                },
+                timestamp: 100000000
+            })
+        })
     })
 
     describe('initializeSubscription', () => {
@@ -817,6 +849,7 @@ describe('DataSource', () => {
             const complexDataSource = new TestDataSource<ComplexSnapshot, string>({
                 dynamo: mockDynamo,
                 sns: mockSns,
+                messageBus: mockMessageBus,
                 primaryKeyName: 'AssetId',
                 dataSourceKey: 'mtw.complexDataSource',
                 snapshotContentGenerator: jest.fn().mockResolvedValue({
@@ -834,6 +867,7 @@ describe('DataSource', () => {
             const stringUpdateDataSource = new TestDataSource<TestSnapshotPayload, string>({
                 dynamo: mockDynamo,
                 sns: mockSns,
+                messageBus: mockMessageBus,
                 primaryKeyName: 'AssetId',
                 dataSourceKey: 'mtw.stringUpdateDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -852,6 +886,7 @@ describe('DataSource', () => {
             const objectUpdateDataSource = new TestDataSource<TestSnapshotPayload, ObjectUpdate>({
                 dynamo: mockDynamo,
                 sns: mockSns,
+                messageBus: mockMessageBus,
                 primaryKeyName: 'AssetId',
                 dataSourceKey: 'mtw.objectUpdateDataSource',
                 snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -888,6 +923,7 @@ describe('DataSource', () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
+                    messageBus: mockMessageBus,
                     primaryKeyName: 'AssetId',
                     dataSourceKey: 'mtw.testDataSource',
                     snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -896,7 +932,7 @@ describe('DataSource', () => {
                     // No subscribedEventTypeGuard provided
                 })
 
-                dataSource.subscribe(mockMessageBus)
+                dataSource.subscribe()
 
                 expect(mockMessageBus.subscribe).not.toHaveBeenCalled()
             })
@@ -905,6 +941,7 @@ describe('DataSource', () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
+                    messageBus: mockMessageBus,
                     primaryKeyName: 'AssetId',
                     dataSourceKey: 'mtw.testDataSource',
                     snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -913,7 +950,7 @@ describe('DataSource', () => {
                     // No receiveEvents provided
                 })
 
-                dataSource.subscribe(mockMessageBus)
+                dataSource.subscribe()
 
                 expect(mockMessageBus.subscribe).not.toHaveBeenCalled()
             })
@@ -922,6 +959,7 @@ describe('DataSource', () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
+                    messageBus: mockMessageBus,
                     primaryKeyName: 'AssetId',
                     dataSourceKey: 'mtw.testDataSource',
                     snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -930,7 +968,7 @@ describe('DataSource', () => {
                     receiveEvents: mockReceiveEvents
                 })
 
-                dataSource.subscribe(mockMessageBus)
+                dataSource.subscribe()
 
                 expect(mockMessageBus.subscribe).toHaveBeenCalledWith({
                     tag: 'dataSource-mtw.testDataSource',
@@ -960,6 +998,7 @@ describe('DataSource', () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
+                    messageBus: mockMessageBus,
                     primaryKeyName: 'AssetId',
                     dataSourceKey: 'mtw.testDataSource',
                     snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -968,7 +1007,7 @@ describe('DataSource', () => {
                     receiveEvents: mockReceiveEvents
                 })
 
-                dataSource.subscribe(mockMessageBus)
+                dataSource.subscribe()
 
                 const subscription = mockMessageBus.subscribe.mock.calls[0][0]
                 const typeGuard = subscription.filter
@@ -1053,6 +1092,7 @@ describe('DataSource', () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
+                    messageBus: mockMessageBus,
                     primaryKeyName: 'AssetId',
                     dataSourceKey: 'mtw.testDataSource',
                     snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -1061,7 +1101,7 @@ describe('DataSource', () => {
                     receiveEvents: mockReceiveEvents
                 })
 
-                dataSource.subscribe(mockMessageBus)
+                dataSource.subscribe()
 
                 const subscription = mockMessageBus.subscribe.mock.calls[0][0]
                 const callback = subscription.callback
@@ -1118,6 +1158,7 @@ describe('DataSource', () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
+                    messageBus: mockMessageBus,
                     primaryKeyName: 'AssetId',
                     dataSourceKey: 'mtw.testDataSource',
                     snapshotContentGenerator: mockSnapshotContentGenerator,
@@ -1126,7 +1167,7 @@ describe('DataSource', () => {
                     receiveEvents: errorReceiveEvents
                 })
 
-                dataSource.subscribe(mockMessageBus)
+                dataSource.subscribe()
 
                 const subscription = mockMessageBus.subscribe.mock.calls[0][0]
                 const callback = subscription.callback
