@@ -6,11 +6,12 @@ The `DataSource` pattern provides a standardized foundation for implementing dat
 
 ## Core Purpose
 
-The DataSource pattern addresses three critical needs for data source implementation:
+The DataSource pattern addresses four critical needs for data source implementation:
 
 - **Snapshot Generation**: Create materialized state snapshots for individual streams within data categories
 - **Event Streaming**: Stream filtered change events to subscribers for specific streams
 - **Replay Support**: Store and fetch snapshots and recent events for new subscriber onboarding to individual streams
+- **Event Subscription**: Subscribe to incoming events from other data sources and process them into local state changes
 
 ## Architecture Overview
 
@@ -28,10 +29,17 @@ The DataSource pattern implements a dual-delivery architecture that efficiently 
 3. **SNS Feedback**: Replay data goes through SNS Feedback topic for targeted delivery
 4. **WebSocket Delivery**: SNS delivers directly to the requesting session's WebSocket
 
+### **Event Subscription Pipeline**
+1. **Incoming Events**: EventBridge events are received by lambda and routed to messageBus
+2. **DataSource Subscription**: DataSource subscribes to relevant messageBus events using type guards
+3. **Event Processing**: `receiveEvent` function processes incoming events and generates local state changes
+4. **State Updates**: Processed events result in `streamEvent` calls to update local streams
+
 This architecture ensures that:
 - **Live events** reach all current subscribers efficiently
 - **Replay events** reach only the requesting subscriber without unnecessary fan-out
 - **Complete context** is provided to new subscribers before they start receiving live events
+- **External events** are processed and integrated into local data source state
 
 ## Technical Details
 
@@ -115,6 +123,52 @@ await Promise.all(streamKeys.map(streamKey =>
 ));
 ```
 
+#### **4. Event Subscription**
+Subscribe to incoming events from other data sources and process them into local state changes through the messageBus system.
+
+**Purpose**: Enable data sources to react to external events and maintain derived state, creating a comprehensive event mesh where data sources can depend on and respond to changes in other domains.
+
+**Method**: `subscribe(messageBus)` - Registers the data source with the messageBus for event processing
+- **`messageBus`**: The InternalMessageBus instance to subscribe to
+- **Type Guards**: Automatically derived from the `receiveEvent` function signature
+- **Priority**: Configurable priority for event processing order
+
+**Event Processing**: `receiveEvent(event, messageBus)` - Processes incoming events and generates local state changes
+- **`event`**: The incoming event payload (type-safe based on subscription)
+- **`messageBus`**: The messageBus instance for sending follow-up messages
+- **Returns**: Promise that resolves when event processing is complete
+
+**Integration with MessageBus**: The data source integrates seamlessly with the existing messageBus pattern:
+- **Type Safety**: Full TypeScript integration with type guards derived from `receiveEvent` signature
+- **Priority Ordering**: Events are processed according to messageBus priority system
+- **Error Handling**: Graceful failure without breaking other messageBus handlers
+- **Stream Processing**: Events persist in messageBus for multiple handler consumption
+
+**Usage Pattern**: Data sources subscribe to messageBus events and process them into local state changes:
+```typescript
+// Define event processing function
+const receiveEvent = async (event: IncomingEventType, messageBus: InternalMessageBus<MessageType>) => {
+    // Process incoming event and generate local state changes
+    const localChanges = await processIncomingEvent(event);
+    
+    // Stream local changes to subscribers
+    await dataSource.streamEvent({
+        update: localChanges,
+        streamKey: event.streamKey,
+        detailType: 'Derived State Updated'
+    });
+};
+
+// Subscribe to messageBus
+dataSource.subscribe(messageBus);
+```
+
+**EventBridge Integration**: The subscription system works with the broader EventBridge architecture:
+- **Event Reception**: Lambda receives EventBridge events and routes them to messageBus
+- **Type Filtering**: Data source only processes events it's interested in via type guards
+- **State Derivation**: Incoming events are processed into local state changes
+- **Event Propagation**: Local changes are streamed to subscribers via EventBridge
+
 ### Data Storage Strategy
 
 #### **Local DynamoDB Table**
@@ -174,6 +228,57 @@ The multi-stream architecture enables:
 - **Selective Subscriptions**: Clients can subscribe to specific streams without receiving data from unrelated streams
 - **Efficient Resource Utilization**: Only active streams consume computational resources for snapshot generation
 
+### TypeScript Type Constraints
+
+#### **MessageBus Integration Types**
+The DataSource pattern extends the existing messageBus system with type-safe event subscription capabilities:
+
+**DataSource Message Type**: A generic constraint that applies to messageBus messages intended for consumption by data sources:
+```typescript
+type DataSourceMessage<EventType> = {
+    messageType: 'DataSourceEvent';
+    dataSourceKey: string;
+    event: EventType;
+    timestamp: number;
+}
+```
+
+**Type Guard Derivation**: The `receiveEvent` function signature automatically determines the type guard for messageBus subscription:
+```typescript
+// Type guard is derived from receiveEvent function signature
+const receiveEvent = async (event: IncomingEventType, messageBus: InternalMessageBus<MessageType>) => {
+    // Event processing logic
+};
+
+// TypeScript automatically infers the type guard for subscription
+dataSource.subscribe(messageBus); // Type-safe subscription based on receiveEvent signature
+```
+
+**Event Processing Contract**: The `receiveEvent` function must follow a specific contract:
+- **First Parameter**: The event payload type that the data source can process
+- **Second Parameter**: The messageBus instance for sending follow-up messages
+- **Return Type**: Promise that resolves when event processing is complete
+- **Error Handling**: Should handle errors gracefully without breaking messageBus processing
+
+#### **Constructor Configuration**
+The DataSource constructor is extended to support event subscription configuration:
+
+```typescript
+constructor({
+    // ... existing parameters
+    receiveEvent?: (event: IncomingEventType, messageBus: InternalMessageBus<MessageType>) => Promise<void>;
+    subscriptionPriority?: number;
+}: {
+    // ... existing parameters
+    receiveEvent?: (event: IncomingEventType, messageBus: InternalMessageBus<MessageType>) => Promise<void>;
+    subscriptionPriority?: number;
+})
+```
+
+**Configuration Parameters**:
+- **`receiveEvent`**: Optional function to process incoming events (if not provided, subscription is disabled)
+- **`subscriptionPriority`**: Priority for messageBus event processing (defaults to 5 for standard business logic)
+
 ## Integration Points
 
 ### Dependencies
@@ -184,12 +289,197 @@ The multi-stream architecture enables:
 
 ### Cross-References
 - **[SingleFlight Pattern](../singleFlight/AGENT.md)**: Distributed coordination for snapshot generation
-- **[MessageBus Pattern](../messageBus/AGENT.md)**: Internal event coordination
+- **[MessageBus Pattern](../messageBus/AGENT.md)**: Internal event coordination and subscription management
 - **[Internal Cache Pattern](../internalCache/AGENT.md)**: Performance optimization
 - **[Lambda Development Guide](../../../AGENT.development.md)**: General lambda patterns
 - **[Architecture Philosophy](../../../AGENT.architecture.philosophy.md)**: System design principles
 
+### EventBridge Integration Patterns
+
+#### **Incoming Event Processing**
+The DataSource pattern integrates with EventBridge through a standardized messageBus routing pattern:
+
+**Event Reception**: Lambda handlers receive EventBridge events and route them to messageBus:
+```typescript
+// In lambda handler (e.g., app.ts)
+export const handler = async (event: EventBridgeEvent) => {
+    // Route EventBridge event to messageBus
+    messageBus.send({
+        messageType: 'DataSourceEvent',
+        dataSourceKey: event.source,
+        event: event.detail,
+        timestamp: Date.now()
+    });
+    
+    // Process all messageBus subscriptions
+    await messageBus.flush();
+};
+```
+
+**Data Source Subscription**: Data sources automatically subscribe to relevant events:
+```typescript
+// Data source subscribes to messageBus
+const dataSource = new DataSource({
+    // ... other configuration
+    receiveEvent: async (event: AssetEvent, messageBus: InternalMessageBus<MessageType>) => {
+        // Process incoming asset event and update local state
+        await processAssetEvent(event);
+    },
+    subscriptionPriority: 4 // Process after critical system operations
+});
+
+// Subscribe to messageBus
+dataSource.subscribe(messageBus);
+```
+
+#### **EventBridge Architecture Simplification**
+The subscription system enables a simplified EventBridge architecture:
+
+**Before**: Complex EventBridge routing with multiple direct subscriptions
+- Each lambda directly subscribes to multiple EventBridge event types
+- Complex routing logic in each lambda handler
+- Tight coupling between event sources and consumers
+
+**After**: Centralized messageBus routing with data source subscriptions
+- Single EventBridge event handler routes all events to messageBus
+- Data sources subscribe to messageBus events they care about
+- Loose coupling with type-safe event processing
+- Easier testing and maintenance
+
+**Benefits**:
+- **Simplified Event Handling**: Single point of EventBridge event reception
+- **Type Safety**: Full TypeScript integration with derived type guards
+- **Flexible Routing**: Data sources can subscribe to any messageBus event type
+- **Better Testing**: MessageBus events can be easily mocked and tested
+- **Performance**: Reduced EventBridge subscription complexity
+
 ## Usage Patterns
+
+### **Basic Data Source Setup**
+Create a data source with snapshot generation, event streaming, and replay capabilities:
+
+```typescript
+const dataSource = new DataSource({
+    internalCache: internalCache,
+    dynamo: dynamoUtils,
+    sns: snsUtils,
+    primaryKeyName: 'AssetId',
+    dataSourceKey: 'mtw.assets',
+    snapshotContentGenerator: async (streamKey: string) => {
+        // Generate current state snapshot for the stream
+        return await generateAssetSnapshot(streamKey);
+    },
+    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:feedback-topic'
+});
+```
+
+### **Event Subscription Setup**
+Add event subscription capabilities to process incoming events:
+
+```typescript
+const dataSource = new DataSource({
+    // ... basic configuration
+    receiveEvent: async (event: AssetEvent, messageBus: InternalMessageBus<MessageType>) => {
+        // Process incoming asset event
+        const localChanges = await processIncomingAssetEvent(event);
+        
+        // Stream local changes to subscribers
+        await dataSource.streamEvent({
+            update: localChanges,
+            streamKey: event.assetId,
+            detailType: 'Asset State Updated'
+        });
+    },
+    subscriptionPriority: 4 // Process after critical operations
+});
+
+// Subscribe to messageBus
+dataSource.subscribe(messageBus);
+```
+
+### **Complete Lambda Integration**
+Integrate data source with lambda handler and messageBus:
+
+```typescript
+// In lambda handler (app.ts)
+export const handler = async (event: EventBridgeEvent) => {
+    // Create messageBus
+    const messageBus = new InternalMessageBus<MessageType>();
+    
+    // Create data source with subscription
+    const dataSource = new DataSource({
+        // ... configuration
+        receiveEvent: async (event: AssetEvent, messageBus) => {
+            // Process incoming events
+        }
+    });
+    
+    // Subscribe data source to messageBus
+    dataSource.subscribe(messageBus);
+    
+    // Route EventBridge event to messageBus
+    messageBus.send({
+        messageType: 'DataSourceEvent',
+        dataSourceKey: event.source,
+        event: event.detail,
+        timestamp: Date.now()
+    });
+    
+    // Process all subscriptions
+    await messageBus.flush();
+};
+```
+
+### **Multi-Stream Subscriptions**
+Handle multiple streams with different event types:
+
+```typescript
+// Data source that processes multiple event types
+const dataSource = new DataSource({
+    // ... basic configuration
+    receiveEvent: async (event: AssetEvent | CharacterEvent, messageBus: InternalMessageBus<MessageType>) => {
+        if (event.type === 'AssetEvent') {
+            // Process asset event
+            await processAssetEvent(event);
+        } else if (event.type === 'CharacterEvent') {
+            // Process character event
+            await processCharacterEvent(event);
+        }
+    }
+});
+```
+
+### **Error Handling Patterns**
+Implement robust error handling for event processing:
+
+```typescript
+const dataSource = new DataSource({
+    // ... basic configuration
+    receiveEvent: async (event: AssetEvent, messageBus: InternalMessageBus<MessageType>) => {
+        try {
+            // Process incoming event
+            const result = await processEvent(event);
+            
+            // Stream successful result
+            await dataSource.streamEvent({
+                update: result,
+                streamKey: event.assetId,
+                detailType: 'Asset Processed Successfully'
+            });
+        } catch (error) {
+            // Log error but don't break messageBus processing
+            console.error('Failed to process asset event:', error);
+            
+            // Optionally stream error state
+            await dataSource.streamEvent({
+                update: { error: error.message, status: 'failed' },
+                streamKey: event.assetId,
+                detailType: 'Asset Processing Failed'
+            });
+        }
+    }
+});
+```
 
 ## Development Guidelines
 
@@ -218,6 +508,10 @@ This initial implementation focuses on the three core capabilities:
 - **Claim-check pattern**: Large snapshots or event contents should push to S3 and deliver a claim-check record with objectName and preSigned URL
 - **Metrics**: Built-in performance monitoring and analytics
 - **Retention Policies**: Configurable data retention strategies
+- **Event Filtering**: Advanced filtering capabilities for incoming events based on content or metadata
+- **Batch Processing**: Process multiple incoming events in batches for improved performance
+- **Event Ordering**: Guarantee ordered processing of events from the same source
+- **Dead Letter Queues**: Handle failed event processing with retry and dead letter queue patterns
 
 ## Navigation Tips
 
