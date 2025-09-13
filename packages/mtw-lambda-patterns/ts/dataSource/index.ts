@@ -3,6 +3,7 @@ import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
 import { PublishCommand } from '@aws-sdk/client-sns'
+import { StreamingEvent, StreamingEventPayload } from './baseClasses'
 
 export type SerializableObject = Record<string, unknown>
 
@@ -40,7 +41,7 @@ export type SnsUtils = {
     send: (command: PublishCommand) => Promise<unknown>
 }
 
-export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends string | SerializableObject> {
+export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends string | SerializableObject, SubscribedEvent extends StreamingEventPayload | never = never> {
     readonly internalCache: unknown
     readonly dynamo: DynamoUtils
     readonly sns: SnsUtils
@@ -49,6 +50,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     readonly snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>
     readonly singleFlight: ReturnType<typeof singleFlightFactory<SnapshotType<SnapshotPayload>>>
     readonly feedbackTopicArn: string
+    readonly subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent
     _snapshot: SnapshotType<SnapshotPayload> | undefined
 
     constructor({ 
@@ -59,7 +61,8 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         dataSourceKey,
         snapshotContentGenerator,
         feedbackTopicArn,
-        snapshotTimeoutMs = 5000
+        snapshotTimeoutMs = 5000,
+        subscribedEventTypeGuard
     }: { 
         internalCache: unknown, 
         dynamo: DynamoUtils,
@@ -68,7 +71,8 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         dataSourceKey: string,
         snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>,
         feedbackTopicArn: string,
-        snapshotTimeoutMs?: number
+        snapshotTimeoutMs?: number,
+        subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent
     }) {
         this.internalCache = internalCache
         this.dynamo = dynamo
@@ -77,6 +81,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         this.dataSourceKey = dataSourceKey
         this.snapshotContentGenerator = snapshotContentGenerator
         this.feedbackTopicArn = feedbackTopicArn
+        this.subscribedEventTypeGuard = subscribedEventTypeGuard
         this._snapshot = undefined
 
         // Initialize singleFlight for snapshot generation coordination
@@ -287,6 +292,49 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
             [this.primaryKeyName]: primaryKey,
             DataCategory: 'Meta::Snapshot',
             ...snapshot
+        })
+    }
+
+    //
+    // Stub method for processing incoming events.
+    // Should be overridden by subclasses or provided via constructor.
+    //
+    protected async receiveEvent(event: SubscribedEvent): Promise<void> {
+        // Default implementation - should be overridden
+        throw new Error('receiveEvent method must be implemented')
+    }
+
+    //
+    // Subscribe this data source to a messageBus for processing incoming events.
+    // Only subscribes if subscribedEventTypeGuard is configured.
+    //
+    subscribe(messageBus: { subscribe: (subscription: any) => void }): void {
+        if (!this.subscribedEventTypeGuard) {
+            return // No event processing configured
+        }
+
+        // Create a derived type guard that works with the full StreamingEvent structure
+        const streamingEventTypeGuard = (message: any): message is StreamingEvent => {
+            if (!this.subscribedEventTypeGuard) {
+                return false
+            }
+            if (message.messageType !== 'StreamingEvent') {
+                return false
+            }
+            const { messageType, ...rest } = message
+            return this.subscribedEventTypeGuard(rest)
+        }
+
+        // Subscribe to messageBus with the derived type guard and receiveEvent callback
+        messageBus.subscribe({
+            tag: `dataSource-${this.dataSourceKey}`,
+            priority: 5, // Default priority for data source processing
+            filter: streamingEventTypeGuard,
+            callback: async ({ payloads }) => {
+                await Promise.all(
+                    payloads.map((streamingEvent) => (this.receiveEvent(streamingEvent.event)))
+                )
+            }
         })
     }
 }
