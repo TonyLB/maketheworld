@@ -48,6 +48,10 @@ export type StreamEventFunction<UpdatePayload extends string | SerializableObjec
 export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends string | SerializableObject, SubscribedEvent extends StreamingEventPayload | never = never> {
     readonly dynamo: DynamoUtils
     readonly sns: SnsUtils
+    readonly messageBus: { 
+        send: (payload: any) => void;
+        subscribe: (subscription: any) => void;
+    }
     readonly primaryKeyName: string
     readonly dataSourceKey: string
     readonly snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>
@@ -63,6 +67,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     constructor({ 
         dynamo,
         sns,
+        messageBus,
         primaryKeyName,
         dataSourceKey,
         snapshotContentGenerator,
@@ -73,6 +78,10 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }: { 
         dynamo: DynamoUtils,
         sns: SnsUtils,
+        messageBus: { 
+            send: (payload: any) => void;
+            subscribe: (subscription: any) => void;
+        },
         primaryKeyName: string,
         dataSourceKey: string,
         snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>,
@@ -86,6 +95,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }) {
         this.dynamo = dynamo
         this.sns = sns
+        this.messageBus = messageBus
         this.primaryKeyName = primaryKeyName
         this.dataSourceKey = dataSourceKey
         this.snapshotContentGenerator = snapshotContentGenerator
@@ -176,13 +186,30 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
             }
         }
 
-        // Execute both operations in parallel
+        // Create the internal messageBus event
+        const messageBusEvent = {
+            messageType: 'StreamingEvent' as const,
+            dataSourceKey: this.dataSourceKey,
+            event: {
+                streamKey,
+                update,
+                timestamp: now,
+                detailType
+            },
+            timestamp: now
+        }
+
+        // Execute all operations in parallel
         await Promise.all([
             // Store event to DynamoDB for replay
-            this.dynamo.putItem(eventRecord),
+            this.dynamo.putItem(eventRecord).then(() => {
+                // Publish to internal messageBus for other DataSources
+                this.messageBus.send(messageBusEvent)
+            }),
             // Publish to EventBridge for real-time subscribers
             eventBridgeClient.send([eventBridgeEvent])
         ])
+        
     }
 
     async initializeSubscription({ sessionId, streamKey }: { sessionId: `SESSION#${string}`, streamKey: string }): Promise<void> {
@@ -311,7 +338,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     // Subscribe this data source to a messageBus for processing incoming events.
     // Only subscribes if subscribedEventTypeGuard is configured.
     //
-    subscribe(messageBus: { subscribe: (subscription: any) => void }): void {
+    subscribe(): void {
         if (!this.subscribedEventTypeGuard || !this.receiveEvents) {
             return // No event processing configured
         }
@@ -329,7 +356,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         }
 
         // Subscribe to messageBus with the derived type guard and receiveEvents callback
-        messageBus.subscribe({
+        this.messageBus.subscribe({
             tag: `dataSource-${this.dataSourceKey}`,
             priority: 5, // Default priority for data source processing
             filter: streamingEventTypeGuard,

@@ -227,6 +227,7 @@ The subscription system enables a simplified EventBridge architecture:
 **Configuration Parameters to Localize**:
 - **`dynamo`**: DynamoDB utilities instance for the lambda's table
 - **`sns`**: SNS utilities instance for the lambda's region/account
+- **`messageBus`**: InternalMessageBus instance for internal event coordination
 - **`primaryKeyName`**: The primary key field name used in this lambda's domain
 - **`singleFlight`**: SingleFlight instance for distributed coordination
 - **`feedbackTopicArn`**: SNS topic ARN for replay data delivery
