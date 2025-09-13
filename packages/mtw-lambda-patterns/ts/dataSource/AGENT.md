@@ -360,7 +360,6 @@ Create a data source with snapshot generation, event streaming, and replay capab
 
 ```typescript
 const dataSource = new DataSource({
-    internalCache: internalCache,
     dynamo: dynamoUtils,
     sns: snsUtils,
     primaryKeyName: 'AssetId',

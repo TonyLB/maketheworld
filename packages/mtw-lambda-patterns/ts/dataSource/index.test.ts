@@ -61,7 +61,6 @@ class TestDataSource<SnapshotPayload extends SerializableObject, UpdatePayload e
 }
 
 describe('DataSource', () => {
-    let mockInternalCache: unknown
     let mockDynamo: any
     let mockSns: any
     let mockSnapshotContentGenerator: jest.MockedFunction<(streamKey: string) => Promise<TestSnapshotPayload>>
@@ -74,8 +73,6 @@ describe('DataSource', () => {
         // Mock getCurrentTimestamp to return predictable values
         mockGetCurrentTimestamp.mockReturnValue(100000000)
         
-        // Mock internal cache
-        mockInternalCache = {}
         
         // Mock DynamoDB utilities
         mockDynamo = {
@@ -114,7 +111,6 @@ describe('DataSource', () => {
         
         // Create TestDataSource instance
         dataSource = new TestDataSource({
-            internalCache: mockInternalCache,
             dynamo: mockDynamo,
             sns: mockSns,
             primaryKeyName: 'AssetId',
@@ -127,7 +123,6 @@ describe('DataSource', () => {
 
     describe('constructor', () => {
         it('should initialize with provided configuration', () => {
-            expect(dataSource.internalCache).toBe(mockInternalCache)
             expect(dataSource.dynamo).toBe(mockDynamo)
             expect(dataSource.sns).toBe(mockSns)
             expect(dataSource.primaryKeyName).toBe('AssetId')
@@ -148,7 +143,6 @@ describe('DataSource', () => {
 
         it('should use default snapshotTimeoutMs when not provided', () => {
             const dataSourceWithDefaults = new TestDataSource({
-                internalCache: mockInternalCache,
                 dynamo: mockDynamo,
                 sns: mockSns,
                 primaryKeyName: 'AssetId',
@@ -392,7 +386,6 @@ describe('DataSource', () => {
 
         it('should use different primary key names based on constructor', async () => {
             const dataSourceWithDifferentKey = new TestDataSource({
-                internalCache: mockInternalCache,
                 dynamo: mockDynamo,
                 sns: mockSns,
                 primaryKeyName: 'EphemeraId',
@@ -493,7 +486,6 @@ describe('DataSource', () => {
 
         it('should use different primary key names based on constructor', async () => {
             const dataSourceWithDifferentKey = new TestDataSource({
-                internalCache: mockInternalCache,
                 dynamo: mockDynamo,
                 sns: mockSns,
                 primaryKeyName: 'EphemeraId',
@@ -600,7 +592,6 @@ describe('DataSource', () => {
 
         it('should use different primary key names based on constructor', async () => {
             const dataSourceWithDifferentKey = new TestDataSource({
-                internalCache: mockInternalCache,
                 dynamo: mockDynamo,
                 sns: mockSns,
                 primaryKeyName: 'EphemeraId',
@@ -824,7 +815,6 @@ describe('DataSource', () => {
             }
             
             const complexDataSource = new TestDataSource<ComplexSnapshot, string>({
-                internalCache: mockInternalCache,
                 dynamo: mockDynamo,
                 sns: mockSns,
                 primaryKeyName: 'AssetId',
@@ -842,7 +832,6 @@ describe('DataSource', () => {
 
         it('should work with string UpdatePayload', () => {
             const stringUpdateDataSource = new TestDataSource<TestSnapshotPayload, string>({
-                internalCache: mockInternalCache,
                 dynamo: mockDynamo,
                 sns: mockSns,
                 primaryKeyName: 'AssetId',
@@ -861,7 +850,6 @@ describe('DataSource', () => {
             }
             
             const objectUpdateDataSource = new TestDataSource<TestSnapshotPayload, ObjectUpdate>({
-                internalCache: mockInternalCache,
                 dynamo: mockDynamo,
                 sns: mockSns,
                 primaryKeyName: 'AssetId',
@@ -871,6 +859,291 @@ describe('DataSource', () => {
             })
             
             expect(objectUpdateDataSource).toBeDefined()
+        })
+    })
+
+    describe('subscription functionality', () => {
+        let mockMessageBus: any
+        let mockReceiveEvents: jest.MockedFunction<any>
+        let mockSubscribedEventTypeGuard: jest.MockedFunction<any>
+
+        beforeEach(() => {
+            // Mock messageBus
+            mockMessageBus = {
+                subscribe: jest.fn()
+            }
+
+            // Mock receiveEvents function
+            mockReceiveEvents = jest.fn().mockResolvedValue(undefined)
+
+            // Mock type guard
+            mockSubscribedEventTypeGuard = jest.fn().mockReturnValue(true)
+
+            // Reset mocks
+            jest.clearAllMocks()
+        })
+
+        describe('subscribe', () => {
+            it('should not subscribe if subscribedEventTypeGuard is not provided', () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    receiveEvents: mockReceiveEvents
+                    // No subscribedEventTypeGuard provided
+                })
+
+                dataSource.subscribe(mockMessageBus)
+
+                expect(mockMessageBus.subscribe).not.toHaveBeenCalled()
+            })
+
+            it('should not subscribe if receiveEvents is not provided', () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard
+                    // No receiveEvents provided
+                })
+
+                dataSource.subscribe(mockMessageBus)
+
+                expect(mockMessageBus.subscribe).not.toHaveBeenCalled()
+            })
+
+            it('should subscribe to messageBus with correct configuration', () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard,
+                    receiveEvents: mockReceiveEvents
+                })
+
+                dataSource.subscribe(mockMessageBus)
+
+                expect(mockMessageBus.subscribe).toHaveBeenCalledWith({
+                    tag: 'dataSource-mtw.testDataSource',
+                    priority: 5,
+                    filter: expect.any(Function),
+                    callback: expect.any(Function)
+                })
+            })
+
+            it('should create correct type guard that filters by messageType and uses subscribedEventTypeGuard', () => {
+                // Mock the type guard to simulate real-world usage:
+                // 1. Check dataSourceKey to identify the publishing source
+                // 2. Apply specific filtering based on event content from that source
+                mockSubscribedEventTypeGuard.mockImplementation((event) => {
+                    // First check: is this from a data source we care about?
+                    if (event.dataSourceKey === 'mtw.assets') {
+                        // Second check: is this a specific type of asset event we want?
+                        return event.event.type === 'AssetUpdated' && event.event.assetId?.startsWith('char-')
+                    }
+                    if (event.dataSourceKey === 'mtw.ephemera') {
+                        // Different filtering logic for ephemera events
+                        return event.event.type === 'StateChanged' && event.event.zoneId === 'zone-123'
+                    }
+                    return false
+                })
+
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard,
+                    receiveEvents: mockReceiveEvents
+                })
+
+                dataSource.subscribe(mockMessageBus)
+
+                const subscription = mockMessageBus.subscribe.mock.calls[0][0]
+                const typeGuard = subscription.filter
+
+                // Test with valid asset event that matches our filtering criteria
+                const validAssetEvent = {
+                    messageType: 'StreamingEvent',
+                    dataSourceKey: 'mtw.assets',
+                    event: { type: 'AssetUpdated', assetId: 'char-123', name: 'Test Character' },
+                    timestamp: 123456789
+                }
+                expect(typeGuard(validAssetEvent)).toBe(true)
+                expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
+                    dataSourceKey: 'mtw.assets',
+                    event: { type: 'AssetUpdated', assetId: 'char-123', name: 'Test Character' },
+                    timestamp: 123456789
+                })
+
+                // Reset mock for next test
+                mockSubscribedEventTypeGuard.mockClear()
+
+                // Test with valid ephemera event that matches our filtering criteria
+                const validEphemeraEvent = {
+                    messageType: 'StreamingEvent',
+                    dataSourceKey: 'mtw.ephemera',
+                    event: { type: 'StateChanged', zoneId: 'zone-123', state: 'active' },
+                    timestamp: 123456790
+                }
+                expect(typeGuard(validEphemeraEvent)).toBe(true)
+                expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
+                    dataSourceKey: 'mtw.ephemera',
+                    event: { type: 'StateChanged', zoneId: 'zone-123', state: 'active' },
+                    timestamp: 123456790
+                })
+
+                // Reset mock for next test
+                mockSubscribedEventTypeGuard.mockClear()
+
+                // Test with wrong messageType
+                const wrongMessageType = {
+                    messageType: 'OtherEvent',
+                    dataSourceKey: 'mtw.assets',
+                    event: { type: 'AssetUpdated', assetId: 'char-123' },
+                    timestamp: 123456789
+                }
+                expect(typeGuard(wrongMessageType)).toBe(false)
+                expect(mockSubscribedEventTypeGuard).not.toHaveBeenCalled()
+
+                // Test with asset event that doesn't match our criteria (wrong asset type)
+                const wrongAssetType = {
+                    messageType: 'StreamingEvent',
+                    dataSourceKey: 'mtw.assets',
+                    event: { type: 'AssetUpdated', assetId: 'item-456' }, // Not a character
+                    timestamp: 123456789
+                }
+                expect(typeGuard(wrongAssetType)).toBe(false)
+                expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
+                    dataSourceKey: 'mtw.assets',
+                    event: { type: 'AssetUpdated', assetId: 'item-456' },
+                    timestamp: 123456789
+                })
+
+                // Reset mock for next test
+                mockSubscribedEventTypeGuard.mockClear()
+
+                // Test with ephemera event that doesn't match our criteria (wrong zone)
+                const wrongZone = {
+                    messageType: 'StreamingEvent',
+                    dataSourceKey: 'mtw.ephemera',
+                    event: { type: 'StateChanged', zoneId: 'zone-456' }, // Wrong zone
+                    timestamp: 123456789
+                }
+                expect(typeGuard(wrongZone)).toBe(false)
+                expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
+                    dataSourceKey: 'mtw.ephemera',
+                    event: { type: 'StateChanged', zoneId: 'zone-456' },
+                    timestamp: 123456789
+                })
+            })
+
+            it('should call receiveEvents for each filtered event', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard,
+                    receiveEvents: mockReceiveEvents
+                })
+
+                dataSource.subscribe(mockMessageBus)
+
+                const subscription = mockMessageBus.subscribe.mock.calls[0][0]
+                const callback = subscription.callback
+
+                // Mock streamEvent method
+                const mockStreamEvent = jest.spyOn(dataSource, 'streamEvent').mockResolvedValue(undefined)
+
+                // Test callback with multiple events from other data sources
+                const testEvents = [
+                    {
+                        messageType: 'StreamingEvent',
+                        dataSourceKey: 'mtw.otherDataSource',
+                        event: { type: 'event1', data: 'test1' },
+                        timestamp: 123456789
+                    },
+                    {
+                        messageType: 'StreamingEvent',
+                        dataSourceKey: 'mtw.anotherDataSource',
+                        event: { type: 'event2', data: 'test2' },
+                        timestamp: 123456790
+                    }
+                ]
+
+                await callback({ payloads: testEvents })
+
+                expect(mockReceiveEvents).toHaveBeenCalledTimes(2)
+                expect(mockReceiveEvents).toHaveBeenNthCalledWith(1, {
+                    event: { type: 'event1', data: 'test1' },
+                    streamEvent: expect.any(Function)
+                })
+                expect(mockReceiveEvents).toHaveBeenNthCalledWith(2, {
+                    event: { type: 'event2', data: 'test2' },
+                    streamEvent: expect.any(Function)
+                })
+
+                // Test that streamEvent function works
+                const streamEventFunction = mockReceiveEvents.mock.calls[0][0].streamEvent
+                await streamEventFunction({
+                    update: 'test-update',
+                    streamKey: 'test-stream',
+                    detailType: 'Test Event'
+                })
+
+                expect(mockStreamEvent).toHaveBeenCalledWith({
+                    update: 'test-update',
+                    streamKey: 'test-stream',
+                    detailType: 'Test Event'
+                })
+            })
+
+            it('should handle receiveEvents errors gracefully', async () => {
+                const errorReceiveEvents = jest.fn().mockRejectedValue(new Error('Processing failed'))
+                
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard,
+                    receiveEvents: errorReceiveEvents
+                })
+
+                dataSource.subscribe(mockMessageBus)
+
+                const subscription = mockMessageBus.subscribe.mock.calls[0][0]
+                const callback = subscription.callback
+
+                const testEvents = [
+                    {
+                        messageType: 'StreamingEvent',
+                        dataSourceKey: 'mtw.otherDataSource',
+                        event: { type: 'event1' },
+                        timestamp: 123456789
+                    }
+                ]
+
+                // Promise.all will reject if any promise rejects
+                await expect(callback({ payloads: testEvents })).rejects.toThrow('Processing failed')
+                expect(errorReceiveEvents).toHaveBeenCalled()
+            })
         })
     })
 })
