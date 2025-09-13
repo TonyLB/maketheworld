@@ -6,11 +6,12 @@ The `DataSource` pattern provides a standardized foundation for implementing dat
 
 ## Core Purpose
 
-The DataSource pattern addresses three critical needs for data source implementation:
+The DataSource pattern addresses four critical needs for data source implementation:
 
 - **Snapshot Generation**: Create materialized state snapshots for individual streams within data categories
 - **Event Streaming**: Stream filtered change events to subscribers for specific streams
 - **Replay Support**: Store and fetch snapshots and recent events for new subscriber onboarding to individual streams
+- **Event Subscription**: Subscribe to incoming events from other data sources and process them into local state changes
 
 ## Architecture Overview
 
@@ -28,10 +29,17 @@ The DataSource pattern implements a dual-delivery architecture that efficiently 
 3. **SNS Feedback**: Replay data goes through SNS Feedback topic for targeted delivery
 4. **WebSocket Delivery**: SNS delivers directly to the requesting session's WebSocket
 
+### **Event Subscription Pipeline**
+1. **Incoming Events**: EventBridge events are received by lambda and routed to messageBus
+2. **DataSource Subscription**: DataSource subscribes to relevant messageBus events using type guards
+3. **Event Processing**: `receiveEvent` function processes incoming events and generates local state changes
+4. **State Updates**: Processed events result in `streamEvent` calls to update local streams
+
 This architecture ensures that:
 - **Live events** reach all current subscribers efficiently
 - **Replay events** reach only the requesting subscriber without unnecessary fan-out
 - **Complete context** is provided to new subscribers before they start receiving live events
+- **External events** are processed and integrated into local data source state
 
 ## Technical Details
 
@@ -63,19 +71,6 @@ The DataSource pattern uses two different delivery mechanisms depending on the c
 
 This dual approach ensures efficient delivery while maintaining the correct scope for each type of event.
 
-**EventBridge Event Structure**:
-```typescript
-{
-    Source: 'mtw.assets',           // dataSourceKey - identifies the publishing service
-    DetailType: 'Character Updated', // detailType parameter - describes the event type
-    Detail: {
-        streamKey: 'char-123',      // streamKey parameter - identifies the specific stream
-        update: { /* change data */ }, // update parameter - the actual change data
-        timestamp: 1703123456789    // when the event occurred
-    }
-}
-```
-
 #### **3. Replay Serialization**
 Deserialize data from the replay store for a specific stream and deliver it directly to a specific subscriber via the Feedback SNS topic.
 
@@ -101,19 +96,32 @@ Deserialize data from the replay store for a specific stream and deliver it dire
 - **Efficient Replay**: Only the requesting session receives the replay data
 - **WebSocket Integration**: SNS messages are delivered to the session's WebSocket connection
 
-**Usage Pattern**: Clients typically subscribe to multiple streams, so `initializeSubscription` is called multiple times in parallel:
-```typescript
-// Client subscribes to multiple streams
-const streamKeys = ['asset-123', 'asset-456', 'character-789'];
+#### **4. Event Subscription**
+Subscribe to incoming events from other data sources and process them into local state changes through the messageBus system.
 
-// Initialize subscription for each stream in parallel
-await Promise.all(streamKeys.map(streamKey => 
-    dataSource.initializeSubscription({ 
-        sessionId: 'SESSION#user-123', 
-        streamKey 
-    })
-));
-```
+**Purpose**: Enable data sources to react to external events and maintain derived state, creating a comprehensive event mesh where data sources can depend on and respond to changes in other domains.
+
+**Method**: `subscribe(messageBus)` - Registers the data source with the messageBus for event processing
+- **`messageBus`**: The InternalMessageBus instance to subscribe to
+- **Type Guards**: Automatically derived from the `receiveEvent` function signature
+- **Priority**: Configurable priority for event processing order
+
+**Event Processing**: `receiveEvent(event, messageBus)` - Processes incoming events and generates local state changes
+- **`event`**: The incoming event payload (type-safe based on subscription)
+- **`messageBus`**: The messageBus instance for sending follow-up messages
+- **Returns**: Promise that resolves when event processing is complete
+
+**Integration with MessageBus**: The data source integrates seamlessly with the existing messageBus pattern:
+- **Type Safety**: Full TypeScript integration with type guards derived from `receiveEvent` signature
+- **Priority Ordering**: Events are processed according to messageBus priority system
+- **Error Handling**: Graceful failure without breaking other messageBus handlers
+- **Stream Processing**: Events persist in messageBus for multiple handler consumption
+
+**EventBridge Integration**: The subscription system works with the broader EventBridge architecture:
+- **Event Reception**: Lambda receives EventBridge events and routes them to messageBus
+- **Type Filtering**: Data source only processes events it's interested in via type guards
+- **State Derivation**: Incoming events are processed into local state changes
+- **Event Propagation**: Local changes are streamed to subscribers via EventBridge
 
 ### Data Storage Strategy
 
@@ -143,21 +151,6 @@ This naming convention ensures that:
 - **Code Clarity**: Makes it immediately clear which service/system owns each data source
 - **Consistency**: Eliminates confusion between different naming schemes across the system
 
-**Examples**:
-```typescript
-// Primary data source
-const assetsDataSource = new DataSource({
-    dataSourceKey: 'mtw.assets',  // DynamoDB: STREAM#mtw.assets::assetId, EventBridge: Source: 'mtw.assets'
-    // ... other parameters
-});
-
-// Sub-source for specialized content
-const contentHeadersDataSource = new DataSource({
-    dataSourceKey: 'mtw.assets.contentHeaders',  // DynamoDB: STREAM#mtw.assets.contentHeaders::headerId, EventBridge: Source: 'mtw.assets.contentHeaders'
-    // ... other parameters
-});
-```
-
 ### Multi-Stream Architecture
 
 #### **Stream Differentiation**
@@ -184,12 +177,39 @@ The multi-stream architecture enables:
 
 ### Cross-References
 - **[SingleFlight Pattern](../singleFlight/AGENT.md)**: Distributed coordination for snapshot generation
-- **[MessageBus Pattern](../messageBus/AGENT.md)**: Internal event coordination
+- **[MessageBus Pattern](../messageBus/AGENT.md)**: Internal event coordination and subscription management
 - **[Internal Cache Pattern](../internalCache/AGENT.md)**: Performance optimization
 - **[Lambda Development Guide](../../../AGENT.development.md)**: General lambda patterns
 - **[Architecture Philosophy](../../../AGENT.architecture.philosophy.md)**: System design principles
 
-## Usage Patterns
+### EventBridge Integration Patterns
+
+#### **Incoming Event Processing**
+The DataSource pattern integrates with EventBridge through a standardized messageBus routing pattern:
+
+**Event Reception**: Lambda handlers receive EventBridge events and route them to messageBus with appropriate message structure.
+**Data Source Subscription**: Data sources automatically subscribe to relevant events using their configured type guards and event processing functions.
+
+#### **EventBridge Architecture Simplification**
+The subscription system enables a simplified EventBridge architecture:
+
+**Before**: Complex EventBridge routing with multiple direct subscriptions
+- Each lambda directly subscribes to multiple EventBridge event types
+- Complex routing logic in each lambda handler
+- Tight coupling between event sources and consumers
+
+**After**: Centralized messageBus routing with data source subscriptions
+- Single EventBridge event handler routes all events to messageBus
+- Data sources subscribe to messageBus events they care about
+- Loose coupling with type-safe event processing
+- Easier testing and maintenance
+
+**Benefits**:
+- **Simplified Event Handling**: Single point of EventBridge event reception
+- **Type Safety**: Full TypeScript integration with derived type guards
+- **Flexible Routing**: Data sources can subscribe to any messageBus event type
+- **Better Testing**: MessageBus events can be easily mocked and tested
+- **Performance**: Reduced EventBridge subscription complexity
 
 ## Development Guidelines
 
@@ -198,6 +218,26 @@ The multi-stream architecture enables:
 - **Type Safety**: Full TypeScript integration with domain-specific types
 - **Error Handling**: Graceful degradation and retry logic
 - **Performance**: Efficient serialization and storage operations
+
+### Common Implementation Pattern
+**Lambda-Specific Sub-classing**: Create a sub-class of `DataSource` for each lambda to localize common configuration:
+
+**Purpose**: Eliminate repetitive constructor arguments by pre-configuring lambda-specific resources and settings.
+
+**Configuration Parameters to Localize**:
+- **`dynamo`**: DynamoDB utilities instance for the lambda's table
+- **`sns`**: SNS utilities instance for the lambda's region/account
+- **`primaryKeyName`**: The primary key field name used in this lambda's domain
+- **`singleFlight`**: SingleFlight instance for distributed coordination
+- **`feedbackTopicArn`**: SNS topic ARN for replay data delivery
+
+**Benefits**:
+- **Reduced Boilerplate**: Eliminate repetitive constructor configuration
+- **Consistency**: Ensure all data sources in a lambda use the same resources
+- **Maintainability**: Centralize lambda-specific configuration changes
+- **Type Safety**: Pre-configure domain-specific types and constraints
+
+**Usage Pattern**: Create a lambda-specific base class by extending `DataSource` with pre-configured common parameters, then instantiate that base class for individual data sources with only the unique parameters (dataSourceKey, snapshotContentGenerator, etc.).
 
 ### Testing Strategy
 - **Unit Tests**: Individual method functionality
@@ -218,6 +258,10 @@ This initial implementation focuses on the three core capabilities:
 - **Claim-check pattern**: Large snapshots or event contents should push to S3 and deliver a claim-check record with objectName and preSigned URL
 - **Metrics**: Built-in performance monitoring and analytics
 - **Retention Policies**: Configurable data retention strategies
+- **Event Filtering**: Advanced filtering capabilities for incoming events based on content or metadata
+- **Batch Processing**: Process multiple incoming events in batches for improved performance
+- **Event Ordering**: Guarantee ordered processing of events from the same source
+- **Dead Letter Queues**: Handle failed event processing with retry and dead letter queue patterns
 
 ## Navigation Tips
 
@@ -234,22 +278,3 @@ This initial implementation focuses on the three core capabilities:
 - **Replay Capability**: New subscribers can catch up from any point in time for their specific stream
 - **Concurrent Coordination**: SingleFlight ensures efficient snapshot generation across multiple lambda instances
 - **Performance**: Optimized for cost-effective operation with stream-specific resource utilization
-
-## Development Notes
-
-### **Limited Scope Approach**
-This first iteration deliberately focuses on a small, well-defined set of functionality to enable rapid prototyping and iteration. The goal is to establish the foundational patterns that can be extended in future iterations.
-
-### **Design Principles**
-- **Simplicity**: Start with essential functionality only
-- **Extensibility**: Design for future enhancement without breaking changes
-- **Performance**: Optimize for the perception-driven cost model
-- **Reliability**: Ensure robust operation in production environments
-
-### **Integration Strategy**
-The DataSource pattern is designed to integrate seamlessly with existing lambda patterns:
-- **MessageBus**: For internal event coordination
-- **Internal Cache**: For performance optimization
-- **Existing APIs**: For backward compatibility
-
-This focused approach enables rapid development while establishing the foundation for more comprehensive data source capabilities in future iterations.
