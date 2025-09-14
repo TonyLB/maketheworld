@@ -54,6 +54,13 @@ export const extractReturnValue = async (messageBus: MessageBus) => {
         .map(({ payload }) => (payload))
         .filter(isReturnValueMessage)
 
+    if (returnValueMessages.length === 0) {
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ messageType: 'Success', RequestId })
+        }
+    }
+
     const body = returnValueMessages.reduce((previous, { body }) => ({
         ...previous,
         ...body

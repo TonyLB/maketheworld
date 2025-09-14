@@ -125,12 +125,6 @@ export const handler = async (event, context) => {
             },
             timestamp: Date.now()
         })
-        
-        // Flush messageBus to process the event
-        await messageBus.flush()
-        
-        // Return success response
-        return {}
     }
 
     // Handle SNS messages
@@ -295,9 +289,6 @@ export const handler = async (event, context) => {
         }
     }
     await messageBus.flush()
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ messageType: 'Success' })
-    }
+    return await extractReturnValue(messageBus)
 
 }
