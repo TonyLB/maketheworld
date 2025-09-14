@@ -15,7 +15,8 @@ import {
     isReturnValueMessage,
     isCacheAssetMessage,
     isDecacheAssetMessage,
-    isCollaborationStatusMessage
+    isCollaborationStatusMessage,
+    isStreamingEventMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"

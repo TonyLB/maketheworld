@@ -32,6 +32,8 @@ import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
 import { isEphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { extractReturnValue } from './returnValue'
+import assetsDataSource from './dataSource'
 
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }
@@ -110,68 +112,25 @@ export const handler = async (event, context) => {
         return event
     }
 
-    // Handle EventBridge messages
-    if (event?.source === 'mtw.diagnostics') {
-        if (event["detail-type"] === 'Heal Global Values') {
-            const returnVal = await healGlobalValues({
-                shouldHealConnections: Boolean(event.detail?.connections),
-                shouldHealGlobalAssets: typeof event.detail?.assets !== 'boolean' || event.detail?.assets
-            })
-            return JSON.stringify(returnVal, null, 4)
-        }
-    }
-    if (event?.source === 'mtw.coordination') {
-        if (event["detail-type"] === 'Remove Asset') {
-            const { assetId } = event.detail
-            if (assetId) {
-                messageBus.send({
-                    type: 'RemoveAsset',
-                    assetId
-                })
-                await messageBus.flush()
-                return {}
-            }
-            else {
-                return JSON.stringify(`Invalid arguments specified for Remove Asset event`)
-            }
-        }
-        if (['Canonize Asset', 'Decanonize Asset'].includes(event["detail-type"])) {
-            const { assetId } = event.detail
-            if (assetId) {
-                messageBus.send({
-                    type: 'MoveByAssetId',
-                    AssetId: `ASSET#${assetId}`,
-                    toZone: event["detail-type"] === 'Canonize Asset' ? 'Canon' : 'Library'
-                })
-                await messageBus.flush()
-                //
-                // TODO: Redesign the way Canon is stored
-                //
-                const Items = await assetDB.query({
-                    IndexName: 'DataCategoryIndex',
-                    Key: {
-                        DataCategory: 'Meta::Asset'
-                    },
-                    FilterExpression: "zone = :canon",
-                    ExpressionAttributeValues: {
-                        ':canon': 'Canon'
-                    },
-                    ProjectionFields: ['AssetId', 'zone']
-                })
-                const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
-                const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
-                await eventBridgeClient.send([{
-                    Source: 'mtw.assets',
-                    DetailType: 'Canon Updated',
-                    Detail: { assetIds: globalAssetsSorted }
-                }])
-    
-                return {}
-            }
-            else {
-                return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
-            }
-        }
+    // Handle EventBridge messages by publishing to messageBus for DataSource processing
+    if (event?.source && event["detail-type"]) {
+        // Publish EventBridge event to messageBus for DataSource processing
+        messageBus.send({
+            type: 'StreamingEvent',
+            dataSourceKey: event.source,
+            event: {
+                source: event.source,
+                detailType: event["detail-type"],
+                detail: event.detail
+            },
+            timestamp: Date.now()
+        })
+        
+        // Flush messageBus to process the event
+        await messageBus.flush()
+        
+        // Return success response
+        return {}
     }
 
     // Handle SNS messages
