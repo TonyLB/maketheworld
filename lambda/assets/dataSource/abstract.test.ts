@@ -1,4 +1,4 @@
-import { AssetsDataSource } from './index'
+import { AssetsDataSource } from './abstract'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
 import messageBus from '../messageBus'
@@ -136,6 +136,23 @@ describe('AssetsDataSource', () => {
                 timestamp: expect.any(Number),
                 createdAt: expect.any(Number),
                 expiresAt: expect.any(Number)
+            })
+        })
+    })
+
+    describe('non-replayable data source', () => {
+        it('should work without snapshotContentGenerator', async () => {
+            const nonReplayableDataSource = new AssetsDataSource({
+                dataSourceKey: 'mtw.testNonReplayable',
+                replayable: false
+                // No snapshotContentGenerator provided
+            })
+
+            const snapshot = await nonReplayableDataSource.getSnapshot('test-stream')
+
+            expect(snapshot).toEqual({
+                streamKey: 'test-stream',
+                timestamp: expect.any(Number)
             })
         })
     })
