@@ -8,6 +8,14 @@ export type ReturnValueMessage = {
     body: Record<string, any>;
 }
 
+export type ErrorMessage = {
+    type: 'Error';
+    body: {
+        error: string;
+        statusCode?: number;
+    };
+}
+
 export type FetchLibraryMessage = {
     type: 'FetchLibrary';
 }
@@ -100,6 +108,7 @@ export type CollaborationStatusMessage = {
 }
 
 export type MessageType = ReturnValueMessage |
+    ErrorMessage |
     FetchLibraryMessage |
     FetchImportsMessage |
     FetchAssetMessage |
@@ -117,6 +126,7 @@ export type MessageType = ReturnValueMessage |
     CollaborationStatusMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
+export const isErrorMessage = (prop: MessageType): prop is ErrorMessage => (prop.type === 'Error')
 export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
 export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMessage => (prop.type === 'FetchAsset')
 export const isFetchImportsAPIMessage = (prop: MessageType): prop is FetchImportsMessage => (prop.type === 'FetchImports')
