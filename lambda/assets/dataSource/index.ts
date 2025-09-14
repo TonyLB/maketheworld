@@ -1,55 +1,49 @@
-import { DataSource, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { AssetsDataSource } from './abstract'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { snsClient } from '../clients'
 import messageBus from '../messageBus'
 
-/**
- * Assets-specific DataSource base class that pre-configures common parameters
- * for the assets lambda context.
- * 
- * This eliminates repetitive constructor arguments by pre-configuring:
- * - DynamoDB utilities for the assets table
- * - SNS utilities for the lambda's region/account
- * - MessageBus instance for internal event coordination
- * - Primary key name used in the assets domain
- * - Feedback topic ARN for replay data delivery
- */
-export class AssetsDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends string | SerializableObject, SubscribedEvent extends StreamingEventPayload = never> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent> {
-    constructor(params: {
-        dataSourceKey: string;
-        snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>;
-        snapshotTimeoutMs?: number;
-        subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent;
-        receiveEvents?: (params: { 
-            event: SubscribedEvent, 
-            streamEvent: (params: { update: UpdatePayload, streamKey: string, detailType: string }) => Promise<void>
-        }) => Promise<void>;
-    }) {
-        super({
-            dynamo: {
-                putItem: async (item: Record<string, any>) => {
-                    await assetDB.putItem(item as any);
-                },
-                getItem: async (args: any) => {
-                    return await assetDB.getItem(args) as any;
-                },
-                query: async (args: any) => {
-                    return await assetDB.query(args) as any;
-                },
-                optimisticUpdate: async (params: any) => {
-                    return await assetDB.optimisticUpdate(params);
-                }
-            },
-            sns: {
-                send: async (command: any) => {
-                    await snsClient.send(command);
-                }
-            },
-            messageBus: messageBus,
-            primaryKeyName: 'AssetId',
-            feedbackTopicArn: process.env.FEEDBACK_TOPIC!,
-            ...params
-        });
+//
+// Non-replayable DataSource singleton for mtw.assets
+// 
+// This DataSource handles serving event mesh items for the mtw.assets top-level
+// dataSource and processes incoming events that have impacts at the assets level.
+// 
+// Key responsibilities:
+// - Stream asset-level events to EventBridge for real-time subscribers
+// - Process incoming events from other data sources that affect assets
+// - Handle coordination events (canonization, removal, etc.)
+// - Process diagnostic events (healing, global values)
+// - Handle player and library update events
+//
+export const assetsDataSource = new AssetsDataSource({
+    dataSourceKey: 'mtw.assets',
+    replayable: false, // Non-replayable - focuses on event streaming and processing
+    // No snapshotContentGenerator needed for non-replayable data sources
+    subscribedEventTypeGuard: (event: StreamingEventPayload): event is StreamingEventPayload => {
+        // Subscribe to all streaming events from other data sources
+        // The specific event processing logic will be in receiveEvents
+        return true
+    },
+    receiveEvents: async ({ event, streamEvent }) => {
+        // Process incoming events from other data sources
+        // This is where we would handle events that impact the assets level
+        
+        // For now, we'll just pass through events that are relevant to assets
+        // In the future, this could include:
+        // - Processing player events that affect asset access
+        // - Handling ephemera events that reference assets
+        // - Processing coordination events from other services
+        
+        // Example: If we receive an event that should trigger an asset update
+        // await streamEvent({
+        //     update: { /* asset update data */ },
+        //     streamKey: event.streamKey || 'global',
+        //     detailType: 'Asset Updated'
+        // })
     }
-}
+})
+
+// Subscribe the DataSource to the messageBus for event processing
+assetsDataSource.subscribe()
+
+export default assetsDataSource

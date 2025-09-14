@@ -54,7 +54,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }
     readonly primaryKeyName: string
     readonly dataSourceKey: string
-    readonly snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>
+    readonly snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>
     readonly singleFlight?: ReturnType<typeof singleFlightFactory<SnapshotType<SnapshotPayload>>>
     readonly feedbackTopicArn: string
     readonly replayable: boolean
@@ -86,7 +86,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         },
         primaryKeyName: string,
         dataSourceKey: string,
-        snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>,
+        snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>,
         feedbackTopicArn: string,
         replayable?: boolean,
         snapshotTimeoutMs?: number,
@@ -122,6 +122,17 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
 
     async generateSnapshot(streamKey: string): Promise<SnapshotType<SnapshotPayload>> {
         const now = getCurrentTimestamp()
+        
+        // For non-replayable data sources or when no generator is provided, use minimal content
+        if (!this.replayable || !this.snapshotContentGenerator) {
+            return {
+                streamKey,
+                timestamp: now,
+                createdAt: now,
+                expiresAt: now + 300000 // 5 minutes default expiration
+            } as unknown as SnapshotType<SnapshotPayload>
+        }
+        
         const content = await this.snapshotContentGenerator(streamKey)
         return {
             ...content,
@@ -131,9 +142,9 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }
 
     async getSnapshot(streamKey: string): Promise<SnapshotPayload> {
-        // For non-replayable data sources, just generate snapshot without storage
+        // For non-replayable data sources, return a minimal snapshot without generation
         if (!this.replayable) {
-            return await this.generateSnapshot(streamKey)
+            return { streamKey, timestamp: getCurrentTimestamp() } as unknown as SnapshotPayload
         }
 
         // Check in-memory cache first
