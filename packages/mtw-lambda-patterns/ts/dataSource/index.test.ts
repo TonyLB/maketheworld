@@ -58,6 +58,10 @@ class TestDataSource<SnapshotPayload extends SerializableObject, UpdatePayload e
     public override async storeSnapshotToStore({ streamKey, snapshot }: { streamKey: string, snapshot: SnapshotType<SnapshotPayload> }): Promise<void> {
         return super.storeSnapshotToStore({ streamKey, snapshot })
     }
+
+    public override async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: UpdatePayload, timestamp: number, eventId: string }>> {
+        return super.getRecentEvents(streamKey, sinceTimestamp)
+    }
 }
 
 describe('DataSource', () => {
@@ -1184,6 +1188,258 @@ describe('DataSource', () => {
                 // Promise.all will reject if any promise rejects
                 await expect(callback({ payloads: testEvents })).rejects.toThrow('Processing failed')
                 expect(errorReceiveEvents).toHaveBeenCalled()
+            })
+        })
+    })
+
+    describe('replayable flag functionality', () => {
+        describe('replayable: true (default)', () => {
+            it('should initialize singleFlight when replayable is true', () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: true
+                })
+
+                expect(dataSource.replayable).toBe(true)
+                expect(dataSource.singleFlight).toBeDefined()
+                expect(mockSingleFlightFactory).toHaveBeenCalled()
+            })
+
+            it('should store events to DynamoDB when replayable is true', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: true
+                })
+
+                await dataSource.streamEvent({
+                    update: 'test-update',
+                    streamKey: 'test-stream',
+                    detailType: 'Test Event'
+                })
+
+                expect(mockDynamo.putItem).toHaveBeenCalledWith({
+                    AssetId: 'STREAM#mtw.testDataSource::test-stream',
+                    DataCategory: 'EVENT#100000000::test-uuid-123',
+                    update: 'test-update',
+                    timestamp: 100000000,
+                    streamKey: 'test-stream'
+                })
+                expect(mockEventBridgeClient.send).toHaveBeenCalled()
+                expect(mockMessageBus.send).toHaveBeenCalled()
+            })
+
+            it('should allow initializeSubscription when replayable is true', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: true
+                })
+
+                mockSingleFlight.mockResolvedValue({
+                    id: 'test-id',
+                    name: 'Test Snapshot',
+                    value: 42,
+                    createdAt: 100000000,
+                    expiresAt: 100300000
+                })
+
+                mockDynamo.query.mockResolvedValue([])
+
+                await expect(dataSource.initializeSubscription({
+                    sessionId: 'SESSION#test-session',
+                    streamKey: 'test-stream'
+                })).resolves.not.toThrow()
+
+                expect(mockSns.send).toHaveBeenCalled()
+            })
+        })
+
+        describe('replayable: false', () => {
+            it('should not initialize singleFlight when replayable is false', () => {
+                // Clear previous mock calls
+                mockSingleFlightFactory.mockClear()
+                
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: false
+                })
+
+                expect(dataSource.replayable).toBe(false)
+                expect(dataSource.singleFlight).toBeUndefined()
+                expect(mockSingleFlightFactory).not.toHaveBeenCalled()
+            })
+
+            it('should not store events to DynamoDB when replayable is false', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: false
+                })
+
+                await dataSource.streamEvent({
+                    update: 'test-update',
+                    streamKey: 'test-stream',
+                    detailType: 'Test Event'
+                })
+
+                expect(mockDynamo.putItem).not.toHaveBeenCalled()
+                expect(mockEventBridgeClient.send).toHaveBeenCalled()
+                expect(mockMessageBus.send).toHaveBeenCalled()
+            })
+
+            it('should throw error for initializeSubscription when replayable is false', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: false
+                })
+
+                await expect(dataSource.initializeSubscription({
+                    sessionId: 'SESSION#test-session',
+                    streamKey: 'test-stream'
+                })).rejects.toThrow("DataSource 'mtw.testDataSource' is not replayable and does not support subscription initialization")
+            })
+
+            it('should generate snapshot without storage when replayable is false', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: false
+                })
+
+                const snapshot = await dataSource.getSnapshot('test-stream')
+
+                expect(snapshot).toEqual({
+                    id: 'test-id',
+                    name: 'Test Snapshot',
+                    value: 42,
+                    createdAt: 100000000,
+                    expiresAt: 100300000
+                })
+                expect(mockSnapshotContentGenerator).toHaveBeenCalledWith('test-stream')
+                expect(mockSingleFlight).not.toHaveBeenCalled()
+                expect(mockDynamo.getItem).not.toHaveBeenCalled()
+            })
+
+            it('should return empty array for getRecentEvents when replayable is false', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: false
+                })
+
+                const events = await dataSource.getRecentEvents('test-stream', 100000000)
+
+                expect(events).toEqual([])
+                expect(mockDynamo.query).not.toHaveBeenCalled()
+            })
+
+            it('should return undefined for loadSnapshotFromStore when replayable is false', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: false
+                })
+
+                const snapshot = await dataSource.loadSnapshotFromStore('test-stream')
+
+                expect(snapshot).toBeUndefined()
+                expect(mockDynamo.getItem).not.toHaveBeenCalled()
+            })
+
+            it('should do nothing for storeSnapshotToStore when replayable is false', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: false
+                })
+
+                await dataSource.storeSnapshotToStore({
+                    streamKey: 'test-stream',
+                    snapshot: {
+                        id: 'test-id',
+                        name: 'Test Snapshot',
+                        value: 42,
+                        createdAt: 100000000,
+                        expiresAt: 100300000
+                    }
+                })
+
+                expect(mockDynamo.putItem).not.toHaveBeenCalled()
+            })
+        })
+
+        describe('default behavior', () => {
+            it('should default to replayable: true when not specified', () => {
+                // Clear previous mock calls
+                mockSingleFlightFactory.mockClear()
+                
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
+                })
+
+                expect(dataSource.replayable).toBe(true)
+                expect(dataSource.singleFlight).toBeDefined()
+                expect(mockSingleFlightFactory).toHaveBeenCalled()
             })
         })
     })
