@@ -8,6 +8,14 @@ export type ReturnValueMessage = {
     body: Record<string, any>;
 }
 
+export type ErrorMessage = {
+    type: 'Error';
+    body: {
+        error: string;
+        statusCode?: number;
+    };
+}
+
 export type FetchLibraryMessage = {
     type: 'FetchLibrary';
 }
@@ -99,7 +107,20 @@ export type CollaborationStatusMessage = {
     RequestId?: string;
 }
 
+export type StreamingEventMessage = {
+    type: 'StreamingEvent';
+    dataSourceKey: string;
+    event: {
+        source: string;
+        detailType: string;
+        detail: any;
+    };
+    timestamp: number;
+}
+
 export type MessageType = ReturnValueMessage |
+    ErrorMessage |
+    StreamingEventMessage |
     FetchLibraryMessage |
     FetchImportsMessage |
     FetchAssetMessage |
@@ -117,6 +138,8 @@ export type MessageType = ReturnValueMessage |
     CollaborationStatusMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
+export const isErrorMessage = (prop: MessageType): prop is ErrorMessage => (prop.type === 'Error')
+export const isStreamingEventMessage = (prop: MessageType): prop is StreamingEventMessage => (prop.type === 'StreamingEvent')
 export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
 export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMessage => (prop.type === 'FetchAsset')
 export const isFetchImportsAPIMessage = (prop: MessageType): prop is FetchImportsMessage => (prop.type === 'FetchImports')
