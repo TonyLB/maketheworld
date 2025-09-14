@@ -10,20 +10,48 @@ The DataSource pattern addresses four critical needs for data source implementat
 
 - **Snapshot Generation**: Create materialized state snapshots for individual streams within data categories
 - **Event Streaming**: Stream filtered change events to subscribers for specific streams
-- **Replay Support**: Store and fetch snapshots and recent events for new subscriber onboarding to individual streams
+- **Replay Support**: (Optional) Store and fetch snapshots and recent events for new subscriber onboarding to individual streams
 - **Event Subscription**: Subscribe to incoming events from other data sources and process them into local state changes
+
+## Replayable vs Non-Replayable Data Sources
+
+The DataSource pattern supports two operational modes based on the `replayable` constructor parameter:
+
+### **Replayable Data Sources** (Default: `replayable: true`)
+These data sources support full subscription functionality including:
+- **Snapshot Generation**: Create and store materialized state snapshots
+- **Event History**: Store incremental changes for replay purposes
+- **Subscriber Onboarding**: Deliver complete context to new subscribers via `initializeSubscription`
+- **DynamoDB Storage**: Maintain local storage for replay data
+
+**Use Cases**: Primary data sources that need to support client subscriptions, such as:
+- Asset data sources (`mtw.assets`)
+- Player data sources (`mtw.players`) 
+- Ephemera data sources (`mtw.ephemera`)
+
+### **Non-Replayable Data Sources** (`replayable: false`)
+These data sources focus on integration and event processing without subscription support:
+- **Event Streaming**: Publish changes to EventBridge for other data sources to consume
+- **Event Subscription**: Process incoming events from other data sources
+- **No Storage**: Skip DynamoDB storage operations to save resources
+- **Integration Focus**: Participate in the event mesh without supporting direct subscriptions
+
+**Use Cases**: Integration-focused data sources that transform or aggregate data, such as:
+- Analytics processors that derive metrics from other sources
+- Data transformers that normalize external data formats
+- Event aggregators that combine multiple data sources
 
 ## Architecture Overview
 
-The DataSource pattern implements a dual-delivery architecture that efficiently handles both live events and historical replay:
+The DataSource pattern implements a dual-delivery architecture that efficiently handles both live events and (optionally) historical replay:
 
 ### **Live Event Pipeline**
 1. **Change Occurs**: Data source detects a change
-2. **Parallel Storage**: Change is stored to DynamoDB for replay + published to EventBridge
+2. **Parallel Storage**: Change is stored to DynamoDB (if replayable) + published to EventBridge
 3. **EventBridge Fan-out**: EventBridge distributes to all current subscribers
 4. **WebSocket Delivery**: Subscriptions lambda delivers to WebSocket connections
 
-### **Replay Pipeline**
+### **Replay Pipeline** (Optional - when `replayable` is enabled)
 1. **New Subscriber**: Client requests subscription to specific streams
 2. **Targeted Replay**: `initializeSubscription` delivers historical data directly to session
 3. **SNS Feedback**: Replay data goes through SNS Feedback topic for targeted delivery
@@ -37,21 +65,21 @@ The DataSource pattern implements a dual-delivery architecture that efficiently 
 
 This architecture ensures that:
 - **Live events** reach all current subscribers efficiently
-- **Replay events** reach only the requesting subscriber without unnecessary fan-out
-- **Complete context** is provided to new subscribers before they start receiving live events
+- **Replay events** (when enabled) reach only the requesting subscriber without unnecessary fan-out
+- **Complete context** is provided to new subscribers before they start receiving live events (when replay is enabled)
 - **External events** are processed and integrated into local data source state
 
 ## Technical Details
 
 ### Core Functionality
 
-#### **1. Snapshot Generation**
+#### **1. Snapshot Generation** (Optional - when `replayable` is enabled)
 Access the underlying durable storage to generate a snapshot of the current materialized view for a specific stream. Both send and store upon creation.
 
 **Purpose**: Provide complete current state for individual streams within data categories, enabling new subscribers to understand the full context for their specific stream before receiving incremental updates.
 
 #### **2. Event Streaming**
-Provide the tools to distribute incremental changes for specific streams, *both* to outgoing EventBridge *and* to the replay storage.
+Provide the tools to distribute incremental changes for specific streams to outgoing EventBridge, and optionally to replay storage (when `replayable` is enabled).
 
 **Purpose**: Broadcast incremental changes to subscribers who are already synchronized with the current state for their specific stream.
 
@@ -60,18 +88,18 @@ Provide the tools to distribute incremental changes for specific streams, *both*
 - **`streamKey`**: Identifier for the specific stream within the data source
 - **`detailType`**: EventBridge DetailType for the event (e.g., `"Character Updated"`, `"Asset Modified"`)
 
-**Parallel Operations**: Executes DynamoDB storage and EventBridge publishing simultaneously for optimal performance.
+**Parallel Operations**: Executes DynamoDB storage (if replayable) and EventBridge publishing simultaneously for optimal performance.
 
 **Live vs Replay Event Delivery**:
 
 The DataSource pattern uses two different delivery mechanisms depending on the context:
 
 - **Live Events** (`streamEvent`): New changes are published to EventBridge for fan-out to all current subscribers
-- **Replay Events** (`initializeSubscription`): Historical data is delivered directly to a specific session via SNS Feedback
+- **Replay Events** (`initializeSubscription`): Historical data is delivered directly to a specific session via SNS Feedback (when replay is enabled)
 
 This dual approach ensures efficient delivery while maintaining the correct scope for each type of event.
 
-#### **3. Replay Serialization**
+#### **3. Replay Serialization** (Optional - when `replayable` is enabled)
 Deserialize data from the replay store for a specific stream and deliver it directly to a specific subscriber via the Feedback SNS topic.
 
 **Purpose**: Enable new subscribers to catch up by receiving a snapshot plus all events since that snapshot for their specific stream, ensuring they have complete context when new events start arriving from their subscription.
@@ -125,16 +153,16 @@ Subscribe to incoming events from other data sources and process them into local
 
 ### Data Storage Strategy
 
-#### **Local DynamoDB Table**
-Each data source maintains a local DynamoDB table for replay data across multiple subscribable streams. The Primary Key will be variable (`AssetId`, `EphemeraId`, and so on), but the general pattern will be that all stream records have a PK of `STREAM#${dataSourceKey}::${streamIdentifier}`.
+#### **Local DynamoDB Table** (Optional - when `replayable` is enabled)
+Each replayable data source maintains a local DynamoDB table for replay data across multiple subscribable streams. The Primary Key will be variable (`AssetId`, `EphemeraId`, and so on), but the general pattern will be that all stream records have a PK of `STREAM#${dataSourceKey}::${streamIdentifier}`.
 
-This granular PK structure enables:
+This granular PK structure enables (when replay is enabled):
 - **Stream Isolation**: Each stream maintains its own snapshot and event history
 - **Efficient Querying**: Direct access to specific stream data without filtering
 - **Concurrent Operations**: Multiple streams can be processed simultaneously without conflicts
 - **Scalable Architecture**: Support for large numbers of streams within a single data source
 
-**Record Types**:
+**Record Types** (when replay is enabled):
 - **Snapshot Records**: DataCategory of `Meta::Snapshot` - Contains the complete current state for a specific stream
 - **Event Records**: DataCategory of `EVENT#${epochTime}::${uuid}` - Contains incremental changes for a specific stream
 
@@ -162,21 +190,21 @@ Each DataSource instance supports multiple independent streams, where each strea
 
 #### **Concurrent Stream Processing**
 The multi-stream architecture enables:
-- **Independent Snapshots**: Each stream generates and maintains its own snapshot independently
+- **Independent Snapshots**: Each stream generates and maintains its own snapshot independently (when replay is enabled)
 - **Parallel Event Processing**: Events for different streams can be processed concurrently without interference
 - **Selective Subscriptions**: Clients can subscribe to specific streams without receiving data from unrelated streams
-- **Efficient Resource Utilization**: Only active streams consume computational resources for snapshot generation
+- **Efficient Resource Utilization**: Only active streams consume computational resources for snapshot generation (when replay is enabled)
 
 ## Integration Points
 
 ### Dependencies
-- **AWS DynamoDB**: Local storage for replay data
+- **AWS DynamoDB**: Local storage for replay data (when replay is enabled)
 - **AWS EventBridge**: Event streaming to subscribers
 - **MTW Interfaces**: Type-safe message contracts
 - **MTW Utilities**: Common utilities and helpers
 
 ### Cross-References
-- **[SingleFlight Pattern](../singleFlight/AGENT.md)**: Distributed coordination for snapshot generation
+- **[SingleFlight Pattern](../singleFlight/AGENT.md)**: Distributed coordination for snapshot generation (when replay is enabled)
 - **[MessageBus Pattern](../messageBus/AGENT.md)**: Internal event coordination and subscription management
 - **[Internal Cache Pattern](../internalCache/AGENT.md)**: Performance optimization
 - **[Lambda Development Guide](../../../AGENT.development.md)**: General lambda patterns
@@ -251,9 +279,9 @@ The subscription system enables a simplified EventBridge architecture:
 ### **First Iteration Scope**
 This initial implementation focuses on the three core capabilities:
 
-1. **Snapshot Generation**: Create materialized state snapshots
+1. **Snapshot Generation**: Create materialized state snapshots (optional when `replayable` is enabled)
 2. **Event Streaming**: Stream filtered change events
-3. **Replay Serialization**: Serialize data for new subscriber onboarding
+3. **Replay Serialization**: Serialize data for new subscriber onboarding (optional when `replayable` is enabled)
 
 ### **Future Enhancements**
 - **Claim-check pattern**: Large snapshots or event contents should push to S3 and deliver a claim-check record with objectName and preSigned URL
@@ -274,8 +302,8 @@ This initial implementation focuses on the three core capabilities:
 
 ### Key Concepts
 - **Domain Authority**: Each data source owns its domain completely across all streams
-- **Stream Isolation**: Each stream maintains independent state and event history
+- **Stream Isolation**: Each stream maintains independent state and event history (when replay is enabled)
 - **Event Sourcing**: State changes are captured as events per stream
-- **Replay Capability**: New subscribers can catch up from any point in time for their specific stream
-- **Concurrent Coordination**: SingleFlight ensures efficient snapshot generation across multiple lambda instances
+- **Replay Capability**: New subscribers can catch up from any point in time for their specific stream (when replay is enabled)
+- **Concurrent Coordination**: SingleFlight ensures efficient snapshot generation across multiple lambda instances (when replay is enabled)
 - **Performance**: Optimized for cost-effective operation with stream-specific resource utilization

@@ -55,8 +55,9 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     readonly primaryKeyName: string
     readonly dataSourceKey: string
     readonly snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>
-    readonly singleFlight: ReturnType<typeof singleFlightFactory<SnapshotType<SnapshotPayload>>>
+    readonly singleFlight?: ReturnType<typeof singleFlightFactory<SnapshotType<SnapshotPayload>>>
     readonly feedbackTopicArn: string
+    readonly replayable: boolean
     readonly subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent
     readonly receiveEvents?: (params: { 
         event: SubscribedEvent, 
@@ -72,6 +73,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         dataSourceKey,
         snapshotContentGenerator,
         feedbackTopicArn,
+        replayable = true,
         snapshotTimeoutMs = 5000,
         subscribedEventTypeGuard,
         receiveEvents
@@ -86,6 +88,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         dataSourceKey: string,
         snapshotContentGenerator: (streamKey: string) => Promise<SnapshotPayload>,
         feedbackTopicArn: string,
+        replayable?: boolean,
         snapshotTimeoutMs?: number,
         subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent,
         receiveEvents?: (params: { 
@@ -100,18 +103,21 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         this.dataSourceKey = dataSourceKey
         this.snapshotContentGenerator = snapshotContentGenerator
         this.feedbackTopicArn = feedbackTopicArn
+        this.replayable = replayable
         this.subscribedEventTypeGuard = subscribedEventTypeGuard
         this.receiveEvents = receiveEvents
         this._snapshot = undefined
 
-        // Initialize singleFlight for snapshot generation coordination
-        const singleFlightConfig: SingleFlightConfig = {
-            optimisticUpdateFunction: dynamo.optimisticUpdate,
-            getItemFunction: dynamo.getItem,
-            primaryKey: primaryKeyName,
-            timeoutMs: snapshotTimeoutMs
+        // Initialize singleFlight for snapshot generation coordination only if replayable
+        if (this.replayable) {
+            const singleFlightConfig: SingleFlightConfig = {
+                optimisticUpdateFunction: dynamo.optimisticUpdate,
+                getItemFunction: dynamo.getItem,
+                primaryKey: primaryKeyName,
+                timeoutMs: snapshotTimeoutMs
+            }
+            this.singleFlight = singleFlightFactory<SnapshotType<SnapshotPayload>>(singleFlightConfig)
         }
-        this.singleFlight = singleFlightFactory<SnapshotType<SnapshotPayload>>(singleFlightConfig)
     }
 
     async generateSnapshot(streamKey: string): Promise<SnapshotType<SnapshotPayload>> {
@@ -125,6 +131,11 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }
 
     async getSnapshot(streamKey: string): Promise<SnapshotPayload> {
+        // For non-replayable data sources, just generate snapshot without storage
+        if (!this.replayable) {
+            return await this.generateSnapshot(streamKey)
+        }
+
         // Check in-memory cache first
         if (this._snapshot && getCurrentTimestamp() <= this._snapshot.expiresAt) {
             return this._snapshot
@@ -138,7 +149,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         }
 
         // Use singleFlight to coordinate snapshot generation
-        const generated = await this.singleFlight({
+        const generated = await this.singleFlight!({
             category: `snapshot-generation-${this.dataSourceKey}`,
             argumentHash: streamKey, // Use streamKey as the argument hash
             computation: async () => {
@@ -202,7 +213,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         // Execute all operations in parallel
         await Promise.all([
             // Store event to DynamoDB for replay
-            this.dynamo.putItem(eventRecord).then(() => {
+            (this.replayable ? this.dynamo.putItem(eventRecord) : Promise.resolve()).then(() => {
                 // Publish to internal messageBus for other DataSources
                 this.messageBus.send(messageBusEvent)
             }),
@@ -213,6 +224,11 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }
 
     async initializeSubscription({ sessionId, streamKey }: { sessionId: `SESSION#${string}`, streamKey: string }): Promise<void> {
+        // Throw error for non-replayable data sources
+        if (!this.replayable) {
+            throw new Error(`DataSource '${this.dataSourceKey}' is not replayable and does not support subscription initialization`)
+        }
+
         // Get the current snapshot for the stream
         const snapshot = await this.getSnapshot(streamKey) as SnapshotType<SnapshotPayload>
         
@@ -224,6 +240,11 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }
 
     protected async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: UpdatePayload, timestamp: number, eventId: string }>> {
+        // For non-replayable data sources, return empty array since no events are stored
+        if (!this.replayable) {
+            return []
+        }
+
         const primaryKey = `STREAM#${this.dataSourceKey}::${streamKey}`
         
         // Query for events with DataCategory starting with 'EVENT#' and timestamp >= sinceTimestamp
@@ -314,6 +335,11 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }
 
     protected async loadSnapshotFromStore(streamKey: string): Promise<SnapshotType<SnapshotPayload> | undefined> {
+        // For non-replayable data sources, return undefined since no snapshots are stored
+        if (!this.replayable) {
+            return undefined
+        }
+
         const primaryKey = `STREAM#${this.dataSourceKey}::${streamKey}`
         
         const result = await this.dynamo.getItem<SnapshotType<SnapshotPayload>>({
@@ -324,6 +350,11 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }
 
     protected async storeSnapshotToStore({ streamKey, snapshot }: { streamKey: string, snapshot: SnapshotType<SnapshotPayload> }): Promise<void> {
+        // For non-replayable data sources, do nothing since no snapshots are stored
+        if (!this.replayable) {
+            return
+        }
+
         const primaryKey = `STREAM#${this.dataSourceKey}::${streamKey}`
         
         await this.dynamo.putItem({
