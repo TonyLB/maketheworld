@@ -1348,13 +1348,10 @@ describe('DataSource', () => {
                 const snapshot = await dataSource.getSnapshot('test-stream')
 
                 expect(snapshot).toEqual({
-                    id: 'test-id',
-                    name: 'Test Snapshot',
-                    value: 42,
-                    createdAt: 100000000,
-                    expiresAt: 100300000
+                    streamKey: 'test-stream',
+                    timestamp: 100000000
                 })
-                expect(mockSnapshotContentGenerator).toHaveBeenCalledWith('test-stream')
+                expect(mockSnapshotContentGenerator).not.toHaveBeenCalled()
                 expect(mockSingleFlight).not.toHaveBeenCalled()
                 expect(mockDynamo.getItem).not.toHaveBeenCalled()
             })
@@ -1419,6 +1416,29 @@ describe('DataSource', () => {
                 })
 
                 expect(mockDynamo.putItem).not.toHaveBeenCalled()
+            })
+
+            it('should work without snapshotContentGenerator when replayable is false', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    // No snapshotContentGenerator provided
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: false
+                })
+
+                const snapshot = await dataSource.getSnapshot('test-stream')
+
+                expect(snapshot).toEqual({
+                    streamKey: 'test-stream',
+                    timestamp: 100000000
+                })
+                expect(mockSnapshotContentGenerator).not.toHaveBeenCalled()
+                expect(mockSingleFlight).not.toHaveBeenCalled()
+                expect(mockDynamo.getItem).not.toHaveBeenCalled()
             })
         })
 
