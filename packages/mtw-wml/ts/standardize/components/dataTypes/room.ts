@@ -18,7 +18,6 @@ export const isStandardRoom = (arg: any): arg is StandardRoomData => {
         return false
     }
 
-    console.log(`isStandardRoom: ${JSON.stringify(arg, null, 2)}`)
     return checkAll(
         ('tag' in arg && arg.tag === 'Room'),
         (!('exits' in arg) || (Array.isArray(arg.exits) && arg.exits.every(isStandardExitData))),
