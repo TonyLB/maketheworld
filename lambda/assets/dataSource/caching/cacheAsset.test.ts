@@ -45,11 +45,8 @@ jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
     })
 })
 
-jest.mock('@tonylb/mtw-utilities/ts/eventBridge', () => ({
-    send: jest.fn()
-}))
-
-const eventBridgeSendMock = jest.mocked(eventBridgeClient.send, { shallow: false })
+// Mock streamEvent function
+const mockStreamEvent = jest.fn()
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 
 describe('Cache Asset (Data Source)', () => {
@@ -57,6 +54,7 @@ describe('Cache Asset (Data Source)', () => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
         standardFormMock = new StandardForm('<Asset key=(Test) />')
+        mockStreamEvent.mockResolvedValue(undefined)
     })
 
     it('should publish Character Removed event', async () => {
@@ -66,15 +64,16 @@ describe('Cache Asset (Data Source)', () => {
         }])
         internalCacheMock.ComponentData.get.mockResolvedValue([])
 
-        await cacheAsset('Test')
+        await cacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
         
-        expect(eventBridgeSendMock).toHaveBeenCalledWith([
-            {
-                Source: 'mtw.assets',
-                DetailType: 'Character Removed',
-                Detail: { characterId: 'CHARACTER#12345' }
-            }
-        ])
+        expect(mockStreamEvent).toHaveBeenCalledWith({
+            update: {
+                type: 'Character Removed',
+                characterId: 'CHARACTER#12345'
+            },
+            streamKey: 'CHARACTER#12345',
+            detailType: 'Character Removed'
+        })
     })
 
     it('should publish Character Updated event', async () => {
@@ -88,26 +87,25 @@ describe('Cache Asset (Data Source)', () => {
         }])
         standardFormMock = new StandardForm('<Asset key=(Test)><Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
 
-        await cacheAsset('Test')
+        await cacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
         
-        expect(eventBridgeSendMock).toHaveBeenCalledWith([
-            {
-                Source: 'mtw.assets',
-                DetailType: 'Character Updated',
-                Detail: {
-                    characterId: 'CHARACTER#12345',
-                    byAssets: [{
-                        AssetId: 'ASSET#Test',
-                        component: {
-                            key: 'TestCharacter',
-                            tag: 'Character',
-                            shortName: 'Test',
-                            universalKey: 'CHARACTER#12345'
-                        }
-                    }]
-                }
-            }
-        ])
+        expect(mockStreamEvent).toHaveBeenCalledWith({
+            update: {
+                type: 'Character Updated',
+                characterId: 'CHARACTER#12345',
+                byAssets: [{
+                    AssetId: 'ASSET#Test',
+                    component: {
+                        key: 'TestCharacter',
+                        tag: 'Character',
+                        shortName: 'Test',
+                        universalKey: 'CHARACTER#12345'
+                    }
+                }]
+            },
+            streamKey: 'CHARACTER#12345',
+            detailType: 'Character Updated'
+        })
     })
 
     describe('Asset ID handling', () => {
@@ -136,7 +134,7 @@ describe('Cache Asset (Data Source)', () => {
                 </Asset>
             `)
 
-            await cacheAsset('primitives')
+            await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
 
             // Should call putItem for each new component
             expect(assetDBMock.putItem).toHaveBeenCalledTimes(2)
@@ -174,7 +172,7 @@ describe('Cache Asset (Data Source)', () => {
                 </Asset>
             `)
 
-            await cacheAsset('ASSET#primitives')
+            await cacheAsset({ assetId: 'ASSET#primitives', streamEvent: mockStreamEvent })
 
             // Should call putItem for each new component
             expect(assetDBMock.putItem).toHaveBeenCalledTimes(2)
@@ -202,7 +200,7 @@ describe('Cache Asset (Data Source)', () => {
                 address: undefined
             }])
 
-            await cacheAsset('primitives')
+            await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
 
             // Should not call putItem or optimisticUpdate
             expect(assetDBMock.putItem).not.toHaveBeenCalled()
@@ -233,7 +231,7 @@ describe('Cache Asset (Data Source)', () => {
                 </Asset>
             `)
 
-            await cacheAsset('primitives')
+            await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
 
             // Should call putItem for the new component
             expect(assetDBMock.putItem).toHaveBeenCalledTimes(1)
@@ -271,7 +269,7 @@ describe('Cache Asset (Data Source)', () => {
                 </Asset>
             `)
 
-            await cacheAsset('primitives')
+            await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
 
             // Should call deleteItem for the removed component
             expect(assetDBMock.deleteItem).toHaveBeenCalledWith({
@@ -306,7 +304,7 @@ describe('Cache Asset (Data Source)', () => {
 
             standardFormMock = identicalForm
 
-            await cacheAsset('primitives')
+            await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
 
             // Should not call any database operations
             expect(assetDBMock.putItem).not.toHaveBeenCalled()
@@ -338,7 +336,7 @@ describe('Cache Asset (Data Source)', () => {
                 </Asset>
             `)
 
-            await cacheAsset('primitives')
+            await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
 
             // Should call putItem for each new component
             expect(assetDBMock.putItem).toHaveBeenCalledTimes(2)

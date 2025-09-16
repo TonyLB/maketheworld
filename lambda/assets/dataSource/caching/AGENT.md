@@ -27,7 +27,7 @@ The caching functions are responsible for:
 
 ### Core Functions
 
-#### `cacheAsset(assetId: string): Promise<void>`
+#### `cacheAsset({ assetId, streamEvent }): Promise<void>`
 
 **Process Flow**:
 1. **Dual Source Loading**: Retrieves asset data from both DynamoDB cache and S3 files
@@ -36,7 +36,7 @@ The caching functions are responsible for:
 4. **Meta Updates**: Updates cross-asset component metadata
 5. **Character Integration**: Handles character-specific caching for Ephemera system
 
-#### `decacheAsset(assetId: string): Promise<void>`
+#### `decacheAsset({ assetId, streamEvent }): Promise<void>`
 
 **Process Flow**:
 1. **Component Discovery**: Queries for all components associated with the asset
@@ -58,7 +58,7 @@ The caching functions are integrated into the `mtw.assets` data source and are t
 // In dataSource/index.ts receiveEvents method
 if (eventData.source === 'mtw.wml' && eventData.detailType === 'Content Update') {
     const { AssetId } = eventData.detail
-    await cacheAsset(AssetId.replace('ASSET#', ''))
+    await cacheAsset({ assetId: AssetId.replace('ASSET#', ''), streamEvent })
     // Stream event for real-time subscribers
     await streamEvent({
         update: { type: 'CacheAsset', assetId: AssetId.replace('ASSET#', '') },
@@ -69,7 +69,7 @@ if (eventData.source === 'mtw.wml' && eventData.detailType === 'Content Update')
 
 if (eventData.source === 'mtw.wml' && eventData.detailType === 'Content Removed') {
     const { AssetId } = eventData.detail
-    await decacheAsset(AssetId.replace('ASSET#', ''))
+    await decacheAsset({ assetId: AssetId.replace('ASSET#', ''), streamEvent })
     // Stream event for real-time subscribers
     await streamEvent({
         update: { type: 'DecacheAsset', assetId: AssetId.replace('ASSET#', '') },

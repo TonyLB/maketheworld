@@ -5,7 +5,6 @@ import { StandardRemove, StandardReplace } from "@tonylb/mtw-wml/ts/standardize/
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import StandardCharacter from "@tonylb/mtw-wml/ts/standardize/components/character";
 import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses";
-import eventBridgeClient from "@tonylb/mtw-utilities/ts/eventBridge";
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists";
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
 
@@ -15,10 +14,19 @@ import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
  * This function synchronizes asset content between S3 files and DynamoDB storage,
  * identifying and applying only changed components for efficient updates.
  * 
- * @param assetId - The asset ID to cache
+ * @param params - Parameters object
+ * @param params.assetId - The asset ID to cache
+ * @param params.streamEvent - Function to stream events to EventBridge and messageBus subscribers
  * @returns Promise<void>
  */
-export const cacheAsset = async (assetId: string): Promise<void> => {
+export const cacheAsset = async ({ assetId, streamEvent }: {
+    assetId: string;
+    streamEvent: (params: {
+        update: any;
+        streamKey: string;
+        detailType: string;
+    }) => Promise<void>;
+}): Promise<void> => {
     const assetUUID = AssetKey(assetId)
 
     const [dbAsset, fileAsset] = await Promise.all([
@@ -126,30 +134,29 @@ export const cacheAsset = async (assetId: string): Promise<void> => {
         
         const updatedCharacterData = await internalCache.ComponentData.get(charactersUpdated)
 
+        // Stream character events using streamEvent
         await Promise.all([
-            ...(charactersRemoved.length
-                ? [
-                    eventBridgeClient.send(
-                        charactersRemoved.map((characterId) => ({
-                            Source: 'mtw.assets',
-                            DetailType: 'Character Removed',
-                            Detail: { characterId }
-                        }))
-                    )
-                ]
-                : []
-            ),
-            ...(updatedCharacterData.length ?
-                [
-                    eventBridgeClient.send(updatedCharacterData.map(({ ComponentId, byAssets }) => ({
-                            Source: 'mtw.assets',
-                            DetailType: 'Character Updated',
-                            Detail: { characterId: ComponentId, byAssets: byAssets.map(({ AssetId, component }) => ({ AssetId, component: component.toJSON() })) }
-                        }))
-                    )
-                ]
-                : []
-            )
+            ...(charactersRemoved.map((characterId) => 
+                streamEvent({
+                    update: {
+                        type: 'Character Removed',
+                        characterId
+                    },
+                    streamKey: characterId,
+                    detailType: 'Character Removed'
+                })
+            )),
+            ...(updatedCharacterData.map(({ ComponentId, byAssets }) =>
+                streamEvent({
+                    update: {
+                        type: 'Character Updated',
+                        characterId: ComponentId,
+                        byAssets: byAssets.map(({ AssetId, component }) => ({ AssetId, component: component.toJSON() }))
+                    },
+                    streamKey: ComponentId,
+                    detailType: 'Character Updated'
+                })
+            ))
         ])
     }
 }

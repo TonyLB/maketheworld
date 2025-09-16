@@ -7,10 +7,19 @@ import { isEphemeraId } from "@tonylb/mtw-interfaces/ts/baseClasses"
  * This function removes all component data associated with an asset from the database,
  * including updating component metadata to remove the asset from cached lists.
  * 
- * @param assetId - The asset ID to remove from cache
+ * @param params - Parameters object
+ * @param params.assetId - The asset ID to remove from cache
+ * @param params.streamEvent - Function to stream events to EventBridge and messageBus subscribers
  * @returns Promise<void>
  */
-export const decacheAsset = async (assetId: string): Promise<void> => {
+export const decacheAsset = async ({ assetId, streamEvent }: {
+    assetId: string;
+    streamEvent: (params: {
+        update: any;
+        streamKey: string;
+        detailType: string;
+    }) => Promise<void>;
+}): Promise<void> => {
     const componentIds = await assetDB.query<{ AssetId: string; DataCategory: string }>({
         Key: { DataCategory: `ASSET#${assetId}` },
         IndexName: "DataCategoryIndex"

@@ -47,7 +47,7 @@ export const assetsDataSource = new AssetsDataSource({
             if (AssetId) {
                 try {
                     const assetId = AssetId.replace('ASSET#', '')
-                    await cacheAsset(assetId)
+                    await cacheAsset({ assetId, streamEvent })
                     
                     // Stream the caching event for real-time subscribers
                     await streamEvent({
@@ -87,7 +87,7 @@ export const assetsDataSource = new AssetsDataSource({
             if (AssetId) {
                 try {
                     const assetId = AssetId.replace('ASSET#', '')
-                    await decacheAsset(assetId)
+                    await decacheAsset({ assetId, streamEvent })
                     
                     // Stream the decaching event for real-time subscribers
                     await streamEvent({
@@ -137,7 +137,7 @@ export const assetsDataSource = new AssetsDataSource({
             if (assetId) {
                 try {
                     // Decache the asset before removing it
-                    await decacheAsset(assetId)
+                    await decacheAsset({ assetId, streamEvent })
                 } catch (error) {
                     console.error(`Error decaching asset ${assetId}:`, error)
                     // Continue with removal even if decaching fails

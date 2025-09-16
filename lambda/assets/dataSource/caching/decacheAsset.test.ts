@@ -11,9 +11,13 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
 
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 
+// Mock streamEvent function
+const mockStreamEvent = jest.fn()
+
 describe('Decache Asset (Data Source)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockStreamEvent.mockResolvedValue(undefined)
     })
 
     it('should remove all components associated with an asset', async () => {
@@ -23,7 +27,7 @@ describe('Decache Asset (Data Source)', () => {
             { AssetId: 'KNOWLEDGE#knowledgeRoot', DataCategory: 'ASSET#Test' }
         ])
 
-        await decacheAsset('Test')
+        await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
 
         // Should call deleteItem for each component
         expect(assetDBMock.deleteItem).toHaveBeenCalledTimes(2)
@@ -47,7 +51,7 @@ describe('Decache Asset (Data Source)', () => {
             { AssetId: 'NONEPHEMERA#123', DataCategory: 'ASSET#Test' } // Non-ephemera component
         ])
 
-        await decacheAsset('Test')
+        await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
 
         // Should only call deleteItem for ephemera components
         expect(assetDBMock.deleteItem).toHaveBeenCalledTimes(1)
@@ -64,7 +68,7 @@ describe('Decache Asset (Data Source)', () => {
         // Mock query to return empty list
         assetDBMock.query.mockResolvedValue([])
 
-        await decacheAsset('Test')
+        await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
 
         // Should not call any database operations
         expect(assetDBMock.deleteItem).not.toHaveBeenCalled()
@@ -77,7 +81,7 @@ describe('Decache Asset (Data Source)', () => {
             { AssetId: 'ROOM#VORTEX', DataCategory: 'ASSET#Test' }
         ])
 
-        await decacheAsset('Test')
+        await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
 
         // Should call optimisticUpdate to remove asset from cached list
         expect(assetDBMock.optimisticUpdate).toHaveBeenCalledWith({
@@ -97,7 +101,7 @@ describe('Decache Asset (Data Source)', () => {
             { AssetId: 'ROOM#VORTEX', DataCategory: 'ASSET#TestAsset' }
         ])
 
-        await decacheAsset('ASSET#TestAsset')
+        await decacheAsset({ assetId: 'ASSET#TestAsset', streamEvent: mockStreamEvent })
 
         // Should call query with correct DataCategory
         expect(assetDBMock.query).toHaveBeenCalledWith({
