@@ -7,6 +7,7 @@ import StandardCharacter from "@tonylb/mtw-wml/ts/standardize/components/charact
 import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses";
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists";
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
+import { schemaToWML } from "@tonylb/mtw-wml/ts/schema";
 
 /**
  * Cache asset content to DynamoDB storage
@@ -87,6 +88,20 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
                 }
             })
         )
+
+        // Prepare component-level events
+        const componentsRemoved = diff._components
+            .filter((component): component is StandardRemove => (
+                !!component.universalKey && component instanceof StandardRemove
+            ))
+            .map((component) => ({ componentId: component.universalKey as string }))
+        const componentsUpdated = diff._components
+            .filter((component) => (!!component.universalKey && !(component instanceof StandardRemove)))
+            .map((component) => ({
+                componentId: component.universalKey as string,
+                // Use the diff component's schema to represent the delta
+                wml: schemaToWML([component.schema])
+            }))
         
         const characterChanges = diff._components
             .filter((component): component is StandardRemove | StandardReplace | StandardCharacter => {
@@ -156,7 +171,30 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
                     streamKey: ComponentId,
                     detailType: 'Character Updated'
                 })
-            ))
+            )),
+            ...(componentsRemoved.map(({ componentId }) => (
+                streamEvent({
+                    update: {
+                        type: 'Component Removed',
+                        assetId,
+                        componentId
+                    },
+                    streamKey: assetId,
+                    detailType: 'Component Removed'
+                })
+            ))),
+            ...(componentsUpdated.map(({ componentId, wml }) => (
+                streamEvent({
+                    update: {
+                        type: 'Component Updated',
+                        assetId,
+                        componentId,
+                        wml
+                    },
+                    streamKey: assetId,
+                    detailType: 'Component Updated'
+                })
+            )))
         ])
     }
 }

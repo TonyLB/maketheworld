@@ -4,6 +4,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import internalCache from '../../internalCache'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     assetDB: {
@@ -276,6 +277,17 @@ describe('Cache Asset (Data Source)', () => {
                 AssetId: 'KNOWLEDGE#knowledgeRoot',
                 DataCategory: 'ASSET#primitives'
             })
+
+            // Should emit Component Removed streaming event
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Component Removed',
+                    assetId: 'primitives',
+                    componentId: 'KNOWLEDGE#knowledgeRoot'
+                },
+                streamKey: 'primitives',
+                detailType: 'Component Removed'
+            })
         })
     })
 
@@ -341,6 +353,77 @@ describe('Cache Asset (Data Source)', () => {
             // Should call putItem for each new component
             expect(assetDBMock.putItem).toHaveBeenCalledTimes(2)
             expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
+
+            // Should emit Component Updated events with precise WML deltas and correct streamKey
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Component Updated',
+                    assetId: 'primitives',
+                    componentId: 'ROOM#VORTEX',
+                    wml: deIndentWML(`
+                        <Room uuid=(VORTEX) />
+                    `)
+                },
+                streamKey: 'primitives',
+                detailType: 'Component Updated'
+            })
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Component Updated',
+                    assetId: 'primitives',
+                    componentId: 'KNOWLEDGE#knowledgeRoot',
+                    wml: deIndentWML(`
+                        <Knowledge uuid=(knowledgeRoot) />
+                    `)
+                },
+                streamKey: 'primitives',
+                detailType: 'Component Updated'
+            })
+        })
+    })
+
+    describe('Component updated streaming', () => {
+        it('should publish Component Updated event with delta WML for changed component', async () => {
+            // db has a Room with one ShortName, file adds/changes description
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#primitives',
+                standardForm: new StandardForm(`
+                    <Asset key=(primitives)>
+                        <Room uuid=(VORTEX) />
+                    </Asset>
+                `)
+            }])
+
+            internalCacheMock.Meta.get.mockResolvedValue([{
+                AssetId: 'ASSET#primitives',
+                address: {
+                    zone: 'Canon',
+                    fileName: 'primitives',
+                    subFolder: 'Assets'
+                }
+            }])
+
+            // file adds a ShortName to the existing Room (delta should be StandardReplace for Room with ShortName)
+            standardFormMock = new StandardForm(`
+                <Asset key=(primitives)>
+                    <Room uuid=(VORTEX)><ShortName>Vortex</ShortName></Room>
+                </Asset>
+            `)
+
+            await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
+
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Component Updated',
+                    assetId: 'primitives',
+                    componentId: 'ROOM#VORTEX',
+                    wml: deIndentWML(`
+                        <Room uuid=(VORTEX)><ShortName>Vortex</ShortName></Room>
+                    `)
+                },
+                streamKey: 'primitives',
+                detailType: 'Component Updated'
+            })
         })
     })
 })
