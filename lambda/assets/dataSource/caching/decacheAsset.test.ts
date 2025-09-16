@@ -42,6 +42,26 @@ describe('Decache Asset (Data Source)', () => {
 
         // Should call optimisticUpdate for each component to remove from cached lists
         expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
+
+        // Should emit Component Removed streaming events for each component
+        expect(mockStreamEvent).toHaveBeenCalledWith({
+            update: {
+                type: 'Component Removed',
+                assetId: 'Test',
+                componentId: 'ROOM#VORTEX'
+            },
+            streamKey: 'Test',
+            detailType: 'Component Removed'
+        })
+        expect(mockStreamEvent).toHaveBeenCalledWith({
+            update: {
+                type: 'Component Removed',
+                assetId: 'Test',
+                componentId: 'KNOWLEDGE#knowledgeRoot'
+            },
+            streamKey: 'Test',
+            detailType: 'Component Removed'
+        })
     })
 
     it('should filter out non-ephemera components', async () => {
@@ -62,6 +82,18 @@ describe('Decache Asset (Data Source)', () => {
 
         // Should only call optimisticUpdate for ephemera components
         expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+
+        // Should only emit Component Removed event for ephemera components
+        expect(mockStreamEvent).toHaveBeenCalledTimes(1)
+        expect(mockStreamEvent).toHaveBeenCalledWith({
+            update: {
+                type: 'Component Removed',
+                assetId: 'Test',
+                componentId: 'ROOM#VORTEX'
+            },
+            streamKey: 'Test',
+            detailType: 'Component Removed'
+        })
     })
 
     it('should handle empty component list', async () => {
@@ -73,6 +105,9 @@ describe('Decache Asset (Data Source)', () => {
         // Should not call any database operations
         expect(assetDBMock.deleteItem).not.toHaveBeenCalled()
         expect(assetDBMock.optimisticUpdate).not.toHaveBeenCalled()
+
+        // Should not emit any streaming events
+        expect(mockStreamEvent).not.toHaveBeenCalled()
     })
 
     it('should update component metadata to remove asset from cached lists', async () => {
