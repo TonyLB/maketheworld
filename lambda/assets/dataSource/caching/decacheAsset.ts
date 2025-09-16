@@ -25,26 +25,39 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
         IndexName: "DataCategoryIndex"
     })
     
-    await Promise.all(componentIds
-        .filter(({ AssetId }) => (isEphemeraId(AssetId)))
-        .map(async (componentKey) => (
-            Promise.all([
-                assetDB.deleteItem(componentKey),
-                assetDB.optimisticUpdate({
-                    Key: {
-                        AssetId: componentKey.AssetId,
-                        DataCategory: `Meta::${componentKey.AssetId[0]}${componentKey.AssetId.slice(1).split('#')[0].toLocaleLowerCase()}`,
-                    },
-                    updateKeys: ['cached'],
-                    updateReducer: (draft) => {
-                        if (!('cached' in draft)) {
-                            draft.cached = []
-                        }
-                        draft.cached = draft.cached.filter((id) => (id !== assetId))
-                    },
-                    deleteCondition: (draft) => (draft.cached.length === 0)
-                })
-            ])
-        ))
-    )
+    const componentsToRemove = componentIds.filter(({ AssetId }) => (isEphemeraId(AssetId)))
+    
+    // Database operations first
+    await Promise.all(componentsToRemove.map(async (componentKey) => (
+        Promise.all([
+            assetDB.deleteItem(componentKey),
+            assetDB.optimisticUpdate({
+                Key: {
+                    AssetId: componentKey.AssetId,
+                    DataCategory: `Meta::${componentKey.AssetId[0]}${componentKey.AssetId.slice(1).split('#')[0].toLocaleLowerCase()}`,
+                },
+                updateKeys: ['cached'],
+                updateReducer: (draft) => {
+                    if (!('cached' in draft)) {
+                        draft.cached = []
+                    }
+                    draft.cached = draft.cached.filter((id) => (id !== assetId))
+                },
+                deleteCondition: (draft) => (draft.cached.length === 0)
+            })
+        ])
+    )))
+    
+    // Component Removed streaming events
+    await Promise.all(componentsToRemove.map(({ AssetId: componentId }) => (
+        streamEvent({
+            update: {
+                type: 'Component Removed',
+                assetId,
+                componentId
+            },
+            streamKey: assetId,
+            detailType: 'Component Removed'
+        })
+    )))
 }
