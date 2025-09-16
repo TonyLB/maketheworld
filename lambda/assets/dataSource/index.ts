@@ -5,6 +5,7 @@ import { healGlobalValues } from '../selfHealing/globalValues'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import internalCache from '../internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { cacheAsset, decacheAsset } from './caching'
 
 //
 // Non-replayable DataSource singleton for mtw.assets
@@ -15,6 +16,7 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 // Key responsibilities:
 // - Stream asset-level events to EventBridge for real-time subscribers
 // - Process incoming events from other data sources that affect assets
+// - Handle WML events for asset caching and decaching
 // - Handle coordination events (canonization, removal, etc.)
 // - Process diagnostic events (healing, global values)
 // - Handle player and library update events
@@ -25,9 +27,9 @@ export const assetsDataSource = new AssetsDataSource({
     // No snapshotContentGenerator needed for non-replayable data sources
     subscribedEventTypeGuard: (event: StreamingEventPayload): event is StreamingEventPayload => {
         // Subscribe to EventBridge events from other data sources that we care about
-        // These are EventBridge events published by mtw.diagnostics and mtw.coordination
+        // These are EventBridge events published by mtw.diagnostics, mtw.coordination, and mtw.wml
         return Boolean(
-            ['mtw.diagnostics', 'mtw.coordination'].includes(event.dataSourceKey) && 
+            ['mtw.diagnostics', 'mtw.coordination', 'mtw.wml'].includes(event.dataSourceKey) && 
             event.event && 
             typeof event.event === 'object' &&
             event.event !== null &&
@@ -38,6 +40,86 @@ export const assetsDataSource = new AssetsDataSource({
     receiveEvents: async ({ event, streamEvent }) => {
         // Process messageBus events that represent EventBridge events
         const eventData = event.event as any
+        
+        // Handle mtw.wml events
+        if (eventData.source === 'mtw.wml' && eventData.detailType === 'Content Update') {
+            const { AssetId } = eventData.detail
+            if (AssetId) {
+                try {
+                    const assetId = AssetId.replace('ASSET#', '')
+                    await cacheAsset({ assetId, streamEvent })
+                    
+                    // Stream the caching event for real-time subscribers
+                    await streamEvent({
+                        update: { 
+                            type: 'CacheAsset',
+                            assetId
+                        },
+                        streamKey: AssetId,
+                        detailType: 'Asset Cached'
+                    })
+                } catch (error) {
+                    console.error(`Error caching asset ${AssetId}:`, error)
+                    messageBus.send({
+                        type: 'Error',
+                        body: { 
+                            error: `Failed to cache asset ${AssetId}: ${error instanceof Error ? error.message : String(error)}`,
+                            statusCode: 500
+                        }
+                    })
+                }
+                return
+            } else {
+                messageBus.send({
+                    type: 'Error',
+                    body: { 
+                        error: 'Invalid AssetId in Content Update event',
+                        statusCode: 400
+                    }
+                })
+                return
+            }
+        }
+        
+        // Handle mtw.wml Content Removed events
+        if (eventData.source === 'mtw.wml' && eventData.detailType === 'Content Removed') {
+            const { AssetId } = eventData.detail
+            if (AssetId) {
+                try {
+                    const assetId = AssetId.replace('ASSET#', '')
+                    await decacheAsset({ assetId, streamEvent })
+                    
+                    // Stream the decaching event for real-time subscribers
+                    await streamEvent({
+                        update: { 
+                            type: 'DecacheAsset',
+                            assetId
+                        },
+                        streamKey: AssetId,
+                        detailType: 'Asset Decached'
+                    })
+                } catch (error) {
+                    console.error(`Error decaching asset ${AssetId}:`, error)
+                    messageBus.send({
+                        type: 'Error',
+                        body: { 
+                            error: `Failed to decache asset ${AssetId}: ${error instanceof Error ? error.message : String(error)}`,
+                            statusCode: 500
+                        }
+                    })
+                }
+                return
+            } else {
+                messageBus.send({
+                    type: 'Error',
+                    body: { 
+                        error: 'Invalid AssetId in Content Removed event',
+                        statusCode: 400
+                    }
+                })
+                return
+            }
+        }
         
         // Handle mtw.diagnostics events
         if (eventData.source === 'mtw.diagnostics' && eventData.detailType === 'Heal Global Values') {
@@ -53,6 +135,14 @@ export const assetsDataSource = new AssetsDataSource({
         if (eventData.source === 'mtw.coordination' && eventData.detailType === 'Remove Asset') {
             const { assetId } = eventData.detail
             if (assetId) {
+                try {
+                    // Decache the asset before removing it
+                    await decacheAsset({ assetId, streamEvent })
+                } catch (error) {
+                    console.error(`Error decaching asset ${assetId}:`, error)
+                    // Continue with removal even if decaching fails
+                }
+                
                 messageBus.send({
                     type: 'RemoveAsset',
                     assetId

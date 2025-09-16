@@ -39,6 +39,7 @@ The event flow documentation work **has not yet been done**. The WML Lambda curr
 
 #### **Outgoing Events**
 - Content Update events via EventBridge (mtw.wml source)
+- **Content Removed events via EventBridge (mtw.wml source)** - *TODO: Implement*
 - Authorization Update events for permission changes
 - Merge Conflict events for failed edit applications
 - Parsed content delivery to Assets Lambda for caching
@@ -84,6 +85,9 @@ The WML Lambda already implements some EventBridge event generation as documente
 - **Authorization Update**: Applied edits to asset authorization layer
 - **Merge Conflict**: Failed edit application due to conflicts
 
+### **Missing EventBridge Events**
+- **Content Removed**: Asset deletion/archival events - *TODO: Implement for Assets Lambda integration*
+
 These existing events provide a foundation for understanding current event patterns, but require systematic documentation of their processing flows and integration patterns.
 
 ## Near-Term Documentation Priorities
@@ -100,6 +104,7 @@ Based on the **Domain-Authoritative Event Mesh** pattern identified in [`../../A
 ### **Priority 2: Event Publishing Patterns**
 **Focus**: Document the EventBridge event generation that coordinates the transformation pipeline
 - **Content Update Events**: What triggers them, what data they contain, who subscribes
+- **Content Removed Events**: Asset deletion/archival event generation - *TODO: Implement*
 - **Authorization Update Events**: Permission change propagation patterns
 - **Merge Conflict Events**: Failed edit coordination and resolution workflows
 - **Event Schema Documentation**: Standardize event contracts for downstream consumers
@@ -116,8 +121,9 @@ Based on the **Domain-Authoritative Event Mesh** pattern identified in [`../../A
 ### **Research Phase**
 1. **Content Processing Flow Analysis**: Map current WML parsing, validation, and transformation workflows **(supports Priority 1)**
 2. **Event Generation Documentation**: Document EventBridge event creation patterns and triggers **(supports Priority 2)**
-3. **Integration Flow Mapping**: Analyze coordination with Assets Lambda and client systems **(supports Priority 3)**
-4. **Concurrency Analysis**: Review atomic locking and concurrent access patterns **(supports Priority 1)**
+3. **Content Removed Event Implementation**: Implement and document Content Removed event publishing for asset deletion/archival - *TODO: High Priority*
+4. **Integration Flow Mapping**: Analyze coordination with Assets Lambda and client systems **(supports Priority 3)**
+5. **Concurrency Analysis**: Review atomic locking and concurrent access patterns **(supports Priority 1)**
 
 ### **Design Phase**
 1. **Content Event Standardization**: Establish consistent WML processing event patterns **(supports Priority 2)**
