@@ -1,0 +1,108 @@
+import { decacheAsset } from './decacheAsset'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
+    assetDB: {
+        deleteItem: jest.fn(),
+        query: jest.fn(),
+        optimisticUpdate: jest.fn()
+    }
+}))
+
+const assetDBMock = jest.mocked(assetDB, { shallow: false })
+
+describe('Decache Asset (Data Source)', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+    })
+
+    it('should remove all components associated with an asset', async () => {
+        // Mock query to return components
+        assetDBMock.query.mockResolvedValue([
+            { AssetId: 'ROOM#VORTEX', DataCategory: 'ASSET#Test' },
+            { AssetId: 'KNOWLEDGE#knowledgeRoot', DataCategory: 'ASSET#Test' }
+        ])
+
+        await decacheAsset('Test')
+
+        // Should call deleteItem for each component
+        expect(assetDBMock.deleteItem).toHaveBeenCalledTimes(2)
+        expect(assetDBMock.deleteItem).toHaveBeenCalledWith({
+            AssetId: 'ROOM#VORTEX',
+            DataCategory: 'ASSET#Test'
+        })
+        expect(assetDBMock.deleteItem).toHaveBeenCalledWith({
+            AssetId: 'KNOWLEDGE#knowledgeRoot',
+            DataCategory: 'ASSET#Test'
+        })
+
+        // Should call optimisticUpdate for each component to remove from cached lists
+        expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
+    })
+
+    it('should filter out non-ephemera components', async () => {
+        // Mock query to return mix of ephemera and non-ephemera components
+        assetDBMock.query.mockResolvedValue([
+            { AssetId: 'ROOM#VORTEX', DataCategory: 'ASSET#Test' }, // Ephemera component
+            { AssetId: 'NONEPHEMERA#123', DataCategory: 'ASSET#Test' } // Non-ephemera component
+        ])
+
+        await decacheAsset('Test')
+
+        // Should only call deleteItem for ephemera components
+        expect(assetDBMock.deleteItem).toHaveBeenCalledTimes(1)
+        expect(assetDBMock.deleteItem).toHaveBeenCalledWith({
+            AssetId: 'ROOM#VORTEX',
+            DataCategory: 'ASSET#Test'
+        })
+
+        // Should only call optimisticUpdate for ephemera components
+        expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+    })
+
+    it('should handle empty component list', async () => {
+        // Mock query to return empty list
+        assetDBMock.query.mockResolvedValue([])
+
+        await decacheAsset('Test')
+
+        // Should not call any database operations
+        expect(assetDBMock.deleteItem).not.toHaveBeenCalled()
+        expect(assetDBMock.optimisticUpdate).not.toHaveBeenCalled()
+    })
+
+    it('should update component metadata to remove asset from cached lists', async () => {
+        // Mock query to return components
+        assetDBMock.query.mockResolvedValue([
+            { AssetId: 'ROOM#VORTEX', DataCategory: 'ASSET#Test' }
+        ])
+
+        await decacheAsset('Test')
+
+        // Should call optimisticUpdate to remove asset from cached list
+        expect(assetDBMock.optimisticUpdate).toHaveBeenCalledWith({
+            Key: {
+                AssetId: 'ROOM#VORTEX',
+                DataCategory: 'Meta::Room'
+            },
+            updateKeys: ['cached'],
+            updateReducer: expect.any(Function),
+            deleteCondition: expect.any(Function)
+        })
+    })
+
+    it('should handle asset ID with ASSET# prefix', async () => {
+        // Mock query to return components
+        assetDBMock.query.mockResolvedValue([
+            { AssetId: 'ROOM#VORTEX', DataCategory: 'ASSET#TestAsset' }
+        ])
+
+        await decacheAsset('ASSET#TestAsset')
+
+        // Should call query with correct DataCategory
+        expect(assetDBMock.query).toHaveBeenCalledWith({
+            Key: { DataCategory: 'ASSET#ASSET#TestAsset' },
+            IndexName: "DataCategoryIndex"
+        })
+    })
+})
