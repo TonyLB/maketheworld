@@ -3,7 +3,6 @@ import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource
 
 // Types for the characters data source
 export type CharacterEventPayload = {
-    detailType: 'Character Updated' | 'Character Removed'
     characterId: string
     wml: string // WML string containing character data
 }
