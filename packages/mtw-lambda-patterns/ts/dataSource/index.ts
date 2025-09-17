@@ -212,11 +212,11 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         const messageBusEvent = {
             messageType: 'StreamingEvent' as const,
             dataSourceKey: this.dataSourceKey,
+            detailType,
             event: {
                 streamKey,
                 update,
-                timestamp: now,
-                detailType
+                timestamp: now
             },
             timestamp: now
         }
@@ -406,7 +406,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
                 await Promise.all(
                     payloads.map((streamingEvent) => 
                         this.receiveEvents!({
-                            event: streamingEvent.event,
+                            event: streamingEvent,
                             streamEvent: (params) => this.streamEvent(params)
                         })
                     )

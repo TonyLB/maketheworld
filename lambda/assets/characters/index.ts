@@ -45,11 +45,7 @@ export class CharactersDataSource extends AssetsDataSource<
             subscribedEventTypeGuard: (event: StreamingEventPayload): event is ComponentEventPayload => {
                 // Subscribe to mtw.assets component events that might be character changes
                 return event.dataSourceKey === 'mtw.assets' && 
-                       event.event && 
-                       typeof event.event === 'object' &&
-                       event.event !== null &&
-                       'detailType' in event.event &&
-                       ['Component Updated', 'Component Removed'].includes((event.event as any).detailType)
+                       ['Component Updated', 'Component Removed'].includes(event.detailType)
             },
             snapshotContentGenerator: async (streamKey: string) => {
                 // TODO: Implement character snapshot generation

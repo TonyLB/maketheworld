@@ -45,8 +45,8 @@ describe('CharactersDataSource', () => {
         it('should subscribe to mtw.assets component events', () => {
             const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                detailType: 'Component Updated',
                 event: {
-                    detailType: 'Component Updated',
                     streamKey: 'asset123',
                     update: { component: 'test' },
                     timestamp: Date.now()
@@ -61,8 +61,8 @@ describe('CharactersDataSource', () => {
         it('should not subscribe to non-component events', () => {
             const nonComponentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                detailType: 'Asset Cached',
                 event: {
-                    detailType: 'Asset Cached',
                     streamKey: 'asset123',
                     update: { asset: 'test' },
                     timestamp: Date.now()
@@ -77,8 +77,8 @@ describe('CharactersDataSource', () => {
         it('should not subscribe to events from other data sources', () => {
             const otherDataSourceEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.ephemera',
+                detailType: 'Component Updated',
                 event: {
-                    detailType: 'Component Updated',
                     streamKey: 'asset123',
                     update: { component: 'test' },
                     timestamp: Date.now()
@@ -95,8 +95,8 @@ describe('CharactersDataSource', () => {
         it('should process Character Updated events for character components', async () => {
             const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                detailType: 'Component Updated',
                 event: {
-                    detailType: 'Component Updated',
                     streamKey: 'asset123',
                     update: {
                         component: {
@@ -126,8 +126,8 @@ describe('CharactersDataSource', () => {
         it('should process Character Removed events for character components', async () => {
             const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                detailType: 'Component Removed',
                 event: {
-                    detailType: 'Component Removed',
                     streamKey: 'asset123',
                     update: {
                         component: {
@@ -155,8 +155,8 @@ describe('CharactersDataSource', () => {
         it('should generate Character Updated event with correct payload structure', async () => {
             const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                detailType: 'Component Updated',
                 event: {
-                    detailType: 'Component Updated',
                     streamKey: 'asset123',
                     update: {
                         component: {
@@ -199,8 +199,8 @@ describe('CharactersDataSource', () => {
 
             const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                detailType: 'Component Updated',
                 event: {
-                    detailType: 'Component Updated',
                     streamKey: 'asset123',
                     update: { component: { tag: 'Character', characterId: 'char123' } },
                     timestamp: Date.now()
@@ -235,8 +235,8 @@ describe('CharactersDataSource', () => {
 
             const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                detailType: 'Component Removed',
                 event: {
-                    detailType: 'Component Removed',
                     streamKey: 'asset123',
                     update: { component: { tag: 'Character', characterId: 'char123' } },
                     timestamp: Date.now()
@@ -357,8 +357,8 @@ describe('CharactersDataSource', () => {
         it('should handle invalid component events gracefully', async () => {
             const invalidEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                detailType: 'Component Updated',
                 event: {
-                    detailType: 'Component Updated',
                     streamKey: 'asset123',
                     update: null, // Invalid update
                     timestamp: Date.now()
@@ -374,8 +374,8 @@ describe('CharactersDataSource', () => {
         it('should handle missing character data gracefully', async () => {
             const incompleteEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                detailType: 'Component Updated',
                 event: {
-                    detailType: 'Component Updated',
                     streamKey: 'asset123',
                     update: {
                         component: {

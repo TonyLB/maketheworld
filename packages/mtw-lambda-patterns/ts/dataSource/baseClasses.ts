@@ -3,6 +3,7 @@
 export type StreamingEvent = {
     messageType: 'StreamingEvent';
     dataSourceKey: string;
+    detailType: string;
     event: unknown;
     timestamp: number;
 }
