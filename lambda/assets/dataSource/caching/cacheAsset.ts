@@ -121,57 +121,8 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             }
         })
         
-        const characterNotifications = Object.assign(
-            {},
-            ...(await Promise.all(
-                characterChanges.map(async ({ universalKey }) => {
-                    if (!(universalKey && isEphemeraCharacterId(universalKey))) {
-                        return undefined
-                    }
-                    const [character] = await internalCache.ComponentData.get([universalKey])
-                    if (!character) {
-                        return { [universalKey]: [] }
-                    }
-                    return { [character.ComponentId]: character.byAssets }
-                })
-            )).filter(excludeUndefined)
-        )
-        
-        const charactersRemoved = Object.keys(characterNotifications).filter((key) => {
-            const character = characterNotifications[key]
-            return character.length === 0
-        }).filter(isEphemeraCharacterId)
-        
-        const charactersUpdated = Object.keys(characterNotifications).filter((key) => {
-            const character = characterNotifications[key]
-            return character.length > 0
-        }).filter(isEphemeraCharacterId)
-        
-        const updatedCharacterData = await internalCache.ComponentData.get(charactersUpdated)
-
-        // Stream character events using streamEvent
+        // Stream component events only; Character events are emitted by mtw.assets.characters
         await Promise.all([
-            ...(charactersRemoved.map((characterId) => 
-                streamEvent({
-                    update: {
-                        type: 'Character Removed',
-                        characterId
-                    },
-                    streamKey: characterId,
-                    detailType: 'Character Removed'
-                })
-            )),
-            ...(updatedCharacterData.map(({ ComponentId, byAssets }) =>
-                streamEvent({
-                    update: {
-                        type: 'Character Updated',
-                        characterId: ComponentId,
-                        byAssets: byAssets.map(({ AssetId, component }) => ({ AssetId, component: component.toJSON() }))
-                    },
-                    streamKey: ComponentId,
-                    detailType: 'Character Updated'
-                })
-            )),
             ...(componentsRemoved.map(({ componentId }) => (
                 streamEvent({
                     update: {

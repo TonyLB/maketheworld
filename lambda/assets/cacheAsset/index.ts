@@ -90,56 +90,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                         internalCache.ComponentData.invalidate(universalKey)
                     }
                 })
-                const characterNotifications = Object.assign(
-                    {},
-                    ...(await Promise.all(
-                        characterChanges.map(async ({ universalKey }) => {
-                            if (!(universalKey && isEphemeraCharacterId(universalKey))) {
-                                return undefined
-                            }
-                            const [character] = await internalCache.ComponentData.get([universalKey])
-                            if (!character) {
-                                return { [universalKey]: [] }
-                            }
-                            return { [character.ComponentId]: character.byAssets }
-                        })
-                    )).filter(excludeUndefined)
-                )
-                const charactersRemoved = Object.keys(characterNotifications).filter((key) => {
-                    const character = characterNotifications[key]
-                    return character.length === 0
-                }).filter(isEphemeraCharacterId)
-                const charactersUpdated = Object.keys(characterNotifications).filter((key) => {
-                    const character = characterNotifications[key]
-                    return character.length > 0
-                }).filter(isEphemeraCharacterId)
-                const updatedCharacterData = await internalCache.ComponentData.get(charactersUpdated)
-
-                await Promise.all([
-                    ...(charactersRemoved.length
-                        ? [
-                            eventBridgeClient.send(
-                                charactersRemoved.map((characterId) => ({
-                                    Source: 'mtw.assets',
-                                    DetailType: 'Character Removed',
-                                    Detail: { characterId }
-                                }))
-                            )
-                        ]
-                        : []
-                    ),
-                    ...(updatedCharacterData.length ?
-                        [
-                            eventBridgeClient.send(updatedCharacterData.map(({ ComponentId, byAssets }) => ({
-                                    Source: 'mtw.assets',
-                                    DetailType: 'Character Updated',
-                                    Detail: { characterId: ComponentId, byAssets: byAssets.map(({ AssetId, component }) => ({ AssetId, component: component.toJSON() })) }
-                                }))
-                            )
-                        ]
-                        : []
-                    )
-                ])
+                // Character events are now handled by mtw.assets.characters data source
             }
         })
     )
