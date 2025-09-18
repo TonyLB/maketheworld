@@ -38,7 +38,6 @@ describe('StandardForm', () => {
                         tag: 'Room',
                         key: 'testRoom',
                         universalKey: 'ROOM#testRoom',
-                        exits: []
                     },
                     payload: {
                         tag: 'Room',
@@ -54,7 +53,6 @@ describe('StandardForm', () => {
                         tag: 'Room',
                         key: 'testRoomTwo',
                         universalKey: 'ROOM#testRoomTwo',
-                        exits: []
                     }
                 }
             ]
@@ -148,7 +146,6 @@ describe('StandardForm', () => {
                         tag: 'Room',
                         key: 'testRoomRemove',
                         universalKey: 'ROOM#testRoomRemove',
-                        exits: []
                     }
                 },
                 {
@@ -159,14 +156,12 @@ describe('StandardForm', () => {
                         key: 'testRoomReplace',
                         universalKey: 'ROOM#testRoomReplace',
                         examples: ['EXAMPLE#testRoomReplaceBase'],
-                        exits: []
                     },
                     payload: {
                         tag: 'Room',
                         key: 'testRoomReplace',
                         universalKey: 'ROOM#testRoomReplace',
                         examples: ['EXAMPLE#testRoomReplaceBase'],
-                        exits: []
                     }
                 },
                 {
@@ -206,8 +201,7 @@ describe('StandardForm', () => {
                     tag: 'Room',
                     key: 'testRoom',
                     universalKey: 'ROOM#testRoom',
-                    examples: ['EXAMPLE#testRoomBase'],
-                    exits: [],
+                    examples: ['EXAMPLE#testRoomBase']
                 },
                 {
                     tag: 'Example',
@@ -431,7 +425,6 @@ describe('StandardForm', () => {
                 key: 'test',
                 universalKey: 'ROOM#testRoom',
                 examples: ['EXAMPLE#testRoomBase'],
-                exits: [],
                 features: ['FEATURE#testLocal', 'FEATURE#testGlobal']
             },
             {
@@ -467,7 +460,6 @@ describe('StandardForm', () => {
                 tag: 'Room',
                 key: 'testTwo',
                 universalKey: 'ROOM#testTwo',
-                exits: []
             }]
         })
     })
@@ -488,7 +480,6 @@ describe('StandardForm', () => {
                 tag: 'Room',
                 key: 'test',
                 universalKey: 'ROOM#test',
-                exits: [],
                 examples: ['EXAMPLE#testLocal']
             },
             {
@@ -501,7 +492,6 @@ describe('StandardForm', () => {
                 tag: 'Room',
                 key: 'testTwo',
                 universalKey: 'ROOM#testTwo',
-                exits: []
             }]
         })
     })
@@ -550,7 +540,6 @@ describe('StandardForm', () => {
                 tag: 'Room',
                 key: 'test',
                 universalKey: 'ROOM#test',
-                exits: [],
                 features: ['FEATURE#testFeature']
             },
             {
@@ -571,7 +560,6 @@ describe('StandardForm', () => {
                 tag: 'Room',
                 key: 'testTwo',
                 universalKey: 'ROOM#testTwo',
-                exits: []
             }]
         })
     })
@@ -1222,7 +1210,6 @@ describe('StandardForm', () => {
         </Asset>`)
         const firstRoom = test.byId.testRoomOne
         expect(firstRoom.toJSON()).toEqual({
-            exits: [],
             key: 'testRoomOne',
             universalKey: 'ROOM#testRoomOne',
             tag: 'Room',
@@ -1234,7 +1221,6 @@ describe('StandardForm', () => {
             </Map>
         </Asset>`)
         expect(mapTest.byId.testRoomOne.toJSON()).toEqual({
-            exits: [],
             key: 'testRoomOne',
             universalKey: 'ROOM#testRoomOne',
             tag: 'Room'
@@ -1742,8 +1728,7 @@ describe('StandardForm', () => {
                     tag: 'Room',
                     key: 'testRoomOne',
                     universalKey: 'ROOM#testRoomOne',
-                    examples: ['EXAMPLE#testRoomOneBase'],
-                    exits: [],
+                    examples: ['EXAMPLE#testRoomOneBase']
                 },
                 {
                     tag: 'Example',
@@ -1779,7 +1764,6 @@ describe('StandardForm', () => {
                     tag: 'Room',
                     key: 'testRoomOne',
                     universalKey: 'ROOM#testRoomOne',
-                    exits: [],
                     shortName: {
                         tag: 'Replace',
                         match: 'Test',
@@ -2654,7 +2638,6 @@ describe('StandardForm', () => {
                 universalKey: 'ROOM#001',
                 features: [{ key: 'testLocal', tag: 'Feature', universalKey: 'FEATURE#004' }, { key: 'testGlobal', tag: 'Feature', universalKey: 'FEATURE#003' }],
                 examples: ['EXAMPLE#001b'],
-                exits: []
             },
             {
                 tag: 'Example',
@@ -2676,7 +2659,7 @@ describe('StandardForm', () => {
                 description: ['A tower built of white sandstone blocks, with an ornate clock set on the northern face.'],
                 name: ['Clocktower']
             },
-            { tag: 'Room', key: 'testRoomTwo', universalKey: 'ROOM#002', exits: [] }
+            { tag: 'Room', key: 'testRoomTwo', universalKey: 'ROOM#002' }
         ])
     })
 

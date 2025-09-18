@@ -127,4 +127,21 @@ describe('StandardMessage class', () => {
         `))
     })
 
+    it('should construct StandardMessage from StandardMessageData with missing rooms', () => {
+        const testMessageDataWithoutRooms: StandardMessageData = {
+            key: 'test',
+            tag: 'Message',
+            description: { data: { tag: 'Description' }, children: [{ data: { tag: 'String', value: 'Message Test' }, children: [] }] }
+            // rooms property is missing - this should not crash
+        }
+        const testMessage = new StandardMessage(testMessageDataWithoutRooms)
+        expect(testMessage.key).toEqual('test')
+        expect(testMessage.description?.toJSON()).toEqual(['Message Test'])
+        expect(testMessage.rooms.payload.length).toBe(0)  // Should default to empty array
+        
+        // The JSON output should omit rooms when empty (omission-over-empty pattern)
+        const outputJSON = testMessage.toJSON() as StandardMessageData
+        expect(outputJSON.rooms).toBeUndefined()
+    })
+
 })
