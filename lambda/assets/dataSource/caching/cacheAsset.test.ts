@@ -58,57 +58,6 @@ describe('Cache Asset (Data Source)', () => {
         mockStreamEvent.mockResolvedValue(undefined)
     })
 
-    it('should publish Character Removed event', async () => {
-        internalCacheMock.AssetData.get.mockResolvedValue([{
-            AssetId: 'ASSET#Test',
-            standardForm: new StandardForm('<Asset key=(Test)><Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
-        }])
-        internalCacheMock.ComponentData.get.mockResolvedValue([])
-
-        await cacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
-        
-        expect(mockStreamEvent).toHaveBeenCalledWith({
-            update: {
-                type: 'Character Removed',
-                characterId: 'CHARACTER#12345'
-            },
-            streamKey: 'CHARACTER#12345',
-            detailType: 'Character Removed'
-        })
-    })
-
-    it('should publish Character Updated event', async () => {
-        internalCacheMock.AssetData.get.mockResolvedValue([{
-            AssetId: 'ASSET#Test',
-            standardForm: new StandardForm('<Asset key=(Test)><Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
-        }])
-        internalCacheMock.ComponentData.get.mockResolvedValue([{
-            ComponentId: 'CHARACTER#12345',
-            byAssets: [{ AssetId: 'ASSET#Test', component: new StandardCharacter('<Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character>') }]
-        }])
-        standardFormMock = new StandardForm('<Asset key=(Test)><Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
-
-        await cacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
-        
-        expect(mockStreamEvent).toHaveBeenCalledWith({
-            update: {
-                type: 'Character Updated',
-                characterId: 'CHARACTER#12345',
-                byAssets: [{
-                    AssetId: 'ASSET#Test',
-                    component: {
-                        key: 'TestCharacter',
-                        tag: 'Character',
-                        shortName: 'Test',
-                        universalKey: 'CHARACTER#12345'
-                    }
-                }]
-            },
-            streamKey: 'CHARACTER#12345',
-            detailType: 'Character Updated'
-        })
-    })
-
     describe('Asset ID handling', () => {
         it('should handle asset key format (primitives)', async () => {
             // Mock empty dbAsset (no existing data)

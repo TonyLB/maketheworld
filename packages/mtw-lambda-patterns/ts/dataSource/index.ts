@@ -63,7 +63,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         event: SubscribedEvent, 
         streamEvent: StreamEventFunction<UpdatePayload>
     }) => Promise<void>
-    _snapshot: SnapshotType<SnapshotPayload> | undefined
+    _snapshots: Record<string, SnapshotType<SnapshotPayload>> = {}
 
     constructor({ 
         dynamo,
@@ -106,7 +106,6 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         this.replayable = replayable
         this.subscribedEventTypeGuard = subscribedEventTypeGuard
         this.receiveEvents = receiveEvents
-        this._snapshot = undefined
 
         // Initialize singleFlight for snapshot generation coordination only if replayable
         if (this.replayable) {
@@ -148,14 +147,14 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         }
 
         // Check in-memory cache first
-        if (this._snapshot && getCurrentTimestamp() <= this._snapshot.expiresAt) {
-            return this._snapshot
+        if (this._snapshots[streamKey] && getCurrentTimestamp() <= this._snapshots[streamKey].expiresAt) {
+            return this._snapshots[streamKey]
         }
 
         // Try to load from store
         const loaded = await this.loadSnapshotFromStore(streamKey).catch(() => undefined)
         if (loaded && getCurrentTimestamp() <= loaded.expiresAt) {
-            this._snapshot = loaded
+            this._snapshots[streamKey] = loaded
             return loaded
         }
 
@@ -179,7 +178,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
             }
         })
 
-        this._snapshot = generated
+        this._snapshots[streamKey] = generated
         return generated
     }
 
@@ -212,11 +211,11 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         const messageBusEvent = {
             messageType: 'StreamingEvent' as const,
             dataSourceKey: this.dataSourceKey,
+            detailType,
             event: {
                 streamKey,
                 update,
-                timestamp: now,
-                detailType
+                timestamp: now
             },
             timestamp: now
         }
@@ -406,7 +405,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
                 await Promise.all(
                     payloads.map((streamingEvent) => 
                         this.receiveEvents!({
-                            event: streamingEvent.event,
+                            event: streamingEvent,
                             streamEvent: (params) => this.streamEvent(params)
                         })
                     )

@@ -33,8 +33,7 @@ export const assetsDataSource = new AssetsDataSource({
             event.event && 
             typeof event.event === 'object' &&
             event.event !== null &&
-            'source' in event.event &&
-            'detailType' in event.event
+            'source' in event.event
         )
     },
     receiveEvents: async ({ event, streamEvent }) => {
@@ -42,7 +41,7 @@ export const assetsDataSource = new AssetsDataSource({
         const eventData = event.event as any
         
         // Handle mtw.wml events
-        if (eventData.source === 'mtw.wml' && eventData.detailType === 'Content Update') {
+        if (eventData.source === 'mtw.wml' && event.detailType === 'Content Update') {
             const { AssetId } = eventData.detail
             if (AssetId) {
                 try {
@@ -82,7 +81,7 @@ export const assetsDataSource = new AssetsDataSource({
         }
         
         // Handle mtw.wml Content Removed events
-        if (eventData.source === 'mtw.wml' && eventData.detailType === 'Content Removed') {
+        if (eventData.source === 'mtw.wml' && event.detailType === 'Content Removed') {
             const { AssetId } = eventData.detail
             if (AssetId) {
                 try {
@@ -122,7 +121,7 @@ export const assetsDataSource = new AssetsDataSource({
         }
         
         // Handle mtw.diagnostics events
-        if (eventData.source === 'mtw.diagnostics' && eventData.detailType === 'Heal Global Values') {
+        if (eventData.source === 'mtw.diagnostics' && event.detailType === 'Heal Global Values') {
             const returnVal = await healGlobalValues({
                 shouldHealConnections: Boolean(eventData.detail?.connections),
                 shouldHealGlobalAssets: typeof eventData.detail?.assets !== 'boolean' || eventData.detail?.assets
@@ -132,7 +131,7 @@ export const assetsDataSource = new AssetsDataSource({
         }
         
         // Handle mtw.coordination events
-        if (eventData.source === 'mtw.coordination' && eventData.detailType === 'Remove Asset') {
+        if (eventData.source === 'mtw.coordination' && event.detailType === 'Remove Asset') {
             const { assetId } = eventData.detail
             if (assetId) {
                 try {
@@ -171,10 +170,10 @@ export const assetsDataSource = new AssetsDataSource({
             }
         }
         
-        if (eventData.source === 'mtw.coordination' && ['Canonize Asset', 'Decanonize Asset'].includes(eventData.detailType)) {
+        if (eventData.source === 'mtw.coordination' && ['Canonize Asset', 'Decanonize Asset'].includes(event.detailType)) {
             const { assetId } = eventData.detail
             if (assetId) {
-                const toZone = eventData.detailType === 'Canonize Asset' ? 'Canon' : 'Library'
+                const toZone = event.detailType === 'Canonize Asset' ? 'Canon' : 'Library'
                 
                 messageBus.send({
                     type: 'MoveByAssetId',

@@ -292,6 +292,18 @@ This initial implementation focuses on the three core capabilities:
 - **Event Ordering**: Guarantee ordered processing of events from the same source
 - **Dead Letter Queues**: Handle failed event processing with retry and dead letter queue patterns
 
+### Known Quirk: Dual timestamps and boundary serialization plan
+
+- Current behavior: `streamEvent` emits timestamps in two places:
+  - Top-level `StreamingEvent.timestamp` (envelope time)
+  - Inner `event.timestamp` (also mirrored in EventBridge `Detail.timestamp`)
+- This redundancy emerged during early tests and is not a strict requirement. It can blur the distinction between "caused-at" vs "emitted-at" times.
+- Tests in this package currently assert both fields; most downstream consumers do not rely on the inner timestamp.
+- Planned refactor: Introduce explicit EventBridge boundary helpers to centralize the wire format and remove redundancy safely:
+  - `serializeToEventBridge({ dataSourceKey, detailType, streamKey, update, timestamp? })`
+  - `deserializeFromEventBridge(event)`
+- Action item: De-duplicate timestamp handling as part of the serialization/deserialization refactor (prefer keeping only the envelope timestamp unless a clear need for payload-level timestamps is demonstrated).
+
 ## Navigation Tips
 
 ### Getting Started
