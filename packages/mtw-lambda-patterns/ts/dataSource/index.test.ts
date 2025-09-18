@@ -141,7 +141,7 @@ describe('DataSource', () => {
             expect(dataSource.dataSourceKey).toBe('mtw.testDataSource')
             expect(dataSource.snapshotContentGenerator).toBe(mockSnapshotContentGenerator)
             expect(dataSource.feedbackTopicArn).toBe('arn:aws:sns:us-east-1:123456789012:test-feedback')
-            expect(dataSource._snapshot).toBeUndefined()
+            expect(dataSource._snapshots).toEqual({})
         })
 
         it('should initialize singleFlight with correct configuration', () => {
@@ -230,7 +230,7 @@ describe('DataSource', () => {
             }
             
             // Set up in-memory cache
-            dataSource._snapshot = cachedSnapshot
+            dataSource._snapshots['test-stream'] = cachedSnapshot
             
             const result = await dataSource.getSnapshot(streamKey)
             
@@ -255,7 +255,7 @@ describe('DataSource', () => {
             const result = await dataSource.getSnapshot(streamKey)
             
             expect(result).toBe(storedSnapshot)
-            expect(dataSource._snapshot).toBe(storedSnapshot)
+            expect(dataSource._snapshots[streamKey]).toBe(storedSnapshot)
             expect(mockSnapshotContentGenerator).not.toHaveBeenCalled()
             expect(mockSingleFlight).not.toHaveBeenCalled()
         })
@@ -271,7 +271,7 @@ describe('DataSource', () => {
             }
             
             // Set up expired in-memory cache
-            dataSource._snapshot = expiredSnapshot
+            dataSource._snapshots[streamKey] = expiredSnapshot
             
             // Mock loadSnapshotFromStore to return undefined (no stored snapshot)
             jest.spyOn(dataSource, 'loadSnapshotFromStore').mockResolvedValue(undefined)
@@ -328,7 +328,7 @@ describe('DataSource', () => {
             }
             
             // Set up expired cache to force singleFlight usage
-            dataSource._snapshot = {
+            dataSource._snapshots[streamKey] = {
                 id: 'expired-id',
                 name: 'Expired Snapshot',
                 value: 300,
@@ -764,7 +764,7 @@ describe('DataSource', () => {
             }
             
             // Mock the getSnapshot method by setting up the cache
-            dataSource._snapshot = mockSnapshot
+            dataSource._snapshots[streamKey] = mockSnapshot
             
             // Mock getRecentEvents to return some events
             const mockEvents = [
@@ -824,7 +824,7 @@ describe('DataSource', () => {
                 expiresAt: 100005000
             }
             
-            dataSource._snapshot = mockSnapshot
+            dataSource._snapshots[streamKey] = mockSnapshot
             
             // Mock getRecentEvents to return no events
             mockDynamo.query.mockResolvedValue([])
@@ -1212,6 +1212,121 @@ describe('DataSource', () => {
                 await expect(callback({ payloads: testEvents })).rejects.toThrow('Processing failed')
                 expect(errorReceiveEvents).toHaveBeenCalled()
             })
+        })
+    })
+
+    describe('snapshot caching per streamKey', () => {
+        it('should cache snapshots per streamKey when loading from store', async () => {
+            const streamKey1 = 'stream-1'
+            const streamKey2 = 'stream-2'
+            
+            // Mock different snapshot content for different streams
+            const snapshot1 = {
+                id: 'stream-1-id',
+                name: 'Stream 1 Snapshot',
+                value: 100,
+                createdAt: 100000000,
+                expiresAt: 100300000
+            }
+            
+            const snapshot2 = {
+                id: 'stream-2-id', 
+                name: 'Stream 2 Snapshot',
+                value: 200,
+                createdAt: 100000000,
+                expiresAt: 100300000
+            }
+            
+            // Mock loadSnapshotFromStore to return different snapshots for different streams
+            jest.spyOn(dataSource, 'loadSnapshotFromStore')
+                .mockResolvedValueOnce(snapshot1) // First call for stream-1
+                .mockResolvedValueOnce(snapshot2) // Second call for stream-2
+            
+            // Get snapshot for first stream
+            const result1 = await dataSource.getSnapshot(streamKey1)
+            expect(result1).toBe(snapshot1)
+            expect(dataSource._snapshots[streamKey1]).toBe(snapshot1) // Should be cached
+            
+            // Get snapshot for second stream - this should NOT return the cached snapshot from stream-1
+            const result2 = await dataSource.getSnapshot(streamKey2)
+            
+            expect(result2).toBe(snapshot2)
+            expect(result2).not.toBe(snapshot1) // Should not be the cached snapshot from stream-1
+            expect(dataSource._snapshots[streamKey2]).toBe(snapshot2) // Should be updated to stream-2's snapshot
+            
+            // Verify that loadSnapshotFromStore was called for both streams
+            expect(dataSource.loadSnapshotFromStore).toHaveBeenCalledWith(streamKey1)
+            expect(dataSource.loadSnapshotFromStore).toHaveBeenCalledWith(streamKey2)
+        })
+
+        it('should cache generated snapshots per streamKey when creating new snapshots', async () => {
+            const streamKey1 = 'stream-1'
+            const streamKey2 = 'stream-2'
+            
+            // Mock different snapshot content generation for different streams
+            const generatedSnapshot1 = {
+                id: 'generated-stream-1-id',
+                name: 'Generated Stream 1 Snapshot',
+                value: 300,
+                createdAt: 100000000,
+                expiresAt: 100300000
+            }
+            
+            const generatedSnapshot2 = {
+                id: 'generated-stream-2-id',
+                name: 'Generated Stream 2 Snapshot', 
+                value: 400,
+                createdAt: 100000000,
+                expiresAt: 100300000
+            }
+            
+            // Mock snapshotContentGenerator to return different content for different streams
+            mockSnapshotContentGenerator
+                .mockResolvedValueOnce({
+                    id: 'generated-stream-1-id',
+                    name: 'Generated Stream 1 Snapshot',
+                    value: 300
+                })
+                .mockResolvedValueOnce({
+                    id: 'generated-stream-2-id',
+                    name: 'Generated Stream 2 Snapshot',
+                    value: 400
+                })
+            
+            // Mock loadSnapshotFromStore to return undefined (no stored snapshots)
+            jest.spyOn(dataSource, 'loadSnapshotFromStore')
+                .mockResolvedValue(undefined)
+            
+            // Mock singleFlight to actually execute the computation function
+            mockSingleFlight
+                .mockImplementationOnce(async (params) => {
+                    // Execute the computation function to call snapshotContentGenerator
+                    return await params.computation()
+                })
+                .mockImplementationOnce(async (params) => {
+                    // Execute the computation function to call snapshotContentGenerator
+                    return await params.computation()
+                })
+            
+            // Get snapshot for first stream (should generate new snapshot)
+            const result1 = await dataSource.getSnapshot(streamKey1)
+            expect(result1).toStrictEqual(generatedSnapshot1)
+            expect(dataSource._snapshots[streamKey1]).toStrictEqual(generatedSnapshot1) // Should be cached
+            
+            // Get snapshot for second stream - this should NOT return the cached generated snapshot from stream-1
+            const result2 = await dataSource.getSnapshot(streamKey2)
+            
+            // This test should now PASS because we fixed the implementation to cache per streamKey
+            expect(result2).toStrictEqual(generatedSnapshot2)
+            expect(result2).not.toStrictEqual(generatedSnapshot1) // Should not be the cached generated snapshot from stream-1
+            expect(dataSource._snapshots[streamKey2]).toStrictEqual(generatedSnapshot2) // Should be updated to stream-2's generated snapshot
+            
+            // Verify that snapshotContentGenerator was called for both streams
+            expect(mockSnapshotContentGenerator).toHaveBeenCalledWith(streamKey1)
+            expect(mockSnapshotContentGenerator).toHaveBeenCalledWith(streamKey2)
+            
+            // Verify that singleFlight was called for both streams
+            expect(mockSingleFlight).toHaveBeenCalledTimes(2)
         })
     })
 
