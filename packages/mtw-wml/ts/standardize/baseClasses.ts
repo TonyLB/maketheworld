@@ -101,8 +101,7 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, uni
             return {
                 tag,
                 key,
-                universalKey,
-                exits: []
+                universalKey
             }
         case 'Feature':
         case 'Knowledge':
