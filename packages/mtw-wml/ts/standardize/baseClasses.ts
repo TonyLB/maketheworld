@@ -129,9 +129,7 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, uni
             return {
                 tag: 'Map' as const,
                 key,
-                universalKey,
-                images: [],
-                positions: [],
+                universalKey
             }
         default:
             throw new Error(`No default component for tag: '${tag}'`)

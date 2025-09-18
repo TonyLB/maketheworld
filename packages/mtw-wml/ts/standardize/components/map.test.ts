@@ -73,6 +73,25 @@ describe('StandardMap class', () => {
         expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { tag: 'Room', key: "testRoom" }, x: 100, y: 100 }])
     })
 
+    it('should construct StandardMap from StandardMapData with missing images and positions', () => {
+        const testMapDataWithoutImagesAndPositions: StandardMapData = {
+            key: 'test',
+            tag: 'Map',
+            name: 'Name Test'
+            // images and positions properties are missing - this should not crash
+        }
+        const testMap = new StandardMap(testMapDataWithoutImagesAndPositions)
+        expect(testMap.key).toEqual('test')
+        expect(testMap.name?.toJSON()).toEqual('Name Test')
+        expect(testMap.images).toEqual([])  // Should default to empty array
+        expect(testMap.positions).toEqual([])  // Should default to empty array
+        
+        // The JSON output should omit images and positions when empty (omission-over-empty pattern)
+        const outputJSON = testMap.toJSON() as StandardMapData
+        expect(outputJSON.images).toBeUndefined()
+        expect(outputJSON.positions).toBeUndefined()
+    })
+
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Map key=(testMap)>
