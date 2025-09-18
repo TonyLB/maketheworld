@@ -1,10 +1,17 @@
 import { AssetsDataSource } from '../dataSource/abstract'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
+import { isStandardComponentData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import getCurrentTimestamp from '../internalUtils/dateUtil'
 
 // Types for the characters data source
 export type CharacterEventPayload = {
-    characterId: string
+    characterId: `CHARACTER#${string}`
     wml: string // WML string containing character data
 }
 
@@ -39,22 +46,47 @@ const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnap
         KeyConditionExpression: 'begins_with(AssetId, :prefix)',
         ExpressionAttributeValues: {
             ':prefix': 'CHARACTER#'
-        }
+        },
+        allFields: true
     })
 
-    // Generate WML character listings from query results
-    const characterWML = (queryResult || [])
+    // Transform DynamoDB records to StandardComponentData format and create StandardCharacter instances
+    const characterComponents = (queryResult || [])
         .map(character => {
-            const characterId = character.AssetId.replace('CHARACTER#', '')
-            const shortName = character.ShortName || 'Unnamed Character'
-            return `<Character key="${characterId}"><ShortName>${shortName}</ShortName></Character>`
+            const { AssetId, DataCategory, ...rest } = character
+            
+            // Transform to StandardComponentData format
+            const componentData = {
+                universalKey: AssetId as ComponentUUID,
+                tag: 'Character' as const,
+                ...rest
+            }
+            
+            // Validate the data format
+            if (!isStandardComponentData(componentData)) {
+                console.warn(`Invalid character component data for ${AssetId}:`, componentData)
+                return undefined
+            }
+            
+            // Create StandardCharacter instance
+            return standardComponentFactory(componentData)
         })
-        .join('\n')
+        .filter(excludeUndefined)
+
+    // Create a StandardForm with the asset and all character components
+    const assetKey = assetId.replace('ASSET#', '') // Extract key from AssetUUID
+    const standardForm = new StandardForm([
+        { tag: 'Asset', key: assetKey, universalKey: assetId as ComponentUUID },
+        ...characterComponents.map(component => component.toJSON())
+    ])
+
+    // Convert the entire StandardForm to WML
+    const characterWML = schemaToWML([standardForm.schema])
 
     return {
         streamKey: assetId,
         characters: characterWML,
-        timestamp: Date.now()
+        timestamp: getCurrentTimestamp()
     }
 }
 
@@ -69,12 +101,12 @@ const processComponentEvent = async (
         return
     }
 
-    const characterId = component.characterId || 'unknown-character'
+    const characterId = component.characterId
     const streamKey = event.event.streamKey
 
-    if (event.event.detailType === 'Component Updated') {
+    if (event.detailType === 'Component Updated') {
         // Generate character updated event
-        const wml = component.wml || `<Character key="${characterId}"><ShortName>Unnamed Character</ShortName></Character>`
+        const wml = component.wml || `<Character uuid=(${characterId}) />`
         await streamEvent({
             update: {
                 characterId,
@@ -83,11 +115,9 @@ const processComponentEvent = async (
             streamKey,
             detailType: 'Character Updated'
         })
-    } else if (event.event.detailType === 'Component Removed') {
+    } else if (event.detailType === 'Component Removed') {
         // Generate character removed event - convert Character WML to CharacterRemoved
-        let wml = component.wml || `<Character key="${characterId}"><ShortName>Unnamed Character</ShortName></Character>`
-        // Convert Character tags to CharacterRemoved tags
-        wml = wml.replace(/<Character\b/g, '<CharacterRemoved').replace(/<\/Character>/g, '</CharacterRemoved>')
+        let wml = component.wml || `<Remove><Character uuid=(${characterId}) /></Remove>`
         
         await streamEvent({
             update: {
