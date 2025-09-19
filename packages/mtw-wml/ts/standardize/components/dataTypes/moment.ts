@@ -1,12 +1,11 @@
 import { StandardBaseData } from "./abstract"
-import { checkAll } from "./typeguards";
+import { checkAll, checkTypes } from "./typeguards";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./reference";
-import checkTypes, { CheckTypes } from "@tonylb/mtw-base/ts/utils/checkTypes";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardMomentData = {
     tag: 'Moment';
-    messages: StandardEditableData<StandardReferenceData>[];
+    messages?: StandardEditableData<StandardReferenceData>[];
 } & StandardBaseData
 
 export const isStandardMoment = (arg: any): arg is StandardMomentData => {
@@ -14,12 +13,13 @@ export const isStandardMoment = (arg: any): arg is StandardMomentData => {
         return false
     }
 
-    return checkTypes({
-        required: { tag: CheckTypes.STRING },
-        optional: { key: CheckTypes.STRING, universalKey: CheckTypes.STRING },
-        values: {
-            tag: (tag: any) => (tag === 'Moment'),
-            messages: (messages: any) => (Array.isArray(messages) && messages.every(isStandardReferencePayloadData))
-        }
-    })(arg)
+    return checkAll(
+        ('tag' in arg && arg.tag === 'Moment'),
+        (!('messages' in arg) || (Array.isArray(arg.messages) && arg.messages.every(isStandardReferencePayloadData))),
+        checkTypes(arg, { },
+        {
+            key: 'string',
+            universalKey: 'string'
+        })
+    )
 }
