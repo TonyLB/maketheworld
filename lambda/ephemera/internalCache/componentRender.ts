@@ -175,7 +175,7 @@ export class ComponentRenderData {
             const roomRow: StandardRoomData = {
                 tag: 'Room',
                 universalKey: EphemeraId,
-                exits,
+                ...(exits.length ? { exits } : {}),
                 examples: naiveFirstExample ? ['EXAMPLE#rendered'] : [],
                 characters: roomCharacterList.map(char => char.EphemeraId),
                 shortName: shortName?.toJSON()
@@ -320,7 +320,7 @@ export class ComponentRenderData {
                 ...rooms.map((room): StandardRoomData => ({
                     tag: 'Room',
                     universalKey: room.roomId,
-                    exits: room.exits,
+                    ...(room.exits.length ? { exits: room.exits } : {}),
                     shortName: room.name
                 }))
             ])
