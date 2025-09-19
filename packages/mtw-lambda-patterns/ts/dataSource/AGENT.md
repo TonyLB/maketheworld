@@ -151,6 +151,53 @@ Subscribe to incoming events from other data sources and process them into local
 - **State Derivation**: Incoming events are processed into local state changes
 - **Event Propagation**: Local changes are streamed to subscribers via EventBridge
 
+#### **5. EventBridge Serialization Architecture**
+Provide clean separation between internal StreamEvents and external EventBridge events through optional event serialization.
+
+**Purpose**: Enable DataSources to maintain clean internal event processing while supporting proper external event contracts for cross-service communication.
+
+**Method**: `eventSerializer` constructor parameter - Optional serializer for EventBridge integration
+- **`serialize(params)`**: Convert internal update payload to external format for EventBridge Detail
+- **`deserialize(params)`**: Convert external update payload back to internal format
+
+**Serialization Boundaries**: The serializer is applied at three key boundaries:
+- **EventBridge Publishing**: Internal `UpdatePayload` → `ExternalUpdatePayload` for EventBridge
+- **DynamoDB Storage**: Internal `UpdatePayload` → `ExternalUpdatePayload` for replay storage
+- **Replay Delivery**: Stored `ExternalUpdatePayload` → delivered via SNS (no re-serialization needed)
+
+**Type Constraints**:
+- **`UpdatePayload`**: Can be any type (class instances, functions, complex objects)
+- **`ExternalUpdatePayload`**: Must be `string | SerializableObject` for EventBridge compatibility
+
+**Benefits**:
+- **Type Safety**: Internal types stay internal, external contracts are explicit
+- **Evolution Independence**: Internal and external events can evolve separately
+- **Clean Architecture**: Clear separation of concerns between business logic and external integration
+- **Performance**: Avoids unnecessary deserialize/serialize cycles in replay operations
+- **Flexibility**: Rich internal types with EventBridge-compatible external formats
+
+**Usage Pattern**: DataSources can optionally provide serializers for EventBridge integration:
+```typescript
+const myDataSource = new MyDataSource({
+    dataSourceKey: 'mtw.mydomain',
+    eventSerializer: {
+        serialize: ({ dataSourceKey, detailType, streamKey, update }) => {
+            // Transform internal update to external format
+            return { /* external format */ }
+        },
+        deserialize: ({ dataSourceKey, detailType, streamKey, externalUpdate }) => {
+            // Transform external format back to internal update
+            return /* internal update */
+        }
+    },
+    // ... other params
+})
+```
+
+**Event Processing Flow**:
+- **Outgoing**: DataSource → messageBus → serialize → EventBridge/DynamoDB
+- **Incoming**: EventBridge → deserialize → messageBus → DataSource processing
+
 ### Data Storage Strategy
 
 #### **Local DynamoDB Table** (Optional - when `replayable` is enabled)
@@ -277,11 +324,12 @@ The subscription system enables a simplified EventBridge architecture:
 ## Current State
 
 ### **First Iteration Scope**
-This initial implementation focuses on the three core capabilities:
+This initial implementation focuses on the four core capabilities:
 
 1. **Snapshot Generation**: Create materialized state snapshots (optional when `replayable` is enabled)
 2. **Event Streaming**: Stream filtered change events
 3. **Replay Serialization**: Serialize data for new subscriber onboarding (optional when `replayable` is enabled)
+4. **EventBridge Serialization**: Clean separation between internal StreamEvents and external EventBridge events (optional)
 
 ### **Future Enhancements**
 - **Claim-check pattern**: Large snapshots or event contents should push to S3 and deliver a claim-check record with objectName and preSigned URL
@@ -291,18 +339,9 @@ This initial implementation focuses on the three core capabilities:
 - **Batch Processing**: Process multiple incoming events in batches for improved performance
 - **Event Ordering**: Guarantee ordered processing of events from the same source
 - **Dead Letter Queues**: Handle failed event processing with retry and dead letter queue patterns
+- **Event Validation**: Built-in validation for external EventBridge event formats
+- **Event Enrichment**: Automatic enrichment of events with contextual metadata during serialization
 
-### Known Quirk: Dual timestamps and boundary serialization plan
-
-- Current behavior: `streamEvent` emits timestamps in two places:
-  - Top-level `StreamingEvent.timestamp` (envelope time)
-  - Inner `event.timestamp` (also mirrored in EventBridge `Detail.timestamp`)
-- This redundancy emerged during early tests and is not a strict requirement. It can blur the distinction between "caused-at" vs "emitted-at" times.
-- Tests in this package currently assert both fields; most downstream consumers do not rely on the inner timestamp.
-- Planned refactor: Introduce explicit EventBridge boundary helpers to centralize the wire format and remove redundancy safely:
-  - `serializeToEventBridge({ dataSourceKey, detailType, streamKey, update, timestamp? })`
-  - `deserializeFromEventBridge(event)`
-- Action item: De-duplicate timestamp handling as part of the serialization/deserialization refactor (prefer keeping only the envelope timestamp unless a clear need for payload-level timestamps is demonstrated).
 
 ## Navigation Tips
 
