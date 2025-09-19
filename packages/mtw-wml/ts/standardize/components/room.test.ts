@@ -89,9 +89,9 @@ describe('StandardRoom class', () => {
         expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
         expect(testRoom.exits).toEqual([])  // Should default to empty array
         
-        // The JSON output should include an empty exits array
+        // The JSON output should omit exits when empty (omission-over-empty pattern)
         const outputJSON = testRoom.toJSON() as StandardRoomData
-        expect(outputJSON.exits).toEqual([])
+        expect(outputJSON.exits).toBeUndefined()
     })
 
     it('should merge correctly', () => {
@@ -428,7 +428,7 @@ describe('StandardRoom class', () => {
             expect(room.characters.toJSON()).toEqual([])
             
             const json = room.toJSON() as StandardRoomData
-            expect(json.characters).toBeUndefined() // Empty lists are not serialized
+            expect(json.characters).toBeUndefined() // Empty lists are not serialized (omission-over-empty pattern)
         })
 
 

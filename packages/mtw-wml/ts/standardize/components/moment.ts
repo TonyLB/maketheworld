@@ -48,7 +48,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     toJSON(): Omit<StandardMomentData, 'key' | 'universalKey'> {
         return {
             tag: 'Moment',
-            messages: this.messages.toJSON()
+            ...(this.messages.payload.length ? { messages: this.messages.toJSON() } : {})
         }
     }
 

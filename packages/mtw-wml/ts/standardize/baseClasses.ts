@@ -1,6 +1,6 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree";
 import { isStandardComponentData, StandardComponentNonEditData } from "./components/dataTypes";
-import { StandardBaseData } from "./components/dataTypes/abstract";
+import { StandardBaseData, ComponentTag } from "./components/dataTypes/abstract";
 
 import { StandardCharacterData } from "./components/dataTypes/character";
 
@@ -86,54 +86,18 @@ export const isStandardNonEdit = (value: StandardComponentData): value is Exclud
 export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, universalKey?: ComponentUUID): Exclude<StandardComponentNonEditData, string> => {
     switch(tag) {
         case 'Example':
-            return {
-                tag,
-                key,
-                universalKey
-            }
         case 'Character':
-            return {
-                tag,
-                key,
-                universalKey
-            }
         case 'Room':
-            return {
-                tag,
-                key,
-                universalKey,
-                exits: []
-            }
         case 'Feature':
         case 'Knowledge':
-            return {
-                tag,
-                key,
-                universalKey
-            }
         case 'Message':
-            return {
-                tag,
-                key,
-                universalKey,
-                rooms: []
-            }
+        case 'Moment':
         case 'Image':
-            return {
-                tag: 'Image' as const,
-                key,
-                universalKey
-            }
-
-
-
         case 'Map':
             return {
-                tag: 'Map' as const,
+                tag,
                 key,
-                universalKey,
-                images: [],
-                positions: [],
+                universalKey
             }
         default:
             throw new Error(`No default component for tag: '${tag}'`)

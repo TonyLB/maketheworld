@@ -40,7 +40,6 @@ describe('mergeToComponentList', () => {
             universalKey: 'ROOM#uuid-foo',
             key: 'foo',
             shortName: 'Test',
-            exits: []
         })
     })
 

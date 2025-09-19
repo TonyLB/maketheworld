@@ -39,7 +39,7 @@ export const perceptionMessage = async ({
             if (!characterId) {
                 const internalCache = getCache()
                 const messageMetaByAsset = await internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId) as Record<AssetUUID, StandardComponent>
-                const roomsForMessage = (Object.values(messageMetaByAsset) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...rooms as `ROOM#${string}`[] ]), [])
+                const roomsForMessage = (Object.values(messageMetaByAsset) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...(rooms ?? []) as `ROOM#${string}`[] ]), [])
                 const roomCharacterLists = await Promise.all(roomsForMessage.map(async (roomId) => (internalCache.RoomCharacterList.get(roomId))))
 
                 await Promise.all(

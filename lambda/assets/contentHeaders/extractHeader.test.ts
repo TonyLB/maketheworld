@@ -17,8 +17,8 @@ describe('extractHeader', () => {
             const room = make({ tag: 'Room', key: 'Room1', shortName: 'Lobby' })
             const result = extractHeader(room)
             expect(result).toBeTruthy()
-            // Room serializer includes exits array; universalKey/context may be undefined
-            expect(result?.toJSON()).toMatchObject({ tag: 'Room', key: 'Room1', shortName: 'Lobby', exits: [] })
+            // Room serializer omits empty exits array; universalKey/context may be undefined
+            expect(result?.toJSON()).toMatchObject({ tag: 'Room', key: 'Room1', shortName: 'Lobby' })
         })
 
         it('extracts Character header', () => {
@@ -85,7 +85,7 @@ describe('extractHeader', () => {
             expect(result?.toJSON()).toMatchObject({
                 tag: 'Remove',
                 key: 'Room1',
-                component: { tag: 'Room', key: 'Room1', shortName: 'Lobby', exits: [] }
+                component: { tag: 'Room', key: 'Room1', shortName: 'Lobby' }
             })
         })
 
@@ -99,8 +99,8 @@ describe('extractHeader', () => {
             expect(result?.toJSON()).toMatchObject({
                 tag: 'Replace',
                 key: 'Room1',
-                match: { tag: 'Room', key: 'Room1', shortName: 'Lobby', exits: [] },
-                payload: { tag: 'Room', key: 'Room1', shortName: 'Atrium', exits: [] }
+                match: { tag: 'Room', key: 'Room1', shortName: 'Lobby' },
+                payload: { tag: 'Room', key: 'Room1', shortName: 'Atrium' }
             })
         })
     })
@@ -115,7 +115,7 @@ describe('extractHeader', () => {
                 characters: [{ tag: 'Character', key: 'Char1' }]
             })
             const result = extractHeader(room)
-            expect(result?.toJSON()).toMatchObject({ tag: 'Room', key: 'Room1', shortName: 'Lobby', exits: [] })
+            expect(result?.toJSON()).toMatchObject({ tag: 'Room', key: 'Room1', shortName: 'Lobby' })
         })
 
         it('strips Feature examples', () => {

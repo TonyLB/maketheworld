@@ -35,8 +35,8 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
     fromJSON(props: StandardMapData) {
         this._name = props.name ? new StandardLiteral(props.name) : undefined
-        this._images = props.images
-        this._positions = props.positions.map((position) => (new StandardPosition(position))).filter(excludeUndefined)
+        this._images = props.images ?? []
+        this._positions = props.positions?.map((position) => (new StandardPosition(position))).filter(excludeUndefined) ?? []
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
@@ -79,8 +79,8 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return {
             tag: 'Map',
             name: this.name?.toJSON(),
-            images: this.images,
-            positions: this.positions.map((position) => position.toJSON())
+            ...(this.images.length ? { images: this.images } : {}),
+            ...(this.positions.length ? { positions: this.positions.map((position) => position.toJSON()) } : {})
         }
     }
 

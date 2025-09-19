@@ -10,8 +10,8 @@ import { isStandardReferenceData } from "../reference";
 export type StandardMapData = {
     tag: 'Map';
     name?: StandardEditableData<string>;
-    images: GenericTree<SchemaTag>;
-    positions: StandardEditableData<StandardPositionData>[];
+    images?: GenericTree<SchemaTag>;
+    positions?: StandardEditableData<StandardPositionData>[];
 } & StandardBaseData
 
 export const isStandardMap = (arg: any): arg is StandardMapData => {
@@ -30,13 +30,14 @@ export const isStandardMap = (arg: any): arg is StandardMapData => {
             name: 'literal',
         }),
         (
-            'positions' in arg &&
-            Array.isArray(arg.positions) &&
-            arg.positions.every((position) => (
-                'x' in position && typeof position.x === 'number' &&
-                'y' in position && typeof position.y === 'number' &&
-                'room' in position && isStandardReferenceData(position.room)
-            ))
+            !('positions' in arg) || (
+                Array.isArray(arg.positions) &&
+                arg.positions.every((position) => (
+                    'x' in position && typeof position.x === 'number' &&
+                    'y' in position && typeof position.y === 'number' &&
+                    'room' in position && isStandardReferenceData(position.room)
+                ))
+            )
         )
     )
 }

@@ -88,7 +88,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             tag: 'Room',
             shortName: this?.shortName?.toJSON(),
-            exits: this.exits.map((exit) => exit.toJSON()),
+            ...(this.exits.length ? { exits: this.exits.map((exit) => exit.toJSON()) } : {}),
             ...(this.features.payload.length ? { features: this.features.toJSON() } : {}),
             ...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {}),
             ...(this.characters.payload.length ? { characters: this.characters.toJSON() } : {})

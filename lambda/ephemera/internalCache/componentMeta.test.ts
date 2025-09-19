@@ -42,14 +42,12 @@ describe('ComponentMeta', () => {
             Base: {
                 tag: 'Room',
                 universalKey: 'ROOM#TestOne',
-                examples: ['EXAMPLE#ExampleOne'],
-                exits: []
+                examples: ['EXAMPLE#ExampleOne']
             },
             Layer: {
                 tag: 'Room',
                 universalKey: 'ROOM#TestOne',
-                examples: ['EXAMPLE#ExampleTwo'],
-                exits: []
+                examples: ['EXAMPLE#ExampleTwo']
             }
         })
         expect(assetMock.getItems).toHaveBeenCalledTimes(1)
@@ -81,14 +79,12 @@ describe('ComponentMeta', () => {
             Base: {
                 universalKey: 'ROOM#TestOne',
                 tag: 'Room',
-                examples: [{ key: 'test', tag: 'Example' }],
-                exits: [],
+                examples: [{ key: 'test', tag: 'Example' }]
             },
             Layer: {
                 universalKey: 'ROOM#TestOne',
                 tag: 'Room',
-                examples: [{ key: 'base', tag: 'Example' }],
-                exits: [],
+                examples: [{ key: 'base', tag: 'Example' }]
             }
         })
         expect(assetMock.getItems).toHaveBeenCalledTimes(1)
@@ -112,13 +108,11 @@ describe('ComponentMeta', () => {
             Base: {
                 tag: 'Room',
                 universalKey: 'ROOM#TestOne',
-                examples: [{ key: 'test', tag: 'Example' }],
-                exits: [],
+                examples: [{ key: 'test', tag: 'Example' }]
             },
             Layer: {
                 universalKey: 'ROOM#TestOne',
-                tag: 'Room',
-                exits: [],
+                tag: 'Room'
             }
         })
         expect(assetMock.getItems).toHaveBeenCalledTimes(1)
@@ -137,25 +131,21 @@ describe('ComponentMeta', () => {
             {
                 DataCategory: 'ASSET#Base',
                 examples: [{ key: 'validRecord', tag: 'Example' }],
-                exits: [],
                 AssetId: 'ROOM#TestOne'
             },
             {
                 DataCategory: '', // Empty string - invalid AssetUUID
                 examples: [{ key: 'shouldBeFiltered', tag: 'Example' }],
-                exits: [],
                 AssetId: 'ROOM#TestOne'
             },
             {
                 DataCategory: undefined, // Missing DataCategory - invalid AssetUUID
                 examples: [{ key: 'alsoFiltered', tag: 'Example' }],
-                exits: [],
                 AssetId: 'ROOM#TestOne'
             },
             {
                 DataCategory: 'INVALIDFORMAT', // Invalid AssetUUID format
                 examples: [{ key: 'stillFiltered', tag: 'Example' }],
-                exits: [],
                 AssetId: 'ROOM#TestOne'
             }
         ])
@@ -166,13 +156,11 @@ describe('ComponentMeta', () => {
             Base: {
                 tag: 'Room',
                 universalKey: 'ROOM#TestOne',
-                examples: [{ key: 'validRecord', tag: 'Example' }],
-                exits: [],
+                examples: [{ key: 'validRecord', tag: 'Example' }]
             },
             Layer: {
                 universalKey: 'ROOM#TestOne',
-                tag: 'Room',
-                exits: [],
+                tag: 'Room'
             }
         })
         
