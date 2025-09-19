@@ -366,15 +366,6 @@ const assetWithEdits = new StandardForm({
 - **Validation**: Enhanced asset validation
 - **Extensions**: Support for additional asset operations
 
-#### Serialization Principle: Omit-Over-Empty (Planned)
-- Problem: Some component `toJSON()` implementations emit empty arrays or explicit `undefined` fields (e.g., `exits: []`, `universalKey: undefined`).
-- Impact: Makes “header-only” or “subset” serializations noisier and complicates equality checks and minimal payload use cases (like content headers).
-- Direction: Adopt an omission-over-empty principle across StandardComponent serializers:
-  - Do not include fields when they are semantically absent (e.g., no `exits` → omit `exits` key).
-  - Continue including non-empty fields and required identifiers.
-- Rollout: Incremental, component-by-component, coordinated with test updates to avoid regressions.
-- Related Work: `lambda/assets/contentHeaders/extractHeader.ts` relies on minimal JSON construction; cleaner omission semantics will reduce downstream conditionals and test fragility.
-
 ### Technical Debt
 
 #### **DIFF SYSTEM: Reference Changes in Nested Components** 🔴

@@ -164,6 +164,31 @@ characters.forEach(character => {
 ```
 
 ### Serialization
+
+#### Omission-Over-Empty Principle
+
+All StandardComponent `toJSON()` implementations follow the **omission-over-empty** principle:
+
+- **Empty fields are omitted** from JSON output rather than included with empty values (including empty arrays)
+- **Non-empty fields are always included** with their actual values
+- **Required identifiers** (tag, key, universalKey) are always present
+
+**Examples:**
+```typescript
+// Room with no exits - exits field is omitted
+const emptyRoom = new StandardRoom({ tag: 'Room', key: 'room1' })
+emptyRoom.toJSON() // { tag: 'Room', key: 'room1' } - no exits field
+
+// Room with exits - exits field is included
+const roomWithExits = new StandardRoom({ 
+    tag: 'Room', 
+    key: 'room2', 
+    exits: [/* exit data */] 
+})
+roomWithExits.toJSON() // { tag: 'Room', key: 'room2', exits: [...] }
+```
+
+#### Basic Serialization
 ```typescript
 // To JSON for storage
 const json = example.toJSON()
