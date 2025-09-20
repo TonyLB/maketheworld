@@ -1459,7 +1459,7 @@ describe('DataSource', () => {
                 })).rejects.toThrow("DataSource 'mtw.testDataSource' is not replayable and does not support subscription initialization")
             })
 
-            it('should generate snapshot without storage when replayable is false', async () => {
+            it('should throw error when getSnapshot is called on non-replayable data source', async () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
@@ -1471,12 +1471,9 @@ describe('DataSource', () => {
                     replayable: false
                 })
 
-                const snapshot = await dataSource.getSnapshot('test-stream')
-
-                expect(snapshot).toEqual({
-                    streamKey: 'test-stream',
-                    timestamp: 100000000
-                })
+                await expect(dataSource.getSnapshot('test-stream')).rejects.toThrow(
+                    "DataSource 'mtw.testDataSource' is not replayable and does not support snapshots"
+                )
                 expect(mockSnapshotContentGenerator).not.toHaveBeenCalled()
                 expect(mockSingleFlight).not.toHaveBeenCalled()
                 expect(mockDynamo.getItem).not.toHaveBeenCalled()
@@ -1544,7 +1541,7 @@ describe('DataSource', () => {
                 expect(mockDynamo.putItem).not.toHaveBeenCalled()
             })
 
-            it('should work without snapshotContentGenerator when replayable is false', async () => {
+            it('should throw error when getSnapshot is called without snapshotContentGenerator on non-replayable data source', async () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
@@ -1556,12 +1553,9 @@ describe('DataSource', () => {
                     replayable: false
                 })
 
-                const snapshot = await dataSource.getSnapshot('test-stream')
-
-                expect(snapshot).toEqual({
-                    streamKey: 'test-stream',
-                    timestamp: 100000000
-                })
+                await expect(dataSource.getSnapshot('test-stream')).rejects.toThrow(
+                    "DataSource 'mtw.testDataSource' is not replayable and does not support snapshots"
+                )
                 expect(mockSnapshotContentGenerator).not.toHaveBeenCalled()
                 expect(mockSingleFlight).not.toHaveBeenCalled()
                 expect(mockDynamo.getItem).not.toHaveBeenCalled()

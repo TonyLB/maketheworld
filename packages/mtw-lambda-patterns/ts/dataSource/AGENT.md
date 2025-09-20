@@ -176,6 +176,33 @@ Provide clean separation between internal StreamEvents and external EventBridge 
 - **Performance**: Avoids unnecessary deserialize/serialize cycles in replay operations
 - **Flexibility**: Rich internal types with EventBridge-compatible external formats
 
+#### **6. Timestamp Handling Strategy**
+The DataSource pattern uses a consistent timestamp strategy across all event and storage operations.
+
+**Timestamp Storage Locations**:
+- **DynamoDB Records**: Timestamp embedded in `DataCategory` field as `EVENT#${timestamp}::${uuid}` (no separate timestamp field)
+- **Replayable Snapshots**: Timestamp included in snapshot metadata for replayable data sources
+- **Non-Replayable getSnapshot()**: Throws error - snapshots are not supported for non-replayable data sources
+- **MessageBus Events**: Timestamp included in event metadata for internal coordination
+- **EventBridge Events**: No timestamp in Detail payload (EventBridge provides automatic timestamps)
+
+**Timestamp Extraction Pattern**:
+- **Single Source of Truth**: Timestamps extracted once from `DataCategory` in `getRecentEvents()`
+- **Clean Data Flow**: Raw DynamoDB data → processed data with extracted timestamp → usage
+- **No Redundancy**: Avoids storing timestamps in multiple places or passing around raw `DataCategory` strings
+
+**Implementation Details**:
+- **Storage**: `DataCategory: 'EVENT#${getCurrentTimestamp()}::${uuidv4()}'`
+- **Extraction**: `parseInt(DataCategory.split('::')[0].replace('EVENT#', ''))`
+- **Sorting**: Events sorted by extracted timestamp for chronological replay
+- **Delivery**: Clean timestamp field passed to replay consumers
+
+**Benefits**:
+- **Consistency**: Single timestamp source eliminates sync issues
+- **Efficiency**: No redundant timestamp storage in DynamoDB records
+- **Clarity**: Clean separation between metadata (timestamps) and payload data
+- **Performance**: Minimal storage overhead while maintaining full temporal ordering
+
 **Usage Pattern**: DataSources can optionally provide serializers for EventBridge integration:
 ```typescript
 const myDataSource = new MyDataSource({

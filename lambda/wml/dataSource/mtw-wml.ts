@@ -26,10 +26,10 @@ export class WMLEventSerializer implements DataSourceEventSerializer<StandardFor
      * Deserialize a WML string back to StandardForm
      * for internal messageBus processing
      */
-    deserialize(serializedData: string): StandardForm {
+    deserialize(params: { dataSourceKey: string; detailType: string; streamKey: string; externalUpdate: string }): StandardForm | null {
         try {
             // Parse WML string back to StandardForm
-            const schemaNode = nodeFromWML(serializedData)
+            const schemaNode = nodeFromWML(params.externalUpdate)
             return new StandardForm(schemaNode)
         } catch (error) {
             throw new Error(`Failed to deserialize WML: ${error instanceof Error ? error.message : String(error)}`)
@@ -53,7 +53,7 @@ export const wmlDataSource = new WMLDataSource<{}, StandardForm>({
     dataSourceKey: 'mtw.wml',
     replayable: false, // Non-replayable - focuses on event streaming and serialization
     // No snapshotContentGenerator needed for non-replayable data sources
-    subscribedEventTypeGuard: (event: StreamingEventPayload): event is StreamingEventPayload => {
+    subscribedEventTypeGuard: (event: StreamingEventPayload): event is never => {
         // TODO: Define what events this data source should subscribe to
         // For now, subscribing to nothing as requested
         return false

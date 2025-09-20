@@ -48,10 +48,15 @@ describe('WMLEventSerializer', () => {
             </Asset>
         `)
 
-        const standardForm = serializer.deserialize(wmlString)
+        const standardForm = serializer.deserialize({
+            dataSourceKey: 'mtw.wml',
+            detailType: 'Test Event',
+            streamKey: 'test-stream',
+            externalUpdate: wmlString
+        })
         expect(standardForm).toBeInstanceOf(StandardForm)
-        expect(standardForm.key).toBe('test-asset')
-        expect(standardForm.toJSON().components).toHaveLength(1)
+        expect(standardForm!.key).toBe('test-asset')
+        expect(standardForm!.toJSON().components).toHaveLength(1)
     })
 
     it('should handle serialization round-trip correctly', () => {
@@ -68,11 +73,16 @@ describe('WMLEventSerializer', () => {
         const wmlString = serializer.serialize({ update: originalForm })
         
         // Deserialize back to StandardForm
-        const deserializedForm = serializer.deserialize(wmlString)
+        const deserializedForm = serializer.deserialize({
+            dataSourceKey: 'mtw.wml',
+            detailType: 'Test Event',
+            streamKey: 'test-stream',
+            externalUpdate: wmlString
+        })
         
         // Verify key is preserved
-        expect(deserializedForm.key).toBe(originalForm.key)
-        expect(deserializedForm.toJSON().components).toHaveLength(originalForm.toJSON().components.length)
+        expect(deserializedForm!.key).toBe(originalForm.key)
+        expect(deserializedForm!.toJSON().components).toHaveLength(originalForm.toJSON().components.length)
     })
 
 })

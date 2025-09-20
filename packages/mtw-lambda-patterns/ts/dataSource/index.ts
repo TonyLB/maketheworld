@@ -145,9 +145,9 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }
 
     async getSnapshot(streamKey: string): Promise<SnapshotPayload> {
-        // For non-replayable data sources, return a minimal snapshot without generation
+        // For non-replayable data sources, throw an error since snapshots are not supported
         if (!this.replayable) {
-            return { streamKey, timestamp: getCurrentTimestamp() } as unknown as SnapshotPayload
+            throw new Error(`DataSource '${this.dataSourceKey}' is not replayable and does not support snapshots`)
         }
 
         // Check in-memory cache first
