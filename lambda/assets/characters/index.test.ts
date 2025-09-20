@@ -224,13 +224,11 @@ describe('CharactersDataSource', () => {
                 ])
             )
 
-            // Verify the WML contains expected content
+            // Verify the WML matches expected content exactly
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
             const serializedUpdate = eventBridgeCall.Detail.update
             expect(serializedUpdate.characterId).toBe('CHARACTER#char123')
-            expect(serializedUpdate.wml).toContain('<Character uuid=(char123)>')
-            expect(serializedUpdate.wml).toContain('<ShortName>Test Character</ShortName>')
-            expect(serializedUpdate.wml).toContain('</Character>')
+            expect(serializedUpdate.wml).toEqual(deIndentWML(`<Character uuid=(char123)><ShortName>Test Character</ShortName></Character>`))
         })
 
         it('should serialize Character Removed events to EventBridge with WML', async () => {
@@ -297,15 +295,17 @@ describe('CharactersDataSource', () => {
                 detailType: 'Character Updated'
             })
 
-            // Verify the serialized WML contains all expected attributes
+            // Verify the serialized WML matches expected content exactly
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
             const serializedUpdate = eventBridgeCall.Detail.update
             
             expect(serializedUpdate.characterId).toBe('CHARACTER#complex123')
-            expect(serializedUpdate.wml).toContain('<Character uuid=(complex123)>')
-            expect(serializedUpdate.wml).toContain('<ShortName>Complex Character</ShortName>')
-            expect(serializedUpdate.wml).toContain('<Pronouns>they/them</Pronouns>')
-            expect(serializedUpdate.wml).toContain('</Character>')
+            expect(serializedUpdate.wml).toEqual(deIndentWML(`
+                <Character uuid=(complex123)>
+                    <ShortName>Complex Character</ShortName>
+                    <Pronouns>they/them</Pronouns>
+                </Character>
+            `))
         })
 
         it('should preserve detailType metadata in EventBridge events', async () => {
