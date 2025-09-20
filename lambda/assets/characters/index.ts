@@ -6,8 +6,11 @@ import { isStandardComponentData } from '@tonylb/mtw-wml/ts/standardize/componen
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { CharacterEventSerializer, CharacterEventUpdate } from './serializers'
+import { ComponentEventUpdate, isAssetsComponentEvent } from '../dataSource/serializers'
+import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Types for the characters data source
 export type CharacterEventPayload = {
@@ -21,26 +24,10 @@ export type CharacterSnapshotPayload = {
     timestamp: number
 }
 
-// Type for the events this data source subscribes to (internal format)
-export type ComponentEventPayload = {
-    dataSourceKey: 'mtw.assets'
-    event: {
-        streamKey: string
-        update: {
-            type: 'Component Updated' | 'Component Removed'
-            [key: string]: any
-        }
-        timestamp: number
-    }
-    timestamp: number
-}
+// The characters data source subscribes to ComponentEventUpdate events from mtw.assets
+// These come wrapped in StreamingEventPayload format on the messageBus
 
 // Helper functions for character data source functionality
-const isCharacterComponent = (component: any): boolean => {
-    return component && 
-           typeof component === 'object' && 
-           component.tag?.toLowerCase() === 'character'
-}
 
 const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnapshotPayload> => {
     // Query for all character components in this asset
@@ -95,37 +82,43 @@ const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnap
 }
 
 const processComponentEvent = async (
-    event: ComponentEventPayload, 
+    event: StreamingEventPayload, 
     streamEvent: (params: { update: CharacterEventUpdate, streamKey: string, detailType: string }) => Promise<void>
 ): Promise<void> => {
-    const component = event.event.update?.component
-    
-    // Check if this is a character component
-    if (!isCharacterComponent(component)) {
+    const streamKey = event.event.streamKey
+    const update = event.event.update
+
+    // Check if this is a component event and if it's a character component
+    if (!isAssetsComponentEvent(update)) {
         return
     }
 
-    const characterId = component.characterId
-    const streamKey = event.event.streamKey
+    if (update.type === 'Component Updated') {
+        // Check if this is a character component
+        if (!(update.component instanceof StandardCharacter)) {
+            return
+        }
 
-    if (event.detailType === 'Component Updated') {
         // Generate character updated event with StandardComponent object
         await streamEvent({
             update: {
                 type: 'Character Updated',
-                characterId,
-                component: component.component // Pass the StandardComponent object internally
+                component: update.component // Pass the StandardComponent object directly
             },
             streamKey,
             detailType: 'Character Updated'
         })
-    } else if (event.detailType === 'Component Removed') {
-        // Generate character removed event with StandardComponent object
+    } else if (update.type === 'Component Removed') {
+        // Check if this is a character component (by componentId)
+        if (!update.componentId || !update.componentId.startsWith('CHARACTER#')) {
+            return
+        }
+
+        // Generate character removed event (no component object available)
         await streamEvent({
             update: {
                 type: 'Character Removed',
-                characterId,
-                component: component.component // Pass the StandardComponent object internally
+                characterId: update.componentId as `CHARACTER#${string}` // Need characterId for removal events
             },
             streamKey,
             detailType: 'Character Removed'
@@ -137,30 +130,30 @@ const processComponentEvent = async (
 export const charactersDataSource = new AssetsDataSource<
     CharacterSnapshotPayload,
     CharacterEventUpdate,
-    ComponentEventPayload
+    StreamingEventPayload
 >({
     dataSourceKey: 'mtw.assets.characters',
     replayable: true,
     eventSerializer: new CharacterEventSerializer(), // Handle character event serialization
-    subscribedEventTypeGuard: (event: any): event is ComponentEventPayload => {
+    subscribedEventTypeGuard: (event: any): event is StreamingEventPayload => {
         // Subscribe to mtw.assets component events that might be character changes
         return event.dataSourceKey === 'mtw.assets' && 
                event.event && 
                typeof event.event === 'object' &&
                event.event.update &&
                typeof event.event.update === 'object' &&
-               ['Component Updated', 'Component Removed'].includes(event.event.update.type)
+               isAssetsComponentEvent(event.event.update)
     },
     snapshotContentGenerator: generateCharacterSnapshot,
     receiveEvents: async ({ event, streamEvent }) => {
         // Check if this event should be processed by this data source
-        const subscribedEventTypeGuard = (event: any): event is ComponentEventPayload => {
+        const subscribedEventTypeGuard = (event: any): event is StreamingEventPayload => {
             return event.dataSourceKey === 'mtw.assets' && 
                    event.event && 
                    typeof event.event === 'object' &&
                    event.event.update &&
                    typeof event.event.update === 'object' &&
-                   ['Component Updated', 'Component Removed'].includes(event.event.update.type)
+                   isAssetsComponentEvent(event.event.update)
         }
         
         if (!subscribedEventTypeGuard(event)) {

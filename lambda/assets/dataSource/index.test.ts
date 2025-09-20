@@ -22,7 +22,17 @@ jest.mock('@tonylb/mtw-utilities/ts/eventBridge', () => ({
 }))
 
 jest.mock('../messageBus')
-jest.mock('../internalCache')
+jest.mock('../internalCache', () => ({
+    Graph: {
+        get: jest.fn().mockResolvedValue({
+            reverse: jest.fn().mockReturnValue({
+                topologicalSort: jest.fn().mockReturnValue({
+                    flat: jest.fn().mockReturnValue([])
+                })
+            })
+        })
+    }
+}))
 jest.mock('./caching')
 
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
@@ -31,6 +41,8 @@ const eventBridgeSendMock = jest.mocked(eventBridgeClient.send, { shallow: false
 describe('AssetsDataSource (mtw.assets)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        // Mock assetDB.query for diagnostic tests
+        assetDBMock.query.mockResolvedValue([])
     })
 
     describe('Constructor', () => {
@@ -71,9 +83,9 @@ describe('AssetsDataSource (mtw.assets)', () => {
                             streamKey: 'ASSET#asset123',
                             update: expect.objectContaining({
                                 type: 'Component Updated',
-                                assetId: undefined, // assetId is not set in this test
-                                componentId: '', // componentId is empty when universalKey is not available
-                                wml: expect.stringContaining('<Character>') // Should be WML string
+                                assetId: 'ASSET#asset123', // assetId is set from streamKey
+                                componentId: 'CHARACTER#char123', // componentId is set from universalKey
+                                wml: expect.stringContaining('<Character uuid=(char123)>') // Should be WML string
                             })
                         })
                     })
@@ -83,7 +95,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             // Verify the WML contains expected content
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
             const serializedUpdate = eventBridgeCall.Detail.update
-            expect(serializedUpdate.wml).toContain('<Character>')
+            expect(serializedUpdate.wml).toContain('<Character uuid=(char123)>')
             expect(serializedUpdate.wml).toContain('<ShortName>Test Character</ShortName>')
             expect(serializedUpdate.wml).toContain('</Character>')
         })
@@ -175,7 +187,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
             const serializedUpdate = eventBridgeCall.Detail.update
             
-            expect(serializedUpdate.wml).toContain('<Character>')
+            expect(serializedUpdate.wml).toContain('<Character uuid=(complex123)>')
             expect(serializedUpdate.wml).toContain('<ShortName>Complex Character</ShortName>')
             expect(serializedUpdate.wml).toContain('<Pronouns>they/them</Pronouns>')
             expect(serializedUpdate.wml).toContain('</Character>')
@@ -223,9 +235,12 @@ describe('AssetsDataSource (mtw.assets)', () => {
             // Mock the receiveEvents method
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
             
+            // Mock streamEvent function to avoid DataSource setup issues
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            
             await assetsDataSource.receiveEvents?.({ 
                 event: wmlEvent, 
-                streamEvent: assetsDataSource.streamEvent 
+                streamEvent: mockStreamEvent 
             })
 
             expect(receiveEventsSpy).toHaveBeenCalled()
@@ -248,9 +263,12 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
             
+            // Mock streamEvent function to avoid DataSource setup issues
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            
             await assetsDataSource.receiveEvents?.({ 
                 event: diagnosticEvent, 
-                streamEvent: assetsDataSource.streamEvent 
+                streamEvent: mockStreamEvent 
             })
 
             expect(receiveEventsSpy).toHaveBeenCalled()

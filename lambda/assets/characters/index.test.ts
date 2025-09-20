@@ -1,5 +1,6 @@
-import { charactersDataSource, CharacterEventPayload, CharacterSnapshotPayload, ComponentEventPayload } from './index'
-import { StreamingEvent } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { charactersDataSource, CharacterEventPayload, CharacterSnapshotPayload } from './index'
+import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { ComponentEventUpdate } from '../dataSource/serializers'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -42,9 +43,11 @@ describe('CharactersDataSource', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         dataSource = charactersDataSource
-        // Mock the streamEvent method for testing
-        jest.spyOn(dataSource, 'streamEvent').mockImplementation(async () => {})
         getCurrentTimestampMock.mockReturnValue(FIXED_TS)
+        
+        // Mock DynamoDB calls
+        assetDBMock.putItem.mockResolvedValue(undefined)
+        assetDBMock.query.mockResolvedValue([])
     })
 
     describe('Constructor', () => {
@@ -57,13 +60,15 @@ describe('CharactersDataSource', () => {
 
     describe('Character Event Processing', () => {
         it('should process Character component updates and stream character events', async () => {
+            const mockStreamEvent = jest.fn()
+            
             const component = new StandardCharacter({
                 tag: 'Character',
                 shortName: 'Test Character',
                 universalKey: 'CHARACTER#char123'
             })
 
-            const componentEvent: ComponentEventPayload = {
+            const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 event: {
                     streamKey: 'ASSET#asset123',
@@ -71,21 +76,19 @@ describe('CharactersDataSource', () => {
                         type: 'Component Updated',
                         assetId: 'ASSET#asset123',
                         component
-                    },
-                    timestamp: FIXED_TS
+                    } as ComponentEventUpdate
                 },
                 timestamp: FIXED_TS
             }
 
             // Process the event
-            await dataSource.receiveEvents?.({ event: componentEvent, streamEvent: dataSource.streamEvent })
+            await dataSource.receiveEvents?.({ event: componentEvent, streamEvent: mockStreamEvent })
 
             // Should have called streamEvent with character event
-            expect(dataSource.streamEvent).toHaveBeenCalledWith({
+            expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
                     type: 'Character Updated',
-                    characterId: 'CHARACTER#char123',
-                    component: undefined // No component provided in test
+                    component: component // Should pass the StandardCharacter object
                 },
                 streamKey: 'ASSET#asset123',
                 detailType: 'Character Updated'
@@ -99,7 +102,7 @@ describe('CharactersDataSource', () => {
                 universalKey: 'CHARACTER#char123'
             })
 
-            const componentEvent: ComponentEventPayload = {
+            const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 event: {
                     streamKey: 'ASSET#asset123',
@@ -107,19 +110,20 @@ describe('CharactersDataSource', () => {
                         type: 'Component Removed',
                         assetId: 'ASSET#asset123',
                         componentId: 'CHARACTER#char123'
-                    },
-                    timestamp: FIXED_TS
+                    } as ComponentEventUpdate
                 },
                 timestamp: FIXED_TS
             }
 
-            await dataSource.receiveEvents?.({ event: componentEvent, streamEvent: dataSource.streamEvent })
+            const mockStreamEvent = jest.fn()
+            
+            await dataSource.receiveEvents?.({ event: componentEvent, streamEvent: mockStreamEvent })
 
-            expect(dataSource.streamEvent).toHaveBeenCalledWith({
+            expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
                     type: 'Character Removed',
-                    characterId: 'CHARACTER#char123',
-                    component: undefined // No component provided in test
+                    characterId: 'CHARACTER#char123'
+                    // component field omitted for removals
                 },
                 streamKey: 'ASSET#asset123',
                 detailType: 'Character Removed'
@@ -127,7 +131,9 @@ describe('CharactersDataSource', () => {
         })
 
         it('should ignore non-Character component events', async () => {
-            const nonCharacterEvent: ComponentEventPayload = {
+            const mockStreamEvent = jest.fn()
+            
+            const nonCharacterEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 event: {
                     streamKey: 'ASSET#asset123',
@@ -139,19 +145,20 @@ describe('CharactersDataSource', () => {
                             roomId: 'ROOM#room123',
                             name: 'Test Room'
                         } as any // Non-StandardCharacter component
-                    },
-                    timestamp: FIXED_TS
+                    } as ComponentEventUpdate
                 },
                 timestamp: FIXED_TS
             }
 
-            await dataSource.receiveEvents?.({ event: nonCharacterEvent, streamEvent: dataSource.streamEvent })
+            await dataSource.receiveEvents?.({ event: nonCharacterEvent, streamEvent: mockStreamEvent })
 
             // Should not have called streamEvent
-            expect(dataSource.streamEvent).not.toHaveBeenCalled()
+            expect(mockStreamEvent).not.toHaveBeenCalled()
         })
 
         it('should ignore events from other data sources', async () => {
+            const mockStreamEvent = jest.fn()
+            
             const component = new StandardCharacter({
                 tag: 'Character',
                 universalKey: 'CHARACTER#char123'
@@ -171,10 +178,10 @@ describe('CharactersDataSource', () => {
                 timestamp: FIXED_TS
             }
 
-            await dataSource.receiveEvents?.({ event: otherDataSourceEvent as any, streamEvent: dataSource.streamEvent })
+            await dataSource.receiveEvents?.({ event: otherDataSourceEvent as any, streamEvent: mockStreamEvent })
 
             // Should not have called streamEvent
-            expect(dataSource.streamEvent).not.toHaveBeenCalled()
+            expect(mockStreamEvent).not.toHaveBeenCalled()
         })
     })
 
@@ -194,7 +201,6 @@ describe('CharactersDataSource', () => {
             await dataSource.streamEvent({
                 update: {
                     type: 'Character Updated',
-                    characterId: 'CHARACTER#char123',
                     component
                 },
                 streamKey: 'ASSET#asset123',
@@ -209,7 +215,10 @@ describe('CharactersDataSource', () => {
                         DetailType: 'Character Updated',
                         Detail: expect.objectContaining({
                             streamKey: 'ASSET#asset123',
-                            update: expect.stringContaining('<Character uuid=(char123)>') // Should be WML string, not object
+                            update: expect.objectContaining({
+                                characterId: 'CHARACTER#char123',
+                                wml: expect.stringContaining('<Character uuid=(char123)>')
+                            })
                         })
                     })
                 ])
@@ -218,9 +227,10 @@ describe('CharactersDataSource', () => {
             // Verify the WML contains expected content
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
             const serializedUpdate = eventBridgeCall.Detail.update
-            expect(serializedUpdate).toContain('<Character uuid=(char123)>')
-            expect(serializedUpdate).toContain('<ShortName>Test Character</ShortName>')
-            expect(serializedUpdate).toContain('</Character>')
+            expect(serializedUpdate.characterId).toBe('CHARACTER#char123')
+            expect(serializedUpdate.wml).toContain('<Character uuid=(char123)>')
+            expect(serializedUpdate.wml).toContain('<ShortName>Test Character</ShortName>')
+            expect(serializedUpdate.wml).toContain('</Character>')
         })
 
         it('should serialize Character Removed events to EventBridge with WML', async () => {
@@ -236,8 +246,7 @@ describe('CharactersDataSource', () => {
             await dataSource.streamEvent({
                 update: {
                     type: 'Character Removed',
-                    characterId: 'CHARACTER#char456',
-                    component
+                    characterId: 'CHARACTER#char456'
                 },
                 streamKey: 'ASSET#asset456',
                 detailType: 'Character Removed'
@@ -251,20 +260,20 @@ describe('CharactersDataSource', () => {
                         DetailType: 'Character Removed',
                         Detail: expect.objectContaining({
                             streamKey: 'ASSET#asset456',
-                            update: expect.stringContaining('<Remove>') // Should be WML with Remove wrapper
+                            update: expect.objectContaining({
+                                characterId: 'CHARACTER#char456'
+                                // No wml field for removal events
+                            })
                         })
                     })
                 ])
             )
 
-            // Verify the WML contains expected content
+            // Verify the removal event structure
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
             const serializedUpdate = eventBridgeCall.Detail.update
-            expect(serializedUpdate).toContain('<Remove>')
-            expect(serializedUpdate).toContain('<Character uuid=(char456)>')
-            expect(serializedUpdate).toContain('<ShortName>Removed Character</ShortName>')
-            expect(serializedUpdate).toContain('</Character>')
-            expect(serializedUpdate).toContain('</Remove>')
+            expect(serializedUpdate.characterId).toBe('CHARACTER#char456')
+            expect(serializedUpdate.wml).toBeUndefined() // No WML content for removal events
         })
 
         it('should handle serialization of complex Character objects', async () => {
@@ -282,7 +291,6 @@ describe('CharactersDataSource', () => {
             await dataSource.streamEvent({
                 update: {
                     type: 'Character Updated',
-                    characterId: 'CHARACTER#complex123',
                     component
                 },
                 streamKey: 'ASSET#complex-asset',
@@ -293,10 +301,11 @@ describe('CharactersDataSource', () => {
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
             const serializedUpdate = eventBridgeCall.Detail.update
             
-            expect(serializedUpdate).toContain('<Character>')
-            expect(serializedUpdate).toContain('<ShortName>Complex Character</ShortName>')
-            expect(serializedUpdate).toContain('<Pronouns>they/them</Pronouns>')
-            expect(serializedUpdate).toContain('</Character>')
+            expect(serializedUpdate.characterId).toBe('CHARACTER#complex123')
+            expect(serializedUpdate.wml).toContain('<Character uuid=(complex123)>')
+            expect(serializedUpdate.wml).toContain('<ShortName>Complex Character</ShortName>')
+            expect(serializedUpdate.wml).toContain('<Pronouns>they/them</Pronouns>')
+            expect(serializedUpdate.wml).toContain('</Character>')
         })
 
         it('should preserve detailType metadata in EventBridge events', async () => {
@@ -311,7 +320,6 @@ describe('CharactersDataSource', () => {
             await dataSource.streamEvent({
                 update: {
                     type: 'Character Updated',
-                    characterId: 'CHARACTER#metadata123',
                     component
                 },
                 streamKey: 'ASSET#metadata-asset',
@@ -436,7 +444,6 @@ describe('CharactersDataSource', () => {
             await dataSource.streamEvent({
                 update: {
                     type: 'Character Updated',
-                    characterId: 'CHARACTER#char123',
                     component
                 },
                 streamKey: 'ASSET#asset123',
@@ -450,7 +457,9 @@ describe('CharactersDataSource', () => {
 
     describe('Error Handling', () => {
         it('should handle invalid component events gracefully', async () => {
-            const invalidEvent: ComponentEventPayload = {
+            const mockStreamEvent = jest.fn()
+            
+            const invalidEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 event: {
                     streamKey: 'asset123',
@@ -458,22 +467,23 @@ describe('CharactersDataSource', () => {
                         type: 'Component Updated',
                         assetId: 'ASSET#asset123',
                         component: null // Invalid component
-                    },
-                    timestamp: FIXED_TS
+                    } as any // Allow null component for testing
                 },
                 timestamp: FIXED_TS
             }
 
             await expect(
-                dataSource.receiveEvents?.({ event: invalidEvent, streamEvent: dataSource.streamEvent })
+                dataSource.receiveEvents?.({ event: invalidEvent, streamEvent: mockStreamEvent })
             ).resolves.not.toThrow()
 
             // Should not have called streamEvent
-            expect(dataSource.streamEvent).not.toHaveBeenCalled()
+            expect(mockStreamEvent).not.toHaveBeenCalled()
         })
 
         it('should handle missing character data gracefully', async () => {
-            const incompleteEvent: ComponentEventPayload = {
+            const mockStreamEvent = jest.fn()
+            
+            const incompleteEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 event: {
                     streamKey: 'asset123',
@@ -484,18 +494,17 @@ describe('CharactersDataSource', () => {
                             tag: 'Character'
                             // Missing other required data
                         } as any
-                    },
-                    timestamp: FIXED_TS
+                    } as ComponentEventUpdate
                 },
                 timestamp: FIXED_TS
             }
 
             await expect(
-                dataSource.receiveEvents?.({ event: incompleteEvent, streamEvent: dataSource.streamEvent })
+                dataSource.receiveEvents?.({ event: incompleteEvent, streamEvent: mockStreamEvent })
             ).resolves.not.toThrow()
 
-            // Should still call streamEvent with default values
-            expect(dataSource.streamEvent).toHaveBeenCalled()
+            // Should not call streamEvent since component is not a valid StandardCharacter
+            expect(mockStreamEvent).not.toHaveBeenCalled()
         })
     })
 })
