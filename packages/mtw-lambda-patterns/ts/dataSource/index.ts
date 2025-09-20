@@ -3,7 +3,7 @@ import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
 import { PublishCommand } from '@aws-sdk/client-sns'
-import { StreamingEvent, StreamingEventPayload } from './baseClasses'
+import { StreamingEvent, StreamingEventPayload, DataSourceEventSerializer } from './baseClasses'
 
 export type SerializableObject = Record<string, unknown>
 
@@ -42,10 +42,10 @@ export type SnsUtils = {
 }
 
 // Utility type for streamEvent function signature
-export type StreamEventFunction<UpdatePayload extends string | SerializableObject> = 
+export type StreamEventFunction<UpdatePayload = any> = 
     (params: { update: UpdatePayload, streamKey: string, detailType: string }) => Promise<void>
 
-export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends string | SerializableObject, SubscribedEvent extends StreamingEventPayload | never = never> {
+export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayload = any, SubscribedEvent extends StreamingEventPayload | never = never, ExternalUpdatePayload extends string | SerializableObject = string | SerializableObject> {
     readonly dynamo: DynamoUtils
     readonly sns: SnsUtils
     readonly messageBus: { 
@@ -63,6 +63,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         event: SubscribedEvent, 
         streamEvent: StreamEventFunction<UpdatePayload>
     }) => Promise<void>
+    readonly eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload>
     _snapshots: Record<string, SnapshotType<SnapshotPayload>> = {}
 
     constructor({ 
@@ -76,7 +77,8 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         replayable = true,
         snapshotTimeoutMs = 5000,
         subscribedEventTypeGuard,
-        receiveEvents
+        receiveEvents,
+        eventSerializer
     }: { 
         dynamo: DynamoUtils,
         sns: SnsUtils,
@@ -94,7 +96,8 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         receiveEvents?: (params: { 
             event: SubscribedEvent, 
             streamEvent: StreamEventFunction<UpdatePayload>
-        }) => Promise<void>
+        }) => Promise<void>,
+        eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload>
     }) {
         this.dynamo = dynamo
         this.sns = sns
@@ -106,6 +109,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         this.replayable = replayable
         this.subscribedEventTypeGuard = subscribedEventTypeGuard
         this.receiveEvents = receiveEvents
+        this.eventSerializer = eventSerializer
 
         // Initialize singleFlight for snapshot generation coordination only if replayable
         if (this.replayable) {
@@ -191,19 +195,32 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         const eventRecord = {
             [this.primaryKeyName]: `STREAM#${this.dataSourceKey}::${streamKey}`,
             DataCategory: `EVENT#${eventId}`,
-            update,
+            update: this.eventSerializer 
+                ? this.eventSerializer.serialize({
+                    dataSourceKey: this.dataSourceKey,
+                    detailType,
+                    streamKey,
+                    update
+                })
+                : update,
             timestamp: now,
             streamKey
         }
 
-        // Create the EventBridge event
+        // Create the EventBridge event (use serializer if available, otherwise use update directly)
         const eventBridgeEvent = {
             Source: this.dataSourceKey,
             DetailType: detailType,
             Detail: {
                 streamKey,
-                update,
-                timestamp: now
+                update: this.eventSerializer 
+                    ? this.eventSerializer.serialize({
+                        dataSourceKey: this.dataSourceKey,
+                        detailType,
+                        streamKey,
+                        update
+                    })
+                    : update
             }
         }
 
@@ -214,8 +231,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
             detailType,
             event: {
                 streamKey,
-                update,
-                timestamp: now
+                update
             },
             timestamp: now
         }
@@ -228,9 +244,17 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
                 this.messageBus.send(messageBusEvent)
             }),
             // Publish to EventBridge for real-time subscribers
-            eventBridgeClient.send([eventBridgeEvent])
+            eventBridgeClient.send([eventBridgeEvent as any])
         ])
         
+    }
+
+    /**
+     * Get the event serializer for this DataSource (if available)
+     * Useful for external EventBridge event deserialization
+     */
+    getSerializer(): DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload> | undefined {
+        return this.eventSerializer
     }
 
     async initializeSubscription({ sessionId, streamKey }: { sessionId: `SESSION#${string}`, streamKey: string }): Promise<void> {
@@ -249,7 +273,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         await this.deliverReplayData({ sessionId, streamKey, snapshot, events: recentEvents })
     }
 
-    protected async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: UpdatePayload, timestamp: number, eventId: string }>> {
+    protected async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: ExternalUpdatePayload, timestamp: number, eventId: string }>> {
         // For non-replayable data sources, return empty array since no events are stored
         if (!this.replayable) {
             return []
@@ -260,7 +284,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         // Query for events with DataCategory starting with 'EVENT#' and timestamp >= sinceTimestamp
         const events = await this.dynamo.query<{
             DataCategory: string;
-            update: UpdatePayload;
+            update: ExternalUpdatePayload;
             timestamp: number;
             eventId: string;
         }>({
@@ -287,7 +311,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         sessionId: `SESSION#${string}`; 
         streamKey: string; 
         snapshot: SnapshotType<SnapshotPayload>; 
-        events: Array<{ update: UpdatePayload, timestamp: number, eventId: string }> 
+        events: Array<{ update: ExternalUpdatePayload, timestamp: number, eventId: string }> 
     }): Promise<void> {
         // Send snapshot first
         const snapshotCommand = new PublishCommand({
@@ -325,7 +349,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
                     dataSourceKey: this.dataSourceKey,
                     streamKey,
                     events: events.map(({ update, timestamp }) => ({
-                        update,
+                        update, // Already serialized as ExternalUpdatePayload
                         timestamp
                     }))
                 }),
