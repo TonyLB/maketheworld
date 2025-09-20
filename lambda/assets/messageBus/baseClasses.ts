@@ -1,4 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
+import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { AssetPlayerSettingsAPIMessage } from '@tonylb/mtw-interfaces/ts/asset';
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema';
@@ -109,14 +110,7 @@ export type CollaborationStatusMessage = {
 
 export type StreamingEventMessage = {
     type: 'StreamingEvent';
-    dataSourceKey: string;
-    event: {
-        streamKey: string;
-        update: any; // Internal format with embedded type
-        timestamp: number;
-    };
-    timestamp: number;
-}
+} & StreamingEventPayload
 
 export type MessageType = ReturnValueMessage |
     ErrorMessage |

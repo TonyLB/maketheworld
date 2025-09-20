@@ -1,6 +1,5 @@
 import { assetsDataSource } from './index'
 import { AssetsEventUpdate } from './serializers'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
@@ -209,12 +208,12 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
     describe('Event Processing', () => {
         it('should process WML content update events', async () => {
-            const wmlEvent: StreamingEventPayload = {
+            const wmlEvent = {
                 dataSourceKey: 'mtw.wml',
-                detailType: 'Content Update',
                 event: {
-                    source: 'mtw.wml',
-                    detail: {
+                    streamKey: 'ASSET#test123',
+                    update: {
+                        type: 'Content Update',
                         AssetId: 'ASSET#test123'
                     }
                 },
@@ -236,12 +235,13 @@ describe('AssetsDataSource (mtw.assets)', () => {
             // Mock the assetDB.query call that's failing in healGlobalValues
             assetDBMock.query.mockResolvedValueOnce([]) // Return empty array for Items.map
 
-            const diagnosticEvent: StreamingEventPayload = {
+            const diagnosticEvent = {
                 dataSourceKey: 'mtw.diagnostics',
-                detailType: 'Heal Global Values',
                 event: {
-                    source: 'mtw.diagnostics',
-                    detail: {}
+                    streamKey: 'test-stream',
+                    update: {
+                        type: 'Heal Global Values'
+                    }
                 },
                 timestamp: Date.now()
             }
@@ -262,12 +262,13 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const subscribedEventTypes = ['mtw.wml', 'mtw.diagnostics', 'mtw.coordination']
             
             subscribedEventTypes.forEach(source => {
-            const event: StreamingEventPayload = {
+            const event = {
                 dataSourceKey: source,
-                detailType: 'Test Event',
                 event: {
-                    source: source,
-                    detail: {}
+                    streamKey: 'test-stream',
+                    update: {
+                        type: 'Test Event'
+                    }
                 },
                 timestamp: Date.now()
             }
@@ -277,12 +278,13 @@ describe('AssetsDataSource (mtw.assets)', () => {
         })
 
         it('should not subscribe to events from other data sources', () => {
-            const otherEvent: StreamingEventPayload = {
+            const otherEvent = {
                 dataSourceKey: 'mtw.other',
-                detailType: 'Test Event',
                 event: {
-                    source: 'mtw.other',
-                    detail: {}
+                    streamKey: 'test-stream',
+                    update: {
+                        type: 'Test Event'
+                    }
                 },
                 timestamp: Date.now()
             }
@@ -291,9 +293,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
         })
 
         it('should not subscribe to events without proper structure', () => {
-            const malformedEvent: StreamingEventPayload = {
+            const malformedEvent = {
                 dataSourceKey: 'mtw.wml',
-                detailType: 'Test Event',
                 event: null as any,
                 timestamp: Date.now()
             }

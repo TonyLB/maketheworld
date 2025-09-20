@@ -1,5 +1,4 @@
 import { AssetsDataSource } from './abstract'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import messageBus from '../messageBus'
 import { healGlobalValues } from '../selfHealing/globalValues'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
@@ -22,12 +21,12 @@ import { AssetsEventSerializer, AssetsEventUpdate } from './serializers'
 // - Process diagnostic events (healing, global values)
 // - Handle player and library update events
 //
-export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, StreamingEventPayload>({
+export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, any>({
     dataSourceKey: 'mtw.assets',
     replayable: false, // Non-replayable - focuses on event streaming and processing
     eventSerializer: new AssetsEventSerializer(), // Handle all asset event serialization (component and asset-level)
     // No snapshotContentGenerator needed for non-replayable data sources
-    subscribedEventTypeGuard: (event: StreamingEventPayload): event is StreamingEventPayload => {
+    subscribedEventTypeGuard: (event: any): event is any => {
         // Subscribe to EventBridge events from other data sources that we care about
         // These are EventBridge events published by mtw.diagnostics, mtw.coordination, and mtw.wml
         return Boolean(

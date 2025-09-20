@@ -726,9 +726,8 @@ describe('DataSource', () => {
             await dataSource.streamEvent({ update, streamKey, detailType })
             
             expect(mockMessageBus.send).toHaveBeenCalledWith({
-                messageType: 'StreamingEvent',
+                type: 'StreamingEvent',
                 dataSourceKey: 'mtw.testDataSource',
-                detailType: 'Test Stream Event',
                 event: {
                     streamKey: 'test-stream',
                     update: 'test-update',
@@ -979,11 +978,11 @@ describe('DataSource', () => {
                     // First check: is this from a data source we care about?
                     if (event.dataSourceKey === 'mtw.assets') {
                         // Second check: is this a specific type of asset event we want?
-                        return event.detailType === 'AssetUpdated' && event.event.assetId?.startsWith('char-')
+                        return event.event.update.type === 'AssetUpdated' && event.event.update.assetId?.startsWith('char-')
                     }
                     if (event.dataSourceKey === 'mtw.ephemera') {
                         // Different filtering logic for ephemera events
-                        return event.detailType === 'StateChanged' && event.event.zoneId === 'zone-123'
+                        return event.event.update.type === 'StateChanged' && event.event.update.zoneId === 'zone-123'
                     }
                     return false
                 })
@@ -1007,17 +1006,21 @@ describe('DataSource', () => {
 
                 // Test with valid asset event that matches our filtering criteria
                 const validAssetEvent = {
-                    messageType: 'StreamingEvent',
+                    type: 'StreamingEvent',
                     dataSourceKey: 'mtw.assets',
-                    detailType: 'AssetUpdated',
-                    event: { assetId: 'char-123', name: 'Test Character' },
+                    event: { 
+                        streamKey: 'test-stream',
+                        update: { type: 'AssetUpdated', assetId: 'char-123', name: 'Test Character' }
+                    },
                     timestamp: 123456789
                 }
                 expect(typeGuard(validAssetEvent)).toBe(true)
                 expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
                     dataSourceKey: 'mtw.assets',
-                    detailType: 'AssetUpdated',
-                    event: { assetId: 'char-123', name: 'Test Character' },
+                    event: { 
+                        streamKey: 'test-stream',
+                        update: { type: 'AssetUpdated', assetId: 'char-123', name: 'Test Character' }
+                    },
                     timestamp: 123456789
                 })
 
@@ -1026,17 +1029,21 @@ describe('DataSource', () => {
 
                 // Test with valid ephemera event that matches our filtering criteria
                 const validEphemeraEvent = {
-                    messageType: 'StreamingEvent',
+                    type: 'StreamingEvent',
                     dataSourceKey: 'mtw.ephemera',
-                    detailType: 'StateChanged',
-                    event: { zoneId: 'zone-123', state: 'active' },
+                    event: { 
+                        streamKey: 'test-stream',
+                        update: { type: 'StateChanged', zoneId: 'zone-123', state: 'active' }
+                    },
                     timestamp: 123456790
                 }
                 expect(typeGuard(validEphemeraEvent)).toBe(true)
                 expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
                     dataSourceKey: 'mtw.ephemera',
-                    detailType: 'StateChanged',
-                    event: { zoneId: 'zone-123', state: 'active' },
+                    event: { 
+                        streamKey: 'test-stream',
+                        update: { type: 'StateChanged', zoneId: 'zone-123', state: 'active' }
+                    },
                     timestamp: 123456790
                 })
 
@@ -1045,9 +1052,9 @@ describe('DataSource', () => {
 
                 // Test with wrong messageType
                 const wrongMessageType = {
-                    messageType: 'OtherEvent',
+                    type: 'OtherEvent',
                     dataSourceKey: 'mtw.assets',
-                    event: { assetId: 'char-123' },
+                    event: { streamKey: 'test-stream', update: { type: 'AssetUpdated', assetId: 'char-123' } },
                     timestamp: 123456789
                 }
                 expect(typeGuard(wrongMessageType)).toBe(false)
@@ -1055,17 +1062,21 @@ describe('DataSource', () => {
 
                 // Test with asset event that doesn't match our criteria (wrong asset type)
                 const wrongAssetType = {
-                    messageType: 'StreamingEvent',
+                    type: 'StreamingEvent',
                     dataSourceKey: 'mtw.assets',
-                    detailType: 'AssetUpdated',
-                    event: { assetId: 'item-456' }, // Not a character
+                    event: { 
+                        streamKey: 'test-stream',
+                        update: { type: 'AssetUpdated', assetId: 'item-456' } // Not a character
+                    },
                     timestamp: 123456789
                 }
                 expect(typeGuard(wrongAssetType)).toBe(false)
                 expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
                     dataSourceKey: 'mtw.assets',
-                    detailType: 'AssetUpdated',
-                    event: { assetId: 'item-456' },
+                    event: { 
+                        streamKey: 'test-stream',
+                        update: { type: 'AssetUpdated', assetId: 'item-456' }
+                    },
                     timestamp: 123456789
                 })
 
@@ -1074,17 +1085,21 @@ describe('DataSource', () => {
 
                 // Test with ephemera event that doesn't match our criteria (wrong zone)
                 const wrongZone = {
-                    messageType: 'StreamingEvent',
+                    type: 'StreamingEvent',
                     dataSourceKey: 'mtw.ephemera',
-                    detailType: 'StateChanged',
-                    event: { zoneId: 'zone-456' }, // Wrong zone
+                    event: { 
+                        streamKey: 'test-stream',
+                        update: { type: 'StateChanged', zoneId: 'zone-456' } // Wrong zone
+                    },
                     timestamp: 123456789
                 }
                 expect(typeGuard(wrongZone)).toBe(false)
                 expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
                     dataSourceKey: 'mtw.ephemera',
-                    detailType: 'StateChanged',
-                    event: { zoneId: 'zone-456' },
+                    event: { 
+                        streamKey: 'test-stream',
+                        update: { type: 'StateChanged', zoneId: 'zone-456' }
+                    },
                     timestamp: 123456789
                 })
             })
@@ -1113,17 +1128,21 @@ describe('DataSource', () => {
                 // Test callback with multiple events from other data sources
                 const testEvents = [
                     {
-                        messageType: 'StreamingEvent',
+                        type: 'StreamingEvent',
                         dataSourceKey: 'mtw.otherDataSource',
-                        detailType: 'event1',
-                        event: { type: 'event1', data: 'test1' },
+                        event: { 
+                            streamKey: 'test-stream',
+                            update: { type: 'event1', data: 'test1' }
+                        },
                         timestamp: 123456789
                     },
                     {
-                        messageType: 'StreamingEvent',
+                        type: 'StreamingEvent',
                         dataSourceKey: 'mtw.anotherDataSource',
-                        detailType: 'event2',
-                        event: { type: 'event2', data: 'test2' },
+                        event: { 
+                            streamKey: 'test-stream',
+                            update: { type: 'event2', data: 'test2' }
+                        },
                         timestamp: 123456790
                     }
                 ]
@@ -1133,20 +1152,22 @@ describe('DataSource', () => {
                 expect(mockReceiveEvents).toHaveBeenCalledTimes(2)
                 expect(mockReceiveEvents).toHaveBeenNthCalledWith(1, {
                     event: {
-                        messageType: 'StreamingEvent',
                         dataSourceKey: 'mtw.otherDataSource',
-                        detailType: 'event1',
-                        event: { type: 'event1', data: 'test1' },
+                        event: { 
+                            streamKey: 'test-stream',
+                            update: { type: 'event1', data: 'test1' }
+                        },
                         timestamp: 123456789
                     },
                     streamEvent: expect.any(Function)
                 })
                 expect(mockReceiveEvents).toHaveBeenNthCalledWith(2, {
                     event: {
-                        messageType: 'StreamingEvent',
                         dataSourceKey: 'mtw.anotherDataSource',
-                        detailType: 'event2',
-                        event: { type: 'event2', data: 'test2' },
+                        event: { 
+                            streamKey: 'test-stream',
+                            update: { type: 'event2', data: 'test2' }
+                        },
                         timestamp: 123456790
                     },
                     streamEvent: expect.any(Function)
@@ -1189,10 +1210,12 @@ describe('DataSource', () => {
 
                 const testEvents = [
                     {
-                        messageType: 'StreamingEvent',
+                        type: 'StreamingEvent',
                         dataSourceKey: 'mtw.otherDataSource',
-                        detailType: 'event1',
-                        event: { type: 'event1' },
+                        event: { 
+                            streamKey: 'test-stream',
+                            update: { type: 'event1' }
+                        },
                         timestamp: 123456789
                     }
                 ]

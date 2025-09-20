@@ -134,7 +134,7 @@ type CharacterSnapshotPayload = {
 ```
 
 **Event Structure Examples**:
-- **Internal Character Updated**: `{ dataSourceKey: 'mtw.assets', event: { streamKey: 'ASSET#asset123', update: { type: 'Component Updated', assetId: 'ASSET#asset123', component: StandardCharacter }, timestamp: 1234567890 }, timestamp: 1234567890 }`
+- **Internal Character Updated**: `{ dataSourceKey: 'mtw.assets', event: { streamKey: 'ASSET#asset123', update: { type: 'Component Updated', assetId: 'ASSET#asset123', component: StandardCharacter } }, timestamp: 1234567890 }`
 - **External Character Updated**: `{ detailType: 'Character Updated', characterId: 'char123', wml: '<Character>...</Character>' }`
 - **Character Snapshot**: WML string containing all characters for the asset stream
 

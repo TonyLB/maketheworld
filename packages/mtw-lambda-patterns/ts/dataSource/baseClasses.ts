@@ -2,6 +2,7 @@
 
 export type SerializableObject = Record<string, unknown>
 
+// External EventBridge format
 export type StreamingEvent = {
     messageType: 'StreamingEvent';
     dataSourceKey: string;
@@ -13,7 +14,15 @@ export type StreamingEvent = {
     timestamp: number;
 }
 
-export type StreamingEventPayload = Omit<StreamingEvent, 'messageType'>
+// Internal DataSource format (clean, no external baggage)
+export type StreamingEventPayload = {
+    dataSourceKey: string;
+    event: {
+        streamKey: string;
+        update: any; // Internal format with embedded type
+    };
+    timestamp: number;
+}
 
 // EventBridge serialization interface for DataSource integration
 export interface DataSourceEventSerializer<UpdatePayload = any, ExternalUpdatePayload extends string | SerializableObject = string | SerializableObject> {

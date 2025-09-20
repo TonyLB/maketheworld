@@ -160,8 +160,7 @@ messageBus.send({
         update: {
             type: 'Content Update',
             AssetId: `ASSET#${assetId}`
-        },
-        timestamp: Date.now()
+        }
     },
     timestamp: Date.now()
 })

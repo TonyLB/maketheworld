@@ -58,29 +58,31 @@ export const handler = async (event, context) => {
     if (event?.message) {
         switch(event.message) {
             case 'cacheAsset':
-                // Legacy Step Function call - publish as StreamEvent for data source processing
+                // Legacy Step Function call - publish as internal format StreamEvent for data source processing
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.wml',
                     event: {
-                        source: 'mtw.wml',
-                        detailType: 'Content Update',
-                        detail: { AssetId: `ASSET#${event.assetId}` }
+                        streamKey: `ASSET#${event.assetId}`,
+                        update: {
+                            type: 'Content Update',
+                            AssetId: `ASSET#${event.assetId}`
+                        }
                     },
                     timestamp: Date.now()
                 })
                 await messageBus.flush()
                 return {}
             case 'decacheAsset':
-                // Legacy Step Function call - publish as WML Content Removed event
+                // Legacy Step Function call - publish as internal format WML Content Removed event
                 // This represents an asset being removed, which should trigger decaching
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.wml',
                     event: {
-                        source: 'mtw.wml',
-                        detailType: 'Content Removed',
-                        detail: { 
+                        streamKey: `ASSET#${event.assetId}`,
+                        update: {
+                            type: 'Content Removed',
                             AssetId: `ASSET#${event.assetId}`
                         }
                     },
