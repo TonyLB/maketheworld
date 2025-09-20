@@ -50,7 +50,7 @@ type TestSnapshotPayload = {
 type TestUpdatePayload = string
 
 // Test subclass to expose protected methods
-class TestDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends string | SerializableObject> extends DataSource<SnapshotPayload, UpdatePayload> {
+class TestDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends string | SerializableObject, ExternalUpdatePayload extends string | SerializableObject = string | SerializableObject, KeyType extends string = string> extends DataSource<SnapshotPayload, UpdatePayload, never, ExternalUpdatePayload, KeyType> {
     public override async loadSnapshotFromStore(streamKey: string): Promise<SnapshotType<SnapshotPayload> | undefined> {
         return super.loadSnapshotFromStore(streamKey)
     }
@@ -59,7 +59,7 @@ class TestDataSource<SnapshotPayload extends SerializableObject, UpdatePayload e
         return super.storeSnapshotToStore({ streamKey, snapshot })
     }
 
-    public override async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: UpdatePayload, timestamp: number, eventId: string }>> {
+    public override async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: ExternalUpdatePayload, timestamp: number, streamKey: string }>> {
         return super.getRecentEvents(streamKey, sinceTimestamp)
     }
 }
@@ -563,7 +563,6 @@ describe('DataSource', () => {
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::test-uuid-123',
                 update: 'test-update',
-                timestamp: 100000000,
                 streamKey: 'test-stream'
             })
             
@@ -574,7 +573,6 @@ describe('DataSource', () => {
                 Detail: {
                     streamKey: 'test-stream',
                     update: 'test-update',
-                    timestamp: 100000000
                 }
             }])
         })
@@ -590,7 +588,6 @@ describe('DataSource', () => {
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::test-uuid-123',
                 update: 'test-update',
-                timestamp: 100000000,
                 streamKey: 'test-stream'
             })
             
@@ -600,7 +597,6 @@ describe('DataSource', () => {
                 Detail: {
                     streamKey: 'test-stream',
                     update: 'test-update',
-                    timestamp: 100000000
                 }
             }])
         })
@@ -626,7 +622,6 @@ describe('DataSource', () => {
                 EphemeraId: 'STREAM#mtw.differentDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::test-uuid-123',
                 update: 'test-update',
-                timestamp: 100000000,
                 streamKey: 'test-stream'
             })
             
@@ -636,7 +631,6 @@ describe('DataSource', () => {
                 Detail: {
                     streamKey: 'test-stream',
                     update: 'test-update',
-                    timestamp: 100000000
                 }
             }])
         })
@@ -686,7 +680,6 @@ describe('DataSource', () => {
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::uuid-1',
                 update: 'test-update',
-                timestamp: 100000000,
                 streamKey: 'test-stream'
             })
             
@@ -694,7 +687,6 @@ describe('DataSource', () => {
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::uuid-2',
                 update: 'test-update',
-                timestamp: 100000000,
                 streamKey: 'test-stream'
             })
         })
@@ -713,7 +705,6 @@ describe('DataSource', () => {
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#200000000::test-uuid-123',
                 update: 'test-update',
-                timestamp: 200000000,
                 streamKey: 'test-stream'
             })
             
@@ -723,7 +714,6 @@ describe('DataSource', () => {
                 Detail: {
                     streamKey: 'test-stream',
                     update: 'test-update',
-                    timestamp: 200000000
                 }
             }])
         })
@@ -742,7 +732,6 @@ describe('DataSource', () => {
                 event: {
                     streamKey: 'test-stream',
                     update: 'test-update',
-                    timestamp: 100000000
                 },
                 timestamp: 100000000
             })
@@ -766,10 +755,10 @@ describe('DataSource', () => {
             // Mock the getSnapshot method by setting up the cache
             dataSource._snapshots[streamKey] = mockSnapshot
             
-            // Mock getRecentEvents to return some events
+            // Mock DynamoDB query to return raw events (with DataCategory)
             const mockEvents = [
-                { update: 'test-update-1', timestamp: 100001000, eventId: 'event-1' },
-                { update: 'test-update-2', timestamp: 100002000, eventId: 'event-2' }
+                { update: 'test-update-1', DataCategory: 'EVENT#100001000::event-1', streamKey: 'test-stream' },
+                { update: 'test-update-2', DataCategory: 'EVENT#100002000::event-2', streamKey: 'test-stream' }
             ]
             
             // Mock the query method to return events
@@ -1371,7 +1360,6 @@ describe('DataSource', () => {
                     AssetId: 'STREAM#mtw.testDataSource::test-stream',
                     DataCategory: 'EVENT#100000000::test-uuid-123',
                     update: 'test-update',
-                    timestamp: 100000000,
                     streamKey: 'test-stream'
                 })
                 expect(mockEventBridgeClient.send).toHaveBeenCalled()

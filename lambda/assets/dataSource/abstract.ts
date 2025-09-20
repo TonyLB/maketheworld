@@ -15,7 +15,7 @@ import messageBus from '../messageBus'
  * - Primary key name used in the assets domain
  * - Feedback topic ARN for replay data delivery
  */
-export class AssetsDataSource<SnapshotPayload extends SerializableObject, UpdatePayload = any, SubscribedEvent extends StreamingEventPayload = never> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent> {
+export class AssetsDataSource<SnapshotPayload extends SerializableObject, UpdatePayload = any, SubscribedEvent extends StreamingEventPayload = never> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent, string | SerializableObject, 'AssetId'> {
     constructor(params: {
         dataSourceKey: string;
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>; // Optional - not needed for non-replayable data sources
