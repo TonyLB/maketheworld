@@ -160,6 +160,8 @@ Provide clean separation between internal StreamEvents and external EventBridge 
 - **`serialize(params)`**: Convert internal update payload to external format for EventBridge Detail
 - **`deserialize(params)`**: Convert external update payload back to internal format
 
+**Recommended Pattern**: Use class-based serializers for better type safety, testability, and reusability:
+
 **Serialization Boundaries**: The serializer is applied at three key boundaries:
 - **EventBridge Publishing**: Internal `UpdatePayload` → `ExternalUpdatePayload` for EventBridge
 - **DynamoDB Storage**: Internal `UpdatePayload` → `ExternalUpdatePayload` for replay storage
@@ -204,6 +206,36 @@ The DataSource pattern uses a consistent timestamp strategy across all event and
 - **Performance**: Minimal storage overhead while maintaining full temporal ordering
 
 **Usage Pattern**: DataSources can optionally provide serializers for EventBridge integration:
+
+**Recommended: Class-based Serializer**
+```typescript
+// Define serializer as a class for better type safety and testability
+export class MyEventSerializer implements DataSourceEventSerializer<MyInternalType, MyExternalType> {
+    serialize({ update }: { update: MyInternalType }): MyExternalType {
+        // Transform internal update to external format
+        return { /* external format */ }
+    }
+    
+    deserialize(params: { 
+        dataSourceKey: string; 
+        detailType: string; 
+        streamKey: string; 
+        externalUpdate: MyExternalType 
+    }): MyInternalType | null {
+        // Transform external format back to internal update
+        return /* internal update */
+    }
+}
+
+// Use in DataSource
+const myDataSource = new MyDataSource({
+    dataSourceKey: 'mtw.mydomain',
+    eventSerializer: new MyEventSerializer(),
+    // ... other params
+})
+```
+
+**Alternative: Object Literal (for simple cases)**
 ```typescript
 const myDataSource = new MyDataSource({
     dataSourceKey: 'mtw.mydomain',
@@ -220,6 +252,20 @@ const myDataSource = new MyDataSource({
     // ... other params
 })
 ```
+
+**When to Use Each Pattern**:
+
+**Use Class-based Serializers When**:
+- **Complex Logic**: Serialization involves multiple steps, validation, or error handling
+- **Reusability**: Same serializer will be used across multiple data sources
+- **Testing**: Need to unit test serialization logic independently
+- **Type Safety**: Working with complex types that benefit from explicit type constraints
+- **Documentation**: Serializer logic is substantial enough to warrant its own file
+
+**Use Object Literal When**:
+- **Simple Transformations**: Basic one-to-one field mapping
+- **Inline Definition**: Serializer is only used in one place
+- **Prototyping**: Quick implementation for testing concepts
 
 **Event Processing Flow**:
 - **Outgoing**: DataSource → messageBus → serialize → EventBridge/DynamoDB
