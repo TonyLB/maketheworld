@@ -8,6 +8,7 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
+import { CharacterEventSerializer, CharacterEventUpdate } from './serializers'
 
 // Types for the characters data source
 export type CharacterEventPayload = {
@@ -92,7 +93,7 @@ const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnap
 
 const processComponentEvent = async (
     event: ComponentEventPayload, 
-    streamEvent: (params: { update: CharacterEventPayload, streamKey: string, detailType: string }) => Promise<void>
+    streamEvent: (params: { update: CharacterEventUpdate, streamKey: string, detailType: string }) => Promise<void>
 ): Promise<void> => {
     const component = event.event.update?.component
     
@@ -105,24 +106,23 @@ const processComponentEvent = async (
     const streamKey = event.event.streamKey
 
     if (event.detailType === 'Component Updated') {
-        // Generate character updated event
-        const wml = component.wml || `<Character uuid=(${characterId}) />`
+        // Generate character updated event with StandardComponent object
         await streamEvent({
             update: {
+                type: 'Character Updated',
                 characterId,
-                wml
+                component: component.component // Pass the StandardComponent object internally
             },
             streamKey,
             detailType: 'Character Updated'
         })
     } else if (event.detailType === 'Component Removed') {
-        // Generate character removed event - convert Character WML to CharacterRemoved
-        let wml = component.wml || `<Remove><Character uuid=(${characterId}) /></Remove>`
-        
+        // Generate character removed event with StandardComponent object
         await streamEvent({
             update: {
+                type: 'Character Removed',
                 characterId,
-                wml
+                component: component.component // Pass the StandardComponent object internally
             },
             streamKey,
             detailType: 'Character Removed'
@@ -133,11 +133,12 @@ const processComponentEvent = async (
 // Create the characters data source singleton
 export const charactersDataSource = new AssetsDataSource<
     CharacterSnapshotPayload,
-    CharacterEventPayload,
+    CharacterEventUpdate,
     ComponentEventPayload
 >({
     dataSourceKey: 'mtw.assets.characters',
     replayable: true,
+    eventSerializer: new CharacterEventSerializer(), // Handle character event serialization
     subscribedEventTypeGuard: (event: StreamingEventPayload): event is ComponentEventPayload => {
         // Subscribe to mtw.assets component events that might be character changes
         return event.dataSourceKey === 'mtw.assets' && 

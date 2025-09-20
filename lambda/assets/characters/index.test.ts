@@ -78,8 +78,9 @@ describe('CharactersDataSource', () => {
             // Should have called streamEvent with character event
             expect(dataSource.streamEvent).toHaveBeenCalledWith({
                 update: {
+                    type: 'Character Updated',
                     characterId: 'CHARACTER#char123',
-                    wml: '<Character uuid=(char123)><ShortName>Test Character</ShortName></Character>'
+                    component: undefined // No component provided in test
                 },
                 streamKey: 'ASSET#asset123',
                 detailType: 'Character Updated'
@@ -109,8 +110,9 @@ describe('CharactersDataSource', () => {
 
             expect(dataSource.streamEvent).toHaveBeenCalledWith({
                 update: {
+                    type: 'Character Removed',
                     characterId: 'CHARACTER#char123',
-                    wml: '<Remove><Character uuid=(char123)><ShortName>Test Character</ShortName></Character></Remove>'
+                    component: undefined // No component provided in test
                 },
                 streamKey: 'ASSET#asset123',
                 detailType: 'Character Removed'

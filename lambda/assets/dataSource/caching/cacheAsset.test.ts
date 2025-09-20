@@ -303,15 +303,15 @@ describe('Cache Asset (Data Source)', () => {
             expect(assetDBMock.putItem).toHaveBeenCalledTimes(2)
             expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
 
-            // Should emit Component Updated events with precise WML deltas and correct streamKey
+            // Should emit Component Updated events with StandardComponent objects
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
                     type: 'Component Updated',
                     assetId: 'primitives',
-                    componentId: 'ROOM#VORTEX',
-                    wml: deIndentWML(`
-                        <Room uuid=(VORTEX) />
-                    `)
+                    component: expect.objectContaining({
+                        tag: 'Knowledge',
+                        universalKey: 'KNOWLEDGE#knowledgeRoot'
+                    })
                 },
                 streamKey: 'primitives',
                 detailType: 'Component Updated'
@@ -320,10 +320,10 @@ describe('Cache Asset (Data Source)', () => {
                 update: {
                     type: 'Component Updated',
                     assetId: 'primitives',
-                    componentId: 'KNOWLEDGE#knowledgeRoot',
-                    wml: deIndentWML(`
-                        <Knowledge uuid=(knowledgeRoot) />
-                    `)
+                    component: expect.objectContaining({
+                        tag: 'Room',
+                        universalKey: 'ROOM#VORTEX'
+                    })
                 },
                 streamKey: 'primitives',
                 detailType: 'Component Updated'
@@ -365,10 +365,10 @@ describe('Cache Asset (Data Source)', () => {
                 update: {
                     type: 'Component Updated',
                     assetId: 'primitives',
-                    componentId: 'ROOM#VORTEX',
-                    wml: deIndentWML(`
-                        <Room uuid=(VORTEX)><ShortName>Vortex</ShortName></Room>
-                    `)
+                    component: expect.objectContaining({
+                        tag: 'Room',
+                        universalKey: 'ROOM#VORTEX'
+                    })
                 },
                 streamKey: 'primitives',
                 detailType: 'Component Updated'

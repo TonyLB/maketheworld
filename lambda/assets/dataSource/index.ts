@@ -6,6 +6,7 @@ import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import internalCache from '../internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { cacheAsset, decacheAsset } from './caching'
+import { AssetsEventSerializer, AssetsEventUpdate } from './serializers'
 
 //
 // Non-replayable DataSource singleton for mtw.assets
@@ -21,9 +22,10 @@ import { cacheAsset, decacheAsset } from './caching'
 // - Process diagnostic events (healing, global values)
 // - Handle player and library update events
 //
-export const assetsDataSource = new AssetsDataSource({
+export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, StreamingEventPayload>({
     dataSourceKey: 'mtw.assets',
     replayable: false, // Non-replayable - focuses on event streaming and processing
+    eventSerializer: new AssetsEventSerializer(), // Handle all asset event serialization (component and asset-level)
     // No snapshotContentGenerator needed for non-replayable data sources
     subscribedEventTypeGuard: (event: StreamingEventPayload): event is StreamingEventPayload => {
         // Subscribe to EventBridge events from other data sources that we care about
@@ -199,6 +201,7 @@ export const assetsDataSource = new AssetsDataSource({
                 // Stream the canon update (replacing the direct EventBridge publish)
                 await streamEvent({
                     update: { 
+                        type: 'Canon Updated',
                         assetIds: globalAssetsSorted
                     },
                     streamKey: 'canon-global',

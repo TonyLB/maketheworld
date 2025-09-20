@@ -26,6 +26,7 @@ export class AssetsDataSource<SnapshotPayload extends SerializableObject, Update
             event: SubscribedEvent, 
             streamEvent: (params: { update: UpdatePayload, streamKey: string, detailType: string }) => Promise<void>
         }) => Promise<void>;
+        eventSerializer?: any; // Pass through to parent DataSource
     }) {
         super({
             dynamo: assetDB,
@@ -39,6 +40,7 @@ export class AssetsDataSource<SnapshotPayload extends SerializableObject, Update
             feedbackTopicArn: process.env.FEEDBACK_TOPIC!,
             replayable: params.replayable ?? true, // Default to replayable for backward compatibility
             snapshotContentGenerator: params.snapshotContentGenerator,
+            eventSerializer: params.eventSerializer,
             ...params
         });
     }
