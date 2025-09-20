@@ -2,20 +2,19 @@ import { DataSource, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/d
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
-import messageBus from '../messageBus'
 
 /**
- * Assets-specific DataSource base class that pre-configures common parameters
- * for the assets lambda context.
+ * WML-specific DataSource base class that pre-configures common parameters
+ * for the wml lambda context.
  * 
  * This eliminates repetitive constructor arguments by pre-configuring:
  * - DynamoDB utilities for the assets table
  * - SNS utilities for the lambda's region/account
  * - MessageBus instance for internal event coordination
- * - Primary key name used in the assets domain
+ * - Primary key name used in the WML domain
  * - Feedback topic ARN for replay data delivery
  */
-export class AssetsDataSource<SnapshotPayload extends SerializableObject, UpdatePayload = any, SubscribedEvent extends StreamingEventPayload = never> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent> {
+export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePayload = any, SubscribedEvent extends StreamingEventPayload = never> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent> {
     constructor(params: {
         dataSourceKey: string;
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>; // Optional - not needed for non-replayable data sources
@@ -26,6 +25,7 @@ export class AssetsDataSource<SnapshotPayload extends SerializableObject, Update
             event: SubscribedEvent, 
             streamEvent: (params: { update: UpdatePayload, streamKey: string, detailType: string }) => Promise<void>
         }) => Promise<void>;
+        eventSerializer?: any; // Will be properly typed when we implement the serializer
     }) {
         super({
             dynamo: assetDB,
@@ -34,7 +34,10 @@ export class AssetsDataSource<SnapshotPayload extends SerializableObject, Update
                     await snsClient.send(command);
                 }
             },
-            messageBus: messageBus,
+            messageBus: {
+                send: () => {}, // TODO: Import actual messageBus when available
+                subscribe: () => {}
+            },
             primaryKeyName: 'AssetId',
             feedbackTopicArn: process.env.FEEDBACK_TOPIC!,
             replayable: params.replayable ?? true, // Default to replayable for backward compatibility
