@@ -1,11 +1,11 @@
 import { AssetsDataSource } from './abstract'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import messageBus from '../messageBus'
 import { healGlobalValues } from '../selfHealing/globalValues'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import internalCache from '../internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { cacheAsset, decacheAsset } from './caching'
+import { AssetsEventSerializer, AssetsEventUpdate } from './serializers'
 
 //
 // Non-replayable DataSource singleton for mtw.assets
@@ -21,28 +21,30 @@ import { cacheAsset, decacheAsset } from './caching'
 // - Process diagnostic events (healing, global values)
 // - Handle player and library update events
 //
-export const assetsDataSource = new AssetsDataSource({
+export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, any>({
     dataSourceKey: 'mtw.assets',
     replayable: false, // Non-replayable - focuses on event streaming and processing
+    eventSerializer: new AssetsEventSerializer(), // Handle all asset event serialization (component and asset-level)
     // No snapshotContentGenerator needed for non-replayable data sources
-    subscribedEventTypeGuard: (event: StreamingEventPayload): event is StreamingEventPayload => {
-        // Subscribe to EventBridge events from other data sources that we care about
-        // These are EventBridge events published by mtw.diagnostics, mtw.coordination, and mtw.wml
+    subscribedEventTypeGuard: (event: any): event is any => {
+        // Subscribe to events from other data sources that we care about
+        // These are events published by mtw.diagnostics, mtw.coordination, and mtw.wml
         return Boolean(
             ['mtw.diagnostics', 'mtw.coordination', 'mtw.wml'].includes(event.dataSourceKey) && 
             event.event && 
             typeof event.event === 'object' &&
             event.event !== null &&
-            'source' in event.event
+            event.event.update &&
+            typeof event.event.update === 'object' &&
+            event.event.update.type
         )
     },
     receiveEvents: async ({ event, streamEvent }) => {
-        // Process messageBus events that represent EventBridge events
-        const eventData = event.event as any
+        // Process internal messageBus events from other data sources
         
         // Handle mtw.wml events
-        if (eventData.source === 'mtw.wml' && event.detailType === 'Content Update') {
-            const { AssetId } = eventData.detail
+        if (event.dataSourceKey === 'mtw.wml' && event.event.update.type === 'Content Update') {
+            const { AssetId } = event.event.update
             if (AssetId) {
                 try {
                     const assetId = AssetId.replace('ASSET#', '')
@@ -81,8 +83,8 @@ export const assetsDataSource = new AssetsDataSource({
         }
         
         // Handle mtw.wml Content Removed events
-        if (eventData.source === 'mtw.wml' && event.detailType === 'Content Removed') {
-            const { AssetId } = eventData.detail
+        if (event.dataSourceKey === 'mtw.wml' && event.event.update.type === 'Content Removed') {
+            const { AssetId } = event.event.update
             if (AssetId) {
                 try {
                     const assetId = AssetId.replace('ASSET#', '')
@@ -121,18 +123,18 @@ export const assetsDataSource = new AssetsDataSource({
         }
         
         // Handle mtw.diagnostics events
-        if (eventData.source === 'mtw.diagnostics' && event.detailType === 'Heal Global Values') {
+        if (event.dataSourceKey === 'mtw.diagnostics' && event.event.update.type === 'Heal Global Values') {
             const returnVal = await healGlobalValues({
-                shouldHealConnections: Boolean(eventData.detail?.connections),
-                shouldHealGlobalAssets: typeof eventData.detail?.assets !== 'boolean' || eventData.detail?.assets
+                shouldHealConnections: Boolean(event.event.update.connections),
+                shouldHealGlobalAssets: typeof event.event.update.assets !== 'boolean' || event.event.update.assets
             })
             
             return
         }
         
         // Handle mtw.coordination events
-        if (eventData.source === 'mtw.coordination' && event.detailType === 'Remove Asset') {
-            const { assetId } = eventData.detail
+        if (event.dataSourceKey === 'mtw.coordination' && event.event.update.type === 'Remove Asset') {
+            const { assetId } = event.event.update
             if (assetId) {
                 try {
                     // Decache the asset before removing it
@@ -170,10 +172,10 @@ export const assetsDataSource = new AssetsDataSource({
             }
         }
         
-        if (eventData.source === 'mtw.coordination' && ['Canonize Asset', 'Decanonize Asset'].includes(event.detailType)) {
-            const { assetId } = eventData.detail
+        if (event.dataSourceKey === 'mtw.coordination' && ['Canonize Asset', 'Decanonize Asset'].includes(event.event.update.type)) {
+            const { assetId } = event.event.update
             if (assetId) {
-                const toZone = event.detailType === 'Canonize Asset' ? 'Canon' : 'Library'
+                const toZone = event.event.update.type === 'Canonize Asset' ? 'Canon' : 'Library'
                 
                 messageBus.send({
                     type: 'MoveByAssetId',
@@ -199,6 +201,7 @@ export const assetsDataSource = new AssetsDataSource({
                 // Stream the canon update (replacing the direct EventBridge publish)
                 await streamEvent({
                     update: { 
+                        type: 'Canon Updated',
                         assetIds: globalAssetsSorted
                     },
                     streamKey: 'canon-global',
@@ -210,7 +213,7 @@ export const assetsDataSource = new AssetsDataSource({
                 messageBus.send({
                     type: 'Error',
                     body: { 
-                        error: `Invalid arguments specified for ${eventData.detailType} event`,
+                        error: `Invalid arguments specified for ${event.event.update.type} event`,
                         statusCode: 400
                     }
                 })

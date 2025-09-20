@@ -33,10 +33,10 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 - **Stream Processing**: Events persist in messageBus for multiple handler consumption
 
 ### **EventBridge Integration**: The subscription system works with the broader EventBridge architecture:
-- **Event Reception**: Lambda receives EventBridge events and routes them to messageBus
+- **Event Reception**: Lambda receives EventBridge events and deserializes them to internal format before routing to messageBus
 - **Type Filtering**: Data source only processes events it's interested in via type guards
 - **State Derivation**: Incoming events are processed into local state changes
-- **Event Propagation**: Local changes are streamed to subscribers via EventBridge
+- **Event Propagation**: Local changes are serialized and streamed to subscribers via EventBridge
 
 ### **Serialization Boundaries**: The serializer is applied at three key boundaries:
 - **EventBridge Publishing**: Internal `UpdatePayload` → `ExternalUpdatePayload` for EventBridge
@@ -56,7 +56,7 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 - **Consistency**: Class-based approach provides uniform implementation pattern across all serializers
 
 ### **Event Processing Flow**:
-- **Outgoing**: DataSource → messageBus → serialize → EventBridge/DynamoDB
+- **Outgoing**: DataSource → (1) internal format → messageBus for local processing, (2) serialize → EventBridge/DynamoDB for external distribution
 - **Incoming**: EventBridge → deserialize → messageBus → DataSource processing
 
 ## Timestamp Handling Strategy
@@ -120,8 +120,8 @@ This naming convention ensures that:
 ### **Incoming Event Processing**
 The DataSource pattern integrates with EventBridge through a standardized messageBus routing pattern:
 
-**Event Reception**: Lambda handlers receive EventBridge events and route them to messageBus with appropriate message structure.
-**Data Source Subscription**: Data sources automatically subscribe to relevant events using their configured type guards and event processing functions.
+**Event Reception**: Lambda handlers receive EventBridge events, deserialize them to internal format, and route them to messageBus.
+**Data Source Subscription**: Data sources automatically subscribe to relevant internal format events using their configured type guards and event processing functions.
 
 ### **EventBridge Architecture Simplification**
 The subscription system enables a simplified EventBridge architecture:
@@ -132,8 +132,8 @@ The subscription system enables a simplified EventBridge architecture:
 - Tight coupling between event sources and consumers
 
 **After**: Centralized messageBus routing with data source subscriptions
-- Single EventBridge event handler routes all events to messageBus
-- Data sources subscribe to messageBus events they care about
+- Single EventBridge event handler deserializes all events and routes them to messageBus
+- Data sources subscribe to messageBus internal format events they care about
 - Loose coupling with type-safe event processing
 - Easier testing and maintenance
 
@@ -143,6 +143,51 @@ The subscription system enables a simplified EventBridge architecture:
 - **Flexible Routing**: Data sources can subscribe to any messageBus event type
 - **Better Testing**: MessageBus events can be easily mocked and tested
 - **Performance**: Reduced EventBridge subscription complexity
+
+### **EventBridge Serialization**
+
+The DataSource pattern supports optional event serialization to maintain clean separation between internal messageBus events and external EventBridge events.
+
+**Purpose**: Enable DataSources to maintain clean internal event processing while supporting proper external event contracts for cross-service communication.
+
+**Method**: `eventSerializer` constructor parameter - Optional serializer for EventBridge integration
+- **`serialize(params)`**: Convert internal update payload to external format for EventBridge Detail
+- **`deserialize(params)`**: Convert external update payload back to internal format
+
+**Standard Pattern**: Use class-based serializers for better type safety, testability, and reusability:
+
+```typescript
+// Define serializer as a class for better type safety and testability
+export class MyEventSerializer implements DataSourceEventSerializer<MyInternalType, MyExternalType> {
+    serialize({ update }: { update: MyInternalType }): MyExternalType {
+        // Transform internal update to external format
+        return { /* external format */ }
+    }
+    
+    deserialize(params: { 
+        dataSourceKey: string; 
+        detailType: string; 
+        streamKey: string; 
+        externalUpdate: MyExternalType 
+    }): MyInternalType | null {
+        // Transform external format back to internal update
+        return /* internal update */
+    }
+}
+
+// Use in DataSource
+const myDataSource = new MyDataSource({
+    dataSourceKey: 'mtw.mydomain',
+    eventSerializer: new MyEventSerializer(),
+    // ... other params
+})
+```
+
+**Key Principles**:
+- **Internal Format**: Clean, domain-specific representations optimized for manipulation (`StandardComponent`, embedded `type` properties)
+- **External Format**: Transmittable representations optimized for cross-service communication (WML strings, `detailType` metadata)
+- **Boundary Enforcement**: Serialization only occurs at the EventBridge boundary
+- **Type Safety**: Full TypeScript support for both internal and external event structures
 
 ## Generic Type System
 

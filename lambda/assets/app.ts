@@ -1,6 +1,5 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client } from "@aws-sdk/client-s3"
-import type { Readable } from "stream"
 
 import internalCache from "./internalCache"
 
@@ -20,24 +19,29 @@ import {
     isAssetLLMGenerateAPIMessage,
     isAssetCollaborationStatusAPIMessage
 } from '@tonylb/mtw-interfaces/ts/asset.js'
-import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 
 import messageBus from "./messageBus/index.js"
 import { sfnClient, snsClient } from "./clients"
 import { assetWorkspaceFromAssetId } from "./utilities/assets"
 import { AssetKey, ConnectionKey } from "@tonylb/mtw-utilities/ts/types"
-import { healGlobalValues } from "./selfHealing/globalValues"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
 import { isEphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { extractReturnValue } from './returnValue'
-import assetsDataSource from './dataSource'
+import { AssetsEventSerializer } from './dataSource/serializers'
+import { CharacterEventSerializer } from './characters/serializers'
+import { WMLEventSerializer } from '../wml/dataSource/mtw-wml'
 
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
+
+// Event deserializers for incoming EventBridge events
+const eventDeserializers = {
+    'mtw.wml': new WMLEventSerializer(),
+    // Add other data source deserializers here as needed
+}
 
 export const handler = async (event, context) => {
 
@@ -54,29 +58,31 @@ export const handler = async (event, context) => {
     if (event?.message) {
         switch(event.message) {
             case 'cacheAsset':
-                // Legacy Step Function call - publish as StreamEvent for data source processing
+                // Legacy Step Function call - publish as internal format StreamEvent for data source processing
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.wml',
                     event: {
-                        source: 'mtw.wml',
-                        detailType: 'Content Update',
-                        detail: { AssetId: `ASSET#${event.assetId}` }
+                        streamKey: `ASSET#${event.assetId}`,
+                        update: {
+                            type: 'Content Update',
+                            AssetId: `ASSET#${event.assetId}`
+                        }
                     },
                     timestamp: Date.now()
                 })
                 await messageBus.flush()
                 return {}
             case 'decacheAsset':
-                // Legacy Step Function call - publish as WML Content Removed event
+                // Legacy Step Function call - publish as internal format WML Content Removed event
                 // This represents an asset being removed, which should trigger decaching
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.wml',
                     event: {
-                        source: 'mtw.wml',
-                        detailType: 'Content Removed',
-                        detail: { 
+                        streamKey: `ASSET#${event.assetId}`,
+                        update: {
+                            type: 'Content Removed',
                             AssetId: `ASSET#${event.assetId}`
                         }
                     },
@@ -131,17 +137,45 @@ export const handler = async (event, context) => {
 
     // Handle EventBridge messages by publishing to messageBus for DataSource processing
     if (event?.source && event["detail-type"]) {
-        // Publish EventBridge event to messageBus for DataSource processing
-        messageBus.send({
-            type: 'StreamingEvent',
-            dataSourceKey: event.source,
-            event: {
-                source: event.source,
+        // Find the appropriate deserializer for this data source
+        const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]
+        
+        let internalEvent
+        if (deserializer) {
+            // Deserialize the external EventBridge event to internal format
+            internalEvent = deserializer.deserialize({
+                dataSourceKey: event.source,
                 detailType: event["detail-type"],
-                detail: event.detail
-            },
-            timestamp: Date.now()
-        })
+                streamKey: event.detail.streamKey || '', // Extract streamKey from detail
+                externalUpdate: event.detail
+            })
+            
+            // If deserialization failed, log error and skip this event
+            if (!internalEvent) {
+                messageBus.send({
+                    type: 'Error',
+                    body: {
+                        error: `Failed to deserialize event from ${event.source}: ${event["detail-type"]}`
+                    }
+                })
+            } else {
+                // Publish deserialized event to messageBus for DataSource processing
+                messageBus.send({
+                    type: 'StreamingEvent',
+                    dataSourceKey: event.source,
+                    event: internalEvent,
+                    timestamp: event.time ? new Date(event.time).getTime() : Date.now()
+                })
+            }
+        } else {
+            // No deserializer available - this is an error condition
+            messageBus.send({
+                type: 'Error',
+                body: {
+                    error: `No deserializer available for data source: ${event.source}`
+                }
+            })
+        }
     }
 
     // Handle SNS messages

@@ -225,9 +225,8 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
 
         // Create the internal messageBus event
         const messageBusEvent = {
-            messageType: 'StreamingEvent' as const,
+            type: 'StreamingEvent' as const,
             dataSourceKey: this.dataSourceKey,
-            detailType,
             event: {
                 streamKey,
                 update
@@ -412,16 +411,17 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
             return // No event processing configured
         }
 
-        // Create a derived type guard that works with the full StreamingEvent structure
-        const streamingEventTypeGuard = (message: any): message is StreamingEvent => {
+        // Create a derived type guard that works with the internal StreamingEventMessage structure
+        const streamingEventTypeGuard = (message: any): message is StreamingEventPayload => {
             if (!this.subscribedEventTypeGuard) {
                 return false
             }
-            if (message.messageType !== 'StreamingEvent') {
+            if (message.type !== 'StreamingEvent') {
                 return false
             }
-            const { messageType, ...rest } = message
-            return this.subscribedEventTypeGuard(rest)
+            // Strip the type field to get StreamingEventPayload format
+            const { type, ...streamingEventPayload } = message
+            return this.subscribedEventTypeGuard(streamingEventPayload)
         }
 
         // Subscribe to messageBus with the derived type guard and receiveEvents callback
@@ -431,12 +431,14 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
             filter: streamingEventTypeGuard,
             callback: async ({ payloads }) => {
                 await Promise.all(
-                    payloads.map((streamingEvent) => 
-                        this.receiveEvents!({
-                            event: streamingEvent,
+                    payloads.map((streamingEvent) => {
+                        // Strip the type field to get StreamingEventPayload format
+                        const { type, ...streamingEventPayload } = streamingEvent
+                        return this.receiveEvents!({
+                            event: streamingEventPayload,
                             streamEvent: (params) => this.streamEvent(params)
                         })
-                    )
+                    })
                 )
             }
         })

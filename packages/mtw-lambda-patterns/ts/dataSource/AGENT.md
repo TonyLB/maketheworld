@@ -58,16 +58,27 @@ The DataSource pattern implements a dual-delivery architecture that efficiently 
 4. **WebSocket Delivery**: SNS delivers directly to the requesting session's WebSocket
 
 ### **Event Subscription Pipeline**
-1. **Incoming Events**: EventBridge events are received by lambda and routed to messageBus
+1. **Incoming Events**: EventBridge events are received by lambda and deserialized to internal format via [Serialization Boundary](#serialization-boundary)
 2. **DataSource Subscription**: DataSource subscribes to relevant messageBus events using type guards
 3. **Event Processing**: `receiveEvent` function processes incoming events and generates local state changes
 4. **State Updates**: Processed events result in `streamEvent` calls to update local streams
+
+### **Serialization Boundary**
+Maintain strict separation between internal messageBus events and external EventBridge events through dedicated serializers:
+
+- **Internal Format**: Clean, domain-specific representations optimized for manipulation (`StandardComponent`, embedded `type` properties)
+- **External Format**: Transmittable representations optimized for cross-service communication (WML strings, `detailType` metadata)
+- **Serializer Pattern**: Class-based converters that transform between formats at the EventBridge boundary
+- **Type Safety**: Full TypeScript support for both internal and external event structures
+
+See [Implementation Details](AGENT.implementation.md#eventbridge-serialization) for serializer patterns and usage examples.
 
 This architecture ensures that:
 - **Live events** reach all current subscribers efficiently
 - **Replay events** (when enabled) reach only the requesting subscriber without unnecessary fan-out
 - **Complete context** is provided to new subscribers before they start receiving live events (when replay is enabled)
 - **External events** are processed and integrated into local data source state
+- **Clean separation** is maintained between internal manipulation and external transmission formats
 
 ## Core Functionality
 
@@ -117,46 +128,6 @@ Subscribe to incoming events from other data sources and process them into local
 - **`messageBus`**: The messageBus instance for sending follow-up messages
 - **Returns**: Promise that resolves when event processing is complete
 
-### **5. EventBridge Serialization Architecture**
-Provide clean separation between internal StreamEvents and external EventBridge events through optional event serialization.
-
-**Purpose**: Enable DataSources to maintain clean internal event processing while supporting proper external event contracts for cross-service communication.
-
-**Method**: `eventSerializer` constructor parameter - Optional serializer for EventBridge integration
-- **`serialize(params)`**: Convert internal update payload to external format for EventBridge Detail
-- **`deserialize(params)`**: Convert external update payload back to internal format
-
-**Recommended Pattern**: Use class-based serializers for better type safety, testability, and reusability:
-
-**Usage Pattern**: DataSources can optionally provide serializers for EventBridge integration:
-
-**Standard: Class-based Serializer**
-```typescript
-// Define serializer as a class for better type safety and testability
-export class MyEventSerializer implements DataSourceEventSerializer<MyInternalType, MyExternalType> {
-    serialize({ update }: { update: MyInternalType }): MyExternalType {
-        // Transform internal update to external format
-        return { /* external format */ }
-    }
-    
-    deserialize(params: { 
-        dataSourceKey: string; 
-        detailType: string; 
-        streamKey: string; 
-        externalUpdate: MyExternalType 
-    }): MyInternalType | null {
-        // Transform external format back to internal update
-        return /* internal update */
-    }
-}
-
-// Use in DataSource
-const myDataSource = new MyDataSource({
-    dataSourceKey: 'mtw.mydomain',
-    eventSerializer: new MyEventSerializer(),
-    // ... other params
-})
-```
 
 ## Multi-Stream Architecture
 

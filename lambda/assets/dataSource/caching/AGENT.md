@@ -56,8 +56,9 @@ The caching functions are integrated into the `mtw.assets` data source and are t
 #### Event Processing
 ```typescript
 // In dataSource/index.ts receiveEvents method
-if (eventData.source === 'mtw.wml' && eventData.detailType === 'Content Update') {
-    const { AssetId } = eventData.detail
+// Note: eventData is already deserialized from EventBridge format to internal format
+if (eventData.dataSourceKey === 'mtw.wml' && eventData.event.update.type === 'Content Update') {
+    const { AssetId } = eventData.event.update
     await cacheAsset({ assetId: AssetId.replace('ASSET#', ''), streamEvent })
     // Stream event for real-time subscribers
     await streamEvent({
@@ -67,8 +68,8 @@ if (eventData.source === 'mtw.wml' && eventData.detailType === 'Content Update')
     })
 }
 
-if (eventData.source === 'mtw.wml' && eventData.detailType === 'Content Removed') {
-    const { AssetId } = eventData.detail
+if (eventData.dataSourceKey === 'mtw.wml' && eventData.event.update.type === 'Content Removed') {
+    const { AssetId } = eventData.event.update
     await decacheAsset({ assetId: AssetId.replace('ASSET#', ''), streamEvent })
     // Stream event for real-time subscribers
     await streamEvent({
@@ -150,14 +151,18 @@ Character components receive special treatment due to their integration with the
 #### Legacy Step Function Support
 ```typescript
 // For backward compatibility during transition
+// Note: This creates internal format events for messageBus
 messageBus.send({
     type: 'StreamingEvent',
     dataSourceKey: 'mtw.assets',
     event: {
-        source: 'mtw.wml',
-        detailType: 'Content Update',
-        detail: { AssetId: `ASSET#${assetId}` }
-    }
+        streamKey: `ASSET#${assetId}`,
+        update: {
+            type: 'Content Update',
+            AssetId: `ASSET#${assetId}`
+        }
+    },
+    timestamp: Date.now()
 })
 ```
 

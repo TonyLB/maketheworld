@@ -8,6 +8,7 @@ import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses";
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists";
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema";
+import { ComponentEventUpdate, ComponentRemovedEvent, ComponentUpdatedEvent } from "../serializers";
 
 /**
  * Cache asset content to DynamoDB storage
@@ -23,7 +24,7 @@ import { schemaToWML } from "@tonylb/mtw-wml/ts/schema";
 export const cacheAsset = async ({ assetId, streamEvent }: {
     assetId: string;
     streamEvent: (params: {
-        update: any;
+        update: ComponentEventUpdate;
         streamKey: string;
         detailType: string;
     }) => Promise<void>;
@@ -89,18 +90,22 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             })
         )
 
-        // Prepare component-level events
+        // Prepare component-level events with StandardComponent objects
         const componentsRemoved = diff._components
             .filter((component): component is StandardRemove => (
                 !!component.universalKey && component instanceof StandardRemove
             ))
-            .map((component) => ({ componentId: component.universalKey as string }))
+            .map((component): ComponentRemovedEvent => ({ 
+                type: 'Component Removed',
+                assetId,
+                componentId: component.universalKey as string
+            }))
         const componentsUpdated = diff._components
             .filter((component) => (!!component.universalKey && !(component instanceof StandardRemove)))
-            .map((component) => ({
-                componentId: component.universalKey as string,
-                // Use the diff component's schema to represent the delta
-                wml: schemaToWML([component.schema])
+            .map((component): ComponentUpdatedEvent => ({
+                type: 'Component Updated',
+                assetId,
+                component: component // The actual StandardComponent object
             }))
         
         const characterChanges = diff._components
@@ -121,27 +126,18 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             }
         })
         
-        // Stream component events only; Character events are emitted by mtw.assets.characters
+        // Stream component events with StandardComponent objects; Character events will be handled by mtw.assets.characters data source
         await Promise.all([
-            ...(componentsRemoved.map(({ componentId }) => (
+            ...(componentsRemoved.map((componentRemovedEvent) => (
                 streamEvent({
-                    update: {
-                        type: 'Component Removed',
-                        assetId,
-                        componentId
-                    },
+                    update: componentRemovedEvent,
                     streamKey: assetId,
                     detailType: 'Component Removed'
                 })
             ))),
-            ...(componentsUpdated.map(({ componentId, wml }) => (
+            ...(componentsUpdated.map((componentUpdatedEvent) => (
                 streamEvent({
-                    update: {
-                        type: 'Component Updated',
-                        assetId,
-                        componentId,
-                        wml
-                    },
+                    update: componentUpdatedEvent,
                     streamKey: assetId,
                     detailType: 'Component Updated'
                 })

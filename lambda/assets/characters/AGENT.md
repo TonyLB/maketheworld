@@ -64,10 +64,14 @@ export class CharactersDataSource extends AssetsDataSource<
         super({
             dataSourceKey: 'mtw.assets.characters',
             replayable: true,
-            subscribedEventTypeGuard: (event: StreamingEventPayload): event is ComponentEventPayload => {
+            subscribedEventTypeGuard: (event: any): event is ComponentEventPayload => {
                 // Subscribe to mtw.assets component events that might be character changes
                 return event.dataSourceKey === 'mtw.assets' && 
-                       ['Component Updated', 'Component Removed'].includes(event.event.detailType)
+                       event.event && 
+                       typeof event.event === 'object' &&
+                       event.event.update &&
+                       typeof event.event.update === 'object' &&
+                       ['Component Updated', 'Component Removed'].includes(event.event.update.type)
             },
             snapshotContentGenerator: async (streamKey: string) => {
                 // Generate character listing snapshot as WML string for client subscriptions
@@ -100,7 +104,23 @@ The sub-source will process incoming component events to detect character-specif
 Following the established pattern from `mtw.assets` and `Component Updated` events, the characters data source uses structured payloads with WML strings:
 
 ```typescript
+// Internal format (for messageBus and DataSource processing)
 type CharacterEventPayload = {
+    dataSourceKey: 'mtw.assets'
+    event: {
+        streamKey: string
+        update: {
+            type: 'Component Updated' | 'Component Removed'
+            assetId: string
+            component: StandardCharacter | undefined // undefined for removed components
+        }
+        timestamp: number
+    }
+    timestamp: number
+}
+
+// External format (for EventBridge publishing via serializer)
+type CharacterEventExternal = {
     detailType: 'Character Updated' | 'Character Removed'
     characterId: string
     wml: string // WML string containing character data
@@ -114,8 +134,8 @@ type CharacterSnapshotPayload = {
 ```
 
 **Event Structure Examples**:
-- **Character Updated**: `{ detailType: 'Character Updated', characterId: 'char123', wml: '<Character>...</Character>' }`
-- **Character Removed**: `{ detailType: 'Character Removed', characterId: 'char123', wml: '<CharacterRemoved>...</CharacterRemoved>' }`
+- **Internal Character Updated**: `{ dataSourceKey: 'mtw.assets', event: { streamKey: 'ASSET#asset123', update: { type: 'Component Updated', assetId: 'ASSET#asset123', component: StandardCharacter } }, timestamp: 1234567890 }`
+- **External Character Updated**: `{ detailType: 'Character Updated', characterId: 'char123', wml: '<Character>...</Character>' }`
 - **Character Snapshot**: WML string containing all characters for the asset stream
 
 ## Integration Points

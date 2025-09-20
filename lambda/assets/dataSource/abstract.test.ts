@@ -115,9 +115,8 @@ describe('AssetsDataSource', () => {
             // Verify messageBus message
             expect(messageBus.send).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    messageType: 'StreamingEvent',
+                    type: 'StreamingEvent',
                     dataSourceKey: 'mtw.assets.test',
-                    detailType: 'Test Event',
                     event: expect.objectContaining({
                         streamKey: 'test-stream',
                         update
@@ -148,12 +147,10 @@ describe('AssetsDataSource', () => {
                 // No snapshotContentGenerator provided
             })
 
-            const snapshot = await nonReplayableDataSource.getSnapshot('test-stream')
-
-            expect(snapshot).toEqual({
-                streamKey: 'test-stream',
-                timestamp: expect.any(Number)
-            })
+            // Non-replayable data sources should throw an error when trying to get snapshots
+            await expect(nonReplayableDataSource.getSnapshot('test-stream')).rejects.toThrow(
+                'DataSource \'mtw.testNonReplayable\' is not replayable and does not support snapshots'
+            )
         })
     })
 })

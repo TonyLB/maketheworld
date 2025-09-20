@@ -1,5 +1,6 @@
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { isEphemeraId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { ComponentEventUpdate, ComponentRemovedEvent } from "../serializers"
 
 /**
  * Remove asset content from DynamoDB storage
@@ -15,7 +16,7 @@ import { isEphemeraId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 export const decacheAsset = async ({ assetId, streamEvent }: {
     assetId: string;
     streamEvent: (params: {
-        update: any;
+        update: ComponentEventUpdate;
         streamKey: string;
         detailType: string;
     }) => Promise<void>;
@@ -49,15 +50,16 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
     )))
     
     // Component Removed streaming events
-    await Promise.all(componentsToRemove.map(({ AssetId: componentId }) => (
-        streamEvent({
-            update: {
-                type: 'Component Removed',
-                assetId,
-                componentId
-            },
+    await Promise.all(componentsToRemove.map(({ AssetId: componentId }) => {
+        const componentRemovedEvent: ComponentRemovedEvent = {
+            type: 'Component Removed',
+            assetId,
+            componentId
+        }
+        return streamEvent({
+            update: componentRemovedEvent,
             streamKey: assetId,
             detailType: 'Component Removed'
         })
-    )))
+    }))
 }
