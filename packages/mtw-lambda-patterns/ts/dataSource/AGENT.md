@@ -1,4 +1,4 @@
-# DataSource Pattern - Agent Navigation Guide
+# DataSource Pattern - Usage Guide
 
 ## Overview
 
@@ -69,16 +69,14 @@ This architecture ensures that:
 - **Complete context** is provided to new subscribers before they start receiving live events (when replay is enabled)
 - **External events** are processed and integrated into local data source state
 
-## Technical Details
+## Core Functionality
 
-### Core Functionality
-
-#### **1. Snapshot Generation** (Optional - when `replayable` is enabled)
+### **1. Snapshot Generation** (Optional - when `replayable` is enabled)
 Access the underlying durable storage to generate a snapshot of the current materialized view for a specific stream. Both send and store upon creation.
 
 **Purpose**: Provide complete current state for individual streams within data categories, enabling new subscribers to understand the full context for their specific stream before receiving incremental updates.
 
-#### **2. Event Streaming**
+### **2. Event Streaming**
 Provide the tools to distribute incremental changes for specific streams to outgoing EventBridge, and optionally to replay storage (when `replayable` is enabled).
 
 **Purpose**: Broadcast incremental changes to subscribers who are already synchronized with the current state for their specific stream.
@@ -90,16 +88,7 @@ Provide the tools to distribute incremental changes for specific streams to outg
 
 **Parallel Operations**: Executes DynamoDB storage (if replayable) and EventBridge publishing simultaneously for optimal performance.
 
-**Live vs Replay Event Delivery**:
-
-The DataSource pattern uses two different delivery mechanisms depending on the context:
-
-- **Live Events** (`streamEvent`): New changes are published to EventBridge for fan-out to all current subscribers
-- **Replay Events** (`initializeSubscription`): Historical data is delivered directly to a specific session via SNS Feedback (when replay is enabled)
-
-This dual approach ensures efficient delivery while maintaining the correct scope for each type of event.
-
-#### **3. Replay Serialization** (Optional - when `replayable` is enabled)
+### **3. Replay Serialization** (Optional - when `replayable` is enabled)
 Deserialize data from the replay store for a specific stream and deliver it directly to a specific subscriber via the Feedback SNS topic.
 
 **Purpose**: Enable new subscribers to catch up by receiving a snapshot plus all events since that snapshot for their specific stream, ensuring they have complete context when new events start arriving from their subscription.
@@ -113,18 +102,7 @@ Deserialize data from the replay store for a specific stream and deliver it dire
 - **Direct Session Delivery**: Data goes straight to the requesting session
 - **Efficient Replay**: Only the specific subscriber gets the historical data they need
 
-**Replay Content**: The method delivers:
-1. **Current Snapshot**: The most recent materialized state for the stream
-2. **Recent Events**: Events that occurred since the snapshot was created
-3. **Complete Context**: Everything the subscriber needs to understand the current state
-
-**SNS Feedback Delivery**: Replay data is delivered via the Feedback SNS topic, which allows:
-- **Targeted Delivery**: Data goes directly to the specified `sessionId`
-- **No Fan-out**: Avoids broadcasting historical data to all subscribers
-- **Efficient Replay**: Only the requesting session receives the replay data
-- **WebSocket Integration**: SNS messages are delivered to the session's WebSocket connection
-
-#### **4. Event Subscription**
+### **4. Event Subscription**
 Subscribe to incoming events from other data sources and process them into local state changes through the messageBus system.
 
 **Purpose**: Enable data sources to react to external events and maintain derived state, creating a comprehensive event mesh where data sources can depend on and respond to changes in other domains.
@@ -139,19 +117,7 @@ Subscribe to incoming events from other data sources and process them into local
 - **`messageBus`**: The messageBus instance for sending follow-up messages
 - **Returns**: Promise that resolves when event processing is complete
 
-**Integration with MessageBus**: The data source integrates seamlessly with the existing messageBus pattern:
-- **Type Safety**: Full TypeScript integration with type guards derived from `receiveEvent` signature
-- **Priority Ordering**: Events are processed according to messageBus priority system
-- **Error Handling**: Graceful failure without breaking other messageBus handlers
-- **Stream Processing**: Events persist in messageBus for multiple handler consumption
-
-**EventBridge Integration**: The subscription system works with the broader EventBridge architecture:
-- **Event Reception**: Lambda receives EventBridge events and routes them to messageBus
-- **Type Filtering**: Data source only processes events it's interested in via type guards
-- **State Derivation**: Incoming events are processed into local state changes
-- **Event Propagation**: Local changes are streamed to subscribers via EventBridge
-
-#### **5. EventBridge Serialization Architecture**
+### **5. EventBridge Serialization Architecture**
 Provide clean separation between internal StreamEvents and external EventBridge events through optional event serialization.
 
 **Purpose**: Enable DataSources to maintain clean internal event processing while supporting proper external event contracts for cross-service communication.
@@ -160,82 +126,48 @@ Provide clean separation between internal StreamEvents and external EventBridge 
 - **`serialize(params)`**: Convert internal update payload to external format for EventBridge Detail
 - **`deserialize(params)`**: Convert external update payload back to internal format
 
-**Serialization Boundaries**: The serializer is applied at three key boundaries:
-- **EventBridge Publishing**: Internal `UpdatePayload` → `ExternalUpdatePayload` for EventBridge
-- **DynamoDB Storage**: Internal `UpdatePayload` → `ExternalUpdatePayload` for replay storage
-- **Replay Delivery**: Stored `ExternalUpdatePayload` → delivered via SNS (no re-serialization needed)
-
-**Type Constraints**:
-- **`UpdatePayload`**: Can be any type (class instances, functions, complex objects)
-- **`ExternalUpdatePayload`**: Must be `string | SerializableObject` for EventBridge compatibility
-
-**Benefits**:
-- **Type Safety**: Internal types stay internal, external contracts are explicit
-- **Evolution Independence**: Internal and external events can evolve separately
-- **Clean Architecture**: Clear separation of concerns between business logic and external integration
-- **Performance**: Avoids unnecessary deserialize/serialize cycles in replay operations
-- **Flexibility**: Rich internal types with EventBridge-compatible external formats
+**Recommended Pattern**: Use class-based serializers for better type safety, testability, and reusability:
 
 **Usage Pattern**: DataSources can optionally provide serializers for EventBridge integration:
+
+**Standard: Class-based Serializer**
 ```typescript
+// Define serializer as a class for better type safety and testability
+export class MyEventSerializer implements DataSourceEventSerializer<MyInternalType, MyExternalType> {
+    serialize({ update }: { update: MyInternalType }): MyExternalType {
+        // Transform internal update to external format
+        return { /* external format */ }
+    }
+    
+    deserialize(params: { 
+        dataSourceKey: string; 
+        detailType: string; 
+        streamKey: string; 
+        externalUpdate: MyExternalType 
+    }): MyInternalType | null {
+        // Transform external format back to internal update
+        return /* internal update */
+    }
+}
+
+// Use in DataSource
 const myDataSource = new MyDataSource({
     dataSourceKey: 'mtw.mydomain',
-    eventSerializer: {
-        serialize: ({ dataSourceKey, detailType, streamKey, update }) => {
-            // Transform internal update to external format
-            return { /* external format */ }
-        },
-        deserialize: ({ dataSourceKey, detailType, streamKey, externalUpdate }) => {
-            // Transform external format back to internal update
-            return /* internal update */
-        }
-    },
+    eventSerializer: new MyEventSerializer(),
     // ... other params
 })
 ```
 
-**Event Processing Flow**:
-- **Outgoing**: DataSource → messageBus → serialize → EventBridge/DynamoDB
-- **Incoming**: EventBridge → deserialize → messageBus → DataSource processing
+## Multi-Stream Architecture
 
-### Data Storage Strategy
-
-#### **Local DynamoDB Table** (Optional - when `replayable` is enabled)
-Each replayable data source maintains a local DynamoDB table for replay data across multiple subscribable streams. The Primary Key will be variable (`AssetId`, `EphemeraId`, and so on), but the general pattern will be that all stream records have a PK of `STREAM#${dataSourceKey}::${streamIdentifier}`.
-
-This granular PK structure enables (when replay is enabled):
-- **Stream Isolation**: Each stream maintains its own snapshot and event history
-- **Efficient Querying**: Direct access to specific stream data without filtering
-- **Concurrent Operations**: Multiple streams can be processed simultaneously without conflicts
-- **Scalable Architecture**: Support for large numbers of streams within a single data source
-
-**Record Types** (when replay is enabled):
-- **Snapshot Records**: DataCategory of `Meta::Snapshot` - Contains the complete current state for a specific stream
-- **Event Records**: DataCategory of `EVENT#${epochTime}::${uuid}` - Contains incremental changes for a specific stream
-
-#### **Naming Conventions**
-
-**Data Source Keys**: The `dataSourceKey` parameter should use the full EventBridge source naming convention for consistency:
-
-- **Primary Data Sources**: Use the full EventBridge source name (e.g., `'mtw.assets'`, `'mtw.ephemera'`, `'mtw.connections'`)
-- **Sub-Sources**: For specialized data sources within a larger service, extend the pattern (e.g., `'mtw.assets.contentHeaders'`, `'mtw.assets.characterData'`)
-
-This naming convention ensures that:
-- **DynamoDB Keys**: Use the same identifier as EventBridge sources (`STREAM#mtw.assets::streamKey`)
-- **EventBridge Events**: Use the same source identifier (`Source: 'mtw.assets'`)
-- **Code Clarity**: Makes it immediately clear which service/system owns each data source
-- **Consistency**: Eliminates confusion between different naming schemes across the system
-
-### Multi-Stream Architecture
-
-#### **Stream Differentiation**
+### **Stream Differentiation**
 Each DataSource instance supports multiple independent streams, where each stream represents a distinct subset of data within the broader data category. For example:
 - **Asset DataSource** (`mtw.assets`): Streams differentiated by `AssetId` - each asset has its own snapshot and event history
 - **Player DataSource** (`mtw.players`): Streams differentiated by `PlayerId` - each player has their own subscription stream
 - **Ephemera DataSource** (`mtw.ephemera`): Streams differentiated by `EphemeraId` - each ephemeral object maintains its own state
 - **Content Headers Sub-Source** (`mtw.assets.contentHeaders`): Specialized streams for content header data within the assets service
 
-#### **Concurrent Stream Processing**
+### **Concurrent Stream Processing**
 The multi-stream architecture enables:
 - **Independent Snapshots**: Each stream generates and maintains its own snapshot independently (when replay is enabled)
 - **Parallel Event Processing**: Events for different streams can be processed concurrently without interference
@@ -256,35 +188,6 @@ The multi-stream architecture enables:
 - **[Internal Cache Pattern](../internalCache/AGENT.md)**: Performance optimization
 - **[Lambda Development Guide](../../../AGENT.development.md)**: General lambda patterns
 - **[Architecture Philosophy](../../../AGENT.architecture.philosophy.md)**: System design principles
-
-### EventBridge Integration Patterns
-
-#### **Incoming Event Processing**
-The DataSource pattern integrates with EventBridge through a standardized messageBus routing pattern:
-
-**Event Reception**: Lambda handlers receive EventBridge events and route them to messageBus with appropriate message structure.
-**Data Source Subscription**: Data sources automatically subscribe to relevant events using their configured type guards and event processing functions.
-
-#### **EventBridge Architecture Simplification**
-The subscription system enables a simplified EventBridge architecture:
-
-**Before**: Complex EventBridge routing with multiple direct subscriptions
-- Each lambda directly subscribes to multiple EventBridge event types
-- Complex routing logic in each lambda handler
-- Tight coupling between event sources and consumers
-
-**After**: Centralized messageBus routing with data source subscriptions
-- Single EventBridge event handler routes all events to messageBus
-- Data sources subscribe to messageBus events they care about
-- Loose coupling with type-safe event processing
-- Easier testing and maintenance
-
-**Benefits**:
-- **Simplified Event Handling**: Single point of EventBridge event reception
-- **Type Safety**: Full TypeScript integration with derived type guards
-- **Flexible Routing**: Data sources can subscribe to any messageBus event type
-- **Better Testing**: MessageBus events can be easily mocked and tested
-- **Performance**: Reduced EventBridge subscription complexity
 
 ## Development Guidelines
 
@@ -342,7 +245,6 @@ This initial implementation focuses on the four core capabilities:
 - **Event Validation**: Built-in validation for external EventBridge event formats
 - **Event Enrichment**: Automatic enrichment of events with contextual metadata during serialization
 
-
 ## Navigation Tips
 
 ### Getting Started
@@ -358,3 +260,7 @@ This initial implementation focuses on the four core capabilities:
 - **Replay Capability**: New subscribers can catch up from any point in time for their specific stream (when replay is enabled)
 - **Concurrent Coordination**: SingleFlight ensures efficient snapshot generation across multiple lambda instances (when replay is enabled)
 - **Performance**: Optimized for cost-effective operation with stream-specific resource utilization
+
+---
+
+**For detailed implementation information, see [AGENT.implementation.md](./AGENT.implementation.md)**

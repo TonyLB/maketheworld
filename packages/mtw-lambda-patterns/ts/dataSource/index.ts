@@ -30,10 +30,10 @@ export type DynamoQueryArgs = {
     allFields?: boolean
 }
 
-export type DynamoUtils = {
-    putItem: (item: Record<string, any>) => Promise<unknown>
-    getItem: <Get>(args: DynamoGetItemArgs) => Promise<Get | undefined>
-    query: <Q>(args: DynamoQueryArgs) => Promise<Q[]>
+export type DynamoUtils<KeyType extends string = string> = {
+    putItem: (item: any) => Promise<unknown>
+    getItem: <Get extends Partial<Record<string, any> & { [K in KeyType]: string } & { DataCategory: string }>>(args: any) => Promise<Get | undefined>
+    query: <Query extends Record<string, any> & { [K in KeyType]: string } & { DataCategory: string }>(args: any) => Promise<Query[]>
     optimisticUpdate: (params: any) => Promise<any>
 }
 
@@ -45,14 +45,14 @@ export type SnsUtils = {
 export type StreamEventFunction<UpdatePayload = any> = 
     (params: { update: UpdatePayload, streamKey: string, detailType: string }) => Promise<void>
 
-export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayload = any, SubscribedEvent extends StreamingEventPayload | never = never, ExternalUpdatePayload extends string | SerializableObject = string | SerializableObject> {
-    readonly dynamo: DynamoUtils
+export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayload = any, SubscribedEvent extends StreamingEventPayload | never = never, ExternalUpdatePayload extends string | SerializableObject = string | SerializableObject, KeyType extends string = string> {
+    readonly dynamo: DynamoUtils<KeyType>
     readonly sns: SnsUtils
     readonly messageBus: { 
         send: (payload: any) => void;
         subscribe: (subscription: any) => void;
     }
-    readonly primaryKeyName: string
+    readonly primaryKeyName: KeyType
     readonly dataSourceKey: string
     readonly snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>
     readonly singleFlight?: ReturnType<typeof singleFlightFactory<SnapshotType<SnapshotPayload>>>
@@ -80,13 +80,13 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         receiveEvents,
         eventSerializer
     }: { 
-        dynamo: DynamoUtils,
+        dynamo: DynamoUtils<KeyType>,
         sns: SnsUtils,
         messageBus: { 
             send: (payload: any) => void;
             subscribe: (subscription: any) => void;
         },
-        primaryKeyName: string,
+        primaryKeyName: KeyType,
         dataSourceKey: string,
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>,
         feedbackTopicArn: string,
@@ -145,9 +145,9 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     }
 
     async getSnapshot(streamKey: string): Promise<SnapshotPayload> {
-        // For non-replayable data sources, return a minimal snapshot without generation
+        // For non-replayable data sources, throw an error since snapshots are not supported
         if (!this.replayable) {
-            return { streamKey, timestamp: getCurrentTimestamp() } as unknown as SnapshotPayload
+            throw new Error(`DataSource '${this.dataSourceKey}' is not replayable and does not support snapshots`)
         }
 
         // Check in-memory cache first
@@ -203,7 +203,6 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
                     update
                 })
                 : update,
-            timestamp: now,
             streamKey
         }
 
@@ -273,7 +272,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         await this.deliverReplayData({ sessionId, streamKey, snapshot, events: recentEvents })
     }
 
-    protected async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: ExternalUpdatePayload, timestamp: number, eventId: string }>> {
+    protected async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: ExternalUpdatePayload, timestamp: number, streamKey: string }>> {
         // For non-replayable data sources, return empty array since no events are stored
         if (!this.replayable) {
             return []
@@ -282,24 +281,29 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         const primaryKey = `STREAM#${this.dataSourceKey}::${streamKey}`
         
         // Query for events with DataCategory starting with 'EVENT#' and timestamp >= sinceTimestamp
-        const events = await this.dynamo.query<{
+        const events = await this.dynamo.query<Record<KeyType, string> & {
             DataCategory: string;
             update: ExternalUpdatePayload;
-            timestamp: number;
-            eventId: string;
+            streamKey: string;
         }>({
             Key: { [this.primaryKeyName]: primaryKey },
             KeyConditionExpression: 'begins_with(DataCategory, :eventPrefix)',
-            FilterExpression: 'timestamp >= :sinceTimestamp',
+            FilterExpression: 'begins_with(DataCategory, :timestampPrefix)',
             ExpressionAttributeValues: {
                 ':eventPrefix': 'EVENT#',
-                ':sinceTimestamp': sinceTimestamp
+                ':timestampPrefix': `EVENT#${sinceTimestamp}`
             },
             allFields: true
         })
         
-        // Sort by timestamp to ensure chronological order
-        return events ? events.sort((a, b) => a.timestamp - b.timestamp) : []
+        // Extract timestamp from DataCategory and sort by timestamp to ensure chronological order
+        return events ? events
+            .map(event => ({
+                update: event.update,
+                streamKey: event.streamKey,
+                timestamp: event.DataCategory ? parseInt(event.DataCategory.split('::')[0].replace('EVENT#', '')) : 0
+            }))
+            .sort((a, b) => a.timestamp - b.timestamp) : []
     }
 
     protected async deliverReplayData({ 
@@ -311,7 +315,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         sessionId: `SESSION#${string}`; 
         streamKey: string; 
         snapshot: SnapshotType<SnapshotPayload>; 
-        events: Array<{ update: ExternalUpdatePayload, timestamp: number, eventId: string }> 
+        events: Array<{ update: ExternalUpdatePayload, timestamp: number, streamKey: string }> 
     }): Promise<void> {
         // Send snapshot first
         const snapshotCommand = new PublishCommand({
@@ -376,7 +380,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
 
         const primaryKey = `STREAM#${this.dataSourceKey}::${streamKey}`
         
-        const result = await this.dynamo.getItem<SnapshotType<SnapshotPayload>>({
+        const result = await this.dynamo.getItem<SnapshotType<SnapshotPayload> & Record<KeyType, string> & { DataCategory: string }>({
             Key: { [this.primaryKeyName]: primaryKey, DataCategory: 'Meta::Snapshot' }
         })
         

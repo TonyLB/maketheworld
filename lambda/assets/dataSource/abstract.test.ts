@@ -6,10 +6,10 @@ import messageBus from '../messageBus'
 // Mock the dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     assetDB: {
-        putItem: jest.fn(),
-        getItem: jest.fn(),
-        query: jest.fn(),
-        optimisticUpdate: jest.fn()
+        putItem: jest.fn().mockResolvedValue(undefined),
+        getItem: jest.fn().mockResolvedValue(undefined),
+        query: jest.fn().mockResolvedValue([]),
+        optimisticUpdate: jest.fn().mockResolvedValue(undefined)
     }
 }))
 
