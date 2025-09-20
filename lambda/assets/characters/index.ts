@@ -1,5 +1,4 @@
 import { AssetsDataSource } from '../dataSource/abstract'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
@@ -22,14 +21,18 @@ export type CharacterSnapshotPayload = {
     timestamp: number
 }
 
-export type ComponentEventPayload = StreamingEventPayload & {
+// Type for the events this data source subscribes to (internal format)
+export type ComponentEventPayload = {
     dataSourceKey: 'mtw.assets'
     event: {
-        detailType: 'Component Updated' | 'Component Removed'
         streamKey: string
-        update: any
+        update: {
+            type: 'Component Updated' | 'Component Removed'
+            [key: string]: any
+        }
         timestamp: number
     }
+    timestamp: number
 }
 
 // Helper functions for character data source functionality
@@ -139,17 +142,25 @@ export const charactersDataSource = new AssetsDataSource<
     dataSourceKey: 'mtw.assets.characters',
     replayable: true,
     eventSerializer: new CharacterEventSerializer(), // Handle character event serialization
-    subscribedEventTypeGuard: (event: StreamingEventPayload): event is ComponentEventPayload => {
+    subscribedEventTypeGuard: (event: any): event is ComponentEventPayload => {
         // Subscribe to mtw.assets component events that might be character changes
         return event.dataSourceKey === 'mtw.assets' && 
-               ['Component Updated', 'Component Removed'].includes(event.detailType)
+               event.event && 
+               typeof event.event === 'object' &&
+               event.event.update &&
+               typeof event.event.update === 'object' &&
+               ['Component Updated', 'Component Removed'].includes(event.event.update.type)
     },
     snapshotContentGenerator: generateCharacterSnapshot,
     receiveEvents: async ({ event, streamEvent }) => {
         // Check if this event should be processed by this data source
-        const subscribedEventTypeGuard = (event: StreamingEventPayload): event is ComponentEventPayload => {
+        const subscribedEventTypeGuard = (event: any): event is ComponentEventPayload => {
             return event.dataSourceKey === 'mtw.assets' && 
-                   ['Component Updated', 'Component Removed'].includes(event.detailType)
+                   event.event && 
+                   typeof event.event === 'object' &&
+                   event.event.update &&
+                   typeof event.event.update === 'object' &&
+                   ['Component Updated', 'Component Removed'].includes(event.event.update.type)
         }
         
         if (!subscribedEventTypeGuard(event)) {

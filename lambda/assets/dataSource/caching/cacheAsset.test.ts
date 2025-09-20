@@ -5,6 +5,7 @@ import internalCache from '../../internalCache'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     assetDB: {
@@ -304,30 +305,31 @@ describe('Cache Asset (Data Source)', () => {
             expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
 
             // Should emit Component Updated events with StandardComponent objects
-            expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    type: 'Component Updated',
-                    assetId: 'primitives',
-                    component: expect.objectContaining({
-                        tag: 'Knowledge',
-                        universalKey: 'KNOWLEDGE#knowledgeRoot'
-                    })
-                },
-                streamKey: 'primitives',
-                detailType: 'Component Updated'
-            })
-            expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    type: 'Component Updated',
-                    assetId: 'primitives',
-                    component: expect.objectContaining({
-                        tag: 'Room',
-                        universalKey: 'ROOM#VORTEX'
-                    })
-                },
-                streamKey: 'primitives',
-                detailType: 'Component Updated'
-            })
+            expect(mockStreamEvent).toHaveBeenCalledTimes(2)
+            
+            // Extract the actual components from the mock calls
+            const firstCall = mockStreamEvent.mock.calls[0][0]
+            const secondCall = mockStreamEvent.mock.calls[1][0]
+            
+            // Validate first component (Knowledge)
+            expect(firstCall.update.type).toBe('Component Updated')
+            expect(firstCall.update.assetId).toBe('primitives')
+            
+            // Validate that the component serializes to the expected WML
+            const firstComponentWML = schemaToWML([firstCall.update.component.schema])
+            expect(firstComponentWML).toEqual(deIndentWML(`
+                <Knowledge uuid=(knowledgeRoot) />
+            `))
+            
+            // Validate second component (Room)
+            expect(secondCall.update.type).toBe('Component Updated')
+            expect(secondCall.update.assetId).toBe('primitives')
+            
+            // Validate that the component serializes to the expected WML
+            const secondComponentWML = schemaToWML([secondCall.update.component.schema])
+            expect(secondComponentWML).toEqual(deIndentWML(`
+                <Room uuid=(VORTEX) />
+            `))
         })
     })
 
@@ -361,18 +363,18 @@ describe('Cache Asset (Data Source)', () => {
 
             await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
 
-            expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    type: 'Component Updated',
-                    assetId: 'primitives',
-                    component: expect.objectContaining({
-                        tag: 'Room',
-                        universalKey: 'ROOM#VORTEX'
-                    })
-                },
-                streamKey: 'primitives',
-                detailType: 'Component Updated'
-            })
+            // Extract the actual component from the mock call
+            const call = mockStreamEvent.mock.calls[0][0]
+            
+            // Validate component structure
+            expect(call.update.type).toBe('Component Updated')
+            expect(call.update.assetId).toBe('primitives')
+            
+            // Validate that the component serializes to the expected WML
+            const componentWML = schemaToWML([call.update.component.schema])
+            expect(componentWML).toEqual(deIndentWML(`
+                <Room uuid=(VORTEX)><ShortName>Vortex</ShortName></Room>
+            `))
         })
     })
 })

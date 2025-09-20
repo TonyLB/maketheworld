@@ -111,9 +111,9 @@ export type StreamingEventMessage = {
     type: 'StreamingEvent';
     dataSourceKey: string;
     event: {
-        source: string;
-        detailType: string;
-        detail: any;
+        streamKey: string;
+        update: any; // Internal format with embedded type
+        timestamp: number;
     };
     timestamp: number;
 }
