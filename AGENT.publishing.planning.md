@@ -133,7 +133,7 @@ Draft Editor → [Import Button] → Import Navigator → Content Selection → 
 **Purpose**: Create filtered data stream for Import Navigator content
 **Scope**: New backend service that aggregates asset/component data by zone
 **Dependencies**: Step 1 (shortName implementation)
-**Integration**: Use existing `cacheAsset` as entry point
+**Integration**: Subscribe to `mtw.assets` events (`Component Updated`, `Component Removed`) for real-time data updates
 
 ### Phase 1: Core Publishing UI (Week 2)
 **Frontend Components**:
@@ -233,8 +233,8 @@ Draft Content → Publishing UI → Step Function/API → Asset Workspace → S3
 
 3. **Implement Content Headers Data Sub-source** (2-3 days)
    - Create filtered data stream for Import Navigator content
-   - Integrate with existing cacheAsset system
-   - Test data aggregation across zones
+   - Subscribe to `mtw.assets` events (`Component Updated`, `Component Removed`) for real-time updates
+   - Test data aggregation across zones with event-driven updates
 
 4. **Implement Import Navigator UI** (3-4 days)
    - Create tabbed interface (Canon/Library/Personal)
