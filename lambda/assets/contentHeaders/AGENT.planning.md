@@ -118,33 +118,19 @@ All infrastructure components for the Content Headers data source have been impl
 **Duration**: 1-2 days
 
 #### Tasks
-- [ ] Create `generateContentHeadersSnapshot()` function
-- [ ] Query AssetDB for all assets across all zones
-- [ ] Extract component metadata using existing `extractHeader.ts` utilities
-- [ ] Serialize StandardForm objects to WML format
-- [ ] Handle edge cases (empty zones, missing metadata)
+- [x] Create `generateContentHeadersSnapshot()` function
+- [x] Query AssetDB for all assets across all zones
+- [x] Extract component metadata using existing `extractHeader.ts` utilities
+- [x] Serialize StandardForm objects to WML format
+- [x] Handle edge cases (empty zones, missing metadata)
 
-#### Implementation Details
-```typescript
-const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot> => {
-    // Query all assets by zone
-    const canonAssets = await queryAssetsByZone('Canon')
-    const libraryAssets = await queryAssetsByZone('Library')
-    const personalAssets = await queryAssetsByZone('Personal')
-    
-    // Extract metadata for each asset
-    const allAssets = [
-        ...canonAssets.map(asset => extractAssetMetadata(asset, 'Canon')),
-        ...libraryAssets.map(asset => extractAssetMetadata(asset, 'Library')),
-        ...personalAssets.map(asset => extractAssetMetadata(asset, 'Personal'))
-    ]
-    
-    return {
-        type: 'ContentHeadersSnapshot',
-        assets: allAssets
-    }
-}
-```
+#### Step 2 Complete ✅
+The snapshot generation function has been implemented with:
+- Efficient single-query approach to fetch all assets from DynamoDB using DataCategoryIndex
+- Integration with existing internal cache system for StandardForm loading
+- Component metadata extraction using existing extractHeader utilities
+- Proper error handling with graceful fallback to empty snapshot
+- Helper functions for asset zone lookup and content header extraction
 
 ### Step 3: Implement Event Subscription and Processing
 **Duration**: 2-3 days

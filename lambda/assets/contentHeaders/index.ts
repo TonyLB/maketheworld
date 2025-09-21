@@ -1,17 +1,17 @@
 import { AssetsDataSource } from '../dataSource/abstract'
 import messageBus from '../messageBus'
 import { 
-    ContentHeadersEventUpdate, 
     ContentHeadersSnapshot, 
-    ContentHeadersUpdate,
-    isContentHeadersSnapshot,
-    isContentHeadersUpdate
+    ContentHeadersUpdate
 } from './baseClasses'
 import { ContentHeadersEventSerializer } from './serializers'
-// import { generateContentHeadersSnapshot } from './snapshotGeneration'
 import { ComponentEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent } from '../dataSource/serializers'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import internalCache from '../internalCache'
+import { extractHeader } from './extractHeader'
+import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 
 //
 // Replayable DataSource singleton for mtw.assets.contentHeaders
@@ -27,7 +27,7 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 // - Provide WML-serialized component metadata for Import Navigator consumption
 //
 // Type for subscribed events from mtw.assets
-type SubscribedAssetsEvent = {
+export type SubscribedAssetsEvent = {
     dataSourceKey: 'mtw.assets'
     event: {
         streamKey: string
@@ -50,11 +50,57 @@ const isSubscribedAssetsEvent = (event: StreamingEventPayload): event is Subscri
     )
 }
 
-// TODO: Implement generateContentHeadersSnapshot function
 const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot> => {
-    return {
-        type: 'Snapshot Generated',
-        assets: []
+    try {
+        // Query all assets from the DynamoDB table using DataCategoryIndex
+        const Items = await assetDB.query({
+            IndexName: 'DataCategoryIndex',
+            Key: {
+                DataCategory: 'Meta::Asset'
+            },
+            ProjectionFields: ['AssetId', 'zone']
+        })
+        
+        // Process all assets in parallel to extract content headers
+        const contentHeadersAssets = await Promise.all(
+            Items.map(async (item) => {
+                const assetId = item.AssetId as AssetUUID
+                const zone = item.zone as 'Canon' | 'Library' | 'Personal'
+                
+                // Load the asset's StandardForm using the internal cache
+                const [assetCache] = await internalCache.AssetData.get([assetId])
+                if (!assetCache?.standardForm) {
+                    return undefined
+                }
+                
+                // Transform the asset's StandardForm to contain only header information for all components
+                const headersAsset = assetCache.standardForm._clone()
+                headersAsset._components = headersAsset._components
+                    .map(component => extractHeader(component))
+                    .filter(excludeUndefined)
+                
+                if (headersAsset._components.length > 0) {
+                    return {
+                        assetId,
+                        zone,
+                        standardForm: headersAsset
+                    }
+                }
+                return undefined
+            })
+        ).then(results => results.filter(excludeUndefined))
+        
+        return {
+            type: 'Snapshot Generated',
+            assets: contentHeadersAssets
+        }
+    } catch (error) {
+        console.error('Error generating content headers snapshot:', error)
+        // Return empty snapshot on error
+        return {
+            type: 'Snapshot Generated',
+            assets: []
+        }
     }
 }
 
@@ -156,7 +202,6 @@ export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnaps
 contentHeadersDataSource.subscribe()
 
 export default contentHeadersDataSource
-
 // Helper functions (these will be implemented in separate files)
 
 /**
@@ -189,3 +234,4 @@ function createRemovalStandardForm(componentId: string): any {
     // This should create a StandardForm with a Remove wrapper around the component
     throw new Error('createRemovalStandardForm not yet implemented')
 }
+
