@@ -96,15 +96,23 @@ WebSocket Client (Import Navigator)
 **Duration**: 1-2 days
 
 #### Tasks
-- [ ] Create `lambda/assets/contentHeaders/` directory structure
-- [ ] Implement `ContentHeadersEventSerializer` class
-- [ ] Create event type definitions (`ContentHeadersSnapshot`, `ContentHeadersUpdate`)
-- [ ] Set up DataSource configuration with proper type guards
+- [x] Create `lambda/assets/contentHeaders/` directory structure
+- [x] Implement `ContentHeadersEventSerializer` class
+- [x] Create event type definitions (`ContentHeadersSnapshot`, `ContentHeadersUpdate`)
+- [x] Set up DataSource configuration with proper type guards
 
-#### Files to Create
-- `lambda/assets/contentHeaders/index.ts` - Main DataSource implementation
-- `lambda/assets/contentHeaders/serializers.ts` - Event serialization logic
-- `lambda/assets/contentHeaders/types.ts` - Type definitions
+#### Files Created
+- [x] `lambda/assets/contentHeaders/baseClasses.ts` - Internal event type definitions and type guards
+- [x] `lambda/assets/contentHeaders/serializers.ts` - Event serialization logic with proper boundary between internal StandardForm objects and external WML strings
+- [x] `lambda/assets/contentHeaders/extractHeader.ts` - Header extraction utilities (already existed)
+- [x] `lambda/assets/contentHeaders/index.ts` - Main DataSource implementation with proper type safety and event subscription
+
+#### Step 1 Complete ✅
+All infrastructure components for the Content Headers data source have been implemented:
+- Proper serialization boundary between internal StandardForm objects and external WML strings
+- Type-safe event subscription with discriminated union types
+- Replayable DataSource configuration with snapshot generation support
+- Event processing pipeline for Component Updated and Component Removed events
 
 ### Step 2: Implement Snapshot Generation
 **Duration**: 1-2 days
