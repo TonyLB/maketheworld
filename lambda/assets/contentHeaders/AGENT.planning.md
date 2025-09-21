@@ -104,7 +104,7 @@ WebSocket Client (Import Navigator)
 #### Files to Create
 - `lambda/assets/contentHeaders/index.ts` - Main DataSource implementation
 - `lambda/assets/contentHeaders/serializers.ts` - Event serialization logic
-- `lambda/assets/contentHeaders/types.ts` - Type definitions
+- `lambda/assets/contentHeaders/baseClasses.ts` - Type definitions
 
 ### Step 2: Implement Snapshot Generation
 **Duration**: 1-2 days
