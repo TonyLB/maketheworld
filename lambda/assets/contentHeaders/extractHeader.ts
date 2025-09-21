@@ -5,9 +5,8 @@ import { StandardRemove, StandardReplace } from '@tonylb/mtw-wml/ts/standardize/
 import { deepEqual } from '@tonylb/mtw-wml/ts/lib/objects'
 
 export const extractHeader = (component: StandardComponent): StandardComponent | undefined => {
-    // NOTE: Future serialization principle (documented in standardize/AGENT.md):
-    // Prefer omission-over-empty in component toJSON outputs to minimize noise in header/subset payloads.
-    // This utility constructs minimal JSON, relying on component serializers as-is for now.
+    // Extract minimal header information (tag, key, universalKey, shortName) from components
+    // for use in content headers snapshots and updates
     if (component instanceof StandardRemove) {
         const inner = extractHeader(component._match)
         return inner ? new StandardRemove(inner) : undefined
