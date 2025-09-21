@@ -21,7 +21,7 @@ export const fetchImportsMessage = async ({ payloads }: { payloads: FetchImports
     await Promise.all(
         payloads.map(async ({ importsFromAsset }) => {
             const ancestry = await internalCache.Graph.get(importsFromAsset.map(({ assetId }) => (assetId)), 'back', { fetchEdges: true })
-            const addresses = await internalCache.Meta.get(Object.keys(ancestry.nodes) as EphemeraAssetId[])
+            const addresses = await internalCache.AssetMetaData.get(Object.keys(ancestry.nodes) as EphemeraAssetId[])
             const inheritanceGraph: InheritanceGraph = new Graph(
                 Object.assign({}, ...addresses.map(({ address, AssetId }) => ({ [AssetId]: { key: AssetId, address } }))),
                 ancestry.edges as any,

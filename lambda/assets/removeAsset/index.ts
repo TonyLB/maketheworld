@@ -8,7 +8,7 @@ import eventBridgeClient from "@tonylb/mtw-utilities/ts/eventBridge"
 
 export const removeAssetMessage = async ({ payloads, messageBus }: { payloads: RemoveAssetMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads.map(async ({ assetId }) => {
-        const { address } = ((await internalCache.Meta.get([`ASSET#${assetId}`])) || {})[`ASSET#${assetId}`]
+        const { address } = ((await internalCache.AssetMetaData.get([`ASSET#${assetId}`])) || {})[`ASSET#${assetId}`]
         await Promise.all([
             assetDB.deleteItem({
                 AssetId: AssetKey(assetId),

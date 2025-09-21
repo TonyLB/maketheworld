@@ -1,21 +1,22 @@
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { isAssetWorkspaceAddress, AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 type MetaCache = {
-    AssetId: `ASSET#${string}` | `CHARACTER#${string}`;
+    AssetId: AssetUUID;
     address?: AssetWorkspaceAddress;
     cached?: boolean;
 }
 
-export class MetaData {
+export class AssetMetaData {
     _Cache: DeferredCache<MetaCache>;
     
     constructor() {
         this._Cache = new DeferredCache<MetaCache>({
             defaultValue: (cacheKey) => {
                 return {
-                    AssetId: cacheKey as `ASSET#${string}` | `CHARACTER#${string}`
+                    AssetId: cacheKey as AssetUUID
                 }
             }
         })
@@ -29,7 +30,7 @@ export class MetaData {
         this._Cache.clear()
     }
 
-    async _getPromiseFactory(AssetIds: (`ASSET#${string}` | `CHARACTER#${string}`)[]): Promise<MetaCache[]> {
+    async _getPromiseFactory(AssetIds: AssetUUID[]): Promise<MetaCache[]> {
         const addresses = (await assetDB.getItems<MetaCache>({
             Keys: AssetIds.map((AssetId) => ({
                 AssetId,
@@ -40,7 +41,7 @@ export class MetaData {
         return addresses.filter(({ address }) => (isAssetWorkspaceAddress(address)))
     }
 
-    async get(AssetIds: (`ASSET#${string}` | `CHARACTER#${string}`)[]): Promise<MetaCache[]> {
+    async get(AssetIds: AssetUUID[]): Promise<MetaCache[]> {
         this._Cache.add({
             promiseFactory: () => (this._getPromiseFactory(AssetIds)),
             requiredKeys: AssetIds,
@@ -59,7 +60,7 @@ export class MetaData {
         return await Promise.all(AssetIds.map((AssetId) => (this._Cache.get(AssetId))))
     }
 
-    invalidate(AssetId: `ASSET#${string}` | `CHARACTER#${string}`) {
+    invalidate(AssetId: AssetUUID) {
         if (AssetId in this._Cache) {
             this._Cache[AssetId].invalidate()
         }

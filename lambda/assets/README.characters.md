@@ -3,8 +3,7 @@
 
 # Character Layer
 
-The Character layer stores registry information connecting character WML files and the
-global IDs with which they are associated.
+The Character layer stores character information as components within assets, following the new architecture where characters are no longer stored as separate peer objects.
 
 ---
 
@@ -18,15 +17,21 @@ in the case that the player-layer of data is compromised
 
 ## Character Storage
 
-*Each character is represented by a record in the assets table*
+*Characters are now stored as components within assets, not as separate records*
+
+Characters are represented as `Character` components within asset StandardForm structures:
 
 ```ts
-    type CharacterAssetRow = {
-        AssetId: `CHARACTER#${CharacterID}`;
-        DataCategory: 'Meta::Character';
-        address: AssetWorkspaceAddress;
+    type CharacterComponent = {
+        tag: 'Character';
+        key: string;
+        universalKey: ComponentUUID;
+        shortName: string;
         Name: string;
-        fileURL: string; // URL to image for character portrait
-        scopedId: string;
+        fileURL?: string; // URL to image for character portrait
+        Pronouns?: string;
+        // ... other character-specific fields
     }
 ```
+
+The character data is stored as part of the asset's component data, with the character's universalKey serving as the unique identifier.

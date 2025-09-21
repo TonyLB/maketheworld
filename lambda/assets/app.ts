@@ -222,7 +222,7 @@ export const handler = async (event, context) => {
             })
         }
         if (isMetaDataAPIMessage(request)) {
-            const addresses = await internalCache.Meta.get(request.assetIds)
+            const addresses = await internalCache.AssetMetaData.get(request.assetIds)
             if (connectionId) {
                 await Promise.all(addresses.map(({ AssetId, address }) => (
                     snsClient.send(new PublishCommand({
