@@ -4,6 +4,14 @@
 
 The `DataSource` pattern provides a standardized foundation for implementing data sources in Make The World's Domain-Authoritative Event Mesh architecture. This pattern enables each lambda to serve as a domain-authoritative data source with consistent capabilities for state management, event streaming, and subscriber replay support across multiple subscribable streams.
 
+## ⚠️ Functional Gap Notice
+
+**Current Limitation**: The DataSource pattern currently processes incoming events one-by-one independently in `receiveEvents`, which means it cannot handle **N-to-1 aggregation patterns** where multiple related subscribed events need to be aggregated into a single derived event in the subscribing data source.
+
+This functional gap is being addressed as part of the `contentHeaders` data source implementation in the `assets` lambda. The documentation will be updated once the aggregation capability is implemented and tested.
+
+**Impact**: Data sources that need to aggregate multiple incoming events before generating a single output event are not yet supported by the current pattern implementation.
+
 ## Core Purpose
 
 The DataSource pattern addresses four critical needs for data source implementation:
@@ -128,6 +136,8 @@ Subscribe to incoming events from other data sources and process them into local
 - **`messageBus`**: The messageBus instance for sending follow-up messages
 - **Returns**: Promise that resolves when event processing is complete
 
+**Current Limitation**: Events are processed independently one-by-one. **N-to-1 aggregation patterns** (where multiple related events must be aggregated before generating a single derived event) are not yet supported.
+
 
 ## Multi-Stream Architecture
 
@@ -206,6 +216,7 @@ This initial implementation focuses on the four core capabilities:
 4. **EventBridge Serialization**: Clean separation between internal StreamEvents and external EventBridge events (optional)
 
 ### **Future Enhancements**
+- **Event Aggregation**: Support for N-to-1 aggregation patterns where multiple related events are aggregated into a single derived event (currently in development for `contentHeaders` data source)
 - **Claim-check pattern**: Large snapshots or event contents should push to S3 and deliver a claim-check record with objectName and preSigned URL
 - **Metrics**: Built-in performance monitoring and analytics
 - **Retention Policies**: Configurable data retention strategies
