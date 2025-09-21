@@ -58,10 +58,10 @@ export const wmlDataSource = new WMLDataSource<{}, StandardForm>({
         // For now, subscribing to nothing as requested
         return false
     },
-    receiveEvents: async ({ event, streamEvent }) => {
+    receiveEvents: async ({ events, streamEvent }) => {
         // TODO: Implement event processing logic
         // For now, this is a stub as requested
-        console.log('WML DataSource received event:', event)
+        console.log('WML DataSource received events:', events)
     },
     eventSerializer: new WMLEventSerializer()
 })

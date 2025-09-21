@@ -59,6 +59,21 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 - **Outgoing**: DataSource → (1) internal format → messageBus for local processing, (2) serialize → EventBridge/DynamoDB for external distribution
 - **Incoming**: EventBridge → deserialize → messageBus → DataSource processing
 
+### **Batch Event Processing Architecture**:
+**Flexible Event Processing**: The DataSource pattern now supports batch processing through the `receiveEvents` method, providing a flexible foundation for various event processing patterns.
+
+**Key Features**:
+- **Batch Input**: `receiveEvents({ events, streamEvent })` accepts an array of events for processing
+- **Flexible Processing**: Supports any processing pattern - aggregation, parallel processing, or sequential processing as needed
+- **Processing Foundation**: Provides the foundation for advanced event processing patterns
+- **Pattern Agnostic**: Implementation can choose the most appropriate processing approach for the use case
+
+**Benefits**:
+- **Processing Flexibility**: Supports aggregation, parallel processing, sequential processing, or mixed patterns
+- **Scalability**: Foundation for handling high-volume event streams efficiently
+- **Extensibility**: Easy to implement new processing patterns as requirements evolve
+- **Performance**: Can optimize processing approach based on event characteristics and business logic
+
 ## Timestamp Handling Strategy
 
 The DataSource pattern uses a consistent timestamp strategy across all event and storage operations.
@@ -304,7 +319,7 @@ For large snapshots or event contents, implement S3 storage with claim-check rec
 - **Storage Optimization**: Compress old events, archive historical data
 
 ### **Advanced Event Processing**
-- **Batch Processing**: Process multiple events in batches for efficiency
+- **Event Aggregation**: Support for N-to-1 aggregation patterns where multiple related events are collected and processed together to generate a single derived event (foundation now in place with batch processing)
 - **Event Ordering**: Guarantee ordered processing for events from the same source
 - **Dead Letter Queues**: Handle failed event processing with retry logic
 - **Event Validation**: Built-in validation for external EventBridge event formats

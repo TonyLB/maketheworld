@@ -145,21 +145,24 @@ export const charactersDataSource = new AssetsDataSource<
                isAssetsComponentEvent(event.event.update)
     },
     snapshotContentGenerator: generateCharacterSnapshot,
-    receiveEvents: async ({ event, streamEvent }) => {
-        // Check if this event should be processed by this data source
-        const subscribedEventTypeGuard = (event: any): event is StreamingEventPayload => {
-            return event.dataSourceKey === 'mtw.assets' && 
-                   event.event && 
-                   typeof event.event === 'object' &&
-                   event.event.update &&
-                   typeof event.event.update === 'object' &&
-                   isAssetsComponentEvent(event.event.update)
-        }
-        
-        if (!subscribedEventTypeGuard(event)) {
-            return
-        }
-        await processComponentEvent(event, streamEvent)
+    receiveEvents: async ({ events, streamEvent }) => {
+        // Process component events in parallel - each event is independent
+        await Promise.all(events.map(async (event) => {
+            // Check if this event should be processed by this data source
+            const subscribedEventTypeGuard = (event: any): event is StreamingEventPayload => {
+                return event.dataSourceKey === 'mtw.assets' && 
+                       event.event && 
+                       typeof event.event === 'object' &&
+                       event.event.update &&
+                       typeof event.event.update === 'object' &&
+                       isAssetsComponentEvent(event.event.update)
+            }
+            
+            if (!subscribedEventTypeGuard(event)) {
+                return
+            }
+            await processComponentEvent(event, streamEvent)
+        }))
     }
 })
 

@@ -123,11 +123,12 @@ Subscribe to incoming events from other data sources and process them into local
 - **Type Guards**: Automatically derived from the `receiveEvent` function signature
 - **Priority**: Configurable priority for event processing order
 
-**Event Processing**: `receiveEvent(event, messageBus)` - Processes incoming events and generates local state changes
-- **`event`**: The incoming event payload (type-safe based on subscription)
-- **`messageBus`**: The messageBus instance for sending follow-up messages
-- **Returns**: Promise that resolves when event processing is complete
-
+**Event Processing**: `receiveEvents({ events, streamEvent })` - Processes batches of incoming events and generates local state changes
+- **`events`**: Array of incoming event payloads (type-safe based on subscription)
+- **`streamEvent`**: Function for publishing derived events to subscribers
+- **Flexible Processing**: Supports any processing pattern - aggregation, parallel processing, or sequential processing as needed
+- **Batch Foundation**: Provides the foundation for advanced event processing patterns
+- **Returns**: Promise that resolves when all events in the batch have been processed
 
 ## Multi-Stream Architecture
 
@@ -210,7 +211,6 @@ This initial implementation focuses on the four core capabilities:
 - **Metrics**: Built-in performance monitoring and analytics
 - **Retention Policies**: Configurable data retention strategies
 - **Event Filtering**: Advanced filtering capabilities for incoming events based on content or metadata
-- **Batch Processing**: Process multiple incoming events in batches for improved performance
 - **Event Ordering**: Guarantee ordered processing of events from the same source
 - **Dead Letter Queues**: Handle failed event processing with retry and dead letter queue patterns
 - **Event Validation**: Built-in validation for external EventBridge event formats

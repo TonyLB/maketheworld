@@ -239,7 +239,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             
             await assetsDataSource.receiveEvents?.({ 
-                event: wmlEvent, 
+                events: [wmlEvent], 
                 streamEvent: mockStreamEvent 
             })
 
@@ -267,11 +267,63 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             
             await assetsDataSource.receiveEvents?.({ 
-                event: diagnosticEvent, 
+                events: [diagnosticEvent], 
                 streamEvent: mockStreamEvent 
             })
 
             expect(receiveEventsSpy).toHaveBeenCalled()
+        })
+
+        it('should process multiple events in batch independently', async () => {
+            // Mock streamEvent function
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            
+            // Create a batch of events from different sources
+            const batchEvents = [
+                {
+                    dataSourceKey: 'mtw.wml',
+                    event: {
+                        streamKey: 'ASSET#test123',
+                        update: {
+                            type: 'Content Update',
+                            AssetId: 'ASSET#test123'
+                        }
+                    },
+                    timestamp: Date.now()
+                },
+                {
+                    dataSourceKey: 'mtw.diagnostics',
+                    event: {
+                        streamKey: 'test-stream',
+                        update: {
+                            type: 'Heal Global Values'
+                        }
+                    },
+                    timestamp: Date.now()
+                },
+                {
+                    dataSourceKey: 'mtw.wml',
+                    event: {
+                        streamKey: 'ASSET#test456',
+                        update: {
+                            type: 'Content Update',
+                            AssetId: 'ASSET#test456'
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+            ]
+            
+            // Process the batch of events
+            await assetsDataSource.receiveEvents?.({ 
+                events: batchEvents, 
+                streamEvent: mockStreamEvent 
+            })
+
+            // The key test: verify that receiveEvents can handle an array of events
+            // (The actual processing logic is tested in other tests)
+            // This test primarily verifies that the batch processing pattern works
+            expect(mockStreamEvent).toHaveBeenCalled() // At least one event should trigger streamEvent
         })
     })
 

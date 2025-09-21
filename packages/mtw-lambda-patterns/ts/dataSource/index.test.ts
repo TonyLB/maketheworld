@@ -1104,7 +1104,7 @@ describe('DataSource', () => {
                 })
             })
 
-            it('should call receiveEvents for each filtered event', async () => {
+            it('should call receiveEvents with batch of filtered events', async () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
@@ -1149,27 +1149,27 @@ describe('DataSource', () => {
 
                 await callback({ payloads: testEvents })
 
-                expect(mockReceiveEvents).toHaveBeenCalledTimes(2)
-                expect(mockReceiveEvents).toHaveBeenNthCalledWith(1, {
-                    event: {
-                        dataSourceKey: 'mtw.otherDataSource',
-                        event: { 
-                            streamKey: 'test-stream',
-                            update: { type: 'event1', data: 'test1' }
+                // Should be called once with array of events
+                expect(mockReceiveEvents).toHaveBeenCalledTimes(1)
+                expect(mockReceiveEvents).toHaveBeenCalledWith({
+                    events: [
+                        {
+                            dataSourceKey: 'mtw.otherDataSource',
+                            event: { 
+                                streamKey: 'test-stream',
+                                update: { type: 'event1', data: 'test1' }
+                            },
+                            timestamp: 123456789
                         },
-                        timestamp: 123456789
-                    },
-                    streamEvent: expect.any(Function)
-                })
-                expect(mockReceiveEvents).toHaveBeenNthCalledWith(2, {
-                    event: {
-                        dataSourceKey: 'mtw.anotherDataSource',
-                        event: { 
-                            streamKey: 'test-stream',
-                            update: { type: 'event2', data: 'test2' }
-                        },
-                        timestamp: 123456790
-                    },
+                        {
+                            dataSourceKey: 'mtw.anotherDataSource',
+                            event: { 
+                                streamKey: 'test-stream',
+                                update: { type: 'event2', data: 'test2' }
+                            },
+                            timestamp: 123456790
+                        }
+                    ],
                     streamEvent: expect.any(Function)
                 })
 
@@ -1220,9 +1220,95 @@ describe('DataSource', () => {
                     }
                 ]
 
-                // Promise.all will reject if any promise rejects
+                // Callback will reject if receiveEvents rejects
                 await expect(callback({ payloads: testEvents })).rejects.toThrow('Processing failed')
-                expect(errorReceiveEvents).toHaveBeenCalled()
+                expect(errorReceiveEvents).toHaveBeenCalledWith({
+                    events: [
+                        {
+                            dataSourceKey: 'mtw.otherDataSource',
+                            event: { 
+                                streamKey: 'test-stream',
+                                update: { type: 'event1' }
+                            },
+                            timestamp: 123456789
+                        }
+                    ],
+                    streamEvent: expect.any(Function)
+                })
+            })
+
+            it('should handle empty event arrays gracefully', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard,
+                    receiveEvents: mockReceiveEvents
+                })
+
+                dataSource.subscribe()
+
+                const subscription = mockMessageBus.subscribe.mock.calls[0][0]
+                const callback = subscription.callback
+
+                // Test callback with empty array
+                await callback({ payloads: [] })
+
+                expect(mockReceiveEvents).toHaveBeenCalledWith({
+                    events: [],
+                    streamEvent: expect.any(Function)
+                })
+            })
+
+            it('should handle single event in batch', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard,
+                    receiveEvents: mockReceiveEvents
+                })
+
+                dataSource.subscribe()
+
+                const subscription = mockMessageBus.subscribe.mock.calls[0][0]
+                const callback = subscription.callback
+
+                const testEvents = [
+                    {
+                        type: 'StreamingEvent',
+                        dataSourceKey: 'mtw.singleDataSource',
+                        event: { 
+                            streamKey: 'test-stream',
+                            update: { type: 'singleEvent', data: 'test' }
+                        },
+                        timestamp: 123456789
+                    }
+                ]
+
+                await callback({ payloads: testEvents })
+
+                expect(mockReceiveEvents).toHaveBeenCalledWith({
+                    events: [
+                        {
+                            dataSourceKey: 'mtw.singleDataSource',
+                            event: { 
+                                streamKey: 'test-stream',
+                                update: { type: 'singleEvent', data: 'test' }
+                            },
+                            timestamp: 123456789
+                        }
+                    ],
+                    streamEvent: expect.any(Function)
+                })
             })
         })
     })

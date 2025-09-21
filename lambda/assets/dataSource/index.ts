@@ -39,187 +39,191 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, a
             event.event.update.type
         )
     },
-    receiveEvents: async ({ event, streamEvent }) => {
+    receiveEvents: async ({ events, streamEvent }) => {
         // Process internal messageBus events from other data sources
+        // Process each event in the batch independently and in parallel
         
-        // Handle mtw.wml events
-        if (event.dataSourceKey === 'mtw.wml' && event.event.update.type === 'Content Update') {
-            const { AssetId } = event.event.update
-            if (AssetId) {
-                try {
-                    const assetId = AssetId.replace('ASSET#', '')
-                    await cacheAsset({ assetId, streamEvent })
-                    
-                    // Stream the caching event for real-time subscribers
-                    await streamEvent({
-                        update: { 
-                            type: 'CacheAsset',
-                            assetId
-                        },
-                        streamKey: AssetId,
-                        detailType: 'Asset Cached'
-                    })
-                } catch (error) {
-                    console.error(`Error caching asset ${AssetId}:`, error)
+        await Promise.all(events.map(async (event) => {
+            // Handle mtw.wml events
+            if (event.dataSourceKey === 'mtw.wml' && event.event.update.type === 'Content Update') {
+                const { AssetId } = event.event.update
+                if (AssetId) {
+                    try {
+                        const assetId = AssetId.replace('ASSET#', '')
+                        await cacheAsset({ assetId, streamEvent })
+                        
+                        // Stream the caching event for real-time subscribers
+                        await streamEvent({
+                            update: { 
+                                type: 'CacheAsset',
+                                assetId
+                            },
+                            streamKey: AssetId,
+                            detailType: 'Asset Cached'
+                        })
+                    } catch (error) {
+                        console.error(`Error caching asset ${AssetId}:`, error)
+                        messageBus.send({
+                            type: 'Error',
+                            body: { 
+                                error: `Failed to cache asset ${AssetId}: ${error instanceof Error ? error.message : String(error)}`,
+                                statusCode: 500
+                            }
+                        })
+                    }
+                    return
+                } else {
                     messageBus.send({
                         type: 'Error',
                         body: { 
-                            error: `Failed to cache asset ${AssetId}: ${error instanceof Error ? error.message : String(error)}`,
-                            statusCode: 500
+                            error: 'Invalid AssetId in Content Update event',
+                            statusCode: 400
                         }
                     })
+                    return
                 }
-                return
-            } else {
-                messageBus.send({
-                    type: 'Error',
-                    body: { 
-                        error: 'Invalid AssetId in Content Update event',
-                        statusCode: 400
-                    }
-                })
-                return
             }
-        }
-        
-        // Handle mtw.wml Content Removed events
-        if (event.dataSourceKey === 'mtw.wml' && event.event.update.type === 'Content Removed') {
-            const { AssetId } = event.event.update
-            if (AssetId) {
-                try {
-                    const assetId = AssetId.replace('ASSET#', '')
-                    await decacheAsset({ assetId, streamEvent })
-                    
-                    // Stream the decaching event for real-time subscribers
-                    await streamEvent({
-                        update: { 
-                            type: 'DecacheAsset',
-                            assetId
-                        },
-                        streamKey: AssetId,
-                        detailType: 'Asset Decached'
-                    })
-                } catch (error) {
-                    console.error(`Error decaching asset ${AssetId}:`, error)
-                    messageBus.send({
-                        type: 'Error',
-                        body: { 
-                            error: `Failed to decache asset ${AssetId}: ${error instanceof Error ? error.message : String(error)}`,
-                            statusCode: 500
-                        }
-                    })
-                }
-                return
-            } else {
-                messageBus.send({
-                    type: 'Error',
-                    body: { 
-                        error: 'Invalid AssetId in Content Removed event',
-                        statusCode: 400
-                    }
-                })
-                return
-            }
-        }
-        
-        // Handle mtw.diagnostics events
-        if (event.dataSourceKey === 'mtw.diagnostics' && event.event.update.type === 'Heal Global Values') {
-            const returnVal = await healGlobalValues({
-                shouldHealConnections: Boolean(event.event.update.connections),
-                shouldHealGlobalAssets: typeof event.event.update.assets !== 'boolean' || event.event.update.assets
-            })
             
-            return
-        }
-        
-        // Handle mtw.coordination events
-        if (event.dataSourceKey === 'mtw.coordination' && event.event.update.type === 'Remove Asset') {
-            const { assetId } = event.event.update
-            if (assetId) {
-                try {
-                    // Decache the asset before removing it
-                    await decacheAsset({ assetId, streamEvent })
-                } catch (error) {
-                    console.error(`Error decaching asset ${assetId}:`, error)
-                    // Continue with removal even if decaching fails
+            // Handle mtw.wml Content Removed events
+            if (event.dataSourceKey === 'mtw.wml' && event.event.update.type === 'Content Removed') {
+                const { AssetId } = event.event.update
+                if (AssetId) {
+                    try {
+                        const assetId = AssetId.replace('ASSET#', '')
+                        await decacheAsset({ assetId, streamEvent })
+                        
+                        // Stream the decaching event for real-time subscribers
+                        await streamEvent({
+                            update: { 
+                                type: 'DecacheAsset',
+                                assetId
+                            },
+                            streamKey: AssetId,
+                            detailType: 'Asset Decached'
+                        })
+                    } catch (error) {
+                        console.error(`Error decaching asset ${AssetId}:`, error)
+                        messageBus.send({
+                            type: 'Error',
+                            body: { 
+                                error: `Failed to decache asset ${AssetId}: ${error instanceof Error ? error.message : String(error)}`,
+                                statusCode: 500
+                            }
+                        })
+                    }
+                    return
+                } else {
+                    messageBus.send({
+                        type: 'Error',
+                        body: { 
+                            error: 'Invalid AssetId in Content Removed event',
+                            statusCode: 400
+                        }
+                    })
+                    return
                 }
-                
-                messageBus.send({
-                    type: 'RemoveAsset',
-                    assetId
+            }
+            
+            // Handle mtw.diagnostics events
+            if (event.dataSourceKey === 'mtw.diagnostics' && event.event.update.type === 'Heal Global Values') {
+                const returnVal = await healGlobalValues({
+                    shouldHealConnections: Boolean(event.event.update.connections),
+                    shouldHealGlobalAssets: typeof event.event.update.assets !== 'boolean' || event.event.update.assets
                 })
                 
-                // Stream the removal as an asset-level event
-                await streamEvent({
-                    update: { 
+                return
+            }
+            
+            // Handle mtw.coordination events
+            if (event.dataSourceKey === 'mtw.coordination' && event.event.update.type === 'Remove Asset') {
+                const { assetId } = event.event.update
+                if (assetId) {
+                    try {
+                        // Decache the asset before removing it
+                        await decacheAsset({ assetId, streamEvent })
+                    } catch (error) {
+                        console.error(`Error decaching asset ${assetId}:`, error)
+                        // Continue with removal even if decaching fails
+                    }
+                    
+                    messageBus.send({
                         type: 'RemoveAsset',
                         assetId
-                    },
-                    streamKey: assetId,
-                    detailType: 'Asset Removed'
-                })
-                return
+                    })
+                    
+                    // Stream the removal as an asset-level event
+                    await streamEvent({
+                        update: { 
+                            type: 'RemoveAsset',
+                            assetId
+                        },
+                        streamKey: assetId,
+                        detailType: 'Asset Removed'
+                    })
+                    return
+                    } else {
+                    // Send error message to messageBus
+                    messageBus.send({
+                        type: 'Error',
+                        body: { 
+                            error: 'Invalid arguments specified for Remove Asset event',
+                            statusCode: 400
+                        }
+                    })
+                    return
+                }
+            }
+            
+            if (event.dataSourceKey === 'mtw.coordination' && ['Canonize Asset', 'Decanonize Asset'].includes(event.event.update.type)) {
+                const { assetId } = event.event.update
+                if (assetId) {
+                    const toZone = event.event.update.type === 'Canonize Asset' ? 'Canon' : 'Library'
+                    
+                    messageBus.send({
+                        type: 'MoveByAssetId',
+                        AssetId: `ASSET#${assetId}`,
+                        toZone
+                    })
+                    
+                    // Query for canon assets after the move
+                    const Items = await assetDB.query({
+                        IndexName: 'DataCategoryIndex',
+                        Key: {
+                            DataCategory: 'Meta::Asset'
+                        },
+                        FilterExpression: "zone = :canon",
+                        ExpressionAttributeValues: {
+                            ':canon': 'Canon'
+                        },
+                        ProjectionFields: ['AssetId', 'zone']
+                    })
+                    const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
+                    const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
+                    
+                    // Stream the canon update (replacing the direct EventBridge publish)
+                    await streamEvent({
+                        update: { 
+                            type: 'Canon Updated',
+                            assetIds: globalAssetsSorted
+                        },
+                        streamKey: 'canon-global',
+                        detailType: 'Canon Updated'
+                    })
+                    return
                 } else {
-                // Send error message to messageBus
-                messageBus.send({
-                    type: 'Error',
-                    body: { 
-                        error: 'Invalid arguments specified for Remove Asset event',
-                        statusCode: 400
-                    }
-                })
-                return
+                    // Send error message to messageBus
+                    messageBus.send({
+                        type: 'Error',
+                        body: { 
+                            error: `Invalid arguments specified for ${event.event.update.type} event`,
+                            statusCode: 400
+                        }
+                    })
+                    return
+                }
             }
-        }
         
-        if (event.dataSourceKey === 'mtw.coordination' && ['Canonize Asset', 'Decanonize Asset'].includes(event.event.update.type)) {
-            const { assetId } = event.event.update
-            if (assetId) {
-                const toZone = event.event.update.type === 'Canonize Asset' ? 'Canon' : 'Library'
-                
-                messageBus.send({
-                    type: 'MoveByAssetId',
-                    AssetId: `ASSET#${assetId}`,
-                    toZone
-                })
-                
-                // Query for canon assets after the move
-                const Items = await assetDB.query({
-                    IndexName: 'DataCategoryIndex',
-                    Key: {
-                        DataCategory: 'Meta::Asset'
-                    },
-                    FilterExpression: "zone = :canon",
-                    ExpressionAttributeValues: {
-                        ':canon': 'Canon'
-                    },
-                    ProjectionFields: ['AssetId', 'zone']
-                })
-                const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
-                const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
-                
-                // Stream the canon update (replacing the direct EventBridge publish)
-                await streamEvent({
-                    update: { 
-                        type: 'Canon Updated',
-                        assetIds: globalAssetsSorted
-                    },
-                    streamKey: 'canon-global',
-                    detailType: 'Canon Updated'
-                })
-                return
-            } else {
-                // Send error message to messageBus
-                messageBus.send({
-                    type: 'Error',
-                    body: { 
-                        error: `Invalid arguments specified for ${event.event.update.type} event`,
-                        statusCode: 400
-                    }
-                })
-                return
-            }
-        }
+        })) // End of Promise.all processing events batch in parallel
         
     }
 })

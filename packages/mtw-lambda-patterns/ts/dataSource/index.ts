@@ -60,7 +60,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     readonly replayable: boolean
     readonly subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent
     readonly receiveEvents?: (params: { 
-        event: SubscribedEvent, 
+        events: SubscribedEvent[], 
         streamEvent: StreamEventFunction<UpdatePayload>
     }) => Promise<void>
     readonly eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload>
@@ -94,7 +94,7 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         snapshotTimeoutMs?: number,
         subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent,
         receiveEvents?: (params: { 
-            event: SubscribedEvent, 
+            events: SubscribedEvent[], 
             streamEvent: StreamEventFunction<UpdatePayload>
         }) => Promise<void>,
         eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload>
@@ -430,16 +430,18 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
             priority: 5, // Default priority for data source processing
             filter: streamingEventTypeGuard,
             callback: async ({ payloads }) => {
-                await Promise.all(
-                    payloads.map((streamingEvent) => {
-                        // Strip the type field to get StreamingEventPayload format
-                        const { type, ...streamingEventPayload } = streamingEvent
-                        return this.receiveEvents!({
-                            event: streamingEventPayload,
-                            streamEvent: (params) => this.streamEvent(params)
-                        })
-                    })
-                )
+                // Extract all StreamingEventPayload events from the batch
+                const events = payloads.map((streamingEvent) => {
+                    // Strip the type field to get StreamingEventPayload format
+                    const { type, ...streamingEventPayload } = streamingEvent
+                    return streamingEventPayload
+                })
+                
+                // Pass all events as a batch to receiveEvents
+                await this.receiveEvents!({
+                    events,
+                    streamEvent: (params) => this.streamEvent(params)
+                })
             }
         })
     }
