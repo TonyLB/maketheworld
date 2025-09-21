@@ -82,7 +82,7 @@ describe('CharactersDataSource', () => {
             }
 
             // Process the event
-            await dataSource.receiveEvents?.({ event: componentEvent, streamEvent: mockStreamEvent })
+            await dataSource.receiveEvents?.({ events: [componentEvent], streamEvent: mockStreamEvent })
 
             // Should have called streamEvent with character event
             expect(mockStreamEvent).toHaveBeenCalledWith({
@@ -117,7 +117,7 @@ describe('CharactersDataSource', () => {
 
             const mockStreamEvent = jest.fn()
             
-            await dataSource.receiveEvents?.({ event: componentEvent, streamEvent: mockStreamEvent })
+            await dataSource.receiveEvents?.({ events: [componentEvent], streamEvent: mockStreamEvent })
 
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
@@ -150,7 +150,7 @@ describe('CharactersDataSource', () => {
                 timestamp: FIXED_TS
             }
 
-            await dataSource.receiveEvents?.({ event: nonCharacterEvent, streamEvent: mockStreamEvent })
+            await dataSource.receiveEvents?.({ events: [nonCharacterEvent], streamEvent: mockStreamEvent })
 
             // Should not have called streamEvent
             expect(mockStreamEvent).not.toHaveBeenCalled()
@@ -178,10 +178,78 @@ describe('CharactersDataSource', () => {
                 timestamp: FIXED_TS
             }
 
-            await dataSource.receiveEvents?.({ event: otherDataSourceEvent as any, streamEvent: mockStreamEvent })
+            await dataSource.receiveEvents?.({ events: [otherDataSourceEvent as any], streamEvent: mockStreamEvent })
 
             // Should not have called streamEvent
             expect(mockStreamEvent).not.toHaveBeenCalled()
+        })
+
+        it('should process multiple character events in batch independently', async () => {
+            const mockStreamEvent = jest.fn()
+            
+            const component1 = new StandardCharacter({
+                tag: 'Character',
+                shortName: 'Character 1',
+                universalKey: 'CHARACTER#char1'
+            })
+
+            const component2 = new StandardCharacter({
+                tag: 'Character',
+                shortName: 'Character 2',
+                universalKey: 'CHARACTER#char2'
+            })
+
+            const batchEvents = [
+                {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset1',
+                        update: {
+                            type: 'Component Updated',
+                            assetId: 'ASSET#asset1',
+                            component: component1
+                        } as ComponentEventUpdate
+                    },
+                    timestamp: FIXED_TS
+                },
+                {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset2',
+                        update: {
+                            type: 'Component Updated',
+                            assetId: 'ASSET#asset2',
+                            component: component2
+                        } as ComponentEventUpdate
+                    },
+                    timestamp: FIXED_TS
+                }
+            ]
+
+            // Process the batch of events
+            await dataSource.receiveEvents?.({ 
+                events: batchEvents, 
+                streamEvent: mockStreamEvent 
+            })
+
+            // Should process both character events
+            expect(mockStreamEvent).toHaveBeenCalledTimes(2)
+            expect(mockStreamEvent).toHaveBeenNthCalledWith(1, {
+                update: {
+                    type: 'Character Updated',
+                    component: component1
+                },
+                streamKey: 'ASSET#asset1',
+                detailType: 'Character Updated'
+            })
+            expect(mockStreamEvent).toHaveBeenNthCalledWith(2, {
+                update: {
+                    type: 'Character Updated',
+                    component: component2
+                },
+                streamKey: 'ASSET#asset2',
+                detailType: 'Character Updated'
+            })
         })
     })
 
@@ -473,7 +541,7 @@ describe('CharactersDataSource', () => {
             }
 
             await expect(
-                dataSource.receiveEvents?.({ event: invalidEvent, streamEvent: mockStreamEvent })
+                dataSource.receiveEvents?.({ events: [invalidEvent], streamEvent: mockStreamEvent })
             ).resolves.not.toThrow()
 
             // Should not have called streamEvent
@@ -500,7 +568,7 @@ describe('CharactersDataSource', () => {
             }
 
             await expect(
-                dataSource.receiveEvents?.({ event: incompleteEvent, streamEvent: mockStreamEvent })
+                dataSource.receiveEvents?.({ events: [incompleteEvent], streamEvent: mockStreamEvent })
             ).resolves.not.toThrow()
 
             // Should not call streamEvent since component is not a valid StandardCharacter
