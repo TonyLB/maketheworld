@@ -17,7 +17,7 @@ export const createEntry = async ({ AssetId }: CreateEntryArgs): Promise<{ suffi
             ExpressionAttributeValues: { ':dc': `BACKUP#${datePrefix}-`},
             ProjectionFields: ['DataCategory']
         }),
-        internalCache.Meta.get([AssetId])
+        internalCache.AssetMetaData.get([AssetId])
     ])
     const currentIndex = Math.max(0, ...(todaysBackups.map(({ DataCategory }) => (parseInt(DataCategory.split('-').slice(-1)[0])))))
     if (currentIndex >= 99) {

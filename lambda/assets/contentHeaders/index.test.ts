@@ -33,7 +33,7 @@ jest.mock('../internalCache', () => ({
     AssetData: {
         get: jest.fn()
     },
-    Meta: {
+    AssetMetaData: {
         get: jest.fn()
     }
 }))
@@ -56,7 +56,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
         assetDBMock.getItem.mockResolvedValue({ zone: 'Canon' })
         // Mock internal cache
         internalCacheMock.AssetData.get.mockResolvedValue([])
-        internalCacheMock.Meta.get.mockResolvedValue([])
+        internalCacheMock.AssetMetaData.get.mockResolvedValue([])
         // Mock extractComponentMetadata
         extractComponentMetadataMock.mockReturnValue(null)
     })

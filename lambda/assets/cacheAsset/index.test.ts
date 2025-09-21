@@ -20,7 +20,7 @@ jest.mock('../internalCache', () => ({
         get: jest.fn(),
         invalidate: jest.fn()
     },
-    Meta: {
+    AssetMetaData: {
         get: jest.fn().mockResolvedValue([{ address: { zone: 'Draft', player: 'Test' } }]),
         invalidate: jest.fn()
     },
@@ -115,8 +115,8 @@ describe('Cache Asset', () => {
                 standardForm: new StandardForm('<Asset key=(primitives) />')
             }])
 
-            // Mock Meta.get to return address
-            internalCacheMock.Meta.get.mockResolvedValue([{
+            // Mock AssetMetaData.get to return address
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
                 address: {
                     zone: 'Canon',
@@ -162,8 +162,8 @@ describe('Cache Asset', () => {
                 standardForm: new StandardForm('<Asset key=(primitives) />')
             }])
 
-            // Mock Meta.get to return address
-            internalCacheMock.Meta.get.mockResolvedValue([{
+            // Mock AssetMetaData.get to return address
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
                 address: {
                     zone: 'Canon',
@@ -211,8 +211,8 @@ describe('Cache Asset', () => {
                 standardForm: new StandardForm('<Asset key=(primitives) />')
             }])
 
-            // Mock Meta.get to return no address
-            internalCacheMock.Meta.get.mockResolvedValue([{
+            // Mock AssetMetaData.get to return no address
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
                 address: undefined
             }])
@@ -240,8 +240,8 @@ describe('Cache Asset', () => {
                 standardForm: new StandardForm('<Asset key=(primitives) />')
             }])
 
-            // Mock Meta.get to return address
-            internalCacheMock.Meta.get.mockResolvedValue([{
+            // Mock AssetMetaData.get to return address
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
                 address: {
                     zone: 'Canon',
@@ -287,8 +287,8 @@ describe('Cache Asset', () => {
                 `)
             }])
 
-            // Mock Meta.get to return address
-            internalCacheMock.Meta.get.mockResolvedValue([{
+            // Mock AssetMetaData.get to return address
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
                 address: {
                     zone: 'Canon',
@@ -337,7 +337,7 @@ describe('Cache Asset', () => {
                 standardForm: identicalForm
             }])
 
-            internalCacheMock.Meta.get.mockResolvedValue([{
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
                 address: {
                     zone: 'Canon',
@@ -372,7 +372,7 @@ describe('Cache Asset', () => {
                 standardForm: new StandardForm('<Asset key=(primitives) />')
             }])
 
-            internalCacheMock.Meta.get.mockResolvedValue([{
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
                 address: {
                     zone: 'Canon',

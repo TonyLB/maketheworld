@@ -3,7 +3,7 @@ import { CacheConstructor } from './baseClasses'
 import { CacheLibraryData } from './library'
 import { S3Client } from "@aws-sdk/client-s3"
 import { CachePlayerLibraryData } from './playerLibrary'
-import { MetaData } from './meta'
+import { AssetMetaData } from './assetMeta'
 import { CachePlayerSettingData } from './playerSettings'
 import { GraphCacheType, graphDBHandler, GraphNodeType } from './graph'
 import { CacheSessionConnectionsData } from '@tonylb/mtw-sessions/ts/sessionCache'
@@ -111,7 +111,7 @@ export const CacheConnection = <GBase extends CacheConstructor>(Base: GBase) => 
 
 class InternalCache {
     Connection: CacheConnectionData = new CacheConnectionData()
-    Meta: MetaData = new MetaData()
+    AssetMetaData: AssetMetaData = new AssetMetaData()
     AssetData: AssetData = new AssetData()
     ComponentData: ComponentData = new ComponentData()
     PlayerSettings: CachePlayerSettingData = new CachePlayerSettingData()
@@ -130,7 +130,7 @@ class InternalCache {
 
     clear(): void {
         this.Connection.clear()
-        this.Meta.clear()
+        this.AssetMetaData.clear()
         this.AssetData.clear()
         this.ComponentData.clear()
         this.PlayerSettings.clear()

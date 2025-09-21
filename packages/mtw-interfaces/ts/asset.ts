@@ -9,7 +9,7 @@ export type FetchLibraryAPIMessage = {
 
 export type MetaDataAPIMessage = {
     message: 'metaData';
-    assetIds: (`ASSET#${string}` | `CHARACTER#${string}`)[];
+    assetIds: `ASSET#${string}`[];
 }
 
 export type FetchImportsAPIMessage = {
@@ -236,7 +236,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                     AssetId: 'string',
                     zone: 'string'
                 }),
-                typeof message.AssetId === 'string' && (isEphemeraAssetId(message.AssetId) || isEphemeraCharacterId(message.AssetId)),
+                typeof message.AssetId === 'string' && isEphemeraAssetId(message.AssetId),
                 ['Canon', 'Library', 'Personal', 'None'].includes(message.zone)
             )
         case 'Player':

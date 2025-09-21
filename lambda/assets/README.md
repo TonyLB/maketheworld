@@ -112,9 +112,9 @@ The lambda uses a sophisticated caching system with multiple specialized caches:
 - **Key**: `ASSET#${string}`
 - **Data**: StandardForm objects containing asset structure
 
-### Meta Cache
+### AssetMetaData Cache
 - **Purpose**: Caches asset metadata and S3 address information
-- **Key**: `ASSET#${string}` or `CHARACTER#${string}`
+- **Key**: `ASSET#${string}` (AssetUUID)
 - **Data**: AssetWorkspaceAddress, cached status
 
 ### ComponentData Cache

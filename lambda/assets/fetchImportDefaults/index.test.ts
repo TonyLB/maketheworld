@@ -118,7 +118,7 @@ describe('fetchImportsMessage', () => {
             { from: 'ASSET#importTestTwo', to: 'ASSET#importTestThree' },
             { from: 'ASSET#importTestTwo', to: 'ASSET#importTestFour' }
         ], {}))
-        internalCacheMock.Meta.get.mockResolvedValue([
+        internalCacheMock.AssetMetaData.get.mockResolvedValue([
             { AssetId: 'ASSET#importTestOne', address: { zone: 'Canon', fileName: 'testOne' } },
             { AssetId: 'ASSET#importTestTwo', address: { zone: 'Canon', fileName: 'testTwo' } },
             { AssetId: 'ASSET#importTestThree', address: { zone: 'Canon', fileName: 'testThree' } },
