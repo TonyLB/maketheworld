@@ -22,7 +22,7 @@ export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePay
         replayable?: boolean;
         subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent;
         receiveEvents?: (params: { 
-            event: SubscribedEvent, 
+            events: SubscribedEvent[], 
             streamEvent: (params: { update: UpdatePayload, streamKey: string, detailType: string }) => Promise<void>
         }) => Promise<void>;
         eventSerializer?: any; // Will be properly typed when we implement the serializer
