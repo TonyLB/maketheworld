@@ -39,11 +39,13 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, a
             event.event.update.type
         )
     },
-    receiveEvents: async ({ event, streamEvent }) => {
+    receiveEvents: async ({ events, streamEvent }) => {
         // Process internal messageBus events from other data sources
+        // Process each event in the batch independently and in parallel
         
-        // Handle mtw.wml events
-        if (event.dataSourceKey === 'mtw.wml' && event.event.update.type === 'Content Update') {
+        await Promise.all(events.map(async (event) => {
+            // Handle mtw.wml events
+            if (event.dataSourceKey === 'mtw.wml' && event.event.update.type === 'Content Update') {
             const { AssetId } = event.event.update
             if (AssetId) {
                 try {
@@ -220,6 +222,8 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, a
                 return
             }
         }
+        
+        })) // End of Promise.all processing events batch in parallel
         
     }
 })
