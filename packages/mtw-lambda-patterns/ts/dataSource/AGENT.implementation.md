@@ -59,17 +59,20 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 - **Outgoing**: DataSource → (1) internal format → messageBus for local processing, (2) serialize → EventBridge/DynamoDB for external distribution
 - **Incoming**: EventBridge → deserialize → messageBus → DataSource processing
 
-### **Current Event Processing Limitation**:
-**N-to-1 Aggregation Gap**: The current implementation processes incoming events independently one-by-one in the `receiveEvent` method. This design cannot handle **aggregation patterns** where multiple related events need to be collected and processed together to generate a single derived event.
+### **Batch Event Processing Architecture**:
+**Flexible Event Processing**: The DataSource pattern now supports batch processing through the `receiveEvents` method, providing a flexible foundation for various event processing patterns.
 
-**Impact**: Data sources that need to:
-- Wait for multiple related events before generating output
-- Aggregate state changes from multiple sources into a single derived event
-- Implement complex event correlation patterns
+**Key Features**:
+- **Batch Input**: `receiveEvents({ events, streamEvent })` accepts an array of events for processing
+- **Flexible Processing**: Supports any processing pattern - aggregation, parallel processing, or sequential processing as needed
+- **Processing Foundation**: Provides the foundation for advanced event processing patterns
+- **Pattern Agnostic**: Implementation can choose the most appropriate processing approach for the use case
 
-Are not yet supported by the current DataSource pattern implementation.
-
-**Development Status**: This limitation is being addressed as part of the `contentHeaders` data source implementation in the `assets` lambda. The enhanced pattern will support event aggregation capabilities.
+**Benefits**:
+- **Processing Flexibility**: Supports aggregation, parallel processing, sequential processing, or mixed patterns
+- **Scalability**: Foundation for handling high-volume event streams efficiently
+- **Extensibility**: Easy to implement new processing patterns as requirements evolve
+- **Performance**: Can optimize processing approach based on event characteristics and business logic
 
 ## Timestamp Handling Strategy
 
@@ -316,31 +319,10 @@ For large snapshots or event contents, implement S3 storage with claim-check rec
 - **Storage Optimization**: Compress old events, archive historical data
 
 ### **Advanced Event Processing**
-- **Event Aggregation**: Support for N-to-1 aggregation patterns where multiple related events are collected and processed together to generate a single derived event (currently in development)
-- **Batch Processing**: Process multiple events in batches for efficiency
+- **Event Aggregation**: Support for N-to-1 aggregation patterns where multiple related events are collected and processed together to generate a single derived event (foundation now in place with batch processing)
 - **Event Ordering**: Guarantee ordered processing for events from the same source
 - **Dead Letter Queues**: Handle failed event processing with retry logic
 - **Event Validation**: Built-in validation for external EventBridge event formats
-
-### **Event Aggregation Enhancement** (In Development)
-The current one-by-one event processing model will be enhanced to support aggregation patterns:
-
-**Planned Capabilities**:
-- **Event Buffering**: Collect related events within configurable time windows
-- **Aggregation Logic**: Process multiple events together to generate derived state changes
-- **Correlation Keys**: Group related events using correlation identifiers
-- **Configurable Triggers**: Define conditions that trigger aggregation processing
-
-**Implementation Approach**:
-- Extend `receiveEvent` to support both immediate and buffered processing modes
-- Add event correlation and aggregation state management
-- Maintain backward compatibility with existing one-by-one processing
-- Support for both simple aggregation (count, sum) and complex aggregation (custom business logic)
-
-**Use Cases**:
-- Content headers derived from multiple asset changes
-- Analytics metrics aggregated from multiple event sources
-- Complex business rules requiring multiple event correlation
 
 ---
 

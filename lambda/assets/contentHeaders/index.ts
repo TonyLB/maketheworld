@@ -64,86 +64,91 @@ export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnaps
     eventSerializer: new ContentHeadersEventSerializer(),
     snapshotContentGenerator: generateContentHeadersSnapshot,
     subscribedEventTypeGuard: isSubscribedAssetsEvent,
-    receiveEvents: async ({ event, streamEvent }) => {
-        // Process mtw.assets events and generate content header updates
-        // The event parameter is now properly typed as SubscribedAssetsEvent
+    receiveEvents: async ({ events, streamEvent }) => {
+        // Process mtw.assets events in parallel and generate content header updates
+        // Each event is processed independently for now (aggregation will come later)
         
-        if (event.event.update.type === 'Component Updated') {
-            const componentUpdate = event.event.update as ComponentUpdatedEvent
-            const { assetId, component } = componentUpdate
-            if (assetId && component) {
-                try {
-                    // Get the asset's zone information
-                    const zone = await getAssetZone(assetId as AssetUUID)
-                    if (!zone) {
-                        console.warn(`Could not determine zone for asset ${assetId}, skipping content header update`)
-                        return
+        await Promise.all(events.map(async (event) => {
+            // Process mtw.assets events and generate content header updates
+            // The event parameter is now properly typed as SubscribedAssetsEvent
+            
+            if (event.event.update.type === 'Component Updated') {
+                const componentUpdate = event.event.update as ComponentUpdatedEvent
+                const { assetId, component } = componentUpdate
+                if (assetId && component) {
+                    try {
+                        // Get the asset's zone information
+                        const zone = await getAssetZone(assetId as AssetUUID)
+                        if (!zone) {
+                            console.warn(`Could not determine zone for asset ${assetId}, skipping content header update`)
+                            return
+                        }
+                        
+                        // Create content header update from component
+                        const contentHeadersUpdate = createContentHeadersUpdate(assetId as AssetUUID, zone, component)
+                        if (contentHeadersUpdate) {
+                            await streamEvent({
+                                update: contentHeadersUpdate,
+                                streamKey: 'global',
+                                detailType: 'Headers Updated'
+                            })
+                        }
+                    } catch (error) {
+                        console.error(`Error processing Component Updated event for asset ${assetId}:`, error)
+                        messageBus.send({
+                            type: 'Error',
+                            body: { 
+                                error: `Failed to process component update for asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`,
+                                statusCode: 500
+                            }
+                        })
                     }
-                    
-                    // Create content header update from component
-                    const contentHeadersUpdate = createContentHeadersUpdate(assetId as AssetUUID, zone, component)
-                    if (contentHeadersUpdate) {
+                    return
+                }
+            }
+            
+            if (event.event.update.type === 'Component Removed') {
+                const componentRemoval = event.event.update as ComponentRemovedEvent
+                const { assetId, componentId } = componentRemoval
+                if (assetId && componentId) {
+                    try {
+                        // Get the asset's zone information
+                        const zone = await getAssetZone(assetId as AssetUUID)
+                        if (!zone) {
+                            console.warn(`Could not determine zone for asset ${assetId}, skipping content header update`)
+                            return
+                        }
+                        
+                        // For component removal, we need to create a minimal StandardForm with just the component being removed
+                        // This will be handled by the snapshot generation logic when it processes the current asset state
+                        const contentHeadersUpdate: ContentHeadersUpdate = {
+                            type: 'Headers Updated',
+                            assetId: assetId as AssetUUID,
+                            zone,
+                            standardForm: createRemovalStandardForm(componentId)
+                        }
+                        
                         await streamEvent({
                             update: contentHeadersUpdate,
                             streamKey: 'global',
                             detailType: 'Headers Updated'
                         })
+                    } catch (error) {
+                        console.error(`Error processing Component Removed event for asset ${assetId}:`, error)
+                        messageBus.send({
+                            type: 'Error',
+                            body: { 
+                                error: `Failed to process component removal for asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`,
+                                statusCode: 500
+                            }
+                        })
                     }
-                } catch (error) {
-                    console.error(`Error processing Component Updated event for asset ${assetId}:`, error)
-                    messageBus.send({
-                        type: 'Error',
-                        body: { 
-                            error: `Failed to process component update for asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`,
-                            statusCode: 500
-                        }
-                    })
+                    return
                 }
-                return
             }
-        }
-        
-        if (event.event.update.type === 'Component Removed') {
-            const componentRemoval = event.event.update as ComponentRemovedEvent
-            const { assetId, componentId } = componentRemoval
-            if (assetId && componentId) {
-                try {
-                    // Get the asset's zone information
-                    const zone = await getAssetZone(assetId as AssetUUID)
-                    if (!zone) {
-                        console.warn(`Could not determine zone for asset ${assetId}, skipping content header update`)
-                        return
-                    }
-                    
-                    // For component removal, we need to create a minimal StandardForm with just the component being removed
-                    // This will be handled by the snapshot generation logic when it processes the current asset state
-                    const contentHeadersUpdate: ContentHeadersUpdate = {
-                        type: 'Headers Updated',
-                        assetId: assetId as AssetUUID,
-                        zone,
-                        standardForm: createRemovalStandardForm(componentId)
-                    }
-                    
-                    await streamEvent({
-                        update: contentHeadersUpdate,
-                        streamKey: 'global',
-                        detailType: 'Headers Updated'
-                    })
-                } catch (error) {
-                    console.error(`Error processing Component Removed event for asset ${assetId}:`, error)
-                    messageBus.send({
-                        type: 'Error',
-                        body: { 
-                            error: `Failed to process component removal for asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`,
-                            statusCode: 500
-                        }
-                    })
-                }
-                return
-            }
-        }
-        
-        console.warn(`Unhandled event type in content headers data source: ${event.event.update.type}`)
+            
+            console.warn(`Unhandled event type in content headers data source: ${event.event.update.type}`)
+        }))
     }
 })
 
