@@ -208,9 +208,13 @@ export default contentHeadersDataSource
  * Get the zone for a given asset ID
  */
 async function getAssetZone(assetId: AssetUUID): Promise<'Canon' | 'Library' | 'Personal' | null> {
-    // TODO: Implement zone lookup logic
-    // This should query the asset metadata to determine the current zone
-    throw new Error('getAssetZone not yet implemented')
+    try {
+        const [assetMeta] = await internalCache.AssetMetaData.get([assetId])
+        return assetMeta?.zone || null
+    } catch (error) {
+        console.error(`Error getting zone for asset ${assetId}:`, error)
+        return null
+    }
 }
 
 /**

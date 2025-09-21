@@ -115,7 +115,7 @@ The lambda uses a sophisticated caching system with multiple specialized caches:
 ### AssetMetaData Cache
 - **Purpose**: Caches asset metadata and S3 address information
 - **Key**: `ASSET#${string}` (AssetUUID)
-- **Data**: AssetWorkspaceAddress, cached status
+- **Data**: AssetWorkspaceAddress, cached status, zone ('Canon' | 'Library' | 'Personal')
 
 ### ComponentData Cache
 - **Purpose**: Caches individual component data for efficient retrieval
