@@ -5,6 +5,7 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
+import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 
 // Mock external dependencies used by the assets DataSource base class and lambda
@@ -95,7 +96,7 @@ describe('CharactersDataSource', () => {
             })
         })
 
-        it('should process Character component removals and stream character removed events', async () => {
+        it('should process Character removals sent as Component Updated with StandardRemove', async () => {
             const component = new StandardCharacter({
                 tag: 'Character',
                 shortName: 'Test Character',
@@ -107,9 +108,9 @@ describe('CharactersDataSource', () => {
                 event: {
                     streamKey: 'ASSET#asset123',
                     update: {
-                        type: 'Component Removed',
+                        type: 'Component Updated',
                         assetId: 'ASSET#asset123',
-                        componentId: 'CHARACTER#char123'
+                        component: new StandardRemove(component)
                     } as ComponentEventUpdate
                 },
                 timestamp: FIXED_TS
@@ -121,13 +122,14 @@ describe('CharactersDataSource', () => {
 
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
-                    type: 'Character Removed',
-                    characterId: 'CHARACTER#char123'
-                    // component field omitted for removals
+                    type: 'Character Updated',
+                    component: expect.any(Object)
                 },
                 streamKey: 'ASSET#asset123',
-                detailType: 'Character Removed'
+                detailType: 'Character Updated'
             })
+            const call = mockStreamEvent.mock.calls[0][0]
+            expect(call.update.component.tag).toBe('Remove')
         })
 
         it('should ignore non-Character component events', async () => {

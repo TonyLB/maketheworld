@@ -7,6 +7,7 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
+import { StandardRemove, StandardReplace } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { CharacterEventSerializer, CharacterEventUpdate } from './serializers'
 import { ComponentEventUpdate, isAssetsComponentEvent } from '../dataSource/serializers'
@@ -94,34 +95,24 @@ const processComponentEvent = async (
     }
 
     if (update.type === 'Component Updated') {
-        // Check if this is a character component
-        if (!(update.component instanceof StandardCharacter)) {
+        // Check if this is a character component or an edit referring to a character
+        const isCharacterComponent = (
+            update.component instanceof StandardCharacter ||
+            (update.component instanceof StandardRemove && update.component._match instanceof StandardCharacter) ||
+            (update.component instanceof StandardReplace && update.component._match instanceof StandardCharacter)
+        )
+        if (!isCharacterComponent) {
             return
         }
 
-        // Generate character updated event with StandardComponent object
+        // Generate character updated event with StandardComponent object (could be Remove/Replace)
         await streamEvent({
             update: {
                 type: 'Character Updated',
-                component: update.component // Pass the StandardComponent object directly
+                component: update.component
             },
             streamKey,
             detailType: 'Character Updated'
-        })
-    } else if (update.type === 'Component Removed') {
-        // Check if this is a character component (by componentId)
-        if (!update.componentId || !update.componentId.startsWith('CHARACTER#')) {
-            return
-        }
-
-        // Generate character removed event (no component object available)
-        await streamEvent({
-            update: {
-                type: 'Character Removed',
-                characterId: update.componentId as `CHARACTER#${string}` // Need characterId for removal events
-            },
-            streamKey,
-            detailType: 'Character Removed'
         })
     }
 }
