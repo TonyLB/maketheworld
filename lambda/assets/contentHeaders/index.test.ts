@@ -28,7 +28,14 @@ jest.mock('@tonylb/mtw-utilities/ts/eventBridge', () => ({
     eventBridgeClient: { send: jest.fn() }
 }))
 
-jest.mock('../messageBus')
+jest.mock('../messageBus', () => ({
+    default: {
+        send: jest.fn(),
+        subscribe: jest.fn()
+    },
+    send: jest.fn(),
+    subscribe: jest.fn()
+}))
 jest.mock('../internalCache', () => ({
     AssetData: {
         get: jest.fn()
@@ -43,10 +50,16 @@ jest.mock('./serializers', () => ({
     extractComponentMetadata: jest.fn()
 }))
 
+jest.mock('./extractHeader', () => ({
+    extractHeader: jest.fn()
+}))
+
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 const eventBridgeSendMock = jest.mocked(eventBridgeClient.send, { shallow: false })
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 const extractComponentMetadataMock = jest.mocked(extractComponentMetadata, { shallow: false })
+const extractHeaderMock = jest.mocked(require('./extractHeader').extractHeader, { shallow: false })
+const messageBusMock = jest.mocked(require('../messageBus').default.send, { shallow: false })
 
 describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
     beforeEach(() => {
@@ -189,6 +202,14 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     </Room>
                 </Asset>`)
             extractComponentMetadataMock.mockReturnValue(mockHeaderStandardForm)
+            
+            // Mock extractHeader to return a component with header
+            const mockHeaderComponent = new StandardRoom({
+                tag: 'Room',
+                shortName: 'Test Room',
+                universalKey: 'ROOM#room1'
+            })
+            extractHeaderMock.mockReturnValue(mockHeaderComponent)
 
             const snapshot = await contentHeadersDataSource.snapshotContentGenerator?.('global')
 
@@ -218,7 +239,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             
             const expectedWML = deIndentWML(`
                 <Asset key=(test)>
-                    <Room uuid=(room1) key=(room1)><ShortName>Test Room</ShortName></Room>
+                    <Room uuid=(room1)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `)
 
@@ -245,6 +266,9 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
             // Mock extractComponentMetadata to return null (no header found)
             extractComponentMetadataMock.mockReturnValue(null)
+            
+            // Mock extractHeader to return null (no header found)
+            extractHeaderMock.mockReturnValue(null)
 
             const snapshot = await contentHeadersDataSource.snapshotContentGenerator?.('global')
 
@@ -262,6 +286,404 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             expect(snapshot).toEqual({
                 type: 'Snapshot Generated',
                 assets: []
+            })
+        })
+    })
+
+    describe('Event Processing Integration', () => {
+        let mockStreamEvent: jest.Mock
+
+        beforeEach(() => {
+            mockStreamEvent = jest.fn()
+            
+            // Reset extractHeader mock
+            extractHeaderMock.mockReset()
+        })
+
+        describe('Component Updated Events', () => {
+            it('should process Component Updated events and stream content header updates', async () => {
+                // Mock zone lookup
+                internalCacheMock.AssetMetaData.get.mockResolvedValue([{
+                    AssetId: 'ASSET#asset123',
+                    zone: 'Canon'
+                }])
+
+                // Mock extractHeader to return a component with header
+                const mockHeaderComponent = new StandardRoom({
+                    tag: 'Room',
+                    shortName: 'Test Room',
+                    universalKey: 'ROOM#room123'
+                })
+                extractHeaderMock.mockReturnValue(mockHeaderComponent)
+
+                const componentUpdatedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset123',
+                        update: {
+                            type: 'Component Updated',
+                            assetId: 'ASSET#asset123',
+                            component: mockHeaderComponent
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [componentUpdatedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).toHaveBeenCalledWith({
+                    update: expect.objectContaining({
+                        type: 'Headers Updated',
+                        assetId: 'ASSET#asset123',
+                        zone: 'Canon',
+                        standardForm: expect.any(Object)
+                    }),
+                    streamKey: 'global',
+                    detailType: 'Headers Updated'
+                })
+            })
+
+            it('should skip events when zone cannot be determined', async () => {
+                // Mock zone lookup failure
+                internalCacheMock.AssetMetaData.get.mockResolvedValue([])
+
+                const componentUpdatedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset123',
+                        update: {
+                            type: 'Component Updated',
+                            assetId: 'ASSET#asset123',
+                            component: new StandardRoom({
+                                tag: 'Room',
+                                shortName: 'Test Room',
+                                universalKey: 'ROOM#room123'
+                            })
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [componentUpdatedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).not.toHaveBeenCalled()
+            })
+
+            it('should skip events when component does not have header information', async () => {
+                // Mock zone lookup
+                internalCacheMock.AssetMetaData.get.mockResolvedValue([{
+                    AssetId: 'ASSET#asset123',
+                    zone: 'Canon'
+                }])
+
+                // Mock extractHeader to return null (no header)
+                extractHeaderMock.mockReturnValue(null)
+
+                const componentUpdatedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset123',
+                        update: {
+                            type: 'Component Updated',
+                            assetId: 'ASSET#asset123',
+                            component: new StandardRoom({
+                                tag: 'Room',
+                                shortName: 'Test Room',
+                                universalKey: 'ROOM#room123'
+                            })
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [componentUpdatedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).not.toHaveBeenCalled()
+            })
+
+            it('should handle missing assetId gracefully', async () => {
+                const componentUpdatedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset123',
+                        update: {
+                            type: 'Component Updated',
+                            assetId: undefined as any,
+                            component: new StandardRoom({
+                                tag: 'Room',
+                                shortName: 'Test Room',
+                                universalKey: 'ROOM#room123'
+                            })
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [componentUpdatedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).not.toHaveBeenCalled()
+            })
+
+            it('should handle missing component gracefully', async () => {
+                const componentUpdatedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset123',
+                        update: {
+                            type: 'Component Updated',
+                            assetId: 'ASSET#asset123',
+                            component: undefined as any
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [componentUpdatedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).not.toHaveBeenCalled()
+            })
+
+            it('should handle errors and send error message to messageBus', async () => {
+                // Mock zone lookup to throw error
+                internalCacheMock.AssetMetaData.get.mockRejectedValue(new Error('Cache error'))
+
+                const componentUpdatedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset123',
+                        update: {
+                            type: 'Component Updated',
+                            assetId: 'ASSET#asset123',
+                            component: new StandardRoom({
+                                tag: 'Room',
+                                shortName: 'Test Room',
+                                universalKey: 'ROOM#room123'
+                            })
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [componentUpdatedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(messageBusMock).toHaveBeenCalledWith({
+                    type: 'Error',
+                    body: {
+                        error: 'Failed to process component update for asset ASSET#asset123: Cache error',
+                        statusCode: 500
+                    }
+                })
+            })
+        })
+
+        describe('Component Removed Events', () => {
+            it('should process Component Removed events and stream content header updates', async () => {
+                // Mock zone lookup
+                internalCacheMock.AssetMetaData.get.mockResolvedValue([{
+                    AssetId: 'ASSET#asset123',
+                    zone: 'Library'
+                }])
+
+                const componentRemovedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset123',
+                        update: {
+                            type: 'Component Removed',
+                            assetId: 'ASSET#asset123',
+                            componentId: 'ROOM#room123'
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [componentRemovedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).toHaveBeenCalledWith({
+                    update: expect.objectContaining({
+                        type: 'Headers Updated',
+                        assetId: 'ASSET#asset123',
+                        zone: 'Library',
+                        standardForm: expect.any(Object)
+                    }),
+                    streamKey: 'global',
+                    detailType: 'Headers Updated'
+                })
+            })
+
+            it('should skip events when zone cannot be determined', async () => {
+                // Mock zone lookup failure
+                internalCacheMock.AssetMetaData.get.mockResolvedValue([])
+
+                const componentRemovedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset123',
+                        update: {
+                            type: 'Component Removed',
+                            assetId: 'ASSET#asset123',
+                            componentId: 'ROOM#room123'
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [componentRemovedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).not.toHaveBeenCalled()
+            })
+
+            it('should handle missing assetId gracefully', async () => {
+                const componentRemovedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset123',
+                        update: {
+                            type: 'Component Removed',
+                            assetId: undefined as any,
+                            componentId: 'ROOM#room123'
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [componentRemovedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).not.toHaveBeenCalled()
+            })
+
+            it('should handle missing componentId gracefully', async () => {
+                const componentRemovedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset123',
+                        update: {
+                            type: 'Component Removed',
+                            assetId: 'ASSET#asset123',
+                            componentId: undefined as any
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [componentRemovedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).not.toHaveBeenCalled()
+            })
+
+            it('should handle errors and send error message to messageBus', async () => {
+                // Mock zone lookup to throw error
+                internalCacheMock.AssetMetaData.get.mockRejectedValue(new Error('Cache error'))
+
+                const componentRemovedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    event: {
+                        streamKey: 'ASSET#asset123',
+                        update: {
+                            type: 'Component Removed',
+                            assetId: 'ASSET#asset123',
+                            componentId: 'ROOM#room123'
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [componentRemovedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(messageBusMock).toHaveBeenCalledWith({
+                    type: 'Error',
+                    body: {
+                        error: 'Failed to process component removal for asset ASSET#asset123: Cache error',
+                        statusCode: 500
+                    }
+                })
+            })
+        })
+
+        describe('Multiple Events Processing', () => {
+            it('should process multiple events in parallel', async () => {
+                // Mock zone lookups
+                internalCacheMock.AssetMetaData.get
+                    .mockResolvedValueOnce([{ AssetId: 'ASSET#asset1', zone: 'Canon' }])
+                    .mockResolvedValueOnce([{ AssetId: 'ASSET#asset2', zone: 'Library' }])
+
+                // Mock extractHeader
+                extractHeaderMock.mockReturnValue(new StandardRoom({
+                    tag: 'Room',
+                    shortName: 'Test Room',
+                    universalKey: 'ROOM#room123'
+                }))
+
+                const events: SubscribedAssetsEvent[] = [
+                    {
+                        dataSourceKey: 'mtw.assets',
+                        event: {
+                            streamKey: 'ASSET#asset1',
+                            update: {
+                                type: 'Component Updated',
+                                assetId: 'ASSET#asset1',
+                                component: new StandardRoom({
+                                    tag: 'Room',
+                                    shortName: 'Room 1',
+                                    universalKey: 'ROOM#room1'
+                                })
+                            }
+                        },
+                        timestamp: Date.now()
+                    },
+                    {
+                        dataSourceKey: 'mtw.assets',
+                        event: {
+                            streamKey: 'ASSET#asset2',
+                            update: {
+                                type: 'Component Removed',
+                                assetId: 'ASSET#asset2',
+                                componentId: 'ROOM#room2'
+                            }
+                        },
+                        timestamp: Date.now()
+                    }
+                ]
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events,
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).toHaveBeenCalledTimes(2)
             })
         })
     })

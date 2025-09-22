@@ -7,6 +7,7 @@ type MetaCache = {
     AssetId: AssetUUID;
     address?: AssetWorkspaceAddress;
     cached?: boolean;
+    zone?: 'Canon' | 'Library' | 'Personal';
 }
 
 export class AssetMetaData {
@@ -36,7 +37,7 @@ export class AssetMetaData {
                 AssetId,
                 DataCategory: 'Meta::Asset'
             })),
-            ProjectionFields: ['AssetId', 'address', 'cached']
+            ProjectionFields: ['AssetId', 'address', 'cached', 'zone']
         })) || []
         return addresses.filter(({ address }) => (isAssetWorkspaceAddress(address)))
     }
@@ -51,7 +52,8 @@ export class AssetMetaData {
                     ...(fetches.map((fetch) => ({
                         [fetch.AssetId]: {
                             AssetId: fetch.AssetId,
-                            address: fetch.address
+                            address: fetch.address,
+                            zone: fetch.zone
                         }
                     })))
                 )

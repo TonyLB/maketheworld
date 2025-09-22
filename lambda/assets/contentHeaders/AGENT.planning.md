@@ -138,7 +138,6 @@ The snapshot generation function has been implemented with:
 #### Tasks
 - [ ] Subscribe to `mtw.assets` events (`Component Updated`, `Component Removed`)
 - [ ] Process asset changes and generate content header updates
-- [ ] Handle zone changes (asset movement between zones)
 - [ ] Implement diff generation for incremental updates
 - [ ] Add error handling and logging
 
@@ -187,6 +186,7 @@ receiveEvents: async ({ event, streamEvent }) => {
 - [ ] Identify zone change events in `mtw.assets` data source
 - [ ] Create zone change event types if not already present
 - [ ] Subscribe to zone change events in Content Headers data source
+- [ ] Handle zone changes (asset movement between zones)
 - [ ] Generate appropriate update events when assets move between zones
 
 #### Zone Change Events
