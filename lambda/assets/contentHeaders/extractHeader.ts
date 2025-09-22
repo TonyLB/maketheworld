@@ -23,10 +23,6 @@ export const extractHeader = (component: StandardComponent): StandardComponent |
         }
         return new StandardReplace(matchHeader, payloadHeader)
     }
-    if (!hasShortName(component)) {
-        return undefined
-    }
-
     const minimalJson = {
         tag: component.tag as any,
         key: component.key,

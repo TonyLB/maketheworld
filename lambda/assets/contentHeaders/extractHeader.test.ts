@@ -44,34 +44,49 @@ describe('extractHeader', () => {
     })
 
     describe('components without shortName', () => {
-        it('returns undefined for Map', () => {
+        it('returns component with undefined shortName for Map', () => {
             const map = make({ tag: 'Map', key: 'Map1', images: [], positions: [] })
             const result = extractHeader(map)
-            expect(result).toBeUndefined()
+            expect(result).toBeDefined()
+            expect(result?.tag).toBe('Map')
+            expect(result?.key).toBe('Map1')
+            expect(result?.shortName).toBeUndefined()
         })
 
-        it('returns undefined for Message', () => {
+        it('returns component with undefined shortName for Message', () => {
             const message = make({ tag: 'Message', key: 'Msg1', rooms: [] })
             const result = extractHeader(message)
-            expect(result).toBeUndefined()
+            expect(result).toBeDefined()
+            expect(result?.tag).toBe('Message')
+            expect(result?.key).toBe('Msg1')
+            expect(result?.shortName).toBeUndefined()
         })
 
-        it('returns undefined for Moment', () => {
+        it('returns component with undefined shortName for Moment', () => {
             const moment = make({ tag: 'Moment', key: 'Mom1' })
             const result = extractHeader(moment)
-            expect(result).toBeUndefined()
+            expect(result).toBeDefined()
+            expect(result?.tag).toBe('Moment')
+            expect(result?.key).toBe('Mom1')
+            expect(result?.shortName).toBeUndefined()
         })
 
-        it('returns undefined for Image', () => {
+        it('returns component with undefined shortName for Image', () => {
             const image = make({ tag: 'Image', key: 'Img1' })
             const result = extractHeader(image)
-            expect(result).toBeUndefined()
+            expect(result).toBeDefined()
+            expect(result?.tag).toBe('Image')
+            expect(result?.key).toBe('Img1')
+            expect(result?.shortName).toBeUndefined()
         })
 
-        it('returns undefined for Example', () => {
+        it('returns component with undefined shortName for Example', () => {
             const example = make({ tag: 'Example', key: 'Ex1' })
             const result = extractHeader(example)
-            expect(result).toBeUndefined()
+            expect(result).toBeDefined()
+            expect(result?.tag).toBe('Example')
+            expect(result?.key).toBe('Ex1')
+            expect(result?.shortName).toBeUndefined()
         })
     })
 
