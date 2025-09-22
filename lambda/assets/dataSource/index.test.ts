@@ -5,6 +5,7 @@ import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 // Mock external dependencies
@@ -98,17 +99,22 @@ describe('AssetsDataSource (mtw.assets)', () => {
             expect(serializedUpdate.wml).toEqual(deIndentWML(`<Character uuid=(char123)><ShortName>Test Character</ShortName></Character>`))
         })
 
-        it('should serialize Component Removed events to EventBridge with WML', async () => {
+        it('should serialize StandardRemove as Component Updated with WML', async () => {
+            // Construct a StandardRemove wrapped around a Character
+            const component = new StandardCharacter({
+                tag: 'Character',
+                universalKey: 'CHARACTER#char456'
+            })
             const update: AssetsEventUpdate = {
-                type: 'Component Removed',
+                type: 'Component Updated',
                 assetId: 'ASSET#asset456',
-                componentId: 'CHARACTER#char456'
+                component: new StandardRemove(component)
             }
 
             await assetsDataSource.streamEvent({
                 update,
                 streamKey: 'ASSET#asset456',
-                detailType: 'Component Removed'
+                detailType: 'Component Updated'
             })
 
             // Verify EventBridge event structure and serialization
@@ -116,13 +122,14 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 expect.arrayContaining([
                     expect.objectContaining({
                         Source: 'mtw.assets',
-                        DetailType: 'Component Removed',
+                        DetailType: 'Component Updated',
                         Detail: expect.objectContaining({
                             streamKey: 'ASSET#asset456',
                             update: expect.objectContaining({
-                                type: 'Component Removed',
+                                type: 'Component Updated',
                                 assetId: 'ASSET#asset456',
-                                componentId: 'CHARACTER#char456'
+                                componentId: 'CHARACTER#char456',
+                                wml: expect.stringContaining('<Remove>')
                             })
                         })
                     })

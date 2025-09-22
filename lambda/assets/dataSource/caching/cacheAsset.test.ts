@@ -228,16 +228,13 @@ describe('Cache Asset (Data Source)', () => {
                 DataCategory: 'ASSET#primitives'
             })
 
-            // Should emit Component Removed streaming event
-            expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    type: 'Component Removed',
-                    assetId: 'primitives',
-                    componentId: 'KNOWLEDGE#knowledgeRoot'
-                },
-                streamKey: 'primitives',
-                detailType: 'Component Removed'
-            })
+            // Should emit Component Updated streaming event with StandardRemove payload
+            expect(mockStreamEvent).toHaveBeenCalled()
+            const removalCall = mockStreamEvent.mock.calls.find(([arg]) => arg.detailType === 'Component Updated' && arg.update.assetId === 'primitives')?.[0]
+            expect(removalCall).toBeTruthy()
+            expect(removalCall.update.type).toBe('Component Updated')
+            expect(removalCall.update.component?.tag).toBe('Remove')
+            expect(removalCall.update.component?.universalKey).toBe('KNOWLEDGE#knowledgeRoot')
         })
     })
 

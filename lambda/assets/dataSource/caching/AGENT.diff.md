@@ -9,7 +9,7 @@ The diff analysis process is the core mechanism that determines what changes nee
 The diff analysis is responsible for:
 - **Change Detection**: Identifying which components have been modified, added, or removed
 - **Incremental Updates**: Applying only the necessary changes to avoid full rewrites
-- **Component Classification**: Categorizing changes by type (remove, replace, character)
+- **Component Classification**: Categorizing changes where needed for DB operations (remove vs update)
 - **Optimization**: Minimizing database operations and processing time
 
 ## Technical Details
@@ -28,12 +28,13 @@ if (diff) {
 **Process Flow**:
 1. **Load Sources**: Retrieve cached data from DynamoDB and file data from S3
 2. **Generate Diff**: Compare the two StandardForm objects to identify differences
-3. **Classify Changes**: Categorize changes by type (StandardRemove, StandardReplace, StandardCharacter)
+3. **Classify Changes**: Categorize changes where needed for DB operations (StandardRemove vs update)
 4. **Apply Updates**: Process each change type with appropriate database operations
+5. **Stream Events (Unified)**: Stream all component changes as "Component Updated" events, including removals represented as `StandardRemove`
 
 ### Diff Types
 
-The diff analysis identifies three main types of component changes:
+The diff analysis identifies two main categories of component changes for DB operations:
 
 #### StandardRemove
 Components that have been removed from the asset:
@@ -75,27 +76,7 @@ await assetDB.putItem({
 - **Database**: PUT operation with new component data
 - **Validation**: Ensures component exists in file before updating
 
-#### StandardCharacter
-Character components that require special handling:
-
-```typescript
-const characterChanges = diff._components
-    .filter((component): component is StandardRemove | StandardReplace | StandardCharacter => {
-        if (component instanceof StandardRemove) {
-            return component._match instanceof StandardCharacter
-        }
-        if (component instanceof StandardReplace) {
-            return component._match instanceof StandardCharacter
-        }
-        return component instanceof StandardCharacter
-    })
-```
-
-**Characteristics**:
-- **Action**: Triggers Ephemera system events
-- **Trigger**: Character data changes or removal
-- **Events**: Character Updated/Removed notifications
-- **Integration**: Special handling for real-time state
+> Note: Characters are no longer treated specially in this flow. They follow the same unified streaming and cache invalidation rules as all components.
 
 ### Component Processing
 
@@ -159,24 +140,37 @@ await assetDB.optimisticUpdate({
 - **Optimistic Updates**: Uses optimistic locking for concurrent access
 - **Array Management**: Maintains cached asset list without duplicates
 
-### Character Event Processing
+### Unified Streaming and Cache Invalidation
 
-Character changes trigger special event processing for Ephemera integration:
+All component changes (including removals) are streamed as "Component Updated" events. Removals are represented by a `StandardRemove` payload which serializes to `<Remove>` WML. Component cache is invalidated for all changed components.
 
 ```typescript
-characterChanges.forEach((component) => {
-    const { universalKey } = component
-    if (universalKey && isEphemeraCharacterId(universalKey)) {
-        internalCache.ComponentData.invalidate(universalKey)
-    }
-})
-```
+// Stream all component diffs uniformly
+const componentsUpdated = diff._components
+    .filter((component) => (!!component.universalKey))
+    .map((component) => ({
+        type: 'Component Updated' as const,
+        assetId,
+        component
+    }))
 
-**Event Types**:
-- **Character Removed**: Published when characters are removed from assets
-- **Character Updated**: Published when character data changes
-- **Cache Invalidation**: Clears cached character data
-- **Ephemera Integration**: Triggers real-time state updates
+await Promise.all(
+    componentsUpdated.map((update) => streamEvent({
+        update,
+        streamKey: assetId,
+        detailType: 'Component Updated'
+    }))
+)
+
+// Invalidate cache for all affected components
+diff._components
+    .filter((component) => (!!component.universalKey))
+    .forEach(({ universalKey }) => {
+        if (universalKey) {
+            internalCache.ComponentData.invalidate(universalKey)
+        }
+    })
+```
 
 ## Error Handling
 
@@ -257,11 +251,11 @@ await assetDB.optimisticUpdate({
 3. **Check Diff**: Verify diff detects the change
 4. **Database Logs**: Review database operation logs
 
-#### Character Events Not Firing
-1. **Validate Character ID**: Ensure isEphemeraCharacterId returns true
+#### Component Events Not Firing
+1. **Verify Universal Key**: Ensure components have `universalKey`
 2. **Check EventBridge**: Verify event publishing
-3. **Review Cache**: Check ComponentData cache state
-4. **Ephemera Integration**: Confirm Ephemera system is listening
+3. **Review Cache**: Check `ComponentData` invalidation
+4. **Upstream Diff**: Confirm the diff contains expected components
 
 #### Performance Issues
 1. **Diff Analysis**: Check if diff is processing too many components

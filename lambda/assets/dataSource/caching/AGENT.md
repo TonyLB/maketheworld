@@ -9,9 +9,8 @@ The Assets Data Source Caching module provides the core synchronization mechanis
 The caching functions are responsible for:
 - **Asset Table Caching**: Synchronizing component data to the asset table as the new primary store
 - **Diff-Based Updates**: Identifying and applying only changed components
-- **Character Integration**: Special handling for character components with Ephemera system
 - **Cross-Reference Maintenance**: Updating component meta records for efficient queries
-- **Event Notification**: Triggering Ephemera system updates for character changes
+- **Unified Event Streaming**: Streaming all component changes as Component Updated (including removals)
 - **Asset Removal**: Cleaning up cached data when assets are removed
 
 ### Key Concepts
@@ -20,7 +19,6 @@ The caching functions are responsible for:
 - **Asset Table Focus**: Handles component data and metadata storage as the new primary store
 - **Dual Source Loading**: Retrieves data from both DynamoDB cache and S3 files
 - **Diff Analysis**: Compares cached and file data to identify changes
-- **Character Events**: Special handling for character components with Ephemera integration
 - **Optimistic Updates**: Uses optimistic locking for concurrent access
 
 ## Technical Details
@@ -32,17 +30,19 @@ The caching functions are responsible for:
 **Process Flow**:
 1. **Dual Source Loading**: Retrieves asset data from both DynamoDB cache and S3 files
 2. **Diff Analysis**: Compares cached data with file data to identify changes
-3. **Component Updates**: Updates individual component records in DynamoDB
+3. **Component Updates**: Updates or deletes individual component records in DynamoDB
 4. **Meta Updates**: Updates cross-asset component metadata
-5. **Character Integration**: Handles character-specific caching for Ephemera system
+5. **Unified Streaming**: Streams all component diffs as Component Updated events; removals are represented with `StandardRemove`
+6. **Cache Invalidation**: Invalidates `ComponentData` for all changed components
 
 #### `decacheAsset({ assetId, streamEvent }): Promise<void>`
 
 **Process Flow**:
-1. **Component Discovery**: Queries for all components associated with the asset
-2. **Component Removal**: Deletes component records from DynamoDB
-3. **Meta Updates**: Removes asset from component metadata cached lists
-4. **Cleanup**: Removes empty meta records when no assets remain
+1. **Load Current Cache**: Load current `StandardForm` from internal cache
+2. **Diff to Empty**: Diff against an empty `StandardForm` for the asset to generate `StandardRemove` edits
+3. **Component Removal**: Delete component records from DynamoDB based on diff
+4. **Meta Updates**: Remove asset from component metadata cached lists; delete empty meta when appropriate
+5. **Unified Streaming**: Stream each removal as a `Component Updated` event carrying `StandardRemove`
 
 ### Data Source Integration
 
@@ -103,24 +103,15 @@ The `cacheAsset` function uses a sophisticated diff analysis system to identify 
 **Key Concepts**:
 - **Change Detection**: Identifies modified, added, or removed components
 - **Incremental Updates**: Applies only necessary changes
-- **Component Classification**: Categorizes changes by type
+- **Component Classification**: Only distinguishes removes vs updates for DB ops; streaming is unified
 - **Optimization**: Minimizes database operations
-
-### Character Integration
-
-Character components receive special treatment due to their integration with the Ephemera system:
-
-**Character Events**:
-- **Character Removed**: Published when characters are removed from assets
-- **Character Updated**: Published when character data changes
-- **Ephemera Integration**: Triggers real-time state updates
 
 ## Integration Points
 
 ### Dependencies
 - **S3**: File storage for WML and JSON assets
 - **DynamoDB**: Asset and ephemera table storage
-- **EventBridge**: Character event notifications
+- **EventBridge**: Component and asset event notifications
 - **Internal Cache**: Asset data and component caching
 - **Asset Workspace**: S3 file loading and parsing
 - **WML Data Source**: Event triggers for content updates
@@ -134,7 +125,7 @@ Character components receive special treatment due to their integration with the
 - **[Message Bus](../../messageBus/)**: Event system integration
 
 ### API Contracts
-- **EventBridge Events**: Character removed/updated notifications
+- **EventBridge Events**: Component Updated (including `<Remove>` WML) and asset-level events
 - **DynamoDB Operations**: Put, delete, and optimistic updates
 - **WML Events**: Content update triggers
 
@@ -166,19 +157,10 @@ messageBus.send({
 })
 ```
 
-#### Character Component Handling
-```typescript
-// Character changes trigger Ephemera events automatically
-const characterChanges = diff._components
-    .filter((component) => component instanceof StandardCharacter)
-// Triggers Character Updated/Removed events
-```
-
 ### Best Practices
 1. **Event-Driven**: Let the data source handle event processing
-2. **Handle Character Events**: Ensure proper Ephemera integration
-3. **Use Optimistic Updates**: Leverage optimistic locking for concurrency
-4. **Validate Components**: Check for universalKey before processing
+2. **Use Optimistic Updates**: Leverage optimistic locking for concurrency
+3. **Validate Components**: Check for universalKey before processing
 
 ## Error Handling
 
@@ -186,7 +168,7 @@ const characterChanges = diff._components
 - **Missing Universal Keys**: Components without universalKey are skipped
 - **File Loading Errors**: Graceful fallback to empty StandardForm
 - **Database Errors**: Optimistic update conflicts and retries
-- **Character Validation**: Invalid character ID handling
+- **Cache Invalidation**: Ensure `ComponentData` is invalidated for all changed components
 
 ### Recovery Strategies
 - **Graceful Degradation**: Skip problematic components
@@ -199,9 +181,9 @@ const characterChanges = diff._components
 ### Current State
 - **Event-Driven Architecture**: Functions triggered by WML events
 - **Asset Table**: New primary store for component data and metadata
-- **Character Integration**: Complete Ephemera system integration
+- **Unified Streaming**: Component updates (including removals) are streamed uniformly
 - **Diff Processing**: Efficient change detection and application
-- **Event System**: Robust character event notifications
+- **Event System**: Unified component update notifications
 
 ### Known Limitations
 - **Transitional Complexity**: Coordination between two systems during migration
@@ -239,8 +221,7 @@ const characterChanges = diff._components
 ### Getting Started
 1. **Understand Event-Driven Flow**: Learn how WML events trigger caching
 2. **Study Diff Process**: Understand how changes are detected
-3. **Review Character Integration**: See how characters are handled
-4. **Check Event System**: Understand EventBridge notifications
+3. **Check Event System**: Understand EventBridge notifications
 
 ### Key Files
 - `cacheAsset.ts`: Main caching implementation
