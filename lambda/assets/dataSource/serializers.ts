@@ -5,7 +5,7 @@ import { StandardRemove, StandardReplace } from '@tonylb/mtw-wml/ts/standardize/
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
 // Internal types for component events (using StandardComponent objects)
-export type ComponentEventUpdate = ComponentUpdatedEvent | ComponentRemovedEvent
+export type ComponentEventUpdate = ComponentUpdatedEvent
 
 export type ComponentUpdatedEvent = {
     type: 'Component Updated'
@@ -13,19 +13,9 @@ export type ComponentUpdatedEvent = {
     component: StandardComponent // The actual component object for internal processing
 }
 
-export type ComponentRemovedEvent = {
-    type: 'Component Removed'
-    assetId: string
-    componentId: string
-}
-
 // Type guards for component events
 export const isComponentUpdatedEvent = (event: ComponentEventUpdate): event is ComponentUpdatedEvent => {
     return event.type === 'Component Updated'
-}
-
-export const isComponentRemovedEvent = (event: ComponentEventUpdate): event is ComponentRemovedEvent => {
-    return event.type === 'Component Removed'
 }
 
 // Type guards for assets events (full union type)
@@ -33,31 +23,21 @@ export const isAssetsComponentUpdatedEvent = (event: AssetsEventUpdate): event i
     return 'type' in event && event.type === 'Component Updated' && 'component' in event
 }
 
-export const isAssetsComponentRemovedEvent = (event: AssetsEventUpdate): event is ComponentRemovedEvent => {
-    return 'type' in event && event.type === 'Component Removed' && 'componentId' in event
-}
-
 export const isAssetsComponentEvent = (event: AssetsEventUpdate): event is ComponentEventUpdate => {
-    return isAssetsComponentUpdatedEvent(event) || isAssetsComponentRemovedEvent(event)
+    return isAssetsComponentUpdatedEvent(event)
 }
 
 export const isAssetsLevelEvent = (event: AssetsEventUpdate): event is AssetLevelEventUpdate => {
     return 'type' in event && ['CacheAsset', 'DecacheAsset', 'RemoveAsset', 'Canon Updated'].includes(event.type)
 }
 
-export type ComponentEventExternal = ComponentUpdatedEventExternal | ComponentRemovedEventExternal
+export type ComponentEventExternal = ComponentUpdatedEventExternal
 
 export type ComponentUpdatedEventExternal = {
     type: 'Component Updated'
     assetId: string
     componentId: string
     wml: string // Serialized WML for external consumption
-}
-
-export type ComponentRemovedEventExternal = {
-    type: 'Component Removed'
-    assetId: string
-    componentId: string
 }
 
 // Union type for all internal event updates in mtw.assets
@@ -106,13 +86,6 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
                 componentId: component.universalKey || '', // Extract componentId from component
                 wml: schemaToWML([component.schema])
             }
-        } else if (isAssetsComponentRemovedEvent(update)) {
-            const { assetId, componentId } = update
-            return {
-                type: 'Component Removed',
-                assetId,
-                componentId
-            }
         } else if (isAssetsLevelEvent(update)) {
             // This is an asset-level event - pass through as-is
             return update as AssetLevelEventExternal
@@ -136,13 +109,6 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
                 type: 'Component Updated',
                 assetId: streamKey,
                 component: this.parseWMLToComponent(updatedExternal.wml, updatedExternal.componentId)
-            }
-        } else if (externalUpdate.type === 'Component Removed') {
-            const removedExternal = externalUpdate as ComponentRemovedEventExternal
-            return {
-                type: 'Component Removed',
-                assetId: streamKey,
-                componentId: removedExternal.componentId
             }
         } else {
             // This is an asset-level event - pass through as-is

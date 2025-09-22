@@ -507,7 +507,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             })
         })
 
-        describe('Component Removed Events (via StandardRemove)', () => {
+        describe('Component Updated Events with StandardRemove', () => {
             it('should process Component Updated events with StandardRemove and not stream content header updates', async () => {
                 // Mock zone lookup
                 internalCacheMock.AssetMetaData.get.mockResolvedValue([{
