@@ -43,12 +43,10 @@ The characters data source uses `assetId` as the stream key, enabling:
 ### **Event Types**
 
 #### **Incoming Events** (from `mtw.assets`)
-- **Component Updated**: When components are updated, check if it's a character type
-- **Component Removed**: When components are removed, check if it's a character type
+- **Component Updated**: When components are updated, check if it's a character type (including `StandardRemove` and `StandardReplace` components where `_match` is a character)
 
 #### **Outgoing Events** (to EventBridge)
-- **Character Updated**: Published when character data changes within an asset
-- **Character Removed**: Published when characters are removed from assets
+- **Character Updated**: Published when character data changes within an asset (including removals via `StandardRemove` components)
 
 ## Implementation Design
 
@@ -71,7 +69,7 @@ export class CharactersDataSource extends AssetsDataSource<
                        typeof event.event === 'object' &&
                        event.event.update &&
                        typeof event.event.update === 'object' &&
-                       ['Component Updated', 'Component Removed'].includes(event.event.update.type)
+                       event.event.update.type === 'Component Updated'
             },
             snapshotContentGenerator: async (streamKey: string) => {
                 // Generate character listing snapshot as WML string for client subscriptions
@@ -91,13 +89,10 @@ export class CharactersDataSource extends AssetsDataSource<
 The sub-source will process incoming component events to detect character-specific changes:
 
 1. **Component Updated Events**: 
-   - Check if the component is a character type (using component tag or type checking)
-   - If character, generate `Character Updated` event with structured payload containing detailType, characterId, and WML data
+   - Check if the component is a character type (including `StandardRemove` and `StandardReplace` components where `_match` is a character)
+   - If character-related, generate `Character Updated` event with structured payload containing detailType, characterId, and WML data
    - Extract character ID from component information (assetId available as streamKey)
-
-2. **Component Removed Events**:
-   - Check if the component is a character type
-   - If character, generate `Character Removed` event with structured payload containing detailType, characterId, and WML data
+   - Handle removals by extracting the matched character from `StandardRemove` components
 
 ### **Event Payload Structure**
 
@@ -110,7 +105,7 @@ type CharacterEventPayload = {
     event: {
         streamKey: string
         update: {
-            type: 'Component Updated' | 'Component Removed'
+            type: 'Component Updated'
             assetId: string
             component: StandardCharacter | undefined // undefined for removed components
         }
@@ -121,7 +116,7 @@ type CharacterEventPayload = {
 
 // External format (for EventBridge publishing via serializer)
 type CharacterEventExternal = {
-    detailType: 'Character Updated' | 'Character Removed'
+    detailType: 'Character Updated'
     characterId: string
     wml: string // WML string containing character data
 }
@@ -150,12 +145,12 @@ type CharacterSnapshotPayload = {
 
 ### **Event Subscription**
 - **Source**: `mtw.assets` data source
-- **Event Types**: `Component Updated`, `Component Removed`
+- **Event Types**: `Component Updated` (including `StandardRemove` components)
 - **Processing**: Filters for character component types and generates appropriate character events
 
 ### **Event Publishing**
 - **Target**: EventBridge (live events) + SNS (replay events)
-- **Event Types**: `Character Updated`, `Character Removed`
+- **Event Types**: `Character Updated` (including removals via `StandardRemove` components)
 - **Consumers**: Downstream systems that need character change notifications
 - **Client Subscriptions**: UI components that need character listings for player selection
 
