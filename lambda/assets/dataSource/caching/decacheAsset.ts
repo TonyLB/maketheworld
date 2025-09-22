@@ -1,6 +1,9 @@
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
-import { isEphemeraId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { ComponentEventUpdate, ComponentRemovedEvent } from "../serializers"
+import { ComponentEventUpdate, ComponentUpdatedEvent } from "../serializers"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import internalCache from "../../internalCache"
+import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
+import { StandardRemove } from "@tonylb/mtw-wml/ts/standardize/components/edits"
 
 /**
  * Remove asset content from DynamoDB storage
@@ -21,21 +24,30 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
         detailType: string;
     }) => Promise<void>;
 }): Promise<void> => {
-    const componentIds = await assetDB.query<{ AssetId: string; DataCategory: string }>({
-        Key: { DataCategory: `ASSET#${assetId}` },
-        IndexName: "DataCategoryIndex"
-    })
-    
-    const componentsToRemove = componentIds.filter(({ AssetId }) => (isEphemeraId(AssetId)))
-    
-    // Database operations first
-    await Promise.all(componentsToRemove.map(async (componentKey) => (
-        Promise.all([
-            assetDB.deleteItem(componentKey),
+    const assetUUID = AssetKey(assetId)
+    // Load current cached asset form and synthesize an empty form to diff against
+    const dbAsset = await internalCache.AssetData
+        .get([assetUUID])
+        .then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset key=(${assetId}) />`)))
+    const emptyAsset = new StandardForm(`<Asset key=(${assetId}) />`)
+
+    const diff = dbAsset.diff(emptyAsset)
+    if (!diff) {
+        return
+    }
+
+    // For each removal in the diff, delete DB record, update metadata, and emit as Component Updated with StandardRemove
+    await Promise.all(diff._components.map(async (component) => {
+        if (!(component instanceof StandardRemove) || !component.universalKey) {
+            return
+        }
+        const universalKey = component.universalKey
+        await Promise.all([
+            assetDB.deleteItem({ AssetId: universalKey, DataCategory: assetUUID }),
             assetDB.optimisticUpdate({
                 Key: {
-                    AssetId: componentKey.AssetId,
-                    DataCategory: `Meta::${componentKey.AssetId[0]}${componentKey.AssetId.slice(1).split('#')[0].toLocaleLowerCase()}`,
+                    AssetId: universalKey,
+                    DataCategory: `Meta::${universalKey[0]}${universalKey.slice(1).split('#')[0].toLocaleLowerCase()}`,
                 },
                 updateKeys: ['cached'],
                 updateReducer: (draft) => {
@@ -47,19 +59,16 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
                 deleteCondition: (draft) => (draft.cached.length === 0)
             })
         ])
-    )))
-    
-    // Component Removed streaming events
-    await Promise.all(componentsToRemove.map(({ AssetId: componentId }) => {
-        const componentRemovedEvent: ComponentRemovedEvent = {
-            type: 'Component Removed',
+
+        const componentUpdatedEvent: ComponentUpdatedEvent = {
+            type: 'Component Updated',
             assetId,
-            componentId
+            component
         }
-        return streamEvent({
-            update: componentRemovedEvent,
+        await streamEvent({
+            update: componentUpdatedEvent,
             streamKey: assetId,
-            detailType: 'Component Removed'
+            detailType: 'Component Updated'
         })
     }))
 }

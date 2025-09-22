@@ -1,5 +1,8 @@
 import { decacheAsset } from './decacheAsset'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import internalCache from '../../internalCache'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     assetDB: {
@@ -9,7 +12,17 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     }
 }))
 
+jest.mock('../../internalCache', () => ({
+    __esModule: true,
+    default: {
+        AssetData: {
+            get: jest.fn()
+        }
+    }
+}))
+
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
+const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 
 // Mock streamEvent function
 const mockStreamEvent = jest.fn()
@@ -21,10 +34,16 @@ describe('Decache Asset (Data Source)', () => {
     })
 
     it('should remove all components associated with an asset', async () => {
-        // Mock query to return components
-        assetDBMock.query.mockResolvedValue([
-            { AssetId: 'ROOM#VORTEX', DataCategory: 'ASSET#Test' },
-            { AssetId: 'KNOWLEDGE#knowledgeRoot', DataCategory: 'ASSET#Test' }
+        internalCacheMock.AssetData.get.mockResolvedValueOnce([
+            {
+                AssetId: 'ASSET#Test',
+                standardForm: new StandardForm(deIndentWML(`
+                    <Asset key=(Test)>
+                        <Room key=(VORTEX) uuid=(VORTEX) />
+                        <Knowledge key=(knowledgeRoot) uuid=(knowledgeRoot) />
+                    </Asset>
+                `))
+            }
         ])
 
         await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
@@ -43,62 +62,23 @@ describe('Decache Asset (Data Source)', () => {
         // Should call optimisticUpdate for each component to remove from cached lists
         expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
 
-        // Should emit Component Removed streaming events for each component
-        expect(mockStreamEvent).toHaveBeenCalledWith({
-            update: {
-                type: 'Component Removed',
-                assetId: 'Test',
-                componentId: 'ROOM#VORTEX'
-            },
-            streamKey: 'Test',
-            detailType: 'Component Removed'
-        })
-        expect(mockStreamEvent).toHaveBeenCalledWith({
-            update: {
-                type: 'Component Removed',
-                assetId: 'Test',
-                componentId: 'KNOWLEDGE#knowledgeRoot'
-            },
-            streamKey: 'Test',
-            detailType: 'Component Removed'
-        })
-    })
-
-    it('should filter out non-ephemera components', async () => {
-        // Mock query to return mix of ephemera and non-ephemera components
-        assetDBMock.query.mockResolvedValue([
-            { AssetId: 'ROOM#VORTEX', DataCategory: 'ASSET#Test' }, // Ephemera component
-            { AssetId: 'NONEPHEMERA#123', DataCategory: 'ASSET#Test' } // Non-ephemera component
-        ])
-
-        await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
-
-        // Should only call deleteItem for ephemera components
-        expect(assetDBMock.deleteItem).toHaveBeenCalledTimes(1)
-        expect(assetDBMock.deleteItem).toHaveBeenCalledWith({
-            AssetId: 'ROOM#VORTEX',
-            DataCategory: 'ASSET#Test'
-        })
-
-        // Should only call optimisticUpdate for ephemera components
-        expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
-
-        // Should only emit Component Removed event for ephemera components
-        expect(mockStreamEvent).toHaveBeenCalledTimes(1)
-        expect(mockStreamEvent).toHaveBeenCalledWith({
-            update: {
-                type: 'Component Removed',
-                assetId: 'Test',
-                componentId: 'ROOM#VORTEX'
-            },
-            streamKey: 'Test',
-            detailType: 'Component Removed'
-        })
+        // Should emit Component Updated events with StandardRemove payloads for each component
+        const calls = mockStreamEvent.mock.calls.map(([arg]) => arg)
+        const updatedCalls = calls.filter((arg) => arg.detailType === 'Component Updated' && arg.update.type === 'Component Updated')
+        expect(updatedCalls.length).toBe(2)
+        const keys = updatedCalls.map((arg) => arg.update.component.universalKey)
+        expect(keys).toEqual(expect.arrayContaining(['ROOM#VORTEX', 'KNOWLEDGE#knowledgeRoot']))
     })
 
     it('should handle empty component list', async () => {
-        // Mock query to return empty list
-        assetDBMock.query.mockResolvedValue([])
+        internalCacheMock.AssetData.get.mockResolvedValueOnce([
+            {
+                AssetId: 'ASSET#Test',
+                standardForm: new StandardForm(deIndentWML(`
+                    <Asset key=(Test) />
+                `))
+            }
+        ])
 
         await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
 
@@ -111,9 +91,15 @@ describe('Decache Asset (Data Source)', () => {
     })
 
     it('should update component metadata to remove asset from cached lists', async () => {
-        // Mock query to return components
-        assetDBMock.query.mockResolvedValue([
-            { AssetId: 'ROOM#VORTEX', DataCategory: 'ASSET#Test' }
+        internalCacheMock.AssetData.get.mockResolvedValueOnce([
+            {
+                AssetId: 'ASSET#Test',
+                standardForm: new StandardForm(deIndentWML(`
+                    <Asset key=(Test)>
+                        <Room key=(VORTEX) uuid=(VORTEX) />
+                    </Asset>
+                `))
+            }
         ])
 
         await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
@@ -131,17 +117,20 @@ describe('Decache Asset (Data Source)', () => {
     })
 
     it('should handle asset ID with ASSET# prefix', async () => {
-        // Mock query to return components
-        assetDBMock.query.mockResolvedValue([
-            { AssetId: 'ROOM#VORTEX', DataCategory: 'ASSET#TestAsset' }
+        internalCacheMock.AssetData.get.mockResolvedValueOnce([
+            {
+                AssetId: 'ASSET#TestAsset',
+                standardForm: new StandardForm(deIndentWML(`
+                    <Asset key=(TestAsset)>
+                        <Room key=(VORTEX) uuid=(VORTEX) />
+                    </Asset>
+                `))
+            }
         ])
 
         await decacheAsset({ assetId: 'ASSET#TestAsset', streamEvent: mockStreamEvent })
 
-        // Should call query with correct DataCategory
-        expect(assetDBMock.query).toHaveBeenCalledWith({
-            Key: { DataCategory: 'ASSET#ASSET#TestAsset' },
-            IndexName: "DataCategoryIndex"
-        })
+        // Decache now derives from internal cache diff; query path is no longer used here
+        expect(assetDBMock.query).not.toHaveBeenCalled()
     })
 })

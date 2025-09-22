@@ -91,14 +91,15 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
         )
 
         // Prepare component-level events with StandardComponent objects
-        const componentsRemoved = diff._components
+        // Emit removals as Component Updated events with StandardRemove payloads
+        const componentsRemovedAsUpdates = diff._components
             .filter((component): component is StandardRemove => (
                 !!component.universalKey && component instanceof StandardRemove
             ))
-            .map((component): ComponentRemovedEvent => ({ 
-                type: 'Component Removed',
+            .map((component): ComponentUpdatedEvent => ({ 
+                type: 'Component Updated',
                 assetId,
-                componentId: component.universalKey as string
+                component
             }))
         const componentsUpdated = diff._components
             .filter((component) => (!!component.universalKey && !(component instanceof StandardRemove)))
@@ -128,11 +129,11 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
         
         // Stream component events with StandardComponent objects; Character events will be handled by mtw.assets.characters data source
         await Promise.all([
-            ...(componentsRemoved.map((componentRemovedEvent) => (
+            ...(componentsRemovedAsUpdates.map((componentUpdatedEvent) => (
                 streamEvent({
-                    update: componentRemovedEvent,
+                    update: componentUpdatedEvent,
                     streamKey: assetId,
-                    detailType: 'Component Removed'
+                    detailType: 'Component Updated'
                 })
             ))),
             ...(componentsUpdated.map((componentUpdatedEvent) => (
