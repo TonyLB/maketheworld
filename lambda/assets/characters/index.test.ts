@@ -6,6 +6,7 @@ import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
+import { CharacterEventSerializer } from './serializers'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 
 // Mock external dependencies used by the assets DataSource base class and lambda
@@ -301,23 +302,24 @@ describe('CharactersDataSource', () => {
             expect(serializedUpdate.wml).toEqual(deIndentWML(`<Character uuid=(char123)><ShortName>Test Character</ShortName></Character>`))
         })
 
-        it('should serialize Character Removed events to EventBridge with WML', async () => {
+        it('should serialize Character removals as Character Updated events with StandardRemove', async () => {
             const component = new StandardCharacter({
                 tag: 'Character',
                 shortName: 'Removed Character',
                 universalKey: 'CHARACTER#char456'
             })
+            const removeComponent = new StandardRemove(component)
 
             // Mock the assetDB.putItem call that streamEvent needs
             assetDBMock.putItem.mockResolvedValue({})
 
             await dataSource.streamEvent({
                 update: {
-                    type: 'Character Removed',
-                    characterId: 'CHARACTER#char456'
+                    type: 'Character Updated',
+                    component: removeComponent
                 },
                 streamKey: 'ASSET#asset456',
-                detailType: 'Character Removed'
+                detailType: 'Character Updated'
             })
 
             // Verify EventBridge event structure and serialization
@@ -325,12 +327,12 @@ describe('CharactersDataSource', () => {
                 expect.arrayContaining([
                     expect.objectContaining({
                         Source: 'mtw.assets.characters',
-                        DetailType: 'Character Removed',
+                        DetailType: 'Character Updated',
                         Detail: expect.objectContaining({
                             streamKey: 'ASSET#asset456',
                             update: expect.objectContaining({
-                                characterId: 'CHARACTER#char456'
-                                // No wml field for removal events
+                                characterId: 'CHARACTER#char456',
+                                wml: expect.stringContaining('<Remove>')
                             })
                         })
                     })
@@ -341,7 +343,7 @@ describe('CharactersDataSource', () => {
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
             const serializedUpdate = eventBridgeCall.Detail.update
             expect(serializedUpdate.characterId).toBe('CHARACTER#char456')
-            expect(serializedUpdate.wml).toBeUndefined() // No WML content for removal events
+            expect(serializedUpdate.wml).toContain('<Remove>')
         })
 
         it('should handle serialization of complex Character objects', async () => {
@@ -400,6 +402,28 @@ describe('CharactersDataSource', () => {
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
             expect(eventBridgeCall.DetailType).toBe('Character Updated')
             expect(eventBridgeCall.Source).toBe('mtw.assets.characters')
+        })
+
+        it('should deserialize WML back to StandardComponent objects', async () => {
+            const serializer = new CharacterEventSerializer()
+            
+            const testWML = '<Character uuid=(char123)><ShortName>Test Character</ShortName></Character>'
+            const externalUpdate = {
+                characterId: 'CHARACTER#char123' as `CHARACTER#${string}`,
+                wml: testWML
+            }
+            
+            const result = serializer.deserialize({
+                dataSourceKey: 'mtw.assets.characters',
+                detailType: 'Character Updated',
+                streamKey: 'ASSET#asset123',
+                externalUpdate
+            })
+            
+            expect(result).not.toBeNull()
+            expect(result?.type).toBe('Character Updated')
+            expect(result?.component.tag).toBe('Character')
+            expect(result?.component.universalKey).toBe('CHARACTER#char123')
         })
     })
 
