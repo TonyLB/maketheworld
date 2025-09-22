@@ -1,14 +1,10 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import internalCache from "../../internalCache";
 import AssetWorkspace from "@tonylb/mtw-asset-workspace";
-import { StandardRemove, StandardReplace } from "@tonylb/mtw-wml/ts/standardize/components/edits";
+import { StandardRemove } from "@tonylb/mtw-wml/ts/standardize/components/edits";
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
-import StandardCharacter from "@tonylb/mtw-wml/ts/standardize/components/character";
-import { isEphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses";
-import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists";
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
-import { schemaToWML } from "@tonylb/mtw-wml/ts/schema";
-import { ComponentEventUpdate, ComponentRemovedEvent, ComponentUpdatedEvent } from "../serializers";
+import { ComponentEventUpdate, ComponentUpdatedEvent } from "../serializers";
 
 /**
  * Cache asset content to DynamoDB storage
@@ -90,59 +86,33 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             })
         )
 
-        // Prepare component-level events with StandardComponent objects
-        // Emit removals as Component Updated events with StandardRemove payloads
-        const componentsRemovedAsUpdates = diff._components
-            .filter((component): component is StandardRemove => (
-                !!component.universalKey && component instanceof StandardRemove
-            ))
-            .map((component): ComponentUpdatedEvent => ({ 
+        // Prepare component-level events with StandardComponent objects (same for removes and updates)
+        const componentsUpdated = diff._components
+            .filter((component) => (!!component.universalKey))
+            .map((component): ComponentUpdatedEvent => ({
                 type: 'Component Updated',
                 assetId,
                 component
             }))
-        const componentsUpdated = diff._components
-            .filter((component) => (!!component.universalKey && !(component instanceof StandardRemove)))
-            .map((component): ComponentUpdatedEvent => ({
-                type: 'Component Updated',
-                assetId,
-                component: component // The actual StandardComponent object
-            }))
         
-        const characterChanges = diff._components
-            .filter((component): component is StandardRemove | StandardReplace | StandardCharacter => {
-                if (component instanceof StandardRemove) {
-                    return component._match instanceof StandardCharacter
+        // Invalidate component cache for all updated components
+        diff._components
+            .filter((component) => (!!component.universalKey))
+            .forEach(({ universalKey }) => {
+                if (universalKey) {
+                    internalCache.ComponentData.invalidate(universalKey)
                 }
-                if (component instanceof StandardReplace) {
-                    return component._match instanceof StandardCharacter
-                }
-                return component instanceof StandardCharacter
             })
-            
-        characterChanges.forEach((component) => {
-            const { universalKey } = component
-            if (universalKey && isEphemeraCharacterId(universalKey)) {
-                internalCache.ComponentData.invalidate(universalKey)
-            }
-        })
         
         // Stream component events with StandardComponent objects; Character events will be handled by mtw.assets.characters data source
-        await Promise.all([
-            ...(componentsRemovedAsUpdates.map((componentUpdatedEvent) => (
+        await Promise.all(
+            componentsUpdated.map((componentUpdatedEvent) => (
                 streamEvent({
                     update: componentUpdatedEvent,
                     streamKey: assetId,
                     detailType: 'Component Updated'
                 })
-            ))),
-            ...(componentsUpdated.map((componentUpdatedEvent) => (
-                streamEvent({
-                    update: componentUpdatedEvent,
-                    streamKey: assetId,
-                    detailType: 'Component Updated'
-                })
-            )))
-        ])
+            ))
+        )
     }
 }
