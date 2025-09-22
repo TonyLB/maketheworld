@@ -5,7 +5,7 @@ import {
     ContentHeadersUpdate
 } from './baseClasses'
 import { ContentHeadersEventSerializer } from './serializers'
-import { ComponentEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent } from '../dataSource/serializers'
+import { ComponentEventUpdate, ComponentUpdatedEvent } from '../dataSource/serializers'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -22,7 +22,7 @@ import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 // enabling content discovery and import workflows during the Bootstrapping phase.
 // 
 // Key responsibilities:
-// - Subscribe to mtw.assets events (Component Updated, Component Removed)
+// - Subscribe to mtw.assets events (Component Updated with StandardRemove for removals)
 // - Generate content headers snapshots for new subscribers
 // - Stream content header updates for real-time UI synchronization
 // - Maintain zone-based organization (Canon, Library, Personal)
@@ -48,7 +48,7 @@ const isSubscribedAssetsEvent = (event: StreamingEventPayload): event is Subscri
         event.event.update &&
         typeof event.event.update === 'object' &&
         event.event.update.type &&
-        ['Component Updated', 'Component Removed'].includes(event.event.update.type)
+        event.event.update.type === 'Component Updated'
     )
 }
 
@@ -135,19 +135,6 @@ export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnaps
                     eventsByAsset.set(assetId as AssetUUID, [])
                 }
                 eventsByAsset.get(assetId as AssetUUID)!.push(event)
-            } else if (event.event.update.type === 'Component Removed') {
-                const componentRemoval = event.event.update as ComponentRemovedEvent
-                const { assetId } = componentRemoval
-                
-                if (!assetId) {
-                    console.warn('Component Removed event missing assetId, skipping')
-                    continue
-                }
-                
-                if (!eventsByAsset.has(assetId as AssetUUID)) {
-                    eventsByAsset.set(assetId as AssetUUID, [])
-                }
-                eventsByAsset.get(assetId as AssetUUID)!.push(event)
             } else {
                 // Defensive programming: handle unexpected event types
                 console.warn(`Unhandled event type in content headers data source: ${(event.event.update as any).type}`)
@@ -212,61 +199,6 @@ async function getAssetZone(assetId: AssetUUID): Promise<'Canon' | 'Library' | '
 }
 
 /**
- * Create a content headers update from a component
- */
-function createContentHeadersUpdate(
-    assetId: AssetUUID, 
-    zone: 'Canon' | 'Library' | 'Personal', 
-    component: any
-): ContentHeadersUpdate | null {
-    try {
-        // Extract header information from the component
-        const headerComponent = extractHeader(component)
-        if (!headerComponent) {
-            // Component doesn't have a shortName or is not suitable for headers
-            return null
-        }
-
-        // Create a minimal StandardForm with just the header component
-        const standardForm = new StandardForm([
-            { tag: 'Asset', key: assetId.split('#')[1], universalKey: assetId },
-            headerComponent.toJSON()
-        ])
-
-        return {
-            type: 'Headers Updated',
-            assetId,
-            zone,
-            standardForm
-        }
-    } catch (error) {
-        console.error(`Error creating content headers update for asset ${assetId}:`, error)
-        return null
-    }
-}
-
-/**
- * Create a StandardForm representing a component removal
- */
-function createRemovalStandardForm(componentId: string): StandardForm {
-    try {
-        // Create a minimal StandardForm for component removal
-        // For now, we'll create a simple asset structure
-        // The actual removal logic will be handled by the snapshot generation
-        const assetKey = componentId.split('#')[1] || 'unknown'
-        return new StandardForm([
-            { tag: 'Asset', key: assetKey, universalKey: `ASSET#${assetKey}` }
-        ])
-    } catch (error) {
-        console.error(`Error creating removal StandardForm for component ${componentId}:`, error)
-        // Return a minimal StandardForm on error
-        return new StandardForm([
-            { tag: 'Asset', key: 'unknown', universalKey: 'ASSET#unknown' }
-        ])
-    }
-}
-
-/**
  * Create an aggregated content header update from multiple events for the same asset
  */
 function createAggregatedContentHeadersUpdate(
@@ -294,18 +226,6 @@ function createAggregatedContentHeadersUpdate(
                 if (headerComponent) {
                     headerComponents.push(headerComponent)
                 }
-            } else if (event.event.update.type === 'Component Removed') {
-                const componentRemoval = event.event.update as ComponentRemovedEvent
-                const { componentId } = componentRemoval
-                
-                if (!componentId) {
-                    console.warn(`Component Removed event for asset ${assetId} missing componentId, skipping`)
-                    continue
-                }
-                
-                // For component removal, we'll create a minimal representation
-                // The actual removal logic will be handled by the snapshot generation
-                console.log(`Component ${componentId} removed from asset ${assetId}`)
             }
         }
         
@@ -317,7 +237,7 @@ function createAggregatedContentHeadersUpdate(
         // Create a StandardForm with all the header components
         const standardForm = new StandardForm([
             { tag: 'Asset', key: assetKey, universalKey: assetId },
-            ...headerComponents
+            ...headerComponents.map(component => component.toJSON())
         ])
         
         return {

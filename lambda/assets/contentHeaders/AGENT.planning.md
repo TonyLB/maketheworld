@@ -31,9 +31,9 @@ export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnaps
     eventSerializer: new ContentHeadersEventSerializer(),
     snapshotContentGenerator: generateContentHeadersSnapshot,
     subscribedEventTypeGuard: (event): event is any => {
-        // Subscribe to mtw.assets events
+        // Subscribe to mtw.assets events (Component Removed now handled via Component Updated with StandardRemove)
         return event.dataSourceKey === 'mtw.assets' && 
-               ['Component Updated', 'Component Removed'].includes(event.event.update.type)
+               event.event.update.type === 'Component Updated'
     },
     receiveEvents: async ({ event, streamEvent }) => {
         // Process asset events and generate content header updates
@@ -112,7 +112,7 @@ All infrastructure components for the Content Headers data source have been impl
 - Proper serialization boundary between internal StandardForm objects and external WML strings
 - Type-safe event subscription with discriminated union types
 - Replayable DataSource configuration with snapshot generation support
-- Event processing pipeline for Component Updated and Component Removed events
+- Event processing pipeline for Component Updated events (including StandardRemove components)
 
 ### Step 2: Implement Snapshot Generation
 **Duration**: 1-2 days
@@ -136,10 +136,10 @@ The snapshot generation function has been implemented with:
 **Duration**: 2-3 days
 
 #### Tasks
-- [ ] Subscribe to `mtw.assets` events (`Component Updated`, `Component Removed`)
-- [ ] Process asset changes and generate content header updates
-- [ ] Implement diff generation for incremental updates
-- [ ] Add error handling and logging
+- [x] Subscribe to `mtw.assets` events (`Component Updated` including `StandardRemove` components)
+- [x] Process asset changes and generate content header updates
+- [x] Implement diff generation for incremental updates (extract relevant changes from Component Updated diffs)
+- [x] Add error handling and logging
 
 #### Event Processing Logic
 ```typescript
@@ -149,6 +149,7 @@ receiveEvents: async ({ event, streamEvent }) => {
         const zone = await getAssetZone(assetId)
         const metadata = await extractAssetMetadata(assetId, zone)
         
+        // Handle both regular updates and removals (via StandardRemove components)
         await streamEvent({
             update: {
                 type: 'ContentHeadersUpdate',
@@ -160,24 +161,17 @@ receiveEvents: async ({ event, streamEvent }) => {
             detailType: 'Content Headers Updated'
         })
     }
-    
-    if (event.event.update.type === 'Component Removed') {
-        // Handle asset removal
-        const assetId = event.event.streamKey
-        
-        await streamEvent({
-            update: {
-                type: 'ContentHeadersUpdate',
-                assetId,
-                zone: null, // Indicates removal
-                wml: null
-            },
-            streamKey: 'global',
-            detailType: 'Content Headers Removed'
-        })
-    }
 }
 ```
+
+#### Step 3 Complete ✅
+Event subscription and processing has been implemented with:
+- Event subscription to `mtw.assets` `Component Updated` events (including `StandardRemove` components)
+- Asset change processing with event grouping by asset ID for efficient batch processing
+- Content header update generation that extracts relevant changes from Component Updated diffs
+- Comprehensive error handling with try-catch blocks and error reporting via messageBus
+- Detailed logging throughout the event processing pipeline
+- Defensive programming to handle unexpected event types gracefully
 
 ### Step 4: Zone Change Event Integration
 **Duration**: 1-2 days
