@@ -1,3 +1,7 @@
+import { wmlDataSource as wmlDataSourceInstance } from './mtw-wml'
+
 export { WMLDataSource } from './abstract'
-export { wmlDataSource, WMLEventSerializer } from './mtw-wml'
+export { WMLEventSerializer } from './serializers'
+
+export const wmlDataSource = wmlDataSourceInstance
 export default wmlDataSource
