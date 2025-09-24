@@ -45,6 +45,7 @@ The event flow documentation work **has not yet been done**. The WML Lambda curr
 - Parsed content delivery to Assets Lambda for caching
 - Validation results and error notifications
 - Content state synchronization events
+- **Asset Zone Transition events via EventBridge (mtw.wml source)** - *Future: Zone management authority migration*
 
 ### **Event Flow Analysis**
 
@@ -61,6 +62,7 @@ The event flow documentation work **has not yet been done**. The WML Lambda curr
 - Assets Lambda integration for content caching
 - Client-side real-time content collaboration support
 - Cross-system content dependency management
+- **Zone transition coordination with Assets Lambda** - *Future: WML-driven zone management*
 
 #### **Consistency and Reliability**
 - Atomic edit application and transaction coordination
@@ -108,6 +110,7 @@ Based on the **Domain-Authoritative Event Mesh** pattern identified in [`../../A
 - **Authorization Update Events**: Permission change propagation patterns
 - **Merge Conflict Events**: Failed edit coordination and resolution workflows
 - **Event Schema Documentation**: Standardize event contracts for downstream consumers
+- **Asset Zone Transition Events**: Zone change event generation and streaming patterns - *Future: Zone management migration*
 
 ### **Priority 3: Assets Lambda Coordination**
 **Focus**: Document the specific coordination patterns with Assets Lambda materialized views
@@ -115,6 +118,65 @@ Based on the **Domain-Authoritative Event Mesh** pattern identified in [`../../A
 - **Dependency Tracking**: How WML changes propagate through component relationships
 - **Consistency Guarantees**: What consistency promises are made to downstream consumers
 - **Performance Coordination**: Batching, throttling, and optimization patterns
+- **Zone Transition Coordination**: How zone changes trigger Assets cache invalidation and updates - *Future: WML-driven zone management*
+
+## Future Development: Zone Management Migration
+
+### **Zone Authority Migration to WML Lambda**
+
+As documented in [`AGENT.s3Storage.md`](AGENT.s3Storage.md), the WML Lambda is planned to take ownership of zone management operations, moving `moveAsset` functionality from the Assets Lambda to maintain clean domain boundaries. This migration will significantly impact event streaming patterns.
+
+### **Current Zone Management (Assets Lambda)**
+- **Zone Transitions**: Assets Lambda handles `moveAsset` operations
+- **Shared Authority**: Both WML and Assets lambdas write to `Meta::Asset` records
+- **Event Coordination**: Assets Lambda manages zone-related cache updates and notifications
+
+### **Future Zone Management (WML Lambda)**
+- **Zone Authority**: WML Lambda becomes sole authority for zone information and transitions
+- **S3 Metadata**: Zone information stored as S3 object metadata rather than folder structure
+- **Event-Driven Coordination**: Assets Lambda responds to WML zone transition events
+
+### **Event Streaming Implications**
+
+#### **New Event Types**
+- **Asset Zone Transition Events**: WML Lambda publishes zone change events via EventBridge
+- **Zone Metadata Update Events**: S3 metadata changes trigger downstream cache updates
+- **Zone Access Control Events**: Zone changes affect Assets Lambda access control logic
+
+#### **Event Flow Changes**
+```
+Current: Client → Assets Lambda → WML Lambda (zone transition)
+Future:  Client → WML Lambda → EventBridge → Assets Lambda (zone transition response)
+```
+
+#### **Streaming Integration Points**
+- **Assets Lambda**: Subscribes to zone transition events for cache invalidation
+- **Ephemera Lambda**: Receives zone changes affecting character access patterns
+- **Client Systems**: Real-time updates for zone-based content visibility
+- **Audit Systems**: Zone transition history for compliance and monitoring
+
+#### **Event Schema Considerations**
+- **Zone Transition Events**: Must include source/destination zones, asset metadata, and transition context
+- **Backward Compatibility**: Existing event consumers must handle new zone event types
+- **Performance Optimization**: Batch zone transitions to minimize event volume
+- **Error Handling**: Zone transition failures must trigger appropriate rollback events
+
+### **Migration Event Coordination**
+
+#### **Phase 1: Event Infrastructure**
+- Implement zone transition event publishing in WML Lambda
+- Update Assets Lambda to subscribe to zone transition events
+- Maintain dual zone management during transition period
+
+#### **Phase 2: Authority Transfer**
+- Move zone transition logic from Assets to WML Lambda
+- Update event schemas to reflect new zone authority
+- Ensure event-driven coordination works correctly
+
+#### **Phase 3: Cleanup and Optimization**
+- Remove duplicate zone management code from Assets Lambda
+- Optimize event streaming patterns for zone transitions
+- Update monitoring and diagnostic systems
 
 ## Future Work Requirements
 
@@ -124,12 +186,14 @@ Based on the **Domain-Authoritative Event Mesh** pattern identified in [`../../A
 3. **Content Removed Event Implementation**: Implement and document Content Removed event publishing for asset deletion/archival - *TODO: High Priority*
 4. **Integration Flow Mapping**: Analyze coordination with Assets Lambda and client systems **(supports Priority 3)**
 5. **Concurrency Analysis**: Review atomic locking and concurrent access patterns **(supports Priority 1)**
+6. **Zone Management Migration Planning**: Design WML-driven zone transition event patterns and Assets coordination - *Future: Zone authority migration*
 
 ### **Design Phase**
 1. **Content Event Standardization**: Establish consistent WML processing event patterns **(supports Priority 2)**
 2. **Integration Strategy**: Design improved coordination with Assets and Ephemera systems **(supports Priority 3)**
 3. **Error Handling Framework**: Plan comprehensive content error and recovery event handling **(supports Priority 1)**
 4. **Performance Optimization**: Design event processing performance improvements **(supports Priority 3)**
+5. **Zone Transition Event Architecture**: Design event-driven zone management with Assets Lambda coordination - *Future: Zone authority migration*
 
 ### **Implementation Tracking**
 Future updates to this document should track:
@@ -138,6 +202,7 @@ Future updates to this document should track:
 - Enhanced integration with real-time authoring collaboration
 - Improved conflict resolution and concurrent editing support
 - Event processing monitoring and diagnostic capabilities
+- **Zone management migration progress**: Implementation of WML-driven zone transitions and Assets Lambda coordination
 
 ## Navigation Notes
 
