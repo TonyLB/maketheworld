@@ -2,6 +2,14 @@ import { WMLDataSource } from './abstract'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { WMLEventSerializer } from './serializers'
+import { moveAsset, MoveAssetRequest, isMoveAssetRequest } from './moveAsset'
+
+// Union type constraint for legitimate incoming subscribed events
+type WMLSubscribedEvent = StreamingEventPayload & {
+    dataSourceKey: 'internal'
+    detailType: 'moveAssets'
+    event: { update: MoveAssetRequest }
+}
 
 //
 // Non-replayable DataSource singleton for mtw.wml
@@ -15,19 +23,32 @@ import { WMLEventSerializer } from './serializers'
 // - Handle WML-specific event processing (currently stubbed)
 // - Provide the foundation for future WML lambda refactoring
 //
-export const wmlDataSource = new WMLDataSource<{}, StandardForm>({
+export const wmlDataSource = new WMLDataSource<{}, StandardForm, WMLSubscribedEvent>({
     dataSourceKey: 'mtw.wml',
     replayable: false, // Non-replayable - focuses on event streaming and serialization
     // No snapshotContentGenerator needed for non-replayable data sources
-    subscribedEventTypeGuard: (event: StreamingEventPayload): event is never => {
-        // TODO: Define what events this data source should subscribe to
-        // For now, subscribing to nothing as requested
-        return false
+    subscribedEventTypeGuard: (event: StreamingEventPayload): event is WMLSubscribedEvent => {
+        // Subscribe to internal moveAssets events for direct API calls
+        return (
+            event.dataSourceKey === 'internal' &&
+            event.event &&
+            typeof event.event === 'object' &&
+            event.event !== null &&
+            isMoveAssetRequest(event.event.update)
+        )
     },
-    receiveEvents: async ({ events, streamEvent }) => {
-        // TODO: Implement event processing logic
-        // For now, this is a stub as requested
-        console.log('WML DataSource received events:', events)
+    receiveEvents: async ({ events }) => {
+        // Process internal moveAssets events from direct API calls
+        await Promise.all(events.map(async (event) => {
+            if (event.dataSourceKey === 'internal') {
+                try {
+                    const result = await moveAsset(event.event.update)
+                    console.log(`moveAsset result for ${event.event.update.assetId}:`, result)
+                } catch (error) {
+                    console.error(`Error processing moveAsset for ${event.event.update.assetId}:`, error)
+                }
+            }
+        }))
     },
     eventSerializer: new WMLEventSerializer()
 })
