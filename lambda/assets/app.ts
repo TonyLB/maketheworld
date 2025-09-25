@@ -31,7 +31,7 @@ import { isEphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { extractReturnValue } from './returnValue'
 import { AssetsEventSerializer } from './dataSource/serializers'
 import { CharacterEventSerializer } from './characters/serializers'
-import { WMLEventSerializer } from '../wml/dataSource/mtw-wml'
+import { WMLEventSerializer } from '../wml/dataSource/serializers'
 
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }

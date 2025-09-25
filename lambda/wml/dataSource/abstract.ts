@@ -14,7 +14,7 @@ import { snsClient } from '../clients'
  * - Primary key name used in the WML domain
  * - Feedback topic ARN for replay data delivery
  */
-export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePayload = any, SubscribedEvent extends StreamingEventPayload = never> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent, string | SerializableObject, 'AssetId'> {
+export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePayload = any, SubscribedEvent extends StreamingEventPayload = never, ExternalUpdate = any> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent, ExternalUpdate, 'AssetId'> {
     constructor(params: {
         dataSourceKey: string;
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>; // Optional - not needed for non-replayable data sources

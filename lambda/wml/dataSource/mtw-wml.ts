@@ -1,40 +1,13 @@
 import { WMLDataSource } from './abstract'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
-import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
+import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from './serializers'
+import { moveAsset, MoveAssetRequest, isMoveAssetRequest } from './moveAsset'
 
-/**
- * Serializer/Deserializer for WML format events
- * 
- * This handles the conversion between:
- * - Internal StandardForm objects (for messageBus communication)
- * - WML string format (for EventBridge transmission)
- */
-export class WMLEventSerializer implements DataSourceEventSerializer<StandardForm, string> {
-    /**
-     * Serialize a StandardForm to WML string format
-     * for EventBridge transmission
-     */
-    serialize({ update }: { update: StandardForm }): string {
-        // Convert StandardForm to WML string
-        return schemaToWML([update.schema])
-    }
-
-    /**
-     * Deserialize a WML string back to StandardForm
-     * for internal messageBus processing
-     */
-    deserialize(params: { dataSourceKey: string; detailType: string; streamKey: string; externalUpdate: string }): StandardForm | null {
-        try {
-            // Parse WML string back to StandardForm
-            const schemaNode = nodeFromWML(params.externalUpdate)
-            return new StandardForm(schemaNode)
-        } catch (error) {
-            throw new Error(`Failed to deserialize WML: ${error instanceof Error ? error.message : String(error)}`)
-        }
-    }
+// Union type constraint for legitimate incoming subscribed events
+type WMLSubscribedEvent = StreamingEventPayload & {
+    dataSourceKey: 'internal'
+    detailType: 'moveAssets'
+    event: { update: MoveAssetRequest }
 }
 
 //
@@ -49,19 +22,51 @@ export class WMLEventSerializer implements DataSourceEventSerializer<StandardFor
 // - Handle WML-specific event processing (currently stubbed)
 // - Provide the foundation for future WML lambda refactoring
 //
-export const wmlDataSource = new WMLDataSource<{}, StandardForm>({
+export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribedEvent, WMLEventExternal>({
     dataSourceKey: 'mtw.wml',
     replayable: false, // Non-replayable - focuses on event streaming and serialization
     // No snapshotContentGenerator needed for non-replayable data sources
-    subscribedEventTypeGuard: (event: StreamingEventPayload): event is never => {
-        // TODO: Define what events this data source should subscribe to
-        // For now, subscribing to nothing as requested
-        return false
+    subscribedEventTypeGuard: (event: StreamingEventPayload): event is WMLSubscribedEvent => {
+        // Subscribe to internal moveAssets events for direct API calls
+        return Boolean(
+            event.dataSourceKey === 'internal' &&
+            event.event &&
+            typeof event.event === 'object' &&
+            isMoveAssetRequest(event.event.update)
+        )
     },
     receiveEvents: async ({ events, streamEvent }) => {
-        // TODO: Implement event processing logic
-        // For now, this is a stub as requested
-        console.log('WML DataSource received events:', events)
+        // Process internal moveAssets events from direct API calls
+        await Promise.all(events.map(async (event) => {
+            if (event.dataSourceKey === 'internal') {
+                try {
+                    const result = await moveAsset(event.event.update)
+                    
+                    // Stream zone changed event if move was successful
+                    if (result.success) {
+                        try {
+                            await streamEvent({
+                                update: {
+                                    type: 'Zone Changed',
+                                    AssetId: `ASSET#${event.event.update.assetId}`,
+                                    fromZone: event.event.update.fromZone,
+                                    toZone: event.event.update.toZone,
+                                    ...(event.event.update.player && { player: event.event.update.player }),
+                                    ...(event.event.update.subFolder && { subFolder: event.event.update.subFolder })
+                                },
+                                streamKey: `ASSET#${event.event.update.assetId}`,
+                                detailType: 'Zone Changed'
+                            })
+                        } catch (streamError) {
+                            console.error(`Error streaming zone changed event for ${event.event.update.assetId}:`, streamError)
+                            // Don't fail the move operation if streaming fails
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error processing moveAsset for ${event.event.update.assetId}:`, error)
+                }
+            }
+        }))
     },
     eventSerializer: new WMLEventSerializer()
 })

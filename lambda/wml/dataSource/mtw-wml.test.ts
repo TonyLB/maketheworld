@@ -1,8 +1,24 @@
-import { wmlDataSource, WMLEventSerializer } from './mtw-wml'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import { wmlDataSource } from './index'
+import { WMLEventSerializer } from './serializers'
+import { moveAsset, isMoveAssetRequest } from './moveAsset'
+import { MoveAssetRequest } from './moveAsset'
+
+// Mock the moveAsset function
+jest.mock('./moveAsset', () => ({
+    moveAsset: jest.fn(),
+    isMoveAssetRequest: jest.fn(),
+    MoveAssetRequest: {}
+}))
+
+const moveAssetMock = moveAsset as jest.MockedFunction<typeof moveAsset>
+const isMoveAssetRequestMock = isMoveAssetRequest as jest.MockedFunction<typeof isMoveAssetRequest>
 
 describe('WML DataSource', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+    })
+
+    describe('Basic Configuration', () => {
     it('should create wmlDataSource instance', () => {
         expect(wmlDataSource).toBeDefined()
         expect(wmlDataSource.dataSourceKey).toBe('mtw.wml')
@@ -13,76 +29,254 @@ describe('WML DataSource', () => {
         const serializer = wmlDataSource.getSerializer()
         expect(serializer).toBeInstanceOf(WMLEventSerializer)
     })
-})
 
-describe('WMLEventSerializer', () => {
-    let serializer: WMLEventSerializer
-
-    beforeEach(() => {
-        serializer = new WMLEventSerializer()
-    })
-
-    it('should serialize StandardForm to WML string', () => {
-        const standardForm = new StandardForm(deIndentWML(`
-            <Asset key=(test-asset)>
-                <Room key=(test-room) uuid=(test-room)>
-                    <Name>Test Room</Name>
-                    <Description>A test room for testing purposes</Description>
-                </Room>
-            </Asset>
-        `))
-
-        const wmlString = serializer.serialize({ update: standardForm })
-        expect(typeof wmlString).toBe('string')
-        expect(wmlString).toContain('Room')
-        expect(wmlString).toContain('test-room')
-    })
-
-    it('should deserialize WML string back to StandardForm', () => {
-        const wmlString = deIndentWML(`
-            <Asset key=(test-asset)>
-                <Room key=(test-room) uuid=(test-room)>
-                    <Name>Test Room</Name>
-                    <Description>A test room for testing purposes</Description>
-                </Room>
-            </Asset>
-        `)
-
-        const standardForm = serializer.deserialize({
-            dataSourceKey: 'mtw.wml',
-            detailType: 'Test Event',
-            streamKey: 'test-stream',
-            externalUpdate: wmlString
+        it('should have correct data source configuration', () => {
+            expect(wmlDataSource.dataSourceKey).toBe('mtw.wml')
+            expect(wmlDataSource.replayable).toBe(false)
+            expect(wmlDataSource.getSerializer()).toBeDefined()
         })
-        expect(standardForm).toBeInstanceOf(StandardForm)
-        expect(standardForm!.key).toBe('test-asset')
-        expect(standardForm!.toJSON().components).toHaveLength(1)
     })
 
-    it('should handle serialization round-trip correctly', () => {
-        const originalForm = new StandardForm(deIndentWML(`
-            <Asset key=(test-asset)>
-                <Room key=(test-room) uuid=(test-room)>
-                    <Name>Test Room</Name>
-                    <Description>A test room for testing purposes</Description>
-                </Room>
-            </Asset>
-        `))
+    describe('Event Type Guard', () => {
+        it('should recognize valid moveAsset events', () => {
+            isMoveAssetRequestMock.mockReturnValue(true)
+            
+            const validEvent = {
+                dataSourceKey: 'internal',
+                detailType: 'moveAssets',
+                event: {
+                    update: {
+                        assetId: 'test-asset',
+                        fromZone: 'Library',
+                        toZone: 'Canon'
+                    }
+                }
+            }
 
-        // Serialize to WML
-        const wmlString = serializer.serialize({ update: originalForm })
-        
-        // Deserialize back to StandardForm
-        const deserializedForm = serializer.deserialize({
-            dataSourceKey: 'mtw.wml',
-            detailType: 'Test Event',
-            streamKey: 'test-stream',
-            externalUpdate: wmlString
+            expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(validEvent as any)
+            expect(isRecognized).toBe(true)
+            expect(isMoveAssetRequestMock).toHaveBeenCalledWith({
+                assetId: 'test-asset',
+                fromZone: 'Library',
+                toZone: 'Canon'
+            })
         })
-        
-        // Verify key is preserved
-        expect(deserializedForm!.key).toBe(originalForm.key)
-        expect(deserializedForm!.toJSON().components).toHaveLength(originalForm.toJSON().components.length)
+
+        it('should reject events with wrong dataSourceKey', () => {
+            const invalidEvent = {
+                dataSourceKey: 'mtw.assets',
+                detailType: 'moveAssets',
+                event: {
+                    update: {
+                        assetId: 'test-asset',
+                        fromZone: 'Library',
+                        toZone: 'Canon'
+                    }
+                }
+            }
+
+            expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidEvent as any)
+            expect(isRecognized).toBe(false)
+            // Should not call isMoveAssetRequest since dataSourceKey is wrong
+            expect(isMoveAssetRequestMock).not.toHaveBeenCalled()
+        })
+
+        it('should reject events with missing event structure', () => {
+            const invalidEvent = {
+                dataSourceKey: 'internal',
+                detailType: 'moveAssets',
+                event: null
+            }
+
+            expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidEvent as any)
+            expect(isRecognized).toBe(false)
+            // Should not call isMoveAssetRequest since event is null
+            expect(isMoveAssetRequestMock).not.toHaveBeenCalled()
+        })
     })
 
+    describe('MoveAsset Event Processing', () => {
+        it('should process successful moveAsset events', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockMoveRequest: MoveAssetRequest = {
+                assetId: 'test-asset',
+                fromZone: 'Library',
+                toZone: 'Canon'
+            }
+
+            moveAssetMock.mockResolvedValue({
+                success: true,
+                message: 'Successfully moved asset',
+                newLocation: 'Canon/test-asset'
+            })
+
+            const event = {
+                dataSourceKey: 'internal',
+                detailType: 'moveAssets',
+                event: {
+                    update: mockMoveRequest
+                }
+            }
+
+            // Simulate the receiveEvents processing
+            expect(wmlDataSource.receiveEvents).toBeDefined()
+            await wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })
+
+            expect(moveAssetMock).toHaveBeenCalledWith(mockMoveRequest)
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Zone Changed',
+                    AssetId: 'ASSET#test-asset',
+                    fromZone: 'Library',
+                    toZone: 'Canon'
+                },
+                streamKey: 'ASSET#test-asset',
+                detailType: 'Zone Changed'
+            })
+        })
+
+        it('should process failed moveAsset events without streaming', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockMoveRequest: MoveAssetRequest = {
+                assetId: 'test-asset',
+                fromZone: 'Library',
+                toZone: 'Canon'
+            }
+
+            moveAssetMock.mockResolvedValue({
+                success: false,
+                message: 'Move failed'
+            })
+
+            const event = {
+                dataSourceKey: 'internal',
+                detailType: 'moveAssets',
+                event: {
+                    update: mockMoveRequest
+                }
+            }
+
+            // Simulate the receiveEvents processing
+            await wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })
+
+            expect(moveAssetMock).toHaveBeenCalledWith(mockMoveRequest)
+            expect(mockStreamEvent).not.toHaveBeenCalled()
+        })
+
+        it('should handle moveAsset events with optional fields', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockMoveRequest: MoveAssetRequest = {
+                assetId: 'test-asset',
+                fromZone: 'Personal',
+                toZone: 'Library',
+                player: 'alice',
+                subFolder: 'test-folder'
+            }
+
+            moveAssetMock.mockResolvedValue({
+                success: true,
+                message: 'Successfully moved asset',
+                newLocation: 'Library/test-asset'
+            })
+
+            const event = {
+                dataSourceKey: 'internal',
+                detailType: 'moveAssets',
+                event: {
+                    update: mockMoveRequest
+                }
+            }
+
+            // Simulate the receiveEvents processing
+            await wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })
+
+            expect(moveAssetMock).toHaveBeenCalledWith(mockMoveRequest)
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Zone Changed',
+                    AssetId: 'ASSET#test-asset',
+                    fromZone: 'Personal',
+                    toZone: 'Library',
+                    player: 'alice',
+                    subFolder: 'test-folder'
+                },
+                streamKey: 'ASSET#test-asset',
+                detailType: 'Zone Changed'
+            })
+        })
+
+        it('should handle moveAsset processing errors gracefully', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockMoveRequest: MoveAssetRequest = {
+                assetId: 'test-asset',
+                fromZone: 'Library',
+                toZone: 'Canon'
+            }
+
+            moveAssetMock.mockRejectedValue(new Error('S3 operation failed'))
+
+            const event = {
+                dataSourceKey: 'internal',
+                detailType: 'moveAssets',
+                event: {
+                    update: mockMoveRequest
+                }
+            }
+
+            // Should not throw - errors should be caught and logged
+            expect(wmlDataSource.receiveEvents).toBeDefined()
+            await expect(wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })).resolves.not.toThrow()
+
+            expect(moveAssetMock).toHaveBeenCalledWith(mockMoveRequest)
+            expect(mockStreamEvent).not.toHaveBeenCalled()
+        })
+
+        it('should handle streaming errors gracefully', async () => {
+            const mockStreamEvent = jest.fn().mockRejectedValue(new Error('Streaming failed'))
+            const mockMoveRequest: MoveAssetRequest = {
+                assetId: 'test-asset',
+                fromZone: 'Library',
+                toZone: 'Canon'
+            }
+
+            moveAssetMock.mockResolvedValue({
+                success: true,
+                message: 'Successfully moved asset',
+                newLocation: 'Canon/test-asset'
+            })
+
+            const event = {
+                dataSourceKey: 'internal',
+                detailType: 'moveAssets',
+                event: {
+                    update: mockMoveRequest
+                }
+            }
+
+            // Should not throw - streaming errors should be caught and logged
+            expect(wmlDataSource.receiveEvents).toBeDefined()
+            await expect(wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })).resolves.not.toThrow()
+
+            expect(moveAssetMock).toHaveBeenCalledWith(mockMoveRequest)
+            expect(mockStreamEvent).toHaveBeenCalled()
+        })
+    })
 })
