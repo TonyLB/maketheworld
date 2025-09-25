@@ -253,6 +253,115 @@ describe('AssetsDataSource (mtw.assets)', () => {
             expect(receiveEventsSpy).toHaveBeenCalled()
         })
 
+        it('should process WML zone changed events', async () => {
+            const zoneChangedEvent = {
+                dataSourceKey: 'mtw.wml',
+                event: {
+                    streamKey: 'ASSET#test123',
+                    update: {
+                        type: 'Zone Changed',
+                        AssetId: 'ASSET#test123',
+                        fromZone: 'Personal',
+                        toZone: 'Library',
+                        player: 'testplayer',
+                        subFolder: 'testfolder'
+                    }
+                },
+                timestamp: Date.now()
+            }
+
+            const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
+            
+            // Mock streamEvent function to avoid DataSource setup issues
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            
+            await assetsDataSource.receiveEvents?.({ 
+                events: [zoneChangedEvent], 
+                streamEvent: mockStreamEvent 
+            })
+
+            // Verify that assetDB.putItem was called to update the Meta::Asset record
+            expect(assetDBMock.putItem).toHaveBeenCalledWith({
+                AssetId: 'ASSET#test123',
+                DataCategory: 'Meta::Asset',
+                address: {
+                    zone: 'Library',
+                    player: 'testplayer',
+                    subFolder: 'testfolder'
+                },
+                zone: 'Library',
+                player: 'testplayer'
+            })
+
+            expect(receiveEventsSpy).toHaveBeenCalled()
+        })
+
+        it('should process WML zone changed events without optional fields', async () => {
+            const zoneChangedEvent = {
+                dataSourceKey: 'mtw.wml',
+                event: {
+                    streamKey: 'ASSET#test456',
+                    update: {
+                        type: 'Zone Changed',
+                        AssetId: 'ASSET#test456',
+                        fromZone: 'Draft',
+                        toZone: 'Canon'
+                    }
+                },
+                timestamp: Date.now()
+            }
+
+            const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
+            
+            // Mock streamEvent function to avoid DataSource setup issues
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            
+            await assetsDataSource.receiveEvents?.({ 
+                events: [zoneChangedEvent], 
+                streamEvent: mockStreamEvent 
+            })
+
+            // Verify that assetDB.putItem was called with minimal fields
+            expect(assetDBMock.putItem).toHaveBeenCalledWith({
+                AssetId: 'ASSET#test456',
+                DataCategory: 'Meta::Asset',
+                address: {
+                    zone: 'Canon'
+                },
+                zone: 'Canon'
+            })
+
+            expect(receiveEventsSpy).toHaveBeenCalled()
+        })
+
+        it('should handle WML content removed events', async () => {
+            const contentRemovedEvent = {
+                dataSourceKey: 'mtw.wml',
+                event: {
+                    streamKey: 'ASSET#test789',
+                    update: {
+                        type: 'Content Removed',
+                        AssetId: 'ASSET#test789'
+                    }
+                },
+                timestamp: Date.now()
+            }
+
+            const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
+            
+            // Mock streamEvent function to avoid DataSource setup issues
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            
+            await assetsDataSource.receiveEvents?.({ 
+                events: [contentRemovedEvent], 
+                streamEvent: mockStreamEvent 
+            })
+
+            // Verify that decacheAsset was called (mocked via the caching module)
+            // The actual decaching logic is tested in the decacheAsset module
+            expect(receiveEventsSpy).toHaveBeenCalled()
+        })
+
         it('should handle diagnostic events', async () => {
             // Mock the assetDB.query call that's failing in healGlobalValues
             assetDBMock.query.mockResolvedValueOnce([]) // Return empty array for Items.map

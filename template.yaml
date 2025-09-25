@@ -1366,6 +1366,7 @@ Resources:
                   detail-type:
                     - Content Update
                     - Content Removed
+                    - Zone Changed
             MTWFeedbackSNS:
               Type: SNS
               Properties:
