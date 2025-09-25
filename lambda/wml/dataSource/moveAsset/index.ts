@@ -6,6 +6,15 @@
  * associated S3 metadata and file organization.
  */
 
+import { CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
+import { S3Client } from "@aws-sdk/client-s3"
+import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
+import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import internalCache from "../../internalCache"
+
+const { S3_BUCKET } = process.env
+
 export interface MoveAssetRequest {
     assetId: string
     fromZone: string
@@ -45,14 +54,159 @@ export function isMoveAssetRequest(obj: any): obj is MoveAssetRequest {
  * - Coordinates with Assets Lambda for cache updates
  */
 export async function moveAsset(request: MoveAssetRequest): Promise<MoveAssetResponse> {
-    // TODO: Implement moveAsset functionality
-    // This is a stub implementation for the new pattern
+    const { assetId, fromZone, toZone, player, subFolder } = request
     
-    console.log('moveAsset called with:', request)
+    try {
+        // Get S3 client from internal cache
+        const s3Client = await internalCache.Connection.get('s3Client')
+        if (!s3Client) {
+            return {
+                success: false,
+                message: 'S3 client not available'
+            }
+        }
+        
+        // Build source asset workspace address
+        const fromAddress = buildAssetWorkspaceAddress(assetId, fromZone, player, subFolder)
+        const fromAssetWorkspace = new ReadOnlyAssetWorkspace(fromAddress)
+        
+        // Load and validate the source asset
+        await fromAssetWorkspace.loadJSON()
+        if (fromAssetWorkspace.status.json !== 'Clean') {
+            return {
+                success: false,
+                message: `Source asset ${assetId} is not in a clean state (status: ${fromAssetWorkspace.status.json})`
+            }
+        }
+        
+        // Build destination asset workspace address
+        const toAddress = buildAssetWorkspaceAddress(assetId, toZone, player, subFolder)
+        const toAssetWorkspace = new ReadOnlyAssetWorkspace(toAddress)
+        
+        // Handle the move operation
+        const result = await performS3Move(s3Client, fromAssetWorkspace, toAssetWorkspace)
+        
+        if (result.success) {
+            return {
+                success: true,
+                message: result.message || `Successfully moved asset ${assetId} from ${fromZone} to ${toZone}`,
+                newLocation: result.newLocation || toAssetWorkspace.fileNameBase
+            }
+        } else {
+            return result
+        }
+        
+    } catch (error) {
+        console.error(`Error moving asset ${assetId}:`, error)
+        return {
+            success: false,
+            message: `Failed to move asset: ${error instanceof Error ? error.message : String(error)}`
+        }
+    }
+}
+
+/**
+ * Build an AssetWorkspaceAddress from the provided parameters
+ */
+function buildAssetWorkspaceAddress(
+    assetId: string, 
+    zone: string, 
+    player?: string, 
+    subFolder?: string
+): any {
+    // Extract fileName from assetId (remove ASSET# prefix if present)
+    const fileName = assetId.replace(/^ASSET#/, '')
     
-    // Stub response
-    return {
-        success: false,
-        message: 'moveAsset functionality not yet implemented'
+    const baseAddress = {
+        zone: zone as any,
+        fileName,
+        ...(subFolder && { subFolder })
+    }
+    
+    // Add player for Personal zone
+    if (zone === 'Personal' && player) {
+        return { ...baseAddress, player }
+    }
+    
+    // Add backupId for Archive zone (we'll need to handle this case)
+    if (zone === 'Archive') {
+        return { ...baseAddress, backupId: `BACKUP#${Date.now()}` }
+    }
+    
+    return baseAddress
+}
+
+/**
+ * Perform the actual S3 file operations for the move
+ */
+async function performS3Move(
+    s3Client: S3Client,
+    fromWorkspace: ReadOnlyAssetWorkspace,
+    toWorkspace: ReadOnlyAssetWorkspace
+): Promise<MoveAssetResponse> {
+    const fromFileNameBase = fromWorkspace.fileNameBase
+    const toFileNameBase = toWorkspace.fileNameBase
+    
+    // Handle Archive zone special case - no file copying needed
+    if (toWorkspace.address.zone === 'Archive') {
+        // For Archive, we just delete the source files
+        await Promise.all([
+            s3Client.send(new DeleteObjectCommand({
+                Bucket: S3_BUCKET,
+                Key: `${fromFileNameBase}.wml`
+            })),
+            s3Client.send(new DeleteObjectCommand({
+                Bucket: S3_BUCKET,
+                Key: `${fromFileNameBase}.ndjson`
+            }))
+        ])
+        
+        return {
+            success: true,
+            message: `Asset archived (files deleted from source location)`,
+            newLocation: toFileNameBase
+        }
+    }
+    
+    // Handle regular zone transitions - copy files then delete originals
+    try {
+        // Copy files to new location
+        await Promise.all([
+            s3Client.send(new CopyObjectCommand({
+                Bucket: S3_BUCKET,
+                CopySource: `${S3_BUCKET}/${fromFileNameBase}.ndjson`,
+                Key: `${toFileNameBase}.ndjson`
+            })),
+            s3Client.send(new CopyObjectCommand({
+                Bucket: S3_BUCKET,
+                CopySource: `${S3_BUCKET}/${fromFileNameBase}.wml`,
+                Key: `${toFileNameBase}.wml`
+            }))
+        ])
+        
+        // Delete original files
+        await Promise.all([
+            s3Client.send(new DeleteObjectCommand({
+                Bucket: S3_BUCKET,
+                Key: `${fromFileNameBase}.wml`
+            })),
+            s3Client.send(new DeleteObjectCommand({
+                Bucket: S3_BUCKET,
+                Key: `${fromFileNameBase}.ndjson`
+            }))
+        ])
+        
+        return {
+            success: true,
+            message: `Files successfully moved from ${fromFileNameBase} to ${toFileNameBase}`,
+            newLocation: toFileNameBase
+        }
+        
+    } catch (error) {
+        console.error('S3 move operation failed:', error)
+        return {
+            success: false,
+            message: `S3 operation failed: ${error instanceof Error ? error.message : String(error)}`
+        }
     }
 }

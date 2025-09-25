@@ -6,10 +6,15 @@ import applyEdit from "./applyEdit";
 import { checkLock, requestLock, yieldAtomicLock } from "./atomicLock";
 import delayPromise from "@tonylb/mtw-utilities/ts/dynamoDB/delayPromise";
 import internalCache from "./internalCache";
+import { S3Client } from "@aws-sdk/client-s3";
+
+const params = { region: process.env.AWS_REGION }
+const s3Client = new S3Client(params)
 
 export const handler = async (event: any) => {
 
     internalCache.clear()
+    internalCache.Connection.set({ key: 's3Client', value: s3Client })
 
     switch(event.message) {
         case 'parseWML':
