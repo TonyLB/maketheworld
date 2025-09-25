@@ -19,7 +19,7 @@ export type StreamingEventPayload = {
     dataSourceKey: string;
     event: {
         streamKey: string;
-        update: any; // Internal format with embedded type
+        update: unknown; // Internal format with embedded type
     };
     timestamp: number;
 }

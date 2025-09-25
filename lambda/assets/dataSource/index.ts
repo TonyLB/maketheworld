@@ -4,8 +4,37 @@ import { healGlobalValues } from '../selfHealing/globalValues'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import internalCache from '../internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { cacheAsset, decacheAsset } from './caching'
 import { AssetsEventSerializer, AssetsEventUpdate } from './serializers'
+import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { WMLEventUpdate } from '../../wml/dataSource/serializers'
+
+// Separate type for WML events with precise typing
+type WMLSubscribedEvent = StreamingEventPayload & {
+    dataSourceKey: 'mtw.wml'
+    event: {
+        update: WMLEventUpdate
+    }
+}
+
+// Union type constraint for legitimate incoming subscribed events
+type AssetsSubscribedEvent = WMLSubscribedEvent | (
+    StreamingEventPayload & {
+        dataSourceKey: 'mtw.diagnostics' | 'mtw.coordination'
+        event: {
+            update: {
+                type: string
+                [key: string]: any
+            }
+        }
+    }
+)
+
+// Type guard for WML events
+const isWMLSubscribedEvent = (event: AssetsSubscribedEvent): event is WMLSubscribedEvent => {
+    return event.dataSourceKey === 'mtw.wml'
+}
 
 //
 // Non-replayable DataSource singleton for mtw.assets
@@ -21,22 +50,22 @@ import { AssetsEventSerializer, AssetsEventUpdate } from './serializers'
 // - Process diagnostic events (healing, global values)
 // - Handle player and library update events
 //
-export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, any>({
+export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, AssetsSubscribedEvent>({
     dataSourceKey: 'mtw.assets',
     replayable: false, // Non-replayable - focuses on event streaming and processing
     eventSerializer: new AssetsEventSerializer(), // Handle all asset event serialization (component and asset-level)
     // No snapshotContentGenerator needed for non-replayable data sources
-    subscribedEventTypeGuard: (event: any): event is any => {
+    subscribedEventTypeGuard: (event: StreamingEventPayload): event is AssetsSubscribedEvent => {
         // Subscribe to events from other data sources that we care about
         // These are events published by mtw.diagnostics, mtw.coordination, and mtw.wml
         return Boolean(
             ['mtw.diagnostics', 'mtw.coordination', 'mtw.wml'].includes(event.dataSourceKey) && 
             event.event && 
             typeof event.event === 'object' &&
-            event.event !== null &&
             event.event.update &&
             typeof event.event.update === 'object' &&
-            event.event.update.type
+            'type' in event.event.update &&
+            typeof (event.event.update as any).type === 'string'
         )
     },
     receiveEvents: async ({ events, streamEvent }) => {
@@ -45,7 +74,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, a
         
         await Promise.all(events.map(async (event) => {
             // Handle mtw.wml events
-            if (event.dataSourceKey === 'mtw.wml' && event.event.update.type === 'Content Update') {
+            if (isWMLSubscribedEvent(event) && event.event.update.type === 'Content Update') {
                 const { AssetId } = event.event.update
                 if (AssetId) {
                     try {
@@ -85,7 +114,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, a
             }
             
             // Handle mtw.wml Content Removed events
-            if (event.dataSourceKey === 'mtw.wml' && event.event.update.type === 'Content Removed') {
+            if (isWMLSubscribedEvent(event) && event.event.update.type === 'Content Removed') {
                 const { AssetId } = event.event.update
                 if (AssetId) {
                     try {
@@ -123,7 +152,32 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, a
                     return
                 }
             }
-            
+
+            // Handle mtw.wml Zone Changed events
+            if (isWMLSubscribedEvent(event) && event.event.update.type === 'Zone Changed') {
+                const { AssetId, fromZone, toZone, player, subFolder } = event.event.update
+                if (AssetId) {
+                    // Ensure AssetId is properly formatted as ASSET#${string}
+                    const assetUUID = AssetKey(AssetId)
+                    
+                    // Update the Meta::Asset record with new zone information
+                    await assetDB.putItem({
+                        AssetId: assetUUID,
+                        DataCategory: 'Meta::Asset',
+                        address: {
+                            zone: toZone,
+                            ...(player && { player }),
+                            ...(subFolder && { subFolder })
+                        },
+                        zone: toZone,
+                        ...(player && { player })
+                    })
+                    
+                    // TODO: Update internal caches - remove from old zone cache and add to new zone cache
+                    // This requires cache management logic to handle zone transitions
+                }
+            }
+
             // Handle mtw.diagnostics events
             if (event.dataSourceKey === 'mtw.diagnostics' && event.event.update.type === 'Heal Global Values') {
                 const returnVal = await healGlobalValues({
