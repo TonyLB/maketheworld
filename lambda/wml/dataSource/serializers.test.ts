@@ -1,4 +1,4 @@
-import { WMLEventSerializer } from './serializers'
+import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from './serializers'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
@@ -9,79 +9,188 @@ describe('WMLEventSerializer', () => {
         serializer = new WMLEventSerializer()
     })
 
-    it('should serialize StandardForm to WML string', () => {
-        const standardForm = new StandardForm(deIndentWML(`
-            <Asset key=(test-asset)>
-                <Room key=(test-room) uuid=(test-room)>
-                    <Name>Test Room</Name>
-                    <Description>A test room for testing purposes</Description>
-                </Room>
-            </Asset>
-        `))
+    describe('Content Events', () => {
+        it('should serialize Content Update event to WML string', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset key=(test-asset)>
+                    <Room key=(test-room) uuid=(test-room)>
+                        <Name>Test Room</Name>
+                        <Description>A test room for testing purposes</Description>
+                    </Room>
+                </Asset>
+            `))
 
-        const wmlString = serializer.serialize({ update: standardForm })
-        expect(typeof wmlString).toBe('string')
-        expect(wmlString).toContain('Room')
-        expect(wmlString).toContain('test-room')
-    })
+            const contentEvent: WMLEventUpdate = {
+                type: 'Content Update',
+                AssetId: 'ASSET#test-asset',
+                schema: standardForm.schema
+            }
 
-    it('should deserialize WML string back to StandardForm', () => {
-        const wmlString = deIndentWML(`
-            <Asset key=(test-asset)>
-                <Room key=(test-room) uuid=(test-room)>
-                    <Name>Test Room</Name>
-                    <Description>A test room for testing purposes</Description>
-                </Room>
-            </Asset>
-        `)
-
-        const standardForm = serializer.deserialize({
-            dataSourceKey: 'mtw.wml',
-            detailType: 'Test Event',
-            streamKey: 'test-stream',
-            externalUpdate: wmlString
+            const externalEvent = serializer.serialize({ update: contentEvent })
+            expect(externalEvent.type).toBe('Content Update')
+            expect(externalEvent.AssetId).toBe('ASSET#test-asset')
+            expect(typeof externalEvent.wml).toBe('string')
+            expect(externalEvent.wml).toContain('Room')
+            expect(externalEvent.wml).toContain('test-room')
         })
-        expect(standardForm).toBeInstanceOf(StandardForm)
-        expect(standardForm!.key).toBe('test-asset')
-        expect(standardForm!.toJSON().components).toHaveLength(1)
-    })
 
-    it('should handle serialization round-trip correctly', () => {
-        const originalForm = new StandardForm(deIndentWML(`
-            <Asset key=(test-asset)>
-                <Room key=(test-room) uuid=(test-room)>
-                    <Name>Test Room</Name>
-                    <Description>A test room for testing purposes</Description>
-                </Room>
-            </Asset>
-        `))
+        it('should serialize Content Removed event', () => {
+            const contentEvent: WMLEventUpdate = {
+                type: 'Content Removed',
+                AssetId: 'ASSET#test-asset'
+            }
 
-        // Serialize to WML
-        const wmlString = serializer.serialize({ update: originalForm })
-        
-        // Deserialize back to StandardForm
-        const deserializedForm = serializer.deserialize({
-            dataSourceKey: 'mtw.wml',
-            detailType: 'Test Event',
-            streamKey: 'test-stream',
-            externalUpdate: wmlString
+            const externalEvent = serializer.serialize({ update: contentEvent })
+            expect(externalEvent.type).toBe('Content Removed')
+            expect(externalEvent.AssetId).toBe('ASSET#test-asset')
+            expect(externalEvent.wml).toBeUndefined()
         })
-        
-        // Verify key is preserved
-        expect(deserializedForm!.key).toBe(originalForm.key)
-        expect(deserializedForm!.toJSON().components).toHaveLength(originalForm.toJSON().components.length)
-    })
 
-    it('should handle deserialization errors gracefully', () => {
-        const invalidWML = 'invalid-wml-content'
+        it('should deserialize Content Update event from WML string', () => {
+            const wmlString = deIndentWML(`
+                <Asset key=(test-asset)>
+                    <Room key=(test-room) uuid=(test-room)>
+                        <Name>Test Room</Name>
+                        <Description>A test room for testing purposes</Description>
+                    </Room>
+                </Asset>
+            `)
 
-        expect(() => {
-            serializer.deserialize({
+            const externalEvent: WMLEventExternal = {
+                type: 'Content Update',
+                AssetId: 'ASSET#test-asset',
+                wml: wmlString
+            }
+
+            const internalEvent = serializer.deserialize({
                 dataSourceKey: 'mtw.wml',
-                detailType: 'Test Event',
-                streamKey: 'test-stream',
-                externalUpdate: invalidWML
+                detailType: 'Content Update',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
             })
-        }).toThrow('Failed to deserialize WML')
+
+            expect(internalEvent!.type).toBe('Content Update')
+            expect(internalEvent!.AssetId).toBe('ASSET#test-asset')
+            expect(internalEvent!.schema).toBeDefined()
+        })
+
+        it('should handle Content Update round-trip correctly', () => {
+            const originalForm = new StandardForm(deIndentWML(`
+                <Asset key=(test-asset)>
+                    <Room key=(test-room) uuid=(test-room)>
+                        <Name>Test Room</Name>
+                        <Description>A test room for testing purposes</Description>
+                    </Room>
+                </Asset>
+            `))
+
+            const contentEvent: WMLEventUpdate = {
+                type: 'Content Update',
+                AssetId: 'ASSET#test-asset',
+                schema: originalForm.schema
+            }
+
+            // Serialize to external format
+            const externalEvent = serializer.serialize({ update: contentEvent })
+            
+            // Deserialize back to internal format
+            const deserializedEvent = serializer.deserialize({
+                dataSourceKey: 'mtw.wml',
+                detailType: 'Content Update',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+            
+            // Verify the schema is preserved
+            expect(deserializedEvent!.type).toBe('Content Update')
+            expect(deserializedEvent!.AssetId).toBe('ASSET#test-asset')
+            expect(deserializedEvent!.schema).toBeDefined()
+        })
+    })
+
+    describe('Zone Events', () => {
+        it('should serialize Zone Changed event (pass-through)', () => {
+            const zoneEvent: WMLEventUpdate = {
+                type: 'Zone Changed',
+                AssetId: 'ASSET#test-asset',
+                fromZone: 'Library',
+                toZone: 'Canon',
+                player: 'alice'
+            }
+
+            const externalEvent = serializer.serialize({ update: zoneEvent })
+            expect(externalEvent).toEqual(zoneEvent)
+        })
+
+        it('should deserialize Zone Changed event (pass-through)', () => {
+            const externalEvent: WMLEventExternal = {
+                type: 'Zone Changed',
+                AssetId: 'ASSET#test-asset',
+                fromZone: 'Library',
+                toZone: 'Canon',
+                player: 'alice'
+            }
+
+            const internalEvent = serializer.deserialize({
+                dataSourceKey: 'mtw.wml',
+                detailType: 'Zone Changed',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+
+            expect(internalEvent).toEqual(externalEvent)
+        })
+
+        it('should handle Zone Changed round-trip correctly', () => {
+            const originalEvent: WMLEventUpdate = {
+                type: 'Zone Changed',
+                AssetId: 'ASSET#test-asset',
+                fromZone: 'Library',
+                toZone: 'Canon',
+                player: 'alice',
+                subFolder: 'test-folder'
+            }
+
+            // Serialize to external format
+            const externalEvent = serializer.serialize({ update: originalEvent })
+            
+            // Deserialize back to internal format
+            const deserializedEvent = serializer.deserialize({
+                dataSourceKey: 'mtw.wml',
+                detailType: 'Zone Changed',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+            
+            // Verify complete round-trip
+            expect(deserializedEvent).toEqual(originalEvent)
+        })
+    })
+
+    describe('Error Handling', () => {
+        it('should handle unknown event types', () => {
+            const unknownEvent = { type: 'Unknown', AssetId: 'ASSET#test' } as any
+
+            expect(() => {
+                serializer.serialize({ update: unknownEvent })
+            }).toThrow('Unknown WML event type')
+        })
+
+        it('should handle invalid WML in Content Update', () => {
+            const externalEvent: WMLEventExternal = {
+                type: 'Content Update',
+                AssetId: 'ASSET#test-asset',
+                wml: 'invalid-wml-content'
+            }
+
+            expect(() => {
+                serializer.deserialize({
+                    dataSourceKey: 'mtw.wml',
+                    detailType: 'Content Update',
+                    streamKey: 'ASSET#test-asset',
+                    externalUpdate: externalEvent
+                })
+            }).toThrow('Failed to deserialize WML')
+        })
     })
 })

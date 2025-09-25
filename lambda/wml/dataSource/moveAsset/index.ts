@@ -9,8 +9,6 @@
 import { CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { S3Client } from "@aws-sdk/client-s3"
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
-import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/ts/errors"
-import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import internalCache from "../../internalCache"
 
 const { S3_BUCKET } = process.env
