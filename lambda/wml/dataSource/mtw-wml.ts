@@ -1,13 +1,13 @@
 import { WMLDataSource } from './abstract'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from './serializers'
-import { moveAsset, MoveAssetRequest, isMoveAssetRequest } from './moveAsset'
+import { moveAsset } from './moveAsset'
+import { WMLInternalMessage, isWMLInternalMessage, MoveAssetRequest } from '../messageBus/baseClasses'
 
 // Union type constraint for legitimate incoming subscribed events
 type WMLSubscribedEvent = StreamingEventPayload & {
     dataSourceKey: 'internal'
-    detailType: 'moveAssets'
-    event: { update: MoveAssetRequest }
+    event: { update: WMLInternalMessage }
 }
 
 //
@@ -32,7 +32,7 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
             event.dataSourceKey === 'internal' &&
             event.event &&
             typeof event.event === 'object' &&
-            isMoveAssetRequest(event.event.update)
+            isWMLInternalMessage(event.event.update)
         )
     },
     receiveEvents: async ({ events, streamEvent }) => {
@@ -40,7 +40,9 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
         await Promise.all(events.map(async (event) => {
             if (event.dataSourceKey === 'internal') {
                 try {
-                    const result = await moveAsset(event.event.update)
+                    // WMLInternalMessage is now just MoveAssetRequest
+                    const moveRequest = event.event.update as WMLInternalMessage
+                    const result = await moveAsset(moveRequest)
                     
                     // Stream zone changed event if move was successful
                     if (result.success) {

@@ -84,7 +84,7 @@ States:
     "Archive Asset":
         Type: Task
         Next: Done
-        Resource: "${AssetsFunctionArn}"
+        Resource: "${WMLFunctionArn}"
         Parameters:
             "message": "moveAsset"
             "zone": "Archive"

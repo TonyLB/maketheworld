@@ -10,36 +10,14 @@ import { CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { S3Client } from "@aws-sdk/client-s3"
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import internalCache from "../../internalCache"
+import { MoveAssetRequest, isMoveAssetRequest } from "../../messageBus/baseClasses"
 
 const { S3_BUCKET } = process.env
-
-export interface MoveAssetRequest {
-    assetId: string
-    fromZone: string
-    toZone: string
-    player?: string
-    subFolder?: string
-}
 
 export interface MoveAssetResponse {
     success: boolean
     message?: string
     newLocation?: string
-}
-
-/**
- * Type guard to check if an object is a valid MoveAssetRequest
- */
-export function isMoveAssetRequest(obj: any): obj is MoveAssetRequest {
-    return (
-        typeof obj === 'object' &&
-        obj !== null &&
-        typeof obj.assetId === 'string' &&
-        typeof obj.fromZone === 'string' &&
-        typeof obj.toZone === 'string' &&
-        (obj.player === undefined || typeof obj.player === 'string') &&
-        (obj.subFolder === undefined || typeof obj.subFolder === 'string')
-    )
 }
 
 /**

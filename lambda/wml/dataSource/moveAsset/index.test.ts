@@ -31,7 +31,8 @@ jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
 })
 import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 
-import { moveAsset, isMoveAssetRequest, MoveAssetRequest } from './index'
+import { moveAsset, MoveAssetResponse } from './index'
+import { MoveAssetRequest, isMoveAssetRequest } from '../../messageBus/baseClasses'
 
 const ReadOnlyAssetWorkspaceMock = ReadOnlyAssetWorkspace as jest.Mocked<typeof ReadOnlyAssetWorkspace>
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
