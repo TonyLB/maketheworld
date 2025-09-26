@@ -87,7 +87,7 @@ States:
         Resource: "${WMLFunctionArn}"
         Parameters:
             "message": "moveAsset"
-            "zone": "Archive"
+            "toZone": "Archive"
             "AssetId.$": "$.args.assetId"
             "backupId.$": "$.results.backupId"
         ResultPath: "$.moveResults"

@@ -56,10 +56,10 @@ export const handler = async (event: any) => {
                     update: {
                         type: 'moveAsset',
                         assetId: event.AssetId,
-                        fromZone: event.from.zone,
-                        toZone: event.to.zone,
-                        player: event.from.player || event.to.player,
-                        subFolder: event.from.subFolder || event.to.subFolder
+                        fromZone: event.fromZone,
+                        toZone: event.toZone,
+                        player: event.player,
+                        subFolder: event.subFolder
                     }
                 },
                 timestamp: Date.now()

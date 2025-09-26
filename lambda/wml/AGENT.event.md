@@ -166,6 +166,7 @@ Future:  Client → WML Lambda → EventBridge → Assets Lambda (zone transitio
 #### **Phase 1: Event Infrastructure**
 - ✅ Implement zone transition event publishing in WML Lambda
 - ✅ Update Assets Lambda to subscribe to zone transition events
+- ✅ Deprecate checkin/checkout functionality in favor of new collaboration design
 - Maintain dual zone management during transition period
 
 #### **Phase 2: Authority Transfer**
