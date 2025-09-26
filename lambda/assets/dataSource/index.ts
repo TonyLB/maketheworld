@@ -173,6 +173,34 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         ...(player && { player })
                     })
                     
+                    // Handle canon graph management when entering/leaving Canon zone
+                    if (toZone === 'Canon' || fromZone === 'Canon') {
+                        // Query for canon assets after the move
+                        const Items = await assetDB.query({
+                            IndexName: 'DataCategoryIndex',
+                            Key: {
+                                DataCategory: 'Meta::Asset'
+                            },
+                            FilterExpression: "zone = :canon",
+                            ExpressionAttributeValues: {
+                                ':canon': 'Canon'
+                            },
+                            ProjectionFields: ['AssetId', 'zone']
+                        })
+                        const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
+                        const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
+                        
+                        // Stream the canon update
+                        await streamEvent({
+                            update: { 
+                                type: 'Canon Updated',
+                                assetIds: globalAssetsSorted
+                            },
+                            streamKey: 'canon-global',
+                            detailType: 'Canon Updated'
+                        })
+                    }
+                    
                     // TODO: Update internal caches - remove from old zone cache and add to new zone cache
                     // This requires cache management logic to handle zone transitions
                 }
@@ -221,55 +249,6 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         type: 'Error',
                         body: { 
                             error: 'Invalid arguments specified for Remove Asset event',
-                            statusCode: 400
-                        }
-                    })
-                    return
-                }
-            }
-            
-            if (event.dataSourceKey === 'mtw.coordination' && ['Canonize Asset', 'Decanonize Asset'].includes(event.event.update.type)) {
-                const { assetId } = event.event.update
-                if (assetId) {
-                    const toZone = event.event.update.type === 'Canonize Asset' ? 'Canon' : 'Library'
-                    
-                    messageBus.send({
-                        type: 'MoveByAssetId',
-                        AssetId: `ASSET#${assetId}`,
-                        toZone
-                    })
-                    
-                    // Query for canon assets after the move
-                    const Items = await assetDB.query({
-                        IndexName: 'DataCategoryIndex',
-                        Key: {
-                            DataCategory: 'Meta::Asset'
-                        },
-                        FilterExpression: "zone = :canon",
-                        ExpressionAttributeValues: {
-                            ':canon': 'Canon'
-                        },
-                        ProjectionFields: ['AssetId', 'zone']
-                    })
-                    const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
-                    const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
-                    
-                    // Stream the canon update (replacing the direct EventBridge publish)
-                    await streamEvent({
-                        update: { 
-                            type: 'Canon Updated',
-                            assetIds: globalAssetsSorted
-                        },
-                        streamKey: 'canon-global',
-                        detailType: 'Canon Updated'
-                    })
-                    return
-                } else {
-                    // Send error message to messageBus
-                    messageBus.send({
-                        type: 'Error',
-                        body: { 
-                            error: `Invalid arguments specified for ${event.event.update.type} event`,
                             statusCode: 400
                         }
                     })

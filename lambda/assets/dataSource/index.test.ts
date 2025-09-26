@@ -293,6 +293,10 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 player: 'testplayer'
             })
 
+            // Verify that canon graph management was NOT triggered (not entering/leaving Canon)
+            expect(assetDBMock.query).not.toHaveBeenCalled()
+            expect(mockStreamEvent).not.toHaveBeenCalled()
+
             expect(receiveEventsSpy).toHaveBeenCalled()
         })
 
@@ -316,6 +320,12 @@ describe('AssetsDataSource (mtw.assets)', () => {
             // Mock streamEvent function to avoid DataSource setup issues
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             
+            // Mock canon graph query results
+            assetDBMock.query.mockResolvedValueOnce([
+                { AssetId: 'ASSET#test456', zone: 'Canon' },
+                { AssetId: 'ASSET#other123', zone: 'Canon' }
+            ])
+            
             await assetsDataSource.receiveEvents?.({ 
                 events: [zoneChangedEvent], 
                 streamEvent: mockStreamEvent 
@@ -329,6 +339,95 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     zone: 'Canon'
                 },
                 zone: 'Canon'
+            })
+
+            // Verify that canon graph management was triggered (entering Canon zone)
+            expect(assetDBMock.query).toHaveBeenCalledWith({
+                IndexName: 'DataCategoryIndex',
+                Key: {
+                    DataCategory: 'Meta::Asset'
+                },
+                FilterExpression: "zone = :canon",
+                ExpressionAttributeValues: {
+                    ':canon': 'Canon'
+                },
+                ProjectionFields: ['AssetId', 'zone']
+            })
+
+            // Verify that canon updated event was streamed
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: { 
+                    type: 'Canon Updated',
+                    assetIds: []
+                },
+                streamKey: 'canon-global',
+                detailType: 'Canon Updated'
+            })
+
+            expect(receiveEventsSpy).toHaveBeenCalled()
+        })
+
+        it('should process WML zone changed events for decanonization (leaving Canon zone)', async () => {
+            const zoneChangedEvent = {
+                dataSourceKey: 'mtw.wml',
+                event: {
+                    streamKey: 'ASSET#test789',
+                    update: {
+                        type: 'Zone Changed',
+                        AssetId: 'ASSET#test789',
+                        fromZone: 'Canon',
+                        toZone: 'Library'
+                    }
+                },
+                timestamp: Date.now()
+            }
+
+            const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
+            
+            // Mock streamEvent function to avoid DataSource setup issues
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            
+            // Mock canon graph query results (remaining canon assets)
+            assetDBMock.query.mockResolvedValueOnce([
+                { AssetId: 'ASSET#other123', zone: 'Canon' }
+            ])
+            
+            await assetsDataSource.receiveEvents?.({ 
+                events: [zoneChangedEvent], 
+                streamEvent: mockStreamEvent 
+            })
+
+            // Verify that assetDB.putItem was called
+            expect(assetDBMock.putItem).toHaveBeenCalledWith({
+                AssetId: 'ASSET#test789',
+                DataCategory: 'Meta::Asset',
+                address: {
+                    zone: 'Library'
+                },
+                zone: 'Library'
+            })
+
+            // Verify that canon graph management was triggered (leaving Canon zone)
+            expect(assetDBMock.query).toHaveBeenCalledWith({
+                IndexName: 'DataCategoryIndex',
+                Key: {
+                    DataCategory: 'Meta::Asset'
+                },
+                FilterExpression: "zone = :canon",
+                ExpressionAttributeValues: {
+                    ':canon': 'Canon'
+                },
+                ProjectionFields: ['AssetId', 'zone']
+            })
+
+            // Verify that canon updated event was streamed
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: { 
+                    type: 'Canon Updated',
+                    assetIds: []
+                },
+                streamKey: 'canon-global',
+                detailType: 'Canon Updated'
             })
 
             expect(receiveEventsSpy).toHaveBeenCalled()
