@@ -82,24 +82,7 @@ const PreviewAsset: FunctionComponent<AssetClientPlayerAsset & PreviewPaneMeta> 
             }
         />
         <CardActions>
-            { personal && <Button
-                    onClick={() => {
-                        dispatch(socketDispatchPromise({ message: 'checkin', AssetId: `ASSET#${AssetId}` }, { service: 'asset' }))
-                        clearPreview()
-                    }}
-                >
-                    Check In to Library
-                </Button>
-            }
-            { !personal && <Button
-                    onClick={() => {
-                        dispatch(socketDispatchPromise({ message: 'checkout', AssetId: `ASSET#${AssetId}` }, { service: 'asset' }))
-                        clearPreview()
-                    }}
-                >
-                    Check Out of Library
-                </Button>
-            }
+            {/* Checkin/checkout functionality deprecated in favor of new collaboration design */}
         </CardActions>
     </Card>
 }
@@ -144,24 +127,7 @@ const PreviewCharacter: FunctionComponent<AssetClientPlayerCharacter & { persona
             </Typography>
         </CardContent>
         <CardActions>
-            { personal && <Button
-                    onClick={() => {
-                        dispatch(socketDispatchPromise({ message: 'checkin', AssetId: CharacterId }, { service: 'asset' }))
-                        clearPreview()
-                    }}
-                >
-                    Check In to Library
-                </Button>
-            }
-            { !personal && <Button
-                    onClick={() => {
-                        dispatch(socketDispatchPromise({ message: 'checkout', AssetId: CharacterId }, { service: 'asset' }))
-                        clearPreview()
-                    }}
-                >
-                    Check Out of Library
-                </Button>
-            }
+            {/* Checkin/checkout functionality deprecated in favor of new collaboration design */}
         </CardActions>
     </Card>
 }

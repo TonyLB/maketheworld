@@ -1,17 +1,16 @@
 import { wmlDataSource } from './index'
 import { WMLEventSerializer } from './serializers'
-import { moveAsset, isMoveAssetRequest } from './moveAsset'
-import { MoveAssetRequest } from './moveAsset'
+import { moveAsset } from './moveAsset'
+import { MoveAssetRequest } from '../messageBus/baseClasses'
 
 // Mock the moveAsset function
 jest.mock('./moveAsset', () => ({
-    moveAsset: jest.fn(),
-    isMoveAssetRequest: jest.fn(),
-    MoveAssetRequest: {}
+    moveAsset: jest.fn()
 }))
 
+// No need to mock messageBus baseClasses since we're testing behavior, not implementation
+
 const moveAssetMock = moveAsset as jest.MockedFunction<typeof moveAsset>
-const isMoveAssetRequestMock = isMoveAssetRequest as jest.MockedFunction<typeof isMoveAssetRequest>
 
 describe('WML DataSource', () => {
     beforeEach(() => {
@@ -39,13 +38,11 @@ describe('WML DataSource', () => {
 
     describe('Event Type Guard', () => {
         it('should recognize valid moveAsset events', () => {
-            isMoveAssetRequestMock.mockReturnValue(true)
-            
             const validEvent = {
                 dataSourceKey: 'internal',
-                detailType: 'moveAssets',
                 event: {
                     update: {
+                        type: 'moveAsset',
                         assetId: 'test-asset',
                         fromZone: 'Library',
                         toZone: 'Canon'
@@ -56,19 +53,14 @@ describe('WML DataSource', () => {
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
             const isRecognized = wmlDataSource.subscribedEventTypeGuard!(validEvent as any)
             expect(isRecognized).toBe(true)
-            expect(isMoveAssetRequestMock).toHaveBeenCalledWith({
-                assetId: 'test-asset',
-                fromZone: 'Library',
-                toZone: 'Canon'
-            })
         })
 
         it('should reject events with wrong dataSourceKey', () => {
             const invalidEvent = {
                 dataSourceKey: 'mtw.assets',
-                detailType: 'moveAssets',
                 event: {
                     update: {
+                        type: 'moveAsset',
                         assetId: 'test-asset',
                         fromZone: 'Library',
                         toZone: 'Canon'
@@ -79,22 +71,17 @@ describe('WML DataSource', () => {
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
             const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidEvent as any)
             expect(isRecognized).toBe(false)
-            // Should not call isMoveAssetRequest since dataSourceKey is wrong
-            expect(isMoveAssetRequestMock).not.toHaveBeenCalled()
         })
 
         it('should reject events with missing event structure', () => {
             const invalidEvent = {
                 dataSourceKey: 'internal',
-                detailType: 'moveAssets',
                 event: null
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
             const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidEvent as any)
             expect(isRecognized).toBe(false)
-            // Should not call isMoveAssetRequest since event is null
-            expect(isMoveAssetRequestMock).not.toHaveBeenCalled()
         })
     })
 
@@ -102,6 +89,7 @@ describe('WML DataSource', () => {
         it('should process successful moveAsset events', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockMoveRequest: MoveAssetRequest = {
+                type: 'moveAsset',
                 assetId: 'test-asset',
                 fromZone: 'Library',
                 toZone: 'Canon'
@@ -144,6 +132,7 @@ describe('WML DataSource', () => {
         it('should process failed moveAsset events without streaming', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockMoveRequest: MoveAssetRequest = {
+                type: 'moveAsset',
                 assetId: 'test-asset',
                 fromZone: 'Library',
                 toZone: 'Canon'
@@ -175,6 +164,7 @@ describe('WML DataSource', () => {
         it('should handle moveAsset events with optional fields', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockMoveRequest: MoveAssetRequest = {
+                type: 'moveAsset',
                 assetId: 'test-asset',
                 fromZone: 'Personal',
                 toZone: 'Library',
@@ -220,6 +210,7 @@ describe('WML DataSource', () => {
         it('should handle moveAsset processing errors gracefully', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockMoveRequest: MoveAssetRequest = {
+                type: 'moveAsset',
                 assetId: 'test-asset',
                 fromZone: 'Library',
                 toZone: 'Canon'
@@ -249,6 +240,7 @@ describe('WML DataSource', () => {
         it('should handle streaming errors gracefully', async () => {
             const mockStreamEvent = jest.fn().mockRejectedValue(new Error('Streaming failed'))
             const mockMoveRequest: MoveAssetRequest = {
+                type: 'moveAsset',
                 assetId: 'test-asset',
                 fromZone: 'Library',
                 toZone: 'Canon'

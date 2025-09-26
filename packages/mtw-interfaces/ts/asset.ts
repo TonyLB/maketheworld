@@ -42,11 +42,19 @@ export type ParseWMLAPIImage = {
     fileName: string;
 }
 
+/**
+ * @deprecated Checkin/checkout functionality deprecated in favor of new collaboration design
+ * Use Suggestions and Publishing APIs instead
+ */
 export type AssetCheckinAPIMessage = {
     message: 'checkin';
     AssetId: string;
 }
 
+/**
+ * @deprecated Checkin/checkout functionality deprecated in favor of new collaboration design
+ * Use Suggestions and Publishing APIs instead
+ */
 export type AssetCheckoutAPIMessage = {
     message: 'checkout';
     AssetId: string;
@@ -109,7 +117,16 @@ export const isMetaDataAPIMessage = (message: AssetAPIMessage): message is MetaD
 export const isFetchImportsAPIMessage = (message: AssetAPIMessage): message is FetchImportsAPIMessage => (message.message === 'fetchImports')
 export const isFetchAssetAPIMessage = (message: AssetAPIMessage): message is FetchAssetAPIMessage => (message.message === 'fetch')
 export const isUploadAssetLinkAPIMessage = (message: AssetAPIMessage): message is UploadAssetLinkAPIMessage => (message.message === 'upload')
+/**
+ * @deprecated Checkin/checkout functionality deprecated in favor of new collaboration design
+ * Use Suggestions and Publishing APIs instead
+ */
 export const isAssetCheckinAPIMessage = (message: AssetAPIMessage): message is AssetCheckinAPIMessage => (message.message === 'checkin')
+
+/**
+ * @deprecated Checkin/checkout functionality deprecated in favor of new collaboration design
+ * Use Suggestions and Publishing APIs instead
+ */
 export const isAssetCheckoutAPIMessage = (message: AssetAPIMessage): message is AssetCheckoutAPIMessage => (message.message === 'checkout')
 export const isAssetSubscribeAPIMessage = (message: AssetAPIMessage): message is AssetSubscribeAPIMessage => (message.message === 'subscribe')
 export const isAssetUnsubscribeAPIMessage = (message: AssetAPIMessage): message is AssetUnsubscribeAPIMessage => (message.message === 'unsubscribe')
