@@ -1354,8 +1354,6 @@ Resources:
                     - mtw.coordination
                   detail-type:
                     - Remove Asset
-                    - Canonize Asset
-                    - Decanonize Asset
             WML:
               Type: CloudWatchEvent
               Properties:

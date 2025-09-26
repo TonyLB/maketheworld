@@ -29,8 +29,6 @@ import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
 import { isEphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { extractReturnValue } from './returnValue'
-import { AssetsEventSerializer } from './dataSource/serializers'
-import { CharacterEventSerializer } from './characters/serializers'
 import { WMLEventSerializer } from '../wml/dataSource/serializers'
 
 const { FEEDBACK_TOPIC } = process.env
