@@ -138,10 +138,9 @@ export const handler = async (event, context) => {
         // Find the appropriate deserializer for this data source
         const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]
         
-        let internalEvent
         if (deserializer) {
             // Deserialize the external EventBridge event to internal format
-            internalEvent = deserializer.deserialize({
+            const internalEvent = deserializer.deserialize({
                 dataSourceKey: event.source,
                 detailType: event["detail-type"],
                 streamKey: event.detail.streamKey || '', // Extract streamKey from detail
@@ -161,7 +160,10 @@ export const handler = async (event, context) => {
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: event.source,
-                    event: internalEvent,
+                    event: {
+                        streamKey: event.detail.streamKey || '',
+                        update: internalEvent
+                    },
                     timestamp: event.time ? new Date(event.time).getTime() : Date.now()
                 })
             }

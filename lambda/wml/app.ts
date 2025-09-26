@@ -9,15 +9,67 @@ import internalCache from "./internalCache";
 import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
 import { extractReturnValue } from "./returnValue/index";
+import { CoordinationEventSerializer } from './dataSource/coordinationSerializer';
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
+
+// Event deserializers for incoming EventBridge events
+const eventDeserializers = {
+    'mtw.coordination': new CoordinationEventSerializer(),
+    // Add other data source deserializers here as needed
+}
 
 export const handler = async (event: any) => {
 
     internalCache.clear()
     internalCache.Connection.set({ key: 's3Client', value: s3Client })
     messageBus.clear()
+
+    // Handle EventBridge messages by publishing to messageBus for DataSource processing
+    if (event?.source && event["detail-type"]) {
+        // Find the appropriate deserializer for this data source
+        const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]
+        
+        if (deserializer) {
+            // Deserialize the external EventBridge event to internal format
+            const internalEvent = deserializer.deserialize({
+                dataSourceKey: event.source,
+                detailType: event["detail-type"],
+                streamKey: event.detail.streamKey || '', // Extract streamKey from detail
+                externalUpdate: event.detail
+            })
+            
+            // If deserialization failed, log error and skip this event
+            if (!internalEvent) {
+                messageBus.send({
+                    type: 'Error',
+                    body: {
+                        error: `Failed to deserialize event from ${event.source}: ${event["detail-type"]}`
+                    }
+                })
+            } else {
+                // Publish deserialized event to messageBus for DataSource processing
+                messageBus.send({
+                    type: 'StreamingEvent',
+                    dataSourceKey: event.source,
+                    event: {
+                        streamKey: event.detail.streamKey || '',
+                        update: internalEvent
+                    },
+                    timestamp: event.time ? new Date(event.time).getTime() : Date.now()
+                })
+            }
+        } else {
+            // No deserializer available - this is an error condition
+            messageBus.send({
+                type: 'Error',
+                body: {
+                    error: `No deserializer available for data source: ${event.source}`
+                }
+            })
+        }
+    }
 
     switch(event.message) {
         case 'parseWML':
@@ -67,4 +119,8 @@ export const handler = async (event: any) => {
             await messageBus.flush()
             return await extractReturnValue(messageBus)
     }
+
+    // Flush any EventBridge events that were processed
+    await messageBus.flush()
+    return await extractReturnValue(messageBus)
 }
