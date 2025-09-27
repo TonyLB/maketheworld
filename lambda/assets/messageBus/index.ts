@@ -3,8 +3,6 @@ import {
     isFetchLibraryAPIMessage,
     isFetchAssetAPIMessage,
     isUploadURLMessage,
-    isMoveAssetMessage,
-    isMoveByAssetIdMessage,
     isLibrarySubscribeMessage,
     isPlayerInfoMessage,
     isLibraryUpdateMessage,
@@ -15,13 +13,11 @@ import {
     isReturnValueMessage,
     isCacheAssetMessage,
     isDecacheAssetMessage,
-    isCollaborationStatusMessage,
-    isStreamingEventMessage
+    isCollaborationStatusMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
 import { uploadURLMessage } from "../upload"
-import { moveAssetByIdMessage, moveAssetMessage } from "../moveAsset"
 import { librarySubscribeMessage, libraryUnsubscribeMessage } from "../subscribe"
 import playerInfoMessage from "../player/info"
 import libraryUpdateMessage from "../libraryUpdate"
@@ -35,12 +31,6 @@ import collaborationStatusMessage from "../collaborationStatus"
 
 export const messageBus = new MessageBus()
 
-messageBus.subscribe({
-    tag: 'MoveByAssetId',
-    priority: 3,
-    filter: isMoveByAssetIdMessage,
-    callback: moveAssetByIdMessage
-})
 messageBus.subscribe({
     tag: 'FetchLibrary',
     priority: 5,
@@ -64,12 +54,6 @@ messageBus.subscribe({
     priority: 5,
     filter: isUploadURLMessage,
     callback: uploadURLMessage
-})
-messageBus.subscribe({
-    tag: 'MoveAsset',
-    priority: 5,
-    filter: isMoveAssetMessage,
-    callback: moveAssetMessage
 })
 messageBus.subscribe({
     tag: 'RemoveAsset',
