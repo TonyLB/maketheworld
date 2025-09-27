@@ -196,6 +196,13 @@ export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnaps
                 const zone = await getAssetZone(assetId as AssetUUID)
                 if (!zone) {
                     console.warn(`Could not determine zone for asset ${assetId}, skipping content header update`)
+                    messageBus.send({
+                        type: 'Error',
+                        body: {
+                            error: `Could not determine zone for asset ${assetId}`,
+                            statusCode: 400
+                        }
+                    })
                     return
                 }
                 
@@ -215,7 +222,7 @@ export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnaps
                 console.error(`Error processing events for asset ${assetId}:`, error)
                 messageBus.send({
                     type: 'Error',
-                    body: { 
+                    body: {
                         error: `Failed to process events for asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`,
                         statusCode: 500
                     }

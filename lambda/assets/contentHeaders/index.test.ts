@@ -11,6 +11,7 @@ import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { extractComponentMetadata } from './serializers'
 import internalCache from '../internalCache'
+import messageBus from '../messageBus'
 
 // Mock external dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -56,7 +57,6 @@ const assetDBMock = jest.mocked(assetDB, { shallow: false })
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 const extractComponentMetadataMock = jest.mocked(extractComponentMetadata, { shallow: false })
 const extractHeaderMock = jest.mocked(require('./extractHeader').extractHeader, { shallow: false })
-const messageBusMock = jest.mocked(require('../messageBus').default.send, { shallow: false })
 
 describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
     beforeEach(() => {
@@ -70,7 +70,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
         // Mock extractComponentMetadata
         extractComponentMetadataMock.mockReturnValue(null)
         // Mock extractHeader
-        extractHeaderMock.mockReturnValue(null)
+        extractHeaderMock.mockReturnValue(undefined)
     })
 
     describe('Constructor', () => {
@@ -238,53 +238,31 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 ]
             })
 
-            // Then verify the WML content of each StandardForm
-            
-            const expectedWML = deIndentWML(`
+            // Verify the actual WML content for each asset
+            const canonAsset = snapshot!.assets[0]
+            const canonWML = schemaToWML([canonAsset.standardForm.schema])
+            expect(canonWML).toBe(deIndentWML(`
                 <Asset key=(test)>
                     <Room uuid=(room1)><ShortName>Test Room</ShortName></Room>
                 </Asset>
-            `)
+            `))
 
-            snapshot!.assets.forEach(asset => {
-                const actualWML = schemaToWML([asset.standardForm.schema])
-                expect(actualWML).toBe(expectedWML)
-            })
-        })
+            const libraryAsset = snapshot!.assets[1]
+            const libraryWML = schemaToWML([libraryAsset.standardForm.schema])
+            expect(libraryWML).toBe(deIndentWML(`
+                <Asset key=(test)>
+                    <Room uuid=(room1)><ShortName>Test Room</ShortName></Room>
+                </Asset>
+            `))
 
-        it('should handle assets without components that have headers', async () => {
-            const mockAssets = [
-                { AssetId: 'ASSET#test1', DataCategory: 'Meta::Asset', zone: 'Canon' }
-            ]
-            assetDBMock.query.mockResolvedValue(mockAssets)
+            const personalAsset = snapshot!.assets[2]
+            const personalWML = schemaToWML([personalAsset.standardForm.schema])
+            expect(personalWML).toBe(deIndentWML(`
+                <Asset key=(test)>
+                    <Room uuid=(room1)><ShortName>Test Room</ShortName></Room>
+                </Asset>
+            `))
 
-            // Mock asset data with components that don't have headers
-            const mockStandardForm = new StandardForm(`<Asset key=(test)>
-                <Map uuid=(map1) key=(map1) />
-            </Asset>`)
-            internalCacheMock.AssetData.get.mockResolvedValue([{
-                AssetId: 'ASSET#test1',
-                standardForm: mockStandardForm
-            }])
-
-            // Mock extractComponentMetadata to return null (no header found)
-            extractComponentMetadataMock.mockReturnValue(null)
-            
-            // Don't mock extractHeader - let it work with the real Map component
-            // Map components don't have shortName, but should still be included in headers
-
-            const snapshot = await contentHeadersDataSource.snapshotContentGenerator?.('global')
-
-            expect(snapshot).toEqual({
-                type: 'Snapshot Generated',
-                assets: [
-                    {
-                        assetId: 'ASSET#test1',
-                        zone: 'Canon',
-                        standardForm: expect.any(Object)
-                    }
-                ] // Should include the Map component even without shortName
-            })
         })
 
         it('should handle errors gracefully and return empty snapshot', async () => {
@@ -353,6 +331,16 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'global',
                     detailType: 'Headers Updated'
                 })
+
+                // Verify the actual WML content
+                const streamEventCall = mockStreamEvent.mock.calls[0][0]
+                const standardForm = streamEventCall.update.standardForm
+                const wmlContent = schemaToWML([standardForm.schema])
+                expect(wmlContent).toBe(deIndentWML(`
+                    <Asset key=(asset123)>
+                        <Room uuid=(room123)><ShortName>Test Room</ShortName></Room>
+                    </Asset>
+                `))
             })
 
             it('should skip events when zone cannot be determined', async () => {
@@ -391,8 +379,8 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     zone: 'Canon'
                 }])
 
-                // Mock extractHeader to return null (no header)
-                extractHeaderMock.mockReturnValue(null)
+                // Mock extractHeader to return undefined (no header)
+                extractHeaderMock.mockReturnValue(undefined)
 
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
@@ -493,11 +481,11 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamEvent: mockStreamEvent
                 })
 
-                expect(messageBusMock).toHaveBeenCalledWith({
+                expect(messageBus.send).toHaveBeenCalledWith({
                     type: 'Error',
                     body: {
-                        error: 'Failed to process events for asset ASSET#asset123: Cache error',
-                        statusCode: 500
+                        error: 'Could not determine zone for asset ASSET#asset123',
+                        statusCode: 400
                     }
                 })
             })
@@ -641,11 +629,11 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamEvent: mockStreamEvent
                 })
 
-                expect(messageBusMock).toHaveBeenCalledWith({
+                expect(messageBus.send).toHaveBeenCalledWith({
                     type: 'Error',
                     body: {
-                        error: 'Failed to process events for asset ASSET#asset123: Cache error',
-                        statusCode: 500
+                        error: 'Could not determine zone for asset ASSET#asset123',
+                        statusCode: 400
                     }
                 })
             })

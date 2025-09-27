@@ -11,13 +11,14 @@ import {
     isContentHeadersSnapshot,
     isContentHeadersUpdate
 } from './baseClasses'
+import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 // External event format (EventBridge) - using WML strings
 export type ContentHeadersSnapshotExternal = {
     type: 'Snapshot Generated'
     assets: Array<{
         assetId: AssetUUID
-        zone: 'Canon' | 'Library' | 'Personal'
+        zone: Zone
         wml: string // Serialized to WML for external consumption
     }>
 }
@@ -25,7 +26,7 @@ export type ContentHeadersSnapshotExternal = {
 export type ContentHeadersUpdateExternal = {
     type: 'Headers Updated'
     assetId: AssetUUID
-    zone: 'Canon' | 'Library' | 'Personal'
+    zone: Zone
     wml: string // Serialized to WML for external consumption
 }
 

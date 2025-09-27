@@ -23,11 +23,12 @@ export const extractHeader = (component: StandardComponent): StandardComponent |
         }
         return new StandardReplace(matchHeader, payloadHeader)
     }
+
     const minimalJson = {
         tag: component.tag as any,
         key: component.key,
         universalKey: component.universalKey,
-        shortName: component.shortName?.toJSON()
+        shortName: hasShortName(component) ? component.shortName?.toJSON() : undefined
     } as any
 
     const headerComponent = standardComponentFactory(minimalJson)
