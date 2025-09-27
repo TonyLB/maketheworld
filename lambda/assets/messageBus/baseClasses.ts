@@ -48,21 +48,6 @@ export type UploadURLMessage = {
     images: UploadURLMessageImage[];
 }
 
-export type MoveAssetMessage = {
-    type: 'MoveAsset';
-    AssetId: string;
-    from: AssetWorkspaceAddress;
-    to: AssetWorkspaceAddress;
-}
-
-export type MoveByAssetIdMessage = {
-    type: 'MoveByAssetId',
-    AssetId: string;
-    toZone: 'Canon' | 'Library' | 'Personal' | 'Archive';
-    player?: string;
-    backupId?: `BACKUP#${string}`;
-}
-
 export type LibrarySubscribeMessage = {
     type: 'LibrarySubscribe';
 }
@@ -119,8 +104,6 @@ export type MessageType = ReturnValueMessage |
     FetchImportsMessage |
     FetchAssetMessage |
     UploadURLMessage |
-    MoveAssetMessage |
-    MoveByAssetIdMessage |
     LibrarySubscribeMessage |
     LibraryUnsubscribeMessage |
     PlayerInfoMessage |
@@ -138,8 +121,6 @@ export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibrar
 export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMessage => (prop.type === 'FetchAsset')
 export const isFetchImportsAPIMessage = (prop: MessageType): prop is FetchImportsMessage => (prop.type === 'FetchImports')
 export const isUploadURLMessage = (prop: MessageType): prop is UploadURLMessage => (prop.type === 'UploadURL')
-export const isMoveAssetMessage = (prop: MessageType): prop is MoveAssetMessage => (prop.type === 'MoveAsset')
-export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetIdMessage => (prop.type === 'MoveByAssetId')
 export const isLibrarySubscribeMessage = (prop: MessageType): prop is LibrarySubscribeMessage => (prop.type === 'LibrarySubscribe')
 export const isLibraryUnsubscribeMessage = (prop: MessageType): prop is LibraryUnsubscribeMessage => (prop.type === 'LibraryUnsubscribe')
 export const isPlayerInfoMessage = (prop: MessageType): prop is PlayerInfoMessage => (prop.type === 'PlayerInfo')
