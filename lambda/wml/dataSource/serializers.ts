@@ -2,6 +2,7 @@ import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSo
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
+import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 // Internal types for WML events
 export type WMLContentEvent = {
@@ -13,8 +14,8 @@ export type WMLContentEvent = {
 export type WMLZoneEvent = {
     type: 'Zone Changed'
     AssetId: string
-    fromZone: string
-    toZone: string
+    fromZone: Zone
+    toZone: Zone
     player?: string
     subFolder?: string
 }
@@ -32,8 +33,8 @@ export type WMLContentEventExternal = {
 export type WMLZoneEventExternal = {
     type: 'Zone Changed'
     AssetId: string
-    fromZone: string
-    toZone: string
+    fromZone: Zone
+    toZone: Zone
     player?: string
     subFolder?: string
 }
@@ -42,12 +43,32 @@ export type WMLZoneEventExternal = {
 export type WMLEventExternal = WMLContentEventExternal | WMLZoneEventExternal
 
 // Type guards
-export const isWMLContentEvent = (event: WMLEventUpdate): event is WMLContentEvent => {
-    return event.type === 'Content Update' || event.type === 'Content Removed'
+export const isWMLContentEvent = (event: any): event is WMLContentEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        'type' in event &&
+        (event.type === 'Content Update' || event.type === 'Content Removed') &&
+        'AssetId' in event &&
+        typeof event.AssetId === 'string'
+    )
 }
 
-export const isWMLZoneEvent = (event: WMLEventUpdate): event is WMLZoneEvent => {
-    return event.type === 'Zone Changed'
+export const isWMLZoneEvent = (event: any): event is WMLZoneEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        'type' in event &&
+        event.type === 'Zone Changed' &&
+        'AssetId' in event &&
+        'fromZone' in event &&
+        'toZone' in event &&
+        typeof event.AssetId === 'string' &&
+        typeof event.fromZone === 'string' &&
+        typeof event.toZone === 'string' &&
+        isZone(event.fromZone) &&
+        isZone(event.toZone)
+    )
 }
 
 /**

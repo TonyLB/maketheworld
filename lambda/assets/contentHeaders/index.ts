@@ -2,7 +2,8 @@ import { AssetsDataSource } from '../dataSource/abstract'
 import messageBus from '../messageBus'
 import { 
     ContentHeadersSnapshot, 
-    ContentHeadersUpdate
+    ContentHeadersUpdate,
+    ZoneUpdatedEvent
 } from './baseClasses'
 import { ContentHeadersEventSerializer } from './serializers'
 import { ComponentEventUpdate, ComponentUpdatedEvent } from '../dataSource/serializers'
@@ -13,7 +14,7 @@ import internalCache from '../internalCache'
 import { extractHeader } from './extractHeader'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
+import { WMLZoneEvent, isWMLZoneEvent } from '../../wml/dataSource/serializers'
 
 //
 // Replayable DataSource singleton for mtw.assets.contentHeaders
@@ -38,7 +39,7 @@ export type SubscribedAssetsEvent = {
     timestamp: number
 }
 
-// Type guard for subscribed events
+// Type guard for subscribed assets events
 const isSubscribedAssetsEvent = (event: StreamingEventPayload): event is SubscribedAssetsEvent => {
     return Boolean(
         event.dataSourceKey === 'mtw.assets' && 
@@ -47,9 +48,41 @@ const isSubscribedAssetsEvent = (event: StreamingEventPayload): event is Subscri
         event.event !== null &&
         event.event.update &&
         typeof event.event.update === 'object' &&
+        'type' in event.event.update &&
         event.event.update.type &&
         event.event.update.type === 'Component Updated'
     )
+}
+
+// Type for subscribed WML events
+export type SubscribedWMLEvent = {
+    dataSourceKey: 'mtw.wml'
+    event: {
+        streamKey: string
+        update: WMLZoneEvent
+    }
+    timestamp: number
+}
+
+// Union type for all subscribed events
+export type SubscribedEvent = SubscribedAssetsEvent | SubscribedWMLEvent
+
+// Type guard for subscribed WML events
+const isSubscribedWMLEvent = (event: StreamingEventPayload): event is SubscribedWMLEvent => {
+    return Boolean(
+        event.dataSourceKey === 'mtw.wml' && 
+        event.event && 
+        typeof event.event === 'object' &&
+        event.event !== null &&
+        event.event.update &&
+        typeof event.event.update === 'object' &&
+        isWMLZoneEvent(event.event.update)
+    )
+}
+
+// Type guard for subscribed events (from assets and mtw.wml Zone Changed)
+const isSubscribedEvent = (event: StreamingEventPayload): event is SubscribedEvent => {
+    return isSubscribedAssetsEvent(event) || isSubscribedWMLEvent(event)
 }
 
 const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot> => {
@@ -106,55 +139,68 @@ const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot>
     }
 }
 
-export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnapshot, ContentHeadersUpdate, SubscribedAssetsEvent>({
+export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnapshot, ContentHeadersUpdate | ZoneUpdatedEvent, SubscribedEvent>({
     dataSourceKey: 'mtw.assets.contentHeaders',
     replayable: true, // Support client subscriptions with historical data
     eventSerializer: new ContentHeadersEventSerializer(),
     snapshotContentGenerator: generateContentHeadersSnapshot,
-    subscribedEventTypeGuard: isSubscribedAssetsEvent,
+    subscribedEventTypeGuard: isSubscribedEvent,
     receiveEvents: async ({ events, streamEvent }) => {
-        // Process mtw.assets events and generate content header updates
-        // Group events by asset to enable aggregation
+        // Process mtw.assets events and generate content header and zone updates
+        // Group content events by asset to enable aggregation
         
         console.log(`Processing ${events.length} events in contentHeaders data source`)
         
         // Group events by asset ID
-        const eventsByAsset = new Map<AssetUUID, SubscribedAssetsEvent[]>()
-        
-        for (const event of events) {
+        const { eventsByAsset, zoneEvents } = events.reduce<{ eventsByAsset: Record<AssetUUID, SubscribedEvent[]>, zoneEvents: SubscribedWMLEvent[] }>((previous, event) => {
             if (event.event.update.type === 'Component Updated') {
                 const componentUpdate = event.event.update as ComponentUpdatedEvent
                 const { assetId } = componentUpdate
-                
-                if (!assetId) {
-                    console.warn('Component Updated event missing assetId, skipping')
-                    continue
+                return {
+                    ...previous,
+                    eventsByAsset: {
+                        ...previous.eventsByAsset,
+                        [assetId]: [...previous.eventsByAsset[assetId] ?? [], event]
+                    }
                 }
-                
-                if (!eventsByAsset.has(assetId as AssetUUID)) {
-                    eventsByAsset.set(assetId as AssetUUID, [])
+            } else if (event.event.update.type === 'Zone Changed') {
+                return {
+                    ...previous,
+                    zoneEvents: [...previous.zoneEvents, event as SubscribedWMLEvent]
                 }
-                eventsByAsset.get(assetId as AssetUUID)!.push(event)
-            } else {
-                // Defensive programming: handle unexpected event types
-                console.warn(`Unhandled event type in content headers data source: ${(event.event.update as any).type}`)
             }
-        }
+            return previous
+        }, { eventsByAsset: {}, zoneEvents: [] })
         
+
+        const zoneUpdates = zoneEvents.map(async (zoneEvent) => {
+            const { fromZone, toZone } = zoneEvent.event.update
+            await streamEvent({
+                streamKey: 'global',
+                detailType: 'Zone Updated',
+                update: {
+                    type: 'Zone Updated',
+                    assetId: zoneEvent.event.streamKey as AssetUUID,
+                    fromZone,
+                    toZone
+                }
+            })
+        })
+
         // Process each asset's events as a batch
-        await Promise.all(Array.from(eventsByAsset.entries()).map(async ([assetId, assetEvents]) => {
+        const contentHeadersUpdates = Object.entries(eventsByAsset).map(async ([assetId, assetEvents]) => {
             try {
                 console.log(`Processing ${assetEvents.length} events for asset ${assetId}`)
                 
                 // Get the asset's zone information
-                const zone = await getAssetZone(assetId)
+                const zone = await getAssetZone(assetId as AssetUUID)
                 if (!zone) {
                     console.warn(`Could not determine zone for asset ${assetId}, skipping content header update`)
                     return
                 }
                 
                 // Create aggregated content header update for this asset
-                const contentHeadersUpdate = createAggregatedContentHeadersUpdate(assetId, zone, assetEvents)
+                const contentHeadersUpdate = createAggregatedContentHeadersUpdate(assetId as AssetUUID, zone, assetEvents)
                 if (contentHeadersUpdate) {
                     console.log(`Generated aggregated content header update for asset ${assetId} in zone ${zone}`)
                     await streamEvent({
@@ -175,7 +221,12 @@ export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnaps
                     }
                 })
             }
-        }))
+        })
+
+        await Promise.all([
+            ...contentHeadersUpdates,
+            ...zoneUpdates
+        ])
     }
 })
 
@@ -204,7 +255,7 @@ async function getAssetZone(assetId: AssetUUID): Promise<'Canon' | 'Library' | '
 function createAggregatedContentHeadersUpdate(
     assetId: AssetUUID,
     zone: 'Canon' | 'Library' | 'Personal',
-    events: SubscribedAssetsEvent[]
+    events: SubscribedEvent[]
 ): ContentHeadersUpdate | null {
     try {
         const assetKey = assetId.split('#')[1]

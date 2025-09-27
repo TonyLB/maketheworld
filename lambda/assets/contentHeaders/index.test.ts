@@ -1,5 +1,4 @@
 import { contentHeadersDataSource, SubscribedAssetsEvent } from './index'
-import { ContentHeadersSnapshot, ContentHeadersUpdate } from './baseClasses'
 import { ContentHeadersEventSerializer } from './serializers'
 import { ComponentEventUpdate } from '../dataSource/serializers'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -7,8 +6,6 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
-import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { StandardFeature } from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -56,7 +53,6 @@ jest.mock('./extractHeader', () => ({
 }))
 
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
-const eventBridgeSendMock = jest.mocked(eventBridgeClient.send, { shallow: false })
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 const extractComponentMetadataMock = jest.mocked(extractComponentMetadata, { shallow: false })
 const extractHeaderMock = jest.mocked(require('./extractHeader').extractHeader, { shallow: false })
