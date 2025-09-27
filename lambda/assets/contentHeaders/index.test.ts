@@ -1,4 +1,4 @@
-import { contentHeadersDataSource, SubscribedAssetsEvent } from './index'
+import { contentHeadersDataSource, SubscribedAssetsEvent, SubscribedWMLEvent, SubscribedEvent } from './index'
 import { ContentHeadersEventSerializer } from './serializers'
 import { ComponentEventUpdate } from '../dataSource/serializers'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -635,6 +635,166 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         error: 'Could not determine zone for asset ASSET#asset123',
                         statusCode: 400
                     }
+                })
+            })
+        })
+
+        describe('Zone Changed Event Processing', () => {
+            it('should stream Zone Updated event when receiving Zone Changed from WML', async () => {
+                const zoneChangedEvent: SubscribedWMLEvent = {
+                    dataSourceKey: 'mtw.wml',
+                    event: {
+                        streamKey: 'global',
+                        update: {
+                            type: 'Zone Changed',
+                            AssetId: 'ASSET#test1',
+                            fromZone: 'Canon',
+                            toZone: 'Library'
+                        }
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [zoneChangedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).toHaveBeenCalledWith({
+                    streamKey: 'global',
+                    detailType: 'Zone Updated',
+                    update: {
+                        type: 'Zone Updated',
+                        assetId: 'global',
+                        fromZone: 'Canon',
+                        toZone: 'Library'
+                    }
+                })
+            })
+
+            it('should process multiple Zone Changed events', async () => {
+                const zoneChangedEvents: SubscribedWMLEvent[] = [
+                    {
+                        dataSourceKey: 'mtw.wml',
+                        event: {
+                            streamKey: 'ASSET#test1',
+                            update: {
+                                type: 'Zone Changed',
+                                AssetId: 'ASSET#test1',
+                                fromZone: 'Canon',
+                                toZone: 'Library'
+                            }
+                        },
+                        timestamp: Date.now()
+                    },
+                    {
+                        dataSourceKey: 'mtw.wml',
+                        event: {
+                            streamKey: 'ASSET#test2',
+                            update: {
+                                type: 'Zone Changed',
+                                AssetId: 'ASSET#test2',
+                                fromZone: 'Library',
+                                toZone: 'Personal'
+                            }
+                        },
+                        timestamp: Date.now()
+                    }
+                ]
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: zoneChangedEvents,
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).toHaveBeenCalledTimes(2)
+                expect(mockStreamEvent).toHaveBeenNthCalledWith(1, {
+                    streamKey: 'global',
+                    detailType: 'Zone Updated',
+                    update: {
+                        type: 'Zone Updated',
+                        assetId: 'ASSET#test1',
+                        fromZone: 'Canon',
+                        toZone: 'Library'
+                    }
+                })
+                expect(mockStreamEvent).toHaveBeenNthCalledWith(2, {
+                    streamKey: 'global',
+                    detailType: 'Zone Updated',
+                    update: {
+                        type: 'Zone Updated',
+                        assetId: 'ASSET#test2',
+                        fromZone: 'Library',
+                        toZone: 'Personal'
+                    }
+                })
+            })
+
+            it('should handle mixed Zone Changed and Component Updated events', async () => {
+                // Mock zone lookup for component event
+                internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#test1', zone: 'Canon' }])
+                extractHeaderMock.mockReturnValue(new StandardRoom({
+                    tag: 'Room',
+                    shortName: 'Test Room',
+                    universalKey: 'ROOM#room123'
+                }))
+
+                const mixedEvents: SubscribedEvent[] = [
+                    {
+                        dataSourceKey: 'mtw.wml',
+                        event: {
+                            streamKey: 'ASSET#test1',
+                            update: {
+                                type: 'Zone Changed',
+                                AssetId: 'ASSET#test1',
+                                fromZone: 'Canon',
+                                toZone: 'Library'
+                            }
+                        },
+                        timestamp: Date.now()
+                    },
+                    {
+                        dataSourceKey: 'mtw.assets',
+                        event: {
+                            streamKey: 'ASSET#test1',
+                            update: {
+                                type: 'Component Updated',
+                                assetId: 'ASSET#test1',
+                                component: new StandardRoom({
+                                    tag: 'Room',
+                                    shortName: 'Updated Room',
+                                    universalKey: 'ROOM#room123'
+                                })
+                            }
+                        },
+                        timestamp: Date.now()
+                    }
+                ]
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: mixedEvents,
+                    streamEvent: mockStreamEvent
+                })
+
+                // Should stream both Zone Updated and Headers Updated events
+                expect(mockStreamEvent).toHaveBeenCalledWith({
+                    streamKey: 'global',
+                    detailType: 'Zone Updated',
+                    update: {
+                        type: 'Zone Updated',
+                        assetId: 'ASSET#test1',
+                        fromZone: 'Canon',
+                        toZone: 'Library'
+                    }
+                })
+                expect(mockStreamEvent).toHaveBeenCalledWith({
+                    update: expect.objectContaining({
+                        type: 'Headers Updated',
+                        assetId: 'ASSET#test1',
+                        zone: 'Canon'
+                    }),
+                    streamKey: 'global',
+                    detailType: 'Headers Updated'
                 })
             })
         })
