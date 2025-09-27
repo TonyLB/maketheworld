@@ -1,4 +1,13 @@
 //
+// Centralized zone type definitions
+//
+export type Zone = 'Canon' | 'Library' | 'Personal' | 'Draft' | 'Archive'
+
+export const isZone = (value: string): value is Zone => {
+    return ['Canon', 'Library', 'Personal', 'Draft', 'Archive'].includes(value)
+}
+
+//
 // Duplicate of the types from AssetWorkspace, to avoid a full import
 //
 type AssetWorkspaceConstructorBase = {

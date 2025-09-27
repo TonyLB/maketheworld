@@ -98,26 +98,6 @@ export const handler = async (event, context) => {
                 )
             case 'createBackupEntry':
                 return await createBackupEntry({ AssetId: event.AssetId })
-            case 'moveAsset':
-                const { AssetId, zone, backupId } = event
-                if (!isEphemeraAssetId(AssetId) || !event.zone) {
-                    throw new Error('Incorrect arguments on moveAsset')
-                }
-                messageBus.send({
-                    type: 'MoveByAssetId',
-                    AssetId,
-                    toZone: zone,
-                    backupId
-                })
-                await messageBus.flush()
-                if (zone === 'Archive') {
-                    messageBus.send({
-                        type: 'DecacheAsset',
-                        assetId: AssetId.split('#').slice(1).join('#')
-                    })
-                    await messageBus.flush()
-                }
-                return {}
         }
     }
 
@@ -266,24 +246,6 @@ export const handler = async (event, context) => {
                 assetType: request.tag,
                 images: request.images
             })
-        }
-        if (isAssetCheckinAPIMessage(request)) {
-            messageBus.send({
-                type: 'MoveByAssetId',
-                AssetId: request.AssetId,
-                toZone: 'Library'
-            })
-        }
-        if (isAssetCheckoutAPIMessage(request)) {
-            const player = await internalCache.Connection.get('player')
-            if (player) {
-                messageBus.send({
-                    type: 'MoveByAssetId',
-                    AssetId: request.AssetId,
-                    toZone: `Personal`,
-                    player
-                })
-            }
         }
         if (isAssetSubscribeAPIMessage(request)) {
             messageBus.send({
