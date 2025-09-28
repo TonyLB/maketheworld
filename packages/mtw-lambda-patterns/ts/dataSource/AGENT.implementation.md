@@ -105,7 +105,7 @@ The DataSource pattern uses a consistent timestamp strategy across all event and
 ## Data Storage Strategy
 
 ### **Local DynamoDB Table** (Optional - when `replayable` is enabled)
-Each replayable data source maintains a local DynamoDB table for replay data across multiple subscribable streams. The Primary Key will be variable (`AssetId`, `EphemeraId`, and so on), but the general pattern will be that all stream records have a PK of `STREAM#${dataSourceKey}::${streamIdentifier}`.
+Each replayable data source maintains a local DynamoDB table for replay data across multiple subscribable streams. The Primary Key will be variable (`AssetId`, `EphemeraId`, and so on), but the general pattern will be that all stream records have a PK of `STREAM#${dataSourceKey}::${streamKey}`.
 
 This granular PK structure enables (when replay is enabled):
 - **Stream Isolation**: Each stream maintains its own snapshot and event history
@@ -159,14 +159,79 @@ The subscription system enables a simplified EventBridge architecture:
 - **Better Testing**: MessageBus events can be easily mocked and tested
 - **Performance**: Reduced EventBridge subscription complexity
 
-### **EventBridge Serialization**
+### **Multi-Context Serialization Challenge**
 
-The DataSource pattern supports optional event serialization to maintain clean separation between internal messageBus events and external EventBridge events.
+The DataSource pattern currently faces a serialization complexity issue where different transmission contexts require different structural representations of the same core metadata (`dataSourceKey`, `type`, and `streamKey`).
+
+**The Problem**: Instead of having a core format with context-specific transforms, the codebase has evolved a _de facto_ union format that accommodates all required structures simultaneously, leading to:
+- Functions expecting both `detailType` and `type` fields at separate levels
+- Redundant metadata storage across different contexts
+- Complex serialization logic that tries to satisfy multiple format requirements
+- Difficulty maintaining clean separation between internal and external representations
+
+**Context-Specific Format Requirements**:
+
+**EventBridge Format**:
+- **Filtering Priority**: `dataSourceKey` (`source`) and `type` (`detailType`) as top-level fields
+- **Structure**: `{ source, detailType, detail: { streamKey, update } }`
+- **Use Case**: Cross-service communication with EventBridge filtering capabilities
+
+**DynamoDB Format**:
+- **Sorting Priority**: `dataSourceKey` and `streamKey` encoded in string keys
+- **Structure**: `{ PK: 'STREAM#${dataSourceKey}::${streamKey}', type, update }`
+- **Use Case**: Efficient querying and sorting by stream and data source
+
+**WebSocket Format**:
+- **Transmission Priority**: All metadata as properties of the message
+- **Structure**: `{ messageType: 'StreamEvent', message: { dataSourceKey, streamKey, type, update } }`
+- **Use Case**: Real-time client delivery with complete context
+
+**Proposed Solution**: Core External Format + Context Transforms
+
+**Core External Format**: Standardized representation containing all essential metadata:
+```typescript
+interface CoreExternalFormat {
+    dataSourceKey: string;
+    streamKey: string;
+    type: string;
+    update: any; // The actual content data
+}
+```
+
+**Context-Specific Transformers**: Bidirectional transforms for each transmission context:
+- **EventBridge Transformer**: 
+  - `CoreExternalFormat` → EventBridge event structure (for publishing)
+  - EventBridge event structure → `CoreExternalFormat` (for receiving)
+- **DynamoDB Transformer**: 
+  - `CoreExternalFormat` → DynamoDB record structure (for storage)
+  - DynamoDB record structure → `CoreExternalFormat` (for replay)
+- **WebSocket Transformer**: 
+  - `CoreExternalFormat` → WebSocket message structure (for delivery)
+  - WebSocket message structure → `CoreExternalFormat` (for processing received messages)
+
+**Benefits of This Approach**:
+- **Single Source of Truth**: Core format eliminates metadata duplication
+- **Clear Boundaries**: Each context has explicit transformation logic
+- **Maintainability**: Changes to core format propagate cleanly through transformers
+- **Type Safety**: Each transformer can have proper TypeScript types
+- **Testability**: Individual transformers can be tested in isolation
+- **Performance**: Avoids complex union format processing
+
+**Implementation Strategy**:
+1. **Define Core Format**: Establish the standard external representation
+2. **Create Transformers**: Build context-specific transformation classes
+3. **Refactor Serializers**: Update existing serialization logic to use core format + transforms
+4. **Update DataSource**: Modify DataSource to use the new serialization pattern
+5. **Migrate Existing Code**: Gradually update code that expects the old union format
+
+### **EventSerializer Implementation**
+
+The DataSource pattern uses the `eventSerializer` constructor parameter to handle the transformation between internal messageBus events and external transmission formats.
 
 **Purpose**: Enable DataSources to maintain clean internal event processing while supporting proper external event contracts for cross-service communication.
 
-**Method**: `eventSerializer` constructor parameter - Optional serializer for EventBridge integration
-- **`serialize(params)`**: Convert internal update payload to external format for EventBridge Detail
+**Method**: `eventSerializer` constructor parameter - Optional serializer for external integration
+- **`serialize(params)`**: Convert internal update payload to external format for transmission
 - **`deserialize(params)`**: Convert external update payload back to internal format
 
 **Standard Pattern**: Use class-based serializers for better type safety, testability, and reusability:
@@ -201,8 +266,10 @@ const myDataSource = new MyDataSource({
 **Key Principles**:
 - **Internal Format**: Clean, domain-specific representations optimized for manipulation (`StandardComponent`, embedded `type` properties)
 - **External Format**: Transmittable representations optimized for cross-service communication (WML strings, `detailType` metadata)
-- **Boundary Enforcement**: Serialization only occurs at the EventBridge boundary
+- **Boundary Enforcement**: Serialization only occurs at the external transmission boundary
 - **Type Safety**: Full TypeScript support for both internal and external event structures
+
+**Integration with Multi-Context Architecture**: The `eventSerializer` works with the core external format - it transforms between internal format and `CoreExternalFormat`, while context-specific transformers handle the final conversion to specific transmission formats (EventBridge, DynamoDB, WebSocket).
 
 ## Generic Type System
 
