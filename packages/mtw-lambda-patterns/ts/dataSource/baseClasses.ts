@@ -2,36 +2,35 @@
 
 export type SerializableObject = Record<string, unknown>
 
+export type EventPayload = {
+    type: string;
+    update: unknown;
+}
+
 // External EventBridge format
 export type StreamingEvent = {
     messageType: 'StreamingEvent';
     dataSourceKey: string;
-    detailType: string;
-    event: {
-        streamKey: string;
-        update: unknown;
-    };
+    streamKey: string;
     timestamp: number;
+    event: EventPayload;
 }
 
 // Internal DataSource format (clean, no external baggage)
 export type StreamingEventPayload = {
     dataSourceKey: string;
-    event: {
-        streamKey: string;
-        update: unknown; // Internal format with embedded type
-    };
+    streamKey: string;
     timestamp: number;
+    event: EventPayload;
 }
 
 // EventBridge serialization interface for DataSource integration
-export interface DataSourceEventSerializer<UpdatePayload = any, ExternalUpdatePayload extends string | SerializableObject = string | SerializableObject> {
+export interface DataSourceEventSerializer<UpdatePayload extends EventPayload, ExternalUpdatePayload extends EventPayload> {
     /**
      * Convert internal update payload to external format for EventBridge Detail
      */
     serialize(params: {
         dataSourceKey: string;
-        detailType: string;
         streamKey: string;
         update: UpdatePayload;
     }): ExternalUpdatePayload;
@@ -42,7 +41,6 @@ export interface DataSourceEventSerializer<UpdatePayload = any, ExternalUpdatePa
      */
     deserialize(params: {
         dataSourceKey: string;
-        detailType: string;
         streamKey: string;
         externalUpdate: ExternalUpdatePayload;
     }): UpdatePayload | null;
