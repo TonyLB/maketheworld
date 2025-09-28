@@ -14,6 +14,7 @@ export type CharacterUpdatedEvent = {
 export type CharacterEventExternal = CharacterUpdatedEventExternal
 
 export type CharacterUpdatedEventExternal = {
+    type: 'Character Updated'
     characterId: `CHARACTER#${string}`
     wml: string // WML string containing character data
 }
@@ -30,6 +31,7 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
         const wml = schemaToWML([update.component.schema])
         
         return {
+            type: 'Character Updated',
             characterId,
             wml
         }
@@ -37,14 +39,13 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
     
     deserialize(params: { 
         dataSourceKey: string
-        detailType: string
         streamKey: string
         externalUpdate: CharacterEventExternal 
     }): CharacterEventUpdate | null {
-        const { detailType, externalUpdate } = params
+        const { externalUpdate } = params
         
         // Only handle character updated events
-        if (detailType !== 'Character Updated') {
+        if (externalUpdate.type !== 'Character Updated') {
             return null
         }
         
@@ -58,7 +59,7 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
             }
             
             return {
-                type: 'Character Updated',
+                type: externalUpdate.type,
                 component
             }
         } catch (error) {

@@ -72,13 +72,11 @@ describe('CharactersDataSource', () => {
 
             const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                streamKey: 'ASSET#asset123',
                 event: {
-                    streamKey: 'ASSET#asset123',
-                    update: {
-                        type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
-                        component
-                    } as ComponentEventUpdate
+                    type: 'Component Updated',
+                    assetId: 'ASSET#asset123',
+                    component
                 },
                 timestamp: FIXED_TS
             }
@@ -93,7 +91,6 @@ describe('CharactersDataSource', () => {
                     component: component // Should pass the StandardCharacter object
                 },
                 streamKey: 'ASSET#asset123',
-                detailType: 'Character Updated'
             })
         })
 
@@ -106,13 +103,11 @@ describe('CharactersDataSource', () => {
 
             const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                streamKey: 'ASSET#asset123',
                 event: {
-                    streamKey: 'ASSET#asset123',
-                    update: {
-                        type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
-                        component: new StandardRemove(component)
-                    } as ComponentEventUpdate
+                    type: 'Component Updated',
+                    assetId: 'ASSET#asset123',
+                    component: new StandardRemove(component)
                 },
                 timestamp: FIXED_TS
             }
@@ -126,8 +121,7 @@ describe('CharactersDataSource', () => {
                     type: 'Character Updated',
                     component: expect.any(Object)
                 },
-                streamKey: 'ASSET#asset123',
-                detailType: 'Character Updated'
+                streamKey: 'ASSET#asset123'
             })
             const call = mockStreamEvent.mock.calls[0][0]
             expect(call.update.component.tag).toBe('Remove')
@@ -138,17 +132,15 @@ describe('CharactersDataSource', () => {
             
             const nonCharacterEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                streamKey: 'ASSET#asset123',
                 event: {
-                    streamKey: 'ASSET#asset123',
-                    update: {
-                        type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
-                        component: {
-                            tag: 'Room',
-                            roomId: 'ROOM#room123',
-                            name: 'Test Room'
-                        } as any // Non-StandardCharacter component
-                    } as ComponentEventUpdate
+                    type: 'Component Updated',
+                    assetId: 'ASSET#asset123',
+                    component: {
+                        tag: 'Room',
+                        roomId: 'ROOM#room123',
+                        name: 'Test Room'
+                    } as any // Non-StandardCharacter component
                 },
                 timestamp: FIXED_TS
             }
@@ -205,25 +197,21 @@ describe('CharactersDataSource', () => {
             const batchEvents = [
                 {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset1',
                     event: {
-                        streamKey: 'ASSET#asset1',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: 'ASSET#asset1',
-                            component: component1
-                        } as ComponentEventUpdate
+                        type: 'Component Updated',
+                        assetId: 'ASSET#asset1',
+                        component: component1
                     },
                     timestamp: FIXED_TS
                 },
                 {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset2',
                     event: {
-                        streamKey: 'ASSET#asset2',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: 'ASSET#asset2',
-                            component: component2
-                        } as ComponentEventUpdate
+                        type: 'Component Updated',
+                        assetId: 'ASSET#asset2',
+                        component: component2
                     },
                     timestamp: FIXED_TS
                 }
@@ -242,16 +230,14 @@ describe('CharactersDataSource', () => {
                     type: 'Character Updated',
                     component: component1
                 },
-                streamKey: 'ASSET#asset1',
-                detailType: 'Character Updated'
+                streamKey: 'ASSET#asset1'
             })
             expect(mockStreamEvent).toHaveBeenNthCalledWith(2, {
                 update: {
                     type: 'Character Updated',
                     component: component2
                 },
-                streamKey: 'ASSET#asset2',
-                detailType: 'Character Updated'
+                streamKey: 'ASSET#asset2'
             })
         })
     })
@@ -274,8 +260,7 @@ describe('CharactersDataSource', () => {
                     type: 'Character Updated',
                     component
                 },
-                streamKey: 'ASSET#asset123',
-                detailType: 'Character Updated'
+                streamKey: 'ASSET#asset123'
             })
 
             // Verify EventBridge event structure and serialization
@@ -286,10 +271,8 @@ describe('CharactersDataSource', () => {
                         DetailType: 'Character Updated',
                         Detail: expect.objectContaining({
                             streamKey: 'ASSET#asset123',
-                            update: expect.objectContaining({
-                                characterId: 'CHARACTER#char123',
-                                wml: expect.stringContaining('<Character uuid=(char123)>')
-                            })
+                            characterId: 'CHARACTER#char123',
+                            wml: expect.any(String)
                         })
                     })
                 ])
@@ -297,8 +280,7 @@ describe('CharactersDataSource', () => {
 
             // Verify the WML matches expected content exactly
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
-            const serializedUpdate = eventBridgeCall.Detail.update
-            expect(serializedUpdate.characterId).toBe('CHARACTER#char123')
+            const serializedUpdate = eventBridgeCall.Detail
             expect(serializedUpdate.wml).toEqual(deIndentWML(`<Character uuid=(char123)><ShortName>Test Character</ShortName></Character>`))
         })
 
@@ -318,8 +300,7 @@ describe('CharactersDataSource', () => {
                     type: 'Character Updated',
                     component: removeComponent
                 },
-                streamKey: 'ASSET#asset456',
-                detailType: 'Character Updated'
+                streamKey: 'ASSET#asset456'
             })
 
             // Verify EventBridge event structure and serialization
@@ -330,10 +311,8 @@ describe('CharactersDataSource', () => {
                         DetailType: 'Character Updated',
                         Detail: expect.objectContaining({
                             streamKey: 'ASSET#asset456',
-                            update: expect.objectContaining({
-                                characterId: 'CHARACTER#char456',
-                                wml: expect.stringContaining('<Remove>')
-                            })
+                            characterId: 'CHARACTER#char456',
+                            wml: expect.stringContaining('<Remove>')
                         })
                     })
                 ])
@@ -341,7 +320,7 @@ describe('CharactersDataSource', () => {
 
             // Verify the removal event structure
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
-            const serializedUpdate = eventBridgeCall.Detail.update
+            const serializedUpdate = eventBridgeCall.Detail
             expect(serializedUpdate.characterId).toBe('CHARACTER#char456')
             expect(serializedUpdate.wml).toContain('<Remove>')
         })
@@ -363,13 +342,12 @@ describe('CharactersDataSource', () => {
                     type: 'Character Updated',
                     component
                 },
-                streamKey: 'ASSET#complex-asset',
-                detailType: 'Character Updated'
+                streamKey: 'ASSET#complex-asset'
             })
 
             // Verify the serialized WML matches expected content exactly
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
-            const serializedUpdate = eventBridgeCall.Detail.update
+            const serializedUpdate = eventBridgeCall.Detail
             
             expect(serializedUpdate.characterId).toBe('CHARACTER#complex123')
             expect(serializedUpdate.wml).toEqual(deIndentWML(`
@@ -395,7 +373,6 @@ describe('CharactersDataSource', () => {
                     component
                 },
                 streamKey: 'ASSET#metadata-asset',
-                detailType: 'Character Updated'
             })
 
             // Verify detailType is preserved
@@ -409,13 +386,13 @@ describe('CharactersDataSource', () => {
             
             const testWML = '<Character uuid=(char123)><ShortName>Test Character</ShortName></Character>'
             const externalUpdate = {
+                type: 'Character Updated' as const,
                 characterId: 'CHARACTER#char123' as `CHARACTER#${string}`,
                 wml: testWML
             }
             
             const result = serializer.deserialize({
                 dataSourceKey: 'mtw.assets.characters',
-                detailType: 'Character Updated',
                 streamKey: 'ASSET#asset123',
                 externalUpdate
             })
@@ -540,8 +517,7 @@ describe('CharactersDataSource', () => {
                     type: 'Character Updated',
                     component
                 },
-                streamKey: 'ASSET#asset123',
-                detailType: 'Character Updated'
+                streamKey: 'ASSET#asset123'
             })
 
             // Should not throw
@@ -555,13 +531,11 @@ describe('CharactersDataSource', () => {
             
             const invalidEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                streamKey: 'asset123',
                 event: {
-                    streamKey: 'asset123',
-                    update: {
-                        type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
-                        component: null // Invalid component
-                    } as any // Allow null component for testing
+                    type: 'Component Updated',
+                    assetId: 'ASSET#asset123',
+                    component: null // Invalid component
                 },
                 timestamp: FIXED_TS
             }
@@ -579,16 +553,14 @@ describe('CharactersDataSource', () => {
             
             const incompleteEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                streamKey: 'asset123',
                 event: {
-                    streamKey: 'asset123',
-                    update: {
-                        type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
-                        component: {
-                            tag: 'Character'
-                            // Missing other required data
-                        } as any
-                    } as ComponentEventUpdate
+                    type: 'Component Updated',
+                    assetId: 'ASSET#asset123',
+                    component: {
+                        tag: 'Character'
+                        // Missing other required data
+                    } as any
                 },
                 timestamp: FIXED_TS
             }

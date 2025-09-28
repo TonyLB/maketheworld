@@ -84,10 +84,10 @@ const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnap
 
 const processComponentEvent = async (
     event: StreamingEventPayload, 
-    streamEvent: (params: { update: CharacterEventUpdate, streamKey: string, detailType: string }) => Promise<void>
+    streamEvent: (params: { update: CharacterEventUpdate, streamKey: string }) => Promise<void>
 ): Promise<void> => {
-    const streamKey = event.event.streamKey
-    const update = event.event.update
+    const streamKey = event.streamKey
+    const update = event.event
 
     // Check if this is a component event and if it's a character component
     if (!isAssetsComponentEvent(update)) {
@@ -101,6 +101,7 @@ const processComponentEvent = async (
             (update.component instanceof StandardRemove && update.component._match instanceof StandardCharacter) ||
             (update.component instanceof StandardReplace && update.component._match instanceof StandardCharacter)
         )
+        console.log(`isCharacterComponent: ${isCharacterComponent}`)
         if (!isCharacterComponent) {
             return
         }
@@ -111,8 +112,7 @@ const processComponentEvent = async (
                 type: 'Character Updated',
                 component: update.component
             },
-            streamKey,
-            detailType: 'Character Updated'
+            streamKey
         })
     }
 }
@@ -144,9 +144,7 @@ export const charactersDataSource = new AssetsDataSource<
                 return event.dataSourceKey === 'mtw.assets' && 
                        event.event && 
                        typeof event.event === 'object' &&
-                       event.event.update &&
-                       typeof event.event.update === 'object' &&
-                       isAssetsComponentEvent(event.event.update)
+                       isAssetsComponentEvent(event.event)
             }
             
             if (!subscribedEventTypeGuard(event)) {

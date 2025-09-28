@@ -60,11 +60,11 @@ export const handler = async (event, context) => {
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.wml',
+                    streamKey: `ASSET#${event.assetId}`,
                     event: {
-                        streamKey: `ASSET#${event.assetId}`,
+                        type: 'Content Update',
                         update: {
-                            type: 'Content Update',
-                            AssetId: `ASSET#${event.assetId}`
+                            AssetId: event.assetId
                         }
                     },
                     timestamp: Date.now()
@@ -77,11 +77,11 @@ export const handler = async (event, context) => {
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.wml',
+                    streamKey: `ASSET#${event.assetId}`,
                     event: {
-                        streamKey: `ASSET#${event.assetId}`,
+                        type: 'Content Removed',
                         update: {
-                            type: 'Content Removed',
-                            AssetId: `ASSET#${event.assetId}`
+                            AssetId: event.assetId
                         }
                     },
                     timestamp: Date.now()
@@ -140,8 +140,9 @@ export const handler = async (event, context) => {
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: event.source,
+                    streamKey: event.detail.streamKey || '',
                     event: {
-                        streamKey: event.detail.streamKey || '',
+                        type: internalEvent.type,
                         update: internalEvent
                     },
                     timestamp: event.time ? new Date(event.time).getTime() : Date.now()

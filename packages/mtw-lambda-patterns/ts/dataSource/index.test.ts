@@ -35,6 +35,7 @@ import { singleFlightFactory } from '../singleFlight'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
 import { PublishCommand } from '@aws-sdk/client-sns'
+import { EventPayload } from './baseClasses'
 
 const mockSingleFlightFactory = singleFlightFactory as jest.MockedFunction<typeof singleFlightFactory>
 const mockEventBridgeClient = eventBridgeClient as jest.Mocked<typeof eventBridgeClient>
@@ -47,10 +48,13 @@ type TestSnapshotPayload = {
     value: number
 }
 
-type TestUpdatePayload = string
+type TestUpdatePayload = {
+    type: 'TestUpdatePayload',  
+    update: string
+}
 
 // Test subclass to expose protected methods
-class TestDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends string | SerializableObject, ExternalUpdatePayload extends string | SerializableObject = string | SerializableObject, KeyType extends string = string> extends DataSource<SnapshotPayload, UpdatePayload, never, ExternalUpdatePayload, KeyType> {
+class TestDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends EventPayload, ExternalUpdatePayload extends EventPayload = EventPayload, KeyType extends string = string> extends DataSource<SnapshotPayload, UpdatePayload, never, ExternalUpdatePayload, KeyType> {
     public override async loadSnapshotFromStore(streamKey: string): Promise<SnapshotType<SnapshotPayload> | undefined> {
         return super.loadSnapshotFromStore(streamKey)
     }
@@ -59,7 +63,7 @@ class TestDataSource<SnapshotPayload extends SerializableObject, UpdatePayload e
         return super.storeSnapshotToStore({ streamKey, snapshot })
     }
 
-    public override async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: ExternalUpdatePayload, timestamp: number, streamKey: string }>> {
+    public override async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: ExternalUpdatePayload, timestamp: number, streamKey: string, type: string }>> {
         return super.getRecentEvents(streamKey, sinceTimestamp)
     }
 }
@@ -389,11 +393,7 @@ describe('DataSource', () => {
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'Meta::Snapshot',
-                id: 'test-id',
-                name: 'Test Snapshot',
-                value: 42,
-                createdAt: 100000000,
-                expiresAt: 100300000
+                snapshot
             })
         })
 
@@ -422,40 +422,10 @@ describe('DataSource', () => {
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 EphemeraId: 'STREAM#mtw.differentDataSource::test-stream',
                 DataCategory: 'Meta::Snapshot',
-                id: 'test-id',
-                name: 'Test Snapshot',
-                value: 42,
-                createdAt: 100000000,
-                expiresAt: 100300000
+                snapshot
             })
         })
 
-        it('should spread all snapshot properties into the stored record', async () => {
-            const streamKey = 'test-stream'
-            const snapshot = {
-                id: 'test-id',
-                name: 'Test Snapshot',
-                value: 42,
-                createdAt: 100000000,
-                expiresAt: 100300000,
-                customField: 'custom value',
-                nestedObject: { key: 'value' }
-            }
-            
-            await dataSource.storeSnapshotToStore({ streamKey, snapshot })
-            
-            expect(mockDynamo.putItem).toHaveBeenCalledWith({
-                AssetId: 'STREAM#mtw.testDataSource::test-stream',
-                DataCategory: 'Meta::Snapshot',
-                id: 'test-id',
-                name: 'Test Snapshot',
-                value: 42,
-                createdAt: 100000000,
-                expiresAt: 100300000,
-                customField: 'custom value',
-                nestedObject: { key: 'value' }
-            })
-        })
     })
 
     describe('loadSnapshotFromStore', () => {
@@ -469,7 +439,11 @@ describe('DataSource', () => {
                 expiresAt: 100300000
             }
             
-            mockDynamo.getItem.mockResolvedValue(storedSnapshot)
+            mockDynamo.getItem.mockResolvedValue({
+                AssetId: 'STREAM#mtw.testDataSource::test-stream',
+                DataCategory: 'Meta::Snapshot',
+                snapshot: storedSnapshot
+            })
             
             const result = await dataSource.loadSnapshotFromStore(streamKey)
             
@@ -477,7 +451,8 @@ describe('DataSource', () => {
                 Key: {
                     AssetId: 'STREAM#mtw.testDataSource::test-stream',
                     DataCategory: 'Meta::Snapshot'
-                }
+                },
+                ProjectionFields: ['snapshot']
             })
             expect(result).toBe(storedSnapshot)
         })
@@ -493,7 +468,8 @@ describe('DataSource', () => {
                 Key: {
                     AssetId: 'STREAM#mtw.testDataSource::test-stream',
                     DataCategory: 'Meta::Snapshot'
-                }
+                },
+                ProjectionFields: ['snapshot']
             })
             expect(result).toBeUndefined()
         })
@@ -518,7 +494,11 @@ describe('DataSource', () => {
                 expiresAt: 100300000
             }
             
-            mockDynamo.getItem.mockResolvedValue(storedSnapshot)
+            mockDynamo.getItem.mockResolvedValue({
+                EphemeraId: 'STREAM#mtw.differentDataSource::test-stream',
+                DataCategory: 'Meta::Snapshot',
+                snapshot: storedSnapshot
+            })
             
             const result = await dataSourceWithDifferentKey.loadSnapshotFromStore(streamKey)
             
@@ -526,7 +506,8 @@ describe('DataSource', () => {
                 Key: {
                     EphemeraId: 'STREAM#mtw.differentDataSource::test-stream',
                     DataCategory: 'Meta::Snapshot'
-                }
+                },
+                ProjectionFields: ['snapshot']
             })
             expect(result).toBe(storedSnapshot)
         })
@@ -552,48 +533,57 @@ describe('DataSource', () => {
         })
 
         it('should store event to DynamoDB and publish to EventBridge in parallel', async () => {
-            const streamKey = 'test-stream'
-            const update = 'test-update'
-            const detailType = 'Test Stream Event'
-            
-            await dataSource.streamEvent({ update, streamKey, detailType })
+            await dataSource.streamEvent({
+                streamKey: 'test-stream',
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
+            })
             
             // Verify DynamoDB putItem was called with correct event record
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::test-uuid-123',
-                update: 'test-update',
-                streamKey: 'test-stream'
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
             })
             
             // Verify EventBridge send was called with correct event
             expect(mockEventBridgeClient.send).toHaveBeenCalledWith([{
                 Source: 'mtw.testDataSource',
-                DetailType: 'Test Stream Event',
+                DetailType: 'TestUpdatePayload',
                 Detail: {
                     streamKey: 'test-stream',
-                    update: 'test-update',
+                    update: 'test-update'
                 }
             }])
         })
 
         it('should handle object update payloads correctly', async () => {
-            const streamKey = 'test-stream'
-            const update = 'test-update' // Using string since TestUpdatePayload is string
-            const detailType = 'Test Stream Event'
             
-            await dataSource.streamEvent({ update, streamKey, detailType })
+            await dataSource.streamEvent({
+                streamKey: 'test-stream',
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
+            })
             
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::test-uuid-123',
-                update: 'test-update',
-                streamKey: 'test-stream'
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
             })
             
             expect(mockEventBridgeClient.send).toHaveBeenCalledWith([{
                 Source: 'mtw.testDataSource',
-                DetailType: 'Test Stream Event',
+                DetailType: 'TestUpdatePayload',
                 Detail: {
                     streamKey: 'test-stream',
                     update: 'test-update',
@@ -612,22 +602,26 @@ describe('DataSource', () => {
                 feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
             })
             
-            const streamKey = 'test-stream'
-            const update = 'test-update'
-            const detailType = 'Different Stream Event'
-            
-            await dataSourceWithDifferentKey.streamEvent({ update, streamKey, detailType })
+            await dataSourceWithDifferentKey.streamEvent({
+                streamKey: 'test-stream',
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
+            })
             
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 EphemeraId: 'STREAM#mtw.differentDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::test-uuid-123',
-                update: 'test-update',
-                streamKey: 'test-stream'
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
             })
             
             expect(mockEventBridgeClient.send).toHaveBeenCalledWith([{
                 Source: 'mtw.differentDataSource',
-                DetailType: 'Different Stream Event',
+                DetailType: 'TestUpdatePayload',
                 Detail: {
                     streamKey: 'test-stream',
                     update: 'test-update',
@@ -636,28 +630,32 @@ describe('DataSource', () => {
         })
 
         it('should handle parallel execution failures gracefully', async () => {
-            const streamKey = 'test-stream'
-            const update = 'test-update'
-            const detailType = 'Test Stream Event'
-            
             // Make DynamoDB operation fail
             mockDynamo.putItem.mockRejectedValueOnce(new Error('DynamoDB error'))
             
-            await expect(dataSource.streamEvent({ update, streamKey, detailType })).rejects.toThrow('DynamoDB error')
+            await expect(dataSource.streamEvent({
+                streamKey: 'test-stream',
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
+            })).rejects.toThrow('DynamoDB error')
             
             // Verify EventBridge was still called (parallel execution)
             expect(mockEventBridgeClient.send).toHaveBeenCalledTimes(1)
         })
 
         it('should handle EventBridge failures gracefully', async () => {
-            const streamKey = 'test-stream'
-            const update = 'test-update'
-            const detailType = 'Test Stream Event'
-            
             // Make EventBridge operation fail
             mockEventBridgeClient.send.mockRejectedValueOnce(new Error('EventBridge error'))
             
-            await expect(dataSource.streamEvent({ update, streamKey, detailType })).rejects.toThrow('EventBridge error')
+            await expect(dataSource.streamEvent({
+                streamKey: 'test-stream',
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
+            })).rejects.toThrow('EventBridge error')
             
             // Verify DynamoDB was still called (parallel execution)
             expect(mockDynamo.putItem).toHaveBeenCalledTimes(1)
@@ -665,52 +663,62 @@ describe('DataSource', () => {
 
         it('should generate unique event IDs for different calls', async () => {
             const streamKey = 'test-stream'
-            const update = 'test-update'
-            const detailType = 'Test Stream Event'
+            const update = {
+                type: 'TestUpdatePayload' as const,
+                update: 'test-update'
+            }
             
             // Mock different UUIDs for different calls
             mockUuidv4
                 .mockReturnValueOnce('uuid-1')
                 .mockReturnValueOnce('uuid-2')
             
-            await dataSource.streamEvent({ update, streamKey, detailType })
-            await dataSource.streamEvent({ update, streamKey, detailType })
+            await dataSource.streamEvent({ update, streamKey })
+            await dataSource.streamEvent({ update, streamKey })
             
             expect(mockDynamo.putItem).toHaveBeenNthCalledWith(1, {
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::uuid-1',
-                update: 'test-update',
-                streamKey: 'test-stream'
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
             })
             
             expect(mockDynamo.putItem).toHaveBeenNthCalledWith(2, {
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::uuid-2',
-                update: 'test-update',
-                streamKey: 'test-stream'
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
             })
         })
 
         it('should use current timestamp from getCurrentTimestamp', async () => {
-            const streamKey = 'test-stream'
-            const update = 'test-update'
-            const detailType = 'Test Stream Event'
-            
             // Mock different timestamp
             mockGetCurrentTimestamp.mockReturnValueOnce(200000000)
             
-            await dataSource.streamEvent({ update, streamKey, detailType })
+            await dataSource.streamEvent({
+                streamKey: 'test-stream',
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
+            })
             
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#200000000::test-uuid-123',
-                update: 'test-update',
-                streamKey: 'test-stream'
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
             })
             
             expect(mockEventBridgeClient.send).toHaveBeenCalledWith([{
                 Source: 'mtw.testDataSource',
-                DetailType: 'Test Stream Event',
+                DetailType: 'TestUpdatePayload',
                 Detail: {
                     streamKey: 'test-stream',
                     update: 'test-update',
@@ -719,18 +727,23 @@ describe('DataSource', () => {
         })
 
         it('should publish to messageBus for internal event coordination', async () => {
-            const streamKey = 'test-stream'
-            const update = 'test-update'
-            const detailType = 'Test Stream Event'
-            
-            await dataSource.streamEvent({ update, streamKey, detailType })
+            await dataSource.streamEvent({
+                streamKey: 'test-stream',
+                update: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
+                }
+            })
             
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.testDataSource',
                 event: {
                     streamKey: 'test-stream',
-                    update: 'test-update',
+                    update: {
+                        type: 'TestUpdatePayload',
+                        update: 'test-update'
+                    },
                 },
                 timestamp: 100000000
             })
@@ -838,7 +851,7 @@ describe('DataSource', () => {
                 data: Record<string, unknown>
             }
             
-            const complexDataSource = new TestDataSource<ComplexSnapshot, string>({
+            const complexDataSource = new TestDataSource<ComplexSnapshot, { type: 'ComplexUpdatePayload', update: string }>({
                 dynamo: mockDynamo,
                 sns: mockSns,
                 messageBus: mockMessageBus,
@@ -855,24 +868,10 @@ describe('DataSource', () => {
             expect(complexDataSource).toBeDefined()
         })
 
-        it('should work with string UpdatePayload', () => {
-            const stringUpdateDataSource = new TestDataSource<TestSnapshotPayload, string>({
-                dynamo: mockDynamo,
-                sns: mockSns,
-                messageBus: mockMessageBus,
-                primaryKeyName: 'AssetId',
-                dataSourceKey: 'mtw.stringUpdateDataSource',
-                snapshotContentGenerator: mockSnapshotContentGenerator,
-                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
-            })
-            
-            expect(stringUpdateDataSource).toBeDefined()
-        })
-
         it('should work with object UpdatePayload', () => {
             type ObjectUpdate = {
-                type: string
-                payload: unknown
+                type: 'ObjectUpdatePayload';
+                update: unknown;
             }
             
             const objectUpdateDataSource = new TestDataSource<TestSnapshotPayload, ObjectUpdate>({
@@ -1460,16 +1459,20 @@ describe('DataSource', () => {
                 })
 
                 await dataSource.streamEvent({
-                    update: 'test-update',
+                    update: {
+                        type: 'TestUpdatePayload',
+                        update: 'test-update'
+                    },
                     streamKey: 'test-stream',
-                    detailType: 'Test Event'
                 })
 
                 expect(mockDynamo.putItem).toHaveBeenCalledWith({
                     AssetId: 'STREAM#mtw.testDataSource::test-stream',
                     DataCategory: 'EVENT#100000000::test-uuid-123',
-                    update: 'test-update',
-                    streamKey: 'test-stream'
+                    update: {
+                        type: 'TestUpdatePayload',
+                        update: 'test-update'
+                    }
                 })
                 expect(mockEventBridgeClient.send).toHaveBeenCalled()
                 expect(mockMessageBus.send).toHaveBeenCalled()
@@ -1540,9 +1543,11 @@ describe('DataSource', () => {
                 })
 
                 await dataSource.streamEvent({
-                    update: 'test-update',
-                    streamKey: 'test-stream',
-                    detailType: 'Test Event'
+                    update: {
+                        type: 'TestUpdatePayload',
+                        update: 'test-update'
+                    },
+                    streamKey: 'test-stream'
                 })
 
                 expect(mockDynamo.putItem).not.toHaveBeenCalled()
