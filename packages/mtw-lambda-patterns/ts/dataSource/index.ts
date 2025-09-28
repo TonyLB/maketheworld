@@ -4,6 +4,11 @@ import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
 import { PublishCommand } from '@aws-sdk/client-sns'
 import { StreamingEvent, StreamingEventPayload, DataSourceEventSerializer, EventPayload } from './baseClasses'
+import { 
+    CoreExternalFormat, 
+    toEventBridgeFormat, 
+    toDynamoDBFormat 
+} from './formatTransform'
 
 export type SerializableObject = Record<string, unknown>
 
@@ -191,35 +196,26 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
         const now = getCurrentTimestamp()
         const eventId = `${now}::${uuidv4()}`
         
-        // Create the event record for DynamoDB storage
-        const eventRecord = {
-            [this.primaryKeyName]: `STREAM#${this.dataSourceKey}::${streamKey}`,
-            DataCategory: `EVENT#${eventId}`,
-            update: this.eventSerializer 
-                ? this.eventSerializer.serialize({
+        // Create CoreExternalFormat - use serializer if available, otherwise use update directly
+        const coreFormat: CoreExternalFormat = this.eventSerializer 
+            ? {
+                dataSourceKey: this.dataSourceKey,
+                streamKey,
+                update: this.eventSerializer.serialize({
                     dataSourceKey: this.dataSourceKey,
                     streamKey,
                     update
                 })
-                : update
-        }
-
-        // Create the EventBridge event (use serializer if available, otherwise use update directly)
-        const { type, ...rest } = this.eventSerializer 
-            ? this.eventSerializer.serialize({
+            }
+            : {
                 dataSourceKey: this.dataSourceKey,
                 streamKey,
                 update
-            })
-            : update
-        const eventBridgeEvent = {
-            Source: this.dataSourceKey,
-            DetailType: type,
-            Detail: {
-                streamKey,
-                ...rest
             }
-        }
+
+        // Transform to context-specific formats
+        const eventRecord = toDynamoDBFormat(coreFormat, this.primaryKeyName, eventId)
+        const eventBridgeEvent = toEventBridgeFormat(coreFormat)
 
         // Create the internal messageBus event
         const messageBusEvent = {

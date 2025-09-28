@@ -193,8 +193,7 @@ The DataSource pattern currently faces a serialization complexity issue where di
 interface CoreExternalFormat {
     dataSourceKey: string;
     streamKey: string;
-    type: string;
-    update: any; // The actual content data
+    update: any; // Contains { type: string, ...rest } - the actual content data
 }
 ```
 
