@@ -89,20 +89,18 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
         it('should subscribe to Component Updated events from mtw.assets', () => {
             const componentUpdatedEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                streamKey: 'ASSET#asset123',
                 event: {
-                    streamKey: 'ASSET#asset123',
-                    update: {
-                        type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
-                        component: new StandardRoom({
-                            tag: 'Room',
-                            shortName: 'Test Room',
-                            universalKey: 'ROOM#room123'
-                        })
-                    } as ComponentEventUpdate
+                    type: 'Component Updated',
+                    assetId: 'ASSET#asset123',
+                    component: new StandardRoom({
+                        tag: 'Room',
+                        shortName: 'Test Room',
+                        universalKey: 'ROOM#room123'
+                    })
                 },
                 timestamp: Date.now()
-            }
+            } as const
 
             const shouldSubscribe = contentHeadersDataSource.subscribedEventTypeGuard?.(componentUpdatedEvent)
             expect(shouldSubscribe).toBe(true)
@@ -111,20 +109,18 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
         it('should subscribe to Component Updated events with StandardRemove from mtw.assets', () => {
             const componentRemovedEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                streamKey: 'ASSET#asset123',
                 event: {
-                    streamKey: 'ASSET#asset123',
-                    update: {
-                        type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
-                        component: new StandardRemove(new StandardRoom({
-                            tag: 'Room',
-                            shortName: 'Test Room',
-                            universalKey: 'ROOM#room123'
-                        }))
-                    } as ComponentEventUpdate
+                    type: 'Component Updated',
+                    assetId: 'ASSET#asset123',
+                    component: new StandardRemove(new StandardRoom({
+                        tag: 'Room',
+                        shortName: 'Test Room',
+                        universalKey: 'ROOM#room123'
+                    }))
                 },
                 timestamp: Date.now()
-            }
+            } as const
 
             const shouldSubscribe = contentHeadersDataSource.subscribedEventTypeGuard?.(componentRemovedEvent)
             expect(shouldSubscribe).toBe(true)
@@ -133,15 +129,13 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
         it('should not subscribe to events from other data sources', () => {
             const otherEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.ephemera',
+                streamKey: 'CHARACTER#char123',
                 event: {
-                    streamKey: 'CHARACTER#char123',
-                    update: {
-                        type: 'Character Updated',
-                        characterId: 'CHARACTER#char123'
-                    }
+                    type: 'Character Updated',
+                    characterId: 'CHARACTER#char123'
                 },
                 timestamp: Date.now()
-            }
+            } as const
 
             const shouldSubscribe = contentHeadersDataSource.subscribedEventTypeGuard?.(otherEvent)
             expect(shouldSubscribe).toBe(false)
@@ -150,15 +144,13 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
         it('should not subscribe to non-component events from mtw.assets', () => {
             const nonComponentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
+                streamKey: 'ASSET#asset123',
                 event: {
-                    streamKey: 'ASSET#asset123',
-                    update: {
-                        type: 'CacheAsset',
-                        assetId: 'ASSET#asset123'
-                    }
+                    type: 'CacheAsset',
+                    assetId: 'ASSET#asset123'
                 },
                 timestamp: Date.now()
-            }
+            } as const
 
             const shouldSubscribe = contentHeadersDataSource.subscribedEventTypeGuard?.(nonComponentEvent)
             expect(shouldSubscribe).toBe(false)
@@ -305,13 +297,11 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
                     event: {
-                        streamKey: 'ASSET#asset123',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: 'ASSET#asset123',
-                            component: mockHeaderComponent
-                        }
+                        type: 'Component Updated',
+                        assetId: 'ASSET#asset123',
+                        component: mockHeaderComponent
                     },
                     timestamp: Date.now()
                 }
@@ -328,8 +318,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         zone: 'Canon',
                         standardForm: expect.any(Object)
                     }),
-                    streamKey: 'global',
-                    detailType: 'Headers Updated'
+                    streamKey: 'global'
                 })
 
                 // Verify the actual WML content
@@ -349,17 +338,15 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
                     event: {
-                        streamKey: 'ASSET#asset123',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: 'ASSET#asset123',
-                            component: new StandardRoom({
-                                tag: 'Room',
-                                shortName: 'Test Room',
-                                universalKey: 'ROOM#room123'
-                            })
-                        }
+                        type: 'Component Updated',
+                        assetId: 'ASSET#asset123',
+                        component: new StandardRoom({
+                            tag: 'Room',
+                            shortName: 'Test Room',
+                            universalKey: 'ROOM#room123'
+                        })
                     },
                     timestamp: Date.now()
                 }
@@ -384,17 +371,15 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
                     event: {
-                        streamKey: 'ASSET#asset123',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: 'ASSET#asset123',
-                            component: new StandardRoom({
-                                tag: 'Room',
-                                shortName: 'Test Room',
-                                universalKey: 'ROOM#room123'
-                            })
-                        }
+                        type: 'Component Updated',
+                        assetId: 'ASSET#asset123',
+                        component: new StandardRoom({
+                            tag: 'Room',
+                            shortName: 'Test Room',
+                            universalKey: 'ROOM#room123'
+                        })
                     },
                     timestamp: Date.now()
                 }
@@ -410,17 +395,15 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             it('should handle missing assetId gracefully', async () => {
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
                     event: {
-                        streamKey: 'ASSET#asset123',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: undefined as any,
-                            component: new StandardRoom({
-                                tag: 'Room',
-                                shortName: 'Test Room',
-                                universalKey: 'ROOM#room123'
-                            })
-                        }
+                        type: 'Component Updated',
+                        assetId: undefined as any,
+                        component: new StandardRoom({
+                            tag: 'Room',
+                            shortName: 'Test Room',
+                            universalKey: 'ROOM#room123'
+                        })
                     },
                     timestamp: Date.now()
                 }
@@ -436,13 +419,11 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             it('should handle missing component gracefully', async () => {
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
                     event: {
-                        streamKey: 'ASSET#asset123',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: 'ASSET#asset123',
-                            component: undefined as any
-                        }
+                        type: 'Component Updated',
+                        assetId: 'ASSET#asset123',
+                        component: undefined as any
                     },
                     timestamp: Date.now()
                 }
@@ -461,17 +442,15 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
                     event: {
-                        streamKey: 'ASSET#asset123',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: 'ASSET#asset123',
-                            component: new StandardRoom({
-                                tag: 'Room',
-                                shortName: 'Test Room',
-                                universalKey: 'ROOM#room123'
-                            })
-                        }
+                        type: 'Component Updated',
+                        assetId: 'ASSET#asset123',
+                        component: new StandardRoom({
+                            tag: 'Room',
+                            shortName: 'Test Room',
+                            universalKey: 'ROOM#room123'
+                        })
                     },
                     timestamp: Date.now()
                 }
@@ -501,17 +480,15 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
                 const componentRemovedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
                     event: {
-                        streamKey: 'ASSET#asset123',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: 'ASSET#asset123',
-                            component: new StandardRemove(new StandardRoom({
-                                tag: 'Room',
-                                shortName: 'Test Room',
-                                universalKey: 'ROOM#room123'
-                            }))
-                        }
+                        type: 'Component Updated',
+                        assetId: 'ASSET#asset123',
+                        component: new StandardRemove(new StandardRoom({
+                            tag: 'Room',
+                            shortName: 'Test Room',
+                            universalKey: 'ROOM#room123'
+                        }))
                     },
                     timestamp: Date.now()
                 }
@@ -532,17 +509,15 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
                 const componentRemovedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
                     event: {
-                        streamKey: 'ASSET#asset123',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: 'ASSET#asset123',
-                            component: new StandardRemove(new StandardRoom({
-                                tag: 'Room',
-                                shortName: 'Test Room',
-                                universalKey: 'ROOM#room123'
-                            }))
-                        }
+                        type: 'Component Updated',
+                        assetId: 'ASSET#asset123',
+                        component: new StandardRemove(new StandardRoom({
+                            tag: 'Room',
+                            shortName: 'Test Room',
+                            universalKey: 'ROOM#room123'
+                        }))
                     },
                     timestamp: Date.now()
                 }
@@ -558,17 +533,15 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             it('should handle missing assetId gracefully', async () => {
                 const componentRemovedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
                     event: {
-                        streamKey: 'ASSET#asset123',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: undefined as any,
-                            component: new StandardRemove(new StandardRoom({
-                                tag: 'Room',
-                                shortName: 'Test Room',
-                                universalKey: 'ROOM#room123'
-                            }))
-                        }
+                        type: 'Component Updated',
+                        assetId: undefined as any,
+                        component: new StandardRemove(new StandardRoom({
+                            tag: 'Room',
+                            shortName: 'Test Room',
+                            universalKey: 'ROOM#room123'
+                        }))
                     },
                     timestamp: Date.now()
                 }
@@ -584,13 +557,11 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             it('should handle missing component gracefully', async () => {
                 const componentRemovedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
                     event: {
-                        streamKey: 'ASSET#asset123',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: 'ASSET#asset123',
-                            component: undefined as any
-                        }
+                        type: 'Component Updated',
+                        assetId: 'ASSET#asset123',
+                        component: undefined as any
                     },
                     timestamp: Date.now()
                 }
@@ -609,17 +580,15 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
                 const componentRemovedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
                     event: {
-                        streamKey: 'ASSET#asset123',
-                        update: {
-                            type: 'Component Updated',
-                            assetId: 'ASSET#asset123',
-                            component: new StandardRemove(new StandardRoom({
-                                tag: 'Room',
-                                shortName: 'Test Room',
-                                universalKey: 'ROOM#room123'
-                            }))
-                        }
+                        type: 'Component Updated',
+                        assetId: 'ASSET#asset123',
+                        component: new StandardRemove(new StandardRoom({
+                            tag: 'Room',
+                            shortName: 'Test Room',
+                            universalKey: 'ROOM#room123'
+                        }))
                     },
                     timestamp: Date.now()
                 }
@@ -643,14 +612,12 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             it('should stream Zone Updated event when receiving Zone Changed from WML', async () => {
                 const zoneChangedEvent: SubscribedWMLEvent = {
                     dataSourceKey: 'mtw.wml',
+                    streamKey: 'global',
                     event: {
-                        streamKey: 'global',
-                        update: {
-                            type: 'Zone Changed',
-                            AssetId: 'ASSET#test1',
-                            fromZone: 'Canon',
-                            toZone: 'Library'
-                        }
+                        type: 'Zone Changed',
+                        AssetId: 'ASSET#test1',
+                        fromZone: 'Canon',
+                        toZone: 'Library'
                     },
                     timestamp: Date.now()
                 }
@@ -662,7 +629,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     streamKey: 'global',
-                    detailType: 'Zone Updated',
                     update: {
                         type: 'Zone Updated',
                         assetId: 'global',
@@ -676,27 +642,23 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const zoneChangedEvents: SubscribedWMLEvent[] = [
                     {
                         dataSourceKey: 'mtw.wml',
+                        streamKey: 'ASSET#test1',
                         event: {
-                            streamKey: 'ASSET#test1',
-                            update: {
-                                type: 'Zone Changed',
-                                AssetId: 'ASSET#test1',
-                                fromZone: 'Canon',
-                                toZone: 'Library'
-                            }
+                            type: 'Zone Changed',
+                            AssetId: 'ASSET#test1',
+                            fromZone: 'Canon',
+                            toZone: 'Library'
                         },
                         timestamp: Date.now()
                     },
                     {
                         dataSourceKey: 'mtw.wml',
+                        streamKey: 'ASSET#test2',
                         event: {
-                            streamKey: 'ASSET#test2',
-                            update: {
-                                type: 'Zone Changed',
-                                AssetId: 'ASSET#test2',
-                                fromZone: 'Library',
-                                toZone: 'Personal'
-                            }
+                            type: 'Zone Changed',
+                            AssetId: 'ASSET#test2',
+                            fromZone: 'Library',
+                            toZone: 'Personal'
                         },
                         timestamp: Date.now()
                     }
@@ -710,7 +672,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 expect(mockStreamEvent).toHaveBeenCalledTimes(2)
                 expect(mockStreamEvent).toHaveBeenNthCalledWith(1, {
                     streamKey: 'global',
-                    detailType: 'Zone Updated',
                     update: {
                         type: 'Zone Updated',
                         assetId: 'ASSET#test1',
@@ -720,7 +681,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 })
                 expect(mockStreamEvent).toHaveBeenNthCalledWith(2, {
                     streamKey: 'global',
-                    detailType: 'Zone Updated',
                     update: {
                         type: 'Zone Updated',
                         assetId: 'ASSET#test2',
@@ -742,30 +702,26 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const mixedEvents: SubscribedEvent[] = [
                     {
                         dataSourceKey: 'mtw.wml',
+                        streamKey: 'ASSET#test1',
                         event: {
-                            streamKey: 'ASSET#test1',
-                            update: {
-                                type: 'Zone Changed',
-                                AssetId: 'ASSET#test1',
-                                fromZone: 'Canon',
-                                toZone: 'Library'
-                            }
+                            type: 'Zone Changed',
+                            AssetId: 'ASSET#test1',
+                            fromZone: 'Canon',
+                            toZone: 'Library'
                         },
                         timestamp: Date.now()
                     },
                     {
                         dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#test1',
                         event: {
-                            streamKey: 'ASSET#test1',
-                            update: {
-                                type: 'Component Updated',
-                                assetId: 'ASSET#test1',
-                                component: new StandardRoom({
-                                    tag: 'Room',
-                                    shortName: 'Updated Room',
-                                    universalKey: 'ROOM#room123'
-                                })
-                            }
+                            type: 'Component Updated',
+                            assetId: 'ASSET#test1',
+                            component: new StandardRoom({
+                                tag: 'Room',
+                                shortName: 'Updated Room',
+                                universalKey: 'ROOM#room123'
+                            })
                         },
                         timestamp: Date.now()
                     }
@@ -779,7 +735,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 // Should stream both Zone Updated and Headers Updated events
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     streamKey: 'global',
-                    detailType: 'Zone Updated',
                     update: {
                         type: 'Zone Updated',
                         assetId: 'ASSET#test1',
@@ -793,8 +748,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         assetId: 'ASSET#test1',
                         zone: 'Canon'
                     }),
-                    streamKey: 'global',
-                    detailType: 'Headers Updated'
+                    streamKey: 'global'
                 })
             })
         })
@@ -816,33 +770,29 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const events: SubscribedAssetsEvent[] = [
                     {
                         dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#asset1',
                         event: {
-                            streamKey: 'ASSET#asset1',
-                            update: {
-                                type: 'Component Updated',
-                                assetId: 'ASSET#asset1',
-                                component: new StandardRoom({
-                                    tag: 'Room',
-                                    shortName: 'Room 1',
-                                    universalKey: 'ROOM#room1'
-                                })
-                            }
+                            type: 'Component Updated',
+                            assetId: 'ASSET#asset1',
+                            component: new StandardRoom({
+                                tag: 'Room',
+                                shortName: 'Room 1',
+                                universalKey: 'ROOM#room1'
+                            })
                         },
                         timestamp: Date.now()
                     },
                     {
                         dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#asset2',
                         event: {
-                            streamKey: 'ASSET#asset2',
-                            update: {
-                                type: 'Component Updated',
-                                assetId: 'ASSET#asset2',
-                                component: new StandardRemove(new StandardRoom({
-                                    tag: 'Room',
-                                    shortName: 'Room 2',
-                                    universalKey: 'ROOM#room2'
-                                }))
-                            }
+                            type: 'Component Updated',
+                            assetId: 'ASSET#asset2',
+                            component: new StandardRemove(new StandardRoom({
+                                tag: 'Room',
+                                shortName: 'Room 2',
+                                universalKey: 'ROOM#room2'
+                            }))
                         },
                         timestamp: Date.now()
                     }

@@ -4,8 +4,7 @@ export type SerializableObject = Record<string, unknown>
 
 export type EventPayload = {
     type: string;
-    update: unknown;
-}
+} & Record<string, unknown>
 
 // External EventBridge format
 export type StreamingEvent = {

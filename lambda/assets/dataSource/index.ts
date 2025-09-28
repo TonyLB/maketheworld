@@ -13,21 +13,16 @@ import { WMLEventUpdate } from '../../wml/dataSource/serializers'
 // Separate type for WML events with precise typing
 type WMLSubscribedEvent = StreamingEventPayload & {
     dataSourceKey: 'mtw.wml'
-    event: {
-        update: WMLEventUpdate
-    }
+    event: WMLEventUpdate
 }
 
 // Union type constraint for legitimate incoming subscribed events
 type AssetsSubscribedEvent = WMLSubscribedEvent | (
     StreamingEventPayload & {
         dataSourceKey: 'mtw.diagnostics' | 'mtw.coordination'
-        event: {
-            update: {
-                type: string
-                [key: string]: any
-            }
-        }
+       event: {
+            type: string
+        } & Record<string, unknown>
     }
 )
 
@@ -62,10 +57,8 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             ['mtw.diagnostics', 'mtw.coordination', 'mtw.wml'].includes(event.dataSourceKey) && 
             event.event && 
             typeof event.event === 'object' &&
-            event.event.update &&
-            typeof event.event.update === 'object' &&
-            'type' in event.event.update &&
-            typeof (event.event.update as any).type === 'string'
+            'type' in event.event &&
+            typeof event.event.type === 'string'
         )
     },
     receiveEvents: async ({ events, streamEvent }) => {
@@ -74,8 +67,8 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
         
         await Promise.all(events.map(async (event) => {
             // Handle mtw.wml events
-            if (isWMLSubscribedEvent(event) && event.event.update.type === 'Content Update') {
-                const { AssetId } = event.event.update
+            if (isWMLSubscribedEvent(event) && event.event.type === 'Content Update') {
+                const { AssetId } = event.event
                 if (AssetId) {
                     try {
                         const assetId = AssetId.replace('ASSET#', '')
@@ -84,11 +77,10 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         // Stream the caching event for real-time subscribers
                         await streamEvent({
                             update: { 
-                                type: 'CacheAsset',
+                                type: 'Asset Cached',
                                 assetId
                             },
                             streamKey: AssetId,
-                            detailType: 'Asset Cached'
                         })
                     } catch (error) {
                         console.error(`Error caching asset ${AssetId}:`, error)
@@ -114,8 +106,8 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
             
             // Handle mtw.wml Content Removed events
-            if (isWMLSubscribedEvent(event) && event.event.update.type === 'Content Removed') {
-                const { AssetId } = event.event.update
+            if (isWMLSubscribedEvent(event) && event.event.type === 'Content Removed') {
+                const { AssetId } = event.event
                 if (AssetId) {
                     try {
                         const assetId = AssetId.replace('ASSET#', '')
@@ -124,11 +116,10 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         // Stream the decaching event for real-time subscribers
                         await streamEvent({
                             update: { 
-                                type: 'DecacheAsset',
+                                type: 'Asset Decached',
                                 assetId
                             },
-                            streamKey: AssetId,
-                            detailType: 'Asset Decached'
+                            streamKey: AssetId
                         })
                     } catch (error) {
                         console.error(`Error decaching asset ${AssetId}:`, error)
@@ -154,8 +145,8 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
 
             // Handle mtw.wml Zone Changed events
-            if (isWMLSubscribedEvent(event) && event.event.update.type === 'Zone Changed') {
-                const { AssetId, fromZone, toZone, player, subFolder } = event.event.update
+            if (isWMLSubscribedEvent(event) && event.event.type === 'Zone Changed') {
+                const { AssetId, fromZone, toZone, player, subFolder } = event.event
                 if (AssetId) {
                     // Ensure AssetId is properly formatted as ASSET#${string}
                     const assetUUID = AssetKey(AssetId)
@@ -196,8 +187,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                                 type: 'Canon Updated',
                                 assetIds: globalAssetsSorted
                             },
-                            streamKey: 'canon-global',
-                            detailType: 'Canon Updated'
+                            streamKey: 'canon-global'
                         })
                     }
                     
@@ -207,40 +197,34 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
 
             // Handle mtw.diagnostics events
-            if (event.dataSourceKey === 'mtw.diagnostics' && event.event.update.type === 'Heal Global Values') {
+            if (event.dataSourceKey === 'mtw.diagnostics' && event.event.type === 'Heal Global Values') {
                 const returnVal = await healGlobalValues({
-                    shouldHealConnections: Boolean(event.event.update.connections),
-                    shouldHealGlobalAssets: typeof event.event.update.assets !== 'boolean' || event.event.update.assets
+                    shouldHealConnections: Boolean(event.event.connections),
+                    shouldHealGlobalAssets: typeof event.event.assets !== 'boolean' || event.event.assets
                 })
                 
                 return
             }
             
             // Handle mtw.coordination events
-            if (event.dataSourceKey === 'mtw.coordination' && event.event.update.type === 'Remove Asset') {
-                const { assetId } = event.event.update
+            if (event.dataSourceKey === 'mtw.coordination' && event.event.type === 'Remove Asset') {
+                const { assetId } = event.event
                 if (assetId) {
                     try {
                         // Decache the asset before removing it
-                        await decacheAsset({ assetId, streamEvent })
+                        await decacheAsset({ assetId: assetId as string, streamEvent })
                     } catch (error) {
                         console.error(`Error decaching asset ${assetId}:`, error)
                         // Continue with removal even if decaching fails
                     }
                     
-                    messageBus.send({
-                        type: 'RemoveAsset',
-                        assetId
-                    })
-                    
                     // Stream the removal as an asset-level event
                     await streamEvent({
                         update: { 
-                            type: 'RemoveAsset',
-                            assetId
+                            type: 'Asset Removed',
+                            assetId: assetId as string
                         },
-                        streamKey: assetId,
-                        detailType: 'Asset Removed'
+                        streamKey: assetId as string
                     })
                     return
                     } else {

@@ -9,10 +9,7 @@ import {
     isFetchImportsAPIMessage,
     isLibraryUnsubscribeMessage,
     isPlayerSettingMessage,
-    isRemoveAssetMessage,
     isReturnValueMessage,
-    isCacheAssetMessage,
-    isDecacheAssetMessage,
     isCollaborationStatusMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
@@ -56,12 +53,6 @@ messageBus.subscribe({
     callback: uploadURLMessage
 })
 messageBus.subscribe({
-    tag: 'RemoveAsset',
-    priority: 5,
-    filter: isRemoveAssetMessage,
-    callback: removeAssetMessage
-})
-messageBus.subscribe({
     tag: 'LibrarySubscribe',
     priority: 5,
     filter: isLibrarySubscribeMessage,
@@ -78,18 +69,6 @@ messageBus.subscribe({
     priority: 6,
     filter: isPlayerInfoMessage,
     callback: playerInfoMessage
-})
-messageBus.subscribe({
-    tag: 'CacheAsset',
-    priority: 7,
-    filter: isCacheAssetMessage,
-    callback: cacheAssetMessage
-})
-messageBus.subscribe({
-    tag: 'DecacheAsset',
-    priority: 7,
-    filter: isDecacheAssetMessage,
-    callback: decacheAssetMessage
 })
 messageBus.subscribe({
     tag: 'PlayerSettings',

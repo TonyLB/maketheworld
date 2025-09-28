@@ -1,5 +1,5 @@
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { isStandardComponent, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { StandardRemove, StandardReplace } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
@@ -19,16 +19,21 @@ export const isComponentUpdatedEvent = (event: ComponentEventUpdate): event is C
 }
 
 // Type guards for assets events (full union type)
-export const isAssetsComponentUpdatedEvent = (event: AssetsEventUpdate): event is ComponentUpdatedEvent => {
-    return 'type' in event && event.type === 'Component Updated' && 'component' in event
+export const isAssetsComponentUpdatedEvent = (event: any): event is ComponentUpdatedEvent => {
+    return event &&
+        typeof event === 'object' &&
+        'type' in event &&
+        event.type === 'Component Updated'
+        && 'component' in event
+        && isStandardComponent(event.component)
 }
 
-export const isAssetsComponentEvent = (event: AssetsEventUpdate): event is ComponentEventUpdate => {
+export const isAssetsComponentEvent = (event: any): event is ComponentEventUpdate => {
     return isAssetsComponentUpdatedEvent(event)
 }
 
 export const isAssetsLevelEvent = (event: AssetsEventUpdate): event is AssetLevelEventUpdate => {
-    return 'type' in event && ['CacheAsset', 'DecacheAsset', 'RemoveAsset', 'Canon Updated'].includes(event.type)
+    return 'type' in event && ['CacheAsset', 'DecacheAsset', 'Asset Removed', 'Canon Updated'].includes(event.type)
 }
 
 export type ComponentEventExternal = ComponentUpdatedEventExternal
@@ -45,7 +50,7 @@ export type AssetsEventUpdate = ComponentEventUpdate | AssetLevelEventUpdate
 
 // Asset-level event types (non-component events)
 export type AssetLevelEventUpdate = {
-    type: 'CacheAsset' | 'DecacheAsset' | 'RemoveAsset' | 'Canon Updated'
+    type: 'Asset Cached' | 'Asset Decached' | 'Asset Removed' | 'Canon Updated'
     assetId?: string
     assetIds?: string[]
     [key: string]: any // Allow additional properties
@@ -55,7 +60,7 @@ export type AssetLevelEventUpdate = {
 export type AssetsEventExternal = ComponentEventExternal | AssetLevelEventExternal
 
 export type AssetLevelEventExternal = {
-    type: 'CacheAsset' | 'DecacheAsset' | 'RemoveAsset' | 'Canon Updated'
+    type: 'Asset Cached' | 'Asset Decached' | 'Asset Removed' | 'Canon Updated'
     assetId?: string
     assetIds?: string[]
     [key: string]: any // Allow additional properties
@@ -71,7 +76,6 @@ export type AssetLevelEventExternal = {
 export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEventUpdate, AssetsEventExternal> {
     serialize(params: {
         dataSourceKey: string;
-        detailType: string;
         streamKey: string;
         update: AssetsEventUpdate;
     }): AssetsEventExternal {

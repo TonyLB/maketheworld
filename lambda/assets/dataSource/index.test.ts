@@ -70,8 +70,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             await assetsDataSource.streamEvent({
                 update,
-                streamKey: 'ASSET#asset123',
-                detailType: 'Component Updated'
+                streamKey: 'ASSET#asset123'
             })
 
             // Verify EventBridge event structure and serialization
@@ -82,12 +81,9 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         DetailType: 'Component Updated',
                         Detail: expect.objectContaining({
                             streamKey: 'ASSET#asset123',
-                            update: expect.objectContaining({
-                                type: 'Component Updated',
-                                assetId: 'ASSET#asset123', // assetId is set from streamKey
-                                componentId: 'CHARACTER#char123', // componentId is set from universalKey
-                                wml: expect.stringContaining('<Character uuid=(char123)>') // Should be WML string
-                            })
+                            assetId: 'ASSET#asset123', // assetId is set from streamKey
+                            componentId: 'CHARACTER#char123', // componentId is set from universalKey
+                            wml: expect.any(String) // Should be WML string
                         })
                     })
                 ])
@@ -95,7 +91,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             // Verify the WML matches expected content exactly
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
-            const serializedUpdate = eventBridgeCall.Detail.update
+            const serializedUpdate = eventBridgeCall.Detail
             expect(serializedUpdate.wml).toEqual(deIndentWML(`<Character uuid=(char123)><ShortName>Test Character</ShortName></Character>`))
         })
 
@@ -113,8 +109,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             await assetsDataSource.streamEvent({
                 update,
-                streamKey: 'ASSET#asset456',
-                detailType: 'Component Updated'
+                streamKey: 'ASSET#asset456'
             })
 
             // Verify EventBridge event structure and serialization
@@ -125,12 +120,9 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         DetailType: 'Component Updated',
                         Detail: expect.objectContaining({
                             streamKey: 'ASSET#asset456',
-                            update: expect.objectContaining({
-                                type: 'Component Updated',
-                                assetId: 'ASSET#asset456',
-                                componentId: 'CHARACTER#char456',
-                                wml: expect.stringContaining('<Remove>')
-                            })
+                            assetId: 'ASSET#asset456',
+                            componentId: 'CHARACTER#char456',
+                            wml: expect.stringContaining('<Remove>')
                         })
                     })
                 ])
@@ -145,8 +137,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             await assetsDataSource.streamEvent({
                 update,
-                streamKey: 'ASSET#asset789',
-                detailType: 'Canon Updated'
+                streamKey: 'ASSET#asset789'
             })
 
             // Verify EventBridge event structure
@@ -157,10 +148,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         DetailType: 'Canon Updated',
                         Detail: expect.objectContaining({
                             streamKey: 'ASSET#asset789',
-                            update: expect.objectContaining({
-                                type: 'Canon Updated',
-                                AssetId: 'ASSET#asset789'
-                            })
+                            AssetId: 'ASSET#asset789'
                         })
                     })
                 ])
@@ -184,13 +172,12 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             await assetsDataSource.streamEvent({
                 update,
-                streamKey: 'ASSET#complex-asset',
-                detailType: 'Component Updated'
+                streamKey: 'ASSET#complex-asset'
             })
 
             // Verify the serialized WML matches expected content exactly
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
-            const serializedUpdate = eventBridgeCall.Detail.update
+            const serializedUpdate = eventBridgeCall.Detail
             
             expect(serializedUpdate.wml).toEqual(deIndentWML(`
                 <Character uuid=(complex123)>
@@ -214,8 +201,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             await assetsDataSource.streamEvent({
                 update,
-                streamKey: 'ASSET#metadata-asset',
-                detailType: 'Component Updated'
+                streamKey: 'ASSET#metadata-asset'
             })
 
             // Verify detailType is preserved
@@ -228,13 +214,11 @@ describe('AssetsDataSource (mtw.assets)', () => {
     describe('Event Processing', () => {
         it('should process WML content update events', async () => {
             const wmlEvent = {
-                dataSourceKey: 'mtw.wml',
+                dataSourceKey: 'mtw.wml' as const,
+                streamKey: 'ASSET#test123',
                 event: {
-                    streamKey: 'ASSET#test123',
-                    update: {
-                        type: 'Content Update',
-                        AssetId: 'ASSET#test123'
-                    }
+                    type: 'Content Update' as const,
+                    AssetId: 'ASSET#test123'
                 },
                 timestamp: Date.now()
             }
@@ -256,19 +240,17 @@ describe('AssetsDataSource (mtw.assets)', () => {
         it('should process WML zone changed events', async () => {
             const zoneChangedEvent = {
                 dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test123',
                 event: {
-                    streamKey: 'ASSET#test123',
-                    update: {
-                        type: 'Zone Changed',
-                        AssetId: 'ASSET#test123',
-                        fromZone: 'Personal',
-                        toZone: 'Library',
-                        player: 'testplayer',
-                        subFolder: 'testfolder'
-                    }
+                    type: 'Zone Changed',
+                    AssetId: 'ASSET#test123',
+                    fromZone: 'Personal',
+                    toZone: 'Library',
+                    player: 'testplayer',
+                    subFolder: 'testfolder'
                 },
                 timestamp: Date.now()
-            }
+            } as const
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
             
@@ -303,17 +285,15 @@ describe('AssetsDataSource (mtw.assets)', () => {
         it('should process WML zone changed events without optional fields', async () => {
             const zoneChangedEvent = {
                 dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test456',
                 event: {
-                    streamKey: 'ASSET#test456',
-                    update: {
-                        type: 'Zone Changed',
-                        AssetId: 'ASSET#test456',
-                        fromZone: 'Draft',
-                        toZone: 'Canon'
-                    }
+                    type: 'Zone Changed',
+                    AssetId: 'ASSET#test456',
+                    fromZone: 'Draft',
+                    toZone: 'Canon'
                 },
                 timestamp: Date.now()
-            }
+            } as const
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
             
@@ -322,8 +302,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
             
             // Mock canon graph query results
             assetDBMock.query.mockResolvedValueOnce([
-                { AssetId: 'ASSET#test456', zone: 'Canon' },
-                { AssetId: 'ASSET#other123', zone: 'Canon' }
+                { AssetId: 'ASSET#test456', DataCategory: 'Meta::Asset', zone: 'Canon' },
+                { AssetId: 'ASSET#other123', DataCategory: 'Meta::Asset', zone: 'Canon' }
             ])
             
             await assetsDataSource.receiveEvents?.({ 
@@ -360,8 +340,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     type: 'Canon Updated',
                     assetIds: []
                 },
-                streamKey: 'canon-global',
-                detailType: 'Canon Updated'
+                streamKey: 'canon-global'
             })
 
             expect(receiveEventsSpy).toHaveBeenCalled()
@@ -370,17 +349,15 @@ describe('AssetsDataSource (mtw.assets)', () => {
         it('should process WML zone changed events for decanonization (leaving Canon zone)', async () => {
             const zoneChangedEvent = {
                 dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test789',
                 event: {
-                    streamKey: 'ASSET#test789',
-                    update: {
-                        type: 'Zone Changed',
-                        AssetId: 'ASSET#test789',
-                        fromZone: 'Canon',
-                        toZone: 'Library'
-                    }
+                    type: 'Zone Changed',
+                    AssetId: 'ASSET#test789',
+                    fromZone: 'Canon',
+                    toZone: 'Library'
                 },
                 timestamp: Date.now()
-            }
+            } as const
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
             
@@ -389,7 +366,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             
             // Mock canon graph query results (remaining canon assets)
             assetDBMock.query.mockResolvedValueOnce([
-                { AssetId: 'ASSET#other123', zone: 'Canon' }
+                { AssetId: 'ASSET#other123', DataCategory: 'Meta::Asset', zone: 'Canon' }
             ])
             
             await assetsDataSource.receiveEvents?.({ 
@@ -426,8 +403,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     type: 'Canon Updated',
                     assetIds: []
                 },
-                streamKey: 'canon-global',
-                detailType: 'Canon Updated'
+                streamKey: 'canon-global'
             })
 
             expect(receiveEventsSpy).toHaveBeenCalled()
@@ -436,15 +412,13 @@ describe('AssetsDataSource (mtw.assets)', () => {
         it('should handle WML content removed events', async () => {
             const contentRemovedEvent = {
                 dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test789',
                 event: {
-                    streamKey: 'ASSET#test789',
-                    update: {
-                        type: 'Content Removed',
-                        AssetId: 'ASSET#test789'
-                    }
+                    type: 'Content Removed',
+                    AssetId: 'ASSET#test789'
                 },
                 timestamp: Date.now()
-            }
+            } as const
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
             
@@ -467,14 +441,12 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             const diagnosticEvent = {
                 dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'test-stream',
                 event: {
-                    streamKey: 'test-stream',
-                    update: {
-                        type: 'Heal Global Values'
-                    }
+                    type: 'Heal Global Values'
                 },
                 timestamp: Date.now()
-            }
+            } as const
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
             
@@ -497,36 +469,30 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const batchEvents = [
                 {
                     dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#test123',
                     event: {
-                        streamKey: 'ASSET#test123',
-                        update: {
-                            type: 'Content Update',
-                            AssetId: 'ASSET#test123'
-                        }
+                        type: 'Content Update',
+                        AssetId: 'ASSET#test123'
                     },
                     timestamp: Date.now()
-                },
+                } as const,
                 {
                     dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'test-stream',
                     event: {
-                        streamKey: 'test-stream',
-                        update: {
-                            type: 'Heal Global Values'
-                        }
+                        type: 'Heal Global Values'
                     },
                     timestamp: Date.now()
-                },
+                } as const,
                 {
                     dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#test456',
                     event: {
-                        streamKey: 'ASSET#test456',
-                        update: {
-                            type: 'Content Update',
-                            AssetId: 'ASSET#test456'
-                        }
+                        type: 'Content Update',
+                        AssetId: 'ASSET#test456'
                     },
                     timestamp: Date.now()
-                }
+                } as const
             ]
             
             // Process the batch of events
@@ -547,16 +513,14 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const subscribedEventTypes = ['mtw.wml', 'mtw.diagnostics', 'mtw.coordination']
             
             subscribedEventTypes.forEach(source => {
-            const event = {
-                dataSourceKey: source,
-                event: {
+                const event = {
+                    dataSourceKey: source,
                     streamKey: 'test-stream',
-                    update: {
+                    event: {
                         type: 'Test Event'
-                    }
-                },
-                timestamp: Date.now()
-            }
+                    },
+                    timestamp: Date.now()
+                } as const
 
                 expect(assetsDataSource.subscribedEventTypeGuard?.(event)).toBe(true)
             })
@@ -565,14 +529,12 @@ describe('AssetsDataSource (mtw.assets)', () => {
         it('should not subscribe to events from other data sources', () => {
             const otherEvent = {
                 dataSourceKey: 'mtw.other',
+                streamKey: 'test-stream',
                 event: {
-                    streamKey: 'test-stream',
-                    update: {
-                        type: 'Test Event'
-                    }
+                    type: 'Test Event'
                 },
                 timestamp: Date.now()
-            }
+            } as const
 
             expect(assetsDataSource.subscribedEventTypeGuard?.(otherEvent)).toBe(false)
         })
@@ -582,9 +544,9 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 dataSourceKey: 'mtw.wml',
                 event: null as any,
                 timestamp: Date.now()
-            }
+            } as const
 
-            expect(assetsDataSource.subscribedEventTypeGuard?.(malformedEvent)).toBe(false)
+            expect(assetsDataSource.subscribedEventTypeGuard?.(malformedEvent as any)).toBe(false)
         })
     })
 })

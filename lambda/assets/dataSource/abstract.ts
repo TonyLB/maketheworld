@@ -24,7 +24,7 @@ export class AssetsDataSource<SnapshotPayload extends SerializableObject, Update
         subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent;
         receiveEvents?: (params: { 
             events: SubscribedEvent[], 
-            streamEvent: (params: { update: UpdatePayload, streamKey: string, detailType: string }) => Promise<void>
+            streamEvent: (params: { update: UpdatePayload, streamKey: string }) => Promise<void>
         }) => Promise<void>;
         eventSerializer?: any; // Pass through to parent DataSource
     }) {

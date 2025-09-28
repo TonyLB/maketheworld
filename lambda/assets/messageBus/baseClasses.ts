@@ -73,21 +73,6 @@ export type LibraryUpdateMessage = {
     type: 'LibraryUpdate';
 }
 
-export type RemoveAssetMessage = {
-    type: 'RemoveAsset';
-    assetId: string;
-}
-
-export type CacheAssetMessage = {
-    type: 'CacheAsset';
-    assetId: string;
-}
-
-export type DecacheAssetMessage = {
-    type: 'DecacheAsset';
-    assetId: string;
-}
-
 export type CollaborationStatusMessage = {
     type: 'CollaborationStatus';
     RequestId?: string;
@@ -109,9 +94,6 @@ export type MessageType = ReturnValueMessage |
     PlayerInfoMessage |
     PlayerSettingsMessage |
     LibraryUpdateMessage |
-    RemoveAssetMessage |
-    CacheAssetMessage |
-    DecacheAssetMessage |
     CollaborationStatusMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
@@ -126,9 +108,6 @@ export const isLibraryUnsubscribeMessage = (prop: MessageType): prop is LibraryU
 export const isPlayerInfoMessage = (prop: MessageType): prop is PlayerInfoMessage => (prop.type === 'PlayerInfo')
 export const isPlayerSettingMessage = (prop: MessageType): prop is PlayerSettingsMessage => (prop.type === 'PlayerSettings')
 export const isLibraryUpdateMessage = (prop: MessageType): prop is LibraryUpdateMessage => (prop.type === 'LibraryUpdate')
-export const isRemoveAssetMessage = (prop: MessageType): prop is RemoveAssetMessage => (prop.type === 'RemoveAsset')
-export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')
-export const isDecacheAssetMessage = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
 export const isCollaborationStatusMessage = (prop: MessageType): prop is CollaborationStatusMessage => (prop.type === 'CollaborationStatus')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

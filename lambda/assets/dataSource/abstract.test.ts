@@ -98,8 +98,7 @@ describe('AssetsDataSource', () => {
 
             await dataSource.streamEvent({
                 update,
-                streamKey: 'test-stream',
-                detailType: 'Test Event'
+                streamKey: 'test-stream'
             })
 
             // Verify DynamoDB storage
@@ -107,8 +106,7 @@ describe('AssetsDataSource', () => {
                 expect.objectContaining({
                     AssetId: 'STREAM#mtw.assets.test::test-stream',
                     DataCategory: expect.stringMatching(/^EVENT#/),
-                    update,
-                    streamKey: 'test-stream'
+                    update
                 })
             )
 
