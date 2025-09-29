@@ -2,19 +2,14 @@ import { WMLDataSource } from './abstract'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from './serializers'
 import { moveAsset } from './moveAsset'
-import { WMLInternalMessage, isWMLInternalMessage, MoveAssetRequest, isMoveAssetRequest } from '../messageBus/baseClasses'
-import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent } from './coordinationSerializer'
+import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, MoveAssetRequest } from './coordinationSerializer'
+import { isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 // Union type constraint for legitimate incoming subscribed events
 type WMLSubscribedEvent = StreamingEventPayload & {
-    dataSourceKey: 'internal'
-    event: { update: WMLInternalMessage }
-}
-
-// Union type constraint for coordination events
-type CoordinationSubscribedEvent = StreamingEventPayload & {
-    dataSourceKey: 'mtw.coordination'
-    event: { update: CoordinationEventUpdate }
+    dataSourceKey: 'internal';
+    streamKey: string;
+    event: CoordinationEventUpdate
 }
 
 //
@@ -29,36 +24,25 @@ type CoordinationSubscribedEvent = StreamingEventPayload & {
 // - Handle WML-specific event processing (currently stubbed)
 // - Provide the foundation for future WML lambda refactoring
 //
-export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribedEvent | CoordinationSubscribedEvent, WMLEventExternal>({
+export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribedEvent, WMLEventExternal>({
     dataSourceKey: 'mtw.wml',
     replayable: false, // Non-replayable - focuses on event streaming and serialization
     // No snapshotContentGenerator needed for non-replayable data sources
-    subscribedEventTypeGuard: (event: StreamingEventPayload): event is WMLSubscribedEvent | CoordinationSubscribedEvent => {
-        // Subscribe to internal moveAssets events for direct API calls
-        if (event.dataSourceKey === 'internal' &&
+    subscribedEventTypeGuard: (event: StreamingEventPayload): event is WMLSubscribedEvent => {
+        // Subscribe to internal Move Asset events for direct API calls
+        return Boolean(event.dataSourceKey === 'internal' &&
             event.event &&
             typeof event.event === 'object' &&
-            isWMLInternalMessage(event.event.update)) {
-            return true
-        }
-        
-        // Subscribe to coordination events for canonization/decanonization
-        if (event.dataSourceKey === 'mtw.coordination' &&
-            event.event &&
-            typeof event.event === 'object' &&
-            isCoordinationEventUpdate(event.event.update)) {
-            return true
-        }
-        
-        return false
+            isCoordinationEventUpdate(event.event))
     },
     receiveEvents: async ({ events, streamEvent }) => {
-        // Process internal moveAssets events from direct API calls
+        // Process internal Move Asset events from direct API calls
         await Promise.all(events.map(async (event) => {
-            if (event.dataSourceKey === 'internal' && isMoveAssetRequest(event.event.update)) {
+            const payload = event.event as any
+            if (isMoveAssetRequest(payload) && isSchemaAssetUUID(event.streamKey)) {
                 try {
-                    const moveRequest = event.event.update
-                    const result = await moveAsset(moveRequest)
+                    const moveRequest = payload
+                    const result = await moveAsset(event.streamKey, moveRequest)
                     
                     // Stream zone changed event if move was successful
                     if (result.success) {
@@ -66,44 +50,40 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                             await streamEvent({
                                 update: {
                                     type: 'Zone Changed',
-                                    AssetId: `ASSET#${event.event.update.assetId}`,
-                                    fromZone: event.event.update.fromZone,
-                                    toZone: event.event.update.toZone,
-                                    ...(event.event.update.player && { player: event.event.update.player }),
-                                    ...(event.event.update.subFolder && { subFolder: event.event.update.subFolder })
+                                    fromZone: payload.fromZone,
+                                    toZone: payload.toZone,
+                                    ...(payload.player ? { player: payload.player } : {}),
+                                    ...(payload.subFolder ? { subFolder: payload.subFolder } : {})
                                 },
-                                streamKey: `ASSET#${event.event.update.assetId}`,
-                                detailType: 'Zone Changed'
+                                streamKey: event.streamKey
                             })
                         } catch (streamError) {
-                            console.error(`Error streaming zone changed event for ${event.event.update.assetId}:`, streamError)
+                            console.error(`Error streaming zone changed event for ${event.streamKey}:`, streamError)
                             // Don't fail the move operation if streaming fails
                         }
                     }
                 } catch (error) {
-                    console.error(`Error processing moveAsset for ${event.event.update.assetId}:`, error)
+                    console.error(`Error processing moveAsset for ${event.streamKey}:`, error)
                 }
             }
             
             // Process coordination events for canonization/decanonization
-            if (event.dataSourceKey === 'mtw.coordination') {
+            if ((isCoordinationCanonizeEvent(payload) || isCoordinationDecanonizeEvent(payload)) && isSchemaAssetUUID(event.streamKey)) {
                 try {
-                    const coordinationEvent = event.event.update
+                    const coordinationEvent = payload
                     let moveRequest: MoveAssetRequest
                     
                     if (isCoordinationCanonizeEvent(coordinationEvent)) {
                         // Canonize: move from current zone to Canon
                         moveRequest = {
-                            type: 'moveAsset',
-                            assetId: coordinationEvent.assetId,
+                            type: 'Move Asset',
                             fromZone: 'Library', // Default from zone for canonization
                             toZone: 'Canon'
                         }
                     } else if (isCoordinationDecanonizeEvent(coordinationEvent)) {
                         // Decanonize: move from Canon to Library
                         moveRequest = {
-                            type: 'moveAsset',
-                            assetId: coordinationEvent.assetId,
+                            type: 'Move Asset',
                             fromZone: 'Canon',
                             toZone: 'Library'
                         }
@@ -112,7 +92,7 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                         return
                     }
                     
-                    const result = await moveAsset(moveRequest)
+                    const result = await moveAsset(event.streamKey, moveRequest)
                     
                     // Stream zone changed event if move was successful
                     if (result.success) {
@@ -120,15 +100,13 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                             await streamEvent({
                                 update: {
                                     type: 'Zone Changed',
-                                    AssetId: `ASSET#${coordinationEvent.assetId}`,
                                     fromZone: moveRequest.fromZone,
                                     toZone: moveRequest.toZone
                                 },
-                                streamKey: `ASSET#${coordinationEvent.assetId}`,
-                                detailType: 'Zone Changed'
+                                streamKey: event.streamKey
                             })
                         } catch (streamError) {
-                            console.error(`Error streaming zone changed event for ${coordinationEvent.assetId}:`, streamError)
+                            console.error(`Error streaming zone changed event for ${event.streamKey}:`, streamError)
                             // Don't fail the move operation if streaming fails
                         }
                     }

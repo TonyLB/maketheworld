@@ -1,5 +1,5 @@
 import { DataSource, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { EventPayload, StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
 import messageBus from '../messageBus'
@@ -15,7 +15,7 @@ import messageBus from '../messageBus'
  * - Primary key name used in the assets domain
  * - Feedback topic ARN for replay data delivery
  */
-export class AssetsDataSource<SnapshotPayload extends SerializableObject, UpdatePayload = any, SubscribedEvent extends StreamingEventPayload = never> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent, string | SerializableObject, 'AssetId'> {
+export class AssetsDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends EventPayload, SubscribedEvent extends StreamingEventPayload = never> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent, EventPayload, 'AssetId'> {
     constructor(params: {
         dataSourceKey: string;
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>; // Optional - not needed for non-replayable data sources

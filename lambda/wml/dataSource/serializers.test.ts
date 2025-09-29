@@ -22,28 +22,28 @@ describe('WMLEventSerializer', () => {
 
             const contentEvent: WMLEventUpdate = {
                 type: 'Content Update',
-                AssetId: 'ASSET#test-asset',
                 schema: standardForm.schema
             }
 
             const externalEvent = serializer.serialize({ update: contentEvent })
             expect(externalEvent.type).toBe('Content Update')
-            expect(externalEvent.AssetId).toBe('ASSET#test-asset')
-            expect(typeof externalEvent.wml).toBe('string')
-            expect(externalEvent.wml).toContain('Room')
-            expect(externalEvent.wml).toContain('test-room')
+            if (externalEvent.type === 'Content Update') {
+                expect(typeof externalEvent.wml).toBe('string')
+                expect(externalEvent.wml).toContain('Room')
+                expect(externalEvent.wml).toContain('test-room')
+            }
         })
 
         it('should serialize Content Removed event', () => {
             const contentEvent: WMLEventUpdate = {
-                type: 'Content Removed',
-                AssetId: 'ASSET#test-asset'
+                type: 'Content Removed'
             }
 
             const externalEvent = serializer.serialize({ update: contentEvent })
             expect(externalEvent.type).toBe('Content Removed')
-            expect(externalEvent.AssetId).toBe('ASSET#test-asset')
-            expect(externalEvent.wml).toBeUndefined()
+            if (externalEvent.type === 'Content Removed') {
+                expect(externalEvent.wml).toBeUndefined()
+            }
         })
 
         it('should deserialize Content Update event from WML string', () => {
@@ -58,20 +58,19 @@ describe('WMLEventSerializer', () => {
 
             const externalEvent: WMLEventExternal = {
                 type: 'Content Update',
-                AssetId: 'ASSET#test-asset',
                 wml: wmlString
             }
 
             const internalEvent = serializer.deserialize({
                 dataSourceKey: 'mtw.wml',
-                detailType: 'Content Update',
                 streamKey: 'ASSET#test-asset',
                 externalUpdate: externalEvent
             })
 
             expect(internalEvent!.type).toBe('Content Update')
-            expect(internalEvent!.AssetId).toBe('ASSET#test-asset')
-            expect(internalEvent!.schema).toBeDefined()
+            if (internalEvent!.type === 'Content Update') {
+                expect(internalEvent!.schema).toBeDefined()
+            }
         })
 
         it('should handle Content Update round-trip correctly', () => {
@@ -86,7 +85,6 @@ describe('WMLEventSerializer', () => {
 
             const contentEvent: WMLEventUpdate = {
                 type: 'Content Update',
-                AssetId: 'ASSET#test-asset',
                 schema: originalForm.schema
             }
 
@@ -96,15 +94,15 @@ describe('WMLEventSerializer', () => {
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
                 dataSourceKey: 'mtw.wml',
-                detailType: 'Content Update',
                 streamKey: 'ASSET#test-asset',
                 externalUpdate: externalEvent
             })
             
             // Verify the schema is preserved
             expect(deserializedEvent!.type).toBe('Content Update')
-            expect(deserializedEvent!.AssetId).toBe('ASSET#test-asset')
-            expect(deserializedEvent!.schema).toBeDefined()
+            if (deserializedEvent!.type === 'Content Update') {
+                expect(deserializedEvent!.schema).toBeDefined()
+            }
         })
     })
 
@@ -112,7 +110,6 @@ describe('WMLEventSerializer', () => {
         it('should serialize Zone Changed event (pass-through)', () => {
             const zoneEvent: WMLEventUpdate = {
                 type: 'Zone Changed',
-                AssetId: 'ASSET#test-asset',
                 fromZone: 'Library',
                 toZone: 'Canon',
                 player: 'alice'
@@ -125,7 +122,6 @@ describe('WMLEventSerializer', () => {
         it('should deserialize Zone Changed event (pass-through)', () => {
             const externalEvent: WMLEventExternal = {
                 type: 'Zone Changed',
-                AssetId: 'ASSET#test-asset',
                 fromZone: 'Library',
                 toZone: 'Canon',
                 player: 'alice'
@@ -133,7 +129,6 @@ describe('WMLEventSerializer', () => {
 
             const internalEvent = serializer.deserialize({
                 dataSourceKey: 'mtw.wml',
-                detailType: 'Zone Changed',
                 streamKey: 'ASSET#test-asset',
                 externalUpdate: externalEvent
             })
@@ -144,7 +139,6 @@ describe('WMLEventSerializer', () => {
         it('should handle Zone Changed round-trip correctly', () => {
             const originalEvent: WMLEventUpdate = {
                 type: 'Zone Changed',
-                AssetId: 'ASSET#test-asset',
                 fromZone: 'Library',
                 toZone: 'Canon',
                 player: 'alice',
@@ -157,7 +151,6 @@ describe('WMLEventSerializer', () => {
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
                 dataSourceKey: 'mtw.wml',
-                detailType: 'Zone Changed',
                 streamKey: 'ASSET#test-asset',
                 externalUpdate: externalEvent
             })
@@ -179,14 +172,12 @@ describe('WMLEventSerializer', () => {
         it('should handle invalid WML in Content Update', () => {
             const externalEvent: WMLEventExternal = {
                 type: 'Content Update',
-                AssetId: 'ASSET#test-asset',
                 wml: 'invalid-wml-content'
             }
 
             expect(() => {
                 serializer.deserialize({
                     dataSourceKey: 'mtw.wml',
-                    detailType: 'Content Update',
                     streamKey: 'ASSET#test-asset',
                     externalUpdate: externalEvent
                 })

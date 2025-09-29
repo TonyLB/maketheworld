@@ -7,13 +7,11 @@ import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 // Internal types for WML events
 export type WMLContentEvent = {
     type: 'Content Update' | 'Content Removed'
-    AssetId: string
     schema?: any // For Content Update events
 }
 
 export type WMLZoneEvent = {
     type: 'Zone Changed'
-    AssetId: string
     fromZone: Zone
     toZone: Zone
     player?: string
@@ -26,13 +24,11 @@ export type WMLEventUpdate = WMLContentEvent | WMLZoneEvent
 // External types for WML events
 export type WMLContentEventExternal = {
     type: 'Content Update' | 'Content Removed'
-    AssetId: string
     wml?: string // For Content Update events
 }
 
 export type WMLZoneEventExternal = {
     type: 'Zone Changed'
-    AssetId: string
     fromZone: Zone
     toZone: Zone
     player?: string
@@ -48,9 +44,7 @@ export const isWMLContentEvent = (event: any): event is WMLContentEvent => {
         event &&
         typeof event === 'object' &&
         'type' in event &&
-        (event.type === 'Content Update' || event.type === 'Content Removed') &&
-        'AssetId' in event &&
-        typeof event.AssetId === 'string'
+        (event.type === 'Content Update' || event.type === 'Content Removed')
     )
 }
 
@@ -60,10 +54,8 @@ export const isWMLZoneEvent = (event: any): event is WMLZoneEvent => {
         typeof event === 'object' &&
         'type' in event &&
         event.type === 'Zone Changed' &&
-        'AssetId' in event &&
         'fromZone' in event &&
         'toZone' in event &&
-        typeof event.AssetId === 'string' &&
         typeof event.fromZone === 'string' &&
         typeof event.toZone === 'string' &&
         isZone(event.fromZone) &&
@@ -96,14 +88,12 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
             if (update.type === 'Content Update' && update.schema) {
                 return {
                     type: 'Content Update',
-                    AssetId: update.AssetId,
                     wml: schemaToWML([update.schema])
                 }
             } else {
                 // Content Removed events don't need WML
                 return {
                     type: 'Content Removed',
-                    AssetId: update.AssetId
                 }
             }
         } else {
@@ -115,9 +105,8 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      * Deserialize an external event back to internal format
      * for messageBus processing
      */
-    deserialize(params: { dataSourceKey: string; detailType: string; streamKey: string; externalUpdate: WMLEventExternal }): WMLEventUpdate | null {
+    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: WMLEventExternal }): WMLEventUpdate | null {
         const { externalUpdate } = params
-        
         if (externalUpdate.type === 'Zone Changed') {
             // Zone events pass through as-is
             return externalUpdate as WMLZoneEvent
@@ -129,7 +118,6 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
                     const standardForm = new StandardForm(schemaNode)
                     return {
                         type: 'Content Update',
-                        AssetId: externalUpdate.AssetId,
                         schema: standardForm.schema
                     }
                 } catch (error) {
@@ -138,8 +126,7 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
             } else {
                 // Content Removed events don't need WML parsing
                 return {
-                    type: 'Content Removed',
-                    AssetId: externalUpdate.AssetId
+                    type: 'Content Removed'
                 }
             }
         } else {

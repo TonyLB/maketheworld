@@ -9,7 +9,8 @@ import internalCache from "./internalCache";
 import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
 import { extractReturnValue } from "./returnValue/index";
-import { CoordinationEventSerializer } from './dataSource/coordinationSerializer';
+import { CoordinationEventExternal, CoordinationEventSerializer, CoordinationEventUpdate } from './dataSource/coordinationSerializer';
+import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -32,12 +33,14 @@ export const handler = async (event: any) => {
         const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]
         
         if (deserializer) {
-            // Deserialize the external EventBridge event to internal format
+            // Convert EventBridge event to CoreExternalFormat using format transformer
+            const coreFormat = fromEventBridgeFormat(event)
+            
+            // Deserialize the external event to internal format using the serializer
             const internalEvent = deserializer.deserialize({
-                dataSourceKey: event.source,
-                detailType: event["detail-type"],
-                streamKey: event.detail.streamKey || '', // Extract streamKey from detail
-                externalUpdate: event.detail
+                dataSourceKey: coreFormat.dataSourceKey,
+                streamKey: coreFormat.streamKey,
+                externalUpdate: coreFormat.update as CoordinationEventExternal
             })
             
             // If deserialization failed, log error and skip this event
@@ -52,11 +55,9 @@ export const handler = async (event: any) => {
                 // Publish deserialized event to messageBus for DataSource processing
                 messageBus.send({
                     type: 'StreamingEvent',
-                    dataSourceKey: event.source,
-                    event: {
-                        streamKey: event.detail.streamKey || '',
-                        update: internalEvent
-                    },
+                    dataSourceKey: coreFormat.dataSourceKey as 'internal',
+                    streamKey: coreFormat.streamKey,
+                    event: internalEvent as CoordinationEventUpdate,
                     timestamp: event.time ? new Date(event.time).getTime() : Date.now()
                 })
             }

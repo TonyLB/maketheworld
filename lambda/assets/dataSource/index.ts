@@ -9,6 +9,7 @@ import { cacheAsset, decacheAsset } from './caching'
 import { AssetsEventSerializer, AssetsEventUpdate } from './serializers'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLEventUpdate } from '../../wml/dataSource/serializers'
+import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 // Separate type for WML events with precise typing
 type WMLSubscribedEvent = StreamingEventPayload & {
@@ -20,7 +21,7 @@ type WMLSubscribedEvent = StreamingEventPayload & {
 type AssetsSubscribedEvent = WMLSubscribedEvent | (
     StreamingEventPayload & {
         dataSourceKey: 'mtw.diagnostics' | 'mtw.coordination'
-       event: {
+        event: {
             type: string
         } & Record<string, unknown>
     }
@@ -68,26 +69,24 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
         await Promise.all(events.map(async (event) => {
             // Handle mtw.wml events
             if (isWMLSubscribedEvent(event) && event.event.type === 'Content Update') {
-                const { AssetId } = event.event
-                if (AssetId) {
+                const assetId = event.streamKey as AssetUUID
+                if (assetId) {
                     try {
-                        const assetId = AssetId.replace('ASSET#', '')
                         await cacheAsset({ assetId, streamEvent })
                         
                         // Stream the caching event for real-time subscribers
                         await streamEvent({
                             update: { 
-                                type: 'Asset Cached',
-                                assetId
+                                type: 'Asset Cached'
                             },
-                            streamKey: AssetId,
+                            streamKey: assetId,
                         })
                     } catch (error) {
-                        console.error(`Error caching asset ${AssetId}:`, error)
+                        console.error(`Error caching asset ${assetId}:`, error)
                         messageBus.send({
                             type: 'Error',
                             body: { 
-                                error: `Failed to cache asset ${AssetId}: ${error instanceof Error ? error.message : String(error)}`,
+                                error: `Failed to cache asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`,
                                 statusCode: 500
                             }
                         })
@@ -107,26 +106,24 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             
             // Handle mtw.wml Content Removed events
             if (isWMLSubscribedEvent(event) && event.event.type === 'Content Removed') {
-                const { AssetId } = event.event
-                if (AssetId) {
+                const assetId = event.streamKey as AssetUUID
+                if (assetId) {
                     try {
-                        const assetId = AssetId.replace('ASSET#', '')
                         await decacheAsset({ assetId, streamEvent })
                         
                         // Stream the decaching event for real-time subscribers
                         await streamEvent({
                             update: { 
                                 type: 'Asset Decached',
-                                assetId
                             },
-                            streamKey: AssetId
+                            streamKey: assetId
                         })
                     } catch (error) {
-                        console.error(`Error decaching asset ${AssetId}:`, error)
+                        console.error(`Error decaching asset ${assetId}:`, error)
                         messageBus.send({
                             type: 'Error',
                             body: { 
-                                error: `Failed to decache asset ${AssetId}: ${error instanceof Error ? error.message : String(error)}`,
+                                error: `Failed to decache asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`,
                                 statusCode: 500
                             }
                         })
@@ -146,10 +143,11 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
 
             // Handle mtw.wml Zone Changed events
             if (isWMLSubscribedEvent(event) && event.event.type === 'Zone Changed') {
-                const { AssetId, fromZone, toZone, player, subFolder } = event.event
-                if (AssetId) {
+                const { fromZone, toZone, player, subFolder } = event.event
+                const assetId = event.streamKey as AssetUUID
+                if (assetId) {
                     // Ensure AssetId is properly formatted as ASSET#${string}
-                    const assetUUID = AssetKey(AssetId)
+                    const assetUUID = AssetKey(assetId)
                     
                     // Update the Meta::Asset record with new zone information
                     await assetDB.putItem({
