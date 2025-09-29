@@ -67,9 +67,9 @@ describe('moveAsset', () => {
         })
 
         it('should reject invalid requests', () => {
-            expect(isMoveAssetRequest({})).toBe(false)
-            expect(isMoveAssetRequest({ fromZone: 'Personal' })).toBe(false)
-            expect(isMoveAssetRequest({ fromZone: 'Personal', toZone: 'Library' })).toBe(true)
+            expect(isMoveAssetRequest({ type: 'Move Asset' })).toBe(false)
+            expect(isMoveAssetRequest({ type: 'Move Asset', fromZone: 'Personal' })).toBe(false)
+            expect(isMoveAssetRequest({ type: 'Move Asset', fromZone: 'Personal', toZone: 'Library' })).toBe(true)
         })
 
         it('should handle optional fields correctly', () => {

@@ -98,10 +98,8 @@ describe('WML DataSource', () => {
 
             const event = {
                 dataSourceKey: 'internal',
-                streamKey: 'test-asset',
-                event: {
-                    update: mockMoveRequest
-                }
+                streamKey: 'ASSET#test-asset',
+                event: mockMoveRequest
             }
 
             // Simulate the receiveEvents processing
@@ -111,11 +109,10 @@ describe('WML DataSource', () => {
                 streamEvent: mockStreamEvent
             })
 
-            expect(moveAssetMock).toHaveBeenCalledWith(mockMoveRequest)
+            expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
                     type: 'Zone Changed',
-                    AssetId: 'ASSET#test-asset',
                     fromZone: 'Library',
                     toZone: 'Canon'
                 },
@@ -138,10 +135,8 @@ describe('WML DataSource', () => {
 
             const event = {
                 dataSourceKey: 'internal',
-                streamKey: 'test-asset',
-                event: {
-                    update: mockMoveRequest
-                }
+                streamKey: 'ASSET#test-asset',
+                event: mockMoveRequest
             }
 
             // Simulate the receiveEvents processing
@@ -150,7 +145,7 @@ describe('WML DataSource', () => {
                 streamEvent: mockStreamEvent
             })
 
-            expect(moveAssetMock).toHaveBeenCalledWith(mockMoveRequest)
+            expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
             expect(mockStreamEvent).not.toHaveBeenCalled()
         })
 
@@ -172,10 +167,8 @@ describe('WML DataSource', () => {
 
             const event = {
                 dataSourceKey: 'internal',
-                streamKey: 'test-asset',
-                event: {
-                    update: mockMoveRequest
-                }
+                streamKey: 'ASSET#test-asset',
+                event: mockMoveRequest
             }
 
             // Simulate the receiveEvents processing
@@ -184,18 +177,16 @@ describe('WML DataSource', () => {
                 streamEvent: mockStreamEvent
             })
 
-            expect(moveAssetMock).toHaveBeenCalledWith(mockMoveRequest)
+            expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
                     type: 'Zone Changed',
-                    AssetId: 'ASSET#test-asset',
                     fromZone: 'Personal',
                     toZone: 'Library',
                     player: 'alice',
                     subFolder: 'test-folder'
                 },
-                streamKey: 'ASSET#test-asset',
-                detailType: 'Zone Changed'
+                streamKey: 'ASSET#test-asset'
             })
         })
 
@@ -211,10 +202,8 @@ describe('WML DataSource', () => {
 
             const event = {
                 dataSourceKey: 'internal',
-                streamKey: 'test-asset',
-                event: {
-                    update: mockMoveRequest
-                }
+                streamKey: 'ASSET#test-asset',
+                event: mockMoveRequest
             }
 
             // Should not throw - errors should be caught and logged
@@ -224,7 +213,7 @@ describe('WML DataSource', () => {
                 streamEvent: mockStreamEvent
             })).resolves.not.toThrow()
 
-            expect(moveAssetMock).toHaveBeenCalledWith(mockMoveRequest)
+            expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
             expect(mockStreamEvent).not.toHaveBeenCalled()
         })
 
@@ -244,10 +233,8 @@ describe('WML DataSource', () => {
 
             const event = {
                 dataSourceKey: 'internal',
-                streamKey: 'test-asset',
-                event: {
-                    update: mockMoveRequest
-                }
+                streamKey: 'ASSET#test-asset',
+                event: mockMoveRequest
             }
 
             // Should not throw - streaming errors should be caught and logged
@@ -257,7 +244,7 @@ describe('WML DataSource', () => {
                 streamEvent: mockStreamEvent
             })).resolves.not.toThrow()
 
-            expect(moveAssetMock).toHaveBeenCalledWith(mockMoveRequest)
+            expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
             expect(mockStreamEvent).toHaveBeenCalled()
         })
     })
