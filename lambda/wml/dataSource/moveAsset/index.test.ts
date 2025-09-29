@@ -31,14 +31,15 @@ jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
 })
 import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 
-import { moveAsset, MoveAssetResponse } from './index'
-import { MoveAssetRequest, isMoveAssetRequest } from '../../messageBus/baseClasses'
+import { moveAsset } from './index'
+import { isMoveAssetRequest, MoveAssetRequest } from '../coordinationSerializer'
 
 const ReadOnlyAssetWorkspaceMock = ReadOnlyAssetWorkspace as jest.Mocked<typeof ReadOnlyAssetWorkspace>
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 
 describe('moveAsset', () => {
     let mockS3Client: any
+    const assetId = 'ASSET#test-asset'
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -55,7 +56,7 @@ describe('moveAsset', () => {
     describe('isMoveAssetRequest', () => {
         it('should validate a proper MoveAssetRequest', () => {
             const validRequest: MoveAssetRequest = {
-                assetId: 'test-asset',
+                type: 'Move Asset',
                 fromZone: 'Personal',
                 toZone: 'Library',
                 player: 'alice',
@@ -66,15 +67,14 @@ describe('moveAsset', () => {
         })
 
         it('should reject invalid requests', () => {
-            expect(isMoveAssetRequest({})).toBe(false)
-            expect(isMoveAssetRequest({ assetId: 'test' })).toBe(false)
-            expect(isMoveAssetRequest({ assetId: 'test', fromZone: 'Personal' })).toBe(false)
-            expect(isMoveAssetRequest({ assetId: 'test', fromZone: 'Personal', toZone: 'Library' })).toBe(true)
+            expect(isMoveAssetRequest({ type: 'Move Asset' })).toBe(false)
+            expect(isMoveAssetRequest({ type: 'Move Asset', fromZone: 'Personal' })).toBe(false)
+            expect(isMoveAssetRequest({ type: 'Move Asset', fromZone: 'Personal', toZone: 'Library' })).toBe(true)
         })
 
         it('should handle optional fields correctly', () => {
             const minimalRequest = {
-                assetId: 'test-asset',
+                type: 'Move Asset',
                 fromZone: 'Personal',
                 toZone: 'Library'
             }
@@ -86,13 +86,13 @@ describe('moveAsset', () => {
     describe('moveAsset', () => {
         it('should successfully move asset between zones', async () => {
             const request: MoveAssetRequest = {
-                assetId: 'test-asset',
+                type: 'Move Asset',
                 fromZone: 'Personal',
                 toZone: 'Library',
                 player: 'alice'
             }
             
-            const result = await moveAsset(request)
+            const result = await moveAsset(assetId, request)
             
             expect(result.success).toBe(true)
             expect(result.message).toContain('Files successfully moved')
@@ -128,12 +128,12 @@ describe('moveAsset', () => {
 
         it('should handle Archive zone correctly', async () => {
             const request: MoveAssetRequest = {
-                assetId: 'test-asset',
+                type: 'Move Asset',
                 fromZone: 'Library',
                 toZone: 'Archive'
             }
             
-            const result = await moveAsset(request)
+            const result = await moveAsset(assetId, request)
             
             expect(result.success).toBe(true)
             expect(result.message).toContain('Asset archived (files deleted from source location)')
@@ -167,13 +167,13 @@ describe('moveAsset', () => {
             ReadOnlyAssetWorkspaceMock.mockImplementation(() => mockWorkspace as any)
             
             const request: MoveAssetRequest = {
-                assetId: 'test-asset',
+                type: 'Move Asset',
                 fromZone: 'Personal',
                 toZone: 'Library',
                 player: 'alice'
             }
             
-            const result = await moveAsset(request)
+            const result = await moveAsset(assetId, request)
             
             expect(result.success).toBe(false)
             expect(result.message).toContain('not in a clean state')
@@ -223,13 +223,13 @@ describe('moveAsset', () => {
             })
             
             const request: MoveAssetRequest = {
-                assetId: 'test-asset',
+                type: 'Move Asset',
                 fromZone: 'Personal',
                 toZone: 'Library',
                 player: 'alice'
             }
             
-            const result = await moveAsset(request)
+            const result = await moveAsset(assetId, request)
             
             expect(result.success).toBe(false)
             expect(result.message).toContain('S3 operation failed')
@@ -270,12 +270,12 @@ describe('moveAsset', () => {
             }))
             
             const request: MoveAssetRequest = {
-                assetId: 'test-asset',
+                type: 'Move Asset',
                 fromZone: 'Library',
                 toZone: 'Canon'
             }
             
-            const result = await moveAsset(request)
+            const result = await moveAsset(assetId, request)
             
             expect(result.success).toBe(true)
             expect(result.newLocation).toBe('Canon/test-asset')
@@ -316,13 +316,13 @@ describe('moveAsset', () => {
             }))
             
             const request: MoveAssetRequest = {
-                assetId: 'ASSET#test-asset',
+                type: 'Move Asset',
                 fromZone: 'Personal',
                 toZone: 'Library',
                 player: 'alice'
             }
             
-            const result = await moveAsset(request)
+            const result = await moveAsset(assetId, request)
             
             expect(result.success).toBe(true)
             expect(result.newLocation).toBe('Library/test-asset')

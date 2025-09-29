@@ -10,7 +10,8 @@ import { CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { S3Client } from "@aws-sdk/client-s3"
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import internalCache from "../../internalCache"
-import { MoveAssetRequest, isMoveAssetRequest } from "../../messageBus/baseClasses"
+import { MoveAssetRequest } from "../coordinationSerializer"
+import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 const { S3_BUCKET } = process.env
 
@@ -29,8 +30,8 @@ export interface MoveAssetResponse {
  * - Publishes zone transition events
  * - Coordinates with Assets Lambda for cache updates
  */
-export async function moveAsset(request: MoveAssetRequest): Promise<MoveAssetResponse> {
-    const { assetId, fromZone, toZone, player, subFolder } = request
+export async function moveAsset(assetId: AssetUUID, request: MoveAssetRequest): Promise<MoveAssetResponse> {
+    const { fromZone, toZone, player, subFolder } = request
     
     try {
         // Get S3 client from internal cache

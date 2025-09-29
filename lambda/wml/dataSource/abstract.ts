@@ -1,5 +1,5 @@
 import { DataSource, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { EventPayload, StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
 
@@ -14,7 +14,7 @@ import { snsClient } from '../clients'
  * - Primary key name used in the WML domain
  * - Feedback topic ARN for replay data delivery
  */
-export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePayload = any, SubscribedEvent extends StreamingEventPayload = never, ExternalUpdate = any> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent, ExternalUpdate, 'AssetId'> {
+export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends EventPayload, SubscribedEvent extends StreamingEventPayload = never, ExternalUpdate extends EventPayload = EventPayload> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent, ExternalUpdate, 'AssetId'> {
     constructor(params: {
         dataSourceKey: string;
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>; // Optional - not needed for non-replayable data sources
@@ -23,7 +23,7 @@ export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePay
         subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent;
         receiveEvents?: (params: { 
             events: SubscribedEvent[], 
-            streamEvent: (params: { update: UpdatePayload, streamKey: string, detailType: string }) => Promise<void>
+            streamEvent: (params: { update: UpdatePayload, streamKey: string }) => Promise<void>
         }) => Promise<void>;
         eventSerializer?: any; // Will be properly typed when we implement the serializer
     }) {

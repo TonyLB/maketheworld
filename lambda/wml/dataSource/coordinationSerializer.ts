@@ -1,40 +1,74 @@
+import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Internal types for coordination events
 export type CoordinationCanonizeEvent = {
     type: 'Canonize Asset'
-    assetId: string
 }
 
 export type CoordinationDecanonizeEvent = {
     type: 'Decanonize Asset'
-    assetId: string
+}
+
+export type MoveAssetRequest = {
+    type: 'Move Asset';
+    fromZone: Zone;
+    toZone: Zone;
+    player?: string;
+    subFolder?: string;
 }
 
 // Union type for all internal coordination events
-export type CoordinationEventUpdate = CoordinationCanonizeEvent | CoordinationDecanonizeEvent
+export type CoordinationEventUpdate = CoordinationCanonizeEvent | CoordinationDecanonizeEvent | MoveAssetRequest
 
 // External types for coordination events (same as internal since they're hand-created)
-export type CoordinationEventExternal = {
-    assetId: string
+export type CoordinationCanonizeEventExternal = {
+    type: 'Canonize Asset';
 }
+
+export type CoordinationDecanonizeEventExternal = {
+    type: 'Decanonize Asset';
+}
+
+export type MoveAssetRequestExternal = {
+    type: 'Move Asset';
+    fromZone: Zone;
+    toZone: Zone;
+    player?: string;
+    subFolder?: string;
+}
+
+export type CoordinationEventExternal = 
+    | CoordinationCanonizeEventExternal 
+    | CoordinationDecanonizeEventExternal 
+    | MoveAssetRequestExternal
 
 // Type guards
+export const isMoveAssetRequest = (event: any): event is MoveAssetRequest => {
+    return event && 
+        typeof event === 'object' && 
+        typeof event.type === 'string' &&
+        event.type === 'Move Asset' &&
+        typeof event.fromZone === 'string' &&
+        typeof event.toZone === 'string'
+}
+
+export const isCoordinationCanonizeEvent = (event: any): event is CoordinationCanonizeEvent => {
+    return event && 
+        typeof event === 'object' && 
+        event.type === 'Canonize Asset'
+}
+
+export const isCoordinationDecanonizeEvent = (event: any): event is CoordinationDecanonizeEvent => {
+    return event && 
+        typeof event === 'object' && 
+        event.type === 'Decanonize Asset'
+}
+
 export const isCoordinationEventUpdate = (event: unknown): event is CoordinationEventUpdate => {
-    return typeof event === 'object' && 
-           event !== null && 
-           'type' in event && 
-           (event.type === 'Canonize Asset' || event.type === 'Decanonize Asset') &&
-           'assetId' in event &&
-           typeof (event as any).assetId === 'string'
-}
-
-export const isCoordinationCanonizeEvent = (event: CoordinationEventUpdate): event is CoordinationCanonizeEvent => {
-    return event.type === 'Canonize Asset'
-}
-
-export const isCoordinationDecanonizeEvent = (event: CoordinationEventUpdate): event is CoordinationDecanonizeEvent => {
-    return event.type === 'Decanonize Asset'
+    return isCoordinationCanonizeEvent(event) || 
+           isCoordinationDecanonizeEvent(event) || 
+           isMoveAssetRequest(event)
 }
 
 /**
@@ -52,8 +86,18 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
      * for EventBridge transmission
      */
     serialize({ update }: { update: CoordinationEventUpdate }): CoordinationEventExternal {
-        return {
-            assetId: update.assetId
+        if (update.type === 'Move Asset') {
+            return {
+                type: update.type,
+                fromZone: update.fromZone,
+                toZone: update.toZone,
+                player: update.player,
+                subFolder: update.subFolder
+            }
+        } else {
+            return {
+                type: update.type,
+            }
         }
     }
 
@@ -61,18 +105,24 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
      * Deserialize an external event back to internal format
      * for messageBus processing
      */
-    deserialize(params: { dataSourceKey: string; detailType: string; streamKey: string; externalUpdate: CoordinationEventExternal }): CoordinationEventUpdate | null {
-        const { detailType, externalUpdate } = params
+    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: CoordinationEventExternal }): CoordinationEventUpdate | null {
+        const { externalUpdate } = params
         
-        if (detailType === 'Canonize Asset') {
+        if (externalUpdate.type === 'Canonize Asset') {
             return {
-                type: 'Canonize Asset',
-                assetId: externalUpdate.assetId
+                type: 'Canonize Asset'
             }
-        } else if (detailType === 'Decanonize Asset') {
+        } else if (externalUpdate.type === 'Decanonize Asset') {
             return {
-                type: 'Decanonize Asset',
-                assetId: externalUpdate.assetId
+                type: 'Decanonize Asset'
+            }
+        } else if (externalUpdate.type === 'Move Asset') {
+            return {
+                type: 'Move Asset',
+                fromZone: externalUpdate.fromZone!,
+                toZone: externalUpdate.toZone!,
+                player: externalUpdate.player,
+                subFolder: externalUpdate.subFolder
             }
         } else {
             return null

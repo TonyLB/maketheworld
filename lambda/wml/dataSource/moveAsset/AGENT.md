@@ -4,7 +4,7 @@
 
 **Purpose**: The `moveAsset` functionality handles the movement of asset files between different zones within the WML system, managing S3 file operations and zone transitions.
 
-**Context**: This component is part of the WML lambda's dataSource system, responsible for processing internal `moveAssets` events and coordinating file operations across zone boundaries.
+**Context**: This component is part of the WML lambda's dataSource system, responsible for processing internal `Move Asset` events and coordinating file operations across zone boundaries.
 
 **Key Concepts**: Asset zones define access and visibility boundaries for content, with different zones serving different purposes (Canon, Library, Personal, Draft, Archive).
 
@@ -49,7 +49,7 @@
 - [`../../../assets/moveAsset/`](../../../assets/moveAsset/): Original implementation reference
 
 **API Contracts**:
-- Processes internal `moveAssets` events via `receiveEvents`
+- Processes internal `Move Asset` events via `receiveEvents`
 - Returns structured responses for success/failure cases
 - Integrates with WML dataSource event handling
 
