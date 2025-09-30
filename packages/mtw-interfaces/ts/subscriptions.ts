@@ -1,15 +1,18 @@
+import { AssetUUID } from "@tonylb/mtw-base/ts/schema";
 import { AssetWorkspaceAddress } from "./baseClasses";
 
 export type SubscribeAPIMessage = Record<string, any> & {
     message: 'subscribe';
-    source: string;
-    detailType?: string;
+    dataSourceKey: string;
+    type: string;
+    streamKey?: string;
 }
 
 export type UnsubscribeAPIMessage = Record<string, any> & {
     message: 'unsubscribe';
-    source: string;
-    detailType?: string;
+    dataSourceKey: string;
+    type: string;
+    streamKey?: string;
 }
 
 export type SubscriptionsAPIMessage = SubscribeAPIMessage | UnsubscribeAPIMessage
@@ -24,27 +27,30 @@ export const isSubscriptionsAPIMessage = (message: Record<string, any>): message
     switch(message.message) {
         case 'subscribe':
         case 'unsubscribe':
-            return ('source' in message)
-                && typeof message.source === 'string'
-                && (!('detailType' in message) || typeof message.detailType === 'undefined' || typeof message.detailType === 'string')
+            return ('dataSourceKey' in message)
+                && typeof message.dataSourceKey === 'string'
+                && (!('type' in message) || typeof message.type === 'undefined' || typeof message.type === 'string')
         default: return false
     }
 }
 
 export type SubscriptionClientMergeConflictMessage = {
-    source: 'mtw.wml';
-    detailType: 'Merge Conflict';
-    RequestId: string;
-    AssetId: string;
+    dataSourceKey: 'mtw.wml';
+    streamKey: AssetUUID;
+    update: {
+        type: 'Merge Conflict';
+        RequestId: string;
+    }
 }
 
 export type SubscriptionClientAssetEditedMessage = {
-    source: 'mtw.wml';
-    detailType: 'Content Update';
-    address: AssetWorkspaceAddress;
-    RequestId: string;
-    AssetId: string;
-    schema: string;
+    dataSourceKey: 'mtw.wml';
+    streamKey: AssetUUID;
+    update: {
+        type: 'Content Update';
+        RequestId: string;
+        wml: string;
+    }
 }
 
 export type SubscriptionClientMessage = { messageType: 'Subscription' } & (

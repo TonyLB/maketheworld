@@ -3,6 +3,7 @@
 
 import { isSubscribeAPIMessage, isUnsubscribeAPIMessage } from "@tonylb/mtw-interfaces/ts/subscriptions"
 import { subscriptionLibrary } from "./handlerFramework"
+import { fromEventBridgeFormat } from "@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform"
 import internalCache from "./internalCache"
 import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
@@ -63,14 +64,14 @@ export const handler = async (event: any) => {
     }
     else if (event?.source) {
         console.log(`Subscription event: ${JSON.stringify(event, null, 4)}`)
-        const transformedEvent = {
-            source: event.source,
-            detailType: event["detail-type"],
-            ...event.detail
-        }
-        const match = subscriptionLibrary.matchEvent(transformedEvent)
+        const coreFormat = fromEventBridgeFormat({
+            Source: event.source,
+            DetailType: event["detail-type"],
+            Detail: event.detail
+        })
+        const match = subscriptionLibrary.matchEvent(coreFormat)
         if (match) {
-            await match.publish(transformedEvent)
+            await match.publish(coreFormat)
         }
     }
     return {

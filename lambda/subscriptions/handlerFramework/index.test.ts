@@ -14,18 +14,25 @@ const internalCacheMock = jest.mocked(internalCache, true)
 describe('subscription handlerFramework', () => {
     const testLibrary = subscriptionLibraryConstructor([
         {
-            source: 'noDetails'
-        },
-        {
-            source: 'detailsOne',
-            detailType: 'TestOne',
-            detailExtract: (event) => (event.AssetId),
+            dataSourceKey: 'noDetails',
             transform: (event) => ({
                 messageType: 'Subscription',
-                source: 'mtw.wml',
-                detailType: 'Merge Conflict',
-                AssetId: event.AssetId,
-                RequestId: event.RequestId
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#TEST',
+                update: { type: 'Content Update', RequestId: 'req-no-details', wml: '' }
+            })
+        },
+        {
+            dataSourceKey: 'detailsOne',
+            type: 'TestOne',
+            transform: (event) => ({
+                messageType: 'Subscription',
+                dataSourceKey: 'mtw.wml',
+                streamKey: event.streamKey,
+                update: {
+                    type: 'Merge Conflict',
+                    RequestId: (event as any).update?.RequestId
+                }
             })
         }
     ])
@@ -36,27 +43,27 @@ describe('subscription handlerFramework', () => {
     })
 
     it('should match an event with no details', () => {
-        expect(testLibrary.matchEvent({ source: 'noDetails' })?._source).toEqual('noDetails')
-        expect(testLibrary.matchEvent({ source: 'noMatch' })).toBeFalsy()
+        expect(testLibrary.matchEvent({ dataSourceKey: 'noDetails', streamKey: '', update: { type: 'any' } })?._dataSourceKey).toEqual('noDetails')
+        expect(testLibrary.matchEvent({ dataSourceKey: 'noMatch', streamKey: '', update: { type: 'any' } })).toBeFalsy()
     })
 
-    it('should match an event with detailExtract', () => {
-        expect(testLibrary.matchEvent({ source: 'detailsOne', detailType: 'TestOne' })?._source).toEqual('detailsOne')
-        expect(testLibrary.matchEvent({ source: 'detailsOne', detailType: 'NoMatch' })).toBeFalsy()
+    it('should match an event with type', () => {
+        expect(testLibrary.matchEvent({ dataSourceKey: 'detailsOne', streamKey: 'ASSET#XYZ', update: { type: 'TestOne' } })?._dataSourceKey).toEqual('detailsOne')
+        expect(testLibrary.matchEvent({ dataSourceKey: 'detailsOne', streamKey: 'ASSET#XYZ', update: { type: 'NoMatch' } })).toBeFalsy()
     })
 
     it('should subscribe with no details', async () => {
         connectionDBMock.putItem.mockResolvedValue({})
-        await testLibrary.match({ source: 'noDetails' })?.subscribe({ message: 'subscribe', source: 'noDetails' }, `SESSION#ABCD`)
+        await testLibrary.match({ dataSourceKey: 'noDetails', streamKey: '', type: 'any' })?.subscribe({ message: 'subscribe', dataSourceKey: 'noDetails', type: 'any' }, `SESSION#ABCD`)
         expect(connectionDBMock.putItem).toHaveBeenCalledWith({
             ConnectionId: 'STREAM#noDetails',
             DataCategory: 'SESSION#ABCD'
         })
     })
 
-    it('should subscribe with detailExtract', async () => {
+    it('should subscribe with streamKey', async () => {
         connectionDBMock.putItem.mockResolvedValue({})
-        await testLibrary.match({ source: 'detailsOne', detailType: 'TestOne', detailExtract: 'XYZ' })?.subscribe({ message: 'subscribe', source: 'detailsOne', detailType: 'TestOne', AssetId: 'XYZ' }, `SESSION#ABCD`)
+        await testLibrary.match({ dataSourceKey: 'detailsOne', streamKey: 'XYZ', type: 'TestOne' })?.subscribe({ message: 'subscribe', dataSourceKey: 'detailsOne', type: 'TestOne', streamKey: 'XYZ' }, `SESSION#ABCD`)
         expect(connectionDBMock.putItem).toHaveBeenCalledWith({
             ConnectionId: 'STREAM#detailsOne::TestOne::XYZ',
             DataCategory: 'SESSION#ABCD'
@@ -69,12 +76,13 @@ describe('subscription handlerFramework', () => {
             DataCategory: 'SESSION#ABCD'
         }])
         internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#QRST'])
-        await testLibrary.matchEvent({ source: 'noDetails' })?.publish({ messageType: 'Subscription', source: 'noDetails' })
+        const coreEvent = { dataSourceKey: 'noDetails', streamKey: '', update: { type: 'any' } }
+        await testLibrary.matchEvent(coreEvent as any)?.publish(coreEvent as any)
         expect(connectionDB.query).toHaveBeenCalledWith({
             Key: { ConnectionId: 'STREAM#noDetails' },
             ProjectionFields: ["DataCategory"]
         })
-        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'Subscription', source: 'noDetails' })
+        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'Subscription', dataSourceKey: 'mtw.wml', streamKey: 'ASSET#TEST', update: { type: 'Content Update', RequestId: 'req-no-details', wml: '' } })
     })
 
     it('should publish to subscription with details', async () => {
@@ -83,12 +91,13 @@ describe('subscription handlerFramework', () => {
             DataCategory: 'SESSION#ABCD'
         }])
         internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#QRST'])
-        await testLibrary.matchEvent({ source: 'detailsOne', detailType: 'TestOne', AssetId: 'ASSET#XYZ' })?.publish({ source: 'detailsOne', detailType: 'TestOne', AssetId: 'ASSET#XYZ', RequestId: 'qrstuv' })
+        const coreEvent = { dataSourceKey: 'detailsOne', streamKey: 'ASSET#XYZ', update: { type: 'TestOne', RequestId: 'qrstuv' } }
+        await testLibrary.matchEvent(coreEvent as any)?.publish(coreEvent as any)
         expect(connectionDB.query).toHaveBeenCalledWith({
             Key: { ConnectionId: 'STREAM#detailsOne::TestOne::ASSET#XYZ' },
             ProjectionFields: ["DataCategory"]
         })
-        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'Subscription', source: 'mtw.wml', detailType: 'Merge Conflict', AssetId: 'ASSET#XYZ', RequestId: 'qrstuv' })
+        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'Subscription', dataSourceKey: 'mtw.wml', streamKey: 'ASSET#XYZ', update: { type: 'Merge Conflict', RequestId: 'qrstuv' } })
     })
 
 })

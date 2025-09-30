@@ -1,28 +1,29 @@
-import { isSubscriptionsAPIMessage, isSubscribeAPIMessage, SubscribeAPIMessage, SubscriptionClientMessage, isSubscriptionClientMessage, UnsubscribeAPIMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+import { SubscribeAPIMessage, SubscriptionClientMessage, isSubscriptionClientMessage, UnsubscribeAPIMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
 import internalCache from '../internalCache';
 import { apiClient } from '../apiClient';
+import { CoreExternalFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
 
 export class SubscriptionEvent {
-    _source: string;
-    _detailType?: string;
-    _detailExtract?: string;
-    _transform?: (event: Record<string, any>) => SubscriptionClientMessage;
+    _dataSourceKey: string;
+    _type?: string;
+    _streamKey?: string;
+    _transform?: (event: CoreExternalFormat) => SubscriptionClientMessage;
     constructor(args: {
-        source: string;
-        detailType?: string;
-        detailExtract?: string;
-        transform?: (event: Record<string, any>) => SubscriptionClientMessage;
+        dataSourceKey: string;
+        type?: string;
+        streamKey?: string;
+        transform?: (event: CoreExternalFormat) => SubscriptionClientMessage;
     }) {
-        this._source = args.source
-        this._detailType = args.detailType
-        this._detailExtract = args.detailExtract
+        this._dataSourceKey = args.dataSourceKey
+        this._type = args.type
+        this._streamKey = args.streamKey
         this._transform = args.transform
     }
 
-    async publish(event: Record<string, any>): Promise<void> {
-        const ConnectionId = `STREAM#${this._source}${this._detailType ? `::${this._detailType}` : ''}${this._detailExtract ? `::${this._detailExtract}` : ''}`
+    async publish(event: CoreExternalFormat): Promise<void> {
+        const ConnectionId = `STREAM#${this._dataSourceKey}${this._type ? `::${this._type}` : ''}${this._streamKey ? `::${this._streamKey}` : ''}`
         const targetSessions = ((await connectionDB.query<{ ConnectionId: string; DataCategory: string }>({
             Key: { ConnectionId },
             ProjectionFields: ['DataCategory']
@@ -53,31 +54,29 @@ export class SubscriptionEvent {
 }
 
 export class SubscriptionHandler {
-    _source: string;
-    _detailType?: string;
-    _detailExtract?: (event: Record<string, any>) => string;
-    _transform?: (event: Record<string, any>) => SubscriptionClientMessage;
+    _dataSourceKey: string;
+    _type?: string;
+    _transform?: (event: CoreExternalFormat) => SubscriptionClientMessage;
     constructor(args: {
-        source: string;
-        detailType?: string;
-        detailExtract?: (event: Record<string, any>) => string;
-        transform?: (event: Record<string, any>) => SubscriptionClientMessage;
+        dataSourceKey: string;
+        type?: string;
+        transform?: (event: CoreExternalFormat) => SubscriptionClientMessage;
     }) {
-        this._source = args.source
-        this._detailType = args.detailType
-        this._detailExtract = args.detailExtract
+        this._dataSourceKey = args.dataSourceKey
+        this._type = args.type
         this._transform = args.transform
     }
 
-    match(event: Record<string, any>): SubscriptionEvent | undefined {
-        const matchesSource = "source" in event && event.source === this._source
-        const matchesDetailType = (!this._detailType) || this._detailType === event.detailType
-        if (matchesSource && matchesDetailType) {
+    match(event: Omit<CoreExternalFormat, 'update' | 'streamKey'> & { type: string; streamKey?: string }): SubscriptionEvent | undefined {
+        const eventSource = (event as any).dataSourceKey
+        const matchesSource = eventSource === this._dataSourceKey
+        const matchesType = (!this._type) || this._type === event.type
+        if (matchesSource && matchesType) {
             return new SubscriptionEvent({
                 ...event,
-                source: this._source,
-                detailType: this._detailType,
-                detailExtract: this._detailExtract ? this._detailExtract(event) : undefined,
+                dataSourceKey: this._dataSourceKey,
+                type: this._type,
+                streamKey: event.streamKey,
                 transform: this._transform
             })
         }
@@ -85,8 +84,7 @@ export class SubscriptionHandler {
     }
     
     async subscribe(message: SubscribeAPIMessage, sessionId: `SESSION#${string}` ): Promise<void> {
-        const detailExtract = this._detailExtract ? this._detailExtract(message) : undefined
-        const ConnectionId = `STREAM#${this._source}${this._detailType ? `::${this._detailType}` : ''}${detailExtract ? `::${detailExtract}` : ''}`
+        const ConnectionId = `STREAM#${this._dataSourceKey}${this._type ? `::${this._type}` : ''}${message.streamKey ? `::${message.streamKey}` : ''}`
         await connectionDB.putItem({
             ConnectionId,
             DataCategory: sessionId
@@ -94,8 +92,7 @@ export class SubscriptionHandler {
     }
 
     async unsubscribe(message: UnsubscribeAPIMessage, sessionId: `SESSION#${string}`): Promise<void> {
-        const detailExtract = this._detailExtract ? this._detailExtract(message) : undefined
-        const ConnectionId = `STREAM#${this._source}${this._detailType ? `::${this._detailType}` : ''}${detailExtract ? `::${detailExtract}` : ''}`
+        const ConnectionId = `STREAM#${this._dataSourceKey}${this._type ? `::${this._type}` : ''}${message.streamKey ? `::${message.streamKey}` : ''}`
         await connectionDB.deleteItem({
             ConnectionId,
             DataCategory: sessionId
@@ -112,7 +109,7 @@ export class SubscriptionLibrary {
         this._library = args.library
     }
 
-    match(event: Record<string, any>): SubscriptionHandler | undefined {
+    match(event: Omit<CoreExternalFormat, 'update' | 'streamKey'> & { type: string; streamKey?: string }): SubscriptionHandler | undefined {
         return this._library.reduce<SubscriptionHandler | undefined>((previous, handler) => {
             if (!previous && handler.match(event)) {
                 return handler
@@ -121,10 +118,11 @@ export class SubscriptionLibrary {
         }, undefined)
     }
 
-    matchEvent(event: Record<string, any>): SubscriptionEvent | undefined {
+    matchEvent(event: CoreExternalFormat): SubscriptionEvent | undefined {
         return this._library.reduce<SubscriptionEvent | undefined>((previous, handler) => {
             if (!previous) {
-                const match = handler.match(event)
+                const { update, ...rest } = event
+                const match = handler.match({ ...rest, type: update?.type })
                 if (match) {
                     return match
                 }
