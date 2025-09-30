@@ -104,16 +104,13 @@ export const handler = async (event: any) => {
             messageBus.send({
                 type: 'StreamingEvent',
                 dataSourceKey: 'internal',
+                streamKey: event.AssetId,
                 event: {
-                    streamKey: `ASSET#${event.AssetId}`,
-                    update: {
-                        type: 'moveAsset',
-                        assetId: event.AssetId,
-                        fromZone: event.fromZone,
-                        toZone: event.toZone,
-                        player: event.player,
-                        subFolder: event.subFolder
-                    }
+                    type: 'Move Asset',
+                    fromZone: event.fromZone,
+                    toZone: event.toZone,
+                    player: event.player,
+                    subFolder: event.subFolder
                 },
                 timestamp: Date.now()
             })
