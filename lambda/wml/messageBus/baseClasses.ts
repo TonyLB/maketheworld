@@ -21,10 +21,8 @@ export type ErrorMessage = {
 export type StreamingEventMessage = {
     type: 'StreamingEvent';
     dataSourceKey: 'internal';
-    event: {
-        streamKey: string;
-        update: CoordinationEventUpdate;
-    };
+    streamKey: string;
+    event: CoordinationEventUpdate;
     timestamp: number;
 }
 

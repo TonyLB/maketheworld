@@ -2,8 +2,8 @@ import { SubscriptionClientMessage } from "@tonylb/mtw-interfaces/ts/subscriptio
 import { SubscriptionHandler, SubscriptionLibrary } from "./baseClasses";
 
 type LibraryEntry = {
-    source: string;
-    detailType?: string;
+    dataSourceKey: string;
+    type?: string;
     detailExtract?: (event: Record<string, any>) => string;
     transform?: (event: Record<string, any>) => SubscriptionClientMessage;
 }
@@ -16,32 +16,30 @@ export const subscriptionLibraryConstructor = (entries: LibraryEntry[]): Subscri
 
 export const subscriptionLibrary = subscriptionLibraryConstructor([
     {
-        source: 'mtw.wml',
-        detailType: 'Merge Conflict',
-        detailExtract: (event) => (event.AssetId),
+        dataSourceKey: 'mtw.wml',
+        type: 'Merge Conflict',
         transform: (event) => ({
             messageType: 'Subscription',
-            source: 'mtw.wml',
-            detailType: 'Merge Conflict',
-            AssetId: event.AssetId,
-            RequestId: event.RequestId
+            dataSourceKey: 'mtw.wml',
+            streamKey: event.streamKey,
+            update: {
+                type: 'Merge Conflict',
+                RequestId: event.RequestId
+            }
         })
     },
     {
-        source: 'mtw.wml',
-        detailType: 'Cotent Update',
-        detailExtract: (event) => (event.AssetId),
+        dataSourceKey: 'mtw.wml',
+        type: 'Cotent Update',
         transform: (event) => ({
             messageType: 'Subscription',
-            source: 'mtw.wml',
-            //
-            // Address information is obfuscated when sent to the client
-            //
-            address: { zone: 'Draft', player: '' },
-            detailType: 'Content Update',
-            AssetId: event.AssetId,
-            RequestId: event.RequestId,
-            schema: event.schema
+            dataSourceKey: 'mtw.wml',
+            streamKey: event.streamKey,
+            update: {
+                type: 'Content Update',
+                RequestId: event.RequestId,
+                wml: event.schema    
+            }
         })
     }
 ])
