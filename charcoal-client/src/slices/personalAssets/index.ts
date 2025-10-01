@@ -234,7 +234,7 @@ export const newAsset = (assetId: EphemeraAssetId | EphemeraCharacterId) => (dis
 export const receiveWMLEvent = (key: string) => (args: { event: SubscriptionClientMessage }) => (dispatch: any, getState: any) => {
     const pendingEdits = getPendingEdits(key)(getState())
     dispatch(publicActions.receiveWMLEvent(key)(args))
-    if (args.event.detailType === 'Merge Conflict' && pendingEdits.find(({ meta }) => (meta.key !== args.event.RequestId))) {
+    if (args.event.update.type === 'Merge Conflict' && pendingEdits.find(({ meta }) => (meta.key !== args.event.RequestId))) {
         push('Merge conflict prevented saving your changes')
     }
 }

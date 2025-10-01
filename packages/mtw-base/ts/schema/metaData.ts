@@ -3,17 +3,17 @@ import checkTypes, { CheckTypes } from "../utils/checkTypes";
 
 export type SchemaImportMapping = {
     key: string;
-    type: 'Room' | 'Feature' | 'Knowledge' | 'Variable' | 'Computed' | 'Action' | 'Map' | 'Moment'
+    type: 'Room' | 'Feature' | 'Knowledge' | 'Map' | 'Moment' | 'Message'
 }
 
 export const isSchemaImportMapping = (schema: any): schema is SchemaImportMapping => (
     checkTypes({
         required: { key: CheckTypes.STRING, type: CheckTypes.STRING },
-        values: { type: (type: string) => (['Room', 'Feature', 'Knowledge', 'Variable', 'Computed', 'Action', 'Map', 'Moment'].includes(type)) }
+        values: { type: (type: string) => (['Room', 'Feature', 'Knowledge', 'Map', 'Moment', 'Message'].includes(type)) }
     })(schema)
 )
 
-export const isSchemaImportMappingType = (value: string): value is SchemaImportMapping["type"] => (['Room', 'Feature', 'Knowledge', 'Variable', 'Computed', 'Action','Map', 'Moment'].includes(value))
+export const isSchemaImportMappingType = (value: string): value is SchemaImportMapping["type"] => (['Room', 'Feature', 'Knowledge', 'Map', 'Moment', 'Message'].includes(value))
 
 export type SchemaImportTag = {
     tag: 'Import';
