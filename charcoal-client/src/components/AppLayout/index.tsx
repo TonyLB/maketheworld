@@ -41,7 +41,6 @@ import InDevelopment from '../InDevelopment'
 import ChoiceDialog from '../ChoiceDialog'
 
 import MapView from '../Maps/View'
-import HelpPage from '../Help'
 import Library from '../Library'
 import EditAsset from '../Library/Edit/EditAsset'
 
@@ -289,7 +288,6 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
             <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
             <Route path="/Knowledge/" element={<Knowledge />} />
             <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
-            <Route path="/Help/" element={<HelpPage />} />
             <Route path="/Who/" element={whoPanel} />
             <Route path="/Settings/" element={settingsPanel} />
             <Route path="/index.html" element={homePanel} />
