@@ -1,5 +1,4 @@
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema";
-import { AssetWorkspaceAddress } from "./baseClasses";
 
 export type SubscribeAPIMessage = Record<string, any> & {
     message: 'subscribe';
@@ -37,18 +36,18 @@ export const isSubscriptionsAPIMessage = (message: Record<string, any>): message
 export type SubscriptionClientMergeConflictMessage = {
     dataSourceKey: 'mtw.wml';
     streamKey: AssetUUID;
+    RequestId?: string;
     update: {
         type: 'Merge Conflict';
-        RequestId: string;
     }
 }
 
 export type SubscriptionClientAssetEditedMessage = {
     dataSourceKey: 'mtw.wml';
     streamKey: AssetUUID;
+    RequestId?: string;
     update: {
         type: 'Content Update';
-        RequestId: string;
         wml: string;
     }
 }

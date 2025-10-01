@@ -8,6 +8,7 @@
 export interface CoreExternalFormat {
     dataSourceKey: string;
     streamKey: string;
+    RequestId?: string;
     update: { type: string; [key: string]: unknown };
 }
 
@@ -16,6 +17,7 @@ export interface EventBridgeFormat {
     DetailType: string;
     Detail: {
         streamKey: string;
+        RequestId?: string;
         [key: string]: any;
     };
 }
@@ -33,6 +35,7 @@ export interface WebSocketFormat {
         dataSourceKey: string;
         streamKey: string;
         type: string;
+        RequestId?: string;
         update: unknown;
     };
 }
@@ -41,7 +44,7 @@ export interface WebSocketFormat {
  * Transform CoreExternalFormat to EventBridge event structure
  */
 export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridgeFormat {
-    const { dataSourceKey, streamKey, update } = coreFormat;
+    const { dataSourceKey, streamKey, RequestId, update } = coreFormat;
     
     // Extract the type and update data from the update object
     const { type, update: updateData, ...rest } = update;
@@ -51,6 +54,7 @@ export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridge
         DetailType: type,
         Detail: {
             streamKey,
+            RequestId,
             ...rest,
             update: updateData
         }
@@ -62,11 +66,12 @@ export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridge
  */
 export function fromEventBridgeFormat(eventBridgeEvent: EventBridgeFormat): CoreExternalFormat {
     const { Source: dataSourceKey, DetailType: type, Detail } = eventBridgeEvent;
-    const { streamKey, ...rest } = Detail;
+    const { streamKey, RequestId, ...rest } = Detail;
     
     return {
         dataSourceKey,
         streamKey,
+        RequestId,
         update: {
             type,
             ...rest
@@ -117,7 +122,7 @@ export function fromDynamoDBFormat(
  * Transform CoreExternalFormat to WebSocket message structure
  */
 export function toWebSocketFormat(coreFormat: CoreExternalFormat): WebSocketFormat {
-    const { dataSourceKey, streamKey, update } = coreFormat;
+    const { dataSourceKey, streamKey, RequestId, update } = coreFormat;
     const { type } = update;
     
     return {
@@ -126,6 +131,7 @@ export function toWebSocketFormat(coreFormat: CoreExternalFormat): WebSocketForm
             dataSourceKey,
             streamKey,
             type,
+            RequestId,
             update
         }
     };
@@ -136,11 +142,12 @@ export function toWebSocketFormat(coreFormat: CoreExternalFormat): WebSocketForm
  */
 export function fromWebSocketFormat(webSocketMessage: WebSocketFormat): CoreExternalFormat {
     const { message } = webSocketMessage;
-    const { dataSourceKey, streamKey, type, update } = message;
+    const { dataSourceKey, streamKey, type, RequestId, update } = message;
     
     return {
         dataSourceKey,
         streamKey,
+        RequestId,
         update: {
             type,
             ...(update as Record<string, unknown>)
