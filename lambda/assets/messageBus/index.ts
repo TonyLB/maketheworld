@@ -20,10 +20,7 @@ import playerInfoMessage from "../player/info"
 import libraryUpdateMessage from "../libraryUpdate"
 import { fetchImportsMessage } from "../fetchImportDefaults"
 import playerSettingMessage from "../player/update"
-import removeAssetMessage from "../removeAsset"
 import returnValueMessage from "../returnValue"
-import cacheAssetMessage from "../cacheAsset"
-import decacheAssetMessage from "../decacheAsset"
 import collaborationStatusMessage from "../collaborationStatus"
 
 export const messageBus = new MessageBus()

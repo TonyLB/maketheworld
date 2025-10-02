@@ -120,9 +120,8 @@ To preserve ephemera side-effects when removing `cacheAsset`, `decacheAsset`, `c
   - Rationale: Provides precise scoping, avoiding broad re-renders while preserving prior `cacheAsset` side-effects.
 
 - Removals (source: `mtw.assets`)
-  - Component-level removals are emitted as `'Component Updated'` events carrying `StandardRemove` payloads. Ephemera action: send `Perception` updates for impacted components; if removals affect player-visible locations or maps, issue `CheckLocation { forceRender: true }` as appropriate.
-  - Asset-level removals are emitted as `'Asset Removed'`. Ephemera action: send `CheckLocation { forceRender: true }` and perform any needed invalidations.
-  - Note: We currently subscribe to both events for redundancy. This is intentional until we evaluate the role and wiring of the `removeAsset` handler in the assets lambda. A tech-debt ticket has been filed to revisit and potentially consolidate this.
+  - **All removals** (both component-level and asset-level) are now consistently emitted as `'Component Updated'` events carrying `StandardRemove` payloads. Ephemera action: send `Perception` updates for impacted components; if removals affect player-visible locations or maps, issue `CheckLocation { forceRender: true }` as appropriate.
+  - **UPDATE**: Analysis revealed that `removeAsset` function was unused dead code. It has been removed from the assets lambda, eliminating the inconsistent `Asset Removed` event pattern. All asset deletions now consistently use the `decacheAsset` flow, which properly emits `Component Updated` events with `StandardRemove` payloads.
 
 - 'Canon Updated' (source: `mtw.assets`)
   - Emitted by Assets when the global canon ordering/contents change.
@@ -383,12 +382,13 @@ Remove asset management functions and supporting infrastructure:
 ### Pre-Implementation Checklist
 
 Before starting implementation, ensure:
-- [ ] Assets system is emitting all required EventBridge events
-- [ ] EventBridge event schemas are documented and stable
-- [ ] Assets table contains all required asset data with correct structure
-- [ ] Development environment can access both ephemeraDB and assetDB
-- [ ] Testing environment is available for validation
-- [ ] Rollback plan is prepared and tested
+- [x] Assets system is emitting all required EventBridge events
+- [x] EventBridge event schemas are documented and stable
+- [x] Assets table contains all required asset data with correct structure
+- [x] Development environment can access both ephemeraDB and assetDB
+- [x] Testing environment is available for validation
+- [x] Rollback plan is prepared and tested
+- [x] **COMPLETED**: Removed unused `removeAsset` function from assets lambda, ensuring consistent `Component Updated` event pattern for all removals
 
 ### Phase 1: EventBridge Integration Implementation
 
