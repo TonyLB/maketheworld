@@ -378,6 +378,291 @@ Remove asset management functions and supporting infrastructure:
 - No functionality loss compared to current asset management
 - Clean separation of concerns: ephemera handles world-state, assets handles asset structure
 
+## Implementation Plan
+
+### Pre-Implementation Checklist
+
+Before starting implementation, ensure:
+- [ ] Assets system is emitting all required EventBridge events
+- [ ] EventBridge event schemas are documented and stable
+- [ ] Assets table contains all required asset data with correct structure
+- [ ] Development environment can access both ephemeraDB and assetDB
+- [ ] Testing environment is available for validation
+- [ ] Rollback plan is prepared and tested
+
+### Phase 1: EventBridge Integration Implementation
+
+#### Step 1.1: Add EventBridge Event Handlers to `app.ts`
+
+Add event handlers for assets system events:
+
+```typescript
+// In app.ts EventBridge handling section
+case 'Component Updated':
+    console.log(`Component Updated: ${JSON.stringify(event.detail, null, 4)}`)
+    const { assetId, componentId, changes } = event.detail
+    if (componentId && changes) {
+        // Send Perception updates for affected components
+        messageBus.send({
+            type: 'Perception',
+            ephemeraId: componentId,
+            header: true // For room updates
+        })
+    }
+    break
+
+case 'Asset Removed':
+    console.log(`Asset Removed: ${JSON.stringify(event.detail, null, 4)}`)
+    const { assetId: removedAssetId } = event.detail
+    if (removedAssetId) {
+        messageBus.send({
+            type: 'CheckLocation',
+            assetId: removedAssetId,
+            forceRender: true
+        })
+    }
+    break
+
+case 'Canon Updated':
+    console.log(`Canon Updated: ${JSON.stringify(event.detail, null, 4)}`)
+    const { assetIds } = event.detail
+    if (assetIds && Array.isArray(assetIds)) {
+        messageBus.send({
+            type: 'CanonSet',
+            assetIds: assetIds.map(id => `ASSET#${id}`)
+        })
+        await messageBus.flush()
+        return await extractReturnValue(messageBus)
+    }
+    break
+
+case 'Zone Changed':
+    console.log(`Zone Changed: ${JSON.stringify(event.detail, null, 4)}`)
+    const { assetId: zoneAssetId, fromZone, toZone } = event.detail
+    if (zoneAssetId && fromZone && toZone) {
+        if (toZone === 'Canon') {
+            messageBus.send({
+                type: 'CanonAdd',
+                assetId: `ASSET#${zoneAssetId}`
+            })
+        } else if (fromZone === 'Canon') {
+            messageBus.send({
+                type: 'CanonRemove', 
+                assetId: `ASSET#${zoneAssetId}`
+            })
+        }
+        await messageBus.flush()
+        return await extractReturnValue(messageBus)
+    }
+    break
+
+case 'Asset Added':
+    console.log(`Asset Added: ${JSON.stringify(event.detail, null, 4)}`)
+    const { assetId: newAssetId } = event.detail
+    if (newAssetId) {
+        // Optional: Send Perception updates for rooms in new asset
+        messageBus.send({
+            type: 'Perception',
+            ephemeraId: newAssetId,
+            header: true
+        })
+    }
+    break
+```
+
+#### Step 1.2: Test EventBridge Integration
+
+1. **Unit Tests**: Create tests for each event handler
+2. **Integration Tests**: Test EventBridge events trigger correct ephemera flows
+3. **Manual Testing**: Verify events from assets system are properly handled
+4. **Performance Testing**: Ensure event handling doesn't impact ephemera performance
+
+### Phase 2: Cache Class Migration Implementation
+
+#### Step 2.1: Migrate `CacheAssetRoomsData`
+
+**File**: `lambda/ephemera/internalCache/assetRooms.ts`
+
+**Changes**:
+1. Update import to use `assetDB` instead of `ephemeraDB`:
+```typescript
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+```
+
+2. Update query in `get()` method:
+```typescript
+// Line 18-25: Change ephemeraDB to assetDB and EphemeraId to AssetId
+const assetRooms = await assetDB.query<{ AssetId: EphemeraRoomId, DataCategory: string }>({
+    IndexName: 'DataCategoryIndex',
+    Key: { DataCategory: assetId },
+    KeyConditionExpression: 'begins_with(AssetId, :roomPrefix)',
+    ExpressionAttributeValues: {
+        ':roomPrefix': 'ROOM#'
+    },        
+})
+
+// Line 29: Update mapping
+rooms: assetRooms.map(({ AssetId }) => (AssetId)),
+```
+
+**Testing**: Verify `perception` function works correctly with migrated cache class.
+
+#### Step 2.2: Migrate `CacheRoomAssetsData`
+
+**File**: `lambda/ephemera/internalCache/assetRooms.ts`
+
+**Changes**:
+1. Update import (already done in Step 2.1)
+
+2. Update query in `get()` method (lines 64-67):
+```typescript
+const roomAssets = await assetDB.getItem<{ cached?: string[] }>({
+    Key: { AssetId: roomId, DataCategory: 'Meta::Room' },
+    ProjectionFields: ['cached']
+})
+```
+
+**Testing**: Verify `moveCharacter` function works correctly with migrated cache class.
+
+#### Step 2.3: Migrate `ExamplesData`
+
+**File**: `lambda/ephemera/internalCache/examples.ts`
+
+**Changes**:
+1. Update import:
+```typescript
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+```
+
+2. Update query in `get()` method (lines 39-46):
+```typescript
+const examples = await assetDB.query<{ AssetId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId; DataCategory: string; name: RenderTree; description: RenderTree; summary: RenderTree }>({
+    Key: { AssetId: componentId },
+    KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+    ExpressionAttributeValues: {
+        ':dcPrefix': 'EXAMPLE#'
+    },
+    ProjectionFields: ['DataCategory', 'name', 'description', 'summary']
+})
+```
+
+3. Update mapping (lines 49-50):
+```typescript
+examples: examples.map(({ DataCategory, ...example }) => {
+    const universalKey = DataCategory.split('::')[0]
+```
+
+**Testing**: Verify `ComponentRenderData` works correctly with migrated cache class.
+
+#### Step 2.4: Migrate `GraphCacheType`
+
+**File**: `lambda/ephemera/internalCache/index.ts`
+
+**Changes**:
+1. Update graph database handler (lines 29-35):
+```typescript
+const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
+    client: assetDB._client,
+    tableName: assetDB._tableName,
+    incomingKeyLabel: 'PrimaryKey',
+    internalKeyLabel: 'AssetId', // Changed from EphemeraId
+    options: { getBatchSize: 50 }
+})
+```
+
+**Testing**: Verify `CharacterPossibleMapsData` works correctly with migrated graph cache.
+
+### Phase 3: Function Removal Implementation
+
+#### Step 3.1: Remove `cacheAsset` Function
+
+1. **Remove directory**: Delete `lambda/ephemera/cacheAsset/` directory
+2. **Update imports**: Remove cacheAsset imports from `app.ts`
+3. **Remove event handlers**: Remove EventBridge handlers that call cacheAsset
+4. **Update tests**: Remove or update tests that depend on cacheAsset
+
+**Files to modify**:
+- `lambda/ephemera/app.ts` - Remove imports and event handlers
+- Test files - Remove cacheAsset-related tests
+
+#### Step 3.2: Remove `decacheAsset` Function
+
+1. **Remove directory**: Delete `lambda/ephemera/decacheAsset/` directory  
+2. **Update imports**: Remove decacheAsset imports from `app.ts`
+3. **Remove event handlers**: Remove EventBridge handlers that call decacheAsset
+4. **Update tests**: Remove or update tests that depend on decacheAsset
+
+#### Step 3.3: Remove `CacheAssetMetaData`
+
+1. **Remove from InternalCache**: Delete `CacheAssetMetaData` from `internalCache/index.ts`
+2. **Remove file**: Delete `lambda/ephemera/internalCache/assetMeta.ts`
+3. **Update imports**: Remove assetMeta imports
+4. **Update clear/flush methods**: Remove AssetMeta references
+
+#### Step 3.4: Remove `canonUpdate` Function
+
+1. **Remove directory**: Delete `lambda/ephemera/canonUpdate/` directory
+2. **Update imports**: Remove canonUpdate imports from `app.ts`  
+3. **Remove event handlers**: Remove EventBridge handlers that call canonUpdate
+4. **Update tests**: Remove or update tests that depend on canonUpdate
+
+#### Step 3.5: Remove `dependentMessages` Infrastructure
+
+1. **Remove directory**: Delete `lambda/ephemera/dependentMessages/` directory
+2. **Update imports**: Remove graphStorageDB imports from cache classes
+3. **Update graph cache**: Remove references to dependentMessages graph cache
+
+### Phase 4: Cleanup and Validation Implementation
+
+#### Step 4.1: Update Internal Cache
+
+**File**: `lambda/ephemera/internalCache/index.ts`
+
+**Changes**:
+1. Remove AssetMeta references from class properties
+2. Remove AssetMeta from constructor
+3. Remove AssetMeta from clear() method
+4. Remove AssetMeta imports
+
+#### Step 4.2: Update App.ts Event Handling
+
+**File**: `lambda/ephemera/app.ts`
+
+**Changes**:
+1. Remove EventBridge handlers for asset management events (Canonize Asset, Decanonize Asset)
+2. Keep only the event handlers that trigger ephemera flows
+3. Update event routing logic to use EventBridge events instead of direct function calls
+
+#### Step 4.3: Comprehensive Testing
+
+1. **Unit Tests**: Test all ephemera functions that use migrated cache classes
+2. **Integration Tests**: Test EventBridge events trigger correct ephemera flows
+3. **Performance Tests**: Verify no performance regression
+4. **End-to-End Tests**: Test complete workflows from assets changes to ephemera responses
+
+### Implementation Timeline
+
+**Week 1**: Phase 1 - EventBridge Integration
+- Add event handlers and test integration
+
+**Week 2**: Phase 2 - Cache Class Migration  
+- Migrate one cache class per day with testing
+
+**Week 3**: Phase 3 - Function Removal
+- Remove functions one by one with validation
+
+**Week 4**: Phase 4 - Cleanup and Validation
+- Final cleanup and comprehensive testing
+
+### Success Validation
+
+After each phase, validate:
+- [ ] All ephemera functions work correctly
+- [ ] EventBridge events trigger appropriate flows
+- [ ] No performance regression
+- [ ] No functionality loss
+- [ ] Clean separation of concerns achieved
+
 ## Structure
 
 This document will be populated systematically with the following sections:
@@ -386,7 +671,7 @@ This document will be populated systematically with the following sections:
 - [x] Cache Class Usage Analysis
 - [x] Data Dependencies Assessment  
 - [x] Migration Strategy
-- [ ] Implementation Plan
+- [x] Implementation Plan
 - [ ] Testing Strategy
 - [ ] Rollback Plan
 
