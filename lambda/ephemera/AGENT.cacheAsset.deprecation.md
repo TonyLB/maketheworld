@@ -145,14 +145,247 @@ Notes:
 - `ExamplesData` remains in ephemera but must be migrated to read from the assets table.
 - Ephemera continues to have read-only access to asset data; write operations (including graph edges) are owned by the assets system.
 
+## Data Dependencies Assessment
+
+### Current Data Access Patterns (EphemeraDB → Assets Table Migration)
+
+Based on analysis of the 4 cache classes that need migration, the data structures are indeed **virtually identical** between ephemeraDB and assets table, with only the primary key change from `EphemeraId` to `AssetId`:
+
+#### ✅ `CacheAssetRoomsData` - **SIMPLE MIGRATION**
+- **Current ephemeraDB pattern**:
+  ```typescript
+  ephemeraDB.query({
+    IndexName: 'DataCategoryIndex',
+    Key: { DataCategory: assetId },
+    KeyConditionExpression: 'begins_with(EphemeraId, :roomPrefix)',
+    ExpressionAttributeValues: { ':roomPrefix': 'ROOM#' }
+  })
+  ```
+- **Assets table equivalent**:
+  ```typescript
+  assetDB.query({
+    IndexName: 'DataCategoryIndex', 
+    Key: { DataCategory: assetId },
+    KeyConditionExpression: 'begins_with(AssetId, :roomPrefix)',
+    ExpressionAttributeValues: { ':roomPrefix': 'ROOM#' }
+  })
+  ```
+- **Migration**: Change `ephemeraDB` → `assetDB`, `EphemeraId` → `AssetId`
+
+#### ✅ `CacheRoomAssetsData` - **SIMPLE MIGRATION**
+- **Current ephemeraDB pattern**:
+  ```typescript
+  ephemeraDB.getItem({
+    Key: { EphemeraId: roomId, DataCategory: 'Meta::Room' },
+    ProjectionFields: ['cached']
+  })
+  ```
+- **Assets table equivalent**:
+  ```typescript
+  assetDB.getItem({
+    Key: { AssetId: roomId, DataCategory: 'Meta::Room' },
+    ProjectionFields: ['cached']
+  })
+  ```
+- **Migration**: Change `ephemeraDB` → `assetDB`, `EphemeraId` → `AssetId`
+
+#### ✅ `ExamplesData` - **SIMPLE MIGRATION**
+- **Current ephemeraDB pattern**:
+  ```typescript
+  ephemeraDB.query({
+    Key: { EphemeraId: componentId },
+    KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+    ExpressionAttributeValues: { ':dcPrefix': 'EXAMPLE#' }
+  })
+  ```
+- **Assets table equivalent**:
+  ```typescript
+  assetDB.query({
+    Key: { AssetId: componentId },
+    KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+    ExpressionAttributeValues: { ':dcPrefix': 'EXAMPLE#' }
+  })
+  ```
+- **Migration**: Change `ephemeraDB` → `assetDB`, `EphemeraId` → `AssetId`
+
+#### ✅ `GraphCacheType` - **SIMPLE MIGRATION**
+- **Current pattern**: Uses `ephemeraDB` for graph storage with DataCategories `'Graph::Forward'` and `'Graph::Back'`
+- **Assets table equivalent**: Same structure, different database
+- **Migration**: Change database handler from `ephemeraDB` to `assetDB` in graph storage configuration
+
+### Migration Complexity: **MINIMAL**
+
+All 4 cache classes follow the **exact same migration pattern**:
+1. Replace `ephemeraDB` with `assetDB`
+2. Replace `EphemeraId` with `AssetId` in key structures
+3. All DataCategories, IndexNames, and query patterns remain identical
+
+### Performance Considerations
+
+- **No performance impact expected** - same query patterns, same data structures
+- **Caching behavior unchanged** - DeferredCache patterns remain the same
+- **Event-driven invalidation** - Cache classes will be invalidated by EventBridge events from assets system
+
+## Migration Strategy
+
+### Overview
+
+This migration focuses on **code changes only** - no data migration is required since asset data is already in the assets table. The strategy involves removing asset management functions and migrating cache classes to read from the assets table.
+
+### Phase 1: EventBridge Integration (Prerequisites)
+
+Before removing any functions, establish EventBridge event handling to preserve side-effects:
+
+#### 1.1 Add EventBridge Event Handlers
+- **'Component Updated'** → `Perception { header: true }` for room updates
+- **'Asset Removed'** → `CheckLocation { forceRender: true }` for removals  
+- **'Canon Updated'** → Update `Global.assets` + trigger `Perception`/`CheckLocation`
+- **'Zone Changed'** → Handle canon add/remove transitions
+- **'Asset Added'** → Optional `Perception { header: true }` for new assets
+
+#### 1.2 Test EventBridge Integration
+- Verify all event types are properly handled
+- Confirm ephemera flows (`Perception`, `CheckLocation`) work correctly
+- Ensure no functionality is lost compared to current asset management functions
+
+### Phase 2: Cache Class Migration (Low Risk)
+
+Migrate the 4 cache classes to read from assets table:
+
+#### 2.1 `CacheAssetRoomsData` Migration
+```typescript
+// Before (ephemeraDB)
+ephemeraDB.query({
+  IndexName: 'DataCategoryIndex',
+  Key: { DataCategory: assetId },
+  KeyConditionExpression: 'begins_with(EphemeraId, :roomPrefix)',
+  ExpressionAttributeValues: { ':roomPrefix': 'ROOM#' }
+})
+
+// After (assetDB)  
+assetDB.query({
+  IndexName: 'DataCategoryIndex',
+  Key: { DataCategory: assetId },
+  KeyConditionExpression: 'begins_with(AssetId, :roomPrefix)',
+  ExpressionAttributeValues: { ':roomPrefix': 'ROOM#' }
+})
+```
+
+#### 2.2 `CacheRoomAssetsData` Migration
+```typescript
+// Before (ephemeraDB)
+ephemeraDB.getItem({
+  Key: { EphemeraId: roomId, DataCategory: 'Meta::Room' },
+  ProjectionFields: ['cached']
+})
+
+// After (assetDB)
+assetDB.getItem({
+  Key: { AssetId: roomId, DataCategory: 'Meta::Room' },
+  ProjectionFields: ['cached']
+})
+```
+
+#### 2.3 `ExamplesData` Migration
+```typescript
+// Before (ephemeraDB)
+ephemeraDB.query({
+  Key: { EphemeraId: componentId },
+  KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+  ExpressionAttributeValues: { ':dcPrefix': 'EXAMPLE#' }
+})
+
+// After (assetDB)
+assetDB.query({
+  Key: { AssetId: componentId },
+  KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+  ExpressionAttributeValues: { ':dcPrefix': 'EXAMPLE#' }
+})
+```
+
+#### 2.4 `GraphCacheType` Migration
+- Update graph storage database handler from `ephemeraDB` to `assetDB`
+- Change `EphemeraId` to `AssetId` in graph storage configuration
+- All graph DataCategories (`'Graph::Forward'`, `'Graph::Back'`) remain identical
+
+### Phase 3: Function Removal (High Impact)
+
+Remove asset management functions and supporting infrastructure:
+
+#### 3.1 Remove `cacheAsset` Function
+- Remove entire `cacheAsset/` directory
+- Remove imports and references in `app.ts`
+- Verify EventBridge events provide equivalent functionality
+
+#### 3.2 Remove `decacheAsset` Function  
+- Remove entire `decacheAsset/` directory
+- Remove imports and references in `app.ts`
+- Verify EventBridge events provide equivalent functionality
+
+#### 3.3 Remove `CacheAssetMetaData` (Safe)
+- Only used by `cacheAsset` function
+- Can be removed after `cacheAsset` is removed
+
+#### 3.4 Remove `canonUpdate` Function
+- Remove entire `canonUpdate/` directory  
+- Remove imports and references in `app.ts`
+- Verify EventBridge events provide equivalent functionality
+
+#### 3.5 Remove `dependentMessages` Infrastructure
+- Remove entire `dependentMessages/` directory
+- Remove graph storage database handler
+- Remove imports and references
+
+### Phase 4: Cleanup and Validation
+
+#### 4.1 Update Internal Cache
+- Remove references to deleted cache classes in `internalCache/index.ts`
+- Update constructor and clear/flush methods
+- Remove unused imports
+
+#### 4.2 Update App.ts Event Handling
+- Remove EventBridge handlers for asset management events
+- Keep only the event handlers that trigger ephemera flows
+- Update event routing logic
+
+#### 4.3 Comprehensive Testing
+- Test all ephemera functions that use migrated cache classes
+- Verify EventBridge events trigger correct ephemera flows
+- Performance testing to ensure no regression
+- Integration testing with assets system
+
+### Migration Order and Risk Assessment
+
+**Low Risk (Phase 2):**
+- Cache class migrations are straightforward database connection changes
+- Can be done incrementally with thorough testing
+- Easy to rollback if issues arise
+
+**Medium Risk (Phase 1):**
+- EventBridge integration must be complete and tested before function removal
+- Requires coordination with assets system event emissions
+
+**High Risk (Phase 3):**
+- Function removal has high impact
+- Must ensure EventBridge events provide complete functionality replacement
+- Requires careful testing and potential rollback capability
+
+### Success Criteria
+
+- All ephemera functions work correctly with migrated cache classes
+- EventBridge events trigger appropriate ephemera flows
+- No performance regression
+- No functionality loss compared to current asset management
+- Clean separation of concerns: ephemera handles world-state, assets handles asset structure
+
 ## Structure
 
 This document will be populated systematically with the following sections:
 - [x] InternalCache Class Categorization
 - [x] Legacy Functions Analysis
 - [x] Cache Class Usage Analysis
-- [ ] Data Dependencies Assessment  
-- [ ] Migration Strategy
+- [x] Data Dependencies Assessment  
+- [x] Migration Strategy
 - [ ] Implementation Plan
 - [ ] Testing Strategy
 - [ ] Rollback Plan
