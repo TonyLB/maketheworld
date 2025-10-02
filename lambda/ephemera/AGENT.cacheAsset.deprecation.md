@@ -105,10 +105,45 @@ These functions deal with **ephemeral world-state** and should remain in the eph
 **✅ Cache Classes That Need Migration to Assets Table (Read-Only Access):**
 - **`CacheAssetRoomsData`** - Used by `perception` (should remain in ephemera)
 - **`CacheRoomAssetsData`** - Used by `moveCharacter` (should remain in ephemera)  
-- **`ExamplesData`** - Used by `ComponentRenderData` (need to evaluate if ComponentRenderData should remain)
+- **`ExamplesData`** - Used by `ComponentRenderData` (should remain in ephemera)
 - **`GraphCacheType`** - Used by `CharacterPossibleMapsData` (should remain in ephemera)
 
 **Key Architectural Insight**: These cache classes need to be **migrated to read from the assets table** instead of the ephemera table, but the ephemera lambda will retain **read-only access** to asset data. The ephemera lambda needs to read asset information to perform its world-state functions, but it won't have authority to modify asset data.
+
+## Event Bridging and Ephemera Responses
+
+To preserve ephemera side-effects when removing `cacheAsset`, `decacheAsset`, `canonUpdate`, and graph writes from ephemera, we will consume the concrete events already emitted by WML and Assets, and trigger existing ephemera flows (`Perception`, `CheckLocation`) without managing asset structures directly.
+
+- 'Component Updated' (source: `mtw.assets`)
+  - Emitted by Assets for component-level diffs (including removals via `StandardRemove`).
+  - Ephemera action: target only impacted components. For rooms: send `Perception { header: true }` for each updated room. For features/knowledge/maps/messages: send appropriate `Perception` updates for those components.
+  - Rationale: Provides precise scoping, avoiding broad re-renders while preserving prior `cacheAsset` side-effects.
+
+- Removals (source: `mtw.assets`)
+  - Component-level removals are emitted as `'Component Updated'` events carrying `StandardRemove` payloads. Ephemera action: send `Perception` updates for impacted components; if removals affect player-visible locations or maps, issue `CheckLocation { forceRender: true }` as appropriate.
+  - Asset-level removals are emitted as `'Asset Removed'`. Ephemera action: send `CheckLocation { forceRender: true }` and perform any needed invalidations.
+  - Note: We currently subscribe to both events for redundancy. This is intentional until we evaluate the role and wiring of the `removeAsset` handler in the assets lambda. A tech-debt ticket has been filed to revisit and potentially consolidate this.
+
+- 'Canon Updated' (source: `mtw.assets`)
+  - Emitted by Assets when the global canon ordering/contents change.
+  - Ephemera action: update `Global.assets` via the existing CanonUpdate path; send `Perception` for added assets; send `CheckLocation { forceRender: true }` for removed assets. Preserves prior `canonUpdate` side-effects.
+
+- 'Zone Changed' (source: `mtw.assets`)
+  - Emitted when an asset moves between zones (e.g., Personal → Canon, Canon → Personal/Library/Archive).
+  - Ephemera action: if zone transitions into Canon, treat as add (CanonAdd); if zone transitions out of Canon, treat as remove (CanonRemove). Both flow through the CanonUpdate path to update `Global.assets` and trigger `Perception` for additions and `CheckLocation { forceRender: true }` for removals.
+
+- 'Asset Added' (source: `mtw.assets`)
+  - Emitted by Assets when an asset is newly registered.
+  - Ephemera action: treat as a blueprint change for that asset; optionally send `Perception` with `header: true` for rooms in the asset to refresh headers for present characters.
+
+- 'Asset Removed' (source: `mtw.assets`)
+  - Emitted by Assets when an asset is removed.
+  - Ephemera action: send `CheckLocation { forceRender: true }` to reevaluate character visibility, maps, and renders that may have depended on the removed asset. Replaces `decacheAsset` downstream effects.
+
+Notes:
+- `ComponentRenderData` remains in ephemera (no direct DB writes). It is invoked by `perception`, `parse`, and `mapUpdate`.
+- `ExamplesData` remains in ephemera but must be migrated to read from the assets table.
+- Ephemera continues to have read-only access to asset data; write operations (including graph edges) are owned by the assets system.
 
 ## Structure
 
