@@ -7,6 +7,7 @@ import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/cha
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 // Mock external dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -218,7 +219,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 streamKey: 'ASSET#test123',
                 event: {
                     type: 'Content Update' as const,
-                    AssetId: 'ASSET#test123'
+                    AssetId: 'ASSET#test123',
+                    schema: new StandardForm(`<Asset uuid=(test123) />`)
                 },
                 timestamp: Date.now()
             }
@@ -472,7 +474,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     streamKey: 'ASSET#test123',
                     event: {
                         type: 'Content Update',
-                        AssetId: 'ASSET#test123'
+                        AssetId: 'ASSET#test123',
+                        schema: new StandardForm(`<Asset uuid=(test123) />`)
                     },
                     timestamp: Date.now()
                 } as const,
@@ -489,7 +492,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     streamKey: 'ASSET#test456',
                     event: {
                         type: 'Content Update',
-                        AssetId: 'ASSET#test456'
+                        AssetId: 'ASSET#test456',
+                        schema: new StandardForm(`<Asset uuid=(test456) />`)
                     },
                     timestamp: Date.now()
                 } as const
