@@ -71,7 +71,7 @@ const dataSource = new MyDataSource({
 - [x] **Phase 1**: EventBridge structure established
 - [x] **WML Events**: ✅ **MIGRATED** (Phase 2)
 - [x] **Assets Events**: ✅ **MIGRATED** (Phase 3)
-- [ ] **Ephemera Events**: Pending migration (Phase 4)
+- [x] **Ephemera Events**: ✅ **MIGRATED** (Phase 4)
 
 ## Related Documentation
 

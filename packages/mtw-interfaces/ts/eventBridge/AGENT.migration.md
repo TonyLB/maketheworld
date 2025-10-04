@@ -48,11 +48,12 @@ Move event types, type guards, and serializers to `mtw-interfaces/ts/eventBridge
 - [x] Update `lambda/ephemera` to import from `@tonylb/mtw-interfaces/ts/eventBridge/assets`
 - [x] Update this migration document
 
-### Phase 4: Migrate Ephemera Events
-- [ ] Move `EphemeraEventSerializer` and related types from `lambda/ephemera/dataSource/serializers.ts`
-- [ ] Update `eventBridge` directory `AGENT.md`
-- [ ] Update `lambda/ephemera` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
-- [ ] Update this migration document
+### Phase 4: Migrate Ephemera Events ✅ COMPLETE
+- [x] Move `EphemeraEventSerializer` and related types from `lambda/ephemera/dataSource/serializers.ts`
+- [x] Create basic tests for Ephemera serializer
+- [x] Update `eventBridge` directory `AGENT.md`
+- [x] Update `lambda/ephemera` to import from `@tonylb/mtw-interfaces/ts/eventBridge/ephemera`
+- [x] Update this migration document
 
 ### Phase 5: Cleanup
 - [ ] Remove old serializer files from lambda directories
@@ -95,7 +96,6 @@ packages/mtw-interfaces/ts/eventBridge/
 ### Import Strategy
 - All lambdas import from `@tonylb/mtw-interfaces/ts/eventBridge`
 - No direct cross-lambda imports allowed
-- Use barrel exports from `index.ts` for clean imports
 
 ## Benefits
 
