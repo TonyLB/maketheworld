@@ -33,12 +33,12 @@ Move event types, type guards, and serializers to `mtw-interfaces/ts/eventBridge
 - [x] Add `mtw-lambda-patterns` dependency to `package.json`
 
 ### Phase 2: Migrate WML Events
-- [ ] Move `WMLEventSerializer`, `WMLEventUpdate`, `WMLEventExternal` from `lambda/wml/dataSource/serializers.ts`
-- [ ] Move `WMLContentEvent`, `WMLZoneEvent` and related type guards
-- [ ] Update `eventBridge` directory `AGENT.md`
-- [ ] Update `lambda/wml` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
-- [ ] Update `lambda/assets` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
-- [ ] Update this migration document
+- [x] Move `WMLEventSerializer`, `WMLEventUpdate`, `WMLEventExternal` from `lambda/wml/dataSource/serializers.ts`
+- [x] Move `WMLContentEvent`, `WMLZoneEvent` and related type guards
+- [x] Update `eventBridge` directory `AGENT.md`
+- [x] Update `lambda/wml` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
+- [x] Update `lambda/assets` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
+- [x] Update this migration document
 
 ### Phase 3: Migrate Assets Events
 - [ ] Move `AssetsEventSerializer`, `AssetsEventUpdate`, `AssetsEventExternal` from `lambda/assets/dataSource/serializers.ts`

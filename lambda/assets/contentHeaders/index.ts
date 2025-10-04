@@ -14,7 +14,7 @@ import internalCache from '../internalCache'
 import { extractHeader } from './extractHeader'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { WMLZoneEvent, isWMLZoneEvent } from '../../wml/dataSource/serializers'
+import { WMLZoneEvent, isWMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 
 //
 // Replayable DataSource singleton for mtw.assets.contentHeaders

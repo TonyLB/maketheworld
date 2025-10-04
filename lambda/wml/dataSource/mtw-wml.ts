@@ -1,6 +1,6 @@
 import { WMLDataSource } from './abstract'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from './serializers'
+import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { moveAsset } from './moveAsset'
 import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, MoveAssetRequest } from './coordinationSerializer'
 import { isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"

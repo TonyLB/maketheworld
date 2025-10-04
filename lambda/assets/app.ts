@@ -29,7 +29,7 @@ import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
 import { isEphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { extractReturnValue } from './returnValue'
-import { WMLEventSerializer } from '../wml/dataSource/serializers'
+import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }

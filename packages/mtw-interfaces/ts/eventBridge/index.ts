@@ -48,16 +48,8 @@ export type EventBridgeUpdatePlayer = {
 }
 
 // Data Source Event Contracts (new functionality)
-// These will be populated during migration phases
-
-// WML Data Source Events (Phase 2)
-export * from './wml'
-
-// Assets Data Source Events (Phase 3)  
-export * from './assets'
-
-// Ephemera Data Source Events (Phase 4)
-export * from './ephemera'
-
-// Shared base classes and utilities
-export * from './baseClasses'
+// Import directly from specific data source directories:
+// - @tonylb/mtw-interfaces/ts/eventBridge/wml
+// - @tonylb/mtw-interfaces/ts/eventBridge/assets  
+// - @tonylb/mtw-interfaces/ts/eventBridge/ephemera
+// - @tonylb/mtw-interfaces/ts/eventBridge/baseClasses

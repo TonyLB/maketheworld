@@ -25,6 +25,7 @@ Each data source file (`[dataSource].ts`) contains:
 
 ### WML Events (`wml/`)
 - **File**: `wml/index.ts`
+- **Status**: ✅ **MIGRATED** (Phase 2)
 - **Internal**: `WMLContentEvent`, `WMLZoneEvent`
 - **External**: `WMLContentEventExternal`, `WMLZoneEventExternal`
 - **Serializer**: `WMLEventSerializer`
@@ -68,7 +69,7 @@ const dataSource = new MyDataSource({
 ## Migration Status
 
 - [x] **Phase 1**: EventBridge structure established
-- [ ] **WML Events**: Pending migration (Phase 2)
+- [x] **WML Events**: ✅ **MIGRATED** (Phase 2)
 - [ ] **Assets Events**: Pending migration (Phase 3)
 - [ ] **Ephemera Events**: Pending migration (Phase 4)
 
