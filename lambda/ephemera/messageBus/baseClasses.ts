@@ -1,4 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
+import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
@@ -89,6 +90,14 @@ export type PublishMessage = PublishWorldMessage |
 export type ReturnValueMessage = {
     type: 'ReturnValue';
     body: Record<string, any>;
+}
+
+export type ErrorMessage = {
+    type: 'Error';
+    body: {
+        error: string;
+        statusCode?: number;
+    };
 }
 
 export type RegisterCharacterMessage = {
@@ -268,8 +277,13 @@ export type ExecuteActionMessage = {
     action: import('@tonylb/mtw-interfaces/ts/ephemera').ActionAPIMessage;
 }
 
+export type StreamingEventMessage = {
+    type: 'StreamingEvent';
+} & StreamingEventPayload
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
+    ErrorMessage |
     RegisterCharacterMessage |
     UnregisterCharacterMessage |
     DisconnectCharacterMessage |
@@ -286,7 +300,8 @@ export type MessageType = PublishMessage |
     RoomUpdateMessage |
     MapUpdateMessage |
     CanonUpdateMessage |
-    ExecuteActionMessage
+    ExecuteActionMessage |
+    StreamingEventMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -298,6 +313,7 @@ export const isRoomUpdatePublishMessage = (prop: PublishMessage): prop is Publis
 export const isPerceptionPublishMessage = (prop: PublishMessage): prop is PublishPerceptionMessage => (prop.displayProtocol === 'PerceptionMessage')
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
+export const isErrorMessage = (prop: MessageType): prop is ErrorMessage => (prop.type === 'Error')
 
 export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterCharacterMessage => (prop.type === 'RegisterCharacter')
 export const isUnregisterCharacterMessage = (prop: MessageType): prop is UnregisterCharacterMessage => (prop.type === 'UnregisterCharacter')
@@ -323,5 +339,6 @@ export const isMapUpdateMessage = (prop: MessageType): prop is MapUpdateMessage 
 export const isCanonUpdateMessage = (prop: MessageType): prop is CanonUpdateMessage => (['CanonAdd', 'CanonRemove', 'CanonSet'].includes(prop.type))
 
 export const isExecuteActionMessage = (prop: MessageType): prop is ExecuteActionMessage => (prop.type === 'ExecuteAction')
+export const isStreamingEventMessage = (prop: MessageType): prop is StreamingEventMessage => (prop.type === 'StreamingEvent')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

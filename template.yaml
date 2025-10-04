@@ -480,7 +480,9 @@ Resources:
               source:
                 - mtw.assets
               detail-type:
+                - Component Updated
                 - Canon Updated
+                - Zone Changed
         WML:
           Type: CloudWatchEvent
           Properties:
