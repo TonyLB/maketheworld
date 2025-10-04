@@ -122,7 +122,7 @@ Defines event contracts for cross-service communication via AWS EventBridge:
 - **Assets Events** (`assets.ts`): Component and asset-level events
 - **Ephemera Events** (`ephemera.ts`): Real-time game state events
 
-#### **Legacy Event Types** (to be migrated)
+#### **Legacy Event Types**
 - **`EventBridgeUpdatePlayer`**: Player profile and character updates
 - **`EventBridgeUpdatePlayerCharacter`**: Individual character updates
 - **`EventBridgeUpdatePlayerAsset`**: Asset ownership updates

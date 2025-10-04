@@ -238,6 +238,8 @@ The DataSource pattern uses the `eventSerializer` constructor parameter to handl
 - **Service Isolation**: No cross-lambda dependencies
 - **Import Pattern**: `import { MyEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge'`
 
+**Implementation Guide**: For detailed technical guidelines on implementing EventBridge event contracts, see **[EventBridge Implementation Guide](../../../mtw-interfaces/ts/eventBridge/AGENT.implementation.md)**.
+
 **Standard Pattern**: Use class-based serializers for better type safety, testability, and reusability:
 
 ```typescript

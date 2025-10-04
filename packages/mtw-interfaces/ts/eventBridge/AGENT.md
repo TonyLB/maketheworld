@@ -25,7 +25,6 @@ Each data source file (`[dataSource].ts`) contains:
 
 ### WML Events (`wml/`)
 - **File**: `wml/index.ts`
-- **Status**: ✅ **MIGRATED** (Phase 2)
 - **Internal**: `WMLContentEvent`, `WMLZoneEvent`
 - **External**: `WMLContentEventExternal`, `WMLZoneEventExternal`
 - **Serializer**: `WMLEventSerializer`
@@ -33,23 +32,21 @@ Each data source file (`[dataSource].ts`) contains:
 
 ### Assets Events (`assets/`)
 - **File**: `assets/index.ts`
-- **Status**: ✅ **MIGRATED** (Phase 3)
 - **Internal**: `ComponentEventUpdate`, `AssetLevelEventUpdate`
 - **External**: `ComponentEventExternal`, `AssetLevelEventExternal`
 - **Serializer**: `AssetsEventSerializer`
 - **Sub-sources**:
-  - **Characters** (`assets/characters/`): ✅ **MIGRATED**
+  - **Characters** (`assets/characters/`):
     - Internal: `CharacterEventUpdate`
     - External: `CharacterEventExternal`
     - Serializer: `CharacterEventSerializer`
-  - **ContentHeaders** (`assets/contentHeaders/`): ✅ **MIGRATED**
+  - **ContentHeaders** (`assets/contentHeaders/`):
     - Internal: `ContentHeadersEventUpdate`
     - External: `ContentHeadersExternal`
     - Serializer: `ContentHeadersEventSerializer`
 
 ### Ephemera Events (`ephemera/`)
 - **File**: `ephemera/index.ts`
-- **Status**: ✅ **MIGRATED** (Phase 4)
 - **Internal**: `EphemeraEventUpdate` (pass-through)
 - **External**: `EphemeraEventExternal` (pass-through)
 - **Serializer**: `EphemeraEventSerializer`
@@ -76,16 +73,17 @@ const dataSource = new MyDataSource({
 })
 ```
 
-## Migration Status
+## EventBridge Status
 
-- [x] **Phase 1**: EventBridge structure established
-- [x] **WML Events**: ✅ **MIGRATED** (Phase 2)
-- [x] **Assets Events**: ✅ **MIGRATED** (Phase 3)
-- [x] **Ephemera Events**: ✅ **MIGRATED** (Phase 4)
+All event contracts are now centralized in the `mtw-interfaces` package:
+
+- **WML Events**: Content and zone change events
+- **Assets Events**: Component and asset-level events with sub-sources
+- **Ephemera Events**: Real-time game state events
 
 ## Related Documentation
 
-- **[Migration Plan](./AGENT.migration.md)**: Detailed migration strategy and progress
+- **[Implementation Guide](./AGENT.implementation.md)**: Detailed technical guidelines for implementing and maintaining EventBridge contracts
 - **[DataSource Pattern](../../../mtw-lambda-patterns/ts/dataSource/AGENT.md)**: How to implement DataSources using these contracts
 - **[Base Classes](./baseClasses.ts)**: Shared event types and interfaces
 

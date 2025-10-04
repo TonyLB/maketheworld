@@ -104,7 +104,7 @@ if (event.type === 'ContentHeadersUpdate') {
 
 ### Key Files
 - **Data Source Implementation**: `./index.ts` - Main DataSource configuration
-- **Event Serialization**: `./serializers.ts` - Event format conversion
+- **Event Serialization**: `@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders` - Event format conversion
 - **Header Extraction**: `./extractHeader.ts` - Data extraction utilities
 - **Planning Document**: `./AGENT.planning.md` - Implementation roadmap
 
