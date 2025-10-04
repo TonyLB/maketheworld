@@ -143,8 +143,7 @@ export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnaps
         
         const { eventsByAsset, zoneEvents } = events.reduce<{ eventsByAsset: Record<AssetUUID, SubscribedEvent[]>, zoneEvents: SubscribedWMLEvent[] }>((previous, event) => {
             if (event.event.type === 'Component Updated') {
-                const componentUpdate = event.event as ComponentUpdatedEvent
-                const { assetId } = componentUpdate
+                const assetId = event.streamKey as AssetUUID
                 return {
                     ...previous,
                     eventsByAsset: {

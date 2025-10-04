@@ -74,10 +74,15 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                     try {
                         await cacheAsset({ assetId, streamEvent })
                         
+                        // Get asset metadata to determine zone
+                        const assetMeta = (await internalCache.AssetMetaData.get([assetId]))[0]
+                        const zone = assetMeta?.address?.zone || 'Unknown'
+                        
                         // Stream the caching event for real-time subscribers
                         await streamEvent({
                             update: { 
-                                type: 'Asset Cached'
+                                type: 'Asset Cached',
+                                zone
                             },
                             streamKey: assetId,
                         })
@@ -189,6 +194,16 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         })
                     }
                     
+                    // Stream the zone update event
+                    await streamEvent({
+                        update: {
+                            type: 'Zone Updated',
+                            fromZone,
+                            toZone
+                        },
+                        streamKey: assetUUID
+                    })
+                    
                     // TODO: Update internal caches - remove from old zone cache and add to new zone cache
                     // This requires cache management logic to handle zone transitions
                 }
@@ -219,8 +234,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                     // Stream the removal as an asset-level event
                     await streamEvent({
                         update: { 
-                            type: 'Asset Removed',
-                            assetId: assetId as string
+                            type: 'Asset Removed'
                         },
                         streamKey: assetId as string
                     })

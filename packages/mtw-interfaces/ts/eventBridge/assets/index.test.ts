@@ -10,6 +10,7 @@ import {
     ComponentEventUpdate,
     ComponentUpdatedEvent,
     AssetLevelEventUpdate,
+    AssetCachedEventUpdate,
     isAssetsComponentUpdatedEvent,
     isAssetsComponentEvent,
     isAssetsLevelEvent
@@ -34,7 +35,6 @@ describe('AssetsEventSerializer', () => {
 
             const componentEvent: ComponentUpdatedEvent = {
                 type: 'Component Updated',
-                assetId: 'ASSET#test-asset',
                 component: character
             }
 
@@ -45,19 +45,19 @@ describe('AssetsEventSerializer', () => {
             })
 
             expect(externalEvent.type).toBe('Component Updated')
-            expect(externalEvent.assetId).toBe('ASSET#test-asset')
-            expect(externalEvent.componentId).toBe('CHARACTER#test-character')
-            expect(externalEvent.wml).toBe(deIndentWML(`
+            if (externalEvent.type === 'Component Updated') {
+                expect(externalEvent.componentId).toBe('CHARACTER#test-character')
+                expect(externalEvent.wml).toBe(deIndentWML(`
                 <Character uuid=(test-character) key=(test-character)>
                     <Name>Test Character</Name>
                 </Character>
             `))
+            }
         })
 
         it('should deserialize Component Updated event from external format', () => {
             const externalEvent: AssetsEventExternal = {
                 type: 'Component Updated',
-                assetId: 'ASSET#test-asset',
                 componentId: 'CHARACTER#test-character',
                 wml: deIndentWML(`
                     <Character key=(test-character) uuid=(test-character)>
@@ -76,7 +76,6 @@ describe('AssetsEventSerializer', () => {
             expect(internalEvent).not.toBeNull()
             expect(internalEvent!.type).toBe('Component Updated')
             if (isAssetsComponentUpdatedEvent(internalEvent!)) {
-                expect(internalEvent.assetId).toBe('ASSET#test-asset')
                 expect(internalEvent.component.universalKey).toBe('CHARACTER#test-character')
                 expect(internalEvent.component).toBeInstanceOf(StandardCharacter)
             }
@@ -91,7 +90,6 @@ describe('AssetsEventSerializer', () => {
 
             const originalEvent: ComponentUpdatedEvent = {
                 type: 'Component Updated',
-                assetId: 'ASSET#test-asset',
                 component: originalCharacter
             }
 
@@ -114,7 +112,6 @@ describe('AssetsEventSerializer', () => {
             expect(deserializedEvent).not.toBeNull()
             expect(isAssetsComponentUpdatedEvent(deserializedEvent!)).toBe(true)
             if (isAssetsComponentUpdatedEvent(deserializedEvent!)) {
-                expect(deserializedEvent.assetId).toBe('ASSET#test-asset')
                 expect(deserializedEvent.component.universalKey).toBe('CHARACTER#test-character')
                 expect(deserializedEvent.component).toBeInstanceOf(StandardCharacter)
             }
@@ -125,7 +122,7 @@ describe('AssetsEventSerializer', () => {
         it('should serialize Asset Cached event (pass-through)', () => {
             const assetEvent: AssetLevelEventUpdate = {
                 type: 'Asset Cached',
-                assetId: 'ASSET#test-asset'
+                zone: 'Canon'
             }
 
             const externalEvent = serializer.serialize({
@@ -135,13 +132,14 @@ describe('AssetsEventSerializer', () => {
             })
 
             expect(externalEvent.type).toBe('Asset Cached')
-            expect(externalEvent.assetId).toBe('ASSET#test-asset')
+            if (externalEvent.type === 'Asset Cached') {
+                expect(externalEvent.zone).toBe('Canon')
+            }
         })
 
         it('should serialize Asset Decached event (pass-through)', () => {
             const assetEvent: AssetLevelEventUpdate = {
-                type: 'Asset Decached',
-                assetId: 'ASSET#test-asset'
+                type: 'Asset Decached'
             }
 
             const externalEvent = serializer.serialize({
@@ -151,13 +149,11 @@ describe('AssetsEventSerializer', () => {
             })
 
             expect(externalEvent.type).toBe('Asset Decached')
-            expect(externalEvent.assetId).toBe('ASSET#test-asset')
         })
 
         it('should serialize Asset Removed event (pass-through)', () => {
             const assetEvent: AssetLevelEventUpdate = {
-                type: 'Asset Removed',
-                assetId: 'ASSET#test-asset'
+                type: 'Asset Removed'
             }
 
             const externalEvent = serializer.serialize({
@@ -167,13 +163,12 @@ describe('AssetsEventSerializer', () => {
             })
 
             expect(externalEvent.type).toBe('Asset Removed')
-            expect(externalEvent.assetId).toBe('ASSET#test-asset')
         })
 
         it('should serialize Canon Updated event (pass-through)', () => {
             const assetEvent: AssetLevelEventUpdate = {
                 type: 'Canon Updated',
-                assetId: 'ASSET#test-asset'
+                assetIds: ['ASSET#test-asset']
             }
 
             const externalEvent = serializer.serialize({
@@ -183,13 +178,15 @@ describe('AssetsEventSerializer', () => {
             })
 
             expect(externalEvent.type).toBe('Canon Updated')
-            expect(externalEvent.assetId).toBe('ASSET#test-asset')
+            if (externalEvent.type === 'Canon Updated') {
+                expect(externalEvent.assetIds).toEqual(['ASSET#test-asset'])
+            }
         })
 
         it('should deserialize Asset Level events (pass-through)', () => {
             const externalEvent: AssetsEventExternal = {
                 type: 'Asset Cached',
-                assetId: 'ASSET#test-asset'
+                zone: 'Canon'
             }
 
             const internalEvent = serializer.deserialize({
@@ -201,13 +198,16 @@ describe('AssetsEventSerializer', () => {
 
             expect(internalEvent).not.toBeNull()
             expect(internalEvent!.type).toBe('Asset Cached')
-            expect(internalEvent!.assetId).toBe('ASSET#test-asset')
+            if (internalEvent!.type === 'Asset Cached') {
+                const assetEvent = internalEvent as AssetCachedEventUpdate
+                expect(assetEvent.zone).toBe('Canon')
+            }
         })
 
         it('should handle Asset Level round-trip correctly', () => {
             const originalEvent: AssetLevelEventUpdate = {
                 type: 'Asset Cached',
-                assetId: 'ASSET#test-asset'
+                zone: 'Canon'
             }
 
             // Serialize to external format
@@ -228,7 +228,10 @@ describe('AssetsEventSerializer', () => {
             // Verify the event is preserved
             expect(deserializedEvent).not.toBeNull()
             expect(deserializedEvent!.type).toBe('Asset Cached')
-            expect(deserializedEvent!.assetId).toBe('ASSET#test-asset')
+            if (deserializedEvent!.type === 'Asset Cached') {
+                const assetEvent = deserializedEvent as AssetCachedEventUpdate
+                expect(assetEvent.zone).toBe('Canon')
+            }
         })
     })
 
@@ -251,7 +254,6 @@ describe('AssetsEventSerializer', () => {
         it('should handle invalid WML in Component Updated deserialize', () => {
             const externalEvent: AssetsEventExternal = {
                 type: 'Component Updated',
-                assetId: 'ASSET#test-asset',
                 componentId: 'CHARACTER#test-character',
                 wml: 'invalid-wml-content'
             }
@@ -269,7 +271,6 @@ describe('AssetsEventSerializer', () => {
         it('should handle missing component in WML', () => {
             const externalEvent: AssetsEventExternal = {
                 type: 'Component Updated',
-                assetId: 'ASSET#test-asset',
                 componentId: 'CHARACTER#missing-character',
                 wml: deIndentWML(`
                     <Character key=(test-character) uuid=(test-character)>
@@ -300,7 +301,6 @@ describe('AssetsEventSerializer', () => {
 
                 const event = {
                     type: 'Component Updated',
-                    assetId: 'ASSET#test-asset',
                     component: character
                 }
 
@@ -326,7 +326,6 @@ describe('AssetsEventSerializer', () => {
 
                 const event = {
                     type: 'Component Updated',
-                    assetId: 'ASSET#test-asset',
                     component: character
                 }
 
@@ -338,7 +337,7 @@ describe('AssetsEventSerializer', () => {
             it('should return true for asset level events', () => {
                 const assetEvent: AssetLevelEventUpdate = {
                     type: 'Asset Cached',
-                    assetId: 'ASSET#test-asset'
+                    zone: 'Canon'
                 }
 
                 expect(isAssetsLevelEvent(assetEvent)).toBe(true)
@@ -347,7 +346,6 @@ describe('AssetsEventSerializer', () => {
             it('should return false for component events', () => {
                 const componentEvent: ComponentUpdatedEvent = {
                     type: 'Component Updated',
-                    assetId: 'ASSET#test-asset',
                     component: new StandardCharacter(deIndentWML(`
                         <Character key=(test-character) uuid=(test-character)>
                             <Name>Test Character</Name>

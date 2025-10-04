@@ -230,7 +230,7 @@ describe('Cache Asset (Data Source)', () => {
 
             // Should emit Component Updated streaming event with StandardRemove payload
             expect(mockStreamEvent).toHaveBeenCalled()
-            const removalCall = mockStreamEvent.mock.calls.find(([arg]) => arg.detailType === 'Component Updated' && arg.update.assetId === 'primitives')?.[0]
+            const removalCall = mockStreamEvent.mock.calls.find(([arg]) => arg.detailType === 'Component Updated' && arg.streamKey === 'primitives')?.[0]
             expect(removalCall).toBeTruthy()
             expect(removalCall.update.type).toBe('Component Updated')
             expect(removalCall.update.component?.tag).toBe('Remove')
@@ -310,7 +310,7 @@ describe('Cache Asset (Data Source)', () => {
             
             // Validate first component (Knowledge)
             expect(firstCall.update.type).toBe('Component Updated')
-            expect(firstCall.update.assetId).toBe('primitives')
+            expect(firstCall.streamKey).toBe('primitives')
             
             // Validate that the component serializes to the expected WML
             const firstComponentWML = schemaToWML([firstCall.update.component.schema])
@@ -320,7 +320,7 @@ describe('Cache Asset (Data Source)', () => {
             
             // Validate second component (Room)
             expect(secondCall.update.type).toBe('Component Updated')
-            expect(secondCall.update.assetId).toBe('primitives')
+            expect(secondCall.streamKey).toBe('primitives')
             
             // Validate that the component serializes to the expected WML
             const secondComponentWML = schemaToWML([secondCall.update.component.schema])
@@ -365,7 +365,7 @@ describe('Cache Asset (Data Source)', () => {
             
             // Validate component structure
             expect(call.update.type).toBe('Component Updated')
-            expect(call.update.assetId).toBe('primitives')
+            expect(call.streamKey).toBe('primitives')
             
             // Validate that the component serializes to the expected WML
             const componentWML = schemaToWML([call.update.component.schema])
