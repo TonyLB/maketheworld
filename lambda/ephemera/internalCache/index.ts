@@ -2,7 +2,7 @@
 
 import CacheRoomCharacterListsData from './roomCharacterLists';
 import CacheCharacterMetaData from './characterMeta';
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
 
 import ComponentMetaData from './componentMeta';
 import CacheAssetMetaData from './assetMeta';
@@ -27,10 +27,10 @@ import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
-    client: ephemeraDB._client,
-    tableName: ephemeraDB._tableName,
+    client: assetDB._client,
+    tableName: assetDB._tableName,
     incomingKeyLabel: 'PrimaryKey',
-    internalKeyLabel: 'EphemeraId',
+    internalKeyLabel: 'AssetId',
     options: { getBatchSize: 50 }
 })
 
