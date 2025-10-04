@@ -62,7 +62,6 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
 
         const componentUpdatedEvent: ComponentUpdatedEvent = {
             type: 'Component Updated',
-            assetId,
             component
         }
         await streamEvent({

@@ -91,7 +91,6 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             .filter((component) => (!!component.universalKey))
             .map((component): ComponentUpdatedEvent => ({
                 type: 'Component Updated',
-                assetId,
                 component
             }))
         

@@ -15,7 +15,6 @@ export type ComponentEventUpdate = ComponentUpdatedEvent
 
 export type ComponentUpdatedEvent = {
     type: 'Component Updated'
-    assetId: string
     component: StandardComponent // The actual component object for internal processing
 }
 
@@ -39,14 +38,36 @@ export const isAssetsComponentEvent = (event: any): event is ComponentEventUpdat
 }
 
 export const isAssetsLevelEvent = (event: AssetsEventUpdate): event is AssetLevelEventUpdate => {
-    return 'type' in event && ['Asset Cached', 'Asset Decached', 'Asset Removed', 'Canon Updated'].includes(event.type)
+    return 'type' in event && ['Asset Cached', 'Asset Decached', 'Asset Removed', 'Canon Updated', 'Zone Updated'].includes(event.type)
+}
+
+// Specific type guards for each asset-level event type
+export const isAssetCachedEvent = (event: any): event is AssetCachedEventUpdate => {
+    return event?.type === 'Asset Cached' && typeof event.zone === 'string'
+}
+
+export const isAssetDecachedEvent = (event: any): event is AssetDecachedEventUpdate => {
+    return event?.type === 'Asset Decached'
+}
+
+export const isAssetRemovedEvent = (event: any): event is AssetRemovedEventUpdate => {
+    return event?.type === 'Asset Removed'
+}
+
+export const isCanonUpdatedEvent = (event: any): event is CanonUpdatedEventUpdate => {
+    return event?.type === 'Canon Updated' && Array.isArray(event.assetIds)
+}
+
+export const isZoneUpdatedEvent = (event: any): event is ZoneUpdatedEventUpdate => {
+    return event?.type === 'Zone Updated' && 
+           typeof event.fromZone === 'string' && 
+           typeof event.toZone === 'string'
 }
 
 export type ComponentEventExternal = ComponentUpdatedEventExternal
 
 export type ComponentUpdatedEventExternal = {
     type: 'Component Updated'
-    assetId: string
     componentId: string
     wml: string // Serialized WML for external consumption
 }
@@ -54,23 +75,78 @@ export type ComponentUpdatedEventExternal = {
 // Union type for all internal event updates in mtw.assets
 export type AssetsEventUpdate = ComponentEventUpdate | AssetLevelEventUpdate
 
-// Asset-level event types (non-component events)
-export type AssetLevelEventUpdate = {
-    type: 'Asset Cached' | 'Asset Decached' | 'Asset Removed' | 'Canon Updated'
-    assetId?: string
-    assetIds?: string[]
-    [key: string]: any // Allow additional properties
+// Specific asset-level event types (non-component events)
+// Note: assetId is available via streamKey, so we don't duplicate it in the payload
+export type AssetCachedEventUpdate = {
+    type: 'Asset Cached'
+    zone: string
+    wml?: string
 }
+
+export type AssetDecachedEventUpdate = {
+    type: 'Asset Decached'
+}
+
+export type AssetRemovedEventUpdate = {
+    type: 'Asset Removed'
+}
+
+export type CanonUpdatedEventUpdate = {
+    type: 'Canon Updated'
+    assetIds: string[]
+}
+
+export type ZoneUpdatedEventUpdate = {
+    type: 'Zone Updated'
+    fromZone: string
+    toZone: string
+}
+
+// Union type for all asset-level event updates
+export type AssetLevelEventUpdate = 
+    | AssetCachedEventUpdate 
+    | AssetDecachedEventUpdate 
+    | AssetRemovedEventUpdate 
+    | CanonUpdatedEventUpdate 
+    | ZoneUpdatedEventUpdate
 
 // Union type for all external event payloads
 export type AssetsEventExternal = ComponentEventExternal | AssetLevelEventExternal
 
-export type AssetLevelEventExternal = {
-    type: 'Asset Cached' | 'Asset Decached' | 'Asset Removed' | 'Canon Updated'
-    assetId?: string
-    assetIds?: string[]
-    [key: string]: any // Allow additional properties
+// Specific external asset-level event types
+// Note: assetId is available via streamKey, so we don't duplicate it in the payload
+export type AssetCachedEventExternal = {
+    type: 'Asset Cached'
+    zone: string
+    wml?: string
 }
+
+export type AssetDecachedEventExternal = {
+    type: 'Asset Decached'
+}
+
+export type AssetRemovedEventExternal = {
+    type: 'Asset Removed'
+}
+
+export type CanonUpdatedEventExternal = {
+    type: 'Canon Updated'
+    assetIds: string[]
+}
+
+export type ZoneUpdatedEventExternal = {
+    type: 'Zone Updated'
+    fromZone: string
+    toZone: string
+}
+
+// Union type for all external asset-level events
+export type AssetLevelEventExternal = 
+    | AssetCachedEventExternal 
+    | AssetDecachedEventExternal 
+    | AssetRemovedEventExternal 
+    | CanonUpdatedEventExternal 
+    | ZoneUpdatedEventExternal
 
 /**
  * Unified event serializer for the mtw.assets data source.
@@ -89,15 +165,14 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         
         // Use the embedded type property to determine what type of event we're serializing
         if (isAssetsComponentUpdatedEvent(update)) {
-            const { assetId, component } = update
+            const { component } = update
             return {
                 type: 'Component Updated',
-                assetId,
                 componentId: component.universalKey || '', // Extract componentId from component
                 wml: schemaToWML([component.schema])
             }
         } else if (isAssetsLevelEvent(update)) {
-            // This is an asset-level event - pass through as-is
+            // This is an asset-level event - pass through as-is since internal and external types are now identical
             return update as AssetLevelEventExternal
         } else {
             throw new Error(`Unknown event type in AssetsEventUpdate: ${JSON.stringify(update)}`)
@@ -117,11 +192,10 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
             const updatedExternal = externalUpdate as ComponentUpdatedEventExternal
             return {
                 type: 'Component Updated',
-                assetId: streamKey,
                 component: this.parseWMLToComponent(updatedExternal.wml, updatedExternal.componentId)
             }
         } else {
-            // This is an asset-level event - pass through as-is
+            // This is an asset-level event - pass through as-is since internal and external types are now identical
             return externalUpdate as AssetLevelEventUpdate
         }
     }

@@ -127,7 +127,7 @@ To preserve ephemera side-effects when removing `cacheAsset`, `decacheAsset`, `c
   - Emitted by Assets when the global canon ordering/contents change.
   - Ephemera action: update `Global.assets` via the existing CanonUpdate path; send `Perception` for added assets; send `CheckLocation { forceRender: true }` for removed assets. Preserves prior `canonUpdate` side-effects.
 
-- 'Zone Changed' (source: `mtw.assets`)
+- 'Zone Updated' (source: `mtw.assets`)
   - Emitted when an asset moves between zones (e.g., Personal → Canon, Canon → Personal/Library/Archive).
   - Ephemera action: if zone transitions into Canon, treat as add (CanonAdd); if zone transitions out of Canon, treat as remove (CanonRemove). Both flow through the CanonUpdate path to update `Global.assets` and trigger `Perception` for additions and `CheckLocation { forceRender: true }` for removals.
 
@@ -436,8 +436,8 @@ case 'Canon Updated':
     }
     break
 
-case 'Zone Changed':
-    console.log(`Zone Changed: ${JSON.stringify(event.detail, null, 4)}`)
+case 'Zone Updated':
+    console.log(`Zone Updated: ${JSON.stringify(event.detail, null, 4)}`)
     const { assetId: zoneAssetId, fromZone, toZone } = event.detail
     if (zoneAssetId && fromZone && toZone) {
         if (toZone === 'Canon') {
