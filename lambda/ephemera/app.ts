@@ -32,6 +32,13 @@ import { sfnClient } from './clients'
 import { cacheAsset } from './cacheAsset'
 import decacheAsset from './decacheAsset'
 import { confirmGuestCharacter } from './guestCharacter'
+import { AssetsEventSerializer } from '../assets/dataSource/serializers'
+
+// Event deserializers for incoming EventBridge events
+const eventDeserializers = {
+    'mtw.assets': new AssetsEventSerializer(),
+    // Add other data source deserializers here as needed
+}
 
 export const handler = async (event: any, context: any) => {
 
@@ -68,7 +75,53 @@ export const handler = async (event: any, context: any) => {
         }
     }
 
-    // Handle EventBridge messages
+    // Handle EventBridge messages by publishing to messageBus for DataSource processing
+    if (event?.source && event["detail-type"]) {
+        // Find the appropriate deserializer for this data source
+        const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]
+        
+        if (deserializer) {
+            // Deserialize the external EventBridge event to internal format
+            const internalEvent = deserializer.deserialize({
+                dataSourceKey: event.source,
+                detailType: event["detail-type"],
+                streamKey: event.detail.streamKey || '', // Extract streamKey from detail
+                externalUpdate: event.detail
+            })
+            
+            // If deserialization failed, log error and skip this event
+            if (!internalEvent) {
+                messageBus.send({
+                    type: 'Error',
+                    body: {
+                        error: `Failed to deserialize event from ${event.source}: ${event["detail-type"]}`
+                    }
+                })
+            } else {
+                // Publish deserialized event to messageBus for DataSource processing
+                messageBus.send({
+                    type: 'StreamingEvent',
+                    dataSourceKey: event.source,
+                    streamKey: event.detail.streamKey || '',
+                    event: {
+                        type: internalEvent.type,
+                        update: internalEvent
+                    },
+                    timestamp: event.time ? new Date(event.time).getTime() : Date.now()
+                })
+            }
+        } else {
+            // No deserializer available - this is an error condition
+            messageBus.send({
+                type: 'Error',
+                body: {
+                    error: `No deserializer available for data source: ${event.source}`
+                }
+            })
+        }
+    }
+
+    // Handle legacy EventBridge messages that don't use DataSource pattern yet
     if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development', 'mtw.players', 'mtw.wml'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
             case 'Disconnect Character':
@@ -81,7 +134,6 @@ export const handler = async (event: any, context: any) => {
                 }
                 break
 
-
             case 'Canonize Asset':
             case 'Decanonize Asset':
                 const { assetId } = event.detail
@@ -89,19 +141,6 @@ export const handler = async (event: any, context: any) => {
                     messageBus.send({
                         type: event["detail-type"] === 'Canonize Asset' ? 'CanonAdd' : 'CanonRemove',
                         assetId: `ASSET#${assetId}` as const
-                    })
-                    await messageBus.flush()
-                    return await extractReturnValue(messageBus)
-                }
-                else {
-                    return JSON.stringify(`Invalid arguments specified for ${event["detail-type"]} event`)
-                }
-            case 'Canon Updated':
-                const { assetIds } = event.detail
-                if (assetIds && Array.isArray(assetIds)) {
-                    messageBus.send({
-                        type: 'CanonSet',
-                        assetIds: assetIds.filter(isEphemeraAssetId)
                     })
                     await messageBus.flush()
                     return await extractReturnValue(messageBus)
