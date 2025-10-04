@@ -33,16 +33,26 @@ Each data source file (`[dataSource].ts`) contains:
 
 ### Assets Events (`assets/`)
 - **File**: `assets/index.ts`
+- **Status**: ✅ **MIGRATED** (Phase 3)
 - **Internal**: `ComponentEventUpdate`, `AssetLevelEventUpdate`
 - **External**: `ComponentEventExternal`, `AssetLevelEventExternal`
 - **Serializer**: `AssetsEventSerializer`
-- **Future**: Sub-sources like `assets/characters.ts` can be added
+- **Sub-sources**:
+  - **Characters** (`assets/characters/`): ✅ **MIGRATED**
+    - Internal: `CharacterEventUpdate`
+    - External: `CharacterEventExternal`
+    - Serializer: `CharacterEventSerializer`
+  - **ContentHeaders** (`assets/contentHeaders/`): ✅ **MIGRATED**
+    - Internal: `ContentHeadersEventUpdate`
+    - External: `ContentHeadersExternal`
+    - Serializer: `ContentHeadersEventSerializer`
 
 ### Ephemera Events (`ephemera/`)
 - **File**: `ephemera/index.ts`
-- **Internal**: TBD (to be migrated)
-- **External**: TBD (to be migrated)
-- **Serializer**: TBD (to be migrated)
+- **Status**: ✅ **MIGRATED** (Phase 4)
+- **Internal**: `EphemeraEventUpdate` (pass-through)
+- **External**: `EphemeraEventExternal` (pass-through)
+- **Serializer**: `EphemeraEventSerializer`
 - **Future**: Sub-sources can be added as needed
 
 ### Base Classes (`baseClasses.ts`)

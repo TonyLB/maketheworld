@@ -55,6 +55,14 @@ Move event types, type guards, and serializers to `mtw-interfaces/ts/eventBridge
 - [x] Update `lambda/ephemera` to import from `@tonylb/mtw-interfaces/ts/eventBridge/ephemera`
 - [x] Update this migration document
 
+### Phase 4.5: Migrate Sub-source Events ✅ COMPLETE
+- [x] Move `CharacterEventSerializer` and related types from `lambda/assets/characters/serializers.ts`
+- [x] Move `ContentHeadersEventSerializer` and related types from `lambda/assets/contentHeaders/serializers.ts`
+- [x] Create directory structure for sub-sources (`assets/characters/`, `assets/contentHeaders/`)
+- [x] Update all imports to use new sub-source locations
+- [x] Update documentation to reflect sub-source structure
+- [x] Update this migration document
+
 ### Phase 5: Cleanup
 - [ ] Remove old serializer files from lambda directories
 - [ ] Update all import statements across the codebase

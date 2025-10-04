@@ -6,7 +6,7 @@ import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
-import { CharacterEventSerializer } from './serializers'
+import { CharacterEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 
 // Mock external dependencies used by the assets DataSource base class and lambda

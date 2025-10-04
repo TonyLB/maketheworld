@@ -5,7 +5,7 @@ import {
     ContentHeadersUpdate,
     ZoneUpdatedEvent
 } from './baseClasses'
-import { ContentHeadersEventSerializer } from './serializers'
+import { ContentHeadersEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
 import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
