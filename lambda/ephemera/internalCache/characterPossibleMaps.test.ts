@@ -1,5 +1,4 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 import internalCache from "."
 import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'

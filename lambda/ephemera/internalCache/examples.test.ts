@@ -1,10 +1,10 @@
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { ExamplesData } from './examples'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 
-const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+const assetMock = assetDB as jest.Mocked<typeof assetDB>
 
 describe('ExamplesData', () => {
     let examplesData: ExamplesData
@@ -16,8 +16,8 @@ describe('ExamplesData', () => {
     })
 
     it('should fetch examples correctly', async () => {
-        ephemeraMock.query.mockResolvedValue([{
-            EphemeraId: 'ROOM#TestOne',
+        assetMock.query.mockResolvedValue([{
+            AssetId: 'ROOM#TestOne',
             DataCategory: 'EXAMPLE#Base::TestAsset',
             name: ['Example Name'],
             description: ['Example Description'],
@@ -38,9 +38,9 @@ describe('ExamplesData', () => {
             description: ['Example Description'],
             summary: ['Example Summary']
         })
-        expect(ephemeraMock.query).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.query).toHaveBeenCalledWith({
-            Key: { EphemeraId: 'ROOM#TestOne' },
+        expect(assetMock.query).toHaveBeenCalledTimes(1)
+        expect(assetMock.query).toHaveBeenCalledWith({
+            Key: { AssetId: 'ROOM#TestOne' },
             KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
             ExpressionAttributeValues: {
                 ':dcPrefix': 'EXAMPLE#'
@@ -50,15 +50,15 @@ describe('ExamplesData', () => {
     })
 
     it('should handle empty fetch results', async () => {
-        ephemeraMock.query.mockResolvedValue([])
+        assetMock.query.mockResolvedValue([])
 
         const output = await examplesData.get(['ROOM#TestOne'])
         expect(output).toEqual({
             'ROOM#TestOne': []
         })
-        expect(ephemeraMock.query).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.query).toHaveBeenCalledWith({
-            Key: { EphemeraId: 'ROOM#TestOne' },
+        expect(assetMock.query).toHaveBeenCalledTimes(1)
+        expect(assetMock.query).toHaveBeenCalledWith({
+            Key: { AssetId: 'ROOM#TestOne' },
             KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
             ExpressionAttributeValues: {
                 ':dcPrefix': 'EXAMPLE#'
@@ -108,8 +108,8 @@ describe('ExamplesData', () => {
         examplesData.invalidate('ROOM#TestOne')
         expect(examplesData.isOverridden('ROOM#TestOne')).toBeUndefined()
 
-        ephemeraMock.query.mockResolvedValue([{
-            EphemeraId: 'ROOM#TestOne',
+        assetMock.query.mockResolvedValue([{
+            AssetId: 'ROOM#TestOne',
             DataCategory: 'EXAMPLE#Base::TestAsset',
             name: ['Example Name'],
             description: ['Example Description'],
@@ -124,6 +124,6 @@ describe('ExamplesData', () => {
             }]
         })
         expect(output['ROOM#TestOne'][0].examples[0].toJSON()).toEqual(example.toJSON())
-        expect(ephemeraMock.query).toHaveBeenCalledTimes(1)
+        expect(assetMock.query).toHaveBeenCalledTimes(1)
     })
 })

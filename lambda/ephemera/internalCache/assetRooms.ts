@@ -1,5 +1,5 @@
 import { EphemeraAssetId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types';
 
 export type AssetRoomsItem = {
@@ -15,10 +15,10 @@ export class CacheAssetRoomsData {
     }
     async get(assetId: EphemeraAssetId): Promise<Omit<AssetRoomsItem, 'found'> | undefined> {
         if (!(this.AssetRoomsById[assetId])) {
-            const assetRooms = await ephemeraDB.query<{ EphemeraId: EphemeraRoomId, DataCategory: string }>({
+            const assetRooms = await assetDB.query<{ AssetId: EphemeraRoomId, DataCategory: string }>({
                 IndexName: 'DataCategoryIndex',
                 Key: { DataCategory: assetId },
-                KeyConditionExpression: 'begins_with(EphemeraId, :roomPrefix)',
+                KeyConditionExpression: 'begins_with(AssetId, :roomPrefix)',
                 ExpressionAttributeValues: {
                     ':roomPrefix': 'ROOM#'
                 },        
@@ -26,7 +26,7 @@ export class CacheAssetRoomsData {
             if (assetRooms) {
                 this.AssetRoomsById[assetId] = {
                     EphemeraId: assetId,
-                    rooms: assetRooms.map(({ EphemeraId }) => (EphemeraId)),
+                    rooms: assetRooms.map(({ AssetId }) => (AssetId)),
                     found: true
                 }
             }
@@ -61,8 +61,8 @@ export class CacheRoomAssetsData {
     }
     async get(roomId: EphemeraRoomId): Promise<EphemeraAssetId[] | undefined> {
         if (!(this.RoomAssetsById[roomId])) {
-            const roomAssets = await ephemeraDB.getItem<{ cached?: string[] }>({
-                Key: { EphemeraId: roomId, DataCategory: 'Meta::Room' },
+            const roomAssets = await assetDB.getItem<{ cached?: string[] }>({
+                Key: { AssetId: roomId, DataCategory: 'Meta::Room' },
                 ProjectionFields: ['cached']
             })
             if (roomAssets) {

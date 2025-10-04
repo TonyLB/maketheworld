@@ -3,7 +3,7 @@ import {
     EphemeraKnowledgeId,
     EphemeraRoomId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
@@ -36,8 +36,8 @@ export class ExamplesData {
         this._ExamplesCache.add({
             promiseFactory: async (keys: string[]) => {
                 return await Promise.all(keys.map(async (componentId) => {
-                    const examples = await ephemeraDB.query<{ EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId; DataCategory: string; name: RenderTree; description: RenderTree; summary: RenderTree }>({
-                        Key: { EphemeraId: componentId },
+                    const examples = await assetDB.query<{ AssetId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId; DataCategory: string; name: RenderTree; description: RenderTree; summary: RenderTree }>({
+                        Key: { AssetId: componentId },
                         KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
                         ExpressionAttributeValues: {
                             ':dcPrefix': 'EXAMPLE#'
