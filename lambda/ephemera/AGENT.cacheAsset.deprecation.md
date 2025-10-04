@@ -389,6 +389,11 @@ Before starting implementation, ensure:
 - [x] Testing environment is available for validation
 - [x] Rollback plan is prepared and tested
 - [x] **COMPLETED**: Removed unused `removeAsset` function from assets lambda, ensuring consistent `Component Updated` event pattern for all removals
+- [x] **COMPLETED**: Refactored event structure to eliminate redundant `assetId` properties - now available via `streamKey`
+- [x] **COMPLETED**: Updated all downstream consumers (assets lambda, ephemera lambda) to use new event structure
+- [x] **COMPLETED**: Centralized event type definitions in `mtw-interfaces` and removed duplicate local definitions
+- [x] **COMPLETED**: Updated all tests and documentation to reflect new event structure
+- [x] **COMPLETED**: Eliminated technical debt of duplicate event type definitions across lambdas
 
 ### Phase 1: EventBridge Integration Implementation
 
@@ -400,7 +405,8 @@ Add event handlers for assets system events:
 // In app.ts EventBridge handling section
 case 'Component Updated':
     console.log(`Component Updated: ${JSON.stringify(event.detail, null, 4)}`)
-    const { assetId, componentId, changes } = event.detail
+    const { componentId, changes } = event.detail
+    const assetId = event.detail.streamKey // assetId now comes from streamKey
     if (componentId && changes) {
         // Send Perception updates for affected components
         messageBus.send({
@@ -413,7 +419,7 @@ case 'Component Updated':
 
 case 'Asset Removed':
     console.log(`Asset Removed: ${JSON.stringify(event.detail, null, 4)}`)
-    const { assetId: removedAssetId } = event.detail
+    const removedAssetId = event.detail.streamKey // assetId now comes from streamKey
     if (removedAssetId) {
         messageBus.send({
             type: 'CheckLocation',
@@ -438,7 +444,8 @@ case 'Canon Updated':
 
 case 'Zone Updated':
     console.log(`Zone Updated: ${JSON.stringify(event.detail, null, 4)}`)
-    const { assetId: zoneAssetId, fromZone, toZone } = event.detail
+    const { fromZone, toZone } = event.detail
+    const zoneAssetId = event.detail.streamKey // assetId now comes from streamKey
     if (zoneAssetId && fromZone && toZone) {
         if (toZone === 'Canon') {
             messageBus.send({
@@ -458,7 +465,7 @@ case 'Zone Updated':
 
 case 'Asset Added':
     console.log(`Asset Added: ${JSON.stringify(event.detail, null, 4)}`)
-    const { assetId: newAssetId } = event.detail
+    const newAssetId = event.detail.streamKey // assetId now comes from streamKey
     if (newAssetId) {
         // Optional: Send Perception updates for rooms in new asset
         messageBus.send({
@@ -476,6 +483,8 @@ case 'Asset Added':
 2. **Integration Tests**: Test EventBridge events trigger correct ephemera flows
 3. **Manual Testing**: Verify events from assets system are properly handled
 4. **Performance Testing**: Ensure event handling doesn't impact ephemera performance
+
+**PROGRESS UPDATE**: Event structure refactoring completed - all event types now use `streamKey` for `assetId`, eliminating redundancy and improving consistency across the system. This foundational work makes the EventBridge integration more robust and maintainable.
 
 ### Phase 2: Cache Class Migration Implementation
 
