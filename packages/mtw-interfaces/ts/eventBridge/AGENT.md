@@ -38,6 +38,10 @@ Each data source file (`[dataSource].ts`) contains:
 - **External**: TBD (to be migrated)
 - **Serializer**: TBD (to be migrated)
 
+### Base Classes (`baseClasses.ts`)
+- **Status**: Complete
+- **Contains**: Shared types, interfaces, and utilities for all event contracts
+
 ## Usage Pattern
 
 ```typescript
@@ -57,6 +61,7 @@ const dataSource = new MyDataSource({
 
 ## Migration Status
 
+- [x] **Phase 1**: EventBridge structure established
 - [ ] **WML Events**: Pending migration (Phase 2)
 - [ ] **Assets Events**: Pending migration (Phase 3)
 - [ ] **Ephemera Events**: Pending migration (Phase 4)

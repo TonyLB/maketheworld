@@ -26,10 +26,11 @@ Move event types, type guards, and serializers to `mtw-interfaces/ts/eventBridge
 - [x] Update `mtw-interfaces` top-level `AGENT.md` to reference `eventBridge` directory documentation
 
 ### Phase 1: Establish EventBridge Structure
-- [ ] Create per-data-source files in `mtw-interfaces/ts/eventBridge/`
-- [ ] Define event types, type guards, and serializers for each data source
-- [ ] Export all event contracts from `index.ts`
-- [ ] Update `eventBridge` directory `AGENT.md`
+- [x] Create per-data-source files in `mtw-interfaces/ts/eventBridge/` (wml.ts, assets.ts, ephemera.ts)
+- [x] Set up base classes and shared interfaces in `baseClasses.ts`
+- [x] Update existing `index.ts` to export new event contracts (preserving existing functionality)
+- [x] Update `eventBridge` directory `AGENT.md`
+- [x] Add `mtw-lambda-patterns` dependency to `package.json`
 
 ### Phase 2: Migrate WML Events
 - [ ] Move `WMLEventSerializer`, `WMLEventUpdate`, `WMLEventExternal` from `lambda/wml/dataSource/serializers.ts`
@@ -37,6 +38,7 @@ Move event types, type guards, and serializers to `mtw-interfaces/ts/eventBridge
 - [ ] Update `eventBridge` directory `AGENT.md`
 - [ ] Update `lambda/wml` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
 - [ ] Update `lambda/assets` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
+- [ ] Update this migration document
 
 ### Phase 3: Migrate Assets Events
 - [ ] Move `AssetsEventSerializer`, `AssetsEventUpdate`, `AssetsEventExternal` from `lambda/assets/dataSource/serializers.ts`
@@ -44,11 +46,13 @@ Move event types, type guards, and serializers to `mtw-interfaces/ts/eventBridge
 - [ ] Update `eventBridge` directory `AGENT.md`
 - [ ] Update `lambda/assets` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
 - [ ] Update `lambda/ephemera` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
+- [ ] Update this migration document
 
 ### Phase 4: Migrate Ephemera Events
 - [ ] Move `EphemeraEventSerializer` and related types from `lambda/ephemera/dataSource/serializers.ts`
 - [ ] Update `eventBridge` directory `AGENT.md`
 - [ ] Update `lambda/ephemera` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
+- [ ] Update this migration document
 
 ### Phase 5: Cleanup
 - [ ] Remove old serializer files from lambda directories
