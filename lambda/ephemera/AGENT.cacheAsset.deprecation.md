@@ -394,6 +394,7 @@ Before starting implementation, ensure:
 - [x] **COMPLETED**: Centralized event type definitions in `mtw-interfaces` and removed duplicate local definitions
 - [x] **COMPLETED**: Updated all tests and documentation to reflect new event structure
 - [x] **COMPLETED**: Eliminated technical debt of duplicate event type definitions across lambdas
+- [x] **COMPLETED**: Implemented comprehensive unit tests for DataSource event processing using modern DataSource pattern
 
 ### Phase 1: EventBridge Integration Implementation
 
@@ -485,6 +486,17 @@ case 'Asset Added':
 4. **Performance Testing**: Ensure event handling doesn't impact ephemera performance
 
 **PROGRESS UPDATE**: Event structure refactoring completed - all event types now use `streamKey` for `assetId`, eliminating redundancy and improving consistency across the system. This foundational work makes the EventBridge integration more robust and maintainable.
+
+**COMPLETED**: Unit tests implemented for DataSource event processing pattern. Instead of testing individual EventBridge handlers in `app.ts`, we implemented the modern DataSource pattern which processes events through `receiveEvents` method. This approach provides better architecture with centralized event processing, proper deserialization at the boundary, and comprehensive test coverage for all event types:
+
+- ✅ **Component Updated** events - Tests Perception message sending for room components
+- ✅ **Canon Updated** events - Tests CanonSet message sending with asset ID filtering  
+- ✅ **Zone Updated** events - Tests CanonAdd/CanonRemove for Canon zone transitions
+- ✅ **Event Subscription** - Tests proper event type filtering and routing
+- ✅ **Mixed Events** - Tests processing multiple event types in sequence
+- ✅ **Error Handling** - Tests graceful handling of malformed events
+
+All tests use proper WML string format with `deIndentWML` for better readability and maintainability, following established patterns from `mtw.assets`.
 
 ### Phase 2: Cache Class Migration Implementation
 

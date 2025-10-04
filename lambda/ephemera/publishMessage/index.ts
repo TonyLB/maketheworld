@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession } from "../messageBus/baseClasses"
+import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../internalCache'
 import { messageDeltaDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -183,7 +184,7 @@ class PublishMessageTargetResolver extends TargetResolver {
 }
 
 export const publishMessage = async ({ payloads }: { payloads: PublishMessage[], messageBus?: MessageBus }): Promise<void> => {
-    const baseTime = Date.now()
+    const baseTime = getCurrentTimestamp()
     const mapper = new PublishMessageTargetResolver(internalCache)
 
     let dbPromises: Promise<void>[] = []

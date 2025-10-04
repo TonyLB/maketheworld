@@ -2,7 +2,7 @@ import EphemeraDataSource from './abstract'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { EphemeraEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera'
 import { 
-    AssetsEventExternal,
+    AssetsEventUpdate,
     isAssetsComponentUpdatedEvent,
     isCanonUpdatedEvent,
     isZoneUpdatedEvent
@@ -13,7 +13,7 @@ import { isEphemeraRoomId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/b
 // For first iteration, no UpdatePayload or SnapshotPayload usage
 type EphemeraSubscribedEvent = StreamingEventPayload & {
     dataSourceKey: 'mtw.assets'
-    event: AssetsEventExternal
+    event: AssetsEventUpdate
 }
 
 export const ephemeraDataSource = new EphemeraDataSource<never, never, EphemeraSubscribedEvent>({

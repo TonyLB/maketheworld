@@ -3,6 +3,7 @@
 
 import { parseCommand } from './parse'
 import { StartExecutionCommand } from '@aws-sdk/client-sfn'
+import getCurrentTimestamp from './internalUtils/dateUtil'
 
 import {
     EphemeraAPIMessage,
@@ -107,7 +108,7 @@ export const handler = async (event: any, context: any) => {
                         type: internalEvent.type,
                         update: internalEvent
                     },
-                    timestamp: event.time ? new Date(event.time).getTime() : Date.now()
+                    timestamp: event.time ? new Date(event.time).getTime() : getCurrentTimestamp()
                 })
             }
         } else {
