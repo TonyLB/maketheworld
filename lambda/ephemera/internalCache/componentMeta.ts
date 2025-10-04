@@ -2,7 +2,18 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 
-import { EphemeraKeyMappingMixin, tagFromEphemeraWrappedId } from '../cacheAsset/baseClasses'
+// Recreated types from deleted cacheAsset/baseClasses
+type EphemeraKeyMappingMixin = { EphemeraId: string }
+import { componentTagFromUpperCase } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
+
+const tagFromEphemeraWrappedId = (ephemeraId: string) => {
+    // Extract tag from ephemera ID (e.g., 'ROOM#test' -> 'Room')
+    const parts = ephemeraId.split('#')
+    if (parts.length !== 2) {
+        throw new Error(`Invalid ephemera ID format: ${ephemeraId}`)
+    }
+    return componentTagFromUpperCase(parts[0] as any)
+}
 import {
     isEphemeraId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses';
