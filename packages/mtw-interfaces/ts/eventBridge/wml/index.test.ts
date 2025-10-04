@@ -1,4 +1,4 @@
-import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from './serializers'
+import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal, isWMLContentUpdateEvent } from './index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
@@ -22,7 +22,7 @@ describe('WMLEventSerializer', () => {
 
             const contentEvent: WMLEventUpdate = {
                 type: 'Content Update',
-                schema: standardForm.schema
+                schema: standardForm
             }
 
             const externalEvent = serializer.serialize({ update: contentEvent })
@@ -41,9 +41,8 @@ describe('WMLEventSerializer', () => {
 
             const externalEvent = serializer.serialize({ update: contentEvent })
             expect(externalEvent.type).toBe('Content Removed')
-            if (externalEvent.type === 'Content Removed') {
-                expect(externalEvent.wml).toBeUndefined()
-            }
+            // Content Removed events don't have a wml property
+            expect('wml' in externalEvent).toBe(false)
         })
 
         it('should deserialize Content Update event from WML string', () => {
@@ -67,9 +66,11 @@ describe('WMLEventSerializer', () => {
                 externalUpdate: externalEvent
             })
 
-            expect(internalEvent!.type).toBe('Content Update')
-            if (internalEvent!.type === 'Content Update') {
-                expect(internalEvent!.schema).toBeDefined()
+            expect(internalEvent).not.toBeNull()
+            expect(isWMLContentUpdateEvent(internalEvent!)).toBe(true)
+            if (isWMLContentUpdateEvent(internalEvent!)) {
+                expect(internalEvent.schema).toBeDefined()
+                expect(internalEvent.schema).toBeInstanceOf(StandardForm)
             }
         })
 
@@ -85,7 +86,7 @@ describe('WMLEventSerializer', () => {
 
             const contentEvent: WMLEventUpdate = {
                 type: 'Content Update',
-                schema: originalForm.schema
+                schema: originalForm
             }
 
             // Serialize to external format
@@ -99,9 +100,11 @@ describe('WMLEventSerializer', () => {
             })
             
             // Verify the schema is preserved
-            expect(deserializedEvent!.type).toBe('Content Update')
-            if (deserializedEvent!.type === 'Content Update') {
-                expect(deserializedEvent!.schema).toBeDefined()
+            expect(deserializedEvent).not.toBeNull()
+            expect(isWMLContentUpdateEvent(deserializedEvent!)).toBe(true)
+            if (isWMLContentUpdateEvent(deserializedEvent!)) {
+                expect(deserializedEvent.schema).toBeDefined()
+                expect(deserializedEvent.schema).toBeInstanceOf(StandardForm)
             }
         })
     })
@@ -183,5 +186,21 @@ describe('WMLEventSerializer', () => {
                 })
             }).toThrow('Failed to deserialize WML')
         })
+
+        it('should handle Content Update event missing wml property', () => {
+            const externalEvent = {
+                type: 'Content Update'
+                // Missing wml property
+            } as any
+
+            expect(() => {
+                serializer.deserialize({
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#test-asset',
+                    externalUpdate: externalEvent
+                })
+            }).toThrow("Content Update event missing required 'wml' property")
+        })
     })
+
 })

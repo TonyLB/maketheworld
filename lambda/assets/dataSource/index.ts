@@ -6,9 +6,9 @@ import internalCache from '../internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { cacheAsset, decacheAsset } from './caching'
-import { AssetsEventSerializer, AssetsEventUpdate } from './serializers'
+import { AssetsEventSerializer, AssetsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { WMLEventUpdate } from '../../wml/dataSource/serializers'
+import { WMLEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 // Separate type for WML events with precise typing

@@ -1,7 +1,13 @@
+// Assets Data Source Event Contracts
+// 
+// This file contains event types, type guards, and serializers for the Assets data source.
+// Migrated from lambda/assets/dataSource/serializers.ts
+
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { isStandardComponent, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { StandardRemove, StandardReplace } from '@tonylb/mtw-wml/ts/standardize/components/edits'
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
+import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
 // Internal types for component events (using StandardComponent objects)
@@ -20,7 +26,7 @@ export const isComponentUpdatedEvent = (event: ComponentEventUpdate): event is C
 
 // Type guards for assets events (full union type)
 export const isAssetsComponentUpdatedEvent = (event: any): event is ComponentUpdatedEvent => {
-    return event &&
+    return event != null &&
         typeof event === 'object' &&
         'type' in event &&
         event.type === 'Component Updated'
@@ -33,7 +39,7 @@ export const isAssetsComponentEvent = (event: any): event is ComponentEventUpdat
 }
 
 export const isAssetsLevelEvent = (event: AssetsEventUpdate): event is AssetLevelEventUpdate => {
-    return 'type' in event && ['CacheAsset', 'DecacheAsset', 'Asset Removed', 'Canon Updated'].includes(event.type)
+    return 'type' in event && ['Asset Cached', 'Asset Decached', 'Asset Removed', 'Canon Updated'].includes(event.type)
 }
 
 export type ComponentEventExternal = ComponentUpdatedEventExternal
@@ -121,14 +127,16 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
     }
     
     private parseWMLToComponent(wml: string, componentId: string): StandardComponent {
-        // Parse WML back to StandardComponent
-        // This is a simplified implementation - in practice you might need more robust parsing
-        const standardForm = new StandardForm(wml)
-        const component = standardForm._components.find(c => c.universalKey === componentId)
+        // Parse WML back to StandardComponent using the proper factory
+        // The WML should be just the component itself, not wrapped in an Asset
+        const node = nodeFromWML(wml)
+        const component = standardComponentFactory(node)
         if (!component) {
-            throw new Error(`Could not find component ${componentId} in WML: ${wml}`)
+            throw new Error(`Could not create component from WML: ${wml}`)
+        }
+        if (component.universalKey !== componentId) {
+            throw new Error(`Component ID mismatch: expected ${componentId}, got ${component.universalKey}`)
         }
         return component
     }
 }
-

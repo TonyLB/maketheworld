@@ -103,7 +103,7 @@ WebSocket Client (Import Navigator)
 
 #### Files Created
 - [x] `lambda/assets/contentHeaders/baseClasses.ts` - Internal event type definitions and type guards
-- [x] `lambda/assets/contentHeaders/serializers.ts` - Event serialization logic with proper boundary between internal StandardForm objects and external WML strings
+- [x] Event serialization logic moved to `@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders` - Event format conversion between internal StandardForm objects and external WML strings
 - [x] `lambda/assets/contentHeaders/extractHeader.ts` - Header extraction utilities (already existed)
 - [x] `lambda/assets/contentHeaders/index.ts` - Main DataSource implementation with proper type safety and event subscription
 

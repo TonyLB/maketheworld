@@ -1,3 +1,8 @@
+// Ephemera Data Source Event Contracts
+// 
+// This file contains event types, type guards, and serializers for the Ephemera data source.
+// Migrated from lambda/ephemera/dataSource/serializers.ts
+
 import { DataSourceEventSerializer, EventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // For first iteration, Ephemera has no concrete emitted events. This pass-through
@@ -15,5 +20,3 @@ export class EphemeraEventSerializer implements DataSourceEventSerializer<Epheme
         return params.externalUpdate
     }
 }
-
-

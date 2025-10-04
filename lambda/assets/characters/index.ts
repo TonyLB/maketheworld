@@ -9,8 +9,8 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { StandardRemove, StandardReplace } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
-import { CharacterEventSerializer, CharacterEventUpdate } from './serializers'
-import { ComponentEventUpdate, isAssetsComponentEvent } from '../dataSource/serializers'
+import { CharacterEventSerializer, CharacterEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
+import { ComponentEventUpdate, isAssetsComponentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Types for the characters data source

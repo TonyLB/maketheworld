@@ -32,7 +32,7 @@ import { sfnClient } from './clients'
 import { cacheAsset } from './cacheAsset'
 import decacheAsset from './decacheAsset'
 import { confirmGuestCharacter } from './guestCharacter'
-import { AssetsEventSerializer } from '../assets/dataSource/serializers'
+import { AssetsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {

@@ -1,15 +1,12 @@
 import { contentHeadersDataSource, SubscribedAssetsEvent, SubscribedWMLEvent, SubscribedEvent } from './index'
-import { ContentHeadersEventSerializer } from './serializers'
-import { ComponentEventUpdate } from '../dataSource/serializers'
+import { ContentHeadersEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
-import { extractComponentMetadata } from './serializers'
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 
@@ -44,10 +41,6 @@ jest.mock('../internalCache', () => ({
     }
 }))
 
-jest.mock('./serializers', () => ({
-    ...jest.requireActual('./serializers'),
-    extractComponentMetadata: jest.fn()
-}))
 
 jest.mock('./extractHeader', () => ({
     extractHeader: jest.fn()
@@ -55,7 +48,6 @@ jest.mock('./extractHeader', () => ({
 
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
-const extractComponentMetadataMock = jest.mocked(extractComponentMetadata, { shallow: false })
 const extractHeaderMock = jest.mocked(require('./extractHeader').extractHeader, { shallow: false })
 
 describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
@@ -67,8 +59,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
         // Mock internal cache
         internalCacheMock.AssetData.get.mockResolvedValue([])
         internalCacheMock.AssetMetaData.get.mockResolvedValue([])
-        // Mock extractComponentMetadata
-        extractComponentMetadataMock.mockReturnValue(null)
         // Mock extractHeader
         extractHeaderMock.mockReturnValue(undefined)
     })
@@ -189,14 +179,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 standardForm: mockStandardForm
             }])
 
-            // Mock extractComponentMetadata to return a StandardForm
-            const mockHeaderStandardForm = new StandardForm(`
-                <Asset key=(test)>
-                    <Room uuid=(room1) key=(room1)>
-                        <ShortName>Test Room</ShortName>
-                    </Room>
-                </Asset>`)
-            extractComponentMetadataMock.mockReturnValue(mockHeaderStandardForm)
             
             // Mock extractHeader to return a component with header
             const mockHeaderComponent = new StandardRoom({
@@ -615,7 +597,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'global',
                     event: {
                         type: 'Zone Changed',
-                        AssetId: 'ASSET#test1',
                         fromZone: 'Canon',
                         toZone: 'Library'
                     },
@@ -645,7 +626,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         streamKey: 'ASSET#test1',
                         event: {
                             type: 'Zone Changed',
-                            AssetId: 'ASSET#test1',
                             fromZone: 'Canon',
                             toZone: 'Library'
                         },
@@ -656,7 +636,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         streamKey: 'ASSET#test2',
                         event: {
                             type: 'Zone Changed',
-                            AssetId: 'ASSET#test2',
                             fromZone: 'Library',
                             toZone: 'Personal'
                         },
@@ -705,7 +684,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         streamKey: 'ASSET#test1',
                         event: {
                             type: 'Zone Changed',
-                            AssetId: 'ASSET#test1',
                             fromZone: 'Canon',
                             toZone: 'Library'
                         },

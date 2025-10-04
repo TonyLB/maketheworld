@@ -1,5 +1,6 @@
-import { EphemeraCharacterId } from "./baseClasses";
+import { EphemeraCharacterId } from "../baseClasses";
 
+// Legacy EventBridge types (existing functionality)
 type AssetWorkspaceConstructorBase = {
     fileName: string;
     subFolder?: string;
@@ -45,3 +46,10 @@ export type EventBridgeUpdatePlayer = {
         guestId?: string;
     }
 }
+
+// Data Source Event Contracts (new functionality)
+// Import directly from specific data source directories:
+// - @tonylb/mtw-interfaces/ts/eventBridge/wml
+// - @tonylb/mtw-interfaces/ts/eventBridge/assets  
+// - @tonylb/mtw-interfaces/ts/eventBridge/ephemera
+// - @tonylb/mtw-interfaces/ts/eventBridge/baseClasses

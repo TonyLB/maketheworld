@@ -1,5 +1,5 @@
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
-import { ComponentEventUpdate, ComponentUpdatedEvent } from "../serializers"
+import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import internalCache from "../../internalCache"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"

@@ -5,8 +5,8 @@ import {
     ContentHeadersUpdate,
     ZoneUpdatedEvent
 } from './baseClasses'
-import { ContentHeadersEventSerializer } from './serializers'
-import { ComponentEventUpdate, ComponentUpdatedEvent } from '../dataSource/serializers'
+import { ContentHeadersEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
+import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -14,7 +14,7 @@ import internalCache from '../internalCache'
 import { extractHeader } from './extractHeader'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { WMLZoneEvent, isWMLZoneEvent } from '../../wml/dataSource/serializers'
+import { WMLZoneEvent, isWMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 
 //
 // Replayable DataSource singleton for mtw.assets.contentHeaders
