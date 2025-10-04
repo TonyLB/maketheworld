@@ -30,7 +30,6 @@ import roomUpdateMessage from '../roomUpdate'
 
 import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscription'
 import mapUpdateMessage from '../mapUpdate'
-import { canonUpdateMessage } from '../canonUpdate'
 import checkLocation from "../checkLocation"
 import characterEvent from "../characterEvents"
 import { executeActionMessage } from "../parse/executeAction"
@@ -119,12 +118,6 @@ messageBus.subscribe({
     priority: 15,
     filter: isMapUpdateMessage,
     callback: mapUpdateMessage
-})
-messageBus.subscribe({
-    tag: 'CanonUpdate',
-    priority: 1,
-    filter: isCanonUpdateMessage,
-    callback: canonUpdateMessage
 })
 messageBus.subscribe({
     tag: 'ExecuteAction',

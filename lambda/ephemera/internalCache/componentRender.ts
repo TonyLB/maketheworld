@@ -26,7 +26,6 @@ import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { ExampleComponentId, ExamplesData, ExamplesReturn } from './examples';
 import { CacheRoomCharacterListsData } from './roomCharacterLists';
 import { AssetUUID, ComponentUUID, SchemaOutputTag } from '@tonylb/mtw-base/ts/schema';
-import { EphemeraCondition } from '../cacheAsset/baseClasses';
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
 import { StandardKey } from '@tonylb/mtw-wml/ts/standardize/components/reference';
@@ -62,13 +61,6 @@ type ComponentRenderGetOptions = {
 }
 
 const generateCacheKey = (CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions) => (`${CharacterId}::${EphemeraId}::${(options && 'header' in options && options.header) ? 'true' : 'false'}`)
-
-// Conditional filtering removed - all conditional content now evaluates to "nothing"
-// Returns empty array since conditions can no longer be evaluated
-export const filterAppearances = (_evaluateCode?: any) => async <T extends { conditions: EphemeraCondition[] }>(_possibleAppearances: T[]): Promise<T[]> => {
-    // All conditional appearances are filtered out - return empty array
-    return []
-}
 
 export const isComponentTag = (tag) => (['Room', 'Feature'].includes(tag))
 

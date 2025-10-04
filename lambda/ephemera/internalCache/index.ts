@@ -5,7 +5,6 @@ import CacheCharacterMetaData from './characterMeta';
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
 
 import ComponentMetaData from './componentMeta';
-import CacheAssetMetaData from './assetMeta';
 import { CacheAssetRoomsData, CacheRoomAssetsData } from './assetRooms';
 import { GraphCacheType, GraphEdgeType, GraphNodeType } from './graph';
 import OrchestrateMessagesData from './orchestrateMessages';
@@ -41,7 +40,6 @@ export class InternalCache {
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     RoomCharacterList: CacheRoomCharacterListsData = new CacheRoomCharacterListsData()
     CharacterMeta: CacheCharacterMetaData = new CacheCharacterMetaData()
-    AssetMeta: CacheAssetMetaData = new CacheAssetMetaData()
     AssetRooms: CacheAssetRoomsData = new CacheAssetRoomsData()
     RoomAssets: CacheRoomAssetsData = new CacheRoomAssetsData()
     SessionConnections: CacheSessionConnectionsData = new CacheSessionConnectionsData()
@@ -89,7 +87,6 @@ export class InternalCache {
         this.OrchestrateMessages.clear()
         this.RoomCharacterList.clear()
         this.CharacterMeta.clear()
-        this.AssetMeta.clear()
         this.AssetRooms.clear()
         this.RoomAssets.clear()
         this.SessionConnections.clear()

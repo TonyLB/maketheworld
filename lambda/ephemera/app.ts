@@ -30,8 +30,6 @@ import { extractReturnValue } from './returnValue'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
 
 import { sfnClient } from './clients'
-import { cacheAsset } from './cacheAsset'
-import decacheAsset from './decacheAsset'
 import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 
@@ -58,21 +56,6 @@ export const handler = async (event: any, context: any) => {
     //
     if (event?.message) {
         switch(event.message) {
-            case 'cacheAssets':
-                const addresses: { AssetId: EphemeraAssetId | EphemeraCharacterId; address: AssetWorkspaceAddress }[] = event.addresses || []
-                addresses.forEach((address) => {
-                    internalCache.AssetAddress.set({ EphemeraId: address.AssetId, address: address.address })
-                })
-                await Promise.all(event.assetIds.map((assetId) => (cacheAsset({ messageBus, assetId, updateOnly: event.options.updateOnly }))))
-                await messageBus.flush()
-                return {}
-            case 'decacheAssets':
-                if (event.assetIds.find((assetId) => (!(isEphemeraAssetId(assetId) || isEphemeraCharacterId(assetId))))) {
-                    throw new Error('AssetIds incorrectly formatted for decacheAssets')
-                }
-                await Promise.all(event.assetIds.map((assetId) => (decacheAsset({ messageBus, assetId }))))
-                await messageBus.flush()
-                return {}
         }
     }
 
@@ -151,14 +134,6 @@ export const handler = async (event: any, context: any) => {
                 }
             case 'Player Connected':
                 await confirmGuestCharacter(event.detail.player)
-                await messageBus.flush()
-                return await extractReturnValue(messageBus)
-            case 'Content Update':
-                await cacheAsset({
-                    assetId: event.detail.AssetId,
-                    messageBus,
-                    updateOnly: true
-                })
                 await messageBus.flush()
                 return await extractReturnValue(messageBus)
         }

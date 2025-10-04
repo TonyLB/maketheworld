@@ -1,7 +1,14 @@
 import { PerceptionMessage as PerceptionRequestMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage, isPerceptionComponentMessage } from "../messageBus/baseClasses"
 import { PerceptionMessage } from "@tonylb/mtw-interfaces/ts/messages"
 import { internalCache } from "../internalCache"
-import { EphemeraCharacter } from "../cacheAsset/baseClasses"
+// Recreated type from deleted cacheAsset/baseClasses
+type EphemeraCharacter = {
+    Name?: string;
+    Pronouns?: string;
+    fileURL?: string;
+    Color?: string;
+    [key: string]: any;
+}
 import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import {
     EphemeraMessageId,
