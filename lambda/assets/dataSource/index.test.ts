@@ -1,5 +1,5 @@
 import { assetsDataSource } from './index'
-import { AssetsEventUpdate } from './serializers'
+import { AssetsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'

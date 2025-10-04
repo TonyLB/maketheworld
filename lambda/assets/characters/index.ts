@@ -10,7 +10,7 @@ import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/cha
 import { StandardRemove, StandardReplace } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { CharacterEventSerializer, CharacterEventUpdate } from './serializers'
-import { ComponentEventUpdate, isAssetsComponentEvent } from '../dataSource/serializers'
+import { ComponentEventUpdate, isAssetsComponentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Types for the characters data source

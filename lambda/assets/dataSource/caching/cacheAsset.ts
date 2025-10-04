@@ -4,7 +4,7 @@ import AssetWorkspace from "@tonylb/mtw-asset-workspace";
 import { StandardRemove } from "@tonylb/mtw-wml/ts/standardize/components/edits";
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
-import { ComponentEventUpdate, ComponentUpdatedEvent } from "../serializers";
+import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets';
 
 /**
  * Cache asset content to DynamoDB storage

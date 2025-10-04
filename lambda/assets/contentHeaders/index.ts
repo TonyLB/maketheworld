@@ -6,7 +6,7 @@ import {
     ZoneUpdatedEvent
 } from './baseClasses'
 import { ContentHeadersEventSerializer } from './serializers'
-import { ComponentEventUpdate, ComponentUpdatedEvent } from '../dataSource/serializers'
+import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'

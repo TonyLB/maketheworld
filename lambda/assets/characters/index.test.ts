@@ -1,6 +1,6 @@
 import { charactersDataSource, CharacterEventPayload, CharacterSnapshotPayload } from './index'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { ComponentEventUpdate } from '../dataSource/serializers'
+import { ComponentEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'

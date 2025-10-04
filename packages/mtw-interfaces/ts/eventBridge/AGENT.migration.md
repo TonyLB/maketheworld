@@ -40,13 +40,13 @@ Move event types, type guards, and serializers to `mtw-interfaces/ts/eventBridge
 - [x] Update `lambda/assets` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
 - [x] Update this migration document
 
-### Phase 3: Migrate Assets Events
-- [ ] Move `AssetsEventSerializer`, `AssetsEventUpdate`, `AssetsEventExternal` from `lambda/assets/dataSource/serializers.ts`
-- [ ] Move `ComponentEventUpdate`, `AssetLevelEventUpdate` and related type guards
-- [ ] Update `eventBridge` directory `AGENT.md`
-- [ ] Update `lambda/assets` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
-- [ ] Update `lambda/ephemera` to import from `@tonylb/mtw-interfaces/ts/eventBridge`
-- [ ] Update this migration document
+### Phase 3: Migrate Assets Events ✅ COMPLETE
+- [x] Move `AssetsEventSerializer`, `AssetsEventUpdate`, `AssetsEventExternal` from `lambda/assets/dataSource/serializers.ts`
+- [x] Move `ComponentEventUpdate`, `AssetLevelEventUpdate` and related type guards
+- [x] Update `eventBridge` directory `AGENT.md`
+- [x] Update `lambda/assets` to import from `@tonylb/mtw-interfaces/ts/eventBridge/assets`
+- [x] Update `lambda/ephemera` to import from `@tonylb/mtw-interfaces/ts/eventBridge/assets`
+- [x] Update this migration document
 
 ### Phase 4: Migrate Ephemera Events
 - [ ] Move `EphemeraEventSerializer` and related types from `lambda/ephemera/dataSource/serializers.ts`
