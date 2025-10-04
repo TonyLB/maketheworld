@@ -1,4 +1,4 @@
-import { EphemeraCharacterId } from "./baseClasses";
+import { EphemeraCharacterId } from "../baseClasses";
 
 type AssetWorkspaceConstructorBase = {
     fileName: string;

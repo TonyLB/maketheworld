@@ -107,7 +107,7 @@ Defines interfaces for long-running operation status:
 - **`CoordinationClientSuccessMessage`**: Operation completion
 - **`CoordinationClientErrorMessage`**: Operation failures
 
-### 6. **Event Bridge** (`eventBridge.ts`)
+### 6. **Event Bridge** (`eventBridge/`)
 
 Defines AWS EventBridge event formats for player updates:
 
