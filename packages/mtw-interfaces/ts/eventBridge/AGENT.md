@@ -23,20 +23,26 @@ Each data source file (`[dataSource].ts`) contains:
 
 ## Available Data Sources
 
-### WML Events (`wml.ts`)
+### WML Events (`wml/`)
+- **File**: `wml/index.ts`
 - **Internal**: `WMLContentEvent`, `WMLZoneEvent`
 - **External**: `WMLContentEventExternal`, `WMLZoneEventExternal`
 - **Serializer**: `WMLEventSerializer`
+- **Future**: Sub-sources like `wml/coordination.ts` can be added
 
-### Assets Events (`assets.ts`)
+### Assets Events (`assets/`)
+- **File**: `assets/index.ts`
 - **Internal**: `ComponentEventUpdate`, `AssetLevelEventUpdate`
 - **External**: `ComponentEventExternal`, `AssetLevelEventExternal`
 - **Serializer**: `AssetsEventSerializer`
+- **Future**: Sub-sources like `assets/characters.ts` can be added
 
-### Ephemera Events (`ephemera.ts`)
+### Ephemera Events (`ephemera/`)
+- **File**: `ephemera/index.ts`
 - **Internal**: TBD (to be migrated)
 - **External**: TBD (to be migrated)
 - **Serializer**: TBD (to be migrated)
+- **Future**: Sub-sources can be added as needed
 
 ### Base Classes (`baseClasses.ts`)
 - **Status**: Complete

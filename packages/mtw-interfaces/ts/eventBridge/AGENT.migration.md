@@ -68,10 +68,14 @@ Move event types, type guards, and serializers to `mtw-interfaces/ts/eventBridge
 packages/mtw-interfaces/ts/eventBridge/
 ├── AGENT.migration.md          # This file
 ├── index.ts                    # Export all event contracts
-├── wml.ts                      # WML data source events
-├── assets.ts                   # Assets data source events
-├── ephemera.ts                 # Ephemera data source events
-└── baseClasses.ts              # Shared event types and interfaces
+├── baseClasses.ts              # Shared event types and interfaces
+├── wml/                        # WML data source events
+│   └── index.ts                # Main WML event contracts
+├── assets/                     # Assets data source events
+│   └── index.ts                # Main Assets event contracts
+│   └── characters.ts           # Future: Assets characters sub-source
+└── ephemera/                   # Ephemera data source events
+    └── index.ts                # Main Ephemera event contracts
 ```
 
 ## Implementation Guidelines
