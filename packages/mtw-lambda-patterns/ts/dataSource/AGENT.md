@@ -169,10 +169,28 @@ The multi-stream architecture enables:
 - **Error Handling**: Graceful degradation and retry logic
 - **Performance**: Efficient serialization and storage operations
 
-### Common Implementation Pattern
-**Lambda-Specific Sub-classing**: Create a sub-class of `DataSource` for each lambda to localize common configuration:
+### Three-Phase Data Source Implementation Pattern
 
-**Purpose**: Eliminate repetitive constructor arguments by pre-configuring lambda-specific resources and settings.
+**Phase 1: Define Event Contracts in `mtw-interfaces`**
+Before implementing a DataSource, define the event contracts in the shared interface layer:
+
+1. **Create Event Types**: Define internal and external event types in `mtw-interfaces/ts/eventBridge/[dataSource].ts`
+2. **Implement Type Guards**: Create type guard functions for event validation
+3. **Build Serializers**: Implement `DataSourceEventSerializer` for EventBridge integration
+4. **Export Contracts**: Make all event contracts available via `@tonylb/mtw-interfaces/ts/eventBridge`
+
+**Benefits:**
+- **Service Isolation**: No cross-lambda dependencies
+- **Centralized Contracts**: Event definitions in shared interface layer
+- **Deployment Independence**: Each lambda can be deployed independently
+- **Clear Separation**: Lambda resources vs. DataSource-specific configuration
+
+**Phase 2: Create Lambda-Specific Base Class**
+Create a sub-class of `DataSource` for each lambda to localize common configuration:
+
+1. **Lambda-Specific Sub-classing**: Create a base class extending `DataSource` with pre-configured lambda resources
+2. **Import Event Contracts**: Import serializers and types from `@tonylb/mtw-interfaces/ts/eventBridge`
+3. **Configure Common Parameters**: Set up lambda-specific resources that all DataSources in this lambda will use
 
 **Configuration Parameters to Localize**:
 - **`dynamo`**: DynamoDB utilities instance for the lambda's table
@@ -188,7 +206,24 @@ The multi-stream architecture enables:
 - **Maintainability**: Centralize lambda-specific configuration changes
 - **Type Safety**: Pre-configure domain-specific types and constraints
 
-**Usage Pattern**: Create a lambda-specific base class by extending `DataSource` with pre-configured common parameters, then instantiate that base class for individual data sources with only the unique parameters (dataSourceKey, snapshotContentGenerator, etc.).
+**Phase 3: Instantiate Individual DataSources**
+Create specific DataSource instances using the lambda-specific base class:
+
+1. **Import Event Serializers**: Import specific serializers from `@tonylb/mtw-interfaces/ts/eventBridge`
+2. **Instantiate DataSources**: Create individual DataSource instances with unique parameters
+3. **Configure Per-DataSource Parameters**: Set dataSourceKey, snapshotContentGenerator, and eventSerializer
+
+**Per-DataSource Configuration Parameters**:
+- **`dataSourceKey`**: Unique identifier for this specific data source
+- **`snapshotContentGenerator`**: Function to generate snapshots for this data source
+- **`eventSerializer`**: Event serializer specific to this data source's event types
+- **`replayable`**: Whether this data source supports replay functionality
+
+**Usage Pattern**: 
+1. Define event contracts in `mtw-interfaces/ts/eventBridge/[dataSource].ts`
+2. Create a lambda-specific base class by extending `DataSource` with pre-configured lambda resources
+3. Import event serializers from `@tonylb/mtw-interfaces/ts/eventBridge`
+4. Instantiate the base class for individual data sources with DataSource-specific parameters (dataSourceKey, snapshotContentGenerator, eventSerializer, etc.)
 
 ### Testing Strategy
 - **Unit Tests**: Individual method functionality

@@ -21,9 +21,9 @@ Move event types, type guards, and serializers to `mtw-interfaces/ts/eventBridge
 ## Migration Strategy
 
 ### Phase 0: Document changing design patterns
-- [ ] Update `mtw-lambda-patterns` documentation to describe the new two-phase pattern for implementing a new data source
-- [ ] Add stub `AGENT.md` to `mtw-interfaces/ts/eventBridge` directory to act as navigation guide to the various types
-- [ ] Update `mtw-interfaces` top-level `AGENT.md` to reference `eventBridge` directory documentation
+- [x] Update `mtw-lambda-patterns` documentation to describe the new three-phase pattern for implementing a new data source
+- [x] Add stub `AGENT.md` to `mtw-interfaces/ts/eventBridge` directory to act as navigation guide to the various types
+- [x] Update `mtw-interfaces` top-level `AGENT.md` to reference `eventBridge` directory documentation
 
 ### Phase 1: Establish EventBridge Structure
 - [ ] Create per-data-source files in `mtw-interfaces/ts/eventBridge/`

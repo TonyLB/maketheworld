@@ -107,14 +107,27 @@ Defines interfaces for long-running operation status:
 - **`CoordinationClientSuccessMessage`**: Operation completion
 - **`CoordinationClientErrorMessage`**: Operation failures
 
-### 6. **Event Bridge** (`eventBridge/`)
+### 6. **EventBridge Event Contracts** (`eventBridge/`)
 
-Defines AWS EventBridge event formats for player updates:
+Defines event contracts for cross-service communication via AWS EventBridge:
 
-#### **Event Types**
+#### **Event Contract Structure**
+- **Internal Event Types**: Clean, domain-specific representations for messageBus processing
+- **External Event Types**: Transmittable representations for EventBridge communication
+- **Type Guards**: Functions for runtime event validation
+- **Serializers**: Classes implementing `DataSourceEventSerializer` interface
+
+#### **Available Data Sources**
+- **WML Events** (`wml.ts`): Content and zone change events
+- **Assets Events** (`assets.ts`): Component and asset-level events
+- **Ephemera Events** (`ephemera.ts`): Real-time game state events
+
+#### **Legacy Event Types** (to be migrated)
 - **`EventBridgeUpdatePlayer`**: Player profile and character updates
 - **`EventBridgeUpdatePlayerCharacter`**: Individual character updates
 - **`EventBridgeUpdatePlayerAsset`**: Asset ownership updates
+
+For detailed information, see **[EventBridge Documentation](./ts/eventBridge/AGENT.md)**.
 
 ## Base Classes and Utilities
 

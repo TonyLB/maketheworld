@@ -233,6 +233,11 @@ The DataSource pattern uses the `eventSerializer` constructor parameter to handl
 - **`serialize(params)`**: Convert internal update payload to external format for transmission
 - **`deserialize(params)`**: Convert external update payload back to internal format
 
+**New Architecture**: Event serializers are now defined in `mtw-interfaces/ts/eventBridge/` and imported by lambdas:
+- **Centralized Contracts**: All event types and serializers in shared interface layer
+- **Service Isolation**: No cross-lambda dependencies
+- **Import Pattern**: `import { MyEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge'`
+
 **Standard Pattern**: Use class-based serializers for better type safety, testability, and reusability:
 
 ```typescript
