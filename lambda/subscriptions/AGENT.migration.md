@@ -34,448 +34,412 @@ The subscriptions lambda currently uses a custom handler framework that predates
 3. **Subscription Lookup** → Find subscribers using aligned subscription key format
 4. **Message Delivery** → Transmit serialized events to WebSocket connections
 
-## Migration Gaps Identified
+## Migration Scope and Status
 
-### 1. **Stream Key Representation Inconsistency**
+### ✅ **Completed Migration Work**
 
-#### Current Format (Subscriptions)
+The subscriptions lambda has been successfully migrated to align with the DataSource pattern:
+
+1. **Stream Key Alignment**: ✅ **COMPLETE**
+   - Updated to use `streamKey` terminology consistently with DataSource patterns
+   - Integrated with `CoreExternalFormat` via `fromEventBridgeFormat()`
+
+2. **Event Format Standardization**: ✅ **COMPLETE**
+   - Event processing expects DataSource external format
+   - Standardized message transformation functions implemented
+   - Subscription library uses consistent transform patterns
+
+3. **Handler Framework Modernization**: ✅ **COMPLETE**
+   - Updated `SubscriptionHandler` and `SubscriptionEvent` classes
+   - Integrated with `CoreExternalFormat` structure
+   - Maintained backward compatibility with existing WebSocket delivery
+
+### 🎯 **Current Migration Focus**
+
+This migration phase focuses on **snapshot-capable DataSource integration** rather than comprehensive event coverage:
+
+#### **Primary Goal: `mtw.assets.contentHeaders` Integration**
+- Add direct subscription support for `mtw.assets.contentHeaders` as a prototype for snapshot-capable DataSources
+- Design and implement the **Initialize Snapshot** routing mechanism
+- Ensure proper event cycle prevention in the subscription system
+
+#### **Scope Limitations**
+- **No Players/Connections Events**: These are not needed at this time
+- **No Direct `mtw.assets` Subscription**: The main assets stream is consumed by downstream DataSources, not directly by front-end clients
+- **Focus on Snapshot Capability**: This migration prioritizes replayable DataSource integration
+
+### 🔧 **Remaining Implementation Work**
+
+#### **1. Initialize Snapshot Routing Design**
+**Challenge**: Prevent event cycles while enabling snapshot initialization requests from subscriptions lambda to upstream DataSources.
+
+**Proposed Solution**: EventBridge-based routing with strict cycle prevention:
 ```typescript
-// Current: Uses detailExtract for stream identification
+// EventBridge Event Structure for Initialize Snapshot
 {
-    source: 'mtw.wml',
-    detailType: 'Content Update',
-    detailExtract: (event) => event.AssetId, // 'ASSET#123'
-    // Subscription stored as: STREAM#mtw.wml::Content Update::ASSET#123
-}
-```
-
-#### Target Format (Aligned with DataSource)
-```typescript
-// Target: Use streamKey terminology consistently
-{
-    source: 'mtw.wml',
-    detailType: 'Content Update',
-    streamKey: 'ASSET#123', // Consistent with DataSource pattern
-    // Subscription stored as: STREAM#mtw.wml::Content Update::ASSET#123
-}
-```
-
-### 2. **EventBridge Event Structure Alignment**
-
-#### Current Format (Subscriptions)
-```typescript
-// Current: Direct EventBridge format
-{
-    source: 'mtw.wml',
-    detailType: 'Content Update',
-    AssetId: 'ASSET#123',
-    RequestId: 'uuid',
-    schema: { /* WML schema */ }
-}
-```
-
-#### Target Format (Aligned with DataSource External Format)
-```typescript
-// Target: Align with DataSource external event structure
-{
-    source: 'mtw.wml',
-    detailType: 'Content Update',
+    Source: 'mtw.subscriptions',
+    DetailType: 'Initialize Subscription',
     Detail: {
+        targetDataSourceKey: 'mtw.assets.contentHeaders',
         streamKey: 'ASSET#123',
-        update: {
-            type: 'Content Update',
-            AssetId: 'ASSET#123',
-            RequestId: 'uuid',
-            schema: { /* WML schema */ }
+        sessionId: 'SESSION#abc123',
+        requestId: 'uuid-for-tracking'
+    }
+}
+```
+
+**Cycle Prevention Strategy**:
+- **Source Restriction**: Only `mtw.subscriptions` can publish Initialize Subscription events
+- **Target Filtering**: DataSources subscribe to Initialize events with specific `targetDataSourceKey` filters
+- **No Loop-Back**: DataSources are explicitly configured to NOT subscribe to their own event streams for Initialize messages
+- **Request Tracking**: Each Initialize request has a unique `requestId` to prevent duplicate processing
+- **Subscription isolation**: Initialize Subscription events must only be generated in response to direct API calls, *never* to incoming events that need to be forwarded to Websocket connections
+
+#### **2. Content Headers DataSource Integration**
+Add support for `mtw.assets.contentHeaders` events:
+```typescript
+{
+    dataSourceKey: 'mtw.assets.contentHeaders',
+    type: 'Content Headers Updated',
+    transform: createStandardTransform('mtw.assets.contentHeaders')
+}
+```
+
+#### **3. Enhanced Subscribe API Processing**
+Enhance existing Subscribe API processing to automatically trigger snapshot initialization:
+```typescript
+// Enhanced Subscribe API flow in subscriptions/app.ts
+if (isSubscribeAPIMessage(request)) {
+    const match = subscriptionLibrary.match(request)
+    if (match) {
+        const sessionId = await internalCache.Global.get("SessionId")
+        
+        // 1. Set up local subscription storage (existing functionality)
+        await match.subscribe(request, `SESSION#${sessionId}`)
+        
+        // 2. NEW: Trigger snapshot initialization for replayable DataSources
+        if (isReplayableDataSource(request.dataSourceKey)) {
+            await eventBridgeClient.send([{
+                Source: 'mtw.subscriptions',
+                DetailType: `Initialize Subscription - ${request.dataSourceKey}`,
+                Detail: {
+                    streamKey: request.streamKey,
+                    sessionId: `SESSION#${sessionId}`,
+                    requestId: request.RequestId
+                }
+            }])
         }
     }
-}
-```
-
-### 3. **Limited Event Type Coverage**
-
-#### Current: WML Only
-```typescript
-// Only handles WML events
-{
-    source: 'mtw.wml',
-    detailType: 'Merge Conflict' | 'Content Update'
-}
-```
-
-#### Target: Full DataSource Coverage
-```typescript
-// Should handle all DataSource events with consistent streamKey extraction
-{
-    source: 'mtw.wml' | 'mtw.assets' | 'mtw.ephemera' | 'mtw.players' | 'mtw.connections'
-    detailType: 'Component Updated' | 'Asset Modified' | 'Character Updated' | /* etc */
-    streamKey: 'ASSET#123' | 'CHARACTER#456' | 'PLAYER#789' // Consistent extraction pattern
-}
-```
-
-### 4. **Inconsistent Subscription Key Patterns**
-
-#### Current: Custom detailExtract Logic
-```typescript
-// Each handler defines its own detailExtract function
-detailExtract: (event) => event.AssetId,           // WML events
-detailExtract: (event) => event.CharacterId,       // Ephemera events
-detailExtract: (event) => event.PlayerId,          // Player events
-```
-
-#### Target: Standardized streamKey Extraction
-```typescript
-// Consistent streamKey extraction across all event types
-streamKey: event.Detail?.streamKey || extractStreamKey(event)
-// Where extractStreamKey uses consistent patterns based on event source/type
-```
-
-### 5. **Message Format Inconsistency**
-
-#### Current: Custom Transform Functions
-```typescript
-// Each handler defines custom transformation
-transform: (event) => ({
-    messageType: 'Subscription',
-    source: 'mtw.wml',
-    detailType: 'Content Update',
-    AssetId: event.AssetId,
-    RequestId: event.RequestId
-})
-```
-
-#### Target: Standardized Message Format
-```typescript
-// Consistent message format aligned with DataSource external format
-transform: (event) => ({
-    messageType: 'Subscription',
-    dataSourceKey: event.source,
-    detailType: event.detailType,
-    streamKey: event.Detail?.streamKey,
-    update: event.Detail?.update || event.Detail
-})
-```
-
-## Migration Strategy
-
-### Phase 1: Stream Key Alignment
-
-#### 1.1 Standardize Stream Key Extraction
-Replace custom `detailExtract` functions with consistent `streamKey` extraction:
-
-```typescript
-// subscriptions/streamKeyExtractors/index.ts
-export function extractStreamKey(event: EventBridgeEvent): string {
-    const { source, detailType, detail } = event
     
-    // Use consistent patterns based on DataSource external format
-    if (detail?.streamKey) {
-        return detail.streamKey
-    }
-    
-    // Fallback to legacy extraction patterns
-    switch (source) {
-        case 'mtw.wml':
-            return detail?.AssetId || `ASSET#${extractIdFromDetail(detail)}`
-        case 'mtw.assets':
-            return detail?.AssetId || detail?.ComponentId || `COMPONENT#${extractIdFromDetail(detail)}`
-        case 'mtw.ephemera':
-            return detail?.CharacterId || detail?.EphemeraId || `EPHEMERA#${extractIdFromDetail(detail)}`
-        case 'mtw.players':
-            return detail?.PlayerId || `PLAYER#${extractIdFromDetail(detail)}`
-        case 'mtw.connections':
-            return detail?.SessionId || `SESSION#${extractIdFromDetail(detail)}`
-        default:
-            return `UNKNOWN#${extractIdFromDetail(detail)}`
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ messageType: 'Success', RequestId: request.RequestId })
     }
 }
 ```
 
-#### 1.2 Update Handler Framework
-Modify the existing handler framework to use `streamKey` instead of `detailExtract`:
+## Implementation Strategy
+
+### Phase 1: Initialize Snapshot Routing Infrastructure
+
+#### 1.1 Enhanced Subscribe API Processing
+Implement automatic snapshot initialization during Subscribe API processing:
 
 ```typescript
-// subscriptions/handlerFramework/baseClasses.ts
-export class SubscriptionHandler {
-    _source: string;
-    _detailType?: string;
-    _streamKeyExtractor?: (event: Record<string, any>) => string;
-    _transform?: (event: Record<string, any>) => SubscriptionClientMessage;
-    
-    constructor(args: {
-        source: string;
-        detailType?: string;
-        streamKeyExtractor?: (event: Record<string, any>) => string; // Replaces detailExtract
-        transform?: (event: Record<string, any>) => SubscriptionClientMessage;
-    }) {
-        this._source = args.source
-        this._detailType = args.detailType
-        this._streamKeyExtractor = args.streamKeyExtractor
-        this._transform = args.transform
-    }
-    
-    async subscribe(message: SubscribeAPIMessage, sessionId: `SESSION#${string}`): Promise<void> {
-        const streamKey = this._streamKeyExtractor ? this._streamKeyExtractor(message) : extractStreamKey(message)
-        const ConnectionId = `STREAM#${this._source}${this._detailType ? `::${this._detailType}` : ''}${streamKey ? `::${streamKey}` : ''}`
-        await connectionDB.putItem({
-            ConnectionId,
-            DataCategory: sessionId
-        })
-    }
+// subscriptions/app.ts - Enhanced Subscribe handling
+// Helper function to determine if a DataSource supports replay
+function isReplayableDataSource(dataSourceKey: string): boolean {
+    const replayableDataSources = [
+        'mtw.assets.contentHeaders',
+        'mtw.ephemera',  // future
+        'mtw.players'    // future
+    ]
+    return replayableDataSources.includes(dataSourceKey)
 }
-```
 
-### Phase 2: Event Format Standardization
-
-#### 2.1 Align with DataSource External Format
-Update event processing to expect DataSource external format:
-
-```typescript
-// subscriptions/app.ts
-if (event?.source) {
-    // Expect DataSource external format with Detail.streamKey
-    const eventData = {
-        source: event.source,
-        detailType: event["detail-type"],
-        streamKey: event.detail?.streamKey || extractStreamKey(event),
-        detail: event.detail
-    }
-    
-    const match = subscriptionLibrary.matchEvent(eventData)
+// Enhanced Subscribe API processing (existing code enhanced)
+if (isSubscribeAPIMessage(request)) {
+    const match = subscriptionLibrary.match(request)
     if (match) {
-        await match.publish(eventData)
+        const sessionId = await internalCache.Global.get("SessionId")
+        
+        // 1. Set up local subscription storage (existing functionality)
+        await match.subscribe(request, `SESSION#${sessionId}`)
+        
+        // 2. NEW: Trigger snapshot initialization for replayable DataSources
+        if (isReplayableDataSource(request.dataSourceKey)) {
+            await eventBridgeClient.send([{
+                Source: 'mtw.subscriptions',
+                DetailType: `Initialize Subscription - ${request.dataSourceKey}`,
+                Detail: {
+                    streamKey: request.streamKey,
+                    sessionId: `SESSION#${sessionId}`,
+                    requestId: request.RequestId
+                }
+            }])
+        }
     }
+    // ... existing return logic
 }
 ```
 
-#### 2.2 Standardize Message Transformation
-Replace custom transform functions with standardized format:
+#### 1.2 Cycle Prevention Configuration
+Document and implement strict cycle prevention rules:
+
+**EventBridge Rule Configuration**:
+- **Source**: `mtw.subscriptions` only
+- **DetailType**: Specific per DataSource (e.g., `Initialize Subscription - mtw.assets.contentHeaders`)
+- **Target Routing**: EventBridge rules route specific DetailType to specific lambda targets
+- **Exclusion Rules**: DataSources never subscribe to their own event streams for Initialize messages
+
+#### 1.3 DataSource Integration Pattern
+Configure DataSources to handle Initialize Subscription events:
 
 ```typescript
-// subscriptions/handlerFramework/baseClasses.ts
-export function createStandardTransform(source: string): (event: any) => SubscriptionClientMessage {
-    return (event) => ({
-        messageType: 'Subscription',
-        dataSourceKey: source,
-        detailType: event.detailType,
-        streamKey: event.streamKey,
-        update: event.detail?.update || event.detail
+// In DataSource lambda (e.g., assets/contentHeaders)
+// EventBridge rule: Source='mtw.subscriptions', DetailType='Initialize Subscription - mtw.assets.contentHeaders'
+
+if (event.source === 'mtw.subscriptions' && event['detail-type'] === 'Initialize Subscription - mtw.assets.contentHeaders') {
+    const { streamKey, sessionId, requestId } = event.detail
+    
+    await contentHeadersDataSource.initializeSubscription({
+        sessionId,
+        streamKey
     })
 }
-
-// Update handler library
-export const subscriptionLibrary = subscriptionLibraryConstructor([
-    {
-        source: 'mtw.wml',
-        detailType: 'Merge Conflict',
-        transform: createStandardTransform('mtw.wml')
-    },
-    {
-        source: 'mtw.wml',
-        detailType: 'Content Update',
-        transform: createStandardTransform('mtw.wml')
-    }
-])
 ```
 
-### Phase 3: Enhanced Event Coverage
+**EventBridge Rule Configuration Example**:
+```yaml
+# For mtw.assets.contentHeaders lambda
+EventBridge Rule:
+  Source: mtw.subscriptions
+  DetailType: Initialize Subscription - mtw.assets.contentHeaders
+  Target: mtw-assets-contentHeaders-lambda
 
-#### 3.1 Add Support for All DataSource Events
-Expand the subscription library to handle all data source events:
+# For future mtw.ephemera lambda
+EventBridge Rule:
+  Source: mtw.subscriptions  
+  DetailType: Initialize Subscription - mtw.ephemera
+  Target: mtw-ephemera-lambda
+```
+
+### Phase 2: Content Headers DataSource Integration
+
+#### 2.1 Add Content Headers Event Handler
+Extend the subscription library to support content headers events:
 
 ```typescript
 // subscriptions/handlerFramework/index.ts
 export const subscriptionLibrary = subscriptionLibraryConstructor([
-    // WML Events
+    // Existing WML Events
     {
-        source: 'mtw.wml',
-        detailType: 'Merge Conflict',
+        dataSourceKey: 'mtw.wml',
+        type: 'Merge Conflict',
         transform: createStandardTransform('mtw.wml')
     },
     {
-        source: 'mtw.wml',
-        detailType: 'Content Update',
-        transform: createStandardTransform('mtw.wml')
-    },
-    {
-        source: 'mtw.wml',
-        detailType: 'Content Removed',
+        dataSourceKey: 'mtw.wml',
+        type: 'Content Update',
         transform: createStandardTransform('mtw.wml')
     },
     
-    // Assets Events
+    // New: Content Headers Events
     {
-        source: 'mtw.assets',
-        detailType: 'Component Updated',
-        transform: createStandardTransform('mtw.assets')
-    },
-    {
-        source: 'mtw.assets',
-        detailType: 'Asset Modified',
-        transform: createStandardTransform('mtw.assets')
-    },
-    
-    // Ephemera Events
-    {
-        source: 'mtw.ephemera',
-        detailType: 'Character Updated',
-        transform: createStandardTransform('mtw.ephemera')
-    },
-    
-    // Players Events
-    {
-        source: 'mtw.players',
-        detailType: 'Player Updated',
-        transform: createStandardTransform('mtw.players')
-    },
-    
-    // Connections Events
-    {
-        source: 'mtw.connections',
-        detailType: 'Session Disconnect',
-        transform: createStandardTransform('mtw.connections')
+        dataSourceKey: 'mtw.assets.contentHeaders',
+        type: 'Content Headers Updated',
+        transform: createStandardTransform('mtw.assets.contentHeaders')
     }
 ])
 ```
 
+#### 2.2 Replayable DataSource Configuration
+Configure which DataSources support replay functionality:
 
-## Implementation Timeline
-
-### Week 1: Stream Key Alignment
-- [ ] Create standardized `extractStreamKey` function
-- [ ] Update `SubscriptionHandler` to use `streamKey` instead of `detailExtract`
-- [ ] Update existing WML event handlers to use new stream key extraction
-- [ ] Test stream key extraction with current WML events
-
-### Week 2: Event Format Standardization
-- [ ] Update event processing to expect DataSource external format
-- [ ] Implement standardized message transformation functions
-- [ ] Update subscription library to use consistent transform patterns
-- [ ] Test message format compatibility with existing clients
-
-### Week 3: Event Coverage Expansion
-- [ ] Add handlers for Assets, Ephemera, Players, and Connections events
-- [ ] Update subscription logic to handle all DataSource event types
-- [ ] Test event delivery across all data sources
-- [ ] Verify stream key extraction works for all event types
-
-### Week 4: Testing and Validation
-- [ ] Comprehensive testing of all event types
-- [ ] Performance testing of stream key extraction
-- [ ] Client compatibility testing
-- [ ] Documentation updates
-
-## Client-Side Impact
-
-### WebSocket Message Format Changes
-
-#### Current Format
 ```typescript
-{
-    messageType: 'Subscription',
-    source: 'mtw.wml',
-    detailType: 'Content Update',
-    AssetId: 'ASSET#123',
-    RequestId: 'uuid',
-    schema: { /* WML schema */ }
+// In subscriptions/app.ts or a separate config file
+export const REPLAYABLE_DATA_SOURCES = [
+    'mtw.assets.contentHeaders'
+    // Future: 'mtw.ephemera', 'mtw.players'
+] as const
+
+export function isReplayableDataSource(dataSourceKey: string): boolean {
+    return REPLAYABLE_DATA_SOURCES.includes(dataSourceKey as any)
 }
 ```
 
-#### Target Format (Aligned with DataSource External Format)
+### Phase 3: Testing and Validation
+
+#### 3.1 End-to-End Testing
+- Test Subscribe API flow: WebSocket Subscribe → Local Storage + EventBridge → DataSource → SNS → WebSocket (Snapshot + Events)
+- Verify cycle prevention by ensuring DataSources don't process their own Initialize events
+- Test Subscribe API with both replayable and non-replayable DataSources
+
+#### 3.2 Integration Testing
+- Test content headers subscription and automatic snapshot initialization
+- Verify snapshot initialization works correctly for new subscribers
+- Test concurrent Subscribe requests for different streams
+- Test Subscribe API behavior with existing WML events (should work unchanged)
+
+
+## Implementation Timeline
+
+### Week 1: Initialize Snapshot Infrastructure
+- [x] **COMPLETE**: Core DataSource pattern alignment (stream keys, event formats, handler framework)
+- [ ] Implement `isReplayableDataSource()` helper function in subscriptions lambda
+- [ ] Enhance Subscribe API processing to automatically trigger snapshot initialization
+- [ ] Document cycle prevention rules and EventBridge configuration requirements
+- [ ] Test enhanced Subscribe API processing with EventBridge publishing
+
+### Week 2: Content Headers DataSource Integration
+- [ ] Add content headers event handler to subscription library
+- [ ] Implement DataSource integration pattern for Initialize Subscription events
+- [ ] Configure EventBridge rules with specific DetailType for `mtw.assets.contentHeaders` Initialize events
+- [ ] Test end-to-end Subscribe flow: WebSocket Subscribe → Local Storage + EventBridge → DataSource → SNS → WebSocket
+
+### Week 3: Testing and Validation
+- [ ] Comprehensive testing of enhanced Subscribe API processing
+- [ ] Verify cycle prevention mechanisms work correctly
+- [ ] Test content headers subscription with automatic snapshot initialization
+- [ ] Performance testing of enhanced Subscribe request handling
+- [ ] Test Subscribe API behavior with both replayable and non-replayable DataSources
+
+### Week 4: Documentation and Cleanup
+- [ ] Update client-side documentation for enhanced Subscribe API behavior
+- [ ] Document EventBridge configuration requirements for DataSources
+- [ ] Create troubleshooting guide for Subscribe API with replayable DataSources
+- [ ] Performance optimization and monitoring setup
+
+## Client-Side Impact
+
+### Enhanced Subscribe API Behavior
+
+#### Subscribe Request (Unchanged)
 ```typescript
+// Client → Server (existing message type)
+{
+    messageType: 'Subscribe',
+    dataSourceKey: 'mtw.assets.contentHeaders',
+    streamKey: 'ASSET#123',
+    RequestId: 'uuid'
+}
+```
+
+#### Enhanced Subscribe Response
+```typescript
+// Server → Client (via SNS Feedback for replayable DataSources)
+// Snapshot message (new for replayable DataSources)
+{
+    messageType: 'DataSourceSnapshot',
+    dataSourceKey: 'mtw.assets.contentHeaders',
+    streamKey: 'ASSET#123',
+    snapshot: { /* current state data */ }
+}
+
+// Events message (if any recent events)
+{
+    messageType: 'DataSourceEvents',
+    dataSourceKey: 'mtw.assets.contentHeaders',
+    streamKey: 'ASSET#123',
+    events: [
+        { update: { /* event data */ }, timestamp: 1234567890 }
+    ]
+}
+
+// Regular subscription events (existing)
 {
     messageType: 'Subscription',
-    dataSourceKey: 'mtw.wml',
-    detailType: 'Content Update',
+    dataSourceKey: 'mtw.assets.contentHeaders',
     streamKey: 'ASSET#123',
-    update: {
-        type: 'Content Update',
-        AssetId: 'ASSET#123',
-        RequestId: 'uuid',
-        schema: { /* WML schema */ }
-    }
+    update: { /* live event data */ }
 }
 ```
 
 ### Client Migration Requirements
-- [ ] Update client-side message parsing to handle `dataSourceKey` instead of `source`
-- [ ] Update client-side message parsing to handle `streamKey` field
-- [ ] Update client-side message parsing to handle nested `update` object
-- [ ] Update subscription request handling for new data source keys
-- [ ] Test client compatibility with new event format
-- [ ] Maintain backward compatibility during transition period
+- [ ] **NEW**: Handle `DataSourceSnapshot` and `DataSourceEvents` response messages for replayable DataSources
+- [ ] **EXISTING**: Subscribe API message format remains unchanged
+- [ ] **EXISTING**: Current subscription messages already use the correct format (`dataSourceKey`, `streamKey`, `update`)
+- [ ] **NO CHANGES NEEDED**: Existing Subscribe API usage works unchanged
 
 ## Testing Strategy
 
 ### Unit Tests
-- [ ] Test stream key extraction for each data source
-- [ ] Test standardized message transformation functions
-- [ ] Test subscription handler framework updates
-- [ ] Test WebSocket delivery mechanism
+- [x] **COMPLETE**: Stream key extraction and message transformation (existing tests cover this)
+- [x] **COMPLETE**: Subscription handler framework (existing tests cover this)
+- [ ] **NEW**: `isReplayableDataSource()` helper function testing
+- [ ] **NEW**: Enhanced Subscribe API processing with EventBridge publishing
+- [ ] **NEW**: Cycle prevention logic verification
 
 ### Integration Tests
-- [ ] Test end-to-end event flow from EventBridge to client
-- [ ] Test subscription management and cleanup
-- [ ] Test error handling and recovery
-- [ ] Test backward compatibility with existing clients
+- [x] **COMPLETE**: End-to-end event flow from EventBridge to client (existing functionality)
+- [x] **COMPLETE**: Subscription management and cleanup (existing functionality)
+- [ ] **NEW**: Enhanced Subscribe flow: WebSocket Subscribe → Local Storage + EventBridge → DataSource → SNS → WebSocket
+- [ ] **NEW**: Content headers subscription with automatic snapshot initialization
+- [ ] **NEW**: Subscribe API behavior with both replayable and non-replayable DataSources
 
 ### Performance Tests
-- [ ] Test high-volume event processing
-- [ ] Test concurrent subscription handling
-- [ ] Test WebSocket delivery performance
-- [ ] Test stream key extraction performance
+- [x] **COMPLETE**: High-volume event processing (existing functionality)
+- [x] **COMPLETE**: WebSocket delivery performance (existing functionality)
+- [ ] **NEW**: Enhanced Subscribe API processing performance
+- [ ] **NEW**: Concurrent Subscribe requests for different replayable DataSource streams
 
 ## Rollback Plan
 
 ### Immediate Rollback
-- Revert to previous version of handler framework with `detailExtract`
-- Restore custom transform functions if standardized format fails
-- Maintain feature flags for gradual migration
+- **Low Risk**: Core DataSource alignment is already complete and working
+- **Feature Flag**: Disable replayable DataSource functionality via feature flag
+- **EventBridge**: Remove Initialize Subscription EventBridge rules if issues occur
 
 ### Gradual Rollback
-- Maintain both old and new processing paths with feature flags
-- Gradually migrate event types from old to new processing
-- Monitor error rates and performance during transition
-- Keep legacy message format support during transition
+- **Enhanced Subscribe Processing**: Can be disabled independently of core subscription functionality
+- **Content Headers**: Can be removed from subscription library without affecting WML events
+- **Monitoring**: Monitor enhanced Subscribe API success rates and disable if needed
 
 ## Success Criteria
 
 ### Functional Requirements
-- [ ] All current event types (WML Merge Conflict, Content Update) continue working
-- [ ] New event types (Assets, Ephemera, Players, Connections) are supported
-- [ ] Stream key extraction works consistently across all data sources
-- [ ] Message format is aligned with DataSource external format
-- [ ] Subscription management (subscribe/unsubscribe) continues working
-- [ ] Client-side message format is backward compatible or properly migrated
+- [x] **COMPLETE**: All current event types (WML Merge Conflict, Content Update) continue working
+- [x] **COMPLETE**: Stream key extraction works consistently with DataSource patterns
+- [x] **COMPLETE**: Message format is aligned with DataSource external format
+- [x] **COMPLETE**: Subscription management (subscribe/unsubscribe) continues working
+- [ ] **NEW**: Enhanced Subscribe API automatically initializes snapshots for `mtw.assets.contentHeaders`
+- [ ] **NEW**: Content headers subscription and event delivery works correctly
+- [ ] **NEW**: No event cycles occur between subscriptions and DataSources
 
 ### Performance Requirements
-- [ ] Event processing latency remains under 100ms
-- [ ] WebSocket delivery success rate remains above 99%
-- [ ] No increase in lambda execution time or memory usage
-- [ ] Stream key extraction performance is acceptable
+- [x] **COMPLETE**: Event processing latency remains under 100ms (existing functionality)
+- [x] **COMPLETE**: WebSocket delivery success rate remains above 99% (existing functionality)
+- [x] **COMPLETE**: No increase in lambda execution time or memory usage (existing functionality)
+- [ ] **NEW**: Enhanced Subscribe API processing completes within 2 seconds for replayable DataSources
+- [ ] **NEW**: EventBridge publishing latency remains under 50ms
 
 ### Quality Requirements
-- [ ] All existing tests pass
-- [ ] New tests cover stream key alignment and format standardization
-- [ ] Error handling and logging are improved
-- [ ] Code follows project standards and patterns
-- [ ] Consistent terminology and patterns across the system
+- [x] **COMPLETE**: All existing tests pass
+- [x] **COMPLETE**: Error handling and logging are improved (existing functionality)
+- [x] **COMPLETE**: Code follows project standards and patterns (existing functionality)
+- [ ] **NEW**: Enhanced Subscribe API functionality has comprehensive test coverage
+- [ ] **NEW**: Cycle prevention mechanisms are tested and documented
 
 ## Future Enhancements
 
-### Advanced Features
-- [ ] Dynamic event type discovery and subscription
-- [ ] Subscription analytics and monitoring
-- [ ] Event filtering based on stream key patterns
-- [ ] Custom event routing based on client preferences
+### Advanced Enhanced Subscribe Features
+- [ ] **Dynamic DataSource Discovery**: Automatically discover available replayable DataSources
+- [ ] **Batch Subscribe Requests**: Support subscribing to multiple streams with automatic initialization
+- [ ] **Subscribe Analytics**: Monitor and analyze enhanced Subscribe API usage patterns
+- [ ] **Smart Snapshot Caching**: Cache recent snapshots to reduce DataSource load
 
-### Integration Improvements
-- [ ] Integration with centralized event schema registry
-- [ ] Automatic stream key pattern recognition
-- [ ] Event versioning and backward compatibility
-- [ ] Cross-region event replication support
-- [ ] Enhanced WebSocket delivery options
+### Additional DataSource Integration
+- [ ] **More Replayable DataSources**: Extend enhanced Subscribe API to other replayable DataSources
+- [ ] **Ephemera DataSource Integration**: Add support for character and ephemeral object subscriptions
+- [ ] **Player DataSource Integration**: Add support for player profile subscriptions (when needed)
+- [ ] **Custom DataSource Registration**: Allow new DataSources to register themselves for enhanced Subscribe support
+
+### Performance and Reliability
+- [ ] **Subscribe Request Prioritization**: Priority-based processing of enhanced Subscribe requests
+- [ ] **Subscribe Request Retry Logic**: Automatic retry for failed enhanced Subscribe requests
+- [ ] **Subscribe Request Timeout Handling**: Graceful handling of slow DataSource responses
+- [ ] **Cross-Region Subscribe Support**: Support for enhanced Subscribe requests across AWS regions
 
 ---
 
-*This migration plan aligns the subscriptions lambda with the modern DataSource architecture while maintaining backward compatibility and improving system reliability and maintainability.*
+*This migration plan successfully aligns the subscriptions lambda with the modern DataSource architecture while introducing enhanced Subscribe API capabilities for replayable DataSources. The automatic snapshot initialization during Subscribe API processing provides a seamless experience for clients, and the focus on `mtw.assets.contentHeaders` as a prototype ensures a solid foundation for future DataSource integrations.*

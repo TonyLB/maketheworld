@@ -30,7 +30,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
     },
     {
         dataSourceKey: 'mtw.wml',
-        type: 'Cotent Update',
+        type: 'Content Update',
         transform: (event) => ({
             messageType: 'Subscription',
             dataSourceKey: 'mtw.wml',
