@@ -144,6 +144,11 @@ export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getS
             finalIDToken = result.IdToken
         }
     }
+    // If we were unable to obtain an IdToken for any reason, clear RefreshToken and reject to stop reconnect loop
+    if (!finalIDToken) {
+        dispatch(receiveRefreshToken(undefined))
+        return Promise.reject({})
+    }
     return new Promise<LifeLineReturn>((resolve, reject) => {
         let setupSocket = new WebSocket(`${WebSocketURI}?Authorization=${finalIDToken}${ SessionId ? `&SessionId=${SessionId}` : '' }`)
         setupSocket.onopen = () => {
@@ -189,6 +194,14 @@ export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getS
                     IDToken: ''
                 }
             })
+        }
+        // Best-effort: if the server closes with an auth-related code, clear RefreshToken to force re-login
+        setupSocket.onclose = (event) => {
+            // 1008 Policy Violation often used for auth, and 4401/4403 are common custom auth codes
+            const authRelated = event.code === 1008 || event.code === 4401 || event.code === 4403
+            if (authRelated) {
+                dispatch(receiveRefreshToken(undefined))
+            }
         }
     })
 
