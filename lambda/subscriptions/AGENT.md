@@ -170,6 +170,7 @@ type LibraryEntry = {
 - **[Project Event Architecture](../../AGENT.architecture.events.md)**: System-wide event patterns
 - **[WML Event Flows](../wml/AGENT.event.md)**: Primary event source documentation
 - **[Assets Event Flows](../assets/AGENT.event.md)**: Asset-related event patterns
+- **[EventBridge Configuration](AGENT.eventBridge.md)**: Initialize Subscription event routing setup
 
 ## Development Notes
 
