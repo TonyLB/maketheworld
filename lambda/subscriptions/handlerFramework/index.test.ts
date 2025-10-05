@@ -34,6 +34,16 @@ describe('subscription handlerFramework', () => {
                     RequestId: (event as any).update?.RequestId
                 }
             })
+        },
+        {
+            dataSourceKey: 'mtw.assets.contentHeaders',
+            type: 'Content Headers Updated',
+            transform: (event) => ({
+                messageType: 'Subscription',
+                dataSourceKey: 'mtw.assets.contentHeaders' as any,
+                streamKey: event.streamKey,
+                update: event.update || event
+            })
         }
     ])
 
@@ -98,6 +108,21 @@ describe('subscription handlerFramework', () => {
             ProjectionFields: ["DataCategory"]
         })
         expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'Subscription', dataSourceKey: 'mtw.wml', streamKey: 'ASSET#XYZ', update: { type: 'Merge Conflict', RequestId: 'qrstuv' } })
+    })
+
+    it('should handle content headers events', async () => {
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#mtw.assets.contentHeaders::Content Headers Updated::ASSET#456',
+            DataCategory: 'SESSION#EFGH'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#WXYZ'])
+        const coreEvent = { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'ASSET#456', update: { type: 'Content Headers Updated', headers: { 'content-type': 'application/json' } } }
+        await testLibrary.matchEvent(coreEvent as any)?.publish(coreEvent as any)
+        expect(connectionDB.query).toHaveBeenCalledWith({
+            Key: { ConnectionId: 'STREAM#mtw.assets.contentHeaders::Content Headers Updated::ASSET#456' },
+            ProjectionFields: ["DataCategory"]
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith('WXYZ', { messageType: 'Subscription', dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'ASSET#456', update: { type: 'Content Headers Updated', headers: { 'content-type': 'application/json' } } })
     })
 
 })
