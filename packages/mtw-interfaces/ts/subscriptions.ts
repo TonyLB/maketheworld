@@ -1,4 +1,6 @@
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema";
+import { SubscriptionClientMessage as BaseSubscriptionClientMessage, EventPayload } from "./eventBridge/baseClasses";
+import { WMLContentEventExternal } from "./eventBridge/wml";
 
 export type SubscribeAPIMessage = Record<string, any> & {
     message: 'subscribe';
@@ -33,33 +35,11 @@ export const isSubscriptionsAPIMessage = (message: Record<string, any>): message
     }
 }
 
-export type SubscriptionClientMergeConflictMessage = {
-    dataSourceKey: 'mtw.wml';
-    streamKey: AssetUUID;
-    RequestId?: string;
-    update: {
-        type: 'Merge Conflict';
-    }
-}
+// EventBridge-derived subscription message types
+export type WMLSubscriptionClientMessage = BaseSubscriptionClientMessage<WMLContentEventExternal>
 
-export type SubscriptionClientAssetEditedMessage = {
-    dataSourceKey: 'mtw.wml';
-    streamKey: AssetUUID;
-    RequestId?: string;
-    update: {
-        type: 'Content Update';
-        wml: string;
-    }
-}
+// Union of all subscription message types
+export type SubscriptionClientMessage = WMLSubscriptionClientMessage
 
-export type SubscriptionClientMessage = { messageType: 'Subscription' } & (
-    SubscriptionClientMergeConflictMessage |
-    SubscriptionClientAssetEditedMessage
-)
-
-export const isSubscriptionClientMessage = (message: Record<string, any>): message is SubscriptionClientMessage => {
-    if (!('messageType' in message && message.messageType === 'Subscription')) {
-        return false
-    }
-    return true
-}
+// Re-export the generic type guard from base classes
+export { isSubscriptionClientMessage } from "./eventBridge/baseClasses"

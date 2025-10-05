@@ -380,6 +380,48 @@ export type WMLContentEventExternal =
 3. **Type Safety Problems**: Subscriptions lambda uses `as any` type assertions to work around missing types
 4. **Maintenance Burden**: Changes need to be made in two places, creating sync issues
 
+#### **Critical Discovery: WML Lambda Type Safety Gap**
+
+**Root Cause Analysis**: The WML lambda is **NOT using EventBridge interface types** when publishing events. Instead, it uses raw EventBridge publishing with string literals:
+
+```typescript
+// In lambda/wml/applyEdit/index.ts - RAW EVENTBRIDGE PUBLISHING
+await eventBridgeClient.send([{
+    DetailType: 'Merge Conflict',  // ❌ Raw string, no type checking
+    Detail: {
+        AssetId: args.AssetId,
+        RequestId: args.RequestId
+    }
+}])
+
+await eventBridgeClient.send([{
+    DetailType: 'Content Update',  // ❌ Raw string, no type checking
+    Detail: {
+        AssetId: args.AssetId,
+        address: assetWorkspace.address,
+        RequestId: args.RequestId,
+        schema: args.schema
+    }
+}])
+```
+
+**Why No Type Errors Occurred**:
+- **Publishing Side (WML Lambda)**: Uses raw `eventBridgeClient.send()` with string literals - **no type checking**
+- **Receiving Side (Subscriptions Lambda)**: Uses proper EventBridge interfaces - **has type checking**
+- **Result**: WML lambda can publish events that don't exist in EventBridge interface definitions, and TypeScript doesn't catch it
+
+**Evidence of the Problem**:
+1. ✅ **WML Lambda Documentation** lists `Merge Conflict` as valid event type
+2. ✅ **WML Lambda Code** actually publishes `Merge Conflict` events in `applyEdit/index.ts`
+3. ❌ **EventBridge Interface** does NOT define `Merge Conflict` type
+4. ✅ **No Type Errors**: Because WML lambda uses raw EventBridge publishing without type constraints
+
+**Why This Is Dangerous**:
+- **Runtime vs Compile-time Mismatch**: Code compiles but creates events that don't match interface definitions
+- **Silent Failures**: EventBridge accepts the events, but downstream consumers expecting typed interfaces will fail
+- **Type Safety Illusion**: We think we have type safety, but we don't for the publishing side
+- **Interface Drift**: Documentation and interfaces get out of sync without detection
+
 #### **Impact on Current Implementation**
 
 - ✅ **Content Update Events**: Work correctly (structures match)
@@ -393,6 +435,9 @@ export type WMLContentEventExternal =
 - Add missing `Merge Conflict` event type to EventBridge WML interfaces
 - Define proper conflict structure and serialization logic
 - Ensure all WML event types are properly represented in EventBridge
+
+#### **Phase 1.5: Fix WML Lambda Type Safety Gap** ⚠️ **DEFERRED**
+**Scope Change**: WML lambda migration is a separate, larger project that predates DataSource patterns. The current raw EventBridge publishing will continue to work with our consolidated interface system. This phase is deferred to a future migration project.
 
 #### **Phase 2: Create Generic Subscription Message Framework**
 - Create base `SubscriptionClientMessage<T>` type that works with any EventBridge external format
@@ -422,13 +467,23 @@ export type WMLContentEventExternal =
 
 This consolidation work should be completed **before** adding more DataSources (Week 4) to avoid compounding the type safety issues. The current Week 2 implementation works but relies on type assertions that should be eliminated.
 
+**⚠️ DEFERRED**: The WML lambda type safety gap represents a **fundamental architectural flaw** where we have type safety on the receiving side but not the publishing side. However, this is a separate migration project that predates the DataSource pattern. The current approach will continue to work with our consolidated interface system.
+
+**The WML lambda migration can be addressed in a future project focused on DataSource pattern adoption.**
+
 ### **Files Requiring Updates**
 
-1. **`packages/mtw-interfaces/ts/eventBridge/wml/index.ts`** - Add Merge Conflict event type
+#### **EventBridge Interface Updates**
+1. **`packages/mtw-interfaces/ts/eventBridge/wml/index.ts`** - Add Merge Conflict event type and serializer logic
 2. **`packages/mtw-interfaces/ts/eventBridge/baseClasses.ts`** - Create generic subscription message types
+
+#### **Subscriptions Lambda Updates**
 3. **`packages/mtw-interfaces/ts/subscriptions.ts`** - Replace ad hoc types with EventBridge-derived types
 4. **`lambda/subscriptions/handlerFramework/index.ts`** - Remove type assertions, use proper types
 5. **`lambda/subscriptions/app.test.ts`** - Update tests to use consolidated types
+
+#### **WML Lambda Type Safety Fix** ⚠️ **DEFERRED**
+**Note**: WML lambda migration is deferred to a separate project. Current raw EventBridge publishing will continue to work with the consolidated interface system.
 
 ---
 
