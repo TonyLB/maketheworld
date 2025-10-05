@@ -50,8 +50,8 @@ type AnonymousAPIRequestSignUp = {
     password: string;
 }
 
-export const isAnonymousAPIResultAccessTokenSuccess = (value: AnonymousAPIResultAccessToken): value is AnonymousAPIResultSignInSuccess => ('AccessToken' in value)
-export const isAnonymousAPIResultAccessTokenFailure = (value: AnonymousAPIResultAccessToken): value is AnonymousAPIResultSignInFailure => ('errorMessage' in value)
+export const isAnonymousAPIResultAccessTokenSuccess = (value: AnonymousAPIResultAccessToken): value is AnonymousAPIResultAccessTokenSuccess => ('AccessToken' in value)
+export const isAnonymousAPIResultAccessTokenFailure = (value: AnonymousAPIResultAccessToken): value is AnonymousAPIResultAccessTokenFailure => ('errorMessage' in value)
 
 type AnonymousAPIRequest = AnonymousAPIRequestValidate | AnonymousAPIRequestSignIn | AnonymousAPIRequestAccessToken | AnonymousAPIRequestSignUp
 
