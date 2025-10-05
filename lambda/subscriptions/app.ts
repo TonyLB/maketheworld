@@ -6,6 +6,20 @@ import { subscriptionLibrary } from "./handlerFramework"
 import { fromEventBridgeFormat } from "@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform"
 import internalCache from "./internalCache"
 import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
+
+// Configuration for replayable DataSources that support snapshot initialization
+const REPLAYABLE_DATA_SOURCES = [
+    'mtw.assets.contentHeaders'
+    // Future: 'mtw.ephemera', 'mtw.players'
+] as const
+
+/**
+ * Determines if a DataSource supports replay functionality (snapshot initialization)
+ */
+function isReplayableDataSource(dataSourceKey: string): boolean {
+    return REPLAYABLE_DATA_SOURCES.includes(dataSourceKey as any)
+}
 
 export const handler = async (event: any) => {
 
@@ -22,7 +36,23 @@ export const handler = async (event: any) => {
         const match = subscriptionLibrary.match(request)
         if (match) {
             const sessionId = await internalCache.Global.get("SessionId")
+            
+            // 1. Set up local subscription storage
             await match.subscribe(request, `SESSION#${sessionId}`)
+            
+            // 2. Trigger snapshot initialization for replayable DataSources
+            if (isReplayableDataSource(request.dataSourceKey)) {
+                console.log(`Triggering snapshot initialization for replayable DataSource: ${request.dataSourceKey}`)
+                await eventBridgeClient.send([{
+                    Source: 'mtw.subscriptions',
+                    DetailType: `Initialize Subscription - ${request.dataSourceKey}`,
+                    Detail: {
+                        streamKey: request.streamKey,
+                        sessionId: `SESSION#${sessionId}`,
+                        requestId: request.RequestId
+                    }
+                }])
+            }
         }
         else {
             console.log(`No match: ${JSON.stringify(request, null, 4)}`)
