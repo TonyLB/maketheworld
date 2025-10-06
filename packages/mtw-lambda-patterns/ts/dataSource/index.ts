@@ -409,6 +409,12 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
     // Only subscribes if subscribedEventTypeGuard is configured.
     //
     subscribe(): void {
+        // For replayable DataSources, first subscribe to Initialize Subscription events
+        if (this.replayable) {
+            this.subscribeToInitializeEvents()
+        }
+
+        // Then subscribe to regular streaming events if configured
         if (!this.subscribedEventTypeGuard || !this.receiveEvents) {
             return // No event processing configured
         }
@@ -444,6 +450,52 @@ export class DataSource<SnapshotPayload extends SerializableObject, UpdatePayloa
                     events,
                     streamEvent: (params) => this.streamEvent(params)
                 })
+            }
+        })
+    }
+
+    private subscribeToInitializeEvents(): void {
+        // Type guard for Initialize Subscription events in internal StreamingEvent format
+        const initializeEventTypeGuard = (message: any): message is { 
+            type: 'StreamingEvent', 
+            dataSourceKey: 'mtw.subscriptions',
+            streamKey: string,
+            event: {
+                type: string,
+                update: {
+                    streamKey: string,
+                    sessionId: string,
+                    requestId: string
+                }
+            },
+            timestamp: number
+        } => {
+            return message.type === 'StreamingEvent' &&
+                   message.dataSourceKey === 'mtw.subscriptions' &&
+                   message.event?.type === `Initialize Subscription - ${this.dataSourceKey}` &&
+                   typeof message.event?.update?.streamKey === 'string' &&
+                   typeof message.event?.update?.sessionId === 'string' &&
+                   typeof message.event?.update?.requestId === 'string'
+        }
+
+        // Subscribe to Initialize Subscription events with higher priority
+        this.messageBus.subscribe({
+            tag: `dataSource-${this.dataSourceKey}-initialize`,
+            priority: 1, // Higher priority than regular events
+            filter: initializeEventTypeGuard,
+            callback: async ({ payloads }) => {
+                // Process each Initialize Subscription event
+                for (const payload of payloads) {
+                    const { streamKey, sessionId } = payload.event.update
+                    
+                    try {
+                        // Use the existing initializeSubscription method
+                        await this.initializeSubscription({ sessionId, streamKey })
+                        console.log(`Initialized subscription for streamKey: ${streamKey} to session: ${sessionId}`)
+                    } catch (error) {
+                        console.error(`Failed to process Initialize Subscription for streamKey: ${streamKey}`, error)
+                    }
+                }
             }
         })
     }
