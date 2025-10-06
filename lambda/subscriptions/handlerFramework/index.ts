@@ -14,18 +14,6 @@ export const subscriptionLibraryConstructor = (entries: LibraryEntry[]): Subscri
     })
 }
 
-// Standard transform function for consistent message format
-// Now uses proper EventBridge-derived types
-const createStandardTransform = (dataSourceKey: string) => (event: any): SubscriptionClientMessage => {
-    return {
-        messageType: 'Subscription' as const,
-        dataSourceKey,
-        streamKey: event.streamKey,
-        update: event.update || event,
-        RequestId: event.RequestId
-    }
-}
-
 export const subscriptionLibrary = subscriptionLibraryConstructor([
     {
         dataSourceKey: 'mtw.wml',
@@ -56,7 +44,18 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
     },
     {
         dataSourceKey: 'mtw.assets.contentHeaders',
-        type: 'Content Headers Updated',
-        transform: createStandardTransform('mtw.assets.contentHeaders')
+        type: 'Headers Updated',
+        transform: (event) => ({
+            messageType: 'Subscription',
+            dataSourceKey: 'mtw.assets.contentHeaders',
+            streamKey: event.streamKey,
+            update: {
+                type: 'Headers Updated',
+                assetId: event.assetId,
+                zone: event.zone,
+                RequestId: event.RequestId,
+                wml: event.schema
+            }
+        })
     }
 ])

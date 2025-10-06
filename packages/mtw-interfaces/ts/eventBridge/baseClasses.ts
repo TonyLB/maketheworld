@@ -42,34 +42,3 @@ export const isEventPayload = (event: unknown): event is EventPayload => {
 // Utility type for creating event serializers
 export type EventSerializer<TInternal extends EventPayload, TExternal extends EventPayload> = 
     DataSourceEventSerializer<TInternal, TExternal>
-
-// Generic subscription client message types
-export type SubscriptionClientMessage<T extends EventPayload = EventPayload> = {
-    messageType: 'Subscription';
-    dataSourceKey: string;
-    streamKey: string;
-    update: T;
-    RequestId?: string;
-}
-
-// Type guard for subscription client messages
-export const isSubscriptionClientMessage = <T extends EventPayload>(
-    message: unknown,
-    updateTypeGuard?: (update: unknown) => update is T
-): message is SubscriptionClientMessage<T> => {
-    if (!message || typeof message !== 'object') return false
-    
-    const msg = message as any
-    if (msg.messageType !== 'Subscription') return false
-    if (typeof msg.dataSourceKey !== 'string') return false
-    if (typeof msg.streamKey !== 'string') return false
-    if (!msg.update || typeof msg.update !== 'object') return false
-    
-    // If a specific update type guard is provided, use it
-    if (updateTypeGuard) {
-        return updateTypeGuard(msg.update)
-    }
-    
-    // Otherwise, just check that it has a type field
-    return typeof msg.update.type === 'string'
-}

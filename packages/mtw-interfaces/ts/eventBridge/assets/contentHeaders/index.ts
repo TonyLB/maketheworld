@@ -43,10 +43,7 @@ export type ContentHeadersUpdateExternal = {
     wml: string // Serialized to WML for external consumption
 }
 
-export type ContentHeadersExternal = {
-    type: 'Snapshot Generated' | 'Headers Updated'
-    data: ContentHeadersSnapshotExternal | ContentHeadersUpdateExternal
-}
+export type ContentHeadersExternal = ContentHeadersSnapshotExternal | ContentHeadersUpdateExternal
 
 /**
  * Event serializer for the mtw.assets.contentHeaders data source.
@@ -74,21 +71,15 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
             
             return {
                 type: 'Snapshot Generated',
-                data: {
-                    type: 'Snapshot Generated',
-                    assets: externalAssets
-                }
+                assets: externalAssets
             }
         } else if (isContentHeadersUpdate(update)) {
             // Convert internal StandardForm object to external WML string
             return {
                 type: 'Headers Updated',
-                data: {
-                    type: 'Headers Updated',
-                    assetId: update.assetId,
-                    zone: update.zone,
-                    wml: schemaToWML([update.standardForm.schema])
-                }
+                assetId: update.assetId,
+                zone: update.zone,
+                wml: schemaToWML([update.standardForm.schema])
             }
         } else {
             throw new Error(`Unknown event type in ContentHeadersEventUpdate: ${JSON.stringify(update)}`)
@@ -104,9 +95,8 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         const { externalUpdate } = params
         
         if (externalUpdate.type === 'Snapshot Generated') {
-            const snapshotExternal = externalUpdate.data as ContentHeadersSnapshotExternal
             // Convert external WML strings to internal StandardForm objects
-            const internalAssets = snapshotExternal.assets.map(asset => ({
+            const internalAssets = externalUpdate.assets.map(asset => ({
                 assetId: asset.assetId,
                 zone: asset.zone,
                 standardForm: new StandardForm(asset.wml)
@@ -118,18 +108,39 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
             }
             return result
         } else if (externalUpdate.type === 'Headers Updated') {
-            const updateExternal = externalUpdate.data as ContentHeadersUpdateExternal
             // Convert external WML string to internal StandardForm object
             const result: ContentHeadersUpdate = {
                 type: 'Headers Updated',
-                assetId: updateExternal.assetId,
-                zone: updateExternal.zone,
-                standardForm: new StandardForm(updateExternal.wml)
+                assetId: externalUpdate.assetId,
+                zone: externalUpdate.zone,
+                standardForm: new StandardForm(externalUpdate.wml)
             }
             return result
         } else {
-            throw new Error(`Unknown external event type: ${externalUpdate.type}`)
+            throw new Error(`Unknown external event type: ${(externalUpdate as any).type}`)
         }
+    }
+}
+
+// Type guard for external ContentHeaders events
+export const isContentHeadersExternal = (event: any): event is ContentHeadersExternal => {
+    if (!event || typeof event !== 'object' || !('type' in event)) {
+        return false
+    }
+    switch((event as any).type) {
+        case 'Snapshot Generated':
+            return Boolean(
+                event.data &&
+                Array.isArray((event.data as any).assets)
+            )
+        case 'Headers Updated':
+            return Boolean(
+                event.data &&
+                typeof (event.data as any).assetId === 'string' &&
+                typeof (event.data as any).wml === 'string'
+            )
+        default:
+            return false
     }
 }
 

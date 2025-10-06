@@ -1,6 +1,5 @@
-import { AssetUUID } from "@tonylb/mtw-base/ts/schema";
-import { SubscriptionClientMessage as BaseSubscriptionClientMessage, EventPayload } from "./eventBridge/baseClasses";
-import { WMLContentEventExternal } from "./eventBridge/wml";
+import { WMLContentEventExternal, isWMLContentEventExternal } from "./eventBridge/wml";
+import { ContentHeadersExternal, isContentHeadersExternal } from "./eventBridge/assets/contentHeaders";
 
 export type SubscribeAPIMessage = Record<string, any> & {
     message: 'subscribe';
@@ -35,11 +34,49 @@ export const isSubscriptionsAPIMessage = (message: Record<string, any>): message
     }
 }
 
-// EventBridge-derived subscription message types
-export type WMLSubscriptionClientMessage = BaseSubscriptionClientMessage<WMLContentEventExternal>
+// Specific, strongly-typed subscription message types
+export type WMLSubscriptionClientMessage = {
+    messageType: 'Subscription';
+    dataSourceKey: 'mtw.wml';
+    streamKey: string;
+    update: WMLContentEventExternal;
+    RequestId?: string;
+}
 
-// Union of all subscription message types
-export type SubscriptionClientMessage = WMLSubscriptionClientMessage
+export type ContentHeadersSubscriptionClientMessage = {
+    messageType: 'Subscription';
+    dataSourceKey: 'mtw.assets.contentHeaders';
+    streamKey: string;
+    update: ContentHeadersExternal;
+    RequestId?: string;
+}
 
-// Re-export the generic type guard from base classes
-export { isSubscriptionClientMessage } from "./eventBridge/baseClasses"
+// Union of all subscription client messages
+export type SubscriptionClientMessage =
+    | WMLSubscriptionClientMessage
+    | ContentHeadersSubscriptionClientMessage
+
+// Type guard for subscription client messages
+export const isSubscriptionClientMessage = (message: Record<string, any>): message is SubscriptionClientMessage => {
+    if (!('messageType' in message && message.messageType === 'Subscription')) {
+        return false
+    }
+    if (!('dataSourceKey' in message) || typeof message.dataSourceKey !== 'string') {
+        return false
+    }
+    if (!('streamKey' in message) || typeof message.streamKey !== 'string') {
+        return false
+    }
+    if (!('update' in message) || typeof message.update !== 'object') {
+        return false
+    }
+    // Narrow per dataSourceKey
+    switch(message.dataSourceKey) {
+        case 'mtw.wml':
+            return isWMLContentEventExternal(message.update)
+        case 'mtw.assets.contentHeaders':
+            return isContentHeadersExternal(message.update)
+        default:
+            return false
+    }
+}

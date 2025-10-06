@@ -69,6 +69,23 @@ export const isWMLContentEvent = (event: any): event is WMLContentEvent => {
     )
 }
 
+// External type guard for WML EventBridge payloads
+export const isWMLContentEventExternal = (event: any): event is WMLContentEventExternal => {
+    if (!event || typeof event !== 'object' || !('type' in event)) {
+        return false
+    }
+    switch((event as any).type) {
+        case 'Content Update':
+            // Must include wml string
+            return typeof (event as any).wml === 'string'
+        case 'Content Removed':
+        case 'Merge Conflict':
+            return true
+        default:
+            return false
+    }
+}
+
 export const isWMLContentUpdateEvent = (event: any): event is WMLContentEvent & { type: 'Content Update' } => {
     return Boolean(
         event &&
