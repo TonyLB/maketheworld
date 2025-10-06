@@ -1,4 +1,5 @@
-import { AssetUUID } from "@tonylb/mtw-base/ts/schema";
+import { WMLContentEventExternal, isWMLContentEventExternal } from "./eventBridge/wml";
+import { ContentHeadersExternal, isContentHeadersExternal } from "./eventBridge/assets/contentHeaders";
 
 export type SubscribeAPIMessage = Record<string, any> & {
     message: 'subscribe';
@@ -33,33 +34,49 @@ export const isSubscriptionsAPIMessage = (message: Record<string, any>): message
     }
 }
 
-export type SubscriptionClientMergeConflictMessage = {
+// Specific, strongly-typed subscription message types
+export type WMLSubscriptionClientMessage = {
+    messageType: 'Subscription';
     dataSourceKey: 'mtw.wml';
-    streamKey: AssetUUID;
+    streamKey: string;
+    update: WMLContentEventExternal;
     RequestId?: string;
-    update: {
-        type: 'Merge Conflict';
-    }
 }
 
-export type SubscriptionClientAssetEditedMessage = {
-    dataSourceKey: 'mtw.wml';
-    streamKey: AssetUUID;
+export type ContentHeadersSubscriptionClientMessage = {
+    messageType: 'Subscription';
+    dataSourceKey: 'mtw.assets.contentHeaders';
+    streamKey: string;
+    update: ContentHeadersExternal;
     RequestId?: string;
-    update: {
-        type: 'Content Update';
-        wml: string;
-    }
 }
 
-export type SubscriptionClientMessage = { messageType: 'Subscription' } & (
-    SubscriptionClientMergeConflictMessage |
-    SubscriptionClientAssetEditedMessage
-)
+// Union of all subscription client messages
+export type SubscriptionClientMessage =
+    | WMLSubscriptionClientMessage
+    | ContentHeadersSubscriptionClientMessage
 
+// Type guard for subscription client messages
 export const isSubscriptionClientMessage = (message: Record<string, any>): message is SubscriptionClientMessage => {
     if (!('messageType' in message && message.messageType === 'Subscription')) {
         return false
     }
-    return true
+    if (!('dataSourceKey' in message) || typeof message.dataSourceKey !== 'string') {
+        return false
+    }
+    if (!('streamKey' in message) || typeof message.streamKey !== 'string') {
+        return false
+    }
+    if (!('update' in message) || typeof message.update !== 'object') {
+        return false
+    }
+    // Narrow per dataSourceKey
+    switch(message.dataSourceKey) {
+        case 'mtw.wml':
+            return isWMLContentEventExternal(message.update)
+        case 'mtw.assets.contentHeaders':
+            return isContentHeadersExternal(message.update)
+        default:
+            return false
+    }
 }

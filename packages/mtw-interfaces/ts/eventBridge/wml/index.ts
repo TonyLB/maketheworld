@@ -18,6 +18,10 @@ export type WMLContentEvent =
     | {
         type: 'Content Removed'
     }
+    | {
+        type: 'Merge Conflict'
+        error?: string
+    }
 
 export type WMLZoneEvent = {
     type: 'Zone Changed'
@@ -39,6 +43,10 @@ export type WMLContentEventExternal =
     | {
         type: 'Content Removed'
     }
+    | {
+        type: 'Merge Conflict'
+        error?: string
+    }
 
 export type WMLZoneEventExternal = {
     type: 'Zone Changed'
@@ -57,8 +65,25 @@ export const isWMLContentEvent = (event: any): event is WMLContentEvent => {
         event &&
         typeof event === 'object' &&
         'type' in event &&
-        (event.type === 'Content Update' || event.type === 'Content Removed')
+        (event.type === 'Content Update' || event.type === 'Content Removed' || event.type === 'Merge Conflict')
     )
+}
+
+// External type guard for WML EventBridge payloads
+export const isWMLContentEventExternal = (event: any): event is WMLContentEventExternal => {
+    if (!event || typeof event !== 'object' || !('type' in event)) {
+        return false
+    }
+    switch((event as any).type) {
+        case 'Content Update':
+            // Must include wml string
+            return typeof (event as any).wml === 'string'
+        case 'Content Removed':
+        case 'Merge Conflict':
+            return true
+        default:
+            return false
+    }
 }
 
 export const isWMLContentUpdateEvent = (event: any): event is WMLContentEvent & { type: 'Content Update' } => {
@@ -76,6 +101,14 @@ export const isWMLContentRemovedEvent = (event: any): event is WMLContentEvent &
         event &&
         typeof event === 'object' &&
         event.type === 'Content Removed'
+    )
+}
+
+export const isWMLMergeConflictEvent = (event: any): event is WMLContentEvent & { type: 'Merge Conflict' } => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Merge Conflict'
     )
 }
 
@@ -125,6 +158,12 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
             return {
                 type: 'Content Removed'
             }
+        } else if (isWMLMergeConflictEvent(update)) {
+            // Merge Conflict events pass through with error information
+            return {
+                type: 'Merge Conflict',
+                error: update.error
+            }
         } else {
             throw new Error(`Unknown WML event type: ${JSON.stringify(update)}`)
         }
@@ -159,6 +198,12 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
             // Content Removed events don't need WML parsing
             return {
                 type: 'Content Removed'
+            }
+        } else if (externalUpdate.type === 'Merge Conflict') {
+            // Merge Conflict events pass through with error information
+            return {
+                type: 'Merge Conflict',
+                error: externalUpdate.error
             }
         } else {
             throw new Error(`Unknown external WML event type: ${JSON.stringify(externalUpdate)}`)

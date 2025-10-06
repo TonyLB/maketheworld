@@ -14,19 +14,6 @@ export const subscriptionLibraryConstructor = (entries: LibraryEntry[]): Subscri
     })
 }
 
-// Standard transform function for consistent message format
-// Note: This creates a generic subscription message that extends the current type system
-const createStandardTransform = (dataSourceKey: string) => (event: any): SubscriptionClientMessage => {
-    // For now, we'll create a message that matches the existing SubscriptionClientMessage structure
-    // This will need to be extended in mtw-interfaces to support other DataSources
-    return {
-        messageType: 'Subscription' as const,
-        dataSourceKey: dataSourceKey as any, // Type assertion for now
-        streamKey: event.streamKey,
-        update: event.update || event
-    } as SubscriptionClientMessage
-}
-
 export const subscriptionLibrary = subscriptionLibraryConstructor([
     {
         dataSourceKey: 'mtw.wml',
@@ -57,7 +44,18 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
     },
     {
         dataSourceKey: 'mtw.assets.contentHeaders',
-        type: 'Content Headers Updated',
-        transform: createStandardTransform('mtw.assets.contentHeaders')
+        type: 'Headers Updated',
+        transform: (event) => ({
+            messageType: 'Subscription',
+            dataSourceKey: 'mtw.assets.contentHeaders',
+            streamKey: event.streamKey,
+            update: {
+                type: 'Headers Updated',
+                assetId: event.assetId,
+                zone: event.zone,
+                RequestId: event.RequestId,
+                wml: event.schema
+            }
+        })
     }
 ])

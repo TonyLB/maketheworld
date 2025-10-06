@@ -203,4 +203,61 @@ describe('WMLEventSerializer', () => {
         })
     })
 
+    describe('Merge Conflict Events', () => {
+        it('should serialize Merge Conflict event to external format', () => {
+            const mergeConflictEvent: WMLEventUpdate = {
+                type: 'Merge Conflict',
+                error: 'Merge conflict occurred during edit application'
+            }
+
+            const externalEvent = serializer.serialize({ update: mergeConflictEvent })
+            expect(externalEvent.type).toBe('Merge Conflict')
+            if (externalEvent.type === 'Merge Conflict') {
+                expect(externalEvent.error).toBe('Merge conflict occurred during edit application')
+            }
+        })
+
+        it('should deserialize Merge Conflict event from external format', () => {
+            const externalEvent: WMLEventExternal = {
+                type: 'Merge Conflict',
+                error: 'Merge conflict occurred during edit application'
+            }
+
+            const internalEvent = serializer.deserialize({
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+
+            expect(internalEvent).toBeDefined()
+            if (internalEvent && internalEvent.type === 'Merge Conflict') {
+                expect(internalEvent.error).toBe('Merge conflict occurred during edit application')
+            }
+        })
+
+        it('should handle Merge Conflict round-trip correctly', () => {
+            const originalEvent: WMLEventUpdate = {
+                type: 'Merge Conflict',
+                error: 'Merge conflict occurred during edit application'
+            }
+
+            // Serialize to external format
+            const externalEvent = serializer.serialize({ update: originalEvent })
+            expect(externalEvent.type).toBe('Merge Conflict')
+
+            // Deserialize back to internal format
+            const roundTripEvent = serializer.deserialize({
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+
+            expect(roundTripEvent).toBeDefined()
+            if (roundTripEvent && roundTripEvent.type === 'Merge Conflict') {
+                expect(roundTripEvent.error).toBe(originalEvent.error)
+            }
+        })
+
+    })
+
 })
