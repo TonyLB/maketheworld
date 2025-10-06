@@ -115,46 +115,64 @@ export const handler = async (event, context) => {
 
     // Handle EventBridge messages by publishing to messageBus for DataSource processing
     if (event?.source && event["detail-type"]) {
-        // Find the appropriate deserializer for this data source
-        const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]
-        
-        if (deserializer) {
-            // Deserialize the external EventBridge event to internal format
-            const internalEvent = deserializer.deserialize({
-                dataSourceKey: event.source,
-                streamKey: event.detail.streamKey || '', // Extract streamKey from detail
-                externalUpdate: event.detail
-            })
+        // Special handling for Initialize Subscription events from mtw.subscriptions
+        if (event.source === 'mtw.subscriptions' && event["detail-type"].startsWith('Initialize Subscription -')) {
+            // Extract dataSourceKey from the detail-type (format: "Initialize Subscription - mtw.assets.contentHeaders")
+            const dataSourceKey = event["detail-type"].replace('Initialize Subscription - ', '')
             
-            // If deserialization failed, log error and skip this event
-            if (!internalEvent) {
+            // Publish Initialize Subscription event directly to messageBus (no deserialization needed)
+            messageBus.send({
+                type: 'StreamingEvent',
+                dataSourceKey: 'mtw.subscriptions',
+                streamKey: event.detail.streamKey || '',
+                event: {
+                    type: event["detail-type"],
+                    update: event.detail
+                },
+                timestamp: event.time ? new Date(event.time).getTime() : Date.now()
+            })
+        } else {
+            // Find the appropriate deserializer for this data source
+            const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]
+            
+            if (deserializer) {
+                // Deserialize the external EventBridge event to internal format
+                const internalEvent = deserializer.deserialize({
+                    dataSourceKey: event.source,
+                    streamKey: event.detail.streamKey || '', // Extract streamKey from detail
+                    externalUpdate: event.detail
+                })
+                
+                // If deserialization failed, log error and skip this event
+                if (!internalEvent) {
+                    messageBus.send({
+                        type: 'Error',
+                        body: {
+                            error: `Failed to deserialize event from ${event.source}: ${event["detail-type"]}`
+                        }
+                    })
+                } else {
+                    // Publish deserialized event to messageBus for DataSource processing
+                    messageBus.send({
+                        type: 'StreamingEvent',
+                        dataSourceKey: event.source,
+                        streamKey: event.detail.streamKey || '',
+                        event: {
+                            type: internalEvent.type,
+                            update: internalEvent
+                        },
+                        timestamp: event.time ? new Date(event.time).getTime() : Date.now()
+                    })
+                }
+            } else {
+                // No deserializer available - this is an error condition
                 messageBus.send({
                     type: 'Error',
                     body: {
-                        error: `Failed to deserialize event from ${event.source}: ${event["detail-type"]}`
+                        error: `No deserializer available for data source: ${event.source}`
                     }
                 })
-            } else {
-                // Publish deserialized event to messageBus for DataSource processing
-                messageBus.send({
-                    type: 'StreamingEvent',
-                    dataSourceKey: event.source,
-                    streamKey: event.detail.streamKey || '',
-                    event: {
-                        type: internalEvent.type,
-                        update: internalEvent
-                    },
-                    timestamp: event.time ? new Date(event.time).getTime() : Date.now()
-                })
             }
-        } else {
-            // No deserializer available - this is an error condition
-            messageBus.send({
-                type: 'Error',
-                body: {
-                    error: `No deserializer available for data source: ${event.source}`
-                }
-            })
         }
     }
 

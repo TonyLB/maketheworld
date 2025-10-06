@@ -910,7 +910,7 @@ describe('DataSource', () => {
         })
 
         describe('subscribe', () => {
-            it('should not subscribe if subscribedEventTypeGuard is not provided', () => {
+            it('should subscribe to Initialize events even if subscribedEventTypeGuard is not provided (for replayable DataSources)', () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
@@ -925,10 +925,17 @@ describe('DataSource', () => {
 
                 dataSource.subscribe()
 
-                expect(mockMessageBus.subscribe).not.toHaveBeenCalled()
+                // Should subscribe to Initialize events for replayable DataSources
+                expect(mockMessageBus.subscribe).toHaveBeenCalledTimes(1)
+                expect(mockMessageBus.subscribe).toHaveBeenCalledWith({
+                    tag: 'dataSource-mtw.testDataSource-initialize',
+                    priority: 1,
+                    filter: expect.any(Function),
+                    callback: expect.any(Function)
+                })
             })
 
-            it('should not subscribe if receiveEvents is not provided', () => {
+            it('should subscribe to Initialize events even if receiveEvents is not provided (for replayable DataSources)', () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
@@ -943,10 +950,17 @@ describe('DataSource', () => {
 
                 dataSource.subscribe()
 
-                expect(mockMessageBus.subscribe).not.toHaveBeenCalled()
+                // Should subscribe to Initialize events for replayable DataSources
+                expect(mockMessageBus.subscribe).toHaveBeenCalledTimes(1)
+                expect(mockMessageBus.subscribe).toHaveBeenCalledWith({
+                    tag: 'dataSource-mtw.testDataSource-initialize',
+                    priority: 1,
+                    filter: expect.any(Function),
+                    callback: expect.any(Function)
+                })
             })
 
-            it('should subscribe to messageBus with correct configuration', () => {
+            it('should subscribe to messageBus with correct configuration (both Initialize and regular events)', () => {
                 const dataSource = new TestDataSource({
                     dynamo: mockDynamo,
                     sns: mockSns,
@@ -961,6 +975,18 @@ describe('DataSource', () => {
 
                 dataSource.subscribe()
 
+                // Should have two subscriptions: Initialize events and regular events
+                expect(mockMessageBus.subscribe).toHaveBeenCalledTimes(2)
+                
+                // Check Initialize subscription
+                expect(mockMessageBus.subscribe).toHaveBeenCalledWith({
+                    tag: 'dataSource-mtw.testDataSource-initialize',
+                    priority: 1,
+                    filter: expect.any(Function),
+                    callback: expect.any(Function)
+                })
+                
+                // Check regular events subscription
                 expect(mockMessageBus.subscribe).toHaveBeenCalledWith({
                     tag: 'dataSource-mtw.testDataSource',
                     priority: 5,
@@ -1000,8 +1026,11 @@ describe('DataSource', () => {
 
                 dataSource.subscribe()
 
-                const subscription = mockMessageBus.subscribe.mock.calls[0][0]
-                const typeGuard = subscription.filter
+                // Find the regular events subscription (not the Initialize subscription)
+                const regularSubscription = mockMessageBus.subscribe.mock.calls.find(call => 
+                    call[0].tag === 'dataSource-mtw.testDataSource'
+                )
+                const typeGuard = regularSubscription[0].filter
 
                 // Test with valid asset event that matches our filtering criteria
                 const validAssetEvent = {
@@ -1118,8 +1147,11 @@ describe('DataSource', () => {
 
                 dataSource.subscribe()
 
-                const subscription = mockMessageBus.subscribe.mock.calls[0][0]
-                const callback = subscription.callback
+                // Find the regular events subscription (not the Initialize subscription)
+                const regularSubscription = mockMessageBus.subscribe.mock.calls.find(call => 
+                    call[0].tag === 'dataSource-mtw.testDataSource'
+                )
+                const callback = regularSubscription[0].callback
 
                 // Mock streamEvent method
                 const mockStreamEvent = jest.spyOn(dataSource, 'streamEvent').mockResolvedValue(undefined)
@@ -1204,8 +1236,11 @@ describe('DataSource', () => {
 
                 dataSource.subscribe()
 
-                const subscription = mockMessageBus.subscribe.mock.calls[0][0]
-                const callback = subscription.callback
+                // Find the regular events subscription (not the Initialize subscription)
+                const regularSubscription = mockMessageBus.subscribe.mock.calls.find(call => 
+                    call[0].tag === 'dataSource-mtw.testDataSource'
+                )
+                const callback = regularSubscription[0].callback
 
                 const testEvents = [
                     {
@@ -1251,8 +1286,11 @@ describe('DataSource', () => {
 
                 dataSource.subscribe()
 
-                const subscription = mockMessageBus.subscribe.mock.calls[0][0]
-                const callback = subscription.callback
+                // Find the regular events subscription (not the Initialize subscription)
+                const regularSubscription = mockMessageBus.subscribe.mock.calls.find(call => 
+                    call[0].tag === 'dataSource-mtw.testDataSource'
+                )
+                const callback = regularSubscription[0].callback
 
                 // Test callback with empty array
                 await callback({ payloads: [] })
@@ -1278,8 +1316,11 @@ describe('DataSource', () => {
 
                 dataSource.subscribe()
 
-                const subscription = mockMessageBus.subscribe.mock.calls[0][0]
-                const callback = subscription.callback
+                // Find the regular events subscription (not the Initialize subscription)
+                const regularSubscription = mockMessageBus.subscribe.mock.calls.find(call => 
+                    call[0].tag === 'dataSource-mtw.testDataSource'
+                )
+                const callback = regularSubscription[0].callback
 
                 const testEvents = [
                     {
@@ -1308,6 +1349,293 @@ describe('DataSource', () => {
                     ],
                     streamEvent: expect.any(Function)
                 })
+            })
+        })
+
+        describe('Initialize Subscription events for replayable DataSources', () => {
+            it('should subscribe to Initialize Subscription events when replayable is true', () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.assets.contentHeaders',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: true
+                })
+
+                dataSource.subscribe()
+
+                // Should have one subscription: Initialize events (no regular event handlers provided)
+                expect(mockMessageBus.subscribe).toHaveBeenCalledTimes(1)
+
+                // Check Initialize Subscription subscription
+                const initializeSubscription = mockMessageBus.subscribe.mock.calls.find(call => 
+                    call[0].tag === 'dataSource-mtw.assets.contentHeaders-initialize'
+                )
+                expect(initializeSubscription).toBeDefined()
+                expect(initializeSubscription[0]).toMatchObject({
+                    tag: 'dataSource-mtw.assets.contentHeaders-initialize',
+                    priority: 1, // Higher priority than regular events
+                    filter: expect.any(Function),
+                    callback: expect.any(Function)
+                })
+            })
+
+            it('should not subscribe to Initialize Subscription events when replayable is false', () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.assets.contentHeaders',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: false
+                })
+
+                dataSource.subscribe()
+
+                // Should have no subscriptions since replayable is false and no event handlers provided
+                expect(mockMessageBus.subscribe).not.toHaveBeenCalled()
+            })
+
+            it('should create correct type guard for Initialize Subscription events', () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.assets.contentHeaders',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: true
+                })
+
+                dataSource.subscribe()
+
+                const initializeSubscription = mockMessageBus.subscribe.mock.calls.find(call => 
+                    call[0].tag === 'dataSource-mtw.assets.contentHeaders-initialize'
+                )
+                const typeGuard = initializeSubscription[0].filter
+
+                // Test valid Initialize Subscription event
+                const validEvent = {
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'mtw.subscriptions',
+                    streamKey: 'test-stream',
+                    event: {
+                        type: 'Initialize Subscription - mtw.assets.contentHeaders',
+                        update: {
+                            streamKey: 'test-stream',
+                            sessionId: 'SESSION#test-session',
+                            requestId: 'test-request-123'
+                        }
+                    },
+                    timestamp: 123456789
+                }
+                expect(typeGuard(validEvent)).toBe(true)
+
+                // Test wrong dataSourceKey
+                const wrongDataSourceKey = {
+                    ...validEvent,
+                    dataSourceKey: 'mtw.otherDataSource'
+                }
+                expect(typeGuard(wrongDataSourceKey)).toBe(false)
+
+                // Test wrong event type
+                const wrongEventType = {
+                    ...validEvent,
+                    event: {
+                        ...validEvent.event,
+                        type: 'Initialize Subscription - mtw.otherDataSource'
+                    }
+                }
+                expect(typeGuard(wrongEventType)).toBe(false)
+
+                // Test wrong message type
+                const wrongMessageType = {
+                    ...validEvent,
+                    type: 'OtherEvent'
+                }
+                expect(typeGuard(wrongMessageType)).toBe(false)
+
+                // Test missing required fields
+                const missingFields = {
+                    ...validEvent,
+                    event: {
+                        ...validEvent.event,
+                        update: {
+                            streamKey: 'test-stream'
+                            // Missing sessionId and requestId
+                        }
+                    }
+                }
+                expect(typeGuard(missingFields)).toBe(false)
+            })
+
+            it('should call initializeSubscription when Initialize Subscription event is received', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.assets.contentHeaders',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: true
+                })
+
+                dataSource.subscribe()
+
+                const initializeSubscription = mockMessageBus.subscribe.mock.calls.find(call => 
+                    call[0].tag === 'dataSource-mtw.assets.contentHeaders-initialize'
+                )
+                const callback = initializeSubscription[0].callback
+
+                // Mock initializeSubscription method
+                const mockInitializeSubscription = jest.spyOn(dataSource, 'initializeSubscription').mockResolvedValue(undefined)
+
+                const testEvent = {
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'mtw.subscriptions',
+                    streamKey: 'test-stream',
+                    event: {
+                        type: 'Initialize Subscription - mtw.assets.contentHeaders',
+                        update: {
+                            streamKey: 'test-stream',
+                            sessionId: 'SESSION#test-session',
+                            requestId: 'test-request-123'
+                        }
+                    },
+                    timestamp: 123456789
+                }
+
+                await callback({ payloads: [testEvent] })
+
+                expect(mockInitializeSubscription).toHaveBeenCalledWith({
+                    sessionId: 'SESSION#test-session',
+                    streamKey: 'test-stream'
+                })
+            })
+
+            it('should handle multiple Initialize Subscription events in batch', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.assets.contentHeaders',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: true
+                })
+
+                dataSource.subscribe()
+
+                const initializeSubscription = mockMessageBus.subscribe.mock.calls.find(call => 
+                    call[0].tag === 'dataSource-mtw.assets.contentHeaders-initialize'
+                )
+                const callback = initializeSubscription[0].callback
+
+                // Mock initializeSubscription method
+                const mockInitializeSubscription = jest.spyOn(dataSource, 'initializeSubscription').mockResolvedValue(undefined)
+
+                const testEvents = [
+                    {
+                        type: 'StreamingEvent',
+                        dataSourceKey: 'mtw.subscriptions',
+                        streamKey: 'test-stream-1',
+                        event: {
+                            type: 'Initialize Subscription - mtw.assets.contentHeaders',
+                            update: {
+                                streamKey: 'test-stream-1',
+                                sessionId: 'SESSION#test-session-1',
+                                requestId: 'test-request-123'
+                            }
+                        },
+                        timestamp: 123456789
+                    },
+                    {
+                        type: 'StreamingEvent',
+                        dataSourceKey: 'mtw.subscriptions',
+                        streamKey: 'test-stream-2',
+                        event: {
+                            type: 'Initialize Subscription - mtw.assets.contentHeaders',
+                            update: {
+                                streamKey: 'test-stream-2',
+                                sessionId: 'SESSION#test-session-2',
+                                requestId: 'test-request-456'
+                            }
+                        },
+                        timestamp: 123456790
+                    }
+                ]
+
+                await callback({ payloads: testEvents })
+
+                expect(mockInitializeSubscription).toHaveBeenCalledTimes(2)
+                expect(mockInitializeSubscription).toHaveBeenNthCalledWith(1, {
+                    sessionId: 'SESSION#test-session-1',
+                    streamKey: 'test-stream-1'
+                })
+                expect(mockInitializeSubscription).toHaveBeenNthCalledWith(2, {
+                    sessionId: 'SESSION#test-session-2',
+                    streamKey: 'test-stream-2'
+                })
+            })
+
+            it('should handle errors in initializeSubscription gracefully', async () => {
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.assets.contentHeaders',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    replayable: true
+                })
+
+                dataSource.subscribe()
+
+                const initializeSubscription = mockMessageBus.subscribe.mock.calls.find(call => 
+                    call[0].tag === 'dataSource-mtw.assets.contentHeaders-initialize'
+                )
+                const callback = initializeSubscription[0].callback
+
+                // Mock initializeSubscription to throw an error
+                const mockInitializeSubscription = jest.spyOn(dataSource, 'initializeSubscription').mockRejectedValue(new Error('Snapshot generation failed'))
+
+                // Mock console.error to verify error logging
+                const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+                const testEvent = {
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'mtw.subscriptions',
+                    streamKey: 'test-stream',
+                    event: {
+                        type: 'Initialize Subscription - mtw.assets.contentHeaders',
+                        update: {
+                            streamKey: 'test-stream',
+                            sessionId: 'SESSION#test-session',
+                            requestId: 'test-request-123'
+                        }
+                    },
+                    timestamp: 123456789
+                }
+
+                // Should not throw, but should log error
+                await expect(callback({ payloads: [testEvent] })).resolves.not.toThrow()
+
+                expect(mockInitializeSubscription).toHaveBeenCalledWith({
+                    sessionId: 'SESSION#test-session',
+                    streamKey: 'test-stream'
+                })
+                expect(consoleSpy).toHaveBeenCalledWith('Failed to process Initialize Subscription for streamKey: test-stream', expect.any(Error))
+
+                consoleSpy.mockRestore()
             })
         })
     })
