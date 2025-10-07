@@ -24,7 +24,12 @@ export type StreamingEventPayload = {
 }
 
 // EventBridge serialization interface for DataSource integration
-export interface DataSourceEventSerializer<UpdatePayload extends EventPayload, ExternalUpdatePayload extends EventPayload> {
+export interface DataSourceEventSerializer<
+    UpdatePayload extends EventPayload, 
+    ExternalUpdatePayload extends EventPayload,
+    SnapshotPayload extends SerializableObject = SerializableObject,
+    ExternalSnapshotPayload extends SerializableObject = SerializableObject
+> {
     /**
      * Convert internal update payload to external format for EventBridge Detail
      */
@@ -43,4 +48,16 @@ export interface DataSourceEventSerializer<UpdatePayload extends EventPayload, E
         streamKey: string;
         externalUpdate: ExternalUpdatePayload;
     }): UpdatePayload | null;
+    
+    /**
+     * Convert internal snapshot payload to external format for storage/transmission
+     * Returns the Core External format suitable for DynamoDB storage and SNS delivery
+     */
+    serializeSnapshot(snapshot: SnapshotPayload): ExternalSnapshotPayload;
+    
+    /**
+     * Convert external snapshot payload back to internal format
+     * Returns null if the snapshot cannot be deserialized
+     */
+    deserializeSnapshot(externalSnapshot: ExternalSnapshotPayload): SnapshotPayload | null;
 }

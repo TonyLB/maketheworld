@@ -52,28 +52,15 @@ export type ContentHeadersExternal = ContentHeadersSnapshotExternal | ContentHea
  * and external WML strings. Internal processing works with StandardForm objects for manipulation,
  * while external transmission uses WML strings for cross-service communication.
  */
-export class ContentHeadersEventSerializer implements DataSourceEventSerializer<ContentHeadersEventUpdate, ContentHeadersExternal> {
+export class ContentHeadersEventSerializer implements DataSourceEventSerializer<ContentHeadersEventUpdate, ContentHeadersExternal, ContentHeadersSnapshot, ContentHeadersSnapshotExternal> {
     serialize(params: {
         dataSourceKey: string;
-        detailType: string;
         streamKey: string;
         update: ContentHeadersEventUpdate;
     }): ContentHeadersExternal {
         const { update } = params
         
-        if (isContentHeadersSnapshot(update)) {
-            // Convert internal StandardForm objects to external WML strings
-            const externalAssets = update.assets.map(asset => ({
-                assetId: asset.assetId,
-                zone: asset.zone,
-                wml: schemaToWML([asset.standardForm.schema])
-            }))
-            
-            return {
-                type: 'Snapshot Generated',
-                assets: externalAssets
-            }
-        } else if (isContentHeadersUpdate(update)) {
+        if (isContentHeadersUpdate(update)) {
             // Convert internal StandardForm object to external WML string
             return {
                 type: 'Headers Updated',
@@ -82,32 +69,18 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
                 wml: schemaToWML([update.standardForm.schema])
             }
         } else {
-            throw new Error(`Unknown event type in ContentHeadersEventUpdate: ${JSON.stringify(update)}`)
+            throw new Error(`Unknown streaming event type in ContentHeadersEventUpdate: ${JSON.stringify(update)}`)
         }
     }
     
     deserialize(params: { 
         dataSourceKey: string
-        detailType: string
         streamKey: string
         externalUpdate: ContentHeadersExternal 
     }): ContentHeadersEventUpdate | null {
         const { externalUpdate } = params
         
-        if (externalUpdate.type === 'Snapshot Generated') {
-            // Convert external WML strings to internal StandardForm objects
-            const internalAssets = externalUpdate.assets.map(asset => ({
-                assetId: asset.assetId,
-                zone: asset.zone,
-                standardForm: new StandardForm(asset.wml)
-            }))
-            
-            const result: ContentHeadersSnapshot = {
-                type: 'Snapshot Generated',
-                assets: internalAssets
-            }
-            return result
-        } else if (externalUpdate.type === 'Headers Updated') {
+        if (externalUpdate.type === 'Headers Updated') {
             // Convert external WML string to internal StandardForm object
             const result: ContentHeadersUpdate = {
                 type: 'Headers Updated',
@@ -117,7 +90,40 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
             }
             return result
         } else {
-            throw new Error(`Unknown external event type: ${(externalUpdate as any).type}`)
+            throw new Error(`Unknown external streaming event type: ${(externalUpdate as any).type}`)
+        }
+    }
+    
+    serializeSnapshot(snapshot: ContentHeadersSnapshot): ContentHeadersSnapshotExternal {
+        // Convert internal StandardForm objects to external WML strings
+        const externalAssets = snapshot.assets.map(asset => ({
+            assetId: asset.assetId,
+            zone: asset.zone,
+            wml: schemaToWML([asset.standardForm.schema])
+        }))
+        
+        return {
+            type: 'Snapshot Generated',
+            assets: externalAssets
+        }
+    }
+    
+    deserializeSnapshot(externalSnapshot: ContentHeadersSnapshotExternal): ContentHeadersSnapshot | null {
+        try {
+            // Convert external WML strings to internal StandardForm objects
+            const internalAssets = externalSnapshot.assets.map(asset => ({
+                assetId: asset.assetId,
+                zone: asset.zone,
+                standardForm: new StandardForm(asset.wml)
+            }))
+            
+            return {
+                type: 'Snapshot Generated',
+                assets: internalAssets
+            }
+        } catch (error) {
+            console.error('Failed to deserialize ContentHeaders snapshot:', error)
+            return null
         }
     }
 }
