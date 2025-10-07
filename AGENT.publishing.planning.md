@@ -231,27 +231,33 @@ Draft Content → Publishing UI → Step Function/API → Asset Workspace → S3
    - ✅ Added configuration mechanism for phase detection
    - ✅ Tested phase information delivery to client
 
-3. **Implement Content Headers Data Sub-source** (2-3 days)
-   - Create filtered data stream for Import Navigator content
-   - Subscribe to `mtw.assets` events (`Component Updated`, `Component Removed`) for real-time updates
-   - Test data aggregation across zones with event-driven updates
+3. **✅ Implement Content Headers Data Sub-source** (COMPLETED)
+   - ✅ Created filtered data stream for Import Navigator content
+   - ✅ Subscribe to `mtw.assets` events (`Component Updated`, `Component Removed`) for real-time updates
+   - ✅ Test data aggregation across zones with event-driven updates
 
-4. **Implement Import Navigator UI** (3-4 days)
+4. **Implement Client-Side Data Pattern Prototype** (2-3 days)
+   - Create Redux pattern for receiving snapshot and stream information from backend
+   - Implement materialized current-state management for client-side data
+   - Design Redux selectors for easy access to aggregated content data
+   - Test real-time updates and state synchronization with backend events
+
+5. **Implement Import Navigator UI** (3-4 days)
    - Create tabbed interface (Canon/Library/Personal)
    - Implement filterable table with component nesting
    - Test import workflow with empty world
 
-5. **Implement Publish to New Asset** (3-4 days)
+6. **Implement Publish to New Asset** (3-4 days)
    - Add publishing UI to draft editor
    - Extend `publishWML` step function
    - Test with Personal/Library/Canon zones
 
-6. **Implement Publish as Update** (3-4 days)
+7. **Implement Publish as Update** (3-4 days)
    - Add update UI and target asset selection
    - Implement content extraction logic
    - Integrate with existing `applyEdit` system
 
-7. **Integration Testing** (2-3 days)
+8. **Integration Testing** (2-3 days)
    - End-to-end workflow testing
    - Bug fixes and polish
    - Documentation and handoff

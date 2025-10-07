@@ -84,7 +84,7 @@ The following migrations must be completed in this specific order due to depende
 
 ---
 
-### **Phase 3: Asset Caching Migration Completion** *(Domain Authority)* ⏳ **IN PROGRESS (75% Complete)**
+### **Phase 3: Asset Caching Migration Completion** *(Domain Authority)* ⏳ **IN PROGRESS (90% Complete)**
 **Duration Estimate**: 3-4 weeks  
 **Risk Level**: Medium  
 **Goal**: Complete migration of asset caching from Ephemera to Assets Lambda
@@ -97,39 +97,70 @@ The following migrations must be completed in this specific order due to depende
 - **Character Event Integration**: ✅ **COMPLETED** - Characters data source processes component events for character-specific caching
 - **Event Flow Implementation**: ✅ **COMPLETED** - Proper WML → Assets event processing with deserialization and component-level events
 
-#### **⏳ REMAINING WORK (Ephemera Lambda Migration)**
-- **Ephemera Event Subscription Migration**: Switch from WML events to Assets events
-- **Remove Ephemera Asset Caching**: Delete `cacheAsset` functionality from Ephemera Lambda
-- **Update InternalCache Integration**: Modify Ephemera to consume from Assets Lambda APIs
+#### **✅ ACCOMPLISHED (Ephemera Lambda Side)**
+- **Ephemera Event Subscription Migration**: ✅ **COMPLETED** - Ephemera lambda now subscribes to `mtw.assets` events via `AssetsEventSerializer`
+- **Event Deserialization System**: ✅ **COMPLETED** - Full deserialization of assets events to internal message bus format
+- **DataSource Integration**: ✅ **COMPLETED** - Ephemera lambda processes assets events through DataSource pattern
+- **Domain Authority Ceding**: ✅ **COMPLETED** - Ephemera lambda no longer performs asset caching, defers to Assets Lambda
+
+#### **⏳ REMAINING WORK (Migration Cleanup)**
+- **Remove Legacy WML Event Handling**: Clean up `mtw.wml` event subscription code in ephemera lambda
+- **Remove Legacy CacheAsset References**: Clean up remaining `cacheAsset` documentation/comments
+- **Remove Direct WML → Ephemera Flow**: Eliminate legacy event handling in favor of WML → Assets → Ephemera flow
 
 #### **Key Tasks**
 - [x] **Assets Lambda Event Subscription**: ✅ **COMPLETED** - EventBridge subscription to WML `Content Update` events
 - [x] **Assets Lambda Event Publishing**: ✅ **COMPLETED** - Publish `Component Updated` and `Component Removed` events after processing
-- [ ] **Ephemera Event Subscription Migration**: Switch from WML events to Assets events
-- [ ] **Remove Ephemera Asset Caching**: Delete `cacheAsset` functionality from Ephemera Lambda
-- [ ] **Update InternalCache Integration**: Modify Ephemera to consume from Assets Lambda APIs
+- [x] **Ephemera Event Subscription Migration**: ✅ **COMPLETED** - Now subscribes to `mtw.assets` events
+- [x] **Remove Ephemera Asset Caching**: ✅ **COMPLETED** - Core functionality removed, defers to Assets Lambda
+- [x] **Update InternalCache Integration**: ✅ **COMPLETED** - Modified to consume from Assets Lambda events
+- [ ] **Remove Legacy WML Event Handling**: Clean up `mtw.wml` event subscription code
+- [ ] **Remove Legacy CacheAsset References**: Clean up remaining documentation/comments
 - [ ] **Performance Optimization**: Ensure new event flow doesn't introduce latency
 - [ ] **Monitoring and Logging**: Add metrics for new event flow performance
-- [ ] **Rollback Plan**: Prepare rollback strategy in case of issues
 
 #### **Success Criteria**
 - [x] Assets Lambda is sole recipient of WML `Content Update` events ✅ **COMPLETED**
 - [x] Assets Lambda publishes `Component Updated` and `Component Removed` events ✅ **COMPLETED**
 - [x] Event serialization system converts StandardComponent objects to WML for external consumption ✅ **COMPLETED**
 - [x] All component data queries flow through Assets Lambda authority ✅ **COMPLETED**
-- [ ] **Ephemera Lambda receives `Component Updated`/`Component Removed` events from Assets Lambda** ⏳ **PENDING**
-- [ ] **No asset caching logic remains in Ephemera Lambda** ⏳ **PENDING**
+- [x] **Ephemera Lambda receives `Component Updated`/`Component Removed` events from Assets Lambda** ✅ **COMPLETED**
+- [x] **No asset caching logic remains in Ephemera Lambda** ✅ **COMPLETED** (core functionality removed, only references remain)
+- [ ] **Legacy WML event subscription removed** ⏳ **PENDING**
 - [ ] **Event flow performance meets or exceeds previous implementation** ⏳ **PENDING**
 
 #### **Dependencies**
 - **Requires**: Phase 2 (Variable/Computed/Action removal eliminates complex asset dependencies) ✅ **COMPLETED**
 - **Blocks**: LLM-mediated system implementation
-- **Enables**: Clean domain separation, proper Domain-Authoritative Event Mesh ⏳ **75% ACHIEVED** (Assets side complete, Ephemera migration pending)
+- **Enables**: Clean domain separation, proper Domain-Authoritative Event Mesh ⏳ **90% ACHIEVED** (Core migration complete, cleanup pending)
 
 #### **Risk Mitigation**
 - **Event Ordering Risk**: ✅ **MITIGATED** - EventBridge infrastructure provides reliable event ordering
 - **Performance Risk**: ✅ **MITIGATED** - EventBridge and Lambda infrastructure scales automatically
 - **Data Consistency Risk**: ✅ **MITIGATED** - Event serialization system ensures consistent data format
+
+---
+
+### **Phase 3.5: Migration Cleanup** *(Final Cleanup)*
+**Duration Estimate**: 1-2 weeks  
+**Risk Level**: Low  
+**Goal**: Remove legacy code and complete migration documentation
+
+#### **Key Tasks**
+- [ ] **Remove Legacy WML Event Handling**: Clean up `mtw.wml` event subscription in ephemera lambda
+- [ ] **Remove Legacy CacheAsset References**: Clean up remaining documentation and comments
+- [ ] **Update Documentation**: Ensure all documentation reflects new event flow patterns
+- [ ] **Performance Validation**: Confirm new event flow performance meets requirements
+
+#### **Success Criteria**
+- [ ] No legacy WML event handling remains in ephemera lambda
+- [ ] All documentation reflects WML → Assets → Ephemera event flow
+- [ ] Performance benchmarks confirm no regression
+- [ ] Clean separation of concerns between lambdas
+
+#### **Dependencies**
+- **Requires**: Phase 3 (core migration complete)
+- **Enables**: Clean transition to Phase 4 (LLM-mediated system)
 
 ---
 
@@ -210,18 +241,21 @@ Phase 1: Message Format ✅ COMPLETED
     ↓
 Phase 2: Variable/Computed/Action Removal ✅ COMPLETED
     ↓
-Phase 3: Asset Caching Migration ⏳ IN PROGRESS (75% - Core Event Flow Complete)
+Phase 3: Asset Caching Migration ⏳ IN PROGRESS (90% - Core Migration Complete)
+    ↓
+Phase 3.5: Migration Cleanup (1-2 weeks)
     ↓
 Phase 4: LLM-Mediated System (6-8 weeks)
 
-Remaining Estimated Duration: 6-8 weeks
+Remaining Estimated Duration: 7-10 weeks
 ```
 
 ### **Critical Path**
 The phases must be completed in order due to hard dependencies:
 - **Phase 1 ✅ COMPLETED**: Consistent message format foundation established
 - **Phase 2 → Phase 3**: Asset caching dependencies must be removed before migration ✅ **COMPLETED**
-- **Phase 3 → Phase 4**: Clean domain authority needed before implementing new AI-mediated patterns ⏳ **IN PROGRESS** (Core Event Flow Complete, Ephemera Migration Pending)
+- **Phase 3 → Phase 3.5**: Core migration complete, cleanup needed ⏳ **IN PROGRESS** (90% Complete)
+- **Phase 3.5 → Phase 4**: Clean domain authority needed before implementing new AI-mediated patterns ⏳ **PENDING** (Cleanup Required)
 
 ### **Parallel Work Opportunities**
 Some tasks can be done in parallel across phases:
@@ -233,11 +267,12 @@ Some tasks can be done in parallel across phases:
 
 ### **Technical Success**
 - [x] **Message Format Standardization**: All perception messages use unified WML/Standard format with strongly-typed metadata ✅ COMPLETED
-- [x] **Domain-Authoritative Event Mesh**: Core event flow implemented with Assets Lambda authority ⏳ **75% COMPLETE** (Assets side complete, Ephemera migration pending)
+- [x] **Domain-Authoritative Event Mesh**: Core event flow implemented with Assets Lambda authority ⏳ **90% COMPLETE** (Core migration complete, cleanup pending)
 - [x] No legacy Variable/Computed/Action code remains ✅ COMPLETED
 - [x] **Assets Lambda Authority**: Complete authority over component materialized views ✅ COMPLETED
-- [ ] Ephemera Lambda focused solely on real-time character state and AI interactions
+- [x] **Ephemera Lambda Event Integration**: Now receives assets events and defers to Assets Lambda authority ✅ COMPLETED
 - [x] **Event Flow Domain Boundaries**: WML → Assets → Ephemera event chain respects domain boundaries ✅ COMPLETED
+- [ ] **Legacy Code Cleanup**: Remove remaining WML event handling and cacheAsset references ⏳ **PENDING**
 
 ### **Functional Success**
 - [ ] System maintains all current functionality during migration
@@ -291,12 +326,13 @@ This document is part of the project's comprehensive documentation system:
 - [x] **Phase 2C: Frontend Component Analysis** ✅ **COMPLETED (100%)**
 - [x] **Phase 2D: WML Parser and Schema Analysis** ✅ **COMPLETED (100%)**
 
-### **Phase 3: Asset Caching Migration** ⏳ **IN PROGRESS (75%)**
+### **Phase 3: Asset Caching Migration** ⏳ **IN PROGRESS (90%)**
 - [x] **Assets Lambda Event Subscription**: EventBridge subscription to WML events ✅ COMPLETED
 - [x] **Assets Lambda Event Publishing**: Component Updated/Removed events ✅ COMPLETED
 - [x] **Event Serialization System**: Full WML conversion for external consumption ✅ COMPLETED
 - [x] **Domain Authority Establishment**: Assets Lambda authority over component views ✅ COMPLETED
-- [ ] **Ephemera Migration**: Complete migration from WML to Assets events
-- [ ] **Ephemera Asset Caching Removal**: Remove legacy caching logic
+- [x] **Ephemera Migration**: Complete migration from WML to Assets events ✅ COMPLETED
+- [x] **Ephemera Asset Caching Removal**: Core functionality removed, defers to Assets Lambda ✅ COMPLETED
+- [ ] **Legacy Code Cleanup**: Remove remaining WML event handling and references
 - [ ] **Performance Optimization**: Ensure new event flow performance
 - [ ] **Comprehensive Testing**: Full system validation after migration
