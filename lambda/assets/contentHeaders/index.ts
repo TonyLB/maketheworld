@@ -5,7 +5,11 @@ import {
     ContentHeadersUpdate,
     ZoneUpdatedEvent
 } from './baseClasses'
-import { ContentHeadersEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
+import { 
+    ContentHeadersEventSerializer,
+    ContentHeadersExternal,
+    ContentHeadersSnapshotExternal
+} from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
 import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
@@ -131,7 +135,13 @@ const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot>
     }
 }
 
-export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnapshot, ContentHeadersUpdate | ZoneUpdatedEvent, SubscribedEvent>({
+export const contentHeadersDataSource = new AssetsDataSource<
+    ContentHeadersSnapshot, 
+    ContentHeadersUpdate | ZoneUpdatedEvent, 
+    SubscribedEvent,
+    ContentHeadersExternal,
+    ContentHeadersSnapshotExternal
+>({
     dataSourceKey: 'mtw.assets.contentHeaders',
     replayable: true, // Support client subscriptions with historical data
     eventSerializer: new ContentHeadersEventSerializer(),

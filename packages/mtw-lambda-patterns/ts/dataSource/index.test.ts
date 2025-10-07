@@ -54,8 +54,14 @@ type TestUpdatePayload = {
 }
 
 // Test subclass to expose protected methods
-class TestDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends EventPayload, ExternalUpdatePayload extends EventPayload = EventPayload, KeyType extends string = string> extends DataSource<SnapshotPayload, UpdatePayload, never, ExternalUpdatePayload, KeyType> {
-    public override async loadSnapshotFromStore(streamKey: string): Promise<SnapshotType<SnapshotPayload> | undefined> {
+class TestDataSource<
+    SnapshotPayload extends SerializableObject, 
+    UpdatePayload extends EventPayload, 
+    ExternalUpdatePayload extends EventPayload = EventPayload, 
+    KeyType extends string = string,
+    ExternalSnapshotPayload extends SerializableObject = SnapshotPayload
+> extends DataSource<SnapshotPayload, UpdatePayload, never, ExternalUpdatePayload, KeyType, ExternalSnapshotPayload> {
+    public override async loadSnapshotFromStore(streamKey: string): Promise<SnapshotType<ExternalSnapshotPayload> | undefined> {
         return super.loadSnapshotFromStore(streamKey)
     }
     
@@ -313,6 +319,7 @@ describe('DataSource', () => {
             
             expect(mockSnapshotContentGenerator).toHaveBeenCalledWith(streamKey)
             expect(result).toEqual({
+                type: 'Snapshot Generated',
                 id: 'test-id',
                 name: 'Test Snapshot',
                 value: 42,
@@ -454,7 +461,10 @@ describe('DataSource', () => {
                 },
                 ProjectionFields: ['snapshot']
             })
-            expect(result).toBe(storedSnapshot)
+            expect(result).toEqual({
+                ...storedSnapshot,
+                type: 'Snapshot Generated'
+            })
         })
 
         it('should return undefined when no snapshot is found', async () => {
@@ -509,7 +519,10 @@ describe('DataSource', () => {
                 },
                 ProjectionFields: ['snapshot']
             })
-            expect(result).toBe(storedSnapshot)
+            expect(result).toEqual({
+                ...storedSnapshot,
+                type: 'Snapshot Generated'
+            })
         })
 
         it('should handle DynamoDB errors by letting them bubble up', async () => {
@@ -757,6 +770,7 @@ describe('DataSource', () => {
             
             // Mock getSnapshot to return a snapshot
             const mockSnapshot = {
+                type: 'Snapshot Generated',
                 id: 'test-id',
                 name: 'Test Snapshot',
                 value: 42,
@@ -769,8 +783,8 @@ describe('DataSource', () => {
             
             // Mock DynamoDB query to return raw events (with DataCategory)
             const mockEvents = [
-                { update: 'test-update-1', DataCategory: 'EVENT#100001000::event-1', streamKey: 'test-stream' },
-                { update: 'test-update-2', DataCategory: 'EVENT#100002000::event-2', streamKey: 'test-stream' }
+                { update: { type: 'TestUpdatePayload', update: 'test-update-1' }, DataCategory: 'EVENT#100001000::event-1', streamKey: 'test-stream' },
+                { update: { type: 'TestUpdatePayload', update: 'test-update-2' }, DataCategory: 'EVENT#100002000::event-2', streamKey: 'test-stream' }
             ]
             
             // Mock the query method to return events
@@ -778,18 +792,20 @@ describe('DataSource', () => {
             
             await dataSource.initializeSubscription({ sessionId, streamKey })
             
-            // Verify SNS was called twice (snapshot + events)
-            expect(mockSns.send).toHaveBeenCalledTimes(2)
+            // Verify SNS was called 3 times (1 snapshot + 2 events)
+            expect(mockSns.send).toHaveBeenCalledTimes(3)
             
             // Verify snapshot message
             const snapshotCall = mockSns.send.mock.calls[0][0]
             expect(snapshotCall.TopicArn).toBe('arn:aws:sns:us-east-1:123456789012:test-feedback')
             const snapshotMessage = JSON.parse(snapshotCall.Message)
+            // Snapshot is now delivered using SNS Feedback format (flat structure)
             expect(snapshotMessage).toMatchObject({
-                messageType: 'DataSourceSnapshot',
+                messageType: 'StreamEvent',
                 dataSourceKey: 'mtw.testDataSource',
                 streamKey: 'test-stream',
-                snapshot: {
+                update: {
+                    type: 'Snapshot Generated',
                     id: 'test-id',
                     name: 'Test Snapshot',
                     value: 42
@@ -797,19 +813,27 @@ describe('DataSource', () => {
             })
             expect(snapshotCall.MessageAttributes.Targets.StringValue).toBe(JSON.stringify([sessionId]))
             
-            // Verify events message
-            const eventsCall = mockSns.send.mock.calls[1][0]
-            expect(eventsCall.TopicArn).toBe('arn:aws:sns:us-east-1:123456789012:test-feedback')
-            expect(JSON.parse(eventsCall.Message)).toMatchObject({
-                messageType: 'DataSourceEvents',
+            // Verify first event message
+            const event1Call = mockSns.send.mock.calls[1][0]
+            expect(event1Call.TopicArn).toBe('arn:aws:sns:us-east-1:123456789012:test-feedback')
+            expect(JSON.parse(event1Call.Message)).toMatchObject({
+                messageType: 'StreamEvent',
                 dataSourceKey: 'mtw.testDataSource',
                 streamKey: 'test-stream',
-                events: [
-                    { update: 'test-update-1', timestamp: 100001000 },
-                    { update: 'test-update-2', timestamp: 100002000 }
-                ]
+                update: { type: 'TestUpdatePayload', update: 'test-update-1' }
             })
-            expect(eventsCall.MessageAttributes.Targets.StringValue).toBe(JSON.stringify([sessionId]))
+            expect(event1Call.MessageAttributes.Targets.StringValue).toBe(JSON.stringify([sessionId]))
+            
+            // Verify second event message
+            const event2Call = mockSns.send.mock.calls[2][0]
+            expect(event2Call.TopicArn).toBe('arn:aws:sns:us-east-1:123456789012:test-feedback')
+            expect(JSON.parse(event2Call.Message)).toMatchObject({
+                messageType: 'StreamEvent',
+                dataSourceKey: 'mtw.testDataSource',
+                streamKey: 'test-stream',
+                update: { type: 'TestUpdatePayload', update: 'test-update-2' }
+            })
+            expect(event2Call.MessageAttributes.Targets.StringValue).toBe(JSON.stringify([sessionId]))
         })
         
         it('should handle case with no events', async () => {
@@ -832,11 +856,18 @@ describe('DataSource', () => {
             
             await dataSource.initializeSubscription({ sessionId, streamKey })
             
-            // Should only call SNS once (snapshot only, no events message)
+            // Should only call SNS once (snapshot only, no events)
             expect(mockSns.send).toHaveBeenCalledTimes(1)
             
             const snapshotCall = mockSns.send.mock.calls[0][0]
-            expect(JSON.parse(snapshotCall.Message).messageType).toBe('DataSourceSnapshot')
+            // Snapshot is now delivered using SNS Feedback format (flat structure)
+            expect(JSON.parse(snapshotCall.Message).messageType).toBe('StreamEvent')
+            expect(JSON.parse(snapshotCall.Message)).toMatchObject({
+                messageType: 'StreamEvent',
+                dataSourceKey: 'mtw.testDataSource',
+                streamKey: 'test-stream',
+                update: expect.any(Object)
+            })
         })
     })
 
@@ -1690,6 +1721,7 @@ describe('DataSource', () => {
             
             // Mock different snapshot content generation for different streams
             const generatedSnapshot1 = {
+                type: 'Snapshot Generated',
                 id: 'generated-stream-1-id',
                 name: 'Generated Stream 1 Snapshot',
                 value: 300,
@@ -1698,6 +1730,7 @@ describe('DataSource', () => {
             }
             
             const generatedSnapshot2 = {
+                type: 'Snapshot Generated',
                 id: 'generated-stream-2-id',
                 name: 'Generated Stream 2 Snapshot', 
                 value: 400,
@@ -2022,6 +2055,219 @@ describe('DataSource', () => {
                 expect(dataSource.replayable).toBe(true)
                 expect(dataSource.singleFlight).toBeDefined()
                 expect(mockSingleFlightFactory).toHaveBeenCalled()
+            })
+        })
+    })
+
+    describe('Snapshot Serialization', () => {
+        type ExternalTestSnapshotPayload = {
+            externalId: string
+            externalName: string
+            externalValue: number
+        }
+
+        type ExternalTestUpdatePayload = {
+            type: 'ExternalTestUpdate'
+            externalUpdate: string
+        }
+
+        let mockSerializer: any
+        let dataSourceWithSerializer: TestDataSource<TestSnapshotPayload, TestUpdatePayload, ExternalTestUpdatePayload, 'AssetId', ExternalTestSnapshotPayload>
+
+        beforeEach(() => {
+            mockSerializer = {
+                serialize: jest.fn((params) => params.update),
+                deserialize: jest.fn((params) => params.externalUpdate),
+                serializeSnapshot: jest.fn((snapshot: SnapshotType<TestSnapshotPayload>): ExternalTestSnapshotPayload => ({
+                    externalId: snapshot.id,
+                    externalName: snapshot.name,
+                    externalValue: snapshot.value
+                })),
+                deserializeSnapshot: jest.fn((external: ExternalTestSnapshotPayload): TestSnapshotPayload => ({
+                    id: external.externalId,
+                    name: external.externalName,
+                    value: external.externalValue
+                }))
+            }
+
+            dataSourceWithSerializer = new TestDataSource({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.testDataSource',
+                snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                eventSerializer: mockSerializer
+            })
+        })
+
+        describe('getSnapshotExternal', () => {
+            it('should return snapshot in external format', async () => {
+                const streamKey = 'test-stream'
+                const internalSnapshot = {
+                    id: 'test-id',
+                    name: 'Test Snapshot',
+                    value: 42,
+                    createdAt: 100000000,
+                    expiresAt: 100300000
+                }
+
+                mockSnapshotContentGenerator.mockResolvedValue({
+                    id: 'test-id',
+                    name: 'Test Snapshot',
+                    value: 42
+                })
+
+                jest.spyOn(dataSourceWithSerializer, 'loadSnapshotFromStore').mockResolvedValue(undefined)
+                
+                // Mock singleFlight to execute the computation function
+                const mockSingleFlightExecutor = jest.fn(async ({ computation }) => {
+                    return await computation()
+                })
+                jest.spyOn(dataSourceWithSerializer, 'singleFlight' as any).mockImplementation(mockSingleFlightExecutor)
+
+                const result = await dataSourceWithSerializer.getSnapshotExternal(streamKey)
+
+                expect(mockSerializer.serializeSnapshot).toHaveBeenCalledWith(internalSnapshot)
+                expect(result).toEqual({
+                    type: 'Snapshot Generated',
+                    externalId: 'test-id',
+                    externalName: 'Test Snapshot',
+                    externalValue: 42,
+                    createdAt: 100000000,
+                    expiresAt: 100300000
+                })
+            })
+
+            it('should return cached external snapshot from storage', async () => {
+                const streamKey = 'test-stream'
+                const externalSnapshot = {
+                    type: 'Snapshot Generated',
+                    externalId: 'stored-id',
+                    externalName: 'Stored Snapshot',
+                    externalValue: 200,
+                    createdAt: 100000000,
+                    expiresAt: 100300000
+                }
+
+                jest.spyOn(dataSourceWithSerializer, 'loadSnapshotFromStore').mockResolvedValue(externalSnapshot)
+
+                const result = await dataSourceWithSerializer.getSnapshotExternal(streamKey)
+
+                expect(result).toBe(externalSnapshot)
+                expect(mockSerializer.serializeSnapshot).not.toHaveBeenCalled()
+            })
+        })
+
+        describe('getSnapshot', () => {
+            it('should deserialize external snapshot to internal format', async () => {
+                const streamKey = 'test-stream'
+                const externalSnapshot = {
+                    type: 'Test Snapshot Generated' as const,
+                    externalId: 'test-id',
+                    externalName: 'Test Snapshot',
+                    externalValue: 42,
+                    createdAt: 100000000,
+                    expiresAt: 100300000
+                }
+
+                jest.spyOn(dataSourceWithSerializer, 'getSnapshotExternal').mockResolvedValue(externalSnapshot)
+
+                const result = await dataSourceWithSerializer.getSnapshot(streamKey)
+
+                expect(mockSerializer.deserializeSnapshot).toHaveBeenCalledWith({
+                    type: 'Test Snapshot Generated',
+                    externalId: 'test-id',
+                    externalName: 'Test Snapshot',
+                    externalValue: 42
+                })
+                expect(result).toEqual({
+                    id: 'test-id',
+                    name: 'Test Snapshot',
+                    value: 42,
+                    createdAt: 100000000,
+                    expiresAt: 100300000
+                })
+            })
+
+            it('should return cached internal snapshot', async () => {
+                const streamKey = 'test-stream'
+                const cachedSnapshot = {
+                    id: 'cached-id',
+                    name: 'Cached Snapshot',
+                    value: 100,
+                    createdAt: 100000000,
+                    expiresAt: 100300000
+                }
+
+                dataSourceWithSerializer._snapshots[streamKey] = cachedSnapshot
+
+                const result = await dataSourceWithSerializer.getSnapshot(streamKey)
+
+                expect(result).toBe(cachedSnapshot)
+                expect(mockSerializer.deserializeSnapshot).not.toHaveBeenCalled()
+            })
+        })
+
+        describe('storeSnapshotToStore', () => {
+            it('should serialize snapshot before storing', async () => {
+                const streamKey = 'test-stream'
+                const internalSnapshot = {
+                    id: 'test-id',
+                    name: 'Test Snapshot',
+                    value: 42,
+                    createdAt: 100000000,
+                    expiresAt: 100300000
+                }
+
+                await dataSourceWithSerializer.storeSnapshotToStore({ streamKey, snapshot: internalSnapshot })
+
+                expect(mockSerializer.serializeSnapshot).toHaveBeenCalledWith(internalSnapshot)
+                expect(mockDynamo.putItem).toHaveBeenCalledWith({
+                    AssetId: 'STREAM#mtw.testDataSource::test-stream',
+                    DataCategory: 'Meta::Snapshot',
+                    snapshot: {
+                        externalId: 'test-id',
+                        externalName: 'Test Snapshot',
+                        externalValue: 42,
+                        createdAt: 100000000,
+                        expiresAt: 100300000
+                    }
+                })
+            })
+        })
+
+        describe('initializeSubscription', () => {
+            it('should use external snapshot format for delivery', async () => {
+                const sessionId = 'SESSION#test-session' as const
+                const streamKey = 'test-stream'
+                const externalSnapshot = {
+                    type: 'Snapshot Generated',
+                    externalId: 'test-id',
+                    externalName: 'Test Snapshot',
+                    externalValue: 42,
+                    createdAt: 100000000,
+                    expiresAt: 100300000
+                }
+
+                jest.spyOn(dataSourceWithSerializer, 'getSnapshotExternal').mockResolvedValue(externalSnapshot)
+                mockDynamo.query.mockResolvedValue([])
+
+                await dataSourceWithSerializer.initializeSubscription({ sessionId, streamKey })
+
+                // Snapshot is delivered in SNS Feedback format (flat structure)
+                const snapshotCall = mockSns.send.mock.calls[0][0]
+                const snapshotMessage = JSON.parse(snapshotCall.Message)
+                expect(snapshotMessage).toMatchObject({
+                    messageType: 'StreamEvent',
+                    dataSourceKey: 'mtw.testDataSource',
+                    streamKey: 'test-stream',
+                    update: expect.objectContaining({
+                        type: 'Snapshot Generated',
+                        externalId: 'test-id'
+                    })
+                })
             })
         })
     })

@@ -114,10 +114,10 @@ const createDataSourceSlice = <TData, TSnapshot, TEvent>(
 
 ### **Data Source Configuration**
 
-Each data source is configured with specific deserializers and aggregation logic:
+Each data source is configured with specific deserializers and aggregation logic. **These interfaces should be implemented in `mtw-interfaces` alongside the serializers**, since they define the data source's shape and behavior:
 
 ```typescript
-// Deserializer interface
+// Deserializer interface (to be implemented in mtw-interfaces)
 interface DataSourceDeserializer<TSnapshot, TEvent> {
   deserializeSnapshot(rawSnapshot: any): TSnapshot | null
   deserializeEvent(rawEvent: any): TEvent | null
@@ -125,7 +125,7 @@ interface DataSourceDeserializer<TSnapshot, TEvent> {
   validateEvent(event: any): boolean
 }
 
-// Aggregation interface
+// Aggregation interface (to be implemented in mtw-interfaces)
 interface DataSourceAggregation<TData, TSnapshot, TEvent> {
   aggregateSnapshotAndEvents(snapshot: TSnapshot, events: TEvent[]): TData
   mergeViews(view1: TData, view2: TData): TData
@@ -133,6 +133,8 @@ interface DataSourceAggregation<TData, TSnapshot, TEvent> {
   createEmptyView(): TData
 }
 ```
+
+**Note**: These interfaces should be implemented in `mtw-interfaces/ts/eventBridge/[dataSource]/` alongside the existing serializers, as they define the data source's behavioral contract independent of execution location.
 
 ### **Example: Content Headers Data Source**
 
@@ -172,43 +174,33 @@ const contentHeadersSlice = createDataSourceSlice<ContentHeadersData, ContentHea
   dataSourceKey: 'mtw.assets.contentHeaders',
   deserializer: {
     deserializeSnapshot: (raw) => {
-      // Deserialize using mtw-interfaces
-      return raw ? { assets: raw.assets, timestamp: raw.timestamp } : null
+      // Use deserializer from mtw-interfaces
+      return contentHeadersDeserializer.deserializeSnapshot(raw)
     },
     deserializeEvent: (raw) => {
-      // Deserialize using AssetsEventSerializer
-      return raw ? { type: raw.type, component: raw.component, timestamp: raw.timestamp } : null
+      // Use deserializer from mtw-interfaces  
+      return contentHeadersDeserializer.deserializeEvent(raw)
     },
-    validateSnapshot: (snapshot) => Boolean(snapshot?.assets),
-    validateEvent: (event) => Boolean(event?.type && event?.component)
+    validateSnapshot: (snapshot) => contentHeadersDeserializer.validateSnapshot(snapshot),
+    validateEvent: (event) => contentHeadersDeserializer.validateEvent(event)
   },
   aggregation: {
     aggregateSnapshotAndEvents: (snapshot, events) => {
-      let result = { ...snapshot.assets }
-      
-      // Apply events in chronological order
-      const sortedEvents = events.sort((a, b) => a.timestamp - b.timestamp)
-      for (const event of sortedEvents) {
-        result = applyEventToAssets(result, event)
-      }
-      
-      return {
-        assets: result,
-        lastUpdated: Math.max(snapshot.timestamp, ...events.map(e => e.timestamp))
-      }
+      // Use aggregation logic from mtw-interfaces
+      return contentHeadersAggregation.aggregateSnapshotAndEvents(snapshot, events)
     },
-    mergeViews: (view1, view2) => ({
-      assets: { ...view1.assets, ...view2.assets },
-      lastUpdated: Math.max(view1.lastUpdated, view2.lastUpdated)
-    }),
+    mergeViews: (view1, view2) => {
+      // Use aggregation logic from mtw-interfaces
+      return contentHeadersAggregation.mergeViews(view1, view2)
+    },
     reorderAndAggregate: (events) => {
-      return events
-        .sort((a, b) => a.timestamp - b.timestamp)
-        .filter((event, index, array) => 
-          index === 0 || event.timestamp !== array[index - 1].timestamp
-        )
+      // Use aggregation logic from mtw-interfaces
+      return contentHeadersAggregation.reorderAndAggregate(events)
     },
-    createEmptyView: () => ({ assets: {}, lastUpdated: 0 })
+    createEmptyView: () => {
+      // Use aggregation logic from mtw-interfaces
+      return contentHeadersAggregation.createEmptyView()
+    }
   }
 })
 ```
@@ -289,18 +281,22 @@ const handleUnsubscribe = () => {
 - **Basic Reducers**: Subscription, event processing, and connection management
 - **Configuration Interface**: Deserializer and aggregation configuration
 
-### **Phase 2: WebSocket Integration (Week 2)**
+### **Phase 2: mtw-interfaces Integration (Week 2)**
+- **Deserializer Implementation**: Create deserializers in `mtw-interfaces/ts/eventBridge/[dataSource]/`
+- **Aggregation Implementation**: Create aggregation logic in `mtw-interfaces/ts/eventBridge/[dataSource]/`
+- **Content Headers Example**: Implement `ContentHeadersDeserializer` and `ContentHeadersAggregation`
+- **Testing**: Unit tests for deserialization and aggregation logic
+
+### **Phase 3: WebSocket Integration (Week 3)**
 - **Shared WebSocket Service**: Connection management for all data sources
 - **Message Routing**: Route messages to appropriate data source slices
 - **Reconnection Logic**: Handle connection failures and reconnection
 - **Middleware Integration**: Connect WebSocket service to Redux actions
 
-### **Phase 3: Content Headers Implementation (Week 3)**
-- **Content Headers Slice**: Create content headers data source slice
-- **Deserializer Integration**: Use `AssetsEventSerializer` from `mtw-interfaces`
-- **Aggregation Logic**: Implement content headers specific aggregation
+### **Phase 4: Content Headers Implementation (Week 4)**
+- **Content Headers Slice**: Create content headers data source slice using mtw-interfaces
 - **UI Components**: Create components that consume content headers data
-- **Testing**: Comprehensive testing of subscription and aggregation logic
+- **Integration Testing**: End-to-end testing of subscription and aggregation logic
 
 ### **WebSocket Integration**
 
@@ -388,6 +384,8 @@ const createDataSourceMiddleware = (dataSourceKey: string) => {
 - [ ] Extensible for future data sources (character data, room data, etc.)
 - [ ] Type-safe throughout the system
 - [ ] Follows `stateSeekingMachine` pattern for consistency
+- [ ] Deserialization and aggregation logic implemented in `mtw-interfaces`
+- [ ] Client-side slices consume logic from `mtw-interfaces` rather than implementing it locally
 
 ## Dependencies
 
@@ -398,7 +396,7 @@ const createDataSourceMiddleware = (dataSourceKey: string) => {
 
 ### **Frontend Dependencies**
 - **Redux Store**: State management infrastructure
-- **mtw-interfaces**: Event deserialization and type definitions
+- **mtw-interfaces**: Event deserialization, aggregation logic, and type definitions
 - **WebSocket Client**: Real-time communication capability
 - **stateSeekingMachine**: Pattern for generic slice creation
 
@@ -407,6 +405,12 @@ const createDataSourceMiddleware = (dataSourceKey: string) => {
 - **Redux Toolkit**: Modern Redux patterns and utilities
 - **WebSocket API**: Browser WebSocket support
 - **Generic Programming**: TypeScript generics for slice factory pattern
+
+### **mtw-interfaces Dependencies**
+- **Deserializer Implementation**: Must be implemented in `mtw-interfaces/ts/eventBridge/[dataSource]/`
+- **Aggregation Implementation**: Must be implemented in `mtw-interfaces/ts/eventBridge/[dataSource]/`
+- **Type Definitions**: Data source specific types for snapshots, events, and materialized views
+- **Testing**: Unit tests for deserialization and aggregation logic
 
 ## Future Extensions
 

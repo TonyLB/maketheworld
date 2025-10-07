@@ -34,10 +34,16 @@ export interface WebSocketFormat {
     message: {
         dataSourceKey: string;
         streamKey: string;
-        type: string;
         RequestId?: string;
-        update: unknown;
+        update: { type: string; [key: string]: unknown };
     };
+}
+
+export interface SNSFeedbackFormat {
+    messageType: 'StreamEvent';
+    dataSourceKey: string;
+    streamKey: string;
+    update: { type: string; [key: string]: unknown };
 }
 
 /**
@@ -123,14 +129,12 @@ export function fromDynamoDBFormat(
  */
 export function toWebSocketFormat(coreFormat: CoreExternalFormat): WebSocketFormat {
     const { dataSourceKey, streamKey, RequestId, update } = coreFormat;
-    const { type } = update;
     
     return {
         messageType: 'StreamEvent',
         message: {
             dataSourceKey,
             streamKey,
-            type,
             RequestId,
             update
         }
@@ -142,16 +146,51 @@ export function toWebSocketFormat(coreFormat: CoreExternalFormat): WebSocketForm
  */
 export function fromWebSocketFormat(webSocketMessage: WebSocketFormat): CoreExternalFormat {
     const { message } = webSocketMessage;
-    const { dataSourceKey, streamKey, type, RequestId, update } = message;
+    const { dataSourceKey, streamKey, RequestId, update } = message;
     
     return {
         dataSourceKey,
         streamKey,
         RequestId,
-        update: {
-            type,
-            ...(update as Record<string, unknown>)
-        }
+        update
+    };
+}
+
+/**
+ * Transform CoreExternalFormat to SNS Feedback format
+ * 
+ * This format is used for messages sent to the feedback SNS topic.
+ * The feedback lambda will spread this message and add RequestId before
+ * sending to WebSocket connections.
+ * 
+ * Note: This is a FLAT structure that gets sent as the SNS Message body.
+ * The feedback lambda does: { ...JSON.parse(Sns.Message), RequestId }
+ * 
+ * Example:
+ *   Input: { dataSourceKey: 'mtw.assets', streamKey: 'global', update: { type: 'Snapshot Generated', assets: [...] } }
+ *   Output: { messageType: 'StreamEvent', dataSourceKey: 'mtw.assets', streamKey: 'global', update: { type: 'Snapshot Generated', assets: [...] } }
+ */
+export function toSNSFeedbackFormat(coreFormat: CoreExternalFormat): SNSFeedbackFormat {
+    const { dataSourceKey, streamKey, update } = coreFormat;
+    
+    return {
+        messageType: 'StreamEvent',
+        dataSourceKey,
+        streamKey,
+        update
+    };
+}
+
+/**
+ * Transform SNS Feedback format back to CoreExternalFormat
+ */
+export function fromSNSFeedbackFormat(snsFormat: SNSFeedbackFormat): CoreExternalFormat {
+    const { dataSourceKey, streamKey, update } = snsFormat;
+    
+    return {
+        dataSourceKey,
+        streamKey,
+        update
     };
 }
 
