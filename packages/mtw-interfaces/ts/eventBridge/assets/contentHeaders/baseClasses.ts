@@ -74,3 +74,106 @@ export const isZoneUpdatedEvent = (event: any): event is ZoneUpdatedEvent => {
         isZone(event.toZone)
     )
 }
+
+/**
+ * Aggregator for ContentHeaders data source
+ * 
+ * Handles combining snapshots with streaming events to maintain current state.
+ * Works with internal format (StandardForm objects).
+ */
+export class ContentHeadersAggregator {
+    /**
+     * Create an empty snapshot (before any data arrives)
+     */
+    createEmpty(): ContentHeadersSnapshot {
+        return {
+            type: 'Snapshot Generated',
+            assets: []
+        }
+    }
+
+    /**
+     * Apply a single update event to a snapshot
+     * Returns the new snapshot (immutable pattern)
+     */
+    applyUpdate(
+        snapshot: ContentHeadersSnapshot,
+        update: ContentHeadersEventUpdate
+    ): { success: true; snapshot: ContentHeadersSnapshot } | { success: false; error: Error; snapshot: ContentHeadersSnapshot } {
+        try {
+            if (isContentHeadersUpdate(update)) {
+                // Handle Headers Updated event
+                const { assetId, zone, standardForm } = update
+                
+                // Find existing asset if any
+                const existing = snapshot.assets.find(asset => asset.assetId === assetId)
+                
+                // Merge with existing StandardForm (Edits to be Applied mode) or use incoming (Direct Representation mode)
+                const mergedStandardForm = existing 
+                    ? existing.standardForm.merge(standardForm)
+                    : standardForm
+                
+                // Create baseline by filtering out the existing record, then add the new/merged one
+                const baselineAssets = snapshot.assets.filter(asset => asset.assetId !== assetId)
+                
+                return {
+                    success: true,
+                    snapshot: {
+                        type: 'Snapshot Generated',
+                        assets: [
+                            ...baselineAssets,
+                            {
+                                assetId,
+                                zone,
+                                standardForm: mergedStandardForm
+                            }
+                        ]
+                    }
+                }
+            } else if (isZoneUpdatedEvent(update)) {
+                // Handle Zone Updated event
+                const { assetId, toZone } = update
+                
+                // Find existing asset if any
+                const existing = snapshot.assets.find(asset => asset.assetId === assetId)
+                
+                // Get the StandardForm (existing or create empty placeholder)
+                const standardForm = existing 
+                    ? existing.standardForm
+                    : new StandardForm(`<Asset key=(${assetId.split('#')[1] || 'unknown'})></Asset>`)
+                
+                // Create baseline by filtering out the existing record, then add the updated one
+                const baselineAssets = snapshot.assets.filter(asset => asset.assetId !== assetId)
+                
+                return {
+                    success: true,
+                    snapshot: {
+                        type: 'Snapshot Generated',
+                        assets: [
+                            ...baselineAssets,
+                            {
+                                assetId,
+                                zone: toZone,
+                                standardForm
+                            }
+                        ]
+                    }
+                }
+            } else if (isContentHeadersSnapshot(update)) {
+                // Handle Snapshot Generated event - replace entire snapshot
+                return {
+                    success: true,
+                    snapshot: update
+                }
+            } else {
+                throw new Error(`Unknown update type: ${JSON.stringify(update)}`)
+            }
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error : new Error(String(error)),
+                snapshot
+            }
+        }
+    }
+}

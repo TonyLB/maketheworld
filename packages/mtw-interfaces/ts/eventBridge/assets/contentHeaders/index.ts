@@ -14,19 +14,32 @@ import {
     ContentHeadersEventUpdate, 
     ContentHeadersSnapshot, 
     ContentHeadersUpdate,
+    ZoneUpdatedEvent,
     isContentHeadersSnapshot,
-    isContentHeadersUpdate
+    isContentHeadersUpdate,
+    isZoneUpdatedEvent,
+    ContentHeadersAggregator
 } from './baseClasses'
+
+export { 
+    ContentHeadersAggregator
+}
 
 export type { 
     ContentHeadersEventUpdate, 
     ContentHeadersSnapshot, 
     ContentHeadersUpdate,
+    ZoneUpdatedEvent
+}
+
+export { 
     isContentHeadersSnapshot,
-    isContentHeadersUpdate
+    isContentHeadersUpdate,
+    isZoneUpdatedEvent
 }
 
 // External event format (EventBridge) - using WML strings
+// External snapshot uses an array for efficient JSON transmission
 export type ContentHeadersSnapshotExternal = {
     type: 'Snapshot Generated'
     assets: Array<{
@@ -43,7 +56,14 @@ export type ContentHeadersUpdateExternal = {
     wml: string // Serialized to WML for external consumption
 }
 
-export type ContentHeadersExternal = ContentHeadersSnapshotExternal | ContentHeadersUpdateExternal
+export type ZoneUpdatedEventExternal = {
+    type: 'Zone Updated'
+    assetId: AssetUUID
+    fromZone: Zone
+    toZone: Zone
+}
+
+export type ContentHeadersExternal = ContentHeadersSnapshotExternal | ContentHeadersUpdateExternal | ZoneUpdatedEventExternal
 
 /**
  * Event serializer for the mtw.assets.contentHeaders data source.
