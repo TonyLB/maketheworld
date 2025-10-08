@@ -11,6 +11,7 @@ import {
     toWebSocketFormat,
     toSNSFeedbackFormat
 } from './formatTransform'
+import { DataSourceAggregator } from './aggregation'
 
 export type SerializableObject = Record<string, unknown>
 
@@ -78,6 +79,7 @@ export class DataSource<
         streamEvent: StreamEventFunction<UpdatePayload>
     }) => Promise<void>
     readonly eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>
+    readonly aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>
     _snapshots: Record<string, SnapshotType<SnapshotPayload>> = {}
 
     constructor({ 
@@ -92,7 +94,8 @@ export class DataSource<
         snapshotTimeoutMs = 5000,
         subscribedEventTypeGuard,
         receiveEvents,
-        eventSerializer
+        eventSerializer,
+        aggregator
     }: { 
         dynamo: DynamoUtils<KeyType>,
         sns: SnsUtils,
@@ -111,7 +114,8 @@ export class DataSource<
             events: SubscribedEvent[], 
             streamEvent: StreamEventFunction<UpdatePayload>
         }) => Promise<void>,
-        eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>
+        eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>,
+        aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>
     }) {
         this.dynamo = dynamo
         this.sns = sns
@@ -124,6 +128,7 @@ export class DataSource<
         this.subscribedEventTypeGuard = subscribedEventTypeGuard
         this.receiveEvents = receiveEvents
         this.eventSerializer = eventSerializer
+        this.aggregator = aggregator
 
         // Initialize singleFlight for snapshot generation coordination only if replayable
         // Note: singleFlight coordinates using external format to avoid serialization round-trips
@@ -326,6 +331,14 @@ export class DataSource<
      */
     getSerializer(): DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload> | undefined {
         return this.eventSerializer
+    }
+
+    /**
+     * Get the aggregator for this DataSource (if available)
+     * Useful for clients to access aggregation logic
+     */
+    getAggregator(): DataSourceAggregator<SnapshotPayload, UpdatePayload> | undefined {
+        return this.aggregator
     }
 
     async initializeSubscription({ sessionId, streamKey }: { sessionId: `SESSION#${string}`, streamKey: string }): Promise<void> {
@@ -602,4 +615,5 @@ export class DataSource<
     }
 }
 
-
+// Re-export aggregation types for convenience
+export { DataSourceAggregator, AggregationResult } from './aggregation'

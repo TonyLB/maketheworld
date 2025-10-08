@@ -80,6 +80,25 @@ This architecture ensures that:
 - **External events** are processed and integrated into local data source state
 - **Clean separation** is maintained between internal manipulation and external transmission formats
 
+### **Aggregation Boundary** (Optional)
+Maintain client-side state by combining snapshots with streaming events through dedicated aggregators:
+
+- **Base Snapshot**: Starting point materialized state (internal format)
+- **Delta Events**: Incremental updates applied in timestamp order
+- **Materialized State**: Current snapshot after applying all events
+- **Aggregator Pattern**: Class-based logic for combining snapshots with events
+- **Partial Failure**: Individual events can fail without stopping subsequent event processing
+
+**Key Insight**: The internal snapshot format IS the materialized state. Aggregation produces new snapshots by applying delta events to base snapshots.
+
+**Optional Feature**: DataSources can optionally provide aggregators to describe how clients should combine snapshots with events. This is particularly useful for:
+- Complex state structures that require specific merge logic
+- Handling out-of-order events through timestamp ordering
+- Supporting partial failures in event processing (e.g., StandardForm merge conflicts)
+- Providing consistent client-side state management
+
+See [Implementation Details](AGENT.implementation.md#aggregation) for aggregator patterns and usage examples.
+
 ## Core Functionality
 
 ### **1. Snapshot Generation** (Optional - when `replayable` is enabled)

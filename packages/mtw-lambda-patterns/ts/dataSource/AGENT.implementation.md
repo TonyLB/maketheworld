@@ -277,6 +277,100 @@ const myDataSource = new MyDataSource({
 
 **Integration with Multi-Context Architecture**: The `eventSerializer` works with the core external format - it transforms between internal format and `CoreExternalFormat`, while context-specific transformers handle the final conversion to specific transmission formats (EventBridge, DynamoDB, WebSocket).
 
+## Aggregation
+
+The DataSource pattern optionally supports aggregation logic to describe how clients and subscribers should combine snapshots with streaming events to maintain current state.
+
+### **Core Concept**
+
+Aggregation treats the internal snapshot format as the materialized state. An aggregator describes how to:
+1. Create an empty snapshot (before any data arrives)
+2. Apply delta events to a snapshot to produce a new snapshot
+
+**Key Insight**: Rather than defining a separate "materialized state" type, the internal snapshot format IS the materialized state. This simplifies the type system and aligns with how snapshots are actually used.
+
+### **DataSourceAggregator Interface**
+
+```typescript
+export interface DataSourceAggregator<
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload
+> {
+    /**
+     * Create an empty snapshot (for initialization before any data arrives)
+     */
+    createEmpty(): SnapshotPayload
+
+    /**
+     * Apply a single update event to a snapshot
+     * Returns the new snapshot (immutable pattern)
+     */
+    applyUpdate(
+        snapshot: SnapshotPayload,
+        update: UpdatePayload
+    ): AggregationResult<SnapshotPayload>
+}
+```
+
+### **AggregationResult Type**
+
+```typescript
+export type AggregationResult<SnapshotPayload> = 
+    | { success: true; snapshot: SnapshotPayload }
+    | { success: false; error: Error; snapshot: SnapshotPayload }
+```
+
+This result type supports **partial failure** - individual events can fail without stopping subsequent event processing. The unchanged snapshot is returned on failure, allowing the aggregator to continue processing subsequent events.
+
+### **Usage Pattern**
+
+Aggregators are provided to the DataSource constructor and accessed via `getAggregator()`:
+
+```typescript
+const dataSource = new DataSource({
+    // ... other parameters
+    aggregator: new ContentHeadersAggregator()
+})
+
+// Later, clients can access the aggregator
+const aggregator = dataSource.getAggregator()
+if (aggregator) {
+    let currentState = aggregator.createEmpty()
+    
+    // Apply snapshot
+    const snapshotResult = aggregator.applyUpdate(currentState, snapshot)
+    if (snapshotResult.success) {
+        currentState = snapshotResult.snapshot
+    }
+    
+    // Apply subsequent events
+    for (const event of events) {
+        const result = aggregator.applyUpdate(currentState, event)
+        if (result.success) {
+            currentState = result.snapshot
+        } else {
+            console.warn('Failed to apply event:', result.error)
+            // Continue with unchanged state
+        }
+    }
+}
+```
+
+### **Design Decisions**
+
+- **Optional Feature**: Aggregators are optional - not all DataSources need them
+- **Immutable Pattern**: All operations return new snapshots rather than mutating
+- **Timestamp Ordering**: Expected to be handled by clients (events typically have timestamps)
+- **Partial Failure**: Individual events can fail without breaking the aggregation chain
+- **Type Safety**: Full TypeScript generics ensure compile-time correctness
+
+### **Future Considerations**
+
+Potential future additions to the aggregation pattern:
+- Utility functions for timestamp-ordered batch application
+- Merge strategies for handling concurrent updates
+- Conflict resolution patterns for complex state
+
 ## Generic Type System
 
 The DataSource pattern uses a sophisticated generic type system to ensure type safety across different DynamoDB table configurations.
