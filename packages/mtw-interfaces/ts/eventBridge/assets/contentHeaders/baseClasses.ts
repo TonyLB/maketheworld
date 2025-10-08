@@ -105,73 +105,58 @@ export class ContentHeadersAggregator {
                 // Handle Headers Updated event
                 const { assetId, zone, standardForm } = update
                 
-                // Find the asset in the snapshot array
-                const existingIndex = snapshot.assets.findIndex(asset => asset.assetId === assetId)
+                // Find existing asset if any
+                const existing = snapshot.assets.find(asset => asset.assetId === assetId)
                 
-                if (existingIndex === -1) {
-                    // Asset doesn't exist - add it (Direct Representation mode)
-                    return {
-                        success: true,
-                        snapshot: {
-                            type: 'Snapshot Generated',
-                            assets: [
-                                ...snapshot.assets,
-                                {
-                                    assetId,
-                                    zone,
-                                    standardForm
-                                }
-                            ]
-                        }
-                    }
-                } else {
-                    // Asset exists - merge the StandardForms (Edits to be Applied mode)
-                    const existing = snapshot.assets[existingIndex]
-                    const mergedStandardForm = existing.standardForm.merge(standardForm)
-                    
-                    // Create new array with the merged asset
-                    const newAssets = [...snapshot.assets]
-                    newAssets[existingIndex] = {
-                        assetId,
-                        zone,
-                        standardForm: mergedStandardForm
-                    }
-                    
-                    return {
-                        success: true,
-                        snapshot: {
-                            type: 'Snapshot Generated',
-                            assets: newAssets
-                        }
+                // Merge with existing StandardForm (Edits to be Applied mode) or use incoming (Direct Representation mode)
+                const mergedStandardForm = existing 
+                    ? existing.standardForm.merge(standardForm)
+                    : standardForm
+                
+                // Create baseline by filtering out the existing record, then add the new/merged one
+                const baselineAssets = snapshot.assets.filter(asset => asset.assetId !== assetId)
+                
+                return {
+                    success: true,
+                    snapshot: {
+                        type: 'Snapshot Generated',
+                        assets: [
+                            ...baselineAssets,
+                            {
+                                assetId,
+                                zone,
+                                standardForm: mergedStandardForm
+                            }
+                        ]
                     }
                 }
             } else if (isZoneUpdatedEvent(update)) {
                 // Handle Zone Updated event
                 const { assetId, toZone } = update
                 
-                // Find the asset in the snapshot array
-                const existingIndex = snapshot.assets.findIndex(asset => asset.assetId === assetId)
+                // Find existing asset if any
+                const existing = snapshot.assets.find(asset => asset.assetId === assetId)
                 
-                if (existingIndex === -1) {
-                    // Asset doesn't exist - nothing to update
-                    return {
-                        success: true,
-                        snapshot
-                    }
-                } else {
-                    // Asset exists - update its zone
-                    const newAssets = [...snapshot.assets]
-                    newAssets[existingIndex] = {
-                        ...newAssets[existingIndex],
-                        zone: toZone
-                    }
-                    
-                    return {
-                        success: true,
-                        snapshot: {
-                            type: 'Snapshot Generated',
-                            assets: newAssets
-                        }
+                // Get the StandardForm (existing or create empty placeholder)
+                const standardForm = existing 
+                    ? existing.standardForm
+                    : new StandardForm(`<Asset key=(${assetId.split('#')[1] || 'unknown'})></Asset>`)
+                
+                // Create baseline by filtering out the existing record, then add the updated one
+                const baselineAssets = snapshot.assets.filter(asset => asset.assetId !== assetId)
+                
+                return {
+                    success: true,
+                    snapshot: {
+                        type: 'Snapshot Generated',
+                        assets: [
+                            ...baselineAssets,
+                            {
+                                assetId,
+                                zone: toZone,
+                                standardForm
+                            }
+                        ]
                     }
                 }
             } else if (isContentHeadersSnapshot(update)) {

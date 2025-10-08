@@ -6,6 +6,7 @@ import {
 } from './index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 describe('ContentHeaders EventBridge Contracts', () => {
     describe('ContentHeadersAggregator', () => {
@@ -30,9 +31,11 @@ describe('ContentHeaders EventBridge Contracts', () => {
             describe('Headers Updated events', () => {
                 it('should add a new asset when it does not exist', () => {
                     const emptySnapshot = aggregator.createEmpty()
-                    const standardForm = new StandardForm(`<Asset key=(test)>
-                        <Room key=(room1)><ShortName>Test Room</ShortName></Room>
-                    </Asset>`)
+                    const standardForm = new StandardForm(deIndentWML(`
+                        <Asset key=(test)>
+                            <Room key=(room1)><ShortName>Test Room</ShortName></Room>
+                        </Asset>
+                    `))
                     
                     const result = aggregator.applyUpdate(emptySnapshot, {
                         type: 'Headers Updated',
@@ -54,9 +57,11 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                 it('should merge StandardForms when asset already exists', () => {
                     // Create initial snapshot with an asset
-                    const initialStandardForm = new StandardForm(`<Asset key=(test)>
-                        <Room key=(room1)><ShortName>Room 1</ShortName></Room>
-                    </Asset>`)
+                    const initialStandardForm = new StandardForm(deIndentWML(`
+                        <Asset key=(test)>
+                            <Room key=(room1)><ShortName>Room 1</ShortName></Room>
+                        </Asset>
+                    `))
                     
                     const snapshot = {
                         type: 'Snapshot Generated' as const,
@@ -68,9 +73,11 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     }
 
                     // Create update with additional component
-                    const updateStandardForm = new StandardForm(`<Asset key=(test)>
-                        <Room key=(room2)><ShortName>Room 2</ShortName></Room>
-                    </Asset>`)
+                    const updateStandardForm = new StandardForm(deIndentWML(`
+                        <Asset key=(test)>
+                            <Room key=(room2)><ShortName>Room 2</ShortName></Room>
+                        </Asset>
+                    `))
                     
                     const result = aggregator.applyUpdate(snapshot, {
                         type: 'Headers Updated',
@@ -92,9 +99,11 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                 it('should handle edits in the update StandardForm (Edits to be Applied mode)', () => {
                     // Create initial snapshot with a room
-                    const initialStandardForm = new StandardForm(`<Asset key=(test)>
-                        <Room key=(room1)><ShortName>Original Name</ShortName></Room>
-                    </Asset>`)
+                    const initialStandardForm = new StandardForm(deIndentWML(`
+                        <Asset key=(test)>
+                            <Room key=(room1)><ShortName>Original Name</ShortName></Room>
+                        </Asset>
+                    `))
                     
                     const snapshot = {
                         type: 'Snapshot Generated' as const,
@@ -106,12 +115,14 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     }
 
                     // Create update with a replace edit
-                    const updateStandardForm = new StandardForm(`<Asset key=(test)>
-                        <Room key=(room1)>
-                            <Replace><ShortName>Original Name</ShortName></Replace>
-                            <With><ShortName>Updated Name</ShortName></With>
-                        </Room>
-                    </Asset>`)
+                    const updateStandardForm = new StandardForm(deIndentWML(`
+                        <Asset key=(test)>
+                            <Room key=(room1)>
+                                <Replace><ShortName>Original Name</ShortName></Replace>
+                                <With><ShortName>Updated Name</ShortName></With>
+                            </Room>
+                        </Asset>
+                    `))
                     
                     const result = aggregator.applyUpdate(snapshot, {
                         type: 'Headers Updated',
@@ -133,9 +144,11 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 })
 
                 it('should update zone when processing update for existing asset', () => {
-                    const initialStandardForm = new StandardForm(`<Asset key=(test)>
-                        <Room key=(room1)><ShortName>Test Room</ShortName></Room>
-                    </Asset>`)
+                    const initialStandardForm = new StandardForm(deIndentWML(`
+                        <Asset key=(test)>
+                            <Room key=(room1)><ShortName>Test Room</ShortName></Room>
+                        </Asset>
+                    `))
                     
                     const snapshot = {
                         type: 'Snapshot Generated' as const,
@@ -146,9 +159,11 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         }]
                     }
 
-                    const updateStandardForm = new StandardForm(`<Asset key=(test)>
-                        <Room key=(room2)><ShortName>Room 2</ShortName></Room>
-                    </Asset>`)
+                    const updateStandardForm = new StandardForm(deIndentWML(`
+                        <Asset key=(test)>
+                            <Room key=(room2)><ShortName>Room 2</ShortName></Room>
+                        </Asset>
+                    `))
                     
                     const result = aggregator.applyUpdate(snapshot, {
                         type: 'Headers Updated',
@@ -171,9 +186,11 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         type: 'Headers Updated',
                         assetId: 'ASSET#test1',
                         zone: 'Canon',
-                        standardForm: new StandardForm(`<Asset key=(test1)>
-                            <Room key=(room1)><ShortName>Room 1</ShortName></Room>
-                        </Asset>`)
+                        standardForm: new StandardForm(deIndentWML(`
+                            <Asset key=(test1)>
+                                <Room key=(room1)><ShortName>Room 1</ShortName></Room>
+                            </Asset>
+                        `))
                     })
 
                     expect(result1.success).toBe(true)
@@ -184,9 +201,11 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         type: 'Headers Updated',
                         assetId: 'ASSET#test2',
                         zone: 'Library',
-                        standardForm: new StandardForm(`<Asset key=(test2)>
-                            <Room key=(room2)><ShortName>Room 2</ShortName></Room>
-                        </Asset>`)
+                        standardForm: new StandardForm(deIndentWML(`
+                            <Asset key=(test2)>
+                                <Room key=(room2)><ShortName>Room 2</ShortName></Room>
+                            </Asset>
+                        `))
                     })
 
                     expect(result2.success).toBe(true)
@@ -200,9 +219,11 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
             describe('Zone Updated events', () => {
                 it('should update zone for existing asset', () => {
-                    const initialStandardForm = new StandardForm(`<Asset key=(test)>
-                        <Room key=(room1)><ShortName>Test Room</ShortName></Room>
-                    </Asset>`)
+                    const initialStandardForm = new StandardForm(deIndentWML(`
+                        <Asset key=(test)>
+                            <Room key=(room1)><ShortName>Test Room</ShortName></Room>
+                        </Asset>
+                    `))
                     
                     const snapshot = {
                         type: 'Snapshot Generated' as const,
@@ -229,7 +250,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     }
                 })
 
-                it('should do nothing when asset does not exist', () => {
+                it('should create placeholder when asset does not exist', () => {
                     const snapshot = aggregator.createEmpty()
                     
                     const result = aggregator.applyUpdate(snapshot, {
@@ -241,7 +262,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                     expect(result.success).toBe(true)
                     if (result.success) {
-                        expect(result.snapshot.assets).toHaveLength(0)
+                        expect(result.snapshot.assets).toHaveLength(1)
+                        expect(result.snapshot.assets[0].assetId).toBe('ASSET#nonexistent')
+                        expect(result.snapshot.assets[0].zone).toBe('Library')
+                        expect(result.snapshot.assets[0].standardForm).toBeInstanceOf(StandardForm)
+                        // Placeholder should have no components
+                        expect(result.snapshot.assets[0].standardForm._components).toHaveLength(0)
                     }
                 })
 
@@ -252,16 +278,20 @@ describe('ContentHeaders EventBridge Contracts', () => {
                             {
                                 assetId: 'ASSET#test1' as const,
                                 zone: 'Canon' as const,
-                                standardForm: new StandardForm(`<Asset key=(test1)>
-                                    <Room key=(room1)><ShortName>Room 1</ShortName></Room>
-                                </Asset>`)
+                                standardForm: new StandardForm(deIndentWML(`
+                                    <Asset key=(test1)>
+                                        <Room key=(room1)><ShortName>Room 1</ShortName></Room>
+                                    </Asset>
+                                `))
                             },
                             {
                                 assetId: 'ASSET#test2' as const,
                                 zone: 'Library' as const,
-                                standardForm: new StandardForm(`<Asset key=(test2)>
-                                    <Room key=(room2)><ShortName>Room 2</ShortName></Room>
-                                </Asset>`)
+                                standardForm: new StandardForm(deIndentWML(`
+                                    <Asset key=(test2)>
+                                        <Room key=(room2)><ShortName>Room 2</ShortName></Room>
+                                    </Asset>
+                                `))
                             }
                         ]
                     }
@@ -276,8 +306,11 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     expect(result.success).toBe(true)
                     if (result.success) {
                         expect(result.snapshot.assets).toHaveLength(2)
-                        expect(result.snapshot.assets[0].zone).toBe('Personal')
-                        expect(result.snapshot.assets[1].zone).toBe('Library')
+                        // Find each asset and check its zone (order doesn't matter)
+                        const test1 = result.snapshot.assets.find(a => a.assetId === 'ASSET#test1')
+                        const test2 = result.snapshot.assets.find(a => a.assetId === 'ASSET#test2')
+                        expect(test1?.zone).toBe('Personal')
+                        expect(test2?.zone).toBe('Library')
                     }
                 })
             })
@@ -442,9 +475,11 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
         describe('serialize', () => {
             it('should serialize Headers Updated event to external format', () => {
-                const standardForm = new StandardForm(`<Asset key=(test)>
-                    <Room key=(room1)><ShortName>Test Room</ShortName></Room>
-                </Asset>`)
+                const standardForm = new StandardForm(deIndentWML(`
+                    <Asset key=(test)>
+                        <Room key=(room1)><ShortName>Test Room</ShortName></Room>
+                    </Asset>
+                `))
 
                 const result = serializer.serialize({
                     dataSourceKey: 'mtw.assets.contentHeaders',
