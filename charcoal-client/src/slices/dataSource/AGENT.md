@@ -672,13 +672,19 @@ const handleWebSocketMessage = (message: any) => {
 
 ## Implementation Plan
 
-### **Phase 1: State Machine Integration (Week 1)**
-- **State Machine Template**: Define standard data source state machine with READY, SUBSCRIBE, SUBSCRIBED, UNSUBSCRIBE states
-- **Generic Slice Factory**: Create `createDataSourceSlice` function using `singleSSM`
-- **Type Safety**: Generic types for internal/public data, snapshots, and events
-- **State Machine Actions**: Implement subscribe/unsubscribe actions with API calls
-- **Event Processing Reducers**: Public reducers for processRawSnapshot and processRawEvent
-- **Configuration Interface**: Serializer and aggregation configuration
+### **Phase 1: State Machine Foundation (Week 1)** ✅ COMPLETE
+- ✅ **Base Classes**: Define `DataSourceInternal`, `DataSourcePublic`, and state machine nodes
+- ✅ **State Machine Actions**: Implement subscribe/unsubscribe actions with API calls (using current API format)
+- ✅ **Generic Action Factories**: Create `createSubscribeAction` and `createUnsubscribeAction` factories
+- ✅ **Generic Slice Factory**: Create `createDataSourceSlice` function using `singleSSM`
+- ✅ **Stubbed Event Processing**: Create placeholder reducers for `processRawSnapshot` and `processRawEvent`
+- ✅ **Helper Functions**: Create `createSubscriptionHelper` and `createUnsubscriptionHelper` for easier usage
+- **Note**: This phase uses the _existing_ subscriptions lambda API which requires `eventType` and single `streamKey`. Full event processing will be completed in Phase 5 after subscriptions lambda refactor.
+
+**Files Created**:
+- `baseClasses.ts`: Type definitions and state machine node types
+- `index.api.ts`: Action factories and backoff logic
+- `index.ts`: Main factory function using `singleSSM`
 
 ### **Phase 2: mtw-interfaces Integration (Week 2)** ✅ COMPLETE for Content Headers
 - ✅ **Serializer Implementation**: `ContentHeadersEventSerializer` in `mtw-interfaces/ts/eventBridge/assets/contentHeaders/`
@@ -686,13 +692,47 @@ const handleWebSocketMessage = (message: any) => {
 - ✅ **Content Headers Example**: Fully implemented and tested
 - ✅ **Testing**: 18 unit tests for serialization and aggregation logic (all passing)
 
-### **Phase 3: WebSocket Integration** ✅ INFRASTRUCTURE COMPLETE
+### **Phase 3: Subscriptions Lambda Refactor (Week 3)** 📋 PLANNED
+**Motivation**: The current subscriptions lambda API predates the DataSource pattern. We need to update it to better align with DataSource granularity.
+
+**Required Changes**:
+- **Remove `type` Parameter**: With granular data sources like `mtw.assets.contentHeaders`, subscribing to the data source itself is sufficient—no need for additional `eventType` filtering
+- **Array of Stream Keys**: Support `streamKeys: string[]` instead of single `streamKey?: string` to enable batch subscription in a single API call
+- **Updated API Format**:
+  ```typescript
+  {
+    message: 'subscribe',
+    dataSourceKey: 'mtw.assets.contentHeaders',
+    streamKeys: ['global', 'ASSET#asset-123']  // Array instead of single streamKey
+  }
+  ```
+
+**Impact**:
+- **Backend**: Update `lambda/subscriptions` to handle array of stream keys
+- **Frontend**: Update `createSubscribeAction` and `createUnsubscribeAction` to use new API format
+- **Type Definitions**: Update `SubscriptionsAPIMessage` in `mtw-interfaces/ts/subscriptions.ts`
+
+### **Phase 4: WebSocket Integration** ✅ INFRASTRUCTURE COMPLETE
 - ✅ **Shared WebSocket Service**: Already exists via `LifeLinePubSub` in `slices/lifeLine`
 - ✅ **Message Routing**: WebSocket messages already published to `LifeLinePubSub`
 - ✅ **Reconnection Logic**: State machine handles backoff and retry
 - **TODO**: Subscribe data source slices to `LifeLinePubSub` (same pattern as player, activeCharacters, library slices)
 
-### **Phase 4: Content Headers Implementation (Week 4)**
+### **Phase 5: Complete Event Processing Integration (Week 4)** 📋 PLANNED
+**Motivation**: After subscriptions lambda refactor (Phase 3), complete the connection between incoming WebSocket events and state management.
+
+**Implementation**:
+- **LifeLinePubSub Subscription**: Subscribe data source slices to incoming subscription messages
+- **Event Processing Reducers**: Implement full `processRawSnapshot` and `processRawEvent` logic
+  - Deserialize using `eventSerializer` from configuration
+  - Apply events to `materializedView` using aggregator
+  - Maintain `recentEvents` window (30 seconds)
+  - Handle out-of-order events correctly
+- **Materialized View Management**: Calculate and update views as events arrive
+- **Integration with Aggregator**: Use `DataSourceAggregator.applyUpdate()` for event application
+- **Error Handling**: Graceful handling of deserialization failures and aggregation errors
+
+### **Phase 6: Content Headers Implementation (Week 5)** 📋 PLANNED
 - **Content Headers Slice**: Create content headers data source slice using mtw-interfaces
 - **UI Components**: Create components that consume content headers data
 - **Integration Testing**: End-to-end testing of subscription and aggregation logic
