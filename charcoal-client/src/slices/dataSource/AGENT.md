@@ -2,7 +2,11 @@
 
 **Status: ACTIVE DEVELOPMENT DOCUMENT**
 
+**Last Updated: 2025-10-08** - Updated with concrete implementations from `mtw.assets.contentHeaders` aggregator
+
 This document outlines the requirements and design patterns for implementing client-side data source management in the Make The World frontend. The data source system enables real-time subscription to backend data streams with intelligent caching and materialized view management.
+
+**Key Update**: The aggregation interfaces and example implementation now reflect the actual `ContentHeadersAggregator` implementation in `mtw-interfaces`, replacing previous speculative designs with concrete, tested patterns.
 
 ## Overview
 
@@ -42,18 +46,30 @@ The client-side data source system uses a generic constructor pattern (similar t
 
 ```typescript
 // Generic data source slice creator
-interface DataSourceSliceConfig<TData, TSnapshot, TEvent> {
+interface DataSourceSliceConfig<
+  SnapshotPayload,
+  ExternalSnapshotPayload,
+  UpdatePayload,
+  ExternalUpdatePayload
+> {
   dataSourceKey: string
-  deserializer: DataSourceDeserializer<TSnapshot, TEvent>
-  aggregation: DataSourceAggregation<TData, TSnapshot, TEvent>
-  initialState?: Partial<DataSourceState<TData>>
+  serializer: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>
+  aggregation: DataSourceAggregationHelpers<SnapshotPayload, UpdatePayload>
+  initialState?: Partial<DataSourceState<SnapshotPayload, UpdatePayload>>
 }
 
 // Create a data source slice
-const createDataSourceSlice = <TData, TSnapshot, TEvent>(
-  config: DataSourceSliceConfig<TData, TSnapshot, TEvent>
+const createDataSourceSlice = <
+  SnapshotPayload,
+  ExternalSnapshotPayload,
+  UpdatePayload,
+  ExternalUpdatePayload
+>(
+  config: DataSourceSliceConfig<SnapshotPayload, ExternalSnapshotPayload, UpdatePayload, ExternalUpdatePayload>
 ) => {
   // Returns a Redux slice with data source specific behavior
+  // The serializer handles deserialization from external to internal format
+  // The aggregation helpers wrap the mtw-interfaces aggregator for Redux integration
 }
 ```
 
@@ -63,13 +79,14 @@ Each data source gets its own slice with the following structure:
 
 ```typescript
 // Generic data source state
-interface DataSourceState<TData> {
+// TSnapshot is the materialized view (aggregated state)
+interface DataSourceState<TSnapshot, TEvent> {
   subscriptions: {
     [streamKey: string]: {
       status: 'subscribed' | 'pending' | 'error'
       lastUpdate: number
-      materializedView: TData
-      recentEvents: TEvent[]
+      materializedView: TSnapshot
+      recentEvents: Array<{event: TEvent, timestamp: number}>
       error?: string
     }
   }
@@ -80,8 +97,13 @@ interface DataSourceState<TData> {
 }
 
 // Data source slice creator
-const createDataSourceSlice = <TData, TSnapshot, TEvent>(
-  config: DataSourceSliceConfig<TData, TSnapshot, TEvent>
+const createDataSourceSlice = <
+  SnapshotPayload,
+  ExternalSnapshotPayload,
+  UpdatePayload,
+  ExternalUpdatePayload
+>(
+  config: DataSourceSliceConfig<SnapshotPayload, ExternalSnapshotPayload, UpdatePayload, ExternalUpdatePayload>
 ) => {
   return createSlice({
     name: `dataSource/${config.dataSourceKey}`,
@@ -92,21 +114,89 @@ const createDataSourceSlice = <TData, TSnapshot, TEvent>(
         lastHeartbeat: 0
       },
       ...config.initialState
-    } as DataSourceState<TData>,
+    } as DataSourceState<SnapshotPayload, UpdatePayload>,
     reducers: {
       // Subscription management
-      subscribe: (state, action: PayloadAction<string[]>) => { /* ... */ },
-      unsubscribe: (state, action: PayloadAction<string[]>) => { /* ... */ },
+      subscribe: (state, action: PayloadAction<string[]>) => { 
+        // Initialize subscriptions with empty views
+        action.payload.forEach(streamKey => {
+          if (!state.subscriptions[streamKey]) {
+            state.subscriptions[streamKey] = {
+              status: 'pending',
+              lastUpdate: Date.now(),
+              materializedView: config.aggregation.createEmptyView(),
+              recentEvents: []
+            }
+          }
+        })
+      },
+      unsubscribe: (state, action: PayloadAction<string[]>) => {
+        action.payload.forEach(streamKey => {
+          delete state.subscriptions[streamKey]
+        })
+      },
       
-      // Event processing
-      processSnapshot: (state, action: PayloadAction<{streamKey: string, snapshot: TSnapshot}>) => { /* ... */ },
-      processStreamingEvent: (state, action: PayloadAction<{streamKey: string, event: TEvent}>) => { /* ... */ },
+      // Event processing - deserializes using serializer, then aggregates
+      processRawSnapshot: (state, action: PayloadAction<{streamKey: string, rawSnapshot: ExternalSnapshotPayload}>) => {
+        const sub = state.subscriptions[action.payload.streamKey]
+        if (sub) {
+          // Deserialize external snapshot to internal format
+          const snapshot = config.serializer.deserializeSnapshot(action.payload.rawSnapshot)
+          if (snapshot) {
+            sub.materializedView = snapshot
+            sub.lastUpdate = Date.now()
+            sub.status = 'subscribed'
+          } else {
+            sub.status = 'error'
+            sub.error = 'Failed to deserialize snapshot'
+          }
+        }
+      },
+      processRawEvent: (state, action: PayloadAction<{streamKey: string, rawEvent: ExternalUpdatePayload}>) => {
+        const sub = state.subscriptions[action.payload.streamKey]
+        if (sub) {
+          // Deserialize external event to internal format
+          const event = config.serializer.deserialize({
+            dataSourceKey: config.dataSourceKey,
+            streamKey: action.payload.streamKey,
+            externalUpdate: action.payload.rawEvent
+          })
+          
+          if (event) {
+            // Apply event to materialized view using aggregator
+            sub.materializedView = config.aggregation.applyEvent(
+              sub.materializedView,
+              event
+            )
+            // Add to recent events with timestamp
+            sub.recentEvents.push({
+              event,
+              timestamp: Date.now()
+            })
+            // Keep only last 30 seconds of events
+            const thirtySecondsAgo = Date.now() - 30000
+            sub.recentEvents = sub.recentEvents.filter(e => e.timestamp > thirtySecondsAgo)
+            sub.lastUpdate = Date.now()
+          } else {
+            console.error('Failed to deserialize event')
+          }
+        }
+      },
       
       // Connection management
-      setConnectionStatus: (state, action: PayloadAction<'connected' | 'disconnected' | 'connecting'>) => { /* ... */ },
+      setConnectionStatus: (state, action: PayloadAction<'connected' | 'disconnected' | 'connecting'>) => {
+        state.connection.status = action.payload
+        state.connection.lastHeartbeat = Date.now()
+      },
       
       // Error handling
-      setError: (state, action: PayloadAction<{streamKey: string, error: string}>) => { /* ... */ }
+      setError: (state, action: PayloadAction<{streamKey: string, error: string}>) => {
+        const sub = state.subscriptions[action.payload.streamKey]
+        if (sub) {
+          sub.status = 'error'
+          sub.error = action.payload.error
+        }
+      }
     }
   })
 }
@@ -114,95 +204,126 @@ const createDataSourceSlice = <TData, TSnapshot, TEvent>(
 
 ### **Data Source Configuration**
 
-Each data source is configured with specific deserializers and aggregation logic. **These interfaces should be implemented in `mtw-interfaces` alongside the serializers**, since they define the data source's shape and behavior:
+Each data source is configured with serialization and aggregation logic. **These are implemented in `mtw-interfaces` alongside the event types**, since they define the data source's shape and behavior:
 
 ```typescript
-// Deserializer interface (to be implemented in mtw-interfaces)
-interface DataSourceDeserializer<TSnapshot, TEvent> {
-  deserializeSnapshot(rawSnapshot: any): TSnapshot | null
-  deserializeEvent(rawEvent: any): TEvent | null
-  validateSnapshot(snapshot: any): boolean
-  validateEvent(event: any): boolean
+// Actual DataSourceEventSerializer interface from mtw-lambda-patterns
+// Implemented in mtw-interfaces for each data source
+interface DataSourceEventSerializer<
+  UpdatePayload,           // Internal event type (e.g. ContentHeadersEventUpdate)
+  ExternalUpdatePayload,   // External event type (e.g. ContentHeadersExternal)
+  SnapshotPayload,         // Internal snapshot type (e.g. ContentHeadersSnapshot)
+  ExternalSnapshotPayload  // External snapshot type (e.g. ContentHeadersSnapshotExternal)
+> {
+  // Convert internal event to external format for transmission
+  serialize(params: {
+    dataSourceKey: string
+    streamKey: string
+    update: UpdatePayload
+  }): ExternalUpdatePayload
+  
+  // Convert external event back to internal format
+  // Returns null if deserialization fails
+  deserialize(params: {
+    dataSourceKey: string
+    streamKey: string
+    externalUpdate: ExternalUpdatePayload
+  }): UpdatePayload | null
+  
+  // Convert internal snapshot to external format for transmission
+  serializeSnapshot(snapshot: SnapshotPayload): ExternalSnapshotPayload
+  
+  // Convert external snapshot back to internal format
+  // Returns null if deserialization fails
+  deserializeSnapshot(externalSnapshot: ExternalSnapshotPayload): SnapshotPayload | null
 }
 
-// Aggregation interface (to be implemented in mtw-interfaces)
-interface DataSourceAggregation<TData, TSnapshot, TEvent> {
-  aggregateSnapshotAndEvents(snapshot: TSnapshot, events: TEvent[]): TData
-  mergeViews(view1: TData, view2: TData): TData
-  reorderAndAggregate(events: TEvent[]): TEvent[]
-  createEmptyView(): TData
+// Aggregation interface (implemented in mtw-interfaces)
+// Based on actual ContentHeadersAggregator implementation
+interface DataSourceAggregator<SnapshotPayload, UpdatePayload> {
+  // Create an empty snapshot (initial state before any data arrives)
+  createEmpty(): SnapshotPayload
+  
+  // Apply a single update event to a snapshot (immutable pattern)
+  // Returns success/failure with updated snapshot
+  applyUpdate(
+    snapshot: SnapshotPayload,
+    update: UpdatePayload
+  ): { success: true; snapshot: SnapshotPayload } | { success: false; error: Error; snapshot: SnapshotPayload }
+}
+
+// Client-side helper interface for slice integration
+// Wraps the aggregator for Redux usage
+interface DataSourceAggregationHelpers<SnapshotPayload, UpdatePayload> {
+  createEmptyView(): SnapshotPayload
+  applyEvent(snapshot: SnapshotPayload, event: UpdatePayload): SnapshotPayload
+  applyEvents(snapshot: SnapshotPayload, events: UpdatePayload[]): SnapshotPayload
 }
 ```
 
-**Note**: These interfaces should be implemented in `mtw-interfaces/ts/eventBridge/[dataSource]/` alongside the existing serializers, as they define the data source's behavioral contract independent of execution location.
+**Note**: Both `DataSourceEventSerializer` and `DataSourceAggregator` are implemented in `mtw-interfaces/ts/eventBridge/[dataSource]/` as they define the data source's behavioral contract independent of execution location. The client-side slice uses these implementations directly.
 
 ### **Example: Content Headers Data Source**
 
-Here's how to create a content headers data source slice:
+Here's how to create a content headers data source slice using the actual implemented types and aggregator:
 
 ```typescript
-// Content headers specific types
-interface ContentHeadersData {
-  assets: {
-    [assetId: string]: {
-      zone: 'Canon' | 'Library' | 'Personal'
-      components: {
-        [componentId: string]: {
-          shortName: string
-          type: 'Room' | 'Feature' | 'Knowledge' | 'Character'
-          parentId?: string
-        }
-      }
-    }
-  }
-  lastUpdated: number
-}
+import {
+  ContentHeadersSnapshot,
+  ContentHeadersEventUpdate,
+  ContentHeadersAggregator,
+  ContentHeadersEventSerializer
+} from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
 
-interface ContentHeadersSnapshot {
-  assets: ContentHeadersData['assets']
-  timestamp: number
-}
-
-interface ContentHeadersEvent {
-  type: 'Component Updated' | 'Component Removed'
-  component: any
-  timestamp: number
-}
+// The serializer and aggregator are already implemented in mtw-interfaces
+const serializer = new ContentHeadersEventSerializer()
+const aggregator = new ContentHeadersAggregator()
 
 // Create the content headers slice
-const contentHeadersSlice = createDataSourceSlice<ContentHeadersData, ContentHeadersSnapshot, ContentHeadersEvent>({
+const contentHeadersSlice = createDataSourceSlice<
+  ContentHeadersSnapshot,        // Internal snapshot type
+  ContentHeadersSnapshotExternal, // External snapshot type
+  ContentHeadersEventUpdate,      // Internal event type
+  ContentHeadersExternal          // External event type
+>({
   dataSourceKey: 'mtw.assets.contentHeaders',
-  deserializer: {
-    deserializeSnapshot: (raw) => {
-      // Use deserializer from mtw-interfaces
-      return contentHeadersDeserializer.deserializeSnapshot(raw)
-    },
-    deserializeEvent: (raw) => {
-      // Use deserializer from mtw-interfaces  
-      return contentHeadersDeserializer.deserializeEvent(raw)
-    },
-    validateSnapshot: (snapshot) => contentHeadersDeserializer.validateSnapshot(snapshot),
-    validateEvent: (event) => contentHeadersDeserializer.validateEvent(event)
-  },
+  
+  // Use the actual serializer from mtw-interfaces directly
+  serializer: serializer,
+  
+  // Aggregation uses the actual aggregator from mtw-interfaces
   aggregation: {
-    aggregateSnapshotAndEvents: (snapshot, events) => {
-      // Use aggregation logic from mtw-interfaces
-      return contentHeadersAggregation.aggregateSnapshotAndEvents(snapshot, events)
-    },
-    mergeViews: (view1, view2) => {
-      // Use aggregation logic from mtw-interfaces
-      return contentHeadersAggregation.mergeViews(view1, view2)
-    },
-    reorderAndAggregate: (events) => {
-      // Use aggregation logic from mtw-interfaces
-      return contentHeadersAggregation.reorderAndAggregate(events)
-    },
+    // Create empty state
     createEmptyView: () => {
-      // Use aggregation logic from mtw-interfaces
-      return contentHeadersAggregation.createEmptyView()
+      return aggregator.createEmpty()
+    },
+    
+    // Apply a single event to the snapshot
+    applyEvent: (snapshot: ContentHeadersSnapshot, event: ContentHeadersEventUpdate) => {
+      const result = aggregator.applyUpdate(snapshot, event)
+      if (result.success) {
+        return result.snapshot
+      } else {
+        console.error('Failed to apply event:', result.error)
+        return snapshot // Return unchanged on error
+      }
+    },
+    
+    // Apply multiple events in sequence
+    applyEvents: (snapshot: ContentHeadersSnapshot, events: ContentHeadersEventUpdate[]) => {
+      return events.reduce((currentSnapshot, event) => {
+        const result = aggregator.applyUpdate(currentSnapshot, event)
+        return result.success ? result.snapshot : currentSnapshot
+      }, snapshot)
     }
   }
 })
+
+// Types from mtw-interfaces:
+// - ContentHeadersSnapshot: { type: 'Snapshot Generated', assets: Array<{ assetId, zone, standardForm }> }
+// - ContentHeadersEventUpdate: Headers Updated | Zone Updated | Snapshot Generated
+// - Headers Updated: { type: 'Headers Updated', assetId, zone, standardForm }
+// - Zone Updated: { type: 'Zone Updated', assetId, fromZone, toZone }
 ```
 
 ### **Redux Integration**
@@ -256,20 +377,39 @@ Each data source provides its own actions:
 const {
   subscribe: subscribeToContentHeaders,
   unsubscribe: unsubscribeFromContentHeaders,
-  processSnapshot: processContentHeadersSnapshot,
-  processStreamingEvent: processContentHeadersEvent,
-  setConnectionStatus: setContentHeadersConnectionStatus
+  processRawSnapshot: processContentHeadersSnapshot,
+  processRawEvent: processContentHeadersEvent,
+  setConnectionStatus: setContentHeadersConnectionStatus,
+  setError: setContentHeadersError
 } = contentHeadersSlice.actions
 
 // Usage in components
 const dispatch = useDispatch()
 
+// Subscribe to stream
 const handleSubscribe = () => {
-  dispatch(subscribeToContentHeaders(['content-headers']))
+  dispatch(subscribeToContentHeaders(['global']))
 }
 
+// Unsubscribe from stream
 const handleUnsubscribe = () => {
-  dispatch(unsubscribeFromContentHeaders(['content-headers']))
+  dispatch(unsubscribeFromContentHeaders(['global']))
+}
+
+// Process incoming WebSocket messages
+// (typically handled by middleware, not direct component usage)
+const handleWebSocketMessage = (message: any) => {
+  if (message.type === 'Snapshot Generated') {
+    dispatch(processContentHeadersSnapshot({
+      streamKey: 'global',
+      rawSnapshot: message as ContentHeadersSnapshotExternal
+    }))
+  } else if (message.type === 'Headers Updated' || message.type === 'Zone Updated') {
+    dispatch(processContentHeadersEvent({
+      streamKey: 'global',
+      rawEvent: message as ContentHeadersExternal
+    }))
+  }
 }
 ```
 
@@ -281,17 +421,17 @@ const handleUnsubscribe = () => {
 - **Basic Reducers**: Subscription, event processing, and connection management
 - **Configuration Interface**: Deserializer and aggregation configuration
 
-### **Phase 2: mtw-interfaces Integration (Week 2)**
-- **Deserializer Implementation**: Create deserializers in `mtw-interfaces/ts/eventBridge/[dataSource]/`
-- **Aggregation Implementation**: Create aggregation logic in `mtw-interfaces/ts/eventBridge/[dataSource]/`
-- **Content Headers Example**: Implement `ContentHeadersDeserializer` and `ContentHeadersAggregation`
-- **Testing**: Unit tests for deserialization and aggregation logic
+### **Phase 2: mtw-interfaces Integration (Week 2)** ✅ COMPLETE for Content Headers
+- ✅ **Serializer Implementation**: `ContentHeadersEventSerializer` in `mtw-interfaces/ts/eventBridge/assets/contentHeaders/`
+- ✅ **Aggregation Implementation**: `ContentHeadersAggregator` in `mtw-interfaces/ts/eventBridge/assets/contentHeaders/`
+- ✅ **Content Headers Example**: Fully implemented and tested
+- ✅ **Testing**: 18 unit tests for serialization and aggregation logic (all passing)
 
-### **Phase 3: WebSocket Integration (Week 3)**
-- **Shared WebSocket Service**: Connection management for all data sources
-- **Message Routing**: Route messages to appropriate data source slices
-- **Reconnection Logic**: Handle connection failures and reconnection
-- **Middleware Integration**: Connect WebSocket service to Redux actions
+### **Phase 3: WebSocket Integration** ✅ INFRASTRUCTURE COMPLETE
+- ✅ **Shared WebSocket Service**: Already exists via `LifeLinePubSub` in `slices/lifeLine`
+- ✅ **Message Routing**: WebSocket messages already published to `LifeLinePubSub`
+- ✅ **Reconnection Logic**: State machine handles backoff and retry
+- **TODO**: Subscribe data source slices to `LifeLinePubSub` (same pattern as player, activeCharacters, library slices)
 
 ### **Phase 4: Content Headers Implementation (Week 4)**
 - **Content Headers Slice**: Create content headers data source slice using mtw-interfaces
@@ -300,64 +440,52 @@ const handleUnsubscribe = () => {
 
 ### **WebSocket Integration**
 
-#### **Shared WebSocket Service**
-A shared WebSocket service manages connections for all data sources:
+#### **Using Existing LifeLinePubSub Infrastructure**
+
+The client already has WebSocket infrastructure via `LifeLinePubSub`. Data source slices integrate with it using the same pattern as existing slices:
 
 ```typescript
-// WebSocket service for data source subscriptions
-class DataSourceWebSocketService {
-  private ws: WebSocket | null = null
-  private subscribers: Map<string, Set<string>> = new Map()
-  private reconnectAttempts = 0
-  private maxReconnectAttempts = 5
-  
-  connect(): Promise<void> {
-    // Connect to backend subscription service
-  }
-  
-  subscribe(dataSourceKey: string, streamKeys: string[]): void {
-    // Send subscription request
-  }
-  
-  unsubscribe(dataSourceKey: string, streamKeys: string[]): void {
-    // Send unsubscription request
-  }
-  
-  private handleMessage(event: MessageEvent): void {
-    // Route messages to appropriate data source slices
-  }
-  
-  private handleReconnect(): void {
-    // Handle reconnection logic
-  }
-}
+// Import the existing LifeLinePubSub
+import { LifeLinePubSub } from '../lifeLine'
 
-// Singleton instance
-export const dataSourceWebSocket = new DataSourceWebSocketService()
-```
-
-#### **Data Source Middleware**
-Middleware handles WebSocket integration for each data source:
-
-```typescript
-// Data source middleware
-const createDataSourceMiddleware = (dataSourceKey: string) => {
-  return (store: MiddlewareAPI) => (next: Dispatch) => (action: AnyAction) => {
-    const result = next(action)
+// Subscribe to LifeLinePubSub in your data source initialization
+export const initializeContentHeadersDataSource = (): ThunkAction<void, RootState, unknown, AnyAction> => {
+  return (dispatch, getState) => {
+    // Subscribe to LifeLinePubSub to receive WebSocket messages
+    const subscription = LifeLinePubSub.subscribe(({ payload }) => {
+      // Check if this is a data source message
+      if (payload.messageType === 'StreamEvent') {
+        const { dataSourceKey, streamKey, message } = payload
+        
+        if (dataSourceKey === 'mtw.assets.contentHeaders') {
+          // Process based on message type
+          if (message.type === 'Snapshot Generated') {
+            dispatch(processContentHeadersSnapshot({
+              streamKey,
+              rawSnapshot: message as ContentHeadersSnapshotExternal
+            }))
+          } else if (message.type === 'Headers Updated' || message.type === 'Zone Updated') {
+            dispatch(processContentHeadersEvent({
+              streamKey,
+              rawEvent: message as ContentHeadersExternal
+            }))
+          }
+        }
+      }
+    })
     
-    // Handle subscription actions
-    if (action.type === `${dataSourceKey}/subscribe`) {
-      dataSourceWebSocket.subscribe(dataSourceKey, action.payload)
-    }
-    
-    if (action.type === `${dataSourceKey}/unsubscribe`) {
-      dataSourceWebSocket.unsubscribe(dataSourceKey, action.payload)
-    }
-    
-    return result
+    // Store subscription for cleanup
+    // (implementation depends on slice structure)
   }
 }
 ```
+
+**Key Benefits of Using LifeLinePubSub:**
+- ✅ WebSocket connection already managed by lifeLine state machine
+- ✅ Reconnection logic already implemented
+- ✅ Message routing pattern already established
+- ✅ Works with existing subscription infrastructure
+- ✅ No duplicate WebSocket connections needed
 
 ## Success Criteria
 
