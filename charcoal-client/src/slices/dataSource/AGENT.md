@@ -2,11 +2,21 @@
 
 **Status: ACTIVE DEVELOPMENT DOCUMENT**
 
-**Last Updated: 2025-10-08** - Updated with concrete implementations from `mtw.assets.contentHeaders` aggregator
+**Last Updated: 2025-10-09** - Refactored to use `singleSSM` state machine pattern
 
 This document outlines the requirements and design patterns for implementing client-side data source management in the Make The World frontend. The data source system enables real-time subscription to backend data streams with intelligent caching and materialized view management.
 
-**Key Update**: The aggregation interfaces and example implementation now reflect the actual `ContentHeadersAggregator` implementation in `mtw-interfaces`, replacing previous speculative designs with concrete, tested patterns.
+## Key Architecture Updates
+
+**State Machine Integration (2025-10-09)**: The design now uses the `singleSSM` pattern for subscription lifecycle management, eliminating manual state tracking and retry logic. Key benefits:
+
+- **Automatic Retry Logic**: SUBSCRIBEBACKOFF and UNSUBSCRIBEBACKOFF states handle exponential backoff
+- **Clear State Flow**: READY → SUBSCRIBE → SUBSCRIBED → UNSUBSCRIBE with explicit error states
+- **Pattern Consistency**: Follows established patterns from `personalAssets` slice (FETCHURL/FETCHURLBACKOFF/FETCHERROR)
+- **Reduced Complexity**: State machine handles state transitions, backoff, and error states automatically
+- **Intent-Based API**: Use `setIntent(['SUBSCRIBED'])` to trigger subscription, state machine handles the rest
+
+**Previous Update (2025-10-08)**: The aggregation interfaces and example implementation reflect the actual `ContentHeadersAggregator` implementation in `mtw-interfaces`, replacing previous speculative designs with concrete, tested patterns.
 
 ## Overview
 
@@ -42,10 +52,10 @@ The data source prototype provides a foundation for managing real-time data subs
 
 ### **Generic Data Source Slice Pattern**
 
-The client-side data source system uses a generic constructor pattern (similar to `stateSeekingMachine`) that creates structured slices for each data source:
+The client-side data source system uses the `singleSSM` pattern to create structured slices for each data source. This eliminates the need for manual status tracking (`status: 'pending' | 'subscribed' | 'error'`) as the state machine provides this automatically through its state transitions.
 
 ```typescript
-// Generic data source slice creator
+// Generic data source slice creator configuration
 interface DataSourceSliceConfig<
   SnapshotPayload,
   ExternalSnapshotPayload,
@@ -55,10 +65,11 @@ interface DataSourceSliceConfig<
   dataSourceKey: string
   serializer: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>
   aggregation: DataSourceAggregationHelpers<SnapshotPayload, UpdatePayload>
-  initialState?: Partial<DataSourceState<SnapshotPayload, UpdatePayload>>
+  subscribeAPI: (streamKeys: string[]) => Promise<void>  // API call to subscribe
+  unsubscribeAPI: (streamKeys: string[]) => Promise<void>  // API call to unsubscribe
 }
 
-// Create a data source slice
+// Create a data source slice using singleSSM
 const createDataSourceSlice = <
   SnapshotPayload,
   ExternalSnapshotPayload,
@@ -67,36 +78,78 @@ const createDataSourceSlice = <
 >(
   config: DataSourceSliceConfig<SnapshotPayload, ExternalSnapshotPayload, UpdatePayload, ExternalUpdatePayload>
 ) => {
-  // Returns a Redux slice with data source specific behavior
-  // The serializer handles deserialization from external to internal format
-  // The aggregation helpers wrap the mtw-interfaces aggregator for Redux integration
+  // Returns singleSSM result with state machine management
+  // - State machine handles: READY → SUBSCRIBE → SUBSCRIBED → UNSUBSCRIBE
+  // - Automatic retry with backoff on failure
+  // - Terminal error state for unrecoverable failures
+  // - Public reducers for event processing (processRawSnapshot, processRawEvent)
+  // - Public selectors for data access (getStatus, getSubscribedStreams, getMaterializedView)
 }
+```
+
+**Why State Machine?**
+- **No Manual Status**: State machine state (READY, SUBSCRIBE, SUBSCRIBED) replaces manual `status: 'pending' | 'subscribed' | 'error'`
+- **Built-in Retry**: SUBSCRIBEBACKOFF/UNSUBSCRIBEBACKOFF states handle exponential backoff automatically
+- **Error Handling**: SUBSCRIBEERROR provides clear terminal error state
+- **Intent-Based**: `setIntent(['SUBSCRIBED'])` triggers subscription, state machine handles execution
+- **Consistency**: Same pattern as `personalAssets` (FETCHURL → FETCHURLBACKOFF → FETCHERROR)
+
+### **State Machine Architecture**
+
+Each data source uses the `singleSSM` pattern to manage subscription lifecycle, eliminating manual state tracking and retry logic. The state machine handles subscription attempts, backoff, and error states automatically.
+
+#### **State Machine States**
+
+```typescript
+interface DataSourceNodes {
+  READY: ISSMChoiceNode;                    // Initial state, ready to subscribe
+  SUBSCRIBE: ISSMAttemptNode<Internal, Public>;  // Attempting subscription
+  SUBSCRIBEBACKOFF: ISSMAttemptNode<Internal, Public>; // Backoff before retry
+  SUBSCRIBEERROR: ISSMChoiceNode;           // Subscription failed
+  SUBSCRIBED: ISSMChoiceNode;               // Successfully subscribed
+  UNSUBSCRIBE: ISSMAttemptNode<Internal, Public>; // Attempting unsubscribe
+  UNSUBSCRIBEBACKOFF: ISSMAttemptNode<Internal, Public>; // Backoff before retry
+}
+```
+
+#### **State Machine Flow**
+
+```
+READY 
+  ↓ (user requests subscription)
+SUBSCRIBE (call subscriptions API)
+  ↓ success                    ↓ failure
+SUBSCRIBED ←──────────── SUBSCRIBEBACKOFF (exponential backoff)
+  ↓                              ↓ max retries
+UNSUBSCRIBE                 SUBSCRIBEERROR (terminal error state)
+  ↓ success
+SUBSCRIBED (for partial unsubscribe) or READY (for full unsubscribe)
 ```
 
 ### **Data Source Slice Structure**
 
-Each data source gets its own slice with the following structure:
+Each data source gets its own slice with state machine integration:
 
 ```typescript
-// Generic data source state
-// TSnapshot is the materialized view (aggregated state)
-interface DataSourceState<TSnapshot, TEvent> {
-  subscriptions: {
+// Internal state (managed by state machine actions)
+interface DataSourceInternal {
+  incrementalBackoff: number;
+  pendingStreamKeys?: string[];  // Stream keys to subscribe/unsubscribe
+  error?: string;
+}
+
+// Public state (accessed by components)
+interface DataSourcePublic<TSnapshot, TEvent> {
+  subscribedStreams: {
     [streamKey: string]: {
-      status: 'subscribed' | 'pending' | 'error'
-      lastUpdate: number
       materializedView: TSnapshot
       recentEvents: Array<{event: TEvent, timestamp: number}>
-      error?: string
+      lastUpdate: number
     }
-  }
-  connection: {
-    status: 'connected' | 'disconnected' | 'connecting'
-    lastHeartbeat: number
   }
 }
 
-// Data source slice creator
+// Data source slice creator using singleSSM
 const createDataSourceSlice = <
   SnapshotPayload,
   ExternalSnapshotPayload,
@@ -105,102 +158,87 @@ const createDataSourceSlice = <
 >(
   config: DataSourceSliceConfig<SnapshotPayload, ExternalSnapshotPayload, UpdatePayload, ExternalUpdatePayload>
 ) => {
-  return createSlice({
-    name: `dataSource/${config.dataSourceKey}`,
-    initialState: {
-      subscriptions: {},
-      connection: {
-        status: 'disconnected' as const,
-        lastHeartbeat: 0
+  // Define state machine template
+  const template = {
+    initialState: 'READY',
+    initialData: {
+      internalData: {
+        incrementalBackoff: 0.5
       },
-      ...config.initialState
-    } as DataSourceState<SnapshotPayload, UpdatePayload>,
-    reducers: {
-      // Subscription management
-      subscribe: (state, action: PayloadAction<string[]>) => { 
-        // Initialize subscriptions with empty views
-        action.payload.forEach(streamKey => {
-          if (!state.subscriptions[streamKey]) {
-            state.subscriptions[streamKey] = {
-              status: 'pending',
-              lastUpdate: Date.now(),
-              materializedView: config.aggregation.createEmptyView(),
-              recentEvents: []
-            }
-          }
-        })
+      publicData: {
+        subscribedStreams: {}
+      }
+    },
+    states: {
+      READY: {
+        stateType: 'CHOICE',
+        choices: ['SUBSCRIBE']
       },
-      unsubscribe: (state, action: PayloadAction<string[]>) => {
-        action.payload.forEach(streamKey => {
-          delete state.subscriptions[streamKey]
-        })
+      SUBSCRIBE: {
+        stateType: 'ATTEMPT',
+        action: subscribeAction(config),
+        resolve: 'SUBSCRIBED',
+        reject: 'SUBSCRIBEBACKOFF'
       },
-      
-      // Event processing - deserializes using serializer, then aggregates
-      processRawSnapshot: (state, action: PayloadAction<{streamKey: string, rawSnapshot: ExternalSnapshotPayload}>) => {
-        const sub = state.subscriptions[action.payload.streamKey]
-        if (sub) {
-          // Deserialize external snapshot to internal format
-          const snapshot = config.serializer.deserializeSnapshot(action.payload.rawSnapshot)
-          if (snapshot) {
-            sub.materializedView = snapshot
-            sub.lastUpdate = Date.now()
-            sub.status = 'subscribed'
-          } else {
-            sub.status = 'error'
-            sub.error = 'Failed to deserialize snapshot'
-          }
-        }
+      SUBSCRIBEBACKOFF: {
+        stateType: 'ATTEMPT',
+        action: backoffAction,
+        resolve: 'SUBSCRIBE',
+        reject: 'SUBSCRIBEERROR'
       },
-      processRawEvent: (state, action: PayloadAction<{streamKey: string, rawEvent: ExternalUpdatePayload}>) => {
-        const sub = state.subscriptions[action.payload.streamKey]
-        if (sub) {
-          // Deserialize external event to internal format
-          const event = config.serializer.deserialize({
-            dataSourceKey: config.dataSourceKey,
-            streamKey: action.payload.streamKey,
-            externalUpdate: action.payload.rawEvent
-          })
-          
-          if (event) {
-            // Apply event to materialized view using aggregator
-            sub.materializedView = config.aggregation.applyEvent(
-              sub.materializedView,
-              event
-            )
-            // Add to recent events with timestamp
-            sub.recentEvents.push({
-              event,
-              timestamp: Date.now()
-            })
-            // Keep only last 30 seconds of events
-            const thirtySecondsAgo = Date.now() - 30000
-            sub.recentEvents = sub.recentEvents.filter(e => e.timestamp > thirtySecondsAgo)
-            sub.lastUpdate = Date.now()
-          } else {
-            console.error('Failed to deserialize event')
-          }
-        }
+      SUBSCRIBEERROR: {
+        stateType: 'CHOICE',
+        choices: []  // Terminal error state
       },
-      
-      // Connection management
-      setConnectionStatus: (state, action: PayloadAction<'connected' | 'disconnected' | 'connecting'>) => {
-        state.connection.status = action.payload
-        state.connection.lastHeartbeat = Date.now()
+      SUBSCRIBED: {
+        stateType: 'CHOICE',
+        choices: ['UNSUBSCRIBE']
       },
-      
-      // Error handling
-      setError: (state, action: PayloadAction<{streamKey: string, error: string}>) => {
-        const sub = state.subscriptions[action.payload.streamKey]
-        if (sub) {
-          sub.status = 'error'
-          sub.error = action.payload.error
-        }
+      UNSUBSCRIBE: {
+        stateType: 'ATTEMPT',
+        action: unsubscribeAction(config),
+        resolve: 'SUBSCRIBED',  // or READY if all streams unsubscribed
+        reject: 'UNSUBSCRIBEBACKOFF'
+      },
+      UNSUBSCRIBEBACKOFF: {
+        stateType: 'ATTEMPT',
+        action: backoffAction,
+        resolve: 'UNSUBSCRIBE',
+        reject: 'SUBSCRIBEERROR'
       }
     }
+  }
+  
+  // Create the slice using singleSSM
+  return singleSSM({
+    name: `dataSource/${config.dataSourceKey}`,
+    initialSSMState: 'READY',
+    initialSSMDesired: ['READY'],  // Start ready, not subscribed
+    initialData: template.initialData,
+    sliceSelector: (state) => state[config.dataSourceKey],
+    publicReducers: {
+      // Event processing - deserializes and aggregates
+      processRawSnapshot: processRawSnapshotReducer(config),
+      processRawEvent: processRawEventReducer(config)
+    },
+    publicSelectors: {
+      getStatus: (state) => state.meta.currentState,
+      getSubscribedStreams: (state) => state.publicData.subscribedStreams,
+      getMaterializedView: (streamKey: string) => (state) => 
+        state.publicData.subscribedStreams[streamKey]?.materializedView
+    },
+    template
   })
 }
 ```
+
+### **Key Advantages of State Machine Pattern**
+
+1. **Automatic Retry Logic**: `SUBSCRIBEBACKOFF` handles exponential backoff automatically
+2. **Error State Management**: `SUBSCRIBEERROR` provides clear terminal error state
+3. **Intent-Based Transitions**: Use `setIntent(['SUBSCRIBED'])` to trigger subscription
+4. **Status Tracking**: State machine provides `getStatus()` selector for current state
+5. **No Manual State Tracking**: Eliminates `status: 'pending' | 'subscribed' | 'error'` duplication
 
 ### **Data Source Configuration**
 
@@ -265,7 +303,7 @@ interface DataSourceAggregationHelpers<SnapshotPayload, UpdatePayload> {
 
 ### **Example: Content Headers Data Source**
 
-Here's how to create a content headers data source slice using the actual implemented types and aggregator:
+Here's how to create a content headers data source slice using the state machine pattern:
 
 ```typescript
 import {
@@ -274,47 +312,223 @@ import {
   ContentHeadersAggregator,
   ContentHeadersEventSerializer
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
+import { singleSSM } from '../stateSeekingMachine/singleSSM'
+import { subscribeToDataSource, unsubscribeFromDataSource } from '../../api/subscriptions'
 
 // The serializer and aggregator are already implemented in mtw-interfaces
 const serializer = new ContentHeadersEventSerializer()
 const aggregator = new ContentHeadersAggregator()
 
-// Create the content headers slice
-const contentHeadersSlice = createDataSourceSlice<
-  ContentHeadersSnapshot,        // Internal snapshot type
-  ContentHeadersSnapshotExternal, // External snapshot type
-  ContentHeadersEventUpdate,      // Internal event type
-  ContentHeadersExternal          // External event type
->({
-  dataSourceKey: 'mtw.assets.contentHeaders',
+// Define the state machine actions
+const subscribeAction = (config) => async ({ internalData, publicData, actions }) => {
+  const { pendingStreamKeys } = internalData
+  if (!pendingStreamKeys || pendingStreamKeys.length === 0) {
+    return { internalData, publicData }
+  }
   
-  // Use the actual serializer from mtw-interfaces directly
-  serializer: serializer,
-  
-  // Aggregation uses the actual aggregator from mtw-interfaces
-  aggregation: {
-    // Create empty state
-    createEmptyView: () => {
-      return aggregator.createEmpty()
-    },
+  try {
+    // Call subscriptions API
+    await subscribeToDataSource({
+      dataSourceKey: config.dataSourceKey,
+      streamKeys: pendingStreamKeys
+    })
     
-    // Apply a single event to the snapshot
-    applyEvent: (snapshot: ContentHeadersSnapshot, event: ContentHeadersEventUpdate) => {
-      const result = aggregator.applyUpdate(snapshot, event)
-      if (result.success) {
-        return result.snapshot
-      } else {
-        console.error('Failed to apply event:', result.error)
-        return snapshot // Return unchanged on error
+    // Initialize empty views for new streams
+    const newStreams = { ...publicData.subscribedStreams }
+    pendingStreamKeys.forEach(streamKey => {
+      if (!newStreams[streamKey]) {
+        newStreams[streamKey] = {
+          materializedView: aggregator.createEmpty(),
+          recentEvents: [],
+          lastUpdate: Date.now()
+        }
+      }
+    })
+    
+    return {
+      internalData: { ...internalData, pendingStreamKeys: undefined },
+      publicData: { ...publicData, subscribedStreams: newStreams }
+    }
+  } catch (error) {
+    return {
+      internalData: { ...internalData, error: error.message },
+      publicData
+    }
+  }
+}
+
+const unsubscribeAction = (config) => async ({ internalData, publicData, actions }) => {
+  const { pendingStreamKeys } = internalData
+  if (!pendingStreamKeys || pendingStreamKeys.length === 0) {
+    return { internalData, publicData }
+  }
+  
+  try {
+    // Call subscriptions API
+    await unsubscribeFromDataSource({
+      dataSourceKey: config.dataSourceKey,
+      streamKeys: pendingStreamKeys
+    })
+    
+    // Remove unsubscribed streams
+    const newStreams = { ...publicData.subscribedStreams }
+    pendingStreamKeys.forEach(streamKey => {
+      delete newStreams[streamKey]
+    })
+    
+    return {
+      internalData: { ...internalData, pendingStreamKeys: undefined },
+      publicData: { ...publicData, subscribedStreams: newStreams }
+    }
+  } catch (error) {
+    return {
+      internalData: { ...internalData, error: error.message },
+      publicData
+    }
+  }
+}
+
+const backoffAction = async ({ internalData, publicData }) => {
+  const backoffMs = internalData.incrementalBackoff * 1000
+  await new Promise(resolve => setTimeout(resolve, backoffMs))
+  
+  return {
+    internalData: {
+      ...internalData,
+      incrementalBackoff: Math.min(internalData.incrementalBackoff * 2, 30)
+    },
+    publicData
+  }
+}
+
+// Create the content headers slice with state machine
+const {
+  slice: contentHeadersSlice,
+  selectors: contentHeadersSelectors,
+  publicActions: contentHeadersPublicActions,
+  iterateAllSSMs: iterateContentHeaders
+} = singleSSM({
+  name: 'contentHeaders',
+  initialSSMState: 'READY',
+  initialSSMDesired: ['READY'],
+  initialData: {
+    internalData: {
+      incrementalBackoff: 0.5
+    },
+    publicData: {
+      subscribedStreams: {}
+    }
+  },
+  sliceSelector: (state) => state.contentHeaders,
+  publicReducers: {
+    // Process incoming snapshot
+    processRawSnapshot: (record) => (state, action) => {
+      const { streamKey, rawSnapshot } = action.payload
+      const stream = state.publicData.subscribedStreams[streamKey]
+      if (!stream) return state
+      
+      const snapshot = serializer.deserializeSnapshot(rawSnapshot)
+      if (!snapshot) return state
+      
+      return {
+        ...state,
+        publicData: {
+          ...state.publicData,
+          subscribedStreams: {
+            ...state.publicData.subscribedStreams,
+            [streamKey]: {
+              ...stream,
+              materializedView: snapshot,
+              lastUpdate: Date.now()
+            }
+          }
+        }
       }
     },
     
-    // Apply multiple events in sequence
-    applyEvents: (snapshot: ContentHeadersSnapshot, events: ContentHeadersEventUpdate[]) => {
-      return events.reduce((currentSnapshot, event) => {
-        const result = aggregator.applyUpdate(currentSnapshot, event)
-        return result.success ? result.snapshot : currentSnapshot
-      }, snapshot)
+    // Process incoming event
+    processRawEvent: (record) => (state, action) => {
+      const { streamKey, rawEvent } = action.payload
+      const stream = state.publicData.subscribedStreams[streamKey]
+      if (!stream) return state
+      
+      const event = serializer.deserialize({
+        dataSourceKey: 'mtw.assets.contentHeaders',
+        streamKey,
+        externalUpdate: rawEvent
+      })
+      if (!event) return state
+      
+      // Apply event using aggregator
+      const result = aggregator.applyUpdate(stream.materializedView, event)
+      
+      return {
+        ...state,
+        publicData: {
+          ...state.publicData,
+          subscribedStreams: {
+            ...state.publicData.subscribedStreams,
+            [streamKey]: {
+              materializedView: result.success ? result.snapshot : stream.materializedView,
+              recentEvents: [
+                ...stream.recentEvents,
+                { event, timestamp: Date.now() }
+              ].filter(e => e.timestamp > Date.now() - 30000), // Keep last 30 seconds
+              lastUpdate: Date.now()
+            }
+          }
+        }
+      }
+    }
+  },
+  publicSelectors: {
+    getSubscribedStreams: (state) => state.publicData.subscribedStreams,
+    getMaterializedView: (streamKey: string) => (state) =>
+      state.publicData.subscribedStreams[streamKey]?.materializedView
+  },
+  template: {
+    initialState: 'READY',
+    initialData: {
+      internalData: { incrementalBackoff: 0.5 },
+      publicData: { subscribedStreams: {} }
+    },
+    states: {
+      READY: {
+        stateType: 'CHOICE',
+        choices: ['SUBSCRIBE']
+      },
+      SUBSCRIBE: {
+        stateType: 'ATTEMPT',
+        action: subscribeAction({ dataSourceKey: 'mtw.assets.contentHeaders' }),
+        resolve: 'SUBSCRIBED',
+        reject: 'SUBSCRIBEBACKOFF'
+      },
+      SUBSCRIBEBACKOFF: {
+        stateType: 'ATTEMPT',
+        action: backoffAction,
+        resolve: 'SUBSCRIBE',
+        reject: 'SUBSCRIBEERROR'
+      },
+      SUBSCRIBEERROR: {
+        stateType: 'CHOICE',
+        choices: []
+      },
+      SUBSCRIBED: {
+        stateType: 'CHOICE',
+        choices: ['UNSUBSCRIBE']
+      },
+      UNSUBSCRIBE: {
+        stateType: 'ATTEMPT',
+        action: unsubscribeAction({ dataSourceKey: 'mtw.assets.contentHeaders' }),
+        resolve: 'SUBSCRIBED',
+        reject: 'UNSUBSCRIBEBACKOFF'
+      },
+      UNSUBSCRIBEBACKOFF: {
+        stateType: 'ATTEMPT',
+        action: backoffAction,
+        resolve: 'UNSUBSCRIBE',
+        reject: 'SUBSCRIBEERROR'
+      }
     }
   }
 })
@@ -349,63 +563,106 @@ const store = configureStore({
 ```
 
 #### **Redux Selectors**
-Each data source provides its own selectors:
+
+Each data source provides state machine selectors and data access selectors:
 
 ```typescript
-// Content headers selectors
-const selectContentHeaders = (state: RootState) => state.contentHeaders
-const selectContentHeadersView = (state: RootState, streamKey: string) => 
-  state.contentHeaders.subscriptions[streamKey]?.materializedView
-const selectContentHeadersStatus = (state: RootState, streamKey: string) =>
-  state.contentHeaders.subscriptions[streamKey]?.status
+// Content headers selectors (provided by singleSSM)
+const {
+  getStatus,              // Current state machine state
+  getIntent,              // Desired state(s)
+  getSubscribedStreams,   // All subscribed streams with their views
+  getMaterializedView     // Get view for specific stream
+} = contentHeadersSelectors
 
 // Usage in components
 const ContentHeadersComponent = () => {
-  const contentHeaders = useSelector(selectContentHeaders)
-  const headersView = useSelector((state) => selectContentHeadersView(state, 'content-headers'))
-  const status = useSelector((state) => selectContentHeadersStatus(state, 'content-headers'))
+  const dispatch = useDispatch()
+  
+  // Get current state machine status
+  const status = useSelector(getStatus)  // 'READY' | 'SUBSCRIBE' | 'SUBSCRIBED' | etc.
+  
+  // Get all subscribed streams
+  const subscribedStreams = useSelector(getSubscribedStreams)
+  
+  // Get specific stream's materialized view
+  const globalView = useSelector((state) => getMaterializedView('global')(state))
+  
+  // Check if we're in an active subscription state
+  const isSubscribed = status === 'SUBSCRIBED'
+  const isSubscribing = status === 'SUBSCRIBE' || status === 'SUBSCRIBEBACKOFF'
+  const hasError = status === 'SUBSCRIBEERROR'
   
   // Component logic...
 }
 ```
 
 #### **Redux Actions**
-Each data source provides its own actions:
+
+Each data source provides state machine actions and event processing reducers:
 
 ```typescript
-// Content headers actions
+// Content headers slice (returned from createDataSourceSlice)
 const {
-  subscribe: subscribeToContentHeaders,
-  unsubscribe: unsubscribeFromContentHeaders,
-  processRawSnapshot: processContentHeadersSnapshot,
-  processRawEvent: processContentHeadersEvent,
-  setConnectionStatus: setContentHeadersConnectionStatus,
-  setError: setContentHeadersError
-} = contentHeadersSlice.actions
+  slice: contentHeadersSlice,
+  selectors: contentHeadersSelectors,
+  publicActions: contentHeadersActions,
+  iterateAllSSMs: iterateContentHeaders
+} = createDataSourceSlice({
+  dataSourceKey: 'mtw.assets.contentHeaders',
+  serializer: new ContentHeadersEventSerializer(),
+  aggregation: { /* aggregation helpers */ }
+})
+
+// State machine actions
+const { setIntent } = contentHeadersSlice.actions
+
+// Public actions for event processing
+const {
+  processRawSnapshot,
+  processRawEvent
+} = contentHeadersActions
 
 // Usage in components
 const dispatch = useDispatch()
 
-// Subscribe to stream
-const handleSubscribe = () => {
-  dispatch(subscribeToContentHeaders(['global']))
+// Subscribe to stream keys
+const handleSubscribe = (streamKeys: string[]) => {
+  // Store stream keys in internal state and trigger subscription
+  dispatch(contentHeadersSlice.actions.internalStateChange({
+    newState: 'SUBSCRIBE',
+    data: {
+      internalData: { pendingStreamKeys: streamKeys }
+    }
+  }))
+  // Set intent to SUBSCRIBED - state machine will handle the transition
+  dispatch(setIntent(['SUBSCRIBED']))
+  // Iterate the state machine to execute the subscription action
+  dispatch(iterateContentHeaders)
 }
 
-// Unsubscribe from stream
-const handleUnsubscribe = () => {
-  dispatch(unsubscribeFromContentHeaders(['global']))
+// Unsubscribe from stream keys
+const handleUnsubscribe = (streamKeys: string[]) => {
+  dispatch(contentHeadersSlice.actions.internalStateChange({
+    newState: 'UNSUBSCRIBE',
+    data: {
+      internalData: { pendingStreamKeys: streamKeys }
+    }
+  }))
+  dispatch(setIntent(['SUBSCRIBED']))  // Intent is to return to SUBSCRIBED state
+  dispatch(iterateContentHeaders)
 }
 
 // Process incoming WebSocket messages
-// (typically handled by middleware, not direct component usage)
+// (typically handled by middleware via LifeLinePubSub subscription)
 const handleWebSocketMessage = (message: any) => {
   if (message.type === 'Snapshot Generated') {
-    dispatch(processContentHeadersSnapshot({
+    dispatch(processRawSnapshot({
       streamKey: 'global',
       rawSnapshot: message as ContentHeadersSnapshotExternal
     }))
   } else if (message.type === 'Headers Updated' || message.type === 'Zone Updated') {
-    dispatch(processContentHeadersEvent({
+    dispatch(processRawEvent({
       streamKey: 'global',
       rawEvent: message as ContentHeadersExternal
     }))
@@ -415,11 +672,13 @@ const handleWebSocketMessage = (message: any) => {
 
 ## Implementation Plan
 
-### **Phase 1: Generic Slice Creator (Week 1)**
-- **Generic Slice Factory**: Create `createDataSourceSlice` function
-- **Type Safety**: Generic types for data, snapshots, and events
-- **Basic Reducers**: Subscription, event processing, and connection management
-- **Configuration Interface**: Deserializer and aggregation configuration
+### **Phase 1: State Machine Integration (Week 1)**
+- **State Machine Template**: Define standard data source state machine with READY, SUBSCRIBE, SUBSCRIBED, UNSUBSCRIBE states
+- **Generic Slice Factory**: Create `createDataSourceSlice` function using `singleSSM`
+- **Type Safety**: Generic types for internal/public data, snapshots, and events
+- **State Machine Actions**: Implement subscribe/unsubscribe actions with API calls
+- **Event Processing Reducers**: Public reducers for processRawSnapshot and processRawEvent
+- **Configuration Interface**: Serializer and aggregation configuration
 
 ### **Phase 2: mtw-interfaces Integration (Week 2)** ✅ COMPLETE for Content Headers
 - ✅ **Serializer Implementation**: `ContentHeadersEventSerializer` in `mtw-interfaces/ts/eventBridge/assets/contentHeaders/`
@@ -490,30 +749,35 @@ export const initializeContentHeadersDataSource = (): ThunkAction<void, RootStat
 ## Success Criteria
 
 ### **Functional Requirements**
-- [ ] Generic slice creator works for multiple data sources
-- [ ] Each data source has its own Redux slice with type safety
+- [ ] Generic slice creator works for multiple data sources using `singleSSM` pattern
+- [ ] Each data source has its own state machine with READY → SUBSCRIBE → SUBSCRIBED → UNSUBSCRIBE flow
+- [ ] Automatic retry logic with SUBSCRIBEBACKOFF and UNSUBSCRIBEBACKOFF states
+- [ ] Terminal error handling with SUBSCRIBEERROR state
 - [ ] Can subscribe/unsubscribe to multiple stream keys per data source
 - [ ] Receives and deserializes events using `mtw-interfaces` deserializers
-- [ ] Maintains materialized views of current state per data source
+- [ ] Maintains materialized views of current state per subscribed stream
 - [ ] Handles out-of-order events correctly with data source specific aggregation
-- [ ] Integrates with Redux for state management
-- [ ] Provides easy access via data source specific Redux selectors
+- [ ] Integrates with Redux for state management via `singleSSM`
+- [ ] Provides easy access via state machine selectors (getStatus, getSubscribedStreams, getMaterializedView)
 
 ### **Performance Requirements**
 - [ ] Efficient aggregation without excessive re-computation
-- [ ] Memory usage stays within bounds (30-second window per data source)
+- [ ] Memory usage stays within bounds (30-second window per subscribed stream)
 - [ ] Real-time updates with minimal latency
-- [ ] Graceful handling of connection issues
-- [ ] Shared WebSocket service for efficient connection management
+- [ ] Graceful handling of subscription failures via backoff mechanism
+- [ ] State machine prevents redundant subscription attempts
+- [ ] Shared WebSocket service for efficient connection management (via LifeLinePubSub)
 
 ### **Integration Requirements**
 - [ ] Works with `mtw.assets.contentHeaders` DataSource
-- [ ] Compatible with existing Redux patterns
+- [ ] Uses `singleSSM` for state machine implementation
+- [ ] Follows established patterns from `personalAssets` slice (SUBSCRIBE/SUBSCRIBEBACKOFF/SUBSCRIBEERROR)
+- [ ] Compatible with existing Redux patterns and LifeLinePubSub
 - [ ] Extensible for future data sources (character data, room data, etc.)
-- [ ] Type-safe throughout the system
-- [ ] Follows `stateSeekingMachine` pattern for consistency
+- [ ] Type-safe throughout the system with proper TypeScript generics
 - [ ] Deserialization and aggregation logic implemented in `mtw-interfaces`
 - [ ] Client-side slices consume logic from `mtw-interfaces` rather than implementing it locally
+- [ ] State machine provides clear status tracking (READY, SUBSCRIBE, SUBSCRIBED, etc.)
 
 ## Dependencies
 
