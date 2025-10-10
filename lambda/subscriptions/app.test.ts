@@ -37,8 +37,7 @@ describe('subscriptions app handler', () => {
             const subscribeRequest = {
                 message: 'subscribe',
                 dataSourceKey: 'mtw.assets.contentHeaders',
-                type: 'Content Headers Updated',
-                streamKey: 'ASSET#123',
+                streamKeys: ['ASSET#123'],
                 RequestId: 'test-request-id'
             }
 
@@ -89,8 +88,7 @@ describe('subscriptions app handler', () => {
             const subscribeRequest = {
                 message: 'subscribe',
                 dataSourceKey: 'mtw.wml',
-                type: 'Content Update',
-                streamKey: 'ASSET#123',
+                streamKeys: ['ASSET#123'],
                 RequestId: 'test-request-id'
             }
 
@@ -127,8 +125,7 @@ describe('subscriptions app handler', () => {
             const subscribeRequest = {
                 message: 'subscribe',
                 dataSourceKey: 'mtw.unknown',
-                type: 'Unknown Type',
-                streamKey: 'UNKNOWN#123',
+                streamKeys: ['UNKNOWN#123'],
                 RequestId: 'test-request-id'
             }
 
@@ -167,8 +164,7 @@ describe('subscriptions app handler', () => {
             const subscribeRequest = {
                 message: 'subscribe',
                 dataSourceKey: 'mtw.assets.contentHeaders',
-                type: 'Content Headers Updated',
-                streamKey: 'ASSET#123',
+                streamKeys: ['ASSET#123'],
                 RequestId: 'test-request-id'
             }
 
@@ -194,8 +190,7 @@ describe('subscriptions app handler', () => {
             const subscribeRequest = {
                 message: 'subscribe',
                 dataSourceKey: 'mtw.wml',
-                type: 'Content Update',
-                streamKey: 'ASSET#123',
+                streamKeys: ['ASSET#123'],
                 RequestId: 'test-request-id'
             }
 

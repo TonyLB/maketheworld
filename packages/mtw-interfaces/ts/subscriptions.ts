@@ -4,15 +4,13 @@ import { ContentHeadersExternal, isContentHeadersExternal } from "./eventBridge/
 export type SubscribeAPIMessage = Record<string, any> & {
     message: 'subscribe';
     dataSourceKey: string;
-    type: string;
-    streamKey?: string;
+    streamKeys: string[];  // Array of stream keys to subscribe to
 }
 
 export type UnsubscribeAPIMessage = Record<string, any> & {
     message: 'unsubscribe';
     dataSourceKey: string;
-    type: string;
-    streamKey?: string;
+    streamKeys: string[];  // Array of stream keys to unsubscribe from
 }
 
 export type SubscriptionsAPIMessage = SubscribeAPIMessage | UnsubscribeAPIMessage
@@ -29,7 +27,9 @@ export const isSubscriptionsAPIMessage = (message: Record<string, any>): message
         case 'unsubscribe':
             return ('dataSourceKey' in message)
                 && typeof message.dataSourceKey === 'string'
-                && (!('type' in message) || typeof message.type === 'undefined' || typeof message.type === 'string')
+                && ('streamKeys' in message)
+                && Array.isArray(message.streamKeys)
+                && message.streamKeys.every((key: any) => typeof key === 'string')
         default: return false
     }
 }

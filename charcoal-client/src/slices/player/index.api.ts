@@ -55,10 +55,12 @@ export const fetchDraftAsset: PlayerAction = () => async (dispatch, getState) =>
     await dispatch(addItem({ key: 'ASSET#draft' }))
     const state = getState().player.publicData
     const player = getPlayer(state)
-    await Promise.all([
-        dispatch(socketDispatchPromise({ message: 'subscribe', dataSourceKey: 'mtw.wml', type: 'Content Update', streamKey: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' })),
-        dispatch(socketDispatchPromise({ message: 'subscribe', dataSourceKey: 'mtw.wml', type: 'Merge Conflict', streamKey: `ASSET#draft[${player.PlayerName}]` }, { service: 'subscriptions' }))
-    ])
+    // Subscribe to mtw.wml events using new API format (single call, array of stream keys, no type parameter)
+    await dispatch(socketDispatchPromise({ 
+        message: 'subscribe', 
+        dataSourceKey: 'mtw.wml', 
+        streamKeys: [`ASSET#draft[${player.PlayerName}]`]
+    }, { service: 'subscriptions' }))
     LifeLinePubSub.subscribe(({ payload }) => {
         if (payload.messageType === 'Subscription' && payload.dataSourceKey === 'mtw.wml' && payload.streamKey === `ASSET#draft[${player.PlayerName}]`) {
             dispatch(receiveWMLEvent('ASSET#draft')({ event: payload }))

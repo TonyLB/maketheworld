@@ -16,21 +16,10 @@ export const backoffAction: DataSourceAction<any, any> = ({ internalData: { incr
 
 //
 // Factory function to create subscribe action for a specific data source
-// Takes the dataSourceKey and eventType to configure the subscription
-//
-// NOTE: This currently uses the legacy subscriptions API format that requires:
-//   - `type` parameter (eventType) - will be removed in Phase 3 refactor
-//   - Single `streamKey` per call - will become `streamKeys: string[]` array
-// After Phase 3 (subscriptions lambda refactor), this will be simplified to:
-//   dispatch(socketDispatchPromise({
-//     message: 'subscribe',
-//     dataSourceKey,
-//     streamKeys: pendingStreamKeys  // Array of keys in single call
-//   }, { service: 'subscriptions' }))
+// Takes the dataSourceKey to configure the subscription
 //
 export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
-    eventType: string,  // TODO: Remove after Phase 3 - no longer needed with granular DataSources
     createEmptyView: () => SnapshotPayload
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
@@ -41,18 +30,12 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
         }
         
         try {
-            // Subscribe to each stream key via the subscriptions API
-            // TODO Phase 3: Replace with single call accepting streamKeys array
-            await Promise.all(
-                pendingStreamKeys.map((streamKey) =>
-                    dispatch(socketDispatchPromise({
-                        message: 'subscribe',
-                        dataSourceKey,
-                        type: eventType,  // TODO Phase 3: Remove this parameter
-                        streamKey  // TODO Phase 3: This becomes streamKeys array at top level
-                    }, { service: 'subscriptions' }))
-                )
-            )
+            // Subscribe to stream keys via the subscriptions API (single batch call)
+            await dispatch(socketDispatchPromise({
+                message: 'subscribe',
+                dataSourceKey,
+                streamKeys: pendingStreamKeys  // Array of stream keys in single call
+            }, { service: 'subscriptions' }))
             
             // Initialize empty views for new streams and add to active list
             const newSubscribedStreams = { ...publicData.subscribedStreams }
@@ -96,13 +79,10 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
 
 //
 // Factory function to create unsubscribe action for a specific data source
-// Takes the dataSourceKey and eventType to configure the unsubscription
-//
-// NOTE: Same legacy API format as subscribe - will be simplified in Phase 3
+// Takes the dataSourceKey to configure the unsubscription
 //
 export const createUnsubscribeAction = <SnapshotPayload, UpdatePayload>(
-    dataSourceKey: string,
-    eventType: string,  // TODO: Remove after Phase 3 - no longer needed with granular DataSources
+    dataSourceKey: string
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
         const { pendingStreamKeys } = internalData
@@ -112,18 +92,12 @@ export const createUnsubscribeAction = <SnapshotPayload, UpdatePayload>(
         }
         
         try {
-            // Unsubscribe from each stream key via the subscriptions API
-            // TODO Phase 3: Replace with single call accepting streamKeys array
-            await Promise.all(
-                pendingStreamKeys.map((streamKey) =>
-                    dispatch(socketDispatchPromise({
-                        message: 'unsubscribe',
-                        dataSourceKey,
-                        type: eventType,  // TODO Phase 3: Remove this parameter
-                        streamKey  // TODO Phase 3: This becomes streamKeys array at top level
-                    }, { service: 'subscriptions' }))
-                )
-            )
+            // Unsubscribe from stream keys via the subscriptions API (single batch call)
+            await dispatch(socketDispatchPromise({
+                message: 'unsubscribe',
+                dataSourceKey,
+                streamKeys: pendingStreamKeys  // Array of stream keys in single call
+            }, { service: 'subscriptions' }))
             
             // Remove streams from active list (but keep data structure for async events)
             const newActiveStreamKeys = (publicData.activeStreamKeys ?? []).filter(

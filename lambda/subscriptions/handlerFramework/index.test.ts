@@ -37,12 +37,17 @@ describe('subscription handlerFramework', () => {
         },
         {
             dataSourceKey: 'mtw.assets.contentHeaders',
-            type: 'Content Headers Updated',
+            type: 'Headers Updated',
             transform: (event) => ({
                 messageType: 'Subscription',
                 dataSourceKey: 'mtw.assets.contentHeaders' as any,
                 streamKey: event.streamKey,
-                update: event.update || event
+                update: {
+                    type: 'Headers Updated',
+                    assetId: (event as any).update?.assetId || 'ASSET#unknown',
+                    zone: (event as any).update?.zone || 'Canon',
+                    wml: (event as any).update?.wml || ''
+                }
             })
         }
     ])
@@ -64,16 +69,21 @@ describe('subscription handlerFramework', () => {
 
     it('should subscribe with no details', async () => {
         connectionDBMock.putItem.mockResolvedValue({})
-        await testLibrary.match({ dataSourceKey: 'noDetails', streamKey: '', type: 'any' })?.subscribe({ message: 'subscribe', dataSourceKey: 'noDetails', type: 'any' }, `SESSION#ABCD`)
+        await testLibrary.match({ dataSourceKey: 'noDetails', streamKey: '', type: 'any' })?.subscribe({ message: 'subscribe', dataSourceKey: 'noDetails', streamKeys: ['stream1', 'stream2'] }, `SESSION#ABCD`)
+        expect(connectionDBMock.putItem).toHaveBeenCalledTimes(2)
         expect(connectionDBMock.putItem).toHaveBeenCalledWith({
-            ConnectionId: 'STREAM#noDetails',
+            ConnectionId: 'STREAM#noDetails::stream1',
+            DataCategory: 'SESSION#ABCD'
+        })
+        expect(connectionDBMock.putItem).toHaveBeenCalledWith({
+            ConnectionId: 'STREAM#noDetails::stream2',
             DataCategory: 'SESSION#ABCD'
         })
     })
 
     it('should subscribe with streamKey', async () => {
         connectionDBMock.putItem.mockResolvedValue({})
-        await testLibrary.match({ dataSourceKey: 'detailsOne', streamKey: 'XYZ', type: 'TestOne' })?.subscribe({ message: 'subscribe', dataSourceKey: 'detailsOne', type: 'TestOne', streamKey: 'XYZ' }, `SESSION#ABCD`)
+        await testLibrary.match({ dataSourceKey: 'detailsOne', streamKey: 'XYZ', type: 'TestOne' })?.subscribe({ message: 'subscribe', dataSourceKey: 'detailsOne', streamKeys: ['XYZ'] }, `SESSION#ABCD`)
         expect(connectionDBMock.putItem).toHaveBeenCalledWith({
             ConnectionId: 'STREAM#detailsOne::TestOne::XYZ',
             DataCategory: 'SESSION#ABCD'
@@ -82,14 +92,14 @@ describe('subscription handlerFramework', () => {
 
     it('should publish to subscription with no details', async () => {
         connectionDBMock.query.mockResolvedValue([{
-            ConnectionId: 'STREAM#noDetails',
+            ConnectionId: 'STREAM#noDetails::any::testStream',
             DataCategory: 'SESSION#ABCD'
         }])
         internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#QRST'])
-        const coreEvent = { dataSourceKey: 'noDetails', streamKey: '', update: { type: 'any' } }
+        const coreEvent = { dataSourceKey: 'noDetails', streamKey: 'testStream', update: { type: 'any' } }
         await testLibrary.matchEvent(coreEvent as any)?.publish(coreEvent as any)
         expect(connectionDB.query).toHaveBeenCalledWith({
-            Key: { ConnectionId: 'STREAM#noDetails' },
+            Key: { ConnectionId: 'STREAM#noDetails::any::testStream' },
             ProjectionFields: ["DataCategory"]
         })
         expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'Subscription', dataSourceKey: 'mtw.wml', streamKey: 'ASSET#TEST', update: { type: 'Content Update', RequestId: 'req-no-details', wml: '' } })
@@ -112,17 +122,27 @@ describe('subscription handlerFramework', () => {
 
     it('should handle content headers events', async () => {
         connectionDBMock.query.mockResolvedValue([{
-            ConnectionId: 'STREAM#mtw.assets.contentHeaders::Content Headers Updated::ASSET#456',
+            ConnectionId: 'STREAM#mtw.assets.contentHeaders::Headers Updated::ASSET#456',
             DataCategory: 'SESSION#EFGH'
         }])
         internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#WXYZ'])
-        const coreEvent = { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'ASSET#456', update: { type: 'Content Headers Updated', headers: { 'content-type': 'application/json' } } }
+        const coreEvent = { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'ASSET#456', update: { type: 'Headers Updated', assetId: 'ASSET#456', zone: 'Canon', wml: 'test wml' } }
         await testLibrary.matchEvent(coreEvent as any)?.publish(coreEvent as any)
         expect(connectionDB.query).toHaveBeenCalledWith({
-            Key: { ConnectionId: 'STREAM#mtw.assets.contentHeaders::Content Headers Updated::ASSET#456' },
+            Key: { ConnectionId: 'STREAM#mtw.assets.contentHeaders::Headers Updated::ASSET#456' },
             ProjectionFields: ["DataCategory"]
         })
-        expect(apiClientMock.send).toHaveBeenCalledWith('WXYZ', { messageType: 'Subscription', dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'ASSET#456', update: { type: 'Content Headers Updated', headers: { 'content-type': 'application/json' } } })
+        expect(apiClientMock.send).toHaveBeenCalledWith('WXYZ', { 
+            messageType: 'Subscription', 
+            dataSourceKey: 'mtw.assets.contentHeaders', 
+            streamKey: 'ASSET#456', 
+            update: { 
+                type: 'Headers Updated', 
+                assetId: 'ASSET#456', 
+                zone: 'Canon', 
+                wml: 'test wml' 
+            } 
+        })
     })
 
 })

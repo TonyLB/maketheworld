@@ -692,25 +692,36 @@ const handleWebSocketMessage = (message: any) => {
 - ✅ **Content Headers Example**: Fully implemented and tested
 - ✅ **Testing**: 18 unit tests for serialization and aggregation logic (all passing)
 
-### **Phase 3: Subscriptions Lambda Refactor (Week 3)** 📋 PLANNED
-**Motivation**: The current subscriptions lambda API predates the DataSource pattern. We need to update it to better align with DataSource granularity.
+### **Phase 3: Subscriptions Lambda Refactor (Week 3)** ✅ COMPLETE
+**Motivation**: The current subscriptions lambda API predated the DataSource pattern. We updated it to better align with DataSource granularity.
 
-**Required Changes**:
-- **Remove `type` Parameter**: With granular data sources like `mtw.assets.contentHeaders`, subscribing to the data source itself is sufficient—no need for additional `eventType` filtering
-- **Array of Stream Keys**: Support `streamKeys: string[]` instead of single `streamKey?: string` to enable batch subscription in a single API call
-- **Updated API Format**:
+**Changes Implemented**:
+- ✅ **Removed `type` Parameter**: With granular data sources like `mtw.assets.contentHeaders`, subscribing to the data source itself is sufficient—no need for additional `eventType` filtering
+- ✅ **Array of Stream Keys**: Now supports `streamKeys: string[]` instead of single `streamKey?: string` to enable batch subscription in a single API call
+- ✅ **Updated API Format**:
   ```typescript
   {
     message: 'subscribe',
     dataSourceKey: 'mtw.assets.contentHeaders',
-    streamKeys: ['global', 'ASSET#asset-123']  // Array instead of single streamKey
+    streamKeys: ['global', 'ASSET#asset-123']  // Array for batch operations
   }
   ```
 
-**Impact**:
-- **Backend**: Update `lambda/subscriptions` to handle array of stream keys
-- **Frontend**: Update `createSubscribeAction` and `createUnsubscribeAction` to use new API format
-- **Type Definitions**: Update `SubscriptionsAPIMessage` in `mtw-interfaces/ts/subscriptions.ts`
+**Files Modified**:
+- ✅ **`mtw-interfaces/ts/subscriptions.ts`**: Updated type definitions for Subscribe/UnsubscribeAPIMessage
+- ✅ **`mtw-interfaces/ts/eventBridge/assets/contentHeaders/index.ts`**: Fixed `isContentHeadersExternal` type guard to match TypeScript types (removed nested `data` check, added `Zone Updated` case)
+- ✅ **`lambda/subscriptions/handlerFramework/baseClasses.ts`**: Updated subscribe/unsubscribe methods to handle array of stream keys
+- ✅ **`lambda/subscriptions/handlerFramework/index.test.ts`**: Updated all tests to use new API format
+- ✅ **`lambda/subscriptions/app.ts`**: Updated snapshot initialization to send events for each stream key
+- ✅ **`lambda/subscriptions/app.test.ts`**: Updated all tests to use new API format
+- ✅ **`charcoal-client/src/slices/dataSource/index.api.ts`**: Updated action factories to use new API format (single batch call)
+- ✅ **`charcoal-client/src/slices/dataSource/index.ts`**: Removed `eventType` parameter from configuration
+- ✅ **`charcoal-client/src/slices/player/index.api.ts`**: Migrated existing mtw.wml subscription to new API
+
+**Test Results**: 
+- Subscriptions lambda: 12/12 tests passing ✅
+- ContentHeaders module: 18/18 tests passing ✅
+- Total: 30/30 tests passing ✅
 
 ### **Phase 4: WebSocket Integration** ✅ INFRASTRUCTURE COMPLETE
 - ✅ **Shared WebSocket Service**: Already exists via `LifeLinePubSub` in `slices/lifeLine`
