@@ -156,14 +156,20 @@ export const isContentHeadersExternal = (event: any): event is ContentHeadersExt
     switch((event as any).type) {
         case 'Snapshot Generated':
             return Boolean(
-                event.data &&
-                Array.isArray((event.data as any).assets)
+                event.assets &&
+                Array.isArray(event.assets)
             )
         case 'Headers Updated':
             return Boolean(
-                event.data &&
-                typeof (event.data as any).assetId === 'string' &&
-                typeof (event.data as any).wml === 'string'
+                typeof event.assetId === 'string' &&
+                typeof event.zone === 'string' &&
+                typeof event.wml === 'string'
+            )
+        case 'Zone Updated':
+            return Boolean(
+                typeof event.assetId === 'string' &&
+                typeof event.fromZone === 'string' &&
+                typeof event.toZone === 'string'
             )
         default:
             return false

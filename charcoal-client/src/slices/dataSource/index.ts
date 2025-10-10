@@ -11,7 +11,6 @@ import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 export interface DataSourceSliceConfig<SnapshotPayload, UpdatePayload> {
     name: string                          // Slice name (e.g., 'contentHeaders')
     dataSourceKey: string                 // DataSource key (e.g., 'mtw.assets.contentHeaders')
-    eventType: string                     // Event type for subscriptions (legacy API, will be removed in Phase 3)
     createEmptyView: () => SnapshotPayload  // Function to create empty materialized view
     sliceSelector: (state: any) => any    // Selector to access this slice in Redux store
     promiseCache?: PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>  // Optional promise cache for state machine coordination
@@ -24,7 +23,7 @@ export interface DataSourceSliceConfig<SnapshotPayload, UpdatePayload> {
 export const createDataSourceSlice = <SnapshotPayload, UpdatePayload>(
     config: DataSourceSliceConfig<SnapshotPayload, UpdatePayload>
 ) => {
-    const { name, dataSourceKey, eventType, createEmptyView, sliceSelector, promiseCache: providedPromiseCache } = config
+    const { name, dataSourceKey, createEmptyView, sliceSelector, promiseCache: providedPromiseCache } = config
 
     // Create a promise cache if one wasn't provided
     const promiseCache = providedPromiseCache ?? new PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>()
@@ -32,12 +31,10 @@ export const createDataSourceSlice = <SnapshotPayload, UpdatePayload>(
     // Create the subscribe and unsubscribe actions using factories
     const subscribeAction = createSubscribeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey,
-        eventType,
         createEmptyView
     )
     const unsubscribeAction = createUnsubscribeAction<SnapshotPayload, UpdatePayload>(
-        dataSourceKey,
-        eventType
+        dataSourceKey
     )
 
     // Define the state machine template

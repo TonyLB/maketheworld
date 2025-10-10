@@ -67,15 +67,17 @@ export class SubscriptionHandler {
         this._transform = args.transform
     }
 
-    match(event: Omit<CoreExternalFormat, 'update' | 'streamKey'> & { type: string; streamKey?: string }): SubscriptionEvent | undefined {
+    match(event: { dataSourceKey: string; type?: string; streamKey?: string }): SubscriptionEvent | undefined {
         const eventSource = (event as any).dataSourceKey
         const matchesSource = eventSource === this._dataSourceKey
-        const matchesType = (!this._type) || this._type === event.type
+        // For subscription requests (no type field), match on dataSourceKey only
+        // For EventBridge events (with type field), also match on type
+        const matchesType = (!event.type) || (!this._type) || this._type === event.type
         if (matchesSource && matchesType) {
             return new SubscriptionEvent({
                 ...event,
                 dataSourceKey: this._dataSourceKey,
-                type: this._type,
+                type: this._type || event.type,
                 streamKey: event.streamKey,
                 transform: this._transform
             })
@@ -84,19 +86,29 @@ export class SubscriptionHandler {
     }
     
     async subscribe(message: SubscribeAPIMessage, sessionId: `SESSION#${string}` ): Promise<void> {
-        const ConnectionId = `STREAM#${this._dataSourceKey}${this._type ? `::${this._type}` : ''}${message.streamKey ? `::${message.streamKey}` : ''}`
-        await connectionDB.putItem({
-            ConnectionId,
-            DataCategory: sessionId
-        })
+        // Subscribe to all stream keys in the array
+        await Promise.all(
+            message.streamKeys.map((streamKey) => {
+                const ConnectionId = `STREAM#${this._dataSourceKey}${this._type ? `::${this._type}` : ''}::${streamKey}`
+                return connectionDB.putItem({
+                    ConnectionId,
+                    DataCategory: sessionId
+                })
+            })
+        )
     }
 
     async unsubscribe(message: UnsubscribeAPIMessage, sessionId: `SESSION#${string}`): Promise<void> {
-        const ConnectionId = `STREAM#${this._dataSourceKey}${this._type ? `::${this._type}` : ''}${message.streamKey ? `::${message.streamKey}` : ''}`
-        await connectionDB.deleteItem({
-            ConnectionId,
-            DataCategory: sessionId
-        })
+        // Unsubscribe from all stream keys in the array
+        await Promise.all(
+            message.streamKeys.map((streamKey) => {
+                const ConnectionId = `STREAM#${this._dataSourceKey}${this._type ? `::${this._type}` : ''}::${streamKey}`
+                return connectionDB.deleteItem({
+                    ConnectionId,
+                    DataCategory: sessionId
+                })
+            })
+        )
     }
 }
 
@@ -109,7 +121,7 @@ export class SubscriptionLibrary {
         this._library = args.library
     }
 
-    match(event: Omit<CoreExternalFormat, 'update' | 'streamKey'> & { type: string; streamKey?: string }): SubscriptionHandler | undefined {
+    match(event: { dataSourceKey: string; type?: string; streamKey?: string }): SubscriptionHandler | undefined {
         return this._library.reduce<SubscriptionHandler | undefined>((previous, handler) => {
             if (!previous && handler.match(event)) {
                 return handler

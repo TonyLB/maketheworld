@@ -43,15 +43,18 @@ export const handler = async (event: any) => {
             // 2. Trigger snapshot initialization for replayable DataSources
             if (isReplayableDataSource(request.dataSourceKey)) {
                 console.log(`Triggering snapshot initialization for replayable DataSource: ${request.dataSourceKey}`)
-                await eventBridgeClient.send([{
-                    Source: 'mtw.subscriptions',
-                    DetailType: `Initialize Subscription - ${request.dataSourceKey}`,
-                    Detail: {
-                        streamKey: request.streamKey,
-                        sessionId: `SESSION#${sessionId}`,
-                        requestId: request.RequestId
-                    }
-                }])
+                // Send initialization event for each stream key
+                await eventBridgeClient.send(
+                    request.streamKeys.map((streamKey) => ({
+                        Source: 'mtw.subscriptions',
+                        DetailType: `Initialize Subscription - ${request.dataSourceKey}`,
+                        Detail: {
+                            streamKey,
+                            sessionId: `SESSION#${sessionId}`,
+                            requestId: request.RequestId
+                        }
+                    }))
+                )
             }
         }
         else {
