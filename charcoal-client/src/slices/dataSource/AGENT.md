@@ -102,10 +102,12 @@ Each data source uses the `singleSSM` pattern to manage subscription lifecycle, 
 
 ```typescript
 interface DataSourceNodes {
-  READY: ISSMChoiceNode;                    // Initial state, ready to subscribe
-  SUBSCRIBE: ISSMAttemptNode<Internal, Public>;  // Attempting subscription
+  INITIALIZE: ISSMAttemptNode<Internal, Public>;  // Set up LifeLinePubSub subscription
+  INITIALIZEERROR: ISSMChoiceNode;          // Local infrastructure failure (terminal)
+  READY: ISSMChoiceNode;                    // Infrastructure ready, can subscribe
+  SUBSCRIBE: ISSMAttemptNode<Internal, Public>;  // Attempting backend subscription
   SUBSCRIBEBACKOFF: ISSMAttemptNode<Internal, Public>; // Backoff before retry
-  SUBSCRIBEERROR: ISSMChoiceNode;           // Subscription failed
+  SUBSCRIBEERROR: ISSMChoiceNode;           // Backend subscription failed (terminal)
   SUBSCRIBED: ISSMChoiceNode;               // Successfully subscribed
   UNSUBSCRIBE: ISSMAttemptNode<Internal, Public>; // Attempting unsubscribe
   UNSUBSCRIBEBACKOFF: ISSMAttemptNode<Internal, Public>; // Backoff before retry
@@ -115,13 +117,15 @@ interface DataSourceNodes {
 #### **State Machine Flow**
 
 ```
-READY 
+INITIALIZE (set up LifeLinePubSub subscription)
+  ↓ success                      ↓ failure
+READY                       INITIALIZEERROR (terminal - infrastructure failure)
   ↓ (user requests subscription)
-SUBSCRIBE (call subscriptions API)
-  ↓ success                    ↓ failure
+SUBSCRIBE (call backend subscriptions API)
+  ↓ success                      ↓ failure
 SUBSCRIBED ←──────────── SUBSCRIBEBACKOFF (exponential backoff)
   ↓                              ↓ max retries
-UNSUBSCRIBE                 SUBSCRIBEERROR (terminal error state)
+UNSUBSCRIBE                 SUBSCRIBEERROR (terminal - backend failure)
   ↓ success
 SUBSCRIBED (for partial unsubscribe) or READY (for full unsubscribe)
 ```
@@ -160,7 +164,7 @@ const createDataSourceSlice = <
 ) => {
   // Define state machine template
   const template = {
-    initialState: 'READY',
+    initialState: 'INITIALIZE',
     initialData: {
       internalData: {
         incrementalBackoff: 0.5
@@ -170,6 +174,16 @@ const createDataSourceSlice = <
       }
     },
     states: {
+      INITIALIZE: {
+        stateType: 'ATTEMPT',
+        action: initializeAction(config),
+        resolve: 'READY',
+        reject: 'INITIALIZEERROR'
+      },
+      INITIALIZEERROR: {
+        stateType: 'CHOICE',
+        choices: []  // Terminal state - local infrastructure failure
+      },
       READY: {
         stateType: 'CHOICE',
         choices: ['SUBSCRIBE']
@@ -212,8 +226,8 @@ const createDataSourceSlice = <
   // Create the slice using singleSSM
   return singleSSM({
     name: `dataSource/${config.dataSourceKey}`,
-    initialSSMState: 'READY',
-    initialSSMDesired: ['READY'],  // Start ready, not subscribed
+    initialSSMState: 'INITIALIZE',
+    initialSSMDesired: ['READY'],  // Desired state is READY (auto-transitions through INITIALIZE)
     initialData: template.initialData,
     sliceSelector: (state) => state[config.dataSourceKey],
     publicReducers: {
@@ -235,10 +249,33 @@ const createDataSourceSlice = <
 ### **Key Advantages of State Machine Pattern**
 
 1. **Automatic Retry Logic**: `SUBSCRIBEBACKOFF` handles exponential backoff automatically
-2. **Error State Management**: `SUBSCRIBEERROR` provides clear terminal error state
+2. **Error State Management**: Two terminal error states for different failure types
 3. **Intent-Based Transitions**: Use `setIntent(['SUBSCRIBED'])` to trigger subscription
 4. **Status Tracking**: State machine provides `getStatus()` selector for current state
 5. **No Manual State Tracking**: Eliminates `status: 'pending' | 'subscribed' | 'error'` duplication
+
+### **Terminal Error States**
+
+The state machine uses two distinct terminal error states to handle different failure scenarios:
+
+#### **INITIALIZEERROR - Local Infrastructure Failure**
+- **Cause**: LifeLinePubSub subscription failed during INITIALIZE state
+- **Meaning**: Critical client-side infrastructure problem
+- **Recovery**: Requires page reload or indicates a serious bug
+- **No Retry**: Retrying the same local operation won't help
+- **User Experience**: "Application error, please reload the page"
+
+#### **SUBSCRIBEERROR - Backend Subscription Failure**
+- **Cause**: Backend API calls failed after multiple retries with exponential backoff
+- **Meaning**: Cannot communicate with subscription service (network, auth, or backend issues)
+- **Recovery**: Backend might recover, network might improve
+- **Has Retry**: Goes through SUBSCRIBEBACKOFF with exponential backoff before reaching terminal state
+- **User Experience**: "Unable to connect to service, please try again later"
+
+This separation provides:
+- **Clear Error Semantics**: Infrastructure vs. network/backend failures
+- **Appropriate Recovery Strategies**: Different remediation for different failure types
+- **Better User Communication**: More accurate error messages based on failure type
 
 ### **Data Source Configuration**
 
@@ -409,7 +446,7 @@ const {
   iterateAllSSMs: iterateContentHeaders
 } = singleSSM({
   name: 'contentHeaders',
-  initialSSMState: 'READY',
+  initialSSMState: 'INITIALIZE',
   initialSSMDesired: ['READY'],
   initialData: {
     internalData: {
@@ -487,12 +524,22 @@ const {
       state.publicData.subscribedStreams[streamKey]?.materializedView
   },
   template: {
-    initialState: 'READY',
+    initialState: 'INITIALIZE',
     initialData: {
       internalData: { incrementalBackoff: 0.5 },
       publicData: { subscribedStreams: {} }
     },
     states: {
+      INITIALIZE: {
+        stateType: 'ATTEMPT',
+        action: initializeAction({ dataSourceKey: 'mtw.assets.contentHeaders' }),
+        resolve: 'READY',
+        reject: 'INITIALIZEERROR'
+      },
+      INITIALIZEERROR: {
+        stateType: 'CHOICE',
+        choices: []  // Terminal state
+      },
       READY: {
         stateType: 'CHOICE',
         choices: ['SUBSCRIBE']
@@ -723,17 +770,19 @@ const handleWebSocketMessage = (message: any) => {
 - ContentHeaders module: 18/18 tests passing ✅
 - Total: 30/30 tests passing ✅
 
-### **Phase 4: WebSocket Integration** ✅ INFRASTRUCTURE COMPLETE
+### **Phase 4: WebSocket Integration** ✅ COMPLETE
 - ✅ **Shared WebSocket Service**: Already exists via `LifeLinePubSub` in `slices/lifeLine`
 - ✅ **Message Routing**: WebSocket messages already published to `LifeLinePubSub`
 - ✅ **Reconnection Logic**: State machine handles backoff and retry
-- **TODO**: Subscribe data source slices to `LifeLinePubSub` (same pattern as player, activeCharacters, library slices)
+- ✅ **INITIALIZE State**: Added INITIALIZE state to set up LifeLinePubSub subscription before READY
+- ✅ **INITIALIZEERROR State**: Terminal error state for local infrastructure failures
+- ✅ **LifeLinePubSub Subscription**: Data source slices automatically subscribe during INITIALIZE state
 
-### **Phase 5: Complete Event Processing Integration (Week 4)** 📋 PLANNED
-**Motivation**: After subscriptions lambda refactor (Phase 3), complete the connection between incoming WebSocket events and state management.
+### **Phase 5: Complete Event Processing Integration (Week 4)** 🚧 IN PROGRESS
+**Motivation**: After subscriptions lambda refactor (Phase 3) and WebSocket integration (Phase 4), complete the event processing logic.
 
 **Implementation**:
-- **LifeLinePubSub Subscription**: Subscribe data source slices to incoming subscription messages
+- ✅ **LifeLinePubSub Subscription**: Subscribe data source slices to incoming subscription messages (INITIALIZE state)
 - **Event Processing Reducers**: Implement full `processRawSnapshot` and `processRawEvent` logic
   - Deserialize using `eventSerializer` from configuration
   - Apply events to `materializedView` using aggregator

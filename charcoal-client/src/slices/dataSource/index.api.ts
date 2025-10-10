@@ -1,5 +1,5 @@
 import { DataSourceAction } from './baseClasses'
-import { socketDispatchPromise } from '../lifeLine'
+import { socketDispatchPromise, LifeLinePubSub } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 
 //
@@ -12,6 +12,47 @@ export const backoffAction: DataSourceAction<any, any> = ({ internalData: { incr
     }
     await delayPromise(incrementalBackoff * 1000)
     return { internalData: { incrementalBackoff: Math.min(incrementalBackoff * 2, 30) } }
+}
+
+//
+// Factory function to create initialize action for a specific data source
+// Sets up LifeLinePubSub subscription to route incoming events to the data source
+//
+export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
+    dataSourceKey: string,
+    processRawSnapshot: (payload: { streamKey: string; rawSnapshot: any }) => any,
+    processRawEvent: (payload: { streamKey: string; rawEvent: any }) => any
+): DataSourceAction<SnapshotPayload, UpdatePayload> => {
+    return ({ internalData, publicData }) => async (dispatch) => {
+        try {
+            // Subscribe to LifeLinePubSub to receive incoming WebSocket messages
+            const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
+                // Filter for subscription messages from this data source
+                if (payload.messageType === 'Subscription' && payload.dataSourceKey === dataSourceKey) {
+                    const { streamKey, update } = payload
+                    
+                    // Route to appropriate processor based on message type
+                    if (update.type === 'Snapshot Generated') {
+                        dispatch(processRawSnapshot({ streamKey, rawSnapshot: update }))
+                    } else {
+                        // All other update types are events
+                        dispatch(processRawEvent({ streamKey, rawEvent: update }))
+                    }
+                }
+            })
+            
+            return {
+                internalData: {
+                    ...internalData,
+                    lifeLineSubscription
+                },
+                publicData
+            }
+        } catch (error) {
+            // Critical infrastructure failure - cannot proceed without LifeLinePubSub
+            throw new Error(`Failed to initialize LifeLinePubSub subscription: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
+    }
 }
 
 //

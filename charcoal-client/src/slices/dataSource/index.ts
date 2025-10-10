@@ -1,6 +1,6 @@
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData } from './baseClasses'
-import { backoffAction, createSubscribeAction, createUnsubscribeAction } from './index.api'
+import { backoffAction, createSubscribeAction, createUnsubscribeAction, createInitializeAction } from './index.api'
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
@@ -28,6 +28,10 @@ export const createDataSourceSlice = <SnapshotPayload, UpdatePayload>(
     // Create a promise cache if one wasn't provided
     const promiseCache = providedPromiseCache ?? new PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>()
 
+    // We'll create the initialize action after we have access to the public action creators
+    // This is necessary because the initialize action needs to dispatch processRawSnapshot and processRawEvent
+    let initializeAction: ReturnType<typeof createInitializeAction<SnapshotPayload, UpdatePayload>>
+
     // Create the subscribe and unsubscribe actions using factories
     const subscribeAction = createSubscribeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey,
@@ -39,7 +43,7 @@ export const createDataSourceSlice = <SnapshotPayload, UpdatePayload>(
 
     // Define the state machine template
     const template = {
-        initialState: 'READY' as const,
+        initialState: 'INITIALIZE' as const,
         initialData: {
             internalData: {
                 incrementalBackoff: 0.5
@@ -50,6 +54,19 @@ export const createDataSourceSlice = <SnapshotPayload, UpdatePayload>(
             }
         },
         states: {
+            INITIALIZE: {
+                stateType: 'ATTEMPT' as const,
+                get action() {
+                    // Lazy initialization - will be set after we create the slice
+                    return initializeAction
+                },
+                resolve: 'READY' as const,
+                reject: 'INITIALIZEERROR' as const
+            },
+            INITIALIZEERROR: {
+                stateType: 'CHOICE' as const,
+                choices: []  // Terminal state - local infrastructure failure
+            },
             READY: {
                 stateType: 'CHOICE' as const,
                 choices: ['SUBSCRIBE' as const]
@@ -95,8 +112,8 @@ export const createDataSourceSlice = <SnapshotPayload, UpdatePayload>(
         getSubscribedStreams: (state: DataSourcePublic<SnapshotPayload, UpdatePayload>) => DataSourcePublic<SnapshotPayload, UpdatePayload>['subscribedStreams']
     }>({
         name,
-        initialSSMState: 'READY',
-        initialSSMDesired: ['READY'],
+        initialSSMState: 'INITIALIZE',
+        initialSSMDesired: ['READY'],  // Desired state is READY (will auto-transition through INITIALIZE)
         initialData: template.initialData,
         sliceSelector,
         promiseCache,
@@ -133,6 +150,14 @@ export const createDataSourceSlice = <SnapshotPayload, UpdatePayload>(
         },
         template
     })
+
+    // Now that we have the result with publicActions, create the initialize action
+    // This needs to be done after singleSSM call because we need access to the action creators
+    initializeAction = createInitializeAction<SnapshotPayload, UpdatePayload>(
+        dataSourceKey,
+        result.publicActions.processRawSnapshot,
+        result.publicActions.processRawEvent
+    )
 
     return result
 }
