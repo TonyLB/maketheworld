@@ -174,6 +174,9 @@ export const handler = async (event, context) => {
                 })
             }
         }
+        // Flush messageBus and return after handling EventBridge events
+        await messageBus.flush()
+        return
     }
 
     // Handle SNS messages
