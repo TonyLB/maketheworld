@@ -1042,60 +1042,6 @@ function processIncomingEvent(newEvent) {
 - ✅ lambda/subscriptions: 12/12 tests passing
 - ✅ **Total: 247/247 tests passing**
 
-### **Phase 7: Content Headers Implementation (Week 5)** 📋 PLANNED
-- **Content Headers Slice**: Create content headers data source slice using mtw-interfaces
-- **UI Components**: Create components that consume content headers data
-- **Integration Testing**: End-to-end testing of subscription and aggregation logic
-
-### **WebSocket Integration**
-
-#### **Using Existing LifeLinePubSub Infrastructure**
-
-The client already has WebSocket infrastructure via `LifeLinePubSub`. Data source slices integrate with it using the same pattern as existing slices:
-
-```typescript
-// Import the existing LifeLinePubSub
-import { LifeLinePubSub } from '../lifeLine'
-
-// Subscribe to LifeLinePubSub in your data source initialization
-export const initializeContentHeadersDataSource = (): ThunkAction<void, RootState, unknown, AnyAction> => {
-  return (dispatch, getState) => {
-    // Subscribe to LifeLinePubSub to receive WebSocket messages
-    const subscription = LifeLinePubSub.subscribe(({ payload }) => {
-      // Check if this is a data source message
-      if (payload.messageType === 'StreamEvent') {
-        const { dataSourceKey, streamKey, message } = payload
-        
-        if (dataSourceKey === 'mtw.assets.contentHeaders') {
-          // Process based on message type
-          if (message.type === 'Snapshot Generated') {
-            dispatch(processContentHeadersSnapshot({
-              streamKey,
-              rawSnapshot: message as ContentHeadersSnapshotExternal
-            }))
-          } else if (message.type === 'Headers Updated' || message.type === 'Zone Updated') {
-            dispatch(processContentHeadersEvent({
-              streamKey,
-              rawEvent: message as ContentHeadersExternal
-            }))
-          }
-        }
-      }
-    })
-    
-    // Store subscription for cleanup
-    // (implementation depends on slice structure)
-  }
-}
-```
-
-**Key Benefits of Using LifeLinePubSub:**
-- ✅ WebSocket connection already managed by lifeLine state machine
-- ✅ Reconnection logic already implemented
-- ✅ Message routing pattern already established
-- ✅ Works with existing subscription infrastructure
-- ✅ No duplicate WebSocket connections needed
-
 ## Success Criteria
 
 ### **Functional Requirements**
@@ -1119,14 +1065,13 @@ export const initializeContentHeadersDataSource = (): ThunkAction<void, RootStat
 - [ ] Shared WebSocket service for efficient connection management (via LifeLinePubSub)
 
 ### **Integration Requirements**
-- [ ] Works with `mtw.assets.contentHeaders` DataSource
 - [ ] Uses `singleSSM` for state machine implementation
 - [ ] Follows established patterns from `personalAssets` slice (SUBSCRIBE/SUBSCRIBEBACKOFF/SUBSCRIBEERROR)
 - [ ] Compatible with existing Redux patterns and LifeLinePubSub
 - [ ] Extensible for future data sources (character data, room data, etc.)
 - [ ] Type-safe throughout the system with proper TypeScript generics
-- [ ] Deserialization and aggregation logic implemented in `mtw-interfaces`
-- [ ] Client-side slices consume logic from `mtw-interfaces` rather than implementing it locally
+- [ ] Deserialization and aggregation logic can be provided via configuration
+- [ ] Client-side slices can consume logic from `mtw-interfaces` for consistency
 - [ ] State machine provides clear status tracking (READY, SUBSCRIBE, SUBSCRIBED, etc.)
 
 ## Dependencies
