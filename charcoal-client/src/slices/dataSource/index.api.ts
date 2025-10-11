@@ -1,6 +1,17 @@
 import { DataSourceAction } from './baseClasses'
-import { socketDispatchPromise, LifeLinePubSub } from '../lifeLine'
+import { socketDispatchPromise, LifeLinePubSub, getStatus } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
+import { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
+import { DataSourceInternal, DataSourcePublic } from './baseClasses'
+
+//
+// Condition to check if LifeLine is connected
+// DataSource slices should wait for LifeLine to be CONNECTED before initializing
+//
+export const lifelineCondition: ISSMHoldCondition<DataSourceInternal, DataSourcePublic<any, any>> = (_, getState: any) => {
+    const status = getStatus(getState())
+    return (status === 'CONNECTED')
+}
 
 //
 // Generic backoff action for all data sources
@@ -64,7 +75,12 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
     createEmptyView: () => SnapshotPayload
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
-        const { pendingStreamKeys } = internalData
+        const { pendingStreamKeys, lifeLineSubscription } = internalData
+        
+        // Safety check: Ensure INITIALIZE has completed before attempting backend subscription
+        if (!lifeLineSubscription) {
+            throw new Error(`[${dataSourceKey}] Cannot subscribe to backend before INITIALIZE completes (LifeLinePubSub not set up)`)
+        }
         
         if (!pendingStreamKeys || pendingStreamKeys.length === 0) {
             return { internalData, publicData }
@@ -126,7 +142,12 @@ export const createUnsubscribeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
-        const { pendingStreamKeys } = internalData
+        const { pendingStreamKeys, lifeLineSubscription } = internalData
+        
+        // Safety check: Ensure INITIALIZE has completed before attempting backend unsubscription
+        if (!lifeLineSubscription) {
+            throw new Error(`[${dataSourceKey}] Cannot unsubscribe from backend before INITIALIZE completes (LifeLinePubSub not set up)`)
+        }
         
         if (!pendingStreamKeys || pendingStreamKeys.length === 0) {
             return { internalData, publicData }

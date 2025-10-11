@@ -1,6 +1,6 @@
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData } from './baseClasses'
-import { backoffAction, createSubscribeAction, createUnsubscribeAction, createInitializeAction } from './index.api'
+import { backoffAction, createSubscribeAction, createUnsubscribeAction, createInitializeAction, lifelineCondition } from './index.api'
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
@@ -43,7 +43,7 @@ export const createDataSourceSlice = <SnapshotPayload, UpdatePayload>(
 
     // Define the state machine template
     const template = {
-        initialState: 'INITIALIZE' as const,
+        initialState: 'INITIAL' as const,
         initialData: {
             internalData: {
                 incrementalBackoff: 0.5
@@ -54,6 +54,11 @@ export const createDataSourceSlice = <SnapshotPayload, UpdatePayload>(
             }
         },
         states: {
+            INITIAL: {
+                stateType: 'HOLD' as const,
+                next: 'INITIALIZE' as const,
+                condition: lifelineCondition  // Wait for LifeLine to be CONNECTED
+            },
             INITIALIZE: {
                 stateType: 'ATTEMPT' as const,
                 get action() {
@@ -112,8 +117,8 @@ export const createDataSourceSlice = <SnapshotPayload, UpdatePayload>(
         getSubscribedStreams: (state: DataSourcePublic<SnapshotPayload, UpdatePayload>) => DataSourcePublic<SnapshotPayload, UpdatePayload>['subscribedStreams']
     }>({
         name,
-        initialSSMState: 'INITIALIZE',
-        initialSSMDesired: ['READY'],  // Desired state is READY (will auto-transition through INITIALIZE)
+        initialSSMState: 'INITIAL',
+        initialSSMDesired: ['READY'],  // Desired state is READY (will auto-transition through INITIAL → INITIALIZE)
         initialData: template.initialData,
         sliceSelector,
         promiseCache,
