@@ -90,12 +90,14 @@ Resources:
         source:
           - mtw.development
           - mtw.assets
+          - mtw.assets.contentHeaders
           - mtw.connections
           - mtw.diagnostics
           - mtw.ephemera
           - mtw.messages
           - mtw.players
           - mtw.wml
+          - mtw.subscriptions
       Targets:
         - Arn: !GetAtt LogGroupForEvents.Arn
           Id: LogTarget
