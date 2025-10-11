@@ -30,6 +30,12 @@ import { createBackupEntry } from "./backups"
 import { isEphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { extractReturnValue } from './returnValue'
 import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
+import { StreamingEventMessage } from "./messageBus/baseClasses"
+
+// Import DataSources to trigger their messageBus subscriptions (side-effect imports)
+import './dataSource'  // mtw.assets DataSource
+import './contentHeaders'  // mtw.assets.contentHeaders DataSource
+import './characters'  // mtw.assets.characters DataSource
 
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }

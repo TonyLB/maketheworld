@@ -8,8 +8,7 @@ import {
 import { 
     ContentHeadersEventSerializer,
     ContentHeadersExternal,
-    ContentHeadersSnapshotExternal,
-    ContentHeadersAggregator
+    ContentHeadersSnapshotExternal
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
 import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -146,7 +145,6 @@ export const contentHeadersDataSource = new AssetsDataSource<
     dataSourceKey: 'mtw.assets.contentHeaders',
     replayable: true, // Support client subscriptions with historical data
     eventSerializer: new ContentHeadersEventSerializer(),
-    aggregator: new ContentHeadersAggregator(),
     snapshotContentGenerator: generateContentHeadersSnapshot,
     subscribedEventTypeGuard: isSubscribedEvent,
     receiveEvents: async ({ events, streamEvent }) => {

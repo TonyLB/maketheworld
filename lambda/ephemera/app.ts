@@ -33,6 +33,9 @@ import { sfnClient } from './clients'
 import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 
+// Import DataSources to trigger their messageBus subscriptions (side-effect imports)
+import './dataSource'  // mtw.ephemera DataSource
+
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {
     'mtw.assets': new AssetsEventSerializer(),
@@ -103,6 +106,9 @@ export const handler = async (event: any, context: any) => {
                 }
             })
         }
+        // Flush messageBus and return after handling EventBridge events
+        await messageBus.flush()
+        return
     }
 
     // Handle legacy EventBridge messages that don't use DataSource pattern yet

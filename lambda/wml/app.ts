@@ -12,6 +12,9 @@ import { extractReturnValue } from "./returnValue/index";
 import { CoordinationEventExternal, CoordinationEventSerializer, CoordinationEventUpdate } from './dataSource/coordinationSerializer';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
 
+// Import DataSources to trigger their messageBus subscriptions (side-effect imports)
+import './dataSource'  // mtw.wml DataSource
+
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
 
@@ -70,6 +73,9 @@ export const handler = async (event: any) => {
                 }
             })
         }
+        // Flush messageBus and return after handling EventBridge events
+        await messageBus.flush()
+        return
     }
 
     switch(event.message) {
