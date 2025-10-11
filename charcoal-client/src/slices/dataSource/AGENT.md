@@ -102,10 +102,13 @@ Each data source uses the `singleSSM` pattern to manage subscription lifecycle, 
 
 ```typescript
 interface DataSourceNodes {
-  READY: ISSMChoiceNode;                    // Initial state, ready to subscribe
-  SUBSCRIBE: ISSMAttemptNode<Internal, Public>;  // Attempting subscription
+  INITIAL: ISSMHoldNode<Internal, Public>;  // Wait for LifeLine WebSocket to connect
+  INITIALIZE: ISSMAttemptNode<Internal, Public>;  // Set up LifeLinePubSub subscription
+  INITIALIZEERROR: ISSMChoiceNode;          // Local infrastructure failure (terminal)
+  READY: ISSMChoiceNode;                    // Infrastructure ready, can subscribe
+  SUBSCRIBE: ISSMAttemptNode<Internal, Public>;  // Attempting backend subscription
   SUBSCRIBEBACKOFF: ISSMAttemptNode<Internal, Public>; // Backoff before retry
-  SUBSCRIBEERROR: ISSMChoiceNode;           // Subscription failed
+  SUBSCRIBEERROR: ISSMChoiceNode;           // Backend subscription failed (terminal)
   SUBSCRIBED: ISSMChoiceNode;               // Successfully subscribed
   UNSUBSCRIBE: ISSMAttemptNode<Internal, Public>; // Attempting unsubscribe
   UNSUBSCRIBEBACKOFF: ISSMAttemptNode<Internal, Public>; // Backoff before retry
@@ -115,13 +118,17 @@ interface DataSourceNodes {
 #### **State Machine Flow**
 
 ```
-READY 
+INITIAL (wait for LifeLine CONNECTED)
+  ↓ (when LifeLine WebSocket is connected)
+INITIALIZE (set up LifeLinePubSub subscription)
+  ↓ success                      ↓ failure
+READY                       INITIALIZEERROR (terminal - infrastructure failure)
   ↓ (user requests subscription)
-SUBSCRIBE (call subscriptions API)
-  ↓ success                    ↓ failure
+SUBSCRIBE (call backend subscriptions API)
+  ↓ success                      ↓ failure
 SUBSCRIBED ←──────────── SUBSCRIBEBACKOFF (exponential backoff)
   ↓                              ↓ max retries
-UNSUBSCRIBE                 SUBSCRIBEERROR (terminal error state)
+UNSUBSCRIBE                 SUBSCRIBEERROR (terminal - backend failure)
   ↓ success
 SUBSCRIBED (for partial unsubscribe) or READY (for full unsubscribe)
 ```
@@ -160,7 +167,7 @@ const createDataSourceSlice = <
 ) => {
   // Define state machine template
   const template = {
-    initialState: 'READY',
+    initialState: 'INITIAL',
     initialData: {
       internalData: {
         incrementalBackoff: 0.5
@@ -170,6 +177,21 @@ const createDataSourceSlice = <
       }
     },
     states: {
+      INITIAL: {
+        stateType: 'HOLD',
+        next: 'INITIALIZE',
+        condition: lifelineCondition  // Wait for LifeLine to be CONNECTED
+      },
+      INITIALIZE: {
+        stateType: 'ATTEMPT',
+        action: initializeAction(config),
+        resolve: 'READY',
+        reject: 'INITIALIZEERROR'
+      },
+      INITIALIZEERROR: {
+        stateType: 'CHOICE',
+        choices: []  // Terminal state - local infrastructure failure
+      },
       READY: {
         stateType: 'CHOICE',
         choices: ['SUBSCRIBE']
@@ -212,8 +234,8 @@ const createDataSourceSlice = <
   // Create the slice using singleSSM
   return singleSSM({
     name: `dataSource/${config.dataSourceKey}`,
-    initialSSMState: 'READY',
-    initialSSMDesired: ['READY'],  // Start ready, not subscribed
+    initialSSMState: 'INITIAL',
+    initialSSMDesired: ['READY'],  // Desired state is READY (auto-transitions through INITIAL → INITIALIZE)
     initialData: template.initialData,
     sliceSelector: (state) => state[config.dataSourceKey],
     publicReducers: {
@@ -235,10 +257,72 @@ const createDataSourceSlice = <
 ### **Key Advantages of State Machine Pattern**
 
 1. **Automatic Retry Logic**: `SUBSCRIBEBACKOFF` handles exponential backoff automatically
-2. **Error State Management**: `SUBSCRIBEERROR` provides clear terminal error state
+2. **Error State Management**: Two terminal error states for different failure types
 3. **Intent-Based Transitions**: Use `setIntent(['SUBSCRIBED'])` to trigger subscription
 4. **Status Tracking**: State machine provides `getStatus()` selector for current state
 5. **No Manual State Tracking**: Eliminates `status: 'pending' | 'subscribed' | 'error'` duplication
+
+### **Terminal Error States**
+
+The state machine uses two distinct terminal error states to handle different failure scenarios:
+
+#### **INITIALIZEERROR - Local Infrastructure Failure**
+- **Cause**: LifeLinePubSub subscription failed during INITIALIZE state
+- **Meaning**: Critical client-side infrastructure problem
+- **Recovery**: Requires page reload or indicates a serious bug
+- **No Retry**: Retrying the same local operation won't help
+- **User Experience**: "Application error, please reload the page"
+
+#### **SUBSCRIBEERROR - Backend Subscription Failure**
+- **Cause**: Backend API calls failed after multiple retries with exponential backoff
+- **Meaning**: Cannot communicate with subscription service (network, auth, or backend issues)
+- **Recovery**: Backend might recover, network might improve
+- **Has Retry**: Goes through SUBSCRIBEBACKOFF with exponential backoff before reaching terminal state
+- **User Experience**: "Unable to connect to service, please try again later"
+
+This separation provides:
+- **Clear Error Semantics**: Infrastructure vs. network/backend failures
+- **Appropriate Recovery Strategies**: Different remediation for different failure types
+- **Better User Communication**: More accurate error messages based on failure type
+
+### **Safety Checks and Lifecycle Guarantees**
+
+The DataSource pattern enforces strict lifecycle ordering through multiple safety mechanisms:
+
+#### **INITIAL HOLD State**
+- **Purpose**: Wait for LifeLine WebSocket to reach CONNECTED state before any initialization
+- **Condition**: `lifelineCondition` checks `getStatus(state) === 'CONNECTED'`
+- **Why**: Backend subscription API calls require an active WebSocket connection
+- **Pattern**: Follows established patterns from `player` and `activeCharacters` slices
+
+#### **Initialization Guards**
+Both `subscribe` and `unsubscribe` actions include runtime safety checks:
+
+```typescript
+// Safety check: Ensure INITIALIZE has completed
+if (!lifeLineSubscription) {
+  throw new Error(`Cannot subscribe to backend before INITIALIZE completes`)
+}
+```
+
+These guards prevent:
+- **Premature Backend Calls**: Attempting to subscribe before LifeLinePubSub is set up
+- **State Machine Bypass**: Direct action dispatch that bypasses proper state flow
+- **Race Conditions**: Concurrent operations during initialization
+
+#### **Lifecycle Flow Enforcement**
+
+The complete lifecycle ensures proper sequencing:
+
+1. **INITIAL**: Wait for WebSocket (HOLD condition)
+2. **INITIALIZE**: Set up local pub/sub infrastructure
+3. **READY**: Infrastructure ready, backend calls now safe
+4. **SUBSCRIBE/UNSUBSCRIBE**: Backend operations with safety guards
+
+This provides:
+- **Type Safety**: Compile-time state machine structure validation
+- **Runtime Safety**: Guards prevent premature backend calls
+- **Clear Errors**: Descriptive error messages identify lifecycle violations
 
 ### **Data Source Configuration**
 
@@ -409,7 +493,7 @@ const {
   iterateAllSSMs: iterateContentHeaders
 } = singleSSM({
   name: 'contentHeaders',
-  initialSSMState: 'READY',
+  initialSSMState: 'INITIAL',
   initialSSMDesired: ['READY'],
   initialData: {
     internalData: {
@@ -487,12 +571,27 @@ const {
       state.publicData.subscribedStreams[streamKey]?.materializedView
   },
   template: {
-    initialState: 'READY',
+    initialState: 'INITIAL',
     initialData: {
       internalData: { incrementalBackoff: 0.5 },
       publicData: { subscribedStreams: {} }
     },
     states: {
+      INITIAL: {
+        stateType: 'HOLD',
+        next: 'INITIALIZE',
+        condition: lifelineCondition
+      },
+      INITIALIZE: {
+        stateType: 'ATTEMPT',
+        action: initializeAction({ dataSourceKey: 'mtw.assets.contentHeaders' }),
+        resolve: 'READY',
+        reject: 'INITIALIZEERROR'
+      },
+      INITIALIZEERROR: {
+        stateType: 'CHOICE',
+        choices: []  // Terminal state
+      },
       READY: {
         stateType: 'CHOICE',
         choices: ['SUBSCRIBE']
@@ -723,27 +822,241 @@ const handleWebSocketMessage = (message: any) => {
 - ContentHeaders module: 18/18 tests passing ✅
 - Total: 30/30 tests passing ✅
 
-### **Phase 4: WebSocket Integration** ✅ INFRASTRUCTURE COMPLETE
+### **Phase 4: WebSocket Integration** ✅ COMPLETE
 - ✅ **Shared WebSocket Service**: Already exists via `LifeLinePubSub` in `slices/lifeLine`
 - ✅ **Message Routing**: WebSocket messages already published to `LifeLinePubSub`
 - ✅ **Reconnection Logic**: State machine handles backoff and retry
-- **TODO**: Subscribe data source slices to `LifeLinePubSub` (same pattern as player, activeCharacters, library slices)
+- ✅ **INITIALIZE State**: Added INITIALIZE state to set up LifeLinePubSub subscription before READY
+- ✅ **INITIALIZEERROR State**: Terminal error state for local infrastructure failures
+- ✅ **LifeLinePubSub Subscription**: Data source slices automatically subscribe during INITIALIZE state
 
-### **Phase 5: Complete Event Processing Integration (Week 4)** 📋 PLANNED
-**Motivation**: After subscriptions lambda refactor (Phase 3), complete the connection between incoming WebSocket events and state management.
+### **Phase 5: Complete Event Processing Integration (Week 4)** ✅ COMPLETE
+**Motivation**: After subscriptions lambda refactor (Phase 3) and WebSocket integration (Phase 4), complete the event processing logic.
 
 **Implementation**:
-- **LifeLinePubSub Subscription**: Subscribe data source slices to incoming subscription messages
-- **Event Processing Reducers**: Implement full `processRawSnapshot` and `processRawEvent` logic
-  - Deserialize using `eventSerializer` from configuration
-  - Apply events to `materializedView` using aggregator
-  - Maintain `recentEvents` window (30 seconds)
-  - Handle out-of-order events correctly
-- **Materialized View Management**: Calculate and update views as events arrive
-- **Integration with Aggregator**: Use `DataSourceAggregator.applyUpdate()` for event application
-- **Error Handling**: Graceful handling of deserialization failures and aggregation errors
+- ✅ **LifeLinePubSub Subscription**: Subscribe data source slices to incoming subscription messages (INITIALIZE state)
+- ✅ **Event Processing Reducers**: Implement full `processRawSnapshot` and `processRawEvent` logic
+  - ✅ Deserialize using `eventSerializer` from configuration
+  - ✅ Apply events to `materializedView` using aggregator via `applyEvents` helper
+  - ✅ Maintain `recentEvents` window (30 seconds) via `performCleanup` helper
+  - ✅ Handle out-of-order events correctly (in-order fast path + out-of-order re-aggregation)
+- ✅ **Materialized View Management**: Calculate and update views as events arrive
+- ✅ **Integration with Aggregator**: Use `DataSourceAggregator.applyUpdate()` for event application
+- ✅ **Error Handling**: Graceful handling of deserialization failures and aggregation errors
+- ✅ **Type Safety**: Inline type guards for proper TypeScript narrowing
+- ✅ **Pure Functions**: Cleanup logic uses event timestamps instead of `Date.now()` (except for arrival time, pending Phase 6)
 
-### **Phase 6: Content Headers Implementation (Week 5)** 📋 PLANNED
+**Key Implementation Details**:
+- **`applyEvents` helper**: Pure reduce pattern for applying multiple updates
+- **`performCleanup` helper**: Consolidates events >30 seconds into synthetic snapshot
+- **Type Guards**: Uses `isSnapshot` and `isUpdate` from configuration for type-safe event filtering
+- **Snapshot Handling**: Properly handles snapshots arriving out-of-order by re-aggregating post-snapshot events
+- **Update Handling**: In-order fast path and out-of-order re-aggregation from baseline snapshot
+
+### **Out-of-Order Event Handling Strategy**
+
+WebSocket message delivery does not guarantee ordering. The DataSource pattern handles out-of-order events through a rolling window of recent events and intelligent re-aggregation.
+
+#### **Core Approach: Timestamp-Based Ordering**
+
+Each event includes a timestamp. The `recentEvents` list maintains the last 30 seconds of events, enabling re-aggregation when out-of-order delivery occurs.
+
+#### **In-Order Case (Common Path)**
+
+When an incoming event has a timestamp **later than all events** in `recentEvents`:
+
+```typescript
+// Simple case: Event is newer than everything we've seen
+if (newEvent.timestamp > latestEventTimestamp) {
+  // Direct application to current materialized view
+  const result = aggregator.applyUpdate(currentMaterializedView, newEvent)
+  if (result.success) {
+    newMaterializedView = result.snapshot
+  }
+  
+  // Add to recent events
+  recentEvents.push({ event: newEvent, timestamp: newEvent.timestamp })
+}
+```
+
+**Benefits**: 
+- Fast path - single aggregation operation
+- No re-computation needed
+- Handles the common case efficiently
+
+#### **Out-of-Order Case (Re-aggregation Required)**
+
+When an incoming event has a timestamp **earlier than some events** in `recentEvents`:
+
+```typescript
+// Out-of-order: Event arrived late, need to re-aggregate
+if (newEvent.timestamp < someRecentEventTimestamp) {
+  // Start from the latest snapshot
+  let rebuiltView = latestSnapshot
+  
+  // Collect all events including the new one
+  const allEvents = [...recentEvents, { event: newEvent, timestamp: newEvent.timestamp }]
+  
+  // Sort by timestamp (ascending order)
+  const sortedEvents = allEvents.sort((a, b) => a.timestamp - b.timestamp)
+  
+  // Re-aggregate in correct chronological order
+  for (const { event } of sortedEvents) {
+    const result = aggregator.applyUpdate(rebuiltView, event)
+    if (result.success) {
+      rebuiltView = result.snapshot
+    }
+  }
+  
+  // Result is eventually-consistent materialized view
+  newMaterializedView = rebuiltView
+  recentEvents = sortedEvents
+}
+```
+
+**Benefits**:
+- Eventually-consistent state even with out-of-order delivery
+- Correct ordering based on actual event timestamps
+- Handles late-arriving events gracefully
+
+#### **30-Second Window Optimization (Cleanup Strategy)**
+
+The 30-second window assumption: If events arrive within 30 seconds, we won't receive any events older than 30 seconds. This enables an optimization.
+
+**Before processing any incoming event**, perform cleanup:
+
+```typescript
+// Cleanup: Promote old events to a snapshot
+const now = Date.now()
+const thirtySecondsAgo = now - 30000
+
+// Separate old and recent events
+const oldEvents = recentEvents.filter(e => e.timestamp <= thirtySecondsAgo)
+const stillRecentEvents = recentEvents.filter(e => e.timestamp > thirtySecondsAgo)
+
+if (oldEvents.length > 0) {
+  // Create a new snapshot by aggregating the latest snapshot + old events
+  let consolidatedSnapshot = latestSnapshot
+  for (const { event } of oldEvents.sort((a, b) => a.timestamp - b.timestamp)) {
+    const result = aggregator.applyUpdate(consolidatedSnapshot, event)
+    if (result.success) {
+      consolidatedSnapshot = result.snapshot
+    }
+  }
+  
+  // Replace old events with the consolidated snapshot
+  // This snapshot acts as if it was received at thirtySecondsAgo
+  latestSnapshot = consolidatedSnapshot
+  latestSnapshotTimestamp = thirtySecondsAgo
+  recentEvents = stillRecentEvents
+}
+
+// NOW process the incoming event with the cleaned-up state
+```
+
+**Benefits**:
+- **Bounded Memory**: `recentEvents` list never exceeds 30 seconds of events
+- **Reduced Re-aggregation Cost**: Fewer events to process during out-of-order handling
+- **Snapshot Consolidation**: Old events "promoted" to snapshot, reducing computation
+- **Automatic Cleanup**: Happens naturally as part of event processing
+
+#### **Complete Event Processing Flow**
+
+```typescript
+function processIncomingEvent(newEvent) {
+  // Step 1: CLEANUP - Consolidate events older than 30 seconds
+  performThirtySecondCleanup()
+  
+  // Step 2: DETERMINE PATH - In-order or out-of-order?
+  const isInOrder = newEvent.timestamp > latestEventTimestamp
+  
+  if (isInOrder) {
+    // Step 3a: FAST PATH - Simple aggregation
+    materializedView = aggregator.applyUpdate(materializedView, newEvent).snapshot
+    recentEvents.push({ event: newEvent, timestamp: newEvent.timestamp })
+  } else {
+    // Step 3b: RE-AGGREGATION PATH - Rebuild from snapshot
+    const allEvents = [...recentEvents, { event: newEvent, timestamp: newEvent.timestamp }]
+    const sortedEvents = allEvents.sort((a, b) => a.timestamp - b.timestamp)
+    
+    materializedView = latestSnapshot
+    for (const { event } of sortedEvents) {
+      materializedView = aggregator.applyUpdate(materializedView, event).snapshot
+    }
+    
+    recentEvents = sortedEvents
+  }
+  
+  // Step 4: UPDATE TRACKING
+  latestEventTimestamp = Math.max(...recentEvents.map(e => e.timestamp))
+}
+```
+
+#### **Key Assumptions and Guarantees**
+
+**Assumptions**:
+- Events arrive within 30 seconds of their timestamp
+- Events include accurate timestamps
+- Aggregator is deterministic (same events in same order → same result)
+
+**Guarantees**:
+- Eventually consistent state despite out-of-order delivery
+- Bounded memory usage (30-second window)
+- Correct chronological ordering based on timestamps
+- Efficient processing for common in-order case
+
+### **Phase 6: Timestamp Infrastructure (Future)** 📋 PLANNED
+**Motivation**: Enable pure event processing by providing timestamps in the message infrastructure rather than relying on `Date.now()`.
+
+**Current Issue**: Event timestamps are currently derived from `Date.now()` when events arrive at the client, making the processing functions impure and harder to test.
+
+**Proposed Solution**:
+1. **Update `CoreExternalFormat`** in `mtw-lambda-patterns/ts/dataSource/formatTransform.ts`:
+   ```typescript
+   export interface CoreExternalFormat {
+       dataSourceKey: string;
+       streamKey: string;
+       timestamp: number;  // Add event timestamp
+       RequestId?: string;
+       update: { type: string; [key: string]: unknown };
+   }
+   ```
+
+2. **Update `SubscriptionClientMessage`** types in `mtw-interfaces/ts/subscriptions.ts`:
+   ```typescript
+   export type ContentHeadersSubscriptionClientMessage = {
+       messageType: 'Subscription';
+       dataSourceKey: 'mtw.assets.contentHeaders';
+       streamKey: string;
+       timestamp: number;  // Add event timestamp
+       update: ContentHeadersExternal;
+       RequestId?: string;
+   }
+   ```
+
+3. **Update DataSource `streamEvent`** in backend to include timestamp:
+   - Extract from EventBridge event `Time` field
+   - Or use DynamoDB record timestamp
+   - Ensure consistent timestamp source across all events
+
+4. **Update client-side event processors** to extract timestamp from message:
+   ```typescript
+   const eventTimestamp = rawEvent.timestamp  // Instead of Date.now()
+   ```
+
+**Benefits**:
+- **Pure Functions**: Event processing becomes deterministic
+- **Better Testing**: Can provide specific timestamps in tests
+- **Accurate Ordering**: Uses actual event time, not arrival time
+- **Out-of-Order Detection**: More accurate detection based on event timestamps
+
+**Dependencies**: Requires coordinated changes across:
+- `mtw-lambda-patterns` (format definitions)
+- `mtw-interfaces` (message type definitions)
+- Backend lambdas (populate timestamp when creating events)
+- Client slices (extract timestamp from messages)
+
+### **Phase 7: Content Headers Implementation (Week 5)** 📋 PLANNED
 - **Content Headers Slice**: Create content headers data source slice using mtw-interfaces
 - **UI Components**: Create components that consume content headers data
 - **Integration Testing**: End-to-end testing of subscription and aggregation logic

@@ -1,4 +1,4 @@
-import { ISSMAttemptNode, ISSMChoiceNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
+import { ISSMAttemptNode, ISSMChoiceNode, ISSMDataLayout, ISSMDataReturn, ISSMAction, ISSMHoldNode } from '../stateSeekingMachine/baseClasses'
 
 //
 // Generic base classes for data source state machines
@@ -9,6 +9,7 @@ export interface DataSourceInternal {
     incrementalBackoff: number;
     pendingStreamKeys?: string[];
     error?: string;
+    lifeLineSubscription?: string;  // Subscription ID for LifeLinePubSub
 }
 
 export interface DataSourcePublic<SnapshotPayload, UpdatePayload> {
@@ -39,6 +40,9 @@ export type DataSourceReturn<SnapshotPayload, UpdatePayload> = ISSMDataReturn<Da
 export type DataSourceAction<SnapshotPayload, UpdatePayload> = ISSMAction<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>
 
 export interface DataSourceNodes<SnapshotPayload, UpdatePayload> {
+    INITIAL: ISSMHoldNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
+    INITIALIZE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
+    INITIALIZEERROR: ISSMChoiceNode;
     READY: ISSMChoiceNode;
     SUBSCRIBE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
     SUBSCRIBEBACKOFF: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
