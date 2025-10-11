@@ -68,7 +68,7 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
 
 //
 // Factory function to create subscribe action for a specific data source
-// Takes the dataSourceKey to configure the subscription
+// Takes the dataSourceKey and aggregator to configure the subscription
 //
 export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,

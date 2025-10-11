@@ -830,19 +830,28 @@ const handleWebSocketMessage = (message: any) => {
 - ✅ **INITIALIZEERROR State**: Terminal error state for local infrastructure failures
 - ✅ **LifeLinePubSub Subscription**: Data source slices automatically subscribe during INITIALIZE state
 
-### **Phase 5: Complete Event Processing Integration (Week 4)** 🚧 IN PROGRESS
+### **Phase 5: Complete Event Processing Integration (Week 4)** ✅ COMPLETE
 **Motivation**: After subscriptions lambda refactor (Phase 3) and WebSocket integration (Phase 4), complete the event processing logic.
 
 **Implementation**:
 - ✅ **LifeLinePubSub Subscription**: Subscribe data source slices to incoming subscription messages (INITIALIZE state)
-- **Event Processing Reducers**: Implement full `processRawSnapshot` and `processRawEvent` logic
-  - Deserialize using `eventSerializer` from configuration
-  - Apply events to `materializedView` using aggregator
-  - Maintain `recentEvents` window (30 seconds)
-  - Handle out-of-order events correctly (see detailed strategy below)
-- **Materialized View Management**: Calculate and update views as events arrive
-- **Integration with Aggregator**: Use `DataSourceAggregator.applyUpdate()` for event application
-- **Error Handling**: Graceful handling of deserialization failures and aggregation errors
+- ✅ **Event Processing Reducers**: Implement full `processRawSnapshot` and `processRawEvent` logic
+  - ✅ Deserialize using `eventSerializer` from configuration
+  - ✅ Apply events to `materializedView` using aggregator via `applyEvents` helper
+  - ✅ Maintain `recentEvents` window (30 seconds) via `performCleanup` helper
+  - ✅ Handle out-of-order events correctly (in-order fast path + out-of-order re-aggregation)
+- ✅ **Materialized View Management**: Calculate and update views as events arrive
+- ✅ **Integration with Aggregator**: Use `DataSourceAggregator.applyUpdate()` for event application
+- ✅ **Error Handling**: Graceful handling of deserialization failures and aggregation errors
+- ✅ **Type Safety**: Inline type guards for proper TypeScript narrowing
+- ✅ **Pure Functions**: Cleanup logic uses event timestamps instead of `Date.now()` (except for arrival time, pending Phase 6)
+
+**Key Implementation Details**:
+- **`applyEvents` helper**: Pure reduce pattern for applying multiple updates
+- **`performCleanup` helper**: Consolidates events >30 seconds into synthetic snapshot
+- **Type Guards**: Uses `isSnapshot` and `isUpdate` from configuration for type-safe event filtering
+- **Snapshot Handling**: Properly handles snapshots arriving out-of-order by re-aggregating post-snapshot events
+- **Update Handling**: In-order fast path and out-of-order re-aggregation from baseline snapshot
 
 ### **Out-of-Order Event Handling Strategy**
 
@@ -996,7 +1005,58 @@ function processIncomingEvent(newEvent) {
 - Correct chronological ordering based on timestamps
 - Efficient processing for common in-order case
 
-### **Phase 6: Content Headers Implementation (Week 5)** 📋 PLANNED
+### **Phase 6: Timestamp Infrastructure (Future)** 📋 PLANNED
+**Motivation**: Enable pure event processing by providing timestamps in the message infrastructure rather than relying on `Date.now()`.
+
+**Current Issue**: Event timestamps are currently derived from `Date.now()` when events arrive at the client, making the processing functions impure and harder to test.
+
+**Proposed Solution**:
+1. **Update `CoreExternalFormat`** in `mtw-lambda-patterns/ts/dataSource/formatTransform.ts`:
+   ```typescript
+   export interface CoreExternalFormat {
+       dataSourceKey: string;
+       streamKey: string;
+       timestamp: number;  // Add event timestamp
+       RequestId?: string;
+       update: { type: string; [key: string]: unknown };
+   }
+   ```
+
+2. **Update `SubscriptionClientMessage`** types in `mtw-interfaces/ts/subscriptions.ts`:
+   ```typescript
+   export type ContentHeadersSubscriptionClientMessage = {
+       messageType: 'Subscription';
+       dataSourceKey: 'mtw.assets.contentHeaders';
+       streamKey: string;
+       timestamp: number;  // Add event timestamp
+       update: ContentHeadersExternal;
+       RequestId?: string;
+   }
+   ```
+
+3. **Update DataSource `streamEvent`** in backend to include timestamp:
+   - Extract from EventBridge event `Time` field
+   - Or use DynamoDB record timestamp
+   - Ensure consistent timestamp source across all events
+
+4. **Update client-side event processors** to extract timestamp from message:
+   ```typescript
+   const eventTimestamp = rawEvent.timestamp  // Instead of Date.now()
+   ```
+
+**Benefits**:
+- **Pure Functions**: Event processing becomes deterministic
+- **Better Testing**: Can provide specific timestamps in tests
+- **Accurate Ordering**: Uses actual event time, not arrival time
+- **Out-of-Order Detection**: More accurate detection based on event timestamps
+
+**Dependencies**: Requires coordinated changes across:
+- `mtw-lambda-patterns` (format definitions)
+- `mtw-interfaces` (message type definitions)
+- Backend lambdas (populate timestamp when creating events)
+- Client slices (extract timestamp from messages)
+
+### **Phase 7: Content Headers Implementation (Week 5)** 📋 PLANNED
 - **Content Headers Slice**: Create content headers data source slice using mtw-interfaces
 - **UI Components**: Create components that consume content headers data
 - **Integration Testing**: End-to-end testing of subscription and aggregation logic
