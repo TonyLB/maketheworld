@@ -226,20 +226,23 @@ export const processRawEvent = <
             ? snapshotEvents[snapshotEvents.length - 1].timestamp 
             : 0
         
-        // Collect all events including new one
-        const allEvents = [
-            ...cleanedRecentEvents.filter(e => e.timestamp > baselineTimestamp),
-            { event, timestamp: eventTimestamp }
-        ]
-        
-        // Sort by timestamp
-        const sortedEvents = allEvents.sort((a, b) => a.timestamp - b.timestamp)
-        
-        // Filter for only UPDATE events to apply (snapshots shouldn't be re-applied)
-        const sortedUpdateEvents = sortedEvents.filter((e): e is { timestamp: number, event: UpdatePayload } => isUpdate(e.event))
-        
-        // Re-aggregate in chronological order
-        const newMaterializedView = applyEventsWithAggregator(baselineSnapshot, sortedUpdateEvents)
+            // Collect all events including new one
+            const allEvents = [
+                ...cleanedRecentEvents.filter(e => e.timestamp > baselineTimestamp),
+                { event, timestamp: eventTimestamp }
+            ]
+            
+            // Sort by timestamp
+            const sortedEvents = allEvents.sort((a, b) => a.timestamp - b.timestamp)
+            
+            // Filter for only UPDATE events to apply (snapshots shouldn't be re-applied)
+            // AND only events AFTER the baseline snapshot (events before are already in the snapshot)
+            const sortedUpdateEvents = sortedEvents.filter((e): e is { timestamp: number, event: UpdatePayload } => 
+                isUpdate(e.event) && e.timestamp > baselineTimestamp
+            )
+            
+            // Re-aggregate in chronological order
+            const newMaterializedView = applyEventsWithAggregator(baselineSnapshot, sortedUpdateEvents)
         
         // Include baseline snapshot + all sorted events (updates and any intermediate snapshots)
         const newRecentEvents = snapshotEvents.length > 0
