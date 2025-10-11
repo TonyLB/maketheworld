@@ -8,6 +8,7 @@
 export interface CoreExternalFormat {
     dataSourceKey: string;
     streamKey: string;
+    timestamp: number;  // Event timestamp (epoch milliseconds)
     RequestId?: string;
     update: { type: string; [key: string]: unknown };
 }
@@ -17,6 +18,7 @@ export interface EventBridgeFormat {
     DetailType: string;
     Detail: {
         streamKey: string;
+        timestamp: number;
         RequestId?: string;
         [key: string]: any;
     };
@@ -34,6 +36,7 @@ export interface WebSocketFormat {
     message: {
         dataSourceKey: string;
         streamKey: string;
+        timestamp: number;
         RequestId?: string;
         update: { type: string; [key: string]: unknown };
     };
@@ -43,6 +46,7 @@ export interface SNSFeedbackFormat {
     messageType: 'StreamEvent';
     dataSourceKey: string;
     streamKey: string;
+    timestamp: number;
     update: { type: string; [key: string]: unknown };
 }
 
@@ -50,7 +54,7 @@ export interface SNSFeedbackFormat {
  * Transform CoreExternalFormat to EventBridge event structure
  */
 export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridgeFormat {
-    const { dataSourceKey, streamKey, RequestId, update } = coreFormat;
+    const { dataSourceKey, streamKey, timestamp, RequestId, update } = coreFormat;
     
     // Extract the type and update data from the update object
     const { type, update: updateData, ...rest } = update;
@@ -60,6 +64,7 @@ export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridge
         DetailType: type,
         Detail: {
             streamKey,
+            timestamp,
             RequestId,
             ...rest,
             update: updateData
@@ -72,11 +77,12 @@ export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridge
  */
 export function fromEventBridgeFormat(eventBridgeEvent: EventBridgeFormat): CoreExternalFormat {
     const { Source: dataSourceKey, DetailType: type, Detail } = eventBridgeEvent;
-    const { streamKey, RequestId, ...rest } = Detail;
+    const { streamKey, timestamp, RequestId, ...rest } = Detail;
     
     return {
         dataSourceKey,
         streamKey,
+        timestamp,
         RequestId,
         update: {
             type,
@@ -93,11 +99,13 @@ export function toDynamoDBFormat<PrimaryKey extends string>(
     primaryKeyName: PrimaryKey,
     eventId: string
 ): DynamoDBFormat<PrimaryKey> {
-    const { dataSourceKey, streamKey, update } = coreFormat;
+    const { dataSourceKey, streamKey, timestamp, update } = coreFormat;
     
+    // DataCategory includes timestamp for extraction by fromDynamoDBFormat
+    // Format: EVENT#${timestamp}::${uuid}
     return {
         [primaryKeyName]: `STREAM#${dataSourceKey}::${streamKey}`,
-        DataCategory: `EVENT#${eventId}`,
+        DataCategory: `EVENT#${timestamp}::${eventId}`,
         update
     } as DynamoDBFormat<PrimaryKey>;
 }
@@ -109,7 +117,7 @@ export function fromDynamoDBFormat(
     dynamoRecord: DynamoDBFormat,
     dataSourceKey: string
 ): CoreExternalFormat {
-    const { update } = dynamoRecord;
+    const { update, DataCategory } = dynamoRecord;
     
     // Extract streamKey from the primary key
     const primaryKeyValue = Object.values(dynamoRecord).find(value => 
@@ -117,9 +125,14 @@ export function fromDynamoDBFormat(
     ) as string;
     const streamKey = primaryKeyValue?.split('::')[1] || '';
     
+    // Extract timestamp from DataCategory (format: EVENT#${timestamp}::${uuid})
+    const timestampMatch = DataCategory.match(/^EVENT#(\d+)::/);
+    const timestamp = timestampMatch ? parseInt(timestampMatch[1], 10) : 0;
+    
     return {
         dataSourceKey,
         streamKey,
+        timestamp,
         update
     };
 }
@@ -128,13 +141,14 @@ export function fromDynamoDBFormat(
  * Transform CoreExternalFormat to WebSocket message structure
  */
 export function toWebSocketFormat(coreFormat: CoreExternalFormat): WebSocketFormat {
-    const { dataSourceKey, streamKey, RequestId, update } = coreFormat;
+    const { dataSourceKey, streamKey, timestamp, RequestId, update } = coreFormat;
     
     return {
         messageType: 'StreamEvent',
         message: {
             dataSourceKey,
             streamKey,
+            timestamp,
             RequestId,
             update
         }
@@ -146,11 +160,12 @@ export function toWebSocketFormat(coreFormat: CoreExternalFormat): WebSocketForm
  */
 export function fromWebSocketFormat(webSocketMessage: WebSocketFormat): CoreExternalFormat {
     const { message } = webSocketMessage;
-    const { dataSourceKey, streamKey, RequestId, update } = message;
+    const { dataSourceKey, streamKey, timestamp, RequestId, update } = message;
     
     return {
         dataSourceKey,
         streamKey,
+        timestamp,
         RequestId,
         update
     };
@@ -167,16 +182,17 @@ export function fromWebSocketFormat(webSocketMessage: WebSocketFormat): CoreExte
  * The feedback lambda does: { ...JSON.parse(Sns.Message), RequestId }
  * 
  * Example:
- *   Input: { dataSourceKey: 'mtw.assets', streamKey: 'global', update: { type: 'Snapshot Generated', assets: [...] } }
- *   Output: { messageType: 'StreamEvent', dataSourceKey: 'mtw.assets', streamKey: 'global', update: { type: 'Snapshot Generated', assets: [...] } }
+ *   Input: { dataSourceKey: 'mtw.assets', streamKey: 'global', timestamp: 1234567890, update: { type: 'Snapshot Generated', assets: [...] } }
+ *   Output: { messageType: 'StreamEvent', dataSourceKey: 'mtw.assets', streamKey: 'global', timestamp: 1234567890, update: { type: 'Snapshot Generated', assets: [...] } }
  */
 export function toSNSFeedbackFormat(coreFormat: CoreExternalFormat): SNSFeedbackFormat {
-    const { dataSourceKey, streamKey, update } = coreFormat;
+    const { dataSourceKey, streamKey, timestamp, update } = coreFormat;
     
     return {
         messageType: 'StreamEvent',
         dataSourceKey,
         streamKey,
+        timestamp,
         update
     };
 }
@@ -185,11 +201,12 @@ export function toSNSFeedbackFormat(coreFormat: CoreExternalFormat): SNSFeedback
  * Transform SNS Feedback format back to CoreExternalFormat
  */
 export function fromSNSFeedbackFormat(snsFormat: SNSFeedbackFormat): CoreExternalFormat {
-    const { dataSourceKey, streamKey, update } = snsFormat;
+    const { dataSourceKey, streamKey, timestamp, update } = snsFormat;
     
     return {
         dataSourceKey,
         streamKey,
+        timestamp,
         update
     };
 }

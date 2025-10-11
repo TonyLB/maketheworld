@@ -22,6 +22,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
             messageType: 'Subscription',
             dataSourceKey: 'mtw.wml',
             streamKey: event.streamKey,
+            timestamp: event.timestamp,
             update: {
                 type: 'Merge Conflict',
                 RequestId: event.RequestId
@@ -35,6 +36,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
             messageType: 'Subscription',
             dataSourceKey: 'mtw.wml',
             streamKey: event.streamKey,
+            timestamp: event.timestamp,
             update: {
                 type: 'Content Update',
                 RequestId: event.RequestId,
@@ -49,6 +51,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
             messageType: 'Subscription',
             dataSourceKey: 'mtw.assets.contentHeaders',
             streamKey: event.streamKey,
+            timestamp: event.timestamp,
             update: {
                 type: 'Headers Updated',
                 assetId: event.assetId,

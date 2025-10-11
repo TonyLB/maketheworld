@@ -204,9 +204,9 @@ export const createDataSourceSlice = <
             // Process incoming snapshot event
             processRawSnapshot: (record) => (
                 state: any,
-                action: PayloadAction<{ streamKey: string; rawSnapshot: ExternalSnapshotPayload }>
+                action: PayloadAction<{ streamKey: string; timestamp: number; rawSnapshot: ExternalSnapshotPayload }>
             ) => {
-                const { streamKey, rawSnapshot } = action.payload
+                const { streamKey, timestamp, rawSnapshot } = action.payload
                 const stream = state.publicData.subscribedStreams[streamKey]
                 if (!stream) {
                     // Stream not subscribed, ignore
@@ -220,8 +220,8 @@ export const createDataSourceSlice = <
                     return state
                 }
                 
-                // Snapshot timestamp (using Date.now() until Phase 6 timestamp infrastructure)
-                const snapshotTimestamp = Date.now()
+                // Use timestamp from message (not Date.now())
+                const snapshotTimestamp = timestamp
                 
                 // Perform cleanup before processing (pass incoming timestamp for accurate window calculation)
                 const cleanedRecentEvents = performCleanup(stream.recentEvents, snapshotTimestamp)
@@ -257,9 +257,9 @@ export const createDataSourceSlice = <
             // Process incoming update event
             processRawEvent: (record) => (
                 state: any,
-                action: PayloadAction<{ streamKey: string; rawEvent: ExternalUpdatePayload }>
+                action: PayloadAction<{ streamKey: string; timestamp: number; rawEvent: ExternalUpdatePayload }>
             ) => {
-                const { streamKey, rawEvent } = action.payload
+                const { streamKey, timestamp, rawEvent } = action.payload
                 const stream = state.publicData.subscribedStreams[streamKey]
                 if (!stream) {
                     // Stream not subscribed, ignore
@@ -277,8 +277,8 @@ export const createDataSourceSlice = <
                     return state
                 }
                 
-                // Determine event timestamp (using Date.now() until Phase 6 timestamp infrastructure)
-                const eventTimestamp = Date.now() // TODO: Extract timestamp from event if available
+                // Use timestamp from message (not Date.now())
+                const eventTimestamp = timestamp
                 
                 // Perform cleanup before processing (pass incoming timestamp for accurate window calculation)
                 const cleanedRecentEvents = performCleanup(stream.recentEvents, eventTimestamp)

@@ -844,7 +844,7 @@ const handleWebSocketMessage = (message: any) => {
 - ✅ **Integration with Aggregator**: Use `DataSourceAggregator.applyUpdate()` for event application
 - ✅ **Error Handling**: Graceful handling of deserialization failures and aggregation errors
 - ✅ **Type Safety**: Inline type guards for proper TypeScript narrowing
-- ✅ **Pure Functions**: Cleanup logic uses event timestamps instead of `Date.now()` (except for arrival time, pending Phase 6)
+- ✅ **Pure Functions**: All event processing logic uses event timestamps (no `Date.now()` calls)
 
 **Key Implementation Details**:
 - **`applyEvents` helper**: Pure reduce pattern for applying multiple updates
@@ -1005,56 +1005,42 @@ function processIncomingEvent(newEvent) {
 - Correct chronological ordering based on timestamps
 - Efficient processing for common in-order case
 
-### **Phase 6: Timestamp Infrastructure (Future)** 📋 PLANNED
+### **Phase 6: Timestamp Infrastructure** ✅ COMPLETE
 **Motivation**: Enable pure event processing by providing timestamps in the message infrastructure rather than relying on `Date.now()`.
 
-**Current Issue**: Event timestamps are currently derived from `Date.now()` when events arrive at the client, making the processing functions impure and harder to test.
+**Implementation**:
+- ✅ **Updated `CoreExternalFormat`** in `mtw-lambda-patterns/ts/dataSource/formatTransform.ts` to include `timestamp: number`
+- ✅ **Updated all format interfaces** (`EventBridgeFormat`, `WebSocketFormat`, `SNSFeedbackFormat`) to include timestamp
+- ✅ **Updated all format transformers** to pass timestamp through bidirectionally
+- ✅ **Updated `SubscriptionClientMessage`** types in `mtw-interfaces/ts/subscriptions.ts` to include `timestamp: number`
+- ✅ **Updated backend `DataSource.streamEvent`** to populate timestamp from `getCurrentTimestamp()`
+- ✅ **Updated backend `initializeSubscription`** to include timestamps in snapshot and event delivery
+- ✅ **Updated subscriptions lambda transforms** to pass timestamp from CoreExternalFormat to client messages
+- ✅ **Updated client-side event processors** to extract `timestamp` from messages (removed `Date.now()` calls)
+- ✅ **Updated all tests** to include timestamps in mock events and expectations
 
-**Proposed Solution**:
-1. **Update `CoreExternalFormat`** in `mtw-lambda-patterns/ts/dataSource/formatTransform.ts`:
-   ```typescript
-   export interface CoreExternalFormat {
-       dataSourceKey: string;
-       streamKey: string;
-       timestamp: number;  // Add event timestamp
-       RequestId?: string;
-       update: { type: string; [key: string]: unknown };
-   }
-   ```
+**Benefits Achieved**:
+- ✅ **Pure Functions**: Event processing is now deterministic (cleanup based on event timestamps)
+- ✅ **Better Testing**: Tests can provide specific timestamps for deterministic behavior
+- ✅ **Accurate Ordering**: Uses actual event time from backend, not client arrival time
+- ✅ **Out-of-Order Detection**: Accurate detection based on event timestamps from backend
+- ✅ **Coordinated Changes**: All layers updated together for end-to-end timestamp support
 
-2. **Update `SubscriptionClientMessage`** types in `mtw-interfaces/ts/subscriptions.ts`:
-   ```typescript
-   export type ContentHeadersSubscriptionClientMessage = {
-       messageType: 'Subscription';
-       dataSourceKey: 'mtw.assets.contentHeaders';
-       streamKey: string;
-       timestamp: number;  // Add event timestamp
-       update: ContentHeadersExternal;
-       RequestId?: string;
-   }
-   ```
+**Files Modified**:
+- `mtw-lambda-patterns/ts/dataSource/formatTransform.ts` - Added timestamp to all formats and transformers
+- `mtw-lambda-patterns/ts/dataSource/index.ts` - Populate timestamp in streamEvent and initializeSubscription
+- `mtw-lambda-patterns/ts/dataSource/index.test.ts` - Updated test expectations with timestamps
+- `mtw-interfaces/ts/subscriptions.ts` - Added timestamp to SubscriptionClientMessage types
+- `lambda/subscriptions/handlerFramework/index.ts` - Pass timestamp through transforms
+- `lambda/subscriptions/handlerFramework/index.test.ts` - Updated tests with timestamps
+- `charcoal-client/src/slices/dataSource/index.api.ts` - Extract timestamp from messages
+- `charcoal-client/src/slices/dataSource/index.ts` - Use message timestamps instead of Date.now()
 
-3. **Update DataSource `streamEvent`** in backend to include timestamp:
-   - Extract from EventBridge event `Time` field
-   - Or use DynamoDB record timestamp
-   - Ensure consistent timestamp source across all events
-
-4. **Update client-side event processors** to extract timestamp from message:
-   ```typescript
-   const eventTimestamp = rawEvent.timestamp  // Instead of Date.now()
-   ```
-
-**Benefits**:
-- **Pure Functions**: Event processing becomes deterministic
-- **Better Testing**: Can provide specific timestamps in tests
-- **Accurate Ordering**: Uses actual event time, not arrival time
-- **Out-of-Order Detection**: More accurate detection based on event timestamps
-
-**Dependencies**: Requires coordinated changes across:
-- `mtw-lambda-patterns` (format definitions)
-- `mtw-interfaces` (message type definitions)
-- Backend lambdas (populate timestamp when creating events)
-- Client slices (extract timestamp from messages)
+**Test Results**:
+- ✅ mtw-lambda-patterns: 90/90 tests passing
+- ✅ mtw-interfaces: 145/145 tests passing
+- ✅ lambda/subscriptions: 12/12 tests passing
+- ✅ **Total: 247/247 tests passing**
 
 ### **Phase 7: Content Headers Implementation (Week 5)** 📋 PLANNED
 - **Content Headers Slice**: Create content headers data source slice using mtw-interfaces

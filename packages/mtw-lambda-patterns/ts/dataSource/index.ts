@@ -278,13 +278,14 @@ export class DataSource<
     async streamEvent(params: Parameters<StreamEventFunction<UpdatePayload>>[0]): Promise<void> {
         const { update, streamKey } = params
         const now = getCurrentTimestamp()
-        const eventId = `${now}::${uuidv4()}`
+        const uuid = uuidv4()  // Just the UUID part (timestamp is in coreFormat)
         
         // Create CoreExternalFormat - use serializer if available, otherwise use update directly
         const coreFormat: CoreExternalFormat = this.eventSerializer 
             ? {
                 dataSourceKey: this.dataSourceKey,
                 streamKey,
+                timestamp: now,
                 update: this.eventSerializer.serialize({
                     dataSourceKey: this.dataSourceKey,
                     streamKey,
@@ -294,11 +295,12 @@ export class DataSource<
             : {
                 dataSourceKey: this.dataSourceKey,
                 streamKey,
+                timestamp: now,
                 update
             }
 
-        // Transform to context-specific formats
-        const eventRecord = toDynamoDBFormat(coreFormat, this.primaryKeyName, eventId)
+        // Transform to context-specific formats (uuid for uniqueness in DataCategory)
+        const eventRecord = toDynamoDBFormat(coreFormat, this.primaryKeyName, uuid)
         const eventBridgeEvent = toEventBridgeFormat(coreFormat)
 
         // Create the internal messageBus event
@@ -416,6 +418,7 @@ export class DataSource<
         const snapshotCoreFormat: CoreExternalFormat = {
             dataSourceKey: this.dataSourceKey,
             streamKey,
+            timestamp: snapshot.createdAt,  // Use snapshot creation time
             update: externalSnapshotPayload as any // The snapshot payload already has a 'type' field
         }
         
@@ -445,6 +448,7 @@ export class DataSource<
                 const coreFormat: CoreExternalFormat = {
                     dataSourceKey: this.dataSourceKey,
                     streamKey,
+                    timestamp,
                     update: update as any
                 }
                 
