@@ -39,6 +39,7 @@ export type WMLSubscriptionClientMessage = {
     messageType: 'Subscription';
     dataSourceKey: 'mtw.wml';
     streamKey: string;
+    timestamp: number;
     update: WMLContentEventExternal;
     RequestId?: string;
 }
@@ -47,6 +48,7 @@ export type ContentHeadersSubscriptionClientMessage = {
     messageType: 'Subscription';
     dataSourceKey: 'mtw.assets.contentHeaders';
     streamKey: string;
+    timestamp: number;
     update: ContentHeadersExternal;
     RequestId?: string;
 }

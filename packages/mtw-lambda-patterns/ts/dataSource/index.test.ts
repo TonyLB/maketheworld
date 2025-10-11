@@ -570,6 +570,8 @@ describe('DataSource', () => {
                 DetailType: 'TestUpdatePayload',
                 Detail: {
                     streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    RequestId: undefined,
                     update: 'test-update'
                 }
             }])
@@ -599,6 +601,8 @@ describe('DataSource', () => {
                 DetailType: 'TestUpdatePayload',
                 Detail: {
                     streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    RequestId: undefined,
                     update: 'test-update',
                 }
             }])
@@ -637,6 +641,8 @@ describe('DataSource', () => {
                 DetailType: 'TestUpdatePayload',
                 Detail: {
                     streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    RequestId: undefined,
                     update: 'test-update',
                 }
             }])
@@ -734,6 +740,8 @@ describe('DataSource', () => {
                 DetailType: 'TestUpdatePayload',
                 Detail: {
                     streamKey: 'test-stream',
+                    timestamp: 200000000,
+                    RequestId: undefined,
                     update: 'test-update',
                 }
             }])

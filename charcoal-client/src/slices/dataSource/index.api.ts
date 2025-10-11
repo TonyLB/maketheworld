@@ -31,8 +31,8 @@ export const backoffAction: DataSourceAction<any, any> = ({ internalData: { incr
 //
 export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
-    processRawSnapshot: (payload: { streamKey: string; rawSnapshot: any }) => any,
-    processRawEvent: (payload: { streamKey: string; rawEvent: any }) => any
+    processRawSnapshot: (payload: { streamKey: string; timestamp: number; rawSnapshot: any }) => any,
+    processRawEvent: (payload: { streamKey: string; timestamp: number; rawEvent: any }) => any
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
         try {
@@ -40,14 +40,14 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
             const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
                 // Filter for subscription messages from this data source
                 if (payload.messageType === 'Subscription' && payload.dataSourceKey === dataSourceKey) {
-                    const { streamKey, update } = payload
+                    const { streamKey, timestamp, update } = payload
                     
                     // Route to appropriate processor based on message type
                     if (update.type === 'Snapshot Generated') {
-                        dispatch(processRawSnapshot({ streamKey, rawSnapshot: update }))
+                        dispatch(processRawSnapshot({ streamKey, timestamp, rawSnapshot: update }))
                     } else {
                         // All other update types are events
-                        dispatch(processRawEvent({ streamKey, rawEvent: update }))
+                        dispatch(processRawEvent({ streamKey, timestamp, rawEvent: update }))
                     }
                 }
             })
