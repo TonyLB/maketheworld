@@ -24,6 +24,7 @@ export interface DataSourceSliceConfig<
     isUpdate: (event: UpdatePayload | SnapshotPayload) => event is UpdatePayload  // Type guard to identify update events
     sliceSelector: (state: any) => any    // Selector to access this slice in Redux store
     promiseCache?: PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>  // Optional promise cache for state machine coordination
+    onReady?: (dispatch: any, getState: any) => void  // Optional callback when slice reaches READY state (after INITIALIZE completes)
 }
 
 //
@@ -174,7 +175,8 @@ export const createDataSourceSlice = <
     initializeAction = createInitializeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey,
         result.publicActions.processRawSnapshot,
-        result.publicActions.processRawEvent
+        result.publicActions.processRawEvent,
+        config.onReady
     )
 
     return result

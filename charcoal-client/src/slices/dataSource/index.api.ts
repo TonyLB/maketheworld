@@ -32,9 +32,10 @@ export const backoffAction: DataSourceAction<any, any> = ({ internalData: { incr
 export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
     processRawSnapshot: (payload: { streamKey: string; timestamp: number; rawSnapshot: any }) => any,
-    processRawEvent: (payload: { streamKey: string; timestamp: number; rawEvent: any }) => any
+    processRawEvent: (payload: { streamKey: string; timestamp: number; rawEvent: any }) => any,
+    onReady?: (dispatch: any, getState: any) => void
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
-    return ({ internalData, publicData }) => async (dispatch) => {
+    return ({ internalData, publicData }) => async (dispatch, getState) => {
         try {
             // Subscribe to LifeLinePubSub to receive incoming WebSocket messages
             const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
@@ -51,6 +52,11 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
                     }
                 }
             })
+            
+            // Call onReady callback if provided (after successful initialization)
+            if (onReady) {
+                onReady(dispatch, getState)
+            }
             
             return {
                 internalData: {

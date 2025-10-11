@@ -13,6 +13,7 @@ import ssmHeartbeat from '../slices/stateSeekingMachine/ssmHeartbeat'
 import library from '../slices/library'
 import personalAssets from '../slices/personalAssets'
 import perceptionCache from '../slices/perceptionCache'
+import { contentHeadersSlice } from '../slices/contentHeaders'
 
 export const store = configureStore({
     reducer: {
@@ -27,7 +28,8 @@ export const store = configureStore({
         settings,
         UI: uiReducer,
         ssmHeartbeat,
-        perceptionCache
+        perceptionCache,
+        contentHeaders: contentHeadersSlice.reducer
     },
     middleware: [thunk]
 })
