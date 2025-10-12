@@ -855,10 +855,390 @@ const characters = contentHeaders.flatMap(asset =>
    - Register iterator in `useStateSeekingMachines`
    - Export from slice index
 
-4. **Update Library Component**:
-   - Feature flag to switch between old and new implementation
-   - Test with new DataSource
-   - Verify real-time updates work
+4. **Update Library Component**: Transform to Simplified, Dual-Compatible Version
+
+**Goal**: Create a UI version that works with BOTH legacy and new data patterns, enabling us to:
+- Deploy UI changes independently of backend
+- Test UI without backend migration risk
+- Switch backend DataSource without breaking UI
+- Reduce functionality temporarily for cleaner architecture
+
+**Current State Analysis**:
+
+The Library UI (`charcoal-client/src/components/Library/index.tsx`) displays two sections:
+
+**Personal Section** (Player's Workspace):
+- Lists player's personal Characters (with Name, avatar)
+- Lists player's personal Assets (with AssetId)
+- Full preview pane functionality
+- Uses `getMyCharacters` and `getMyAssets` from player slice
+- **No changes needed** - Different data source, modern architecture
+
+**Public Section** (Library Zone):
+- Lists library Characters (with Name, avatar, metadata)
+- Lists library Assets (with AssetId only)
+- Full preview pane functionality
+- Uses `getLibrary` which returns `{ Characters: [...], Assets: [...] }`
+- **Needs simplification** - Character data incompatible with new pattern
+
+**Current Data Display**:
+```typescript
+// Personal section (unchanged)
+const Characters = useSelector(getMyCharacters)  // From player slice
+const Assets = useSelector(getMyAssets)          // From player slice
+
+// Public section (needs update)
+const { Characters: libraryCharacters, Assets: libraryAssets } = useSelector(getLibrary)
+
+// TableOfContents renders both Assets and Characters
+<TableOfContents Characters={libraryCharacters} Assets={libraryAssets} />
+```
+
+**Key Finding**: The Assets list is already minimal!
+- Current display: Just shows `AssetId` as text (no rich metadata used)
+- Current preview: Just shows `AssetId` (no description, images, story flags, etc.)
+- Data structure: `AssetClientPlayerAsset = { AssetId, Story?, instance? }`
+- Actual usage: Only `AssetId` field is displayed
+- **Insight**: Both old and new patterns can provide this!
+
+**The Incompatibility**: Characters
+- Current display: Shows `Name`, `fileURL` for avatar, `scopedId`
+- Current preview: Shows `Name`, avatar image, character metadata
+- Data structure: `AssetClientPlayerCharacter = { CharacterId, Name, scopedId, fileName, fileURL, Pronouns }`
+- Legacy pattern: Characters are separate database entities (`Meta::Character`)
+- Modern pattern: Characters are components within Asset files
+- **Problem**: New backend won't provide separate Characters array
+
+**Transition Strategy - Simplified UI That Works With Both Patterns**:
+
+**Phase 2a: Remove Character Dependency** ✅ Works with both old and new data
+1. **Simplify Public (Library) Section**:
+   - Remove Characters list entirely
+   - Keep only Assets list (shows just AssetId)
+   - Simplify or remove preview pane for library items
+   - Add clear messaging: "Library shows available assets"
+
+2. **Preserve Personal Section**:
+   - Keep Characters and Assets lists as-is
+   - Personal data comes from player slice (different data source)
+   - No changes needed for personal section
+
+3. **Update Component Structure**:
+```typescript
+// Simplified Library section
+const { Assets: libraryAssets } = useSelector(getLibrary)  // Works with both patterns
+
+return <Box>
+  {/* Personal section - unchanged */}
+  <PersonalSection 
+    Characters={Characters}
+    Assets={Assets}
+  />
+  
+  {/* Public section - simplified */}
+  <PublicSection>
+    <h2>Library Assets</h2>
+    <AssetList assets={libraryAssets} />  {/* Just shows AssetIds */}
+    {/* No Characters list */}
+    {/* Simplified or no preview pane */}
+  </PublicSection>
+</Box>
+```
+
+**Why This Works**:
+- ✅ Old pattern: `getLibrary` returns `{ Assets: [...], Characters: [...] }` - we ignore Characters
+- ✅ New pattern: `getLibrary` returns `{ assetIds: [...] }` mapped to `{ Assets: [...] }` - perfect fit
+- ✅ Both patterns can provide asset IDs
+- ✅ No dependency on character metadata
+- ✅ UI remains functional during backend migration
+
+**Benefits**:
+1. **Zero Migration Risk**: UI works with both data patterns
+2. **Deploy UI First**: Can update UI before backend DataSource
+3. **Simplified UX**: Clearer separation (Personal vs Library)
+4. **Performance**: Less data fetching, faster rendering
+5. **Future Enhancement Path**: Can add richer metadata later via contentHeaders
+
+**Phase 2b: Enhance With ContentHeaders** (Future - after backend migration)
+Once new backend is deployed and stable:
+1. Add metadata fetching via `mtw.assets.contentHeaders`
+2. Display asset names instead of just IDs
+3. Add asset thumbnails/images
+4. Re-introduce character discovery (via asset data, not separate list)
+5. Add search/filter capabilities
+
+**Implementation Tasks**:
+
+**Task 4.1**: Update Library Component Structure
+
+File: `charcoal-client/src/components/Library/index.tsx`
+
+Current code:
+```typescript
+const { Characters: libraryCharacters, Assets: libraryAssets } = useSelector(getLibrary)
+
+// Public section renders both
+<TableOfContents
+    Characters={libraryCharacters}  // Remove this
+    Assets={libraryAssets}
+    // ...
+/>
+```
+
+Updated code:
+```typescript
+// Only destructure Assets (ignore Characters even if present)
+const { Assets: libraryAssets = [] } = useSelector(getLibrary)
+
+// Public section renders Assets only
+<TableOfContents
+    Characters={[]}  // Empty array - TableOfContents will skip rendering
+    Assets={libraryAssets}
+    // ...
+/>
+```
+
+**Alternative**: Create simplified `LibraryTableOfContents` component:
+```typescript
+// Simplified component that only handles Assets
+const LibraryTableOfContents = ({ Assets, selectItem, selectedIndex, setPreviewItem }) => {
+    return <List component="nav" aria-label="library assets">
+        <ListSubheader>Library Assets</ListSubheader>
+        {Assets.map(({ AssetId }, index) => (
+            <ListItemButton key={AssetId} selected={selectedIndex === index}>
+                <ListItemIcon><Avatar variant="rounded"><AssetIcon /></Avatar></ListItemIcon>
+                <ListItemText primary={AssetId} />
+            </ListItemButton>
+        ))}
+    </List>
+}
+```
+
+Benefits:
+- [ ] Cleaner code (no Character handling)
+- [ ] No conditional rendering for empty Characters
+- [ ] Clearer intent (Library is Assets-only)
+
+**Task 4.2**: Simplify Preview Pane for Library
+
+Current: Preview pane handles both Assets and Characters  
+Problem: Character preview expects metadata that new pattern won't have
+
+Options:
+
+**Option A**: Remove preview for Library items (simplest)
+```typescript
+// In Library component
+<Grid item xs={6}>
+  {libraryPreviewItem && personal && (  // Only show for personal
+    <PreviewPane {...libraryPreviewItem} />
+  )}
+</Grid>
+```
+
+**Option B**: Asset-only preview for Library
+```typescript
+// Update PreviewPane to handle Library context
+{libraryPreviewItem?.type === 'Asset' && (
+  <PreviewPane {...libraryPreviewItem} />
+)}
+// Skip Character preview for Library
+```
+
+**Option C**: Future-ready preview with loading states
+```typescript
+// Library preview fetches additional data on-demand
+const assetMetadata = useAssetMetadata(libraryPreviewItem?.AssetId)
+{assetMetadata ? (
+  <EnhancedPreviewPane asset={assetMetadata} />
+) : (
+  <LoadingPreview />
+)}
+```
+
+**Recommendation**: Start with Option A (no preview), add Option C later with contentHeaders
+
+**Task 4.3**: Update TableOfContents Component
+
+File: `charcoal-client/src/components/Library/index.tsx` (lines 39-88)
+
+Current implementation renders both:
+```typescript
+{ (Assets.length > 0) && <ListSubheader>Assets</ListSubheader> }
+{ Assets.map(...) }
+{ (Characters.length > 0) && <ListSubheader>Characters</ListSubheader> }
+{ Characters.map(...) }
+```
+
+No code changes needed! Just pass empty Characters array:
+- `{ (Characters.length > 0) && ... }` will evaluate to false
+- Characters section won't render
+- Assets section renders normally
+
+**This is perfect for backwards compatibility**!
+
+**Task 4.4**: Update Data Type Handling
+
+Ensure the component handles missing Character data gracefully:
+
+```typescript
+// Add default empty arrays
+const { 
+  Assets: libraryAssets = [], 
+  Characters: libraryCharacters = []  // Will be empty with new pattern
+} = useSelector(getLibrary)
+
+// Or ignore Characters entirely
+const { Assets: libraryAssets = [] } = useSelector(getLibrary)
+```
+
+**Task 4.5**: Test with Both Data Patterns
+
+**Test with Old Pattern** (current):
+```typescript
+// Mock old library data
+const mockOldLibrary = {
+  Assets: [{ AssetId: 'ASSET#test1' }],
+  Characters: [{ CharacterId: 'CHARACTER#char1', Name: 'Test' }]
+}
+```
+Expected: Assets render, Characters render
+
+**Test with New Pattern** (future):
+```typescript
+// Mock new library data (no Characters)
+const mockNewLibrary = {
+  Assets: [{ AssetId: 'ASSET#test1' }],
+  Characters: []  // Empty
+}
+```
+Expected: Assets render, Characters section hidden (length check)
+
+**Test with Transition Pattern**:
+```typescript
+// Component only accesses Assets
+const { Assets: libraryAssets = [] } = useSelector(getLibrary)
+// Characters not accessed - works regardless of data shape
+```
+
+**Task 4.6**: Optional UI Improvements
+
+While simplifying, consider:
+- [ ] Better messaging: "Library shows public assets available for import"
+- [ ] Clearer visual distinction between Personal and Library sections
+- [ ] Loading states for asset lists
+- [ ] Empty state messaging: "No assets in Library zone"
+- [ ] Future: "Character browsing coming soon" message
+
+**Task 4.7**: Remove Character Dependencies
+
+Files to update:
+- [ ] `Library/index.tsx` - Remove Character handling from Library section
+- [ ] Tests that verify Character rendering in Library
+- [ ] Onboarding flows that reference Library characters
+- [ ] Documentation that mentions Library character browsing
+
+**Success Criteria**:
+- [ ] UI displays library assets from old data source
+- [ ] No dependency on Character data in Library section
+- [ ] Personal section still fully functional
+- [ ] No breaking changes to user workflows
+- [ ] Clear, understandable UI messaging
+- [ ] Ready for backend DataSource switchover
+
+**Migration Path Summary**:
+
+```
+Current State:
+  UI shows: Assets + Characters (from legacy data)
+  Backend: Legacy library subscription
+
+Step 1 - UI Simplification (Phase 2, Task 4):
+  UI shows: Assets only (Characters removed from Library section)
+  Backend: Still legacy (but UI doesn't use Character data)
+  Status: ✅ Works - UI compatible with legacy data
+
+Step 2 - Test & Deploy UI:
+  Deploy simplified UI to production
+  Verify Assets list works correctly
+  Monitor for issues
+  Status: ✅ Zero risk - just removes unused UI elements
+
+Step 3 - Backend Switchover (Future Phase):
+  Switch from legacy library slice to new libraryDataSource
+  Backend: New mtw.assets.library DataSource
+  Status: ✅ Works - UI already only uses Assets
+
+Step 4 - Future Enhancements:
+  Add contentHeaders integration for rich metadata
+  Re-introduce character browsing (via asset data)
+  Add search, thumbnails, descriptions
+```
+
+**Key Insight**: The simplest path is:
+1. **Remove Character UI first** (Phase 2, Task 4) - Works with legacy backend
+2. **Test simplified UI** - Verify nothing breaks
+3. **Switch backend later** - UI already ready
+4. **Enhance UI after** - Add contentHeaders integration
+
+**Critical Advantages**:
+- ✅ **Minimal UI change**: Just remove Character list from Library section
+- ✅ **Zero backend risk**: UI update doesn't touch backend
+- ✅ **Testable independently**: Can verify UI changes in isolation
+- ✅ **Reversible**: Can re-add Characters if needed
+- ✅ **Clear upgrade path**: Foundation for future enhancements
+
+**Timeline**:
+- UI simplification: 1-2 hours (minimal change)
+- Testing with legacy backend: 1 day
+- Deploy UI update: Independent of backend
+- Backend DataSource activation: After UI proven stable (1+ week)
+- Future enhancements: Separate work stream
+
+**The Minimal Change**:
+
+The actual code change is remarkably simple:
+
+**Before** (line ~119):
+```typescript
+const { Characters: libraryCharacters, Assets: libraryAssets } = useSelector(getLibrary)
+```
+
+**After**:
+```typescript
+const { Assets: libraryAssets = [] } = useSelector(getLibrary)
+// libraryCharacters removed - not used
+```
+
+**Before** (line ~170):
+```typescript
+<TableOfContents
+    Characters={libraryCharacters}
+    Assets={libraryAssets}
+    // ...
+/>
+```
+
+**After**:
+```typescript
+<TableOfContents
+    Characters={[]}  // Empty - section won't render
+    Assets={libraryAssets}
+    // ...
+/>
+```
+
+**That's it!** Two line changes:
+1. Remove `Characters` destructuring from `getLibrary`
+2. Pass empty array for Characters to TableOfContents
+
+The existing TableOfContents conditional rendering handles the rest:
+- `{ (Characters.length > 0) && <ListSubheader>Characters</ListSubheader> }` → Won't render
+- `{ Characters.map(...) }` → Empty array, nothing to map
+
+**Estimated Implementation**: ~15 minutes  
+**Estimated Testing**: 1-2 hours  
+**Risk Level**: Minimal (removing UI, not adding)
 
 #### **Testing**
 
