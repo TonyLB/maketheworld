@@ -81,14 +81,14 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
     createEmptyView: () => SnapshotPayload
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
-        const { pendingStreamKeys, lifeLineSubscription } = internalData
+        const { subscribeStreamKeys, lifeLineSubscription } = internalData
         
         // Safety check: Ensure INITIALIZE has completed before attempting backend subscription
         if (!lifeLineSubscription) {
             throw new Error(`[${dataSourceKey}] Cannot subscribe to backend before INITIALIZE completes (LifeLinePubSub not set up)`)
         }
         
-        if (!pendingStreamKeys || pendingStreamKeys.length === 0) {
+        if (!subscribeStreamKeys || subscribeStreamKeys.length === 0) {
             return { internalData, publicData }
         }
         
@@ -97,14 +97,14 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
             await dispatch(socketDispatchPromise({
                 message: 'subscribe',
                 dataSourceKey,
-                streamKeys: pendingStreamKeys  // Array of stream keys in single call
+                streamKeys: subscribeStreamKeys  // Array of stream keys in single call
             }, { service: 'subscriptions' }))
             
             // Initialize empty views for new streams and add to active list
             const newSubscribedStreams = { ...publicData.subscribedStreams }
             const newActiveStreamKeys = [...(publicData.activeStreamKeys ?? [])]
             
-            pendingStreamKeys.forEach(streamKey => {
+            subscribeStreamKeys.forEach(streamKey => {
                 if (!newSubscribedStreams[streamKey]) {
                     newSubscribedStreams[streamKey] = {
                         materializedView: createEmptyView(),
@@ -119,7 +119,7 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
             return {
                 internalData: { 
                     ...internalData, 
-                    pendingStreamKeys: undefined,
+                    subscribeStreamKeys: [],  // Clear the queue on success
                     incrementalBackoff: 0.5  // Reset backoff on success
                 },
                 publicData: { 
@@ -148,14 +148,14 @@ export const createUnsubscribeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
-        const { pendingStreamKeys, lifeLineSubscription } = internalData
+        const { unsubscribeStreamKeys, lifeLineSubscription } = internalData
         
         // Safety check: Ensure INITIALIZE has completed before attempting backend unsubscription
         if (!lifeLineSubscription) {
             throw new Error(`[${dataSourceKey}] Cannot unsubscribe from backend before INITIALIZE completes (LifeLinePubSub not set up)`)
         }
         
-        if (!pendingStreamKeys || pendingStreamKeys.length === 0) {
+        if (!unsubscribeStreamKeys || unsubscribeStreamKeys.length === 0) {
             return { internalData, publicData }
         }
         
@@ -164,18 +164,18 @@ export const createUnsubscribeAction = <SnapshotPayload, UpdatePayload>(
             await dispatch(socketDispatchPromise({
                 message: 'unsubscribe',
                 dataSourceKey,
-                streamKeys: pendingStreamKeys  // Array of stream keys in single call
+                streamKeys: unsubscribeStreamKeys  // Array of stream keys in single call
             }, { service: 'subscriptions' }))
             
             // Remove streams from active list (but keep data structure for async events)
             const newActiveStreamKeys = (publicData.activeStreamKeys ?? []).filter(
-                key => !pendingStreamKeys.includes(key)
+                key => !unsubscribeStreamKeys.includes(key)
             )
             
             return {
                 internalData: { 
                     ...internalData, 
-                    pendingStreamKeys: undefined,
+                    unsubscribeStreamKeys: [],  // Clear the queue on success
                     incrementalBackoff: 0.5  // Reset backoff on success
                 },
                 publicData: { 

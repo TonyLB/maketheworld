@@ -1,4 +1,4 @@
-import { ISSMAttemptNode, ISSMChoiceNode, ISSMDataLayout, ISSMDataReturn, ISSMAction, ISSMHoldNode } from '../stateSeekingMachine/baseClasses'
+import { ISSMAttemptNode, ISSMChoiceNode, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction, ISSMHoldNode } from '../stateSeekingMachine/baseClasses'
 
 //
 // Generic base classes for data source state machines
@@ -7,7 +7,8 @@ import { ISSMAttemptNode, ISSMChoiceNode, ISSMDataLayout, ISSMDataReturn, ISSMAc
 
 export interface DataSourceInternal {
     incrementalBackoff: number;
-    pendingStreamKeys?: string[];
+    subscribeStreamKeys: string[];      // Queue of stream keys to subscribe
+    unsubscribeStreamKeys: string[];    // Queue of stream keys to unsubscribe
     error?: string;
     lifeLineSubscription?: string;  // Subscription ID for LifeLinePubSub
 }
@@ -47,8 +48,9 @@ export interface DataSourceNodes<SnapshotPayload, UpdatePayload> {
     SUBSCRIBE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
     SUBSCRIBEBACKOFF: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
     SUBSCRIBEERROR: ISSMChoiceNode;
-    SUBSCRIBED: ISSMChoiceNode;
+    SUBSCRIBED: ISSMRedirectNode;     // REDIRECT back to READY after subscription
     UNSUBSCRIBE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
     UNSUBSCRIBEBACKOFF: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
+    UNSUBSCRIBED: ISSMRedirectNode;   // REDIRECT back to READY after unsubscription
 }
 

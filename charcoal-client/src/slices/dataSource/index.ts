@@ -58,11 +58,13 @@ export const createDataSourceSlice = <
     )
 
     // Define the state machine template
-    const template = {
+    const template: any = {
         initialState: 'INITIAL' as const,
         initialData: {
             internalData: {
-                incrementalBackoff: 0.5
+                incrementalBackoff: 0.5,
+                subscribeStreamKeys: [],     // Queue of stream keys to subscribe
+                unsubscribeStreamKeys: []    // Queue of stream keys to unsubscribe
             },
             publicData: {
                 activeStreamKeys: [],
@@ -90,7 +92,7 @@ export const createDataSourceSlice = <
             },
             READY: {
                 stateType: 'CHOICE' as const,
-                choices: ['SUBSCRIBE' as const]
+                choices: ['SUBSCRIBE' as const, 'UNSUBSCRIBE' as const]  // Check both queues
             },
             SUBSCRIBE: {
                 stateType: 'ATTEMPT' as const,
@@ -106,16 +108,17 @@ export const createDataSourceSlice = <
             },
             SUBSCRIBEERROR: {
                 stateType: 'CHOICE' as const,
-                choices: []
+                choices: []  // Terminal error state
             },
             SUBSCRIBED: {
-                stateType: 'CHOICE' as const,
-                choices: ['UNSUBSCRIBE' as const]
+                stateType: 'REDIRECT' as const,
+                newIntent: ['READY' as const],  // Return to steady state
+                choices: ['READY' as const]
             },
             UNSUBSCRIBE: {
                 stateType: 'ATTEMPT' as const,
                 action: unsubscribeAction,
-                resolve: 'SUBSCRIBED' as const,
+                resolve: 'UNSUBSCRIBED' as const,
                 reject: 'UNSUBSCRIBEBACKOFF' as const
             },
             UNSUBSCRIBEBACKOFF: {
@@ -123,6 +126,11 @@ export const createDataSourceSlice = <
                 action: backoffAction,
                 resolve: 'UNSUBSCRIBE' as const,
                 reject: 'SUBSCRIBEERROR' as const
+            },
+            UNSUBSCRIBED: {
+                stateType: 'REDIRECT' as const,
+                newIntent: ['READY' as const],  // Return to steady state
+                choices: ['READY' as const]
             }
         }
     }
@@ -179,46 +187,50 @@ export const createDataSourceSlice = <
         config.onReady
     )
 
-    return result
-}
-
-//
-// Helper function to trigger subscription to stream keys
-// Usage: dispatch(subscribeToStreams(streamKeys))
-//
-export const createSubscriptionHelper = (sliceActions: any) => {
-    return (streamKeys: string[]) => (dispatch: any) => {
-        // Store pending stream keys in internal state
-        dispatch(sliceActions.internalStateChange({
-            newState: 'SUBSCRIBE',
+    // Create subscription/unsubscription helpers
+    const subscribeToStreams = (streamKeys: string[]) => (dispatch: any, getState: any) => {
+        const currentState = sliceSelector(getState())
+        const existingQueue: string[] = currentState.internalData.subscribeStreamKeys || []
+        
+        // Add to queue (deduplicate)
+        const newQueue = [...new Set([...existingQueue, ...streamKeys])]
+        
+        // Update internal data with new queue
+        dispatch(result.slice.actions.internalStateChange({
+            newState: currentState.meta.currentState,  // Don't change state
             data: {
-                internalData: { pendingStreamKeys: streamKeys }
+                internalData: { ...currentState.internalData, subscribeStreamKeys: newQueue }
             }
         }))
-        // Set intent to SUBSCRIBED
-        dispatch(sliceActions.setIntent(['SUBSCRIBED']))
-        // Trigger state machine iteration
+        // Set intent to SUBSCRIBED - state machine will transition READY -> SUBSCRIBE -> SUBSCRIBED
+        dispatch(result.slice.actions.setIntent(['SUBSCRIBED']))
+        // Trigger state machine iteration via heartbeat
         dispatch(heartbeat)
     }
-}
 
-//
-// Helper function to trigger unsubscription from stream keys
-// Usage: dispatch(unsubscribeFromStreams(streamKeys))
-//
-export const createUnsubscriptionHelper = (sliceActions: any) => {
-    return (streamKeys: string[]) => (dispatch: any) => {
-        // Store pending stream keys in internal state
-        dispatch(sliceActions.internalStateChange({
-            newState: 'UNSUBSCRIBE',
+    const unsubscribeFromStreams = (streamKeys: string[]) => (dispatch: any, getState: any) => {
+        const currentState = sliceSelector(getState())
+        const existingQueue: string[] = currentState.internalData.unsubscribeStreamKeys || []
+        
+        // Add to queue (deduplicate)
+        const newQueue = [...new Set([...existingQueue, ...streamKeys])]
+        
+        // Update internal data with new queue
+        dispatch(result.slice.actions.internalStateChange({
+            newState: currentState.meta.currentState,  // Don't change state
             data: {
-                internalData: { pendingStreamKeys: streamKeys }
+                internalData: { ...currentState.internalData, unsubscribeStreamKeys: newQueue }
             }
         }))
-        // Set intent to SUBSCRIBED (will return to SUBSCRIBED after unsubscribe)
-        dispatch(sliceActions.setIntent(['SUBSCRIBED']))
-        // Trigger state machine iteration
+        // Set intent to UNSUBSCRIBED - state machine will transition READY -> UNSUBSCRIBE -> UNSUBSCRIBED
+        dispatch(result.slice.actions.setIntent(['UNSUBSCRIBED']))
+        // Trigger state machine iteration via heartbeat
         dispatch(heartbeat)
     }
-}
 
+    return {
+        ...result,
+        subscribeToStreams,
+        unsubscribeFromStreams
+    }
+}
