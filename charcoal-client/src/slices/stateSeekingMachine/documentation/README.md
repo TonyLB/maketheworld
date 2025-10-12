@@ -158,6 +158,24 @@ Next, define the actual slice being defined to serve this data:
     })
 ```
 
+**Important**: After creating your SSM slice, you must register it with the application-level state machine hook:
+
+```ts
+// In components/useSSM.ts
+import { iterateAllSSMs as mySSM } from '../slices/mySlice'
+
+export const useStateSeekingMachines = () => {
+    const dispatch = useDispatch()
+    const heartbeat = useSelector(getSliceHeartbeat)
+    useEffect(() => {
+        // ... other SSM dispatches
+        dispatch(mySSM)  // Register your iterator here
+    }, [dispatch, heartbeat])
+}
+```
+
+**Critical**: Without registering your iterator in `useStateSeekingMachines`, your state machine will never transition states. The hook is called from the app root and dispatches all SSM iterators whenever the heartbeat changes, providing the processing cycles that drive state transitions.
+
 ---
 
 ## Behaviors

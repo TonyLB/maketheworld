@@ -155,4 +155,7 @@ export const charactersDataSource = new AssetsDataSource<
     }
 })
 
+// Subscribe the DataSource to the messageBus for event processing
+charactersDataSource.subscribe()
+
 export default charactersDataSource

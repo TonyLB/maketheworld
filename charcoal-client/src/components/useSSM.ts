@@ -8,6 +8,7 @@ import { iterateAllSSMs as lifeLineSSM } from '../slices/lifeLine'
 import { iterateAllSSMs as librarySSM } from '../slices/library'
 import { iterateAllSSMs as personalAssetsSSM } from '../slices/personalAssets'
 import { iterateAllSSMs as collaborationStatusSSM } from '../slices/UI/collaborationStatus'
+import { iterateContentHeaders } from '../slices/contentHeaders'
 
 export const useStateSeekingMachines = () => {
     const dispatch = useDispatch()
@@ -20,6 +21,7 @@ export const useStateSeekingMachines = () => {
         dispatch(librarySSM)
         dispatch(personalAssetsSSM)
         dispatch(collaborationStatusSSM)
+        dispatch(iterateContentHeaders)
     }, [dispatch, heartbeat])
 }
 

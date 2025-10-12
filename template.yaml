@@ -90,12 +90,14 @@ Resources:
         source:
           - mtw.development
           - mtw.assets
+          - mtw.assets.contentHeaders
           - mtw.connections
           - mtw.diagnostics
           - mtw.ephemera
           - mtw.messages
           - mtw.players
           - mtw.wml
+          - mtw.subscriptions
       Targets:
         - Arn: !GetAtt LogGroupForEvents.Arn
           Id: LogTarget
@@ -1164,6 +1166,7 @@ Resources:
                   Type:
                       - Success
                       - Error
+                      - StreamEvent
               FilterPolicyScope: MessageAttributes
   CognitoHandlerFunction:
       Type: AWS::Serverless::Function

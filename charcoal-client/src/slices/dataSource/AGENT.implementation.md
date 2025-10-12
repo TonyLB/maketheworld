@@ -94,7 +94,27 @@ export const store = configureStore({
 })
 ```
 
-### **Step 5: Use in Components**
+### **Step 5: Register with State Machine Hook**
+
+**Critical Step**: Add your iterator to the `useStateSeekingMachines` hook so the state machine gets processing cycles:
+
+```typescript
+// In components/useSSM.ts
+import { iterateMyDataSource } from '../slices/myDataSource'
+
+export const useStateSeekingMachines = () => {
+  const dispatch = useDispatch()
+  const heartbeat = useSelector(getSliceHeartbeat)
+  useEffect(() => {
+    // ... other SSM dispatches
+    dispatch(iterateMyDataSource)  // Add your iterator here
+  }, [dispatch, heartbeat])
+}
+```
+
+**Why This Matters**: Without registering here, your state machine will never transition states. It will remain stuck at `INITIAL`. The `useStateSeekingMachines` hook is called from the app root and dispatches all SSM iterators whenever the heartbeat changes.
+
+### **Step 6: Use in Components**
 
 Access your data source in React components:
 

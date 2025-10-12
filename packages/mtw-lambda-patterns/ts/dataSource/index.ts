@@ -134,8 +134,9 @@ export class DataSource<
         // Note: singleFlight coordinates using external format to avoid serialization round-trips
         if (this.replayable) {
             const singleFlightConfig: SingleFlightConfig = {
-                optimisticUpdateFunction: dynamo.optimisticUpdate,
-                getItemFunction: dynamo.getItem,
+                // Bind methods to preserve 'this' context when extracted
+                optimisticUpdateFunction: dynamo.optimisticUpdate.bind(dynamo),
+                getItemFunction: dynamo.getItem.bind(dynamo),
                 primaryKey: primaryKeyName,
                 timeoutMs: snapshotTimeoutMs
             }
@@ -435,7 +436,7 @@ export class DataSource<
                 },
                 Type: { 
                     DataType: 'String', 
-                    StringValue: 'Success' 
+                    StringValue: 'StreamEvent' 
                 }
             }
         })
@@ -465,7 +466,7 @@ export class DataSource<
                         },
                         Type: { 
                             DataType: 'String', 
-                            StringValue: 'Success' 
+                            StringValue: 'StreamEvent' 
                         }
                     }
                 })
@@ -609,7 +610,6 @@ export class DataSource<
                     try {
                         // Use the existing initializeSubscription method
                         await this.initializeSubscription({ sessionId, streamKey })
-                        console.log(`Initialized subscription for streamKey: ${streamKey} to session: ${sessionId}`)
                     } catch (error) {
                         console.error(`Failed to process Initialize Subscription for streamKey: ${streamKey}`, error)
                     }
