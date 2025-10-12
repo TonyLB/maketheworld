@@ -116,7 +116,8 @@ export const Library: FunctionComponent<LibraryProps> = () => {
     const navigate = useNavigate()
     const Characters = useSelector(getMyCharacters)
     const Assets = useSelector(getMyAssets)
-    const { Characters: libraryCharacters, Assets: libraryAssets } = useSelector(getLibrary)
+    // Only get Assets from Library - Characters will be accessed via asset data in future
+    const { Assets: libraryAssets = [] } = useSelector(getLibrary)
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <div style={{ textAlign: "center" }}>
@@ -167,7 +168,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
         >
             <Grid item xs={6}>
                 <TableOfContents
-                    Characters={libraryCharacters}
+                    Characters={[]}
                     Assets={libraryAssets}
                     selectItem={setSelectedLibraryIndex}
                     selectedIndex={selectedLibraryIndex}
