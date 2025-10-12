@@ -33,6 +33,13 @@ jest.mock('../internalCache', () => ({
                 })
             })
         })
+    },
+    AssetMetaData: {
+        get: jest.fn().mockResolvedValue([{
+            address: {
+                zone: 'Library'
+            }
+        }])
     }
 }))
 jest.mock('./caching')
@@ -81,8 +88,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         Source: 'mtw.assets',
                         DetailType: 'Component Updated',
                         Detail: expect.objectContaining({
-                            streamKey: 'ASSET#asset123',
-                            assetId: 'ASSET#asset123', // assetId is set from streamKey
+                            streamKey: 'ASSET#asset123', // streamKey contains the asset ID
                             componentId: 'CHARACTER#char123', // componentId is set from universalKey
                             wml: expect.any(String) // Should be WML string
                         })
@@ -120,8 +126,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         Source: 'mtw.assets',
                         DetailType: 'Component Updated',
                         Detail: expect.objectContaining({
-                            streamKey: 'ASSET#asset456',
-                            assetId: 'ASSET#asset456',
+                            streamKey: 'ASSET#asset456', // streamKey contains the asset ID
                             componentId: 'CHARACTER#char456',
                             wml: expect.stringContaining('<Remove>')
                         })
@@ -220,7 +225,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 event: {
                     type: 'Content Update' as const,
                     AssetId: 'ASSET#test123',
-                    schema: new StandardForm(`<Asset uuid=(test123) />`)
+                    schema: new StandardForm(`<Asset key=(test123) />`)
                 },
                 timestamp: Date.now()
             }
@@ -279,7 +284,16 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             // Verify that canon graph management was NOT triggered (not entering/leaving Canon)
             expect(assetDBMock.query).not.toHaveBeenCalled()
-            expect(mockStreamEvent).not.toHaveBeenCalled()
+            
+            // Verify that Zone Updated event was streamed (always happens for zone changes)
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Zone Updated',
+                    fromZone: 'Personal',
+                    toZone: 'Library'
+                },
+                streamKey: 'ASSET#test123'
+            })
 
             expect(receiveEventsSpy).toHaveBeenCalled()
         })
@@ -345,6 +359,16 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 streamKey: 'canon-global'
             })
 
+            // Verify that zone updated event was also streamed
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Zone Updated',
+                    fromZone: 'Draft',
+                    toZone: 'Canon'
+                },
+                streamKey: 'ASSET#test456'
+            })
+
             expect(receiveEventsSpy).toHaveBeenCalled()
         })
 
@@ -406,6 +430,16 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     assetIds: []
                 },
                 streamKey: 'canon-global'
+            })
+
+            // Verify that zone updated event was also streamed
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Zone Updated',
+                    fromZone: 'Canon',
+                    toZone: 'Library'
+                },
+                streamKey: 'ASSET#test789'
             })
 
             expect(receiveEventsSpy).toHaveBeenCalled()
@@ -475,7 +509,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     event: {
                         type: 'Content Update',
                         AssetId: 'ASSET#test123',
-                        schema: new StandardForm(`<Asset uuid=(test123) />`)
+                        schema: new StandardForm(`<Asset key=(test123) />`)
                     },
                     timestamp: Date.now()
                 } as const,
@@ -493,7 +527,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     event: {
                         type: 'Content Update',
                         AssetId: 'ASSET#test456',
-                        schema: new StandardForm(`<Asset uuid=(test456) />`)
+                        schema: new StandardForm(`<Asset key=(test456) />`)
                     },
                     timestamp: Date.now()
                 } as const
