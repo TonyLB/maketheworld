@@ -837,9 +837,20 @@ const characters = contentHeaders.flatMap(asset =>
 
 ### Phase 2: Front-End Integration
 
-#### **Tasks**
+#### **Tasks** (Updated Strategy)
 
-1. **Create New Slice** (`charcoal-client/src/slices/libraryDataSource/`):
+**NOTE**: We've taken a different, simpler approach than originally planned. Instead of creating a new slice immediately, we're first simplifying the UI to be dual-compatible with both old and new backends.
+
+**Task 4: Update Library Component** ✅ COMPLETE (See detailed section above)
+- ✅ Remove Character destructuring from Library section
+- ✅ Pass empty Characters array to TableOfContents
+- ✅ Personal section verified unchanged
+- ✅ No linter errors
+- ✅ Ready to test with legacy backend
+
+**Remaining Tasks** (Deferred to Future Phases):
+
+1. **Create New Slice** (`charcoal-client/src/slices/libraryDataSource/`) - DEFERRED:
    - Import aggregator and serializer from mtw-interfaces
    - Create type guards for snapshot vs update
    - Call `createDataSourceSlice` factory
