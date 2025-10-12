@@ -175,26 +175,46 @@ export class DataSource<
             throw new Error(`DataSource '${this.dataSourceKey}' is not replayable and does not support snapshots`)
         }
 
+        const now = getCurrentTimestamp()
+
         // Check in-memory cache first (internal format)
-        if (this._snapshots[streamKey] && getCurrentTimestamp() <= this._snapshots[streamKey].expiresAt) {
-            const internalSnapshot = this._snapshots[streamKey]
-                // Serialize to external format for storage
-                const externalPayload = this.eventSerializer?.serializeSnapshot
-                    ? this.eventSerializer.serializeSnapshot(internalSnapshot)
-                    : internalSnapshot as unknown as ExternalSnapshotPayload
-                
-                const externalSnapshot: SnapshotType<ExternalSnapshotPayload> = {
-                    ...externalPayload,
-                    type: 'Snapshot Generated',
-                    createdAt: internalSnapshot.createdAt,
-                    expiresAt: internalSnapshot.expiresAt
-                }
-                return externalSnapshot
+        const cached = this._snapshots[streamKey]
+        if (cached && now <= cached.expiresAt) {
+            const internalSnapshot = cached
+            // Serialize to external format for storage
+            const externalPayload = this.eventSerializer?.serializeSnapshot
+                ? this.eventSerializer.serializeSnapshot(internalSnapshot)
+                : internalSnapshot as unknown as ExternalSnapshotPayload
+            
+            const externalSnapshot: SnapshotType<ExternalSnapshotPayload> = {
+                ...externalPayload,
+                type: 'Snapshot Generated',
+                createdAt: internalSnapshot.createdAt,
+                expiresAt: internalSnapshot.expiresAt
+            }
+            return externalSnapshot
         }
         
         // Try to load from store (already in external format)
         const loaded = await this.loadSnapshotFromStore(streamKey).catch(() => undefined)
-        if (loaded && getCurrentTimestamp() <= loaded.expiresAt) {
+        if (loaded && now <= loaded.expiresAt) {
+            // Deserialize and cache the internal format for future calls
+            if (this.eventSerializer?.deserializeSnapshot) {
+                const { createdAt, expiresAt, ...externalPayload } = loaded
+                const internalPayload = this.eventSerializer.deserializeSnapshot(externalPayload as unknown as ExternalSnapshotPayload)
+                if (internalPayload) {
+                    const internalSnapshot: SnapshotType<SnapshotPayload> = {
+                        ...internalPayload,
+                        createdAt,
+                        expiresAt
+                    }
+                    this._snapshots[streamKey] = internalSnapshot
+                }
+            } else {
+                // No serializer - assume internal and external are the same
+                this._snapshots[streamKey] = loaded as unknown as SnapshotType<SnapshotPayload>
+            }
+            
             return loaded
         }
 
@@ -232,6 +252,23 @@ export class DataSource<
                 return stored
             }
         })
+        
+        // Deserialize and cache the internal format for future calls
+        if (this.eventSerializer?.deserializeSnapshot) {
+            const { createdAt, expiresAt, ...externalPayload } = generated
+            const internalPayload = this.eventSerializer.deserializeSnapshot(externalPayload as unknown as ExternalSnapshotPayload)
+            if (internalPayload) {
+                const internalSnapshot: SnapshotType<SnapshotPayload> = {
+                    ...internalPayload,
+                    createdAt,
+                    expiresAt
+                }
+                this._snapshots[streamKey] = internalSnapshot
+            }
+        } else {
+            // No serializer - assume internal and external are the same
+            this._snapshots[streamKey] = generated as unknown as SnapshotType<SnapshotPayload>
+        }
 
         return generated
     }
