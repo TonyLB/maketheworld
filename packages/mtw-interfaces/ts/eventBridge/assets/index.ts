@@ -214,3 +214,6 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         return component
     }
 }
+
+// Re-export library data source contracts
+export * from './library'
