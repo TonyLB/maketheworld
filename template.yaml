@@ -91,6 +91,7 @@ Resources:
           - mtw.development
           - mtw.assets
           - mtw.assets.contentHeaders
+          - mtw.assets.library
           - mtw.connections
           - mtw.diagnostics
           - mtw.ephemera
@@ -343,6 +344,25 @@ Resources:
                 detail-type:
                   - Merge Conflict
                   - Content Update
+          ContentHeaders:
+            Type: CloudWatchEvent
+            Properties:
+              EventBusName: !Sub ${TablePrefix}-bus
+              Pattern:
+                source:
+                  - mtw.assets.contentHeaders
+                detail-type:
+                  - Headers Updated
+          Library:
+            Type: CloudWatchEvent
+            Properties:
+              EventBusName: !Sub ${TablePrefix}-bus
+              Pattern:
+                source:
+                  - mtw.assets.library
+                detail-type:
+                  - Asset Added
+                  - Asset Removed
   DBStreamFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -1368,6 +1388,7 @@ Resources:
                     - mtw.subscriptions
                   detail-type:
                     - Initialize Subscription - mtw.assets.contentHeaders
+                    - Initialize Subscription - mtw.assets.library
             WML:
               Type: CloudWatchEvent
               Properties:
