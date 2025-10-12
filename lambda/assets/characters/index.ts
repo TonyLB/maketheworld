@@ -101,7 +101,6 @@ const processComponentEvent = async (
             (update.component instanceof StandardRemove && update.component._match instanceof StandardCharacter) ||
             (update.component instanceof StandardReplace && update.component._match instanceof StandardCharacter)
         )
-        console.log(`isCharacterComponent: ${isCharacterComponent}`)
         if (!isCharacterComponent) {
             return
         }
