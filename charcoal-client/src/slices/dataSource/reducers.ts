@@ -83,7 +83,7 @@ export const performCleanup = <
 
 //
 // Reducer: Process incoming snapshot event
-// Curried: First apply config, then apply to (record) => (state, action)
+// Curried: First apply config, then return the reducer (state, action) => void
 //
 export const processRawSnapshot = <
     SnapshotPayload extends SerializableObject,
@@ -95,24 +95,24 @@ export const processRawSnapshot = <
     isUpdate: (event: UpdatePayload | SnapshotPayload) => event is UpdatePayload,
     performCleanupWithConfig: ReturnType<typeof performCleanup<SnapshotPayload, UpdatePayload>>,
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload>>
-) => (record: any) => (
+) => (
     state: any,
     action: PayloadAction<{ streamKey: string; timestamp: number; rawSnapshot: ExternalSnapshotPayload }>
 ) => {
         const { streamKey, timestamp, rawSnapshot } = action.payload
-        const stream = state.publicData.subscribedStreams[streamKey]
+        
+        const stream = state.subscribedStreams[streamKey]
         if (!stream) {
             // Stream not subscribed, ignore
-            return state
+            return
         }
         
         // Deserialize snapshot
         const snapshot = eventSerializer.deserializeSnapshot(rawSnapshot)
         if (!snapshot) {
             console.warn(`[${dataSourceKey}] Failed to deserialize snapshot for streamKey: ${streamKey}`)
-            return state
+            return
         }
-        
         // Use timestamp from message (not Date.now())
         const snapshotTimestamp = timestamp
         
@@ -132,24 +132,16 @@ export const processRawSnapshot = <
     const updateEventsAfterSnapshot = eventsAfterSnapshot.filter((e): e is { timestamp: number, event: UpdatePayload } => isUpdate(e.event))
     const newMaterializedView = applyEventsWithAggregator(snapshot, updateEventsAfterSnapshot)
     
-    return {
-        ...state,
-        publicData: {
-            ...state.publicData,
-            subscribedStreams: {
-                ...state.publicData.subscribedStreams,
-                [streamKey]: {
-                    materializedView: newMaterializedView,
-                    recentEvents: newRecentEvents
-                }
-            }
-        }
+    // Mutate state directly (Immer will handle immutability)
+    state.subscribedStreams[streamKey] = {
+        materializedView: newMaterializedView,
+        recentEvents: newRecentEvents
     }
 }
 
 //
 // Reducer: Process incoming update event
-// Curried: First apply config, then apply to (record) => (state, action)
+// Curried: First apply config, then return the reducer (state, action) => void
 //
 export const processRawEvent = <
     SnapshotPayload extends SerializableObject,
@@ -163,15 +155,15 @@ export const processRawEvent = <
     isUpdate: (event: UpdatePayload | SnapshotPayload) => event is UpdatePayload,
     performCleanupWithConfig: ReturnType<typeof performCleanup<SnapshotPayload, UpdatePayload>>,
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload>>
-) => (record: any) => (
+) => (
     state: any,
     action: PayloadAction<{ streamKey: string; timestamp: number; rawEvent: ExternalUpdatePayload }>
 ) => {
         const { streamKey, timestamp, rawEvent } = action.payload
-        const stream = state.publicData.subscribedStreams[streamKey]
+        const stream = state.subscribedStreams[streamKey]
         if (!stream) {
             // Stream not subscribed, ignore
-            return state
+            return
         }
         
         // Deserialize event
@@ -182,7 +174,7 @@ export const processRawEvent = <
         })
         if (!event) {
             console.warn(`[${dataSourceKey}] Failed to deserialize event for streamKey: ${streamKey}`)
-            return state
+            return
         }
         
         // Use timestamp from message (not Date.now())
@@ -202,18 +194,10 @@ export const processRawEvent = <
         const newMaterializedView = result.success ? result.snapshot : stream.materializedView
         const newRecentEvents = [...cleanedRecentEvents, { event, timestamp: eventTimestamp }]
         
-        return {
-            ...state,
-            publicData: {
-                ...state.publicData,
-                subscribedStreams: {
-                    ...state.publicData.subscribedStreams,
-                    [streamKey]: {
-                        materializedView: newMaterializedView,
-                        recentEvents: newRecentEvents
-                    }
-                }
-            }
+        // Mutate state directly (Immer will handle immutability)
+        state.subscribedStreams[streamKey] = {
+            materializedView: newMaterializedView,
+            recentEvents: newRecentEvents
         }
     } else {
         // OUT-OF-ORDER PATH: Re-aggregate from snapshot
@@ -249,18 +233,10 @@ export const processRawEvent = <
             ? [snapshotEvents[snapshotEvents.length - 1], ...sortedEvents]
             : sortedEvents
         
-        return {
-            ...state,
-            publicData: {
-                ...state.publicData,
-                subscribedStreams: {
-                    ...state.publicData.subscribedStreams,
-                    [streamKey]: {
-                        materializedView: newMaterializedView,
-                        recentEvents: newRecentEvents
-                    }
-                }
-            }
+        // Mutate state directly (Immer will handle immutability)
+        state.subscribedStreams[streamKey] = {
+            materializedView: newMaterializedView,
+            recentEvents: newRecentEvents
         }
     }
 }

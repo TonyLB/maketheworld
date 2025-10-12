@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import produce from 'immer'
 import { applyEvents, performCleanup, processRawSnapshot, processRawEvent } from './reducers'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -190,13 +191,11 @@ describe('dataSource reducers', () => {
         })
         
         it('should process snapshot and replace materialized view', () => {
-            const state = {
-                publicData: {
-                    subscribedStreams: {
-                        'stream1': {
-                            materializedView: { type: 'Snapshot Generated' as const, items: ['old'] },
-                            recentEvents: []
-                        }
+            const initialPublicData = {
+                subscribedStreams: {
+                    'stream1': {
+                        materializedView: { type: 'Snapshot Generated' as const, items: ['old'] },
+                        recentEvents: []
                     }
                 }
             }
@@ -209,24 +208,24 @@ describe('dataSource reducers', () => {
                 }
             }
             
-            const result = processSnapshot({})(state, action as any)
+            const newState = produce(initialPublicData, (draft) => {
+                processSnapshot(draft, action as any)
+            })
             
             expect(mockSerializer.deserializeSnapshot).toHaveBeenCalledWith({ type: 'Snapshot Generated', items: ['new'] })
-            expect(result.publicData.subscribedStreams['stream1'].materializedView.items).toEqual(['new'])
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents).toHaveLength(1)
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents[0].event).toEqual({ type: 'Snapshot Generated', items: ['new'] })
+            expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['new'])
+            expect(newState.subscribedStreams['stream1'].recentEvents).toHaveLength(1)
+            expect(newState.subscribedStreams['stream1'].recentEvents[0].event).toEqual({ type: 'Snapshot Generated', items: ['new'] })
         })
         
         it('should handle events that happened after snapshot', () => {
-            const state = {
-                publicData: {
-                    subscribedStreams: {
-                        'stream1': {
-                            materializedView: { type: 'Snapshot Generated' as const, items: ['a'] },
-                            recentEvents: [
-                                { event: { type: 'Item Added' as const, item: 'b' }, timestamp: 20000 }
-                            ]
-                        }
+            const initialPublicData = {
+                subscribedStreams: {
+                    'stream1': {
+                        materializedView: { type: 'Snapshot Generated' as const, items: ['a'] },
+                        recentEvents: [
+                            { event: { type: 'Item Added' as const, item: 'b' }, timestamp: 20000 }
+                        ]
                     }
                 }
             }
@@ -239,22 +238,22 @@ describe('dataSource reducers', () => {
                 }
             }
             
-            const result = processSnapshot({})(state, action as any)
+            const newState = produce(initialPublicData, (draft) => {
+                processSnapshot(draft, action as any)
+            })
             
             // Should have snapshot + event after it
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents).toHaveLength(2)
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents[0].timestamp).toBe(15000)
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents[1].timestamp).toBe(20000)
+            expect(newState.subscribedStreams['stream1'].recentEvents).toHaveLength(2)
+            expect(newState.subscribedStreams['stream1'].recentEvents[0].timestamp).toBe(15000)
+            expect(newState.subscribedStreams['stream1'].recentEvents[1].timestamp).toBe(20000)
             
             // Materialized view should be snapshot + event applied
-            expect(result.publicData.subscribedStreams['stream1'].materializedView.items).toEqual(['x', 'b'])
+            expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['x', 'b'])
         })
         
         it('should ignore events for unsubscribed streams', () => {
-            const state = {
-                publicData: {
-                    subscribedStreams: {}
-                }
+            const initialPublicData = {
+                subscribedStreams: {}
             }
             
             const action = {
@@ -265,20 +264,21 @@ describe('dataSource reducers', () => {
                 }
             }
             
-            const result = processSnapshot({})(state, action as any)
+            const newState = produce(initialPublicData, (draft) => {
+                processSnapshot(draft, action as any)
+            })
             
-            expect(result).toBe(state)
+            // State should be unchanged (no mutation)
+            expect(newState).toEqual(initialPublicData)
             expect(mockSerializer.deserializeSnapshot).not.toHaveBeenCalled()
         })
         
         it('should handle deserialization failures gracefully', () => {
-            const state = {
-                publicData: {
-                    subscribedStreams: {
-                        'stream1': {
-                            materializedView: { type: 'Snapshot Generated' as const, items: ['a'] },
-                            recentEvents: []
-                        }
+            const initialPublicData = {
+                subscribedStreams: {
+                    'stream1': {
+                        materializedView: { type: 'Snapshot Generated' as const, items: ['a'] },
+                        recentEvents: []
                     }
                 }
             }
@@ -294,10 +294,12 @@ describe('dataSource reducers', () => {
             // Mock deserialize to return null
             mockSerializer.deserializeSnapshot = vi.fn(() => null)
             
-            const result = processSnapshot({})(state, action as any)
+            const newState = produce(initialPublicData, (draft) => {
+                processSnapshot(draft, action as any)
+            })
             
-            // Should return unchanged state
-            expect(result).toBe(state)
+            // State should be unchanged
+            expect(newState).toEqual(initialPublicData)
         })
     })
     
@@ -321,15 +323,13 @@ describe('dataSource reducers', () => {
         })
         
         it('should process in-order event with fast path', () => {
-            const state = {
-                publicData: {
-                    subscribedStreams: {
-                        'stream1': {
-                            materializedView: { type: 'Snapshot Generated' as const, items: ['a'] },
-                            recentEvents: [
-                                { event: { type: 'Item Added' as const, item: 'a' }, timestamp: 10000 }
-                            ]
-                        }
+            const initialPublicData = {
+                subscribedStreams: {
+                    'stream1': {
+                        materializedView: { type: 'Snapshot Generated' as const, items: ['a'] },
+                        recentEvents: [
+                            { event: { type: 'Item Added' as const, item: 'a' }, timestamp: 10000 }
+                        ]
                     }
                 }
             }
@@ -342,25 +342,25 @@ describe('dataSource reducers', () => {
                 }
             }
             
-            const result = processEvent({})(state, action as any)
+            const newState = produce(initialPublicData, (draft) => {
+                processEvent(draft, action as any)
+            })
             
             // Should use fast path
-            expect(result.publicData.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b'])
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents).toHaveLength(2)
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents[1].event).toEqual({ type: 'Item Added', item: 'b' })
+            expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b'])
+            expect(newState.subscribedStreams['stream1'].recentEvents).toHaveLength(2)
+            expect(newState.subscribedStreams['stream1'].recentEvents[1].event).toEqual({ type: 'Item Added', item: 'b' })
         })
         
         it('should process out-of-order event with re-aggregation', () => {
-            const state = {
-                publicData: {
-                    subscribedStreams: {
-                        'stream1': {
-                            materializedView: { type: 'Snapshot Generated' as const, items: ['a', 'c'] },
-                            recentEvents: [
-                                { event: { type: 'Snapshot Generated' as const, items: ['a'] }, timestamp: 10000 },
-                                { event: { type: 'Item Added' as const, item: 'c' }, timestamp: 30000 }
-                            ]
-                        }
+            const initialPublicData = {
+                subscribedStreams: {
+                    'stream1': {
+                        materializedView: { type: 'Snapshot Generated' as const, items: ['a', 'c'] },
+                        recentEvents: [
+                            { event: { type: 'Snapshot Generated' as const, items: ['a'] }, timestamp: 10000 },
+                            { event: { type: 'Item Added' as const, item: 'c' }, timestamp: 30000 }
+                        ]
                     }
                 }
             }
@@ -373,23 +373,23 @@ describe('dataSource reducers', () => {
                 }
             }
             
-            const result = processEvent({})(state, action as any)
+            const newState = produce(initialPublicData, (draft) => {
+                processEvent(draft, action as any)
+            })
             
             // Should re-aggregate in correct order: snapshot -> b (new) -> c (existing)
-            expect(result.publicData.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b', 'c'])
+            expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b', 'c'])
             
             // Recent events should be sorted by timestamp
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents).toHaveLength(3)
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents[0].timestamp).toBe(10000)  // Snapshot
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents[1].timestamp).toBe(20000)  // New event
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents[2].timestamp).toBe(30000)  // Existing event
+            expect(newState.subscribedStreams['stream1'].recentEvents).toHaveLength(3)
+            expect(newState.subscribedStreams['stream1'].recentEvents[0].timestamp).toBe(10000)  // Snapshot
+            expect(newState.subscribedStreams['stream1'].recentEvents[1].timestamp).toBe(20000)  // New event
+            expect(newState.subscribedStreams['stream1'].recentEvents[2].timestamp).toBe(30000)  // Existing event
         })
         
         it('should ignore events for unsubscribed streams', () => {
-            const state = {
-                publicData: {
-                    subscribedStreams: {}
-                }
+            const initialPublicData = {
+                subscribedStreams: {}
             }
             
             const action = {
@@ -400,20 +400,21 @@ describe('dataSource reducers', () => {
                 }
             }
             
-            const result = processEvent({})(state, action as any)
+            const newState = produce(initialPublicData, (draft) => {
+                processEvent(draft, action as any)
+            })
             
-            expect(result).toBe(state)
+            // State should be unchanged
+            expect(newState).toEqual(initialPublicData)
             expect(mockSerializer.deserialize).not.toHaveBeenCalled()
         })
         
         it('should handle deserialization failures gracefully', () => {
-            const state = {
-                publicData: {
-                    subscribedStreams: {
-                        'stream1': {
-                            materializedView: { type: 'Snapshot Generated' as const, items: ['a'] },
-                            recentEvents: []
-                        }
+            const initialPublicData = {
+                subscribedStreams: {
+                    'stream1': {
+                        materializedView: { type: 'Snapshot Generated' as const, items: ['a'] },
+                        recentEvents: []
                     }
                 }
             }
@@ -429,23 +430,23 @@ describe('dataSource reducers', () => {
             // Mock deserialize to return null
             mockSerializer.deserialize = vi.fn(() => null)
             
-            const result = processEvent({})(state, action as any)
+            const newState = produce(initialPublicData, (draft) => {
+                processEvent(draft, action as any)
+            })
             
-            // Should return unchanged state
-            expect(result).toBe(state)
+            // State should be unchanged
+            expect(newState).toEqual(initialPublicData)
         })
         
         it('should re-aggregate from createEmpty when no baseline snapshot', () => {
-            const state = {
-                publicData: {
-                    subscribedStreams: {
-                        'stream1': {
-                            materializedView: { type: 'Snapshot Generated' as const, items: ['a', 'c'] },
-                            recentEvents: [
-                                { event: { type: 'Item Added' as const, item: 'a' }, timestamp: 20000 },
-                                { event: { type: 'Item Added' as const, item: 'c' }, timestamp: 40000 }
-                            ]
-                        }
+            const initialPublicData = {
+                subscribedStreams: {
+                    'stream1': {
+                        materializedView: { type: 'Snapshot Generated' as const, items: ['a', 'c'] },
+                        recentEvents: [
+                            { event: { type: 'Item Added' as const, item: 'a' }, timestamp: 20000 },
+                            { event: { type: 'Item Added' as const, item: 'c' }, timestamp: 40000 }
+                        ]
                     }
                 }
             }
@@ -458,24 +459,24 @@ describe('dataSource reducers', () => {
                 }
             }
             
-            const result = processEvent({})(state, action as any)
+            const newState = produce(initialPublicData, (draft) => {
+                processEvent(draft, action as any)
+            })
             
             // Should re-aggregate from empty: a, b, c
-            expect(result.publicData.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b', 'c'])
+            expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b', 'c'])
         })
         
         it('should perform cleanup before processing events', () => {
-            const state = {
-                publicData: {
-                    subscribedStreams: {
-                        'stream1': {
-                            materializedView: { type: 'Snapshot Generated' as const, items: ['a', 'b'] },
-                            recentEvents: [
-                                { event: { type: 'Snapshot Generated' as const, items: [] }, timestamp: 10000 },
-                                { event: { type: 'Item Added' as const, item: 'a' }, timestamp: 20000 },
-                                { event: { type: 'Item Added' as const, item: 'b' }, timestamp: 30000 }
-                            ]
-                        }
+            const initialPublicData = {
+                subscribedStreams: {
+                    'stream1': {
+                        materializedView: { type: 'Snapshot Generated' as const, items: ['a', 'b'] },
+                        recentEvents: [
+                            { event: { type: 'Snapshot Generated' as const, items: [] }, timestamp: 10000 },
+                            { event: { type: 'Item Added' as const, item: 'a' }, timestamp: 20000 },
+                            { event: { type: 'Item Added' as const, item: 'b' }, timestamp: 30000 }
+                        ]
                     }
                 }
             }
@@ -488,27 +489,27 @@ describe('dataSource reducers', () => {
                 }
             }
             
-            const result = processEvent({})(state, action as any)
+            const newState = produce(initialPublicData, (draft) => {
+                processEvent(draft, action as any)
+            })
             
             // Old events should have been cleaned up
             // 30 seconds ago from 70000 is 40000, so all events (10000, 20000, 30000) are old
             // Should have synthetic snapshot + new event
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents.length).toBeLessThan(4)
+            expect(newState.subscribedStreams['stream1'].recentEvents.length).toBeLessThan(4)
             
             // Materialized view should still have all items
-            expect(result.publicData.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b', 'c'])
+            expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b', 'c'])
         })
         
         it('should ignore update events with timestamp earlier than most recent snapshot', () => {
-            const state = {
-                publicData: {
-                    subscribedStreams: {
-                        'stream1': {
-                            materializedView: { type: 'Snapshot Generated' as const, items: ['a', 'b', 'c'] },
-                            recentEvents: [
-                                { event: { type: 'Snapshot Generated' as const, items: ['a', 'b', 'c'] }, timestamp: 50000 }
-                            ]
-                        }
+            const initialPublicData = {
+                subscribedStreams: {
+                    'stream1': {
+                        materializedView: { type: 'Snapshot Generated' as const, items: ['a', 'b', 'c'] },
+                        recentEvents: [
+                            { event: { type: 'Snapshot Generated' as const, items: ['a', 'b', 'c'] }, timestamp: 50000 }
+                        ]
                     }
                 }
             }
@@ -521,7 +522,9 @@ describe('dataSource reducers', () => {
                 }
             }
             
-            const result = processEvent({})(state, action as any)
+            const newState = produce(initialPublicData, (draft) => {
+                processEvent(draft, action as any)
+            })
             
             // The event timestamp (40000) is before the most recent snapshot (50000)
             // The re-aggregation logic finds baseline snapshot at 50000
@@ -532,13 +535,13 @@ describe('dataSource reducers', () => {
             // The newRecentEvents includes: [snapshot@50000, ...sortedEvents]
             
             // Recent events should have snapshot + the old event (even though it's before snapshot)
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents).toHaveLength(2)
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents[0].timestamp).toBe(50000)  // Snapshot first
-            expect(result.publicData.subscribedStreams['stream1'].recentEvents[1].timestamp).toBe(40000)  // Old event (not applied)
+            expect(newState.subscribedStreams['stream1'].recentEvents).toHaveLength(2)
+            expect(newState.subscribedStreams['stream1'].recentEvents[0].timestamp).toBe(50000)  // Snapshot first
+            expect(newState.subscribedStreams['stream1'].recentEvents[1].timestamp).toBe(40000)  // Old event (not applied)
             
             // Materialized view should be unchanged - only events AFTER snapshot are applied
             // The old event is NOT applied to the materialized view
-            expect(result.publicData.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b', 'c'])
+            expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b', 'c'])
         })
     })
 })
