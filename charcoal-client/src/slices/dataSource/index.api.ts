@@ -39,8 +39,8 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
         try {
             // Subscribe to LifeLinePubSub to receive incoming WebSocket messages
             const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
-                // Filter for subscription messages from this data source
-                if (payload.messageType === 'Subscription' && payload.dataSourceKey === dataSourceKey) {
+                // Filter for StreamEvent messages from this data source
+                if (payload.messageType === 'StreamEvent' && payload.dataSourceKey === dataSourceKey) {
                     const { streamKey, timestamp, update } = payload
                     
                     // Route to appropriate processor based on message type

@@ -34,9 +34,9 @@ export const isSubscriptionsAPIMessage = (message: Record<string, any>): message
     }
 }
 
-// Specific, strongly-typed subscription message types
+// Specific, strongly-typed subscription message types (StreamEvent)
 export type WMLSubscriptionClientMessage = {
-    messageType: 'Subscription';
+    messageType: 'StreamEvent';
     dataSourceKey: 'mtw.wml';
     streamKey: string;
     timestamp: number;
@@ -45,7 +45,7 @@ export type WMLSubscriptionClientMessage = {
 }
 
 export type ContentHeadersSubscriptionClientMessage = {
-    messageType: 'Subscription';
+    messageType: 'StreamEvent';
     dataSourceKey: 'mtw.assets.contentHeaders';
     streamKey: string;
     timestamp: number;
@@ -58,9 +58,9 @@ export type SubscriptionClientMessage =
     | WMLSubscriptionClientMessage
     | ContentHeadersSubscriptionClientMessage
 
-// Type guard for subscription client messages
+// Type guard for subscription client messages (StreamEvent)
 export const isSubscriptionClientMessage = (message: Record<string, any>): message is SubscriptionClientMessage => {
-    if (!('messageType' in message && message.messageType === 'Subscription')) {
+    if (!('messageType' in message && message.messageType === 'StreamEvent')) {
         return false
     }
     if (!('dataSourceKey' in message) || typeof message.dataSourceKey !== 'string') {
