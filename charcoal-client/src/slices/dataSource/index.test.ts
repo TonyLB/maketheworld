@@ -104,6 +104,8 @@ describe('dataSource slice', () => {
             
             // Check initial internal data
             expect(initialState.internalData.incrementalBackoff).toBe(0.5)
+            expect(initialState.internalData.subscribeStreamKeys).toEqual([])
+            expect(initialState.internalData.unsubscribeStreamKeys).toEqual([])
         })
         
         it('should create state machine actions', () => {
@@ -142,6 +144,12 @@ describe('dataSource slice', () => {
             expect(result.selectors).toBeDefined()
             expect(result.publicActions).toBeDefined()
             expect(result.iterateAllSSMs).toBeDefined()
+            
+            // Check that subscription helper functions are returned
+            expect(result.subscribeToStreams).toBeDefined()
+            expect(typeof result.subscribeToStreams).toBe('function')
+            expect(result.unsubscribeFromStreams).toBeDefined()
+            expect(typeof result.unsubscribeFromStreams).toBe('function')
         })
         
         it('should accept custom promiseCache', () => {

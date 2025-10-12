@@ -13,7 +13,7 @@ import ssmHeartbeat from '../slices/stateSeekingMachine/ssmHeartbeat'
 import library from '../slices/library'
 import personalAssets from '../slices/personalAssets'
 import perceptionCache from '../slices/perceptionCache'
-import { contentHeadersSlice } from '../slices/contentHeaders'
+import { contentHeadersSlice, subscribeToContentHeaders } from '../slices/contentHeaders'
 
 export const store = configureStore({
     reducer: {
@@ -33,6 +33,11 @@ export const store = configureStore({
     },
     middleware: [thunk]
 })
+
+// Initialize subscriptions
+// Queue subscription to 'global' stream for contentHeaders
+// This can be called immediately - the state machine will process it when ready
+store.dispatch(subscribeToContentHeaders(['global']))
 
 export type AppGetState = typeof store.getState
 export type RootState = ReturnType<AppGetState>

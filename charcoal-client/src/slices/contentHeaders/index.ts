@@ -35,7 +35,9 @@ export const {
   slice: contentHeadersSlice,
   selectors: contentHeadersSelectors,
   publicActions: contentHeadersActions,
-  iterateAllSSMs: iterateContentHeaders
+  iterateAllSSMs: iterateContentHeaders,
+  subscribeToStreams: subscribeToContentHeaders,
+  unsubscribeFromStreams: unsubscribeFromContentHeaders
 } = createDataSourceSlice({
   name: 'contentHeaders',
   dataSourceKey: 'mtw.assets.contentHeaders',
@@ -43,19 +45,7 @@ export const {
   eventSerializer: new ContentHeadersEventSerializer(),
   isSnapshot,
   isUpdate,
-  sliceSelector: (state: any) => state.contentHeaders,
-  // Auto-subscribe to 'global' stream when slice initializes
-  onReady: (dispatch) => {
-    // Set up subscription to global streamKey
-    dispatch(contentHeadersSlice.actions.internalStateChange({
-      newState: 'SUBSCRIBE',
-      data: {
-        internalData: { pendingStreamKeys: ['global'] }
-      }
-    }))
-    dispatch(contentHeadersSlice.actions.setIntent(['SUBSCRIBED']))
-    dispatch(iterateContentHeaders)
-  }
+  sliceSelector: (state: any) => state.contentHeaders
 })
 
 // Re-export for convenience
