@@ -7,16 +7,23 @@ const targetResolver = new TargetResolver(internalCache)
 export const handler = async (event) => {
 
     await Promise.all(event.Records.map(async ({ Sns }) => {
+        // Validate required MessageAttributes
         if (
             Sns.MessageAttributes.Targets?.Type !== 'String' ||
             !Array.isArray(JSON.parse(Sns.MessageAttributes.Targets.Value)) ||
-            Sns.MessageAttributes.RequestId?.Type !== 'String' ||
             Sns.MessageAttributes.Type?.Type !== 'String'
         ) {
             throw new Error(`Incoming message format failure (${JSON.stringify(Sns.MessageAttributes, null, 4)})`)
         }
+        
+        // RequestId is optional for StreamEvent messages (subscription data, not request/response)
+        const messageType = Sns.MessageAttributes.Type.Value
+        if (messageType !== 'StreamEvent' && Sns.MessageAttributes.RequestId?.Type !== 'String') {
+            throw new Error(`RequestId required for message type '${messageType}' (${JSON.stringify(Sns.MessageAttributes, null, 4)})`)
+        }
+        
         const targets = JSON.parse(Sns.MessageAttributes.Targets.Value) as any[]
-        const RequestId = Sns.MessageAttributes.RequestId.Value
+        const RequestId = Sns.MessageAttributes.RequestId?.Value
         
         // Validate that all targets are valid ResolvableTargets
         if (!targets.every(isResolvableTarget)) {
@@ -29,11 +36,11 @@ export const handler = async (event) => {
             .map(target => target.replace('CONNECTION#', ''))
             .filter(connectionId => connectionId.length > 0) // Filter out empty connection IDs
         
-        switch(Sns.MessageAttributes.Type.Value) {
+        switch(messageType) {
             case 'Success':
                 const Data = JSON.stringify({
                     ...JSON.parse(Sns.Message),
-                    RequestId
+                    RequestId  // Always present for Success messages
                 })
                 await Promise.all(connectionIds.map((ConnectionId) => (apiClient.send({
                     ConnectionId,
@@ -49,8 +56,17 @@ export const handler = async (event) => {
                     Data: JSON.stringify({
                         messageType: 'Error',
                         error: Sns.MessageAttributes.Error?.Value || '',
-                        RequestId
+                        RequestId  // Always present for Error messages
                     })
+                }))))
+                break
+            case 'StreamEvent':
+                // DataSource subscription messages - already in correct format
+                // Message structure: { messageType: 'StreamEvent', dataSourceKey, streamKey, timestamp, update }
+                const StreamEventData = JSON.stringify(JSON.parse(Sns.Message))
+                await Promise.all(connectionIds.map((ConnectionId) => (apiClient.send({
+                    ConnectionId,
+                    Data: StreamEventData
                 }))))
                 break
         }

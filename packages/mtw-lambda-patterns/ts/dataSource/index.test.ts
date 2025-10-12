@@ -156,8 +156,8 @@ describe('DataSource', () => {
 
         it('should initialize singleFlight with correct configuration', () => {
             expect(mockSingleFlightFactory).toHaveBeenCalledWith({
-                optimisticUpdateFunction: mockDynamo.optimisticUpdate,
-                getItemFunction: mockDynamo.getItem,
+                optimisticUpdateFunction: expect.any(Function),  // Bound function
+                getItemFunction: expect.any(Function),  // Bound function
                 primaryKey: 'AssetId',
                 timeoutMs: 5000
             })

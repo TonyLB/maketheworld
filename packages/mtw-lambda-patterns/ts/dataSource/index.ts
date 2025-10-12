@@ -436,7 +436,7 @@ export class DataSource<
                 },
                 Type: { 
                     DataType: 'String', 
-                    StringValue: 'Success' 
+                    StringValue: 'StreamEvent' 
                 }
             }
         })
@@ -466,7 +466,7 @@ export class DataSource<
                         },
                         Type: { 
                             DataType: 'String', 
-                            StringValue: 'Success' 
+                            StringValue: 'StreamEvent' 
                         }
                     }
                 })

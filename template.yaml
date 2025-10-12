@@ -1166,6 +1166,7 @@ Resources:
                   Type:
                       - Success
                       - Error
+                      - StreamEvent
               FilterPolicyScope: MessageAttributes
   CognitoHandlerFunction:
       Type: AWS::Serverless::Function
