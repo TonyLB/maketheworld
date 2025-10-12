@@ -36,6 +36,7 @@ import { StreamingEventMessage } from "./messageBus/baseClasses"
 import './dataSource'  // mtw.assets DataSource
 import './contentHeaders'  // mtw.assets.contentHeaders DataSource
 import './characters'  // mtw.assets.characters DataSource
+import './library'  // mtw.assets.library DataSource
 
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }
