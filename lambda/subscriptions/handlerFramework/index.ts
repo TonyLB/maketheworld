@@ -19,7 +19,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
         dataSourceKey: 'mtw.wml',
         type: 'Merge Conflict',
         transform: (event) => ({
-            messageType: 'Subscription',
+            messageType: 'StreamEvent',
             dataSourceKey: 'mtw.wml',
             streamKey: event.streamKey,
             timestamp: event.timestamp,
@@ -33,7 +33,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
         dataSourceKey: 'mtw.wml',
         type: 'Content Update',
         transform: (event) => ({
-            messageType: 'Subscription',
+            messageType: 'StreamEvent',
             dataSourceKey: 'mtw.wml',
             streamKey: event.streamKey,
             timestamp: event.timestamp,
@@ -48,7 +48,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
         dataSourceKey: 'mtw.assets.contentHeaders',
         type: 'Headers Updated',
         transform: (event) => ({
-            messageType: 'Subscription',
+            messageType: 'StreamEvent',
             dataSourceKey: 'mtw.assets.contentHeaders',
             streamKey: event.streamKey,
             timestamp: event.timestamp,
@@ -58,6 +58,36 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
                 zone: event.zone,
                 RequestId: event.RequestId,
                 wml: event.schema
+            }
+        })
+    },
+    {
+        dataSourceKey: 'mtw.assets.library',
+        type: 'Asset Added',
+        transform: (event) => ({
+            messageType: 'StreamEvent',
+            dataSourceKey: 'mtw.assets.library',
+            streamKey: event.streamKey,
+            timestamp: event.timestamp,
+            update: {
+                type: 'Asset Added',
+                assetId: event.assetId,
+                RequestId: event.RequestId
+            }
+        })
+    },
+    {
+        dataSourceKey: 'mtw.assets.library',
+        type: 'Asset Removed',
+        transform: (event) => ({
+            messageType: 'StreamEvent',
+            dataSourceKey: 'mtw.assets.library',
+            streamKey: event.streamKey,
+            timestamp: event.timestamp,
+            update: {
+                type: 'Asset Removed',
+                assetId: event.assetId,
+                RequestId: event.RequestId
             }
         })
     }

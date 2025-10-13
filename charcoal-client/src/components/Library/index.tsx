@@ -20,6 +20,7 @@ import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { getMyCharacters, getMyAssets } from '../../slices/player'
 import { getLibrary, setIntent } from '../../slices/library'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
+import { subscribeToLibrary, unsubscribeFromLibrary, getIsLibrarySubscribed } from '../../slices/libraryDataSource'
 
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import PreviewPane, { PreviewPaneContents } from './PreviewPane'
@@ -96,10 +97,25 @@ export const Library: FunctionComponent<LibraryProps> = () => {
     useOnboardingCheckpoint('navigateLibrary')
     useOnboardingCheckpoint('navigateLibraryAfterAsset', { requireSequence: true })
     const dispatch = useDispatch()
+    const isLibrarySubscribed = useSelector(getIsLibrarySubscribed)
+    
+    // Legacy library slice subscription
     useEffect(() => {
         dispatch(setIntent(['CONNECTED']))
         dispatch(heartbeat)
     }, [])
+    
+    // New library DataSource subscription - only when component is mounted and not already subscribed
+    useEffect(() => {
+        if (!isLibrarySubscribed) {
+            dispatch(subscribeToLibrary())
+        }
+        // Optionally unsubscribe on unmount to save resources
+        // Note: Keeping subscription active for now to avoid re-subscription on navigation
+        // return () => {
+        //     dispatch(unsubscribeFromLibrary())
+        // }
+    }, [dispatch, isLibrarySubscribed])
     const [selectedPersonalIndex, setSelectedPersonalIndex] = React.useState<undefined | number>()
     const [personalPreviewItem, setPersonalPreviewItem] = React.useState<undefined | PreviewPaneContents>()
     const clearPersonalPreview = () => {

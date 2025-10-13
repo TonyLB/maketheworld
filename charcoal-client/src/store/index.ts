@@ -14,6 +14,7 @@ import library from '../slices/library'
 import personalAssets from '../slices/personalAssets'
 import perceptionCache from '../slices/perceptionCache'
 import { contentHeadersSlice, subscribeToContentHeaders } from '../slices/contentHeaders'
+import { libraryDataSourceSlice, subscribeToLibrary } from '../slices/libraryDataSource'
 
 export const store = configureStore({
     reducer: {
@@ -29,7 +30,8 @@ export const store = configureStore({
         UI: uiReducer,
         ssmHeartbeat,
         perceptionCache,
-        contentHeaders: contentHeadersSlice.reducer
+        contentHeaders: contentHeadersSlice.reducer,
+        libraryDataSource: libraryDataSourceSlice.reducer
     },
     middleware: [thunk]
 })
@@ -38,6 +40,9 @@ export const store = configureStore({
 // Queue subscription to 'global' stream for contentHeaders
 // This can be called immediately - the state machine will process it when ready
 store.dispatch(subscribeToContentHeaders(['global']))
+
+// Note: Library subscription is handled on-demand when user navigates to Library page
+// See components/Library/index.tsx for subscription logic
 
 export type AppGetState = typeof store.getState
 export type RootState = ReturnType<AppGetState>

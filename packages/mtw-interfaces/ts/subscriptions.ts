@@ -1,5 +1,6 @@
 import { WMLContentEventExternal, isWMLContentEventExternal } from "./eventBridge/wml";
 import { ContentHeadersExternal, isContentHeadersExternal } from "./eventBridge/assets/contentHeaders";
+import { LibraryExternal, isLibraryExternal } from "./eventBridge/assets/library";
 
 export type SubscribeAPIMessage = Record<string, any> & {
     message: 'subscribe';
@@ -53,10 +54,20 @@ export type ContentHeadersSubscriptionClientMessage = {
     RequestId?: string;
 }
 
+export type LibrarySubscriptionClientMessage = {
+    messageType: 'StreamEvent';
+    dataSourceKey: 'mtw.assets.library';
+    streamKey: string;
+    timestamp: number;
+    update: LibraryExternal;
+    RequestId?: string;
+}
+
 // Union of all subscription client messages
 export type SubscriptionClientMessage =
     | WMLSubscriptionClientMessage
     | ContentHeadersSubscriptionClientMessage
+    | LibrarySubscriptionClientMessage
 
 // Type guard for subscription client messages (StreamEvent)
 export const isSubscriptionClientMessage = (message: Record<string, any>): message is SubscriptionClientMessage => {
@@ -78,6 +89,8 @@ export const isSubscriptionClientMessage = (message: Record<string, any>): messa
             return isWMLContentEventExternal(message.update)
         case 'mtw.assets.contentHeaders':
             return isContentHeadersExternal(message.update)
+        case 'mtw.assets.library':
+            return isLibraryExternal(message.update)
         default:
             return false
     }

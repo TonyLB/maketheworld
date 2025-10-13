@@ -10,7 +10,8 @@ import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
 
 // Configuration for replayable DataSources that support snapshot initialization
 const REPLAYABLE_DATA_SOURCES = [
-    'mtw.assets.contentHeaders'
+    'mtw.assets.contentHeaders',
+    'mtw.assets.library'
     // Future: 'mtw.ephemera', 'mtw.players'
 ] as const
 
