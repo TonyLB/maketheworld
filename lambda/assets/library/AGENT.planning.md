@@ -145,10 +145,12 @@ import { getLibraryAssetIds } from '../../slices/libraryDataSource'
 ```
 
 **Verification:**
-- [ ] Library page loads without errors
-- [ ] Library assets display correctly
-- [ ] No console warnings about missing selectors
-- [ ] New subscription (via `subscribeToLibrary()`) is working
+- [x] Library page loads without errors
+- [x] Library assets display correctly
+- [x] No console warnings about missing selectors
+- [x] New subscription (via `subscribeToLibrary()`) is working
+
+**✅ Phase 1 Complete!** (Completed: 2025-10-13)
 
 ### Phase 2: Remove Frontend Legacy Code
 
@@ -180,10 +182,24 @@ charcoal-client/src/slices/library/
    - Replace with appropriate alternatives or remove
 
 **Verification:**
-- [ ] `npm run build` succeeds with no errors
-- [ ] No TypeScript errors
-- [ ] All tests pass
-- [ ] No references to old slice in codebase
+- [x] `npm run build` succeeds with no errors
+- [x] No TypeScript errors
+- [x] All tests pass
+- [x] No references to old slice in codebase
+
+**✅ Phase 2 Complete!** (Completed: 2025-10-13)
+
+**Files Deleted:**
+- `charcoal-client/src/slices/library/baseClasses.ts`
+- `charcoal-client/src/slices/library/index.api.ts`
+- `charcoal-client/src/slices/library/index.ts`
+- `charcoal-client/src/slices/library/receiveLibrary.ts`
+- `charcoal-client/src/slices/library/selectors.ts`
+
+**Files Modified:**
+- `charcoal-client/src/store/index.ts` - Removed library reducer
+- `charcoal-client/src/components/useSSM.ts` - Removed library iterator
+- `charcoal-client/src/slices/UI/navigationTabs/index.ts` - Removed legacy setIntent calls
 
 ### Phase 3: Remove Backend Legacy Code
 

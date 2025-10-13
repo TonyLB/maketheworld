@@ -10,7 +10,6 @@ import ephemera from '../slices/ephemera'
 import player from '../slices/player'
 import lifeLine from '../slices/lifeLine'
 import ssmHeartbeat from '../slices/stateSeekingMachine/ssmHeartbeat'
-import library from '../slices/library'
 import personalAssets from '../slices/personalAssets'
 import perceptionCache from '../slices/perceptionCache'
 import { contentHeadersSlice, subscribeToContentHeaders } from '../slices/contentHeaders'
@@ -24,7 +23,6 @@ export const store = configureStore({
         ephemera,
         messages,
         player,
-        library,
         personalAssets,
         settings,
         UI: uiReducer,
