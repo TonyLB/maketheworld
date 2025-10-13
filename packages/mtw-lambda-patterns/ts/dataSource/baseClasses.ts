@@ -52,12 +52,16 @@ export interface DataSourceEventSerializer<
     /**
      * Convert internal snapshot payload to external format for storage/transmission
      * Returns the Core External format suitable for DynamoDB storage and SNS delivery
+     * 
+     * Optional: Only required for replayable data sources that support snapshots
      */
-    serializeSnapshot(snapshot: SnapshotPayload): ExternalSnapshotPayload;
+    serializeSnapshot?(snapshot: SnapshotPayload): ExternalSnapshotPayload;
     
     /**
      * Convert external snapshot payload back to internal format
      * Returns null if the snapshot cannot be deserialized
+     * 
+     * Optional: Only required for replayable data sources that support snapshots
      */
-    deserializeSnapshot(externalSnapshot: ExternalSnapshotPayload): SnapshotPayload | null;
+    deserializeSnapshot?(externalSnapshot: ExternalSnapshotPayload): SnapshotPayload | null;
 }

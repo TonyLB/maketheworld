@@ -2,7 +2,6 @@ import { parseWMLHandler } from './parseWML'
 import copyWML from './copyWML';
 import { resetWML } from './resetWML';
 import backupWML from "./backupWML";
-import applyEdit from "./applyEdit";
 import { checkLock, requestLock, yieldAtomicLock } from "./atomicLock";
 import delayPromise from "@tonylb/mtw-utilities/ts/dynamoDB/delayPromise";
 import internalCache from "./internalCache";
@@ -105,7 +104,20 @@ export const handler = async (event: any) => {
             await yieldAtomicLock(event.AssetId, event.lock)
             return {}
         case 'applyEdit':
-            return await applyEdit(event)
+            messageBus.send({
+                type: 'StreamingEvent',
+                dataSourceKey: 'internal',
+                streamKey: event.AssetId,
+                event: {
+                    type: 'Apply Edit',
+                    RequestId: event.RequestId,
+                    address: event.address,
+                    schema: event.schema
+                },
+                timestamp: Date.now()
+            })
+            await messageBus.flush()
+            return await extractReturnValue(messageBus)
         case 'moveAsset':
             messageBus.send({
                 type: 'StreamingEvent',
