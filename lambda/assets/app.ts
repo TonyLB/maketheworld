@@ -5,15 +5,12 @@ import internalCache from "./internalCache"
 
 import {
     AssetAPIMessage,
-    isFetchLibraryAPIMessage,
     isFetchAssetAPIMessage,
     isUploadAssetLinkAPIMessage,
     isAssetCheckinAPIMessage,
     isAssetCheckoutAPIMessage,
-    isAssetSubscribeAPIMessage,
     isAssetWhoAmIAPIMessage,
     isFetchImportsAPIMessage,
-    isAssetUnsubscribeAPIMessage,
     isMetaDataAPIMessage,
     isAssetPlayerSettingsAPIMessage,
     isAssetLLMGenerateAPIMessage,
@@ -205,11 +202,6 @@ export const handler = async (event, context) => {
                             player: message.player
                         })
                         break
-                    case 'LibraryUpdate':
-                        messageBus.send({
-                            type: 'LibraryUpdate'
-                        })
-                        break
                 }
             })
         )
@@ -217,17 +209,12 @@ export const handler = async (event, context) => {
         return
     }
     
-    if (!request || !['fetch', 'fetchLibrary', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'unsubscribe', 'subscribe', 'whoAmI', 'updatePlayerSettings', 'llmGenerate', 'collaborationStatus'].includes(request.message)) {
+    if (!request || !['fetch', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'whoAmI', 'updatePlayerSettings', 'llmGenerate', 'collaborationStatus'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {
         if (request.RequestId) {
             internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
-        }
-        if (isFetchLibraryAPIMessage(request)) {
-            messageBus.send({
-                type: 'FetchLibrary'
-            })
         }
         if (isMetaDataAPIMessage(request)) {
             const addresses = await internalCache.AssetMetaData.get(request.assetIds)
@@ -273,16 +260,6 @@ export const handler = async (event, context) => {
                 type: 'UploadURL',
                 assetType: request.tag,
                 images: request.images
-            })
-        }
-        if (isAssetSubscribeAPIMessage(request)) {
-            messageBus.send({
-                type: 'LibrarySubscribe'
-            })
-        }
-        if (isAssetUnsubscribeAPIMessage(request)) {
-            messageBus.send({
-                type: 'LibraryUnsubscribe'
             })
         }
         if (isAssetWhoAmIAPIMessage(request)) {

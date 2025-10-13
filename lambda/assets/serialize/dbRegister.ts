@@ -24,29 +24,21 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
         },
         ProjectionFields: ['AssetId']
     })
-    const updatedLibraryAssets = {
-        [AssetKey(key)]: {
-            AssetId: AssetKey(key),
-            scopedId: key
-        }
-    }
     const updatedPlayerAssets = {
         [key]: {
             AssetId: key,
             scopedId: key
         }
     }
-    const updateLibraryPromise = address.zone === 'Personal'
+    const updatePlayerLibraryPromise = address.zone === 'Personal'
         ? internalCache.PlayerLibrary.set(address.player, {
             Assets: updatedPlayerAssets,
             Characters: {}
         })
-        : address.zone === 'Library'
-            ? internalCache.Library.set({
-                Assets: updatedLibraryAssets,
-                Characters: {}
-            })
-            : Promise.resolve({})
+        : Promise.resolve({})
+    // Note: Legacy internalCache.Library update removed - new mtw.assets.library DataSource
+    // automatically picks up 'Asset Added' EventBridge events below
+    
     const graphUpdate = new GraphUpdate({ internalCache: internalCache._graphCache, dbHandler: graphStorageDB })
     graphUpdate.setEdges([{
         itemId: AssetKey(key),
@@ -66,7 +58,7 @@ export const dbRegister = async (assetWorkspace: ReadOnlyAssetWorkspace): Promis
             zone: address.zone,
             ...(address.zone === 'Personal' ? { player: address.player } : {})
         }),
-        updateLibraryPromise
+        updatePlayerLibraryPromise
     ])
     if (!(prior && prior.AssetId)) {
         await eventBridgeClient.send([{
