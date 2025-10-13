@@ -45,24 +45,420 @@ The library subscription system was one of the first real-time subscription impl
 - Can be activated by switching subscriptions lambda routing
 - UI already compatible - no coordination needed
 
-### Next Steps
+### End-to-End Validation ✅
 
-**Option A - Conservative** (Recommended):
-1. Deploy UI simplification first
-2. Test in production with legacy backend for 1+ week
-3. Activate new backend DataSource after UI proven stable
-4. Monitor and verify event streaming
+**Successfully Tested Pipeline**:
+```
+Frontend subscribeToLibrary()
+  ↓ WebSocket
+Subscriptions Lambda
+  ↓ EventBridge (Initialize Subscription)
+Assets Lambda libraryDataSource
+  ↓ Generate Snapshot (Library zone asset IDs)
+  ↓ SNS Feedback
+WebSocket
+  ↓ LifeLinePubSub
+Frontend libraryDataSource slice
+  ✅ Snapshot received and processed!
+```
 
-**Option B - Simultaneous**:
-1. Deploy both UI and backend together
-2. Higher risk but faster migration
-3. Requires careful testing and monitoring
+**Validation Confirms**:
+- ✅ Subscription request reaches backend
+- ✅ Initialize Subscription event routes correctly
+- ✅ Snapshot generation works
+- ✅ Snapshot delivery through feedback channel works
+- ✅ Frontend receives and deserializes snapshot
+- ✅ Aggregator processes snapshot correctly
+- ✅ Complete system integration functional
 
-**Option C - Phased with Feature Flag**:
-1. Deploy backend but keep legacy active
-2. Add feature flag to switch between old/new slices
-3. Gradual rollout to subset of users
-4. Full activation after validation
+### Status: Ready for Legacy System Deprecation! 🎯
+
+**Current Status**: Both systems operational in pre-release
+- Legacy library slice: Active, UI using this data
+- New libraryDataSource slice: Active, receiving data, validated end-to-end
+- **Decision**: Skip long-term monitoring phase (no production deployment yet)
+- **Ready to proceed**: With rapid deprecation of legacy system
+
+---
+
+## Legacy System Deprecation Plan
+
+### Overview
+
+With the new `mtw.assets.library` DataSource fully implemented, tested, and validated end-to-end, we can now safely remove the legacy library subscription system. Since this is pre-release development with no production users, we can move quickly through deprecation without extensive monitoring phases.
+
+### Deprecation Sequence
+
+**Phase 1: Switch UI to New Slice** ⏭️ Next Step
+- Update Library component to consume new libraryDataSource
+- Remove legacy subscription calls
+- Verify UI functionality
+
+**Phase 2: Remove Frontend Legacy Code**
+- Delete legacy library slice
+- Clean up imports and references
+- Remove from store configuration
+
+**Phase 3: Remove Backend Legacy Code**
+- Remove message handlers
+- Remove message bus subscriptions
+- Remove API handlers
+- Clean up type definitions
+
+**Phase 4: Database Cleanup**
+- Remove legacy subscription tracking (optional - will be unused)
+
+### Phase 1: Switch UI to New Slice
+
+**File:** `charcoal-client/src/components/Library/index.tsx`
+
+**Changes Required:**
+
+1. **Update Data Source** (line ~136):
+```typescript
+// REMOVE:
+const { Assets: libraryAssets = [] } = useSelector(getLibrary)
+
+// REPLACE WITH:
+import { getLibraryAssetIds } from '../../slices/libraryDataSource'
+const libraryAssetIds = useSelector(getLibraryAssetIds)
+const libraryAssets = libraryAssetIds.map(id => ({ AssetId: id }))
+```
+
+2. **Remove Legacy Subscription** (lines 103-106):
+```typescript
+// DELETE THESE LINES:
+useEffect(() => {
+    dispatch(setIntent(['CONNECTED']))
+    dispatch(heartbeat)
+}, [])
+```
+
+3. **Update Imports** (line ~21):
+```typescript
+// REMOVE:
+import { getLibrary, setIntent } from '../../slices/library'
+import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
+
+// ADD (if not already present):
+import { getLibraryAssetIds } from '../../slices/libraryDataSource'
+```
+
+**Verification:**
+- [ ] Library page loads without errors
+- [ ] Library assets display correctly
+- [ ] No console warnings about missing selectors
+- [ ] New subscription (via `subscribeToLibrary()`) is working
+
+### Phase 2: Remove Frontend Legacy Code
+
+**Files to Delete:**
+```
+charcoal-client/src/slices/library/
+├── baseClasses.ts
+├── index.api.ts
+├── index.ts
+├── receiveLibrary.ts
+└── selectors.ts
+```
+
+**Files to Update:**
+
+1. **Store Configuration** - `charcoal-client/src/store/index.ts`:
+   - Remove library slice from store
+   - Remove library reducer import
+
+2. **State Machine Iterator** - `charcoal-client/src/components/useSSM.ts` (if applicable):
+   - Remove library iterator registration (if present)
+
+3. **Tests**:
+   - Remove/update tests that import from `slices/library`
+   - Update any component tests mocking legacy library state
+
+4. **Type Imports**:
+   - Search for imports from `slices/library` across codebase
+   - Replace with appropriate alternatives or remove
+
+**Verification:**
+- [ ] `npm run build` succeeds with no errors
+- [ ] No TypeScript errors
+- [ ] All tests pass
+- [ ] No references to old slice in codebase
+
+### Phase 3: Remove Backend Legacy Code
+
+**3.1 Remove Message Handler Files:**
+
+Delete these files entirely:
+```
+lambda/assets/subscribe/index.ts
+lambda/assets/libraryUpdate/index.ts  
+lambda/assets/fetchLibrary/index.ts
+```
+
+**Note**: If `subscribe/index.ts` contains other subscription logic, only remove the `librarySubscribeMessage` and `libraryUnsubscribeMessage` functions.
+
+**3.2 Update Message Bus** - `lambda/assets/messageBus/index.ts`:
+
+Remove these imports:
+```typescript
+// DELETE:
+import { isFetchLibraryAPIMessage, isLibrarySubscribeMessage, 
+         isLibraryUpdateMessage, isLibraryUnsubscribeMessage } from "./baseClasses"
+import fetchLibraryMessage from "../fetchLibrary"
+import { librarySubscribeMessage, libraryUnsubscribeMessage } from "../subscribe"
+import libraryUpdateMessage from "../libraryUpdate"
+```
+
+Remove these message bus subscriptions:
+```typescript
+// DELETE:
+messageBus.subscribe({
+    tag: 'FetchLibrary',
+    priority: 5,
+    filter: isFetchLibraryAPIMessage,
+    callback: fetchLibraryMessage
+})
+
+messageBus.subscribe({
+    tag: 'LibrarySubscribe',
+    priority: 6,
+    filter: isLibrarySubscribeMessage,
+    callback: librarySubscribeMessage
+})
+
+messageBus.subscribe({
+    tag: 'LibraryUnsubscribe',
+    priority: 6,
+    filter: isLibraryUnsubscribeMessage,
+    callback: libraryUnsubscribeMessage
+})
+
+messageBus.subscribe({
+    tag: 'LibraryUpdate',
+    priority: 6,
+    filter: isLibraryUpdateMessage,
+    callback: libraryUpdateMessage
+})
+```
+
+**3.3 Update API Handler** - `lambda/assets/app.ts`:
+
+Remove WebSocket API message handlers (lines ~278-286):
+```typescript
+// DELETE:
+if (isAssetSubscribeAPIMessage(request)) {
+    messageBus.send({
+        type: 'LibrarySubscribe'
+    })
+}
+if (isAssetUnsubscribeAPIMessage(request)) {
+    messageBus.send({
+        type: 'LibraryUnsubscribe'
+    })
+}
+```
+
+Remove SNS message handler (lines ~208-211):
+```typescript
+// DELETE:
+case 'LibraryUpdate':
+    messageBus.send({
+        type: 'LibraryUpdate'
+    })
+    break
+```
+
+**3.4 Update Type Definitions** - `lambda/assets/messageBus/baseClasses.ts`:
+
+Remove type definitions:
+```typescript
+// DELETE:
+export type LibrarySubscribeMessage = { ... }
+export type LibraryUnsubscribeMessage = { ... }
+export type LibraryUpdateMessage = { ... }
+export type FetchLibraryAPIMessage = { ... }
+
+// Remove type guards:
+export const isLibrarySubscribeMessage = ...
+export const isLibraryUnsubscribeMessage = ...
+export const isLibraryUpdateMessage = ...
+export const isFetchLibraryAPIMessage = ...
+```
+
+Remove from MessageType union:
+```typescript
+export type MessageType = 
+    // ... other types ...
+    // DELETE these:
+    | LibrarySubscribeMessage
+    | LibraryUnsubscribeMessage  
+    | LibraryUpdateMessage
+    | FetchLibraryAPIMessage
+```
+
+**3.5 Clean Up Internal Cache** - `lambda/assets/internalCache/library.ts`:
+
+This file can be deleted entirely or left as-is (it won't be called anymore). Consider:
+- **Delete**: If no other code references it
+- **Keep with deprecation comment**: If uncertain about references
+
+**Verification:**
+- [ ] Lambda builds successfully
+- [ ] Unit tests pass
+- [ ] No TypeScript errors
+- [ ] Deployment succeeds
+- [ ] CloudWatch logs show no errors about missing handlers
+
+### Phase 4: Database Cleanup
+
+**Legacy Subscription Records** - `connectionDB`:
+
+The old system stores subscriptions at:
+```
+ConnectionId: 'Library'
+DataCategory: 'Subscriptions'
+```
+
+**Options:**
+1. **Leave in place**: Record is harmless, just unused (recommended for safety)
+2. **Manual deletion**: Delete via AWS Console after verifying no usage
+3. **Automated cleanup**: Add one-time cleanup script (overkill for single record)
+
+**Recommendation**: Leave the record in place. It's a single DynamoDB item that won't cause issues.
+
+### Phase 5: Update Documentation
+
+**Files to Update:**
+
+1. **This file** - `lambda/assets/library/AGENT.planning.md`:
+   - Mark deprecation as complete
+   - Update status sections
+   - Add "Migration Complete" timestamp
+
+2. **Main README** - `lambda/assets/README.md`:
+   - Remove references to legacy library subscription
+   - Document new `mtw.assets.library` DataSource
+
+3. **Architecture Docs**:
+   - Update any diagrams showing legacy library flow
+   - Document the new DataSource pattern
+
+4. **API Documentation**:
+   - Remove legacy `subscribe`/`unsubscribe`/`fetchLibrary` API docs
+   - Document modern DataSource subscription pattern
+
+### Rollback Strategy
+
+**If Issues Arise:**
+
+Since you're in pre-release, rollback is straightforward:
+
+1. **Git Revert**: All changes are in version control
+2. **Redeploy**: Previous working version
+3. **Quick Recovery**: No production users affected
+
+**Recommended Safety:**
+- Make changes in small commits (one phase per commit)
+- Test between phases
+- Keep legacy code in a branch temporarily
+
+### Complete File Manifest
+
+**Files to Delete:**
+```
+✅ charcoal-client/src/slices/library/baseClasses.ts
+✅ charcoal-client/src/slices/library/index.api.ts
+✅ charcoal-client/src/slices/library/index.ts
+✅ charcoal-client/src/slices/library/receiveLibrary.ts
+✅ charcoal-client/src/slices/library/selectors.ts
+✅ lambda/assets/subscribe/index.ts (or just remove library functions)
+✅ lambda/assets/libraryUpdate/index.ts
+✅ lambda/assets/fetchLibrary/index.ts
+✅ lambda/assets/internalCache/library.ts (optional)
+```
+
+**Files to Modify:**
+```
+✅ charcoal-client/src/components/Library/index.tsx
+✅ charcoal-client/src/store/index.ts
+✅ lambda/assets/messageBus/index.ts
+✅ lambda/assets/messageBus/baseClasses.ts
+✅ lambda/assets/app.ts
+✅ Any tests referencing legacy library slice
+✅ Documentation files
+```
+
+### Validation Checklist
+
+**Before Starting:**
+- [x] New system fully tested (72 tests passing)
+- [x] End-to-end pipeline validated
+- [x] UI simplified and ready for switch
+
+**After Phase 1 (UI Switch):**
+- [ ] Library page loads correctly
+- [ ] Asset list displays
+- [ ] No console errors
+- [ ] Subscription working via new slice
+
+**After Phase 2 (Frontend Cleanup):**
+- [ ] Build succeeds
+- [ ] Tests pass
+- [ ] No import errors
+- [ ] TypeScript compilation clean
+
+**After Phase 3 (Backend Cleanup):**
+- [ ] Lambda builds successfully
+- [ ] Deployment completes
+- [ ] No runtime errors in logs
+- [ ] Backend tests pass
+
+**Final Validation:**
+- [ ] End-to-end user flow works
+- [ ] Real-time updates working
+- [ ] Performance is good
+- [ ] No legacy code references remain
+
+### Timeline Estimate
+
+**Accelerated Pre-Release Timeline:**
+- **Phase 1**: 1-2 hours (UI switch + testing)
+- **Phase 2**: 1-2 hours (Frontend cleanup)
+- **Phase 3**: 2-3 hours (Backend cleanup + deployment)
+- **Phase 4**: 30 minutes (Documentation)
+
+**Total**: 4-8 hours of focused work
+
+**Suggested Approach**: Complete all phases in a single day to minimize intermediate states.
+
+---
+
+## Post-Deprecation: Future Enhancements
+
+Once legacy code is removed, consider:
+
+1. **Rich Metadata Integration**:
+   - Subscribe to `mtw.assets.contentHeaders` for asset names, descriptions
+   - Display rich asset cards instead of just IDs
+   - Add thumbnails/images
+
+2. **Character Discovery**:
+   - Extract characters from asset components
+   - Display character list with metadata
+   - Link to parent assets
+
+3. **Enhanced UI Features**:
+   - Search and filtering
+   - Sort by various criteria
+   - Tags and categorization
+   - Preview pane improvements
+
+4. **Performance Optimizations**:
+   - Pagination for large libraries
+   - Virtual scrolling
+   - Optimistic UI updates
+   - Background prefetching
 
 ---
 
