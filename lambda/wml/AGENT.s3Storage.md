@@ -269,12 +269,12 @@ await archiveAsset(assetAddress, backupId)
 ### Getting Started
 1. **Understand Zones**: Review [Asset Zones Documentation](../AGENT.zones.md) for zone concepts
 2. **Explore AssetWorkspace**: Start with `packages/mtw-asset-workspace/ts/readOnly.ts` for core file operations
-3. **Study Current Implementation**: Examine `lambda/wml/parseWML.ts` for typical usage patterns
+3. **Study Current Implementation**: Examine `lambda/wml/dataSource/applyEdit/` for typical usage patterns
 4. **Review Event Flow**: Check [Event Architecture](../../AGENT.architecture.events.md) for integration patterns
 
 ### Key Files
 - **Core Implementation**: `packages/mtw-asset-workspace/ts/readOnly.ts` - AssetWorkspace class and file operations
-- **WML Operations**: `lambda/wml/parseWML.ts` - Main WML processing and file management
+- **WML Operations**: `lambda/wml/dataSource/applyEdit/` - Main WML edit processing and file management
 - **Zone Transitions**: `lambda/wml/copyWML/index.ts` - Asset copying and zone movement
 - **Backup Operations**: `lambda/wml/backupWML/index.ts` - Asset archival and backup creation
 

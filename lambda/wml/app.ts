@@ -1,4 +1,3 @@
-import { parseWMLHandler } from './parseWML'
 import copyWML from './copyWML';
 import { resetWML } from './resetWML';
 import backupWML from "./backupWML";
@@ -78,8 +77,6 @@ export const handler = async (event: any) => {
     }
 
     switch(event.message) {
-        case 'parseWML':
-            return await parseWMLHandler(event)
         case 'copyWML':
             return await copyWML(event)
         case 'backupWML':

@@ -79,7 +79,6 @@ The WML Lambda receives events from multiple sources:
 **Direct API Calls** (via Step Functions or WebSocket API):
 - `applyEdit` - Apply WML edit to existing content (processed via DataSource)
 - `moveAsset` - Move asset between zones (processed via DataSource)
-- `parseWML` - Parse and validate WML content
 - `copyWML` - Copy asset to new location
 - `resetWML` - Clear asset content
 - `backupWML` - Create backup of asset
