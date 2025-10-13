@@ -1,75 +1,152 @@
 # WML Lambda - Event Flow Documentation
 
-**Status: STUB DOCUMENT - PLANNING PHASE**
+**Status: ACTIVE - DataSource Pattern Implemented**
 
-This is a placeholder document for future research and design work on event flows within the WML Lambda system.
+This document tracks the event flow architecture within the WML Lambda system, which serves as the **Source of Truth** for WML content in Make The World's event mesh.
 
-## Purpose
+## Overview
 
-This document will eventually contain comprehensive documentation of:
+The WML Lambda serves as the domain authority for WML source files and their StandardForm representations. It participates in the event mesh as:
 
-- **Event Input Processing**: How the WML Lambda receives and processes content update, validation, and parsing events
-- **Internal Event Orchestration**: How WML parsing, schema validation, and content transformation events coordinate
-- **Event Output Generation**: How the lambda generates content update events, validation results, and parsed WML events
-- **Event Flow Patterns**: Content processing patterns and their integration with the broader system architecture
+- **Event Consumer**: Processes coordination events (canonize/decanonize, move asset)
+- **Event Producer**: Publishes content updates, zone changes, and merge conflicts via EventBridge
+- **Source of Truth**: Maintains authoritative S3 storage for WML and NDJSON files
+- **Data Transformation Pipeline Root**: Triggers downstream caching and materialization
 
-## Current State
+## Data Source
 
-The event flow documentation work **has not yet been done**. The WML Lambda currently handles events in an ad-hoc manner that grew organically as WML processing functionality was developed. While the system successfully processes WML content, schema validation, and file coordination, this approach lacks systematic documentation and design principles.
+### **mtw.wml** (Main WML DataSource)
 
-## Planned Documentation Scope
+**Purpose**: Publishes WML content and zone change events to EventBridge for downstream processing
 
-### **Event Categories to Document**
+**Type**: Non-replayable (event streaming only, no client subscriptions)
 
-#### **Incoming Events**
-- WML content update requests from authoring tools
-- Schema validation requests from content editors
-- Asset parsing and transformation requests
-- WML file coordination events from S3 operations
-- Content merge and conflict resolution events
-- Authorization layer update events
+**Streams**: Per-asset streams using asset ID as streamKey
 
-#### **Internal Event Orchestration**
-- WML parsing and StandardForm transformation workflows
-- Schema validation and error reporting cascades
-- Atomic locking and concurrent edit coordination
-- Content backup and versioning event handling
-- Dependency analysis and import resolution processing
-- Image formatting and asset coordination events
+**Events Published**:
+- `Content Update` - WML content edited and merged successfully
+- `Content Removed` - Asset content deleted or reset (**TODO: Not yet implemented**)
+- `Zone Changed` - Asset moved between zones (Canon, Library, Personal, Draft, Archive)
+- `Merge Conflict` - Edit application failed due to conflicts
 
-#### **Outgoing Events**
-- Content Update events via EventBridge (mtw.wml source)
-- **Content Removed events via EventBridge (mtw.wml source)** - *TODO: Implement*
-- Authorization Update events for permission changes
-- Merge Conflict events for failed edit applications
-- Parsed content delivery to Assets Lambda for caching
-- Validation results and error notifications
-- Content state synchronization events
-- **Asset Zone Transition events via EventBridge (mtw.wml source)** - *Future: Zone management authority migration*
+**Event Subscriptions**: Subscribes to `mtw.coordination` events for canonization and asset moves
 
-### **Event Flow Analysis**
+**Implementation**: [`./dataSource/mtw-wml.ts`](./dataSource/mtw-wml.ts)
 
-#### **Content Processing Patterns**
-- WML parsing and transformation event sequences
-- Schema validation and error handling workflows
-- Atomic edit application and rollback mechanisms
-- Concurrent access coordination and locking patterns
-- Content versioning and backup event coordination
+**Event Contracts**: [`../../packages/mtw-interfaces/ts/eventBridge/wml/`](../../packages/mtw-interfaces/ts/eventBridge/wml/index.ts)
 
-#### **Integration Patterns**
-- EventBridge content update broadcasting
-- S3 file operation coordination and consistency
-- Assets Lambda integration for content caching
-- Client-side real-time content collaboration support
-- Cross-system content dependency management
-- **Zone transition coordination with Assets Lambda** - *Future: WML-driven zone management*
+## Current Implementation Status
 
-#### **Consistency and Reliability**
-- Atomic edit application and transaction coordination
-- Conflict detection and resolution event handling
-- Error recovery and content restoration workflows
-- Content integrity validation and verification
-- Backup and disaster recovery event patterns
+### ✅ Completed
+
+The WML Lambda has successfully implemented the DataSource pattern with the following capabilities:
+
+1. **Event Serialization**: Full `WMLEventSerializer` in `mtw-interfaces` package handling StandardForm ↔ WML string conversion
+2. **MessageBus Integration**: Internal event coordination fully wired and functional
+3. **Zone Changed Events**: Published via DataSource pattern when assets move between zones
+4. **Move Asset Operations**: Complete implementation with S3 file moves and event publishing
+5. **Coordination Event Processing**: Handles canonize/decanonize events from `mtw.coordination` source
+6. **EventBridge Event Ingestion**: Receives and deserializes incoming events from other data sources
+
+### ✅ Recently Completed
+
+1. **Apply Edit Migration** (Completed): Content Update and Merge Conflict events now use DataSource pattern
+   - Business logic moved to `dataSource/applyEdit/index.ts`
+   - Events emitted via `streamEvent()` instead of legacy EventBridge client
+   - Full integration with messageBus and WMLEventSerializer
+   - Follows same pattern as `moveAsset`
+
+### ❌ Not Yet Implemented
+
+1. **Content Removed Events**: Documented in contracts but not emitted anywhere
+   - **Needed in**: `resetWML/index.ts` - should emit when content is cleared
+   - **Needed in**: Asset archival/deletion flows
+   - **Priority**: High - required by Assets Lambda for proper cache invalidation
+
+2. **Authorization Update Events**: Documented in README.md but no implementation found
+   - **Status**: May be deferred or handled differently in current architecture
+   - **Action Needed**: Clarify if authorization edits are a separate concern
+
+## Event Flow Patterns
+
+### Incoming Events
+
+The WML Lambda receives events from multiple sources:
+
+**EventBridge Events**:
+- `mtw.coordination` events → Move Asset, Canonize, Decanonize
+
+**Direct API Calls** (via Step Functions or WebSocket API):
+- `applyEdit` - Apply WML edit to existing content (processed via DataSource)
+- `moveAsset` - Move asset between zones (processed via DataSource)
+- `parseWML` - Parse and validate WML content
+- `copyWML` - Copy asset to new location
+- `resetWML` - Clear asset content
+- `backupWML` - Create backup of asset
+- Atomic lock operations (`requestLock`, `checkLock`, `yieldLock`)
+
+### Outgoing Events
+
+**Via DataSource Pattern** (published to `mtw.wml` EventBridge source):
+- `Zone Changed` - Asset moved between zones
+  - Includes: fromZone, toZone, player (optional), subFolder (optional)
+  - Triggered by: Move Asset operations, canonization, decanonization
+
+- `Content Update` - WML content successfully edited
+  - Includes: StandardForm schema (serialized to WML string)
+  - Triggered by: Apply Edit operations via DataSource
+  
+- `Merge Conflict` - Edit application failed
+  - Includes: error message
+  - Triggered by: Apply Edit merge failures via DataSource
+
+### Internal Event Orchestration
+
+**MessageBus Architecture**:
+- Type-safe internal event bus using `@tonylb/mtw-lambda-patterns`
+- Supports `ReturnValue`, `Error`, and `StreamingEvent` message types
+- DataSource subscriptions enable event-driven processing
+
+**Event Processing Flow**:
+1. **Incoming EventBridge Events** → Deserialized → Published to messageBus → DataSource processing
+2. **Direct API Calls** → Business logic → Events published to messageBus → DataSource streaming to EventBridge
+3. **Internal Coordination** → MessageBus enables cross-concern coordination without tight coupling
+
+## Integration Patterns
+
+### Assets Lambda Coordination
+
+**Primary Integration**: WML Lambda publishes events that Assets Lambda consumes
+
+**Event Flow**:
+- `Content Update` → Assets Lambda recaches component data
+- `Content Removed` → Assets Lambda removes cached data (when implemented)
+- `Zone Changed` → Assets Lambda updates zone metadata and triggers downstream updates
+
+**Consistency Model**: Eventually consistent - Assets Lambda materializes views based on WML events
+
+### Zone Management
+
+**Current Implementation**:
+- WML Lambda maintains authoritative zone state in S3 file paths
+- Move operations physically relocate files in S3
+- Zone Changed events notify subscribers of transitions
+
+**Supported Zones**:
+- `Canon` - Canonical shared content
+- `Library` - User-created shared library
+- `Personal` - Player-specific private content  
+- `Draft` - Player draft workspace
+- `Archive` - Soft-deleted content
+
+### Coordination Service Integration
+
+**Incoming Events**: WML subscribes to `mtw.coordination` for:
+- `Move Asset` - Requested asset zone transitions
+- `Canonize` - Move asset from Library to Canon
+- `Decanonize` - Move asset from Canon to Library
+
+**Event-Driven Moves**: External services can trigger asset moves without direct API calls
 
 ## Related Event Documentation
 
@@ -78,81 +155,139 @@ This document is part of a coordinated event flow documentation effort across th
 - **[Assets Event Flows](../assets/AGENT.event.md)**: Asset caching, component management, and file coordination events
 - **[Ephemera Event Flows](../ephemera/AGENT.event.md)**: Real-time game state and character event processing
 
-## Existing Event Infrastructure
+## Technical Architecture
 
-The WML Lambda already implements some EventBridge event generation as documented in [`README.md`](README.md):
+### Event Serialization
 
-### **Current EventBridge Events**
-- **Content Update**: Applied edits to asset content  
-- **Authorization Update**: Applied edits to asset authorization layer
-- **Merge Conflict**: Failed edit application due to conflicts
+**Location**: `@tonylb/mtw-interfaces/ts/eventBridge/wml/index.ts`
 
-### **Missing EventBridge Events**
-- **Content Removed**: Asset deletion/archival events - *TODO: Implement for Assets Lambda integration*
+**Key Components**:
+- `WMLEventSerializer` - Handles StandardForm ↔ WML string conversion
+- `WMLEventUpdate` - Internal event union type (ContentEvent | ZoneEvent)  
+- `WMLEventExternal` - External event union type for EventBridge
+- Type guards for runtime event validation
 
-These existing events provide a foundation for understanding current event patterns, but require systematic documentation of their processing flows and integration patterns.
+**Serialization Logic**:
+- **Content Update**: StandardForm → WML string for transmission
+- **Zone Changed**: Pass-through (already structured data)
+- **Content Removed**: No payload transformation needed
+- **Merge Conflict**: Pass-through with optional error message
 
-## Near-Term Documentation Priorities
+### DataSource Implementation
 
-Based on the **Domain-Authoritative Event Mesh** pattern identified in [`../../AGENT.architecture.events.md`](../../AGENT.architecture.events.md), the WML Lambda's role as **Source of Truth** in the **Data Transformation Pipeline** requires specific documentation focus:
+**Base Class**: `WMLDataSource` extends `DataSource` from `@tonylb/mtw-lambda-patterns`
 
-### **Priority 1: Source Content Authority Patterns**
-**Focus**: Document how WML Lambda establishes and maintains authority over S3 source files
-- **Content Lifecycle Events**: Create, update, delete operations on WML source files
-- **Schema Validation Workflows**: How validation failures are handled and reported
-- **Atomic Operations**: File locking, transaction coordination, and conflict resolution
-- **Version Control Integration**: Backup creation and content history management
+**Configuration**:
+- **Replayable**: No (event streaming only, no snapshots)
+- **Primary Key**: `AssetId`
+- **Streams**: Per-asset (one stream per asset UUID)
+- **MessageBus**: Integrated with lambda-wide messageBus
+- **SNS**: Connected to feedback topic for notifications
 
-### **Priority 2: Event Publishing Patterns**
-**Focus**: Document the EventBridge event generation that coordinates the transformation pipeline
-- **Content Update Events**: What triggers them, what data they contain, who subscribes
-- **Content Removed Events**: Asset deletion/archival event generation - *TODO: Implement*
-- **Authorization Update Events**: Permission change propagation patterns
-- **Merge Conflict Events**: Failed edit coordination and resolution workflows
-- **Event Schema Documentation**: Standardize event contracts for downstream consumers
-- **Asset Zone Transition Events**: Zone change event generation and streaming patterns - *Future: Zone management migration*
+**Event Handling**:
+- Subscribes to `internal` dataSource with `CoordinationEventUpdate` events
+- Processes Apply Edit, Move Asset, Canonize, and Decanonize events
+- Streams appropriate events (Content Update, Merge Conflict, Zone Changed) on operation completion
+- Error handling with logging (operations don't fail on streaming errors)
 
-### **Priority 3: Assets Lambda Coordination**
-**Focus**: Document the specific coordination patterns with Assets Lambda materialized views
-- **Cache Update Triggers**: When and how WML changes trigger Assets cache updates
-- **Dependency Tracking**: How WML changes propagate through component relationships
-- **Consistency Guarantees**: What consistency promises are made to downstream consumers
-- **Performance Coordination**: Batching, throttling, and optimization patterns
-- **Zone Transition Coordination**: How zone changes trigger Assets cache invalidation and updates - *Future: WML-driven zone management*
+## Outstanding Work
 
-## Future Work Requirements
+### High Priority
 
-### **Research Phase**
-1. **Content Processing Flow Analysis**: Map current WML parsing, validation, and transformation workflows **(supports Priority 1)**
-2. **Event Generation Documentation**: Document EventBridge event creation patterns and triggers **(supports Priority 2)**
-3. **Content Removed Event Implementation**: Implement and document Content Removed event publishing for asset deletion/archival - *TODO: High Priority*
-4. **Integration Flow Mapping**: Analyze coordination with Assets Lambda and client systems **(supports Priority 3)**
-5. **Concurrency Analysis**: Review atomic locking and concurrent access patterns **(supports Priority 1)**
-6. **Zone Management Migration Planning**: Design WML-driven zone transition event patterns and Assets coordination - *Future: Zone authority migration*
+1. **Implement Content Removed Events**
+   - Add event emission in `resetWML/index.ts` when content is cleared
+   - Add event emission in asset archival/deletion workflows
+   - Required by Assets Lambda for proper cache invalidation
+   - Event contract already defined in `mtw-interfaces`
 
-### **Design Phase**
-1. **Content Event Standardization**: Establish consistent WML processing event patterns **(supports Priority 2)**
-2. **Integration Strategy**: Design improved coordination with Assets and Ephemera systems **(supports Priority 3)**
-3. **Error Handling Framework**: Plan comprehensive content error and recovery event handling **(supports Priority 1)**
-4. **Performance Optimization**: Design event processing performance improvements **(supports Priority 3)**
-5. **Zone Transition Event Architecture**: Design event-driven zone management with Assets Lambda coordination - *Future: Zone authority migration*
+### Medium Priority
 
-### **Implementation Tracking**
-Future updates to this document should track:
-- WML processing performance improvements and optimizations
-- New content validation and transformation patterns
-- Enhanced integration with real-time authoring collaboration
-- Improved conflict resolution and concurrent editing support
-- Event processing monitoring and diagnostic capabilities
-- **Zone management migration progress**: Implementation of WML-driven zone transitions and Assets Lambda coordination
+2. **Clarify Authorization Update Events**
+   - Determine if authorization edits are a separate concern
+   - If needed, implement authorization layer edit handling
+   - Document authorization update patterns and integration
+
+### Low Priority (Future Enhancements)
+
+3. **Enhanced Event Metadata**
+   - Add requestId tracking through event chains
+   - Include timing/performance metrics in events
+   - Add event causality tracking for debugging
+
+4. **Performance Optimization**
+   - Batch multiple WML operations before emitting events
+   - Implement throttling for high-frequency updates
+   - Add event deduplication logic
+
+## Development Notes
+
+### Key Implementation Files
+
+**DataSource Core**:
+- `lambda/wml/dataSource/mtw-wml.ts` - Main DataSource implementation
+- `lambda/wml/dataSource/abstract.ts` - WML-specific base class
+- `lambda/wml/dataSource/coordinationSerializer.ts` - Coordination event types
+- `lambda/wml/messageBus/` - MessageBus implementation
+
+**Business Logic**:
+- `lambda/wml/dataSource/applyEdit/` - Content edit application via DataSource
+- `lambda/wml/dataSource/moveAsset/` - Asset zone transitions via DataSource
+- `lambda/wml/resetWML/index.ts` - Content clearing (needs Content Removed event)
+- `lambda/wml/copyWML/index.ts` - Asset copying
+- `lambda/wml/backupWML/index.ts` - Asset backup creation
+
+**Event Contracts**:
+- `packages/mtw-interfaces/ts/eventBridge/wml/index.ts` - Event type definitions
+- `packages/mtw-interfaces/ts/eventBridge/wml/index.test.ts` - Event serialization tests
+
+### Testing Considerations
+
+**Unit Tests**:
+- DataSource event handling: `lambda/wml/dataSource/mtw-wml.test.ts`
+- Apply Edit operations: `lambda/wml/dataSource/applyEdit/index.test.ts`
+- Move Asset operations: `lambda/wml/dataSource/moveAsset/index.test.ts`
+- Event serialization: `packages/mtw-interfaces/ts/eventBridge/wml/index.test.ts`
+
+**Integration Testing Needs**:
+- End-to-end event flow from WML edit to Assets Lambda cache update
+- Zone transition coordination with coordination service
+- Conflict resolution and merge failure handling
+- Event ordering and causality verification
+
+### Monitoring and Observability
+
+**Current Logging**:
+- Error logging for streaming failures
+- Move operation success/failure logging
+- Event deserialization error logging
+
+**Recommended Additions**:
+- Event emission metrics (count, type, latency)
+- DataSource processing metrics
+- Coordination event processing success rates
+- Zone transition audit trail
 
 ## Navigation Notes
 
-- **Current WML Documentation**: See [`README.md`](README.md) for current functional documentation and EventBridge events
-- **WML Language System**: See [`../../packages/mtw-wml/ts/AGENT.md`](../../packages/mtw-wml/ts/AGENT.md) for core WML language documentation
-- **Related Architecture**: See [`../../AGENT.architecture.events.md`](../../AGENT.architecture.events.md) for system-wide event architecture principles
-- **Related Philosophy**: See [`../../AGENT.architecture.philosophy.md`](../../AGENT.architecture.philosophy.md) for underlying architectural philosophy
+### Related Documentation
+
+- **[WML Functional Documentation](README.md)**: Current API, EventBridge events, and usage patterns
+- **[WML Language System](../../packages/mtw-wml/ts/AGENT.md)**: Core WML language documentation and parsing
+- **[DataSource Pattern](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md)**: Implementation guide for DataSource pattern
+- **[Event Contracts](../../packages/mtw-interfaces/ts/eventBridge/AGENT.md)**: EventBridge event type definitions
+- **[Assets Event Flows](../assets/AGENT.event.md)**: Downstream consumer of WML events
+- **[System Event Architecture](../../AGENT.architecture.events.md)**: System-wide event architecture principles
+- **[Architectural Philosophy](../../AGENT.architecture.philosophy.md)**: Core design philosophy
+
+### Quick Reference
+
+**I want to...**
+- **Add a new event type**: Define in `mtw-interfaces/ts/eventBridge/wml/`, update serializer
+- **Emit an event**: Use messageBus.send() with StreamingEvent, let DataSource handle publishing
+- **Process an incoming event**: Add to DataSource `receiveEvents` handler
+- **Test event handling**: See `dataSource/mtw-wml.test.ts` for examples
+- **Subscribe to WML events**: Listen to `mtw.wml` EventBridge source
 
 ---
 
-*This stub document will be expanded as research and design work progresses. The goal is to transform the current ad-hoc WML processing into a well-documented, systematic approach that fully supports the content creation and collaboration workflows while integrating seamlessly with the broader Make The World event architecture.*
+**Document Status**: This document reflects the current state of the WML Lambda event architecture as of the DataSource pattern implementation. It should be updated as new event types are added or significant architectural changes are made.

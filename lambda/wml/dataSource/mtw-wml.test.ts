@@ -1,5 +1,5 @@
 import { wmlDataSource } from './index'
-import { WMLEventSerializer } from './serializers'
+import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { moveAsset } from './moveAsset'
 import { MoveAssetRequest } from './coordinationSerializer'
 

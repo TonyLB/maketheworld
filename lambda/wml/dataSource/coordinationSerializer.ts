@@ -1,4 +1,4 @@
-import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { Zone, AssetWorkspaceAddress } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Internal types for coordination events
@@ -18,8 +18,15 @@ export type MoveAssetRequest = {
     subFolder?: string;
 }
 
+export type ApplyEditRequest = {
+    type: 'Apply Edit';
+    RequestId: string;
+    address?: AssetWorkspaceAddress;
+    schema: string;
+}
+
 // Union type for all internal coordination events
-export type CoordinationEventUpdate = CoordinationCanonizeEvent | CoordinationDecanonizeEvent | MoveAssetRequest
+export type CoordinationEventUpdate = CoordinationCanonizeEvent | CoordinationDecanonizeEvent | MoveAssetRequest | ApplyEditRequest
 
 // External types for coordination events (same as internal since they're hand-created)
 export type CoordinationCanonizeEventExternal = {
@@ -38,10 +45,18 @@ export type MoveAssetRequestExternal = {
     subFolder?: string;
 }
 
+export type ApplyEditRequestExternal = {
+    type: 'Apply Edit';
+    RequestId: string;
+    address?: AssetWorkspaceAddress;
+    schema: string;
+}
+
 export type CoordinationEventExternal = 
     | CoordinationCanonizeEventExternal 
     | CoordinationDecanonizeEventExternal 
     | MoveAssetRequestExternal
+    | ApplyEditRequestExternal
 
 // Type guards
 export const isMoveAssetRequest = (event: any): event is MoveAssetRequest => {
@@ -65,10 +80,19 @@ export const isCoordinationDecanonizeEvent = (event: any): event is Coordination
         event.type === 'Decanonize Asset'
 }
 
+export const isApplyEditRequest = (event: any): event is ApplyEditRequest => {
+    return event && 
+        typeof event === 'object' && 
+        event.type === 'Apply Edit' &&
+        typeof event.RequestId === 'string' &&
+        typeof event.schema === 'string'
+}
+
 export const isCoordinationEventUpdate = (event: unknown): event is CoordinationEventUpdate => {
     return isCoordinationCanonizeEvent(event) || 
            isCoordinationDecanonizeEvent(event) || 
-           isMoveAssetRequest(event)
+           isMoveAssetRequest(event) ||
+           isApplyEditRequest(event)
 }
 
 /**
@@ -93,6 +117,13 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
                 toZone: update.toZone,
                 player: update.player,
                 subFolder: update.subFolder
+            }
+        } else if (update.type === 'Apply Edit') {
+            return {
+                type: update.type,
+                RequestId: update.RequestId,
+                address: update.address,
+                schema: update.schema
             }
         } else {
             return {
@@ -124,8 +155,18 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
                 player: externalUpdate.player,
                 subFolder: externalUpdate.subFolder
             }
+        } else if (externalUpdate.type === 'Apply Edit') {
+            return {
+                type: 'Apply Edit',
+                RequestId: externalUpdate.RequestId,
+                address: externalUpdate.address,
+                schema: externalUpdate.schema
+            }
         } else {
             return null
         }
     }
+    
+    // Note: serializeSnapshot and deserializeSnapshot are not implemented
+    // as coordination events are for a non-replayable data source that doesn't use snapshots
 }

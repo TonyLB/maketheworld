@@ -107,8 +107,11 @@ export const processRawSnapshot = <
             return
         }
         
-        // Deserialize snapshot
-        const snapshot = eventSerializer.deserializeSnapshot(rawSnapshot)
+        // Deserialize snapshot (if no deserializer, assume internal/external formats match)
+        const snapshot = eventSerializer.deserializeSnapshot
+            ? eventSerializer.deserializeSnapshot(rawSnapshot)
+            : rawSnapshot as unknown as SnapshotPayload
+        
         if (!snapshot) {
             console.warn(`[${dataSourceKey}] Failed to deserialize snapshot for streamKey: ${streamKey}`)
             return

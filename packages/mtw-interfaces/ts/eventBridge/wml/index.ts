@@ -209,4 +209,7 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
             throw new Error(`Unknown external WML event type: ${JSON.stringify(externalUpdate)}`)
         }
     }
+    
+    // Note: serializeSnapshot and deserializeSnapshot are not implemented
+    // as WML events are for a non-replayable data source that doesn't use snapshots
 }

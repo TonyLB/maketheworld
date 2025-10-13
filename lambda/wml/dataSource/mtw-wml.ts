@@ -2,7 +2,8 @@ import { WMLDataSource } from './abstract'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { moveAsset } from './moveAsset'
-import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, MoveAssetRequest } from './coordinationSerializer'
+import { applyEdit } from './applyEdit'
+import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, MoveAssetRequest } from './coordinationSerializer'
 import { isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 // Union type constraint for legitimate incoming subscribed events
@@ -36,9 +37,54 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
             isCoordinationEventUpdate(event.event))
     },
     receiveEvents: async ({ events, streamEvent }) => {
-        // Process internal Move Asset events from direct API calls
+        // Process internal coordination events from direct API calls and EventBridge
         await Promise.all(events.map(async (event) => {
             const payload = event.event as any
+            
+            // Handle Apply Edit events
+            if (isApplyEditRequest(payload) && isSchemaAssetUUID(event.streamKey)) {
+                try {
+                    const result = await applyEdit({
+                        AssetId: event.streamKey,
+                        RequestId: payload.RequestId,
+                        address: payload.address,
+                        schema: payload.schema
+                    })
+                    
+                    if (result.success) {
+                        // Stream Content Update event
+                        try {
+                            await streamEvent({
+                                update: {
+                                    type: 'Content Update',
+                                    schema: result.schema
+                                },
+                                streamKey: event.streamKey
+                            })
+                        } catch (streamError) {
+                            console.error(`Error streaming Content Update event for ${event.streamKey}:`, streamError)
+                            // Don't fail the edit operation if streaming fails
+                        }
+                    } else {
+                        // Stream Merge Conflict event
+                        try {
+                            await streamEvent({
+                                update: {
+                                    type: 'Merge Conflict',
+                                    error: result.error
+                                },
+                                streamKey: event.streamKey
+                            })
+                        } catch (streamError) {
+                            console.error(`Error streaming Merge Conflict event for ${event.streamKey}:`, streamError)
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error processing applyEdit for ${event.streamKey}:`, error)
+                }
+            }
+            
+            // Handle Move Asset events
             if (isMoveAssetRequest(payload) && isSchemaAssetUUID(event.streamKey)) {
                 try {
                     const moveRequest = payload

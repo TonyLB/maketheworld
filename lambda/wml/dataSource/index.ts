@@ -2,7 +2,8 @@ import { wmlDataSource as wmlDataSourceInstance } from './mtw-wml'
 import messageBus from '../messageBus'
 
 export { WMLDataSource } from './abstract'
-export { WMLEventSerializer, WMLContentEvent, WMLZoneEvent, WMLEventUpdate } from './serializers'
+// Re-export WML event types from mtw-interfaces for convenience
+export { WMLEventSerializer, WMLContentEvent, WMLZoneEvent, WMLEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 
 export const wmlDataSource = wmlDataSourceInstance
 
