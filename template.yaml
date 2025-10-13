@@ -1407,7 +1407,6 @@ Resources:
                 FilterPolicy:
                     Type:
                         - PlayerInfo
-                        - LibraryUpdate
                 FilterPolicyScope: MessageAttributes
   DeliverMessageSyncFunction:
       Type: AWS::Serverless::Function

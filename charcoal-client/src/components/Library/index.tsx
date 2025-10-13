@@ -18,9 +18,7 @@ import AssetIcon from '@mui/icons-material/Landscape'
 
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { getMyCharacters, getMyAssets } from '../../slices/player'
-import { getLibrary, setIntent } from '../../slices/library'
-import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
-import { subscribeToLibrary, unsubscribeFromLibrary, getIsLibrarySubscribed } from '../../slices/libraryDataSource'
+import { subscribeToLibrary, unsubscribeFromLibrary, getIsLibrarySubscribed, getLibraryAssetIds } from '../../slices/libraryDataSource'
 
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import PreviewPane, { PreviewPaneContents } from './PreviewPane'
@@ -99,13 +97,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
     const dispatch = useDispatch()
     const isLibrarySubscribed = useSelector(getIsLibrarySubscribed)
     
-    // Legacy library slice subscription
-    useEffect(() => {
-        dispatch(setIntent(['CONNECTED']))
-        dispatch(heartbeat)
-    }, [])
-    
-    // New library DataSource subscription - only when component is mounted and not already subscribed
+    // Subscribe to library DataSource - only when component is mounted and not already subscribed
     useEffect(() => {
         if (!isLibrarySubscribed) {
             dispatch(subscribeToLibrary())
@@ -132,8 +124,9 @@ export const Library: FunctionComponent<LibraryProps> = () => {
     const navigate = useNavigate()
     const Characters = useSelector(getMyCharacters)
     const Assets = useSelector(getMyAssets)
-    // Only get Assets from Library - Characters will be accessed via asset data in future
-    const { Assets: libraryAssets = [] } = useSelector(getLibrary)
+    // Get asset IDs from new libraryDataSource slice
+    const libraryAssetIds = useSelector(getLibraryAssetIds)
+    const libraryAssets = libraryAssetIds.map(id => ({ AssetId: id }))
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <div style={{ textAlign: "center" }}>

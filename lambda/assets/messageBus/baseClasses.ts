@@ -17,10 +17,6 @@ export type ErrorMessage = {
     };
 }
 
-export type FetchLibraryMessage = {
-    type: 'FetchLibrary';
-}
-
 type ImportFromAssetArgument = {
     assetId: `ASSET#${string}`;
     keys: ComponentUUID[];
@@ -48,14 +44,6 @@ export type UploadURLMessage = {
     images: UploadURLMessageImage[];
 }
 
-export type LibrarySubscribeMessage = {
-    type: 'LibrarySubscribe';
-}
-
-export type LibraryUnsubscribeMessage = {
-    type: 'LibraryUnsubscribe';
-}
-
 export type PlayerInfoMessage = {
     type: 'PlayerInfo';
     player?: string;
@@ -69,10 +57,6 @@ export type PlayerSettingsMessage = {
     RequestId?: string;
 } & Omit<AssetPlayerSettingsAPIMessage, 'message'>
 
-export type LibraryUpdateMessage = {
-    type: 'LibraryUpdate';
-}
-
 export type CollaborationStatusMessage = {
     type: 'CollaborationStatus';
     RequestId?: string;
@@ -85,29 +69,21 @@ export type StreamingEventMessage = {
 export type MessageType = ReturnValueMessage |
     ErrorMessage |
     StreamingEventMessage |
-    FetchLibraryMessage |
     FetchImportsMessage |
     FetchAssetMessage |
     UploadURLMessage |
-    LibrarySubscribeMessage |
-    LibraryUnsubscribeMessage |
     PlayerInfoMessage |
     PlayerSettingsMessage |
-    LibraryUpdateMessage |
     CollaborationStatusMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isErrorMessage = (prop: MessageType): prop is ErrorMessage => (prop.type === 'Error')
 export const isStreamingEventMessage = (prop: MessageType): prop is StreamingEventMessage => (prop.type === 'StreamingEvent')
-export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
 export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMessage => (prop.type === 'FetchAsset')
 export const isFetchImportsAPIMessage = (prop: MessageType): prop is FetchImportsMessage => (prop.type === 'FetchImports')
 export const isUploadURLMessage = (prop: MessageType): prop is UploadURLMessage => (prop.type === 'UploadURL')
-export const isLibrarySubscribeMessage = (prop: MessageType): prop is LibrarySubscribeMessage => (prop.type === 'LibrarySubscribe')
-export const isLibraryUnsubscribeMessage = (prop: MessageType): prop is LibraryUnsubscribeMessage => (prop.type === 'LibraryUnsubscribe')
 export const isPlayerInfoMessage = (prop: MessageType): prop is PlayerInfoMessage => (prop.type === 'PlayerInfo')
 export const isPlayerSettingMessage = (prop: MessageType): prop is PlayerSettingsMessage => (prop.type === 'PlayerSettings')
-export const isLibraryUpdateMessage = (prop: MessageType): prop is LibraryUpdateMessage => (prop.type === 'LibraryUpdate')
 export const isCollaborationStatusMessage = (prop: MessageType): prop is CollaborationStatusMessage => (prop.type === 'CollaborationStatus')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

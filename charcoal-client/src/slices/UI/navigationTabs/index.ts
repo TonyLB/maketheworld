@@ -4,7 +4,6 @@ import { unique } from '../../../lib/lists';
 
 import { Selector } from '../../../store'
 import { setIntent as activeCharacterSetIntent } from '../../activeCharacters';
-import { setIntent as librarySetIntent } from '../../library';
 import { setIntent as personalAssetSetIntent, getStatus } from '../../personalAssets'
 import { heartbeat } from '../../stateSeekingMachine/ssmHeartbeat';
 import { pushChoice } from '../choiceDialog';
@@ -105,16 +104,12 @@ export const closeTab = createAsyncThunk(
                             dispatch(personalAssetSetIntent({ key: tab.assetId, intent: ['NEEDSAVE'] }))
                         }
                     }
-                    if (!libraryStillNeeded) {
-                        dispatch(librarySetIntent(['INACTIVE']))
-                        dispatch(heartbeat)
-                    }
+                    // Note: Library subscription is now managed on-demand in Library component
+                    // No cleanup needed here - subscription persists across navigation
                     break
                 case 'Library':
-                    if (!libraryStillNeeded) {
-                        dispatch(librarySetIntent(['INACTIVE']))
-                        dispatch(heartbeat)
-                    }
+                    // Note: Library subscription is now managed on-demand in Library component
+                    // No cleanup needed here - subscription persists across navigation
                     break
                 case 'MessagePanel':
                     removeHrefs = allTabs

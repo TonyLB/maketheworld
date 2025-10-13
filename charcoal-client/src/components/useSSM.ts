@@ -5,7 +5,6 @@ import { iterateAllSSMs as activeCharacterSSMs } from '../slices/activeCharacter
 import { iterateAllSSMs as ephemeraSSM } from '../slices/ephemera'
 import { iterateAllSSMs as playerSSM } from '../slices/player'
 import { iterateAllSSMs as lifeLineSSM } from '../slices/lifeLine'
-import { iterateAllSSMs as librarySSM } from '../slices/library'
 import { iterateAllSSMs as personalAssetsSSM } from '../slices/personalAssets'
 import { iterateAllSSMs as collaborationStatusSSM } from '../slices/UI/collaborationStatus'
 import { iterateContentHeaders } from '../slices/contentHeaders'
@@ -19,7 +18,6 @@ export const useStateSeekingMachines = () => {
         dispatch(ephemeraSSM)
         dispatch(playerSSM)
         dispatch(lifeLineSSM)
-        dispatch(librarySSM)
         dispatch(personalAssetsSSM)
         dispatch(collaborationStatusSSM)
         dispatch(iterateContentHeaders)

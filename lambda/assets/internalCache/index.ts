@@ -1,6 +1,5 @@
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { CacheConstructor } from './baseClasses'
-import { CacheLibraryData } from './library'
 import { S3Client } from "@aws-sdk/client-s3"
 import { CachePlayerLibraryData } from './playerLibrary'
 import { AssetMetaData } from './assetMeta'
@@ -116,7 +115,7 @@ class InternalCache {
     ComponentData: ComponentData = new ComponentData()
     PlayerSettings: CachePlayerSettingData = new CachePlayerSettingData()
     PlayerLibrary: CachePlayerLibraryData = new CachePlayerLibraryData()
-    Library: CacheLibraryData = new CacheLibraryData()
+    // Note: Legacy Library cache removed - now using mtw.assets.library DataSource
     PlayerSessions: CachePlayerSessionsData = new CachePlayerSessionsData()
     SessionConnections: CacheSessionConnectionsData = new CacheSessionConnectionsData()
     _graphCache: InstanceType<ReturnType<ReturnType<typeof GraphCache>>> = new (GraphCache(graphDBHandler)(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()
@@ -135,7 +134,7 @@ class InternalCache {
         this.ComponentData.clear()
         this.PlayerSettings.clear()
         this.PlayerLibrary.clear()
-        this.Library.clear()
+        // Note: Legacy Library.clear() removed
         this.PlayerSessions.clear()
         this.SessionConnections.clear()
     }
