@@ -1,0 +1,200 @@
+# WML S3 Storage Migration - Architectural Planning
+
+**Status: PLANNING PHASE**
+
+This document tracks the planned migration away from the "zones as subdirectories" storage pattern to a more flexible and maintainable architecture.
+
+## Current Architecture
+
+### Zone-as-Subdirectory Pattern
+
+The current WML S3 storage architecture organizes assets by placing them in subdirectories based on their zone:
+
+```
+s3://bucket/
+  Canon/
+    {assetId}.wml
+    {assetId}.ndjson
+  Library/
+    {assetId}.wml
+    {assetId}.ndjson
+  Personal/
+    {player}/
+      {assetId}.wml
+      {assetId}.ndjson
+  Draft/
+    {player}/
+      draft.wml
+      draft.ndjson
+  Archive/
+    {assetId}.wml
+    {assetId}.ndjson
+```
+
+**Key Characteristics**:
+- Zone is encoded in the S3 object path/key
+- Zone transitions require S3 copy + delete operations (physical file moves)
+- Zone information is implicit from the file location
+- Each asset exists in exactly one zone at a time
+
+## Limitations Encountered
+
+### 1. **Zone Transitions Require File Operations**
+
+Moving an asset between zones requires:
+- S3 CopyObject operation (creates new file)
+- S3 DeleteObject operation (removes old file)
+- Multiple network round-trips
+- Potential for inconsistency if operations fail mid-transition
+
+**Impact**: Zone transitions are slow, expensive, and error-prone.
+
+### 2. **Path-Based Zone Encoding is Brittle**
+
+Zone information is encoded in the S3 key, requiring:
+- String parsing to determine zone from path
+- Complex path construction logic scattered throughout codebase
+- Difficulty in querying "what zone is this asset in?"
+- Zone changes invalidate all existing references to the file path
+
+**Impact**: Zone logic is scattered and error-prone; hard to maintain consistency.
+
+### 3. **Limited Query Capabilities**
+
+Finding assets in a specific zone requires:
+- S3 ListObjects with prefix filtering
+- DynamoDB lookups that duplicate S3 path information
+- No efficient way to query "all assets a player can access across zones"
+
+**Impact**: Poor query performance; reliance on redundant metadata storage.
+
+### 4. **Complications with Multi-Zone Access**
+
+Some use cases require understanding assets across zones:
+- Player needs to see their Personal + Draft + accessible Library items
+- Canonization workflows need to understand Library → Canon transitions
+- Backup/restore operations need zone-aware handling
+
+**Impact**: Complex logic to coordinate cross-zone operations.
+
+### 5. **Metadata Synchronization Burden**
+
+DynamoDB must store zone information to enable queries:
+- Zone is stored in `AssetWorkspaceAddress` in DynamoDB
+- Zone in DynamoDB must stay synchronized with S3 path
+- Inconsistencies lead to "file not found" or "wrong zone" errors
+
+**Impact**: Dual source of truth creates synchronization complexity.
+
+### 6. **Versioning and History Challenges**
+
+Current structure makes it difficult to:
+- Track zone transition history (when did asset move to Canon?)
+- Implement undo/rollback of zone changes
+- Audit trail of asset lifecycle
+
+**Impact**: Limited observability and difficulty implementing advanced features.
+
+## Migration Objectives
+
+The migration aims to address these limitations by:
+
+1. **Decoupling zone from storage location** - Store zone as metadata, not path
+2. **Simplifying zone transitions** - Make zone changes metadata updates, not file moves
+3. **Improving queryability** - Enable efficient zone-based queries
+4. **Reducing complexity** - Single source of truth for zone information
+5. **Enabling future features** - Support for versioning, history, multi-zone access
+
+## Migration Phases
+
+### Phase 1: Flat UUID-Based Storage
+
+**Goal**: Replace zone-as-subdirectory with flat UUID-based storage using S3 tags/metadata for organizational information.
+
+#### Core Changes:
+
+1. **StandardForm UUID Keys for Assets**
+   - Enable assets to use `AssetUUID` instead of human-readable keys
+   - Eliminate the distinction between "local key" and "UUID" at asset level
+   - UUID becomes the primary identifier for file naming
+
+2. **Flat S3 Object Structure**
+   - Store all objects at bucket root level: `{uuid}.wml`, `{uuid}.ndjson`
+   - Authorization files: `{uuid}.auth.wml`, `{uuid}.auth.ndjson`
+   - No subdirectories for zones or players
+
+3. **Zone as S3 Tags** (Mutable Attributes)
+   - Zone stored in S3 object tags (e.g., `Zone=Canon`)
+   - Zone transitions = tag updates (no file moves)
+   - Enables atomic zone changes
+
+4. **Player/Owner as S3 Metadata** (Immutable Attributes)
+   - Player stored in S3 user-defined metadata (e.g., `x-amz-meta-player=alice`)
+   - Set once on object creation
+   - Cannot change (appropriate for ownership)
+
+5. **Zone Change Operations Refactor**
+   - Replace S3 CopyObject + DeleteObject with S3 PutObjectTagging
+   - Update `moveAsset` to use tagging API
+   - Maintain same event emission (Zone Changed)
+
+6. **Access Pattern Updates**
+   - Refactor code using `AssetWorkspaceAddress` to use `AssetUUID` consistently
+   - Update S3 key construction logic
+   - Simplify path parsing/generation
+
+#### Key Decisions:
+
+**Character Assets**: Characters are components within assets (not separate S3 objects). Eliminate the `Assets/` vs `Characters/` subfolder distinction entirely.
+
+**Draft Assets**: Assign stable UUIDs to draft assets. Add functionality to assign a single Draft UUID per player (deterministic mapping).
+
+**Archive & Backup**: Defer to Phase 2. Remove all archiving and backup functionality in Phase 1 to simplify.
+
+**Zone Queries**: Use DynamoDB `assets` table as primary query layer for zone-based lookups (not S3 ListObjects).
+
+**DynamoDB Schema**: Store `AssetUUID` as the primary key. No separate address storage needed - zone information lives in S3 tags.
+
+**AssetWorkspace API**: Refactor constructors and methods as part of broader AssetWorkspace library changes (covered in implementation tasks).
+
+**Migration Strategy**: No migration needed - current production only has `ASSET#primitives` which will be treated as a reserved ID.
+
+**Authorization Files**: Use same UUID prefix as content files, differentiated by `.auth.wml` and `.auth.ndjson` postfixes (same as current pattern). Mirror the same S3 tags.
+
+**Zone Change Events**: Zone change handlers in `mtw.wml` DataSource will determine `fromZone` and `toZone` before performing S3 tag updates (maintains domain authority).
+
+**Concurrency**: Existing `atomicLock` function handles concurrent updates to S3 objects (no additional work needed).
+
+### Phase 2: [TBD]
+*Details to be added*
+
+### Phase 3: [TBD]
+*Details to be added*
+
+## Architectural Considerations
+
+*To be documented: Key architectural principles and patterns to guide the migration*
+
+### Backward Compatibility
+*How to maintain compatibility during migration*
+
+### Data Migration Strategy
+*How to migrate existing assets to new structure*
+
+### Testing Strategy
+*How to validate migration success*
+
+### Rollback Plan
+*How to revert if issues are discovered*
+
+## Related Documentation
+
+- **[Current S3 Storage](AGENT.s3Storage.md)**: Documentation of current storage patterns
+- **[Event Architecture](../../AGENT.architecture.events.md)**: Event-driven patterns and coordination
+- **[WML DataSource](dataSource/)**: DataSource pattern and event handling
+- **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File operations and abstractions
+
+---
+
+**Document Status**: This is a planning document for a multi-phase architectural migration. It will be updated as design decisions are made and implementation progresses.
+
