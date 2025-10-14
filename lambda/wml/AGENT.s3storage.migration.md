@@ -199,7 +199,7 @@ The migration aims to address these limitations by:
 
 **Character Assets**: Characters are components within assets (not separate S3 objects). Eliminate the `Assets/` vs `Characters/` subfolder distinction entirely.
 
-**Draft Assets**: Assign stable UUIDs to draft assets. Add functionality to assign a single Draft UUID per player (deterministic mapping).
+**Draft Assets**: Use rotating v4 UUIDs for draft assets. Track current draft UUID per player in DynamoDB Player metadata. On publish, use `moveAsset` to change Zone tag, then create new draft with fresh UUID. See [Publishing Strategy](AGENT.s3storage.publishing.plan.md) for details.
 
 **Archive & Backup**: Defer to Phase 2. Remove all archiving and backup functionality in Phase 1 to simplify.
 
@@ -292,6 +292,7 @@ The migration aims to address these limitations by:
 
 - **[Current S3 Storage](AGENT.s3Storage.md)**: Documentation of current storage patterns
 - **[Write Operations Catalog](AGENT.s3storage.migration.catalog.md)**: Complete catalog of all S3 write locations for refactoring
+- **[Publishing Strategy](AGENT.s3storage.publishing.plan.md)**: Draft management and publishing workflow using Phase 1 architecture
 - **[Event Architecture](../../AGENT.architecture.events.md)**: Event-driven patterns and coordination
 - **[WML DataSource](dataSource/)**: DataSource pattern and event handling
 - **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File operations and abstractions
