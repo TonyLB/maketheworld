@@ -85,24 +85,17 @@ All S3 writes for asset content go through these four methods:
 - **Address Source**: From `args.address` or fetched from DynamoDB via `internalCache.Meta.get()`
 - **Refactoring Need**: Address lookup must return UUID; path construction changes
 
-**b) `copyWML` (Asset Duplication)**
+**b) ~~`copyWML` (Asset Duplication)~~ - DEPRECATED**
 - **Location**: `lambda/wml/copyWML/index.ts`
-- **Lines**: 50-51
-- **Operations**: `pushJSON()`, `pushWML()`
-- **Purpose**: Copy asset from one location to another with new UUID
-- **Address Source**: `args.to` (provided in request)
-- **Refactoring Need**: 
-  - ✅ Already updated to use `uuid` parameter
-  - Need to update address handling to use UUID-based paths
-  - Will need to add zone/player as tags/metadata instead of path components
+- **Status**: ⚠️ **TO BE REMOVED** - Not used in production, predates Phase 1 architecture
+- **Replacement Strategy**: See [Publishing Strategy](AGENT.s3storage.publishing.plan.md)
+- **Reason**: Publishing workflow will use `moveAsset` (zone tag update) + create new draft (v4 UUID) instead of copy+reset pattern
 
-**c) `resetWML` (Clear Asset Content)**
+**c) ~~`resetWML` (Clear Asset Content)~~ - DEPRECATED**
 - **Location**: `lambda/wml/resetWML/index.ts`
-- **Lines**: 20-21
-- **Operations**: `pushJSON()`, `pushWML()`
-- **Purpose**: Clear all content from an asset
-- **Address Source**: `args.address` (provided in request)
-- **Refactoring Need**: Address must become UUID-based
+- **Status**: ⚠️ **TO BE REMOVED** - Not used in production, predates Phase 1 architecture
+- **Replacement Strategy**: See [Publishing Strategy](AGENT.s3storage.publishing.plan.md)
+- **Reason**: Replaced by creating new empty draft asset with fresh UUID
 
 **d) `moveAsset` (Zone Transitions)**
 - **Location**: `lambda/wml/dataSource/moveAsset/index.ts`
@@ -123,6 +116,13 @@ All S3 writes for asset content go through these four methods:
 - **Operations**: Reads from S3, writes tar.gz archive (not WML files)
 - **Purpose**: Create compressed backups of assets
 - **Note**: Phase 1 defers backup functionality (line 152 of migration plan)
+
+**f) ~~`publishWML` Step Function~~ - DEPRECATED**
+- **Location**: `stepFunctions/publishWML.asl.yaml`
+- **Status**: ⚠️ **TO BE REMOVED** - Infrastructure deployed but not used in client
+- **Current Workflow**: copyWML (Draft → Target) + resetWML (clear Draft)
+- **Replacement Strategy**: New step function using `moveAsset` + `createNewDraft`
+- **Reason**: Predates Phase 1 architecture; rebuild with zone tagging when implementing publishing UI
 
 ---
 
@@ -283,11 +283,11 @@ Personal/{player}/Assets/draft.ndjson
 - `packages/mtw-asset-workspace/ts/index.ts` - Write operations with tags/metadata
 
 **Lambda Write Operations**:
-- `lambda/wml/dataSource/applyEdit/index.ts` - Uses workspace.push methods
-- `lambda/wml/copyWML/index.ts` - Uses workspace.push methods
-- `lambda/wml/resetWML/index.ts` - Uses workspace.push methods
-- `lambda/wml/dataSource/moveAsset/index.ts` - **Primary refactoring target**
-- `lambda/initialize/app.ts` - Direct primitives write
+- `lambda/wml/dataSource/applyEdit/index.ts` - Uses workspace.push methods ✅ Active
+- ~~`lambda/wml/copyWML/index.ts`~~ - ⚠️ **TO BE DEPRECATED** (not used in production)
+- ~~`lambda/wml/resetWML/index.ts`~~ - ⚠️ **TO BE DEPRECATED** (not used in production)
+- `lambda/wml/dataSource/moveAsset/index.ts` - **Primary refactoring target** ✅ Active
+- `lambda/initialize/app.ts` - Direct primitives write ✅ Active
 
 **Supporting Functions**:
 - `lambda/wml/serialize/dbRegister.ts` - Metadata registration
@@ -379,9 +379,32 @@ async getMetadata({ Key }: { Key: string }): Promise<Record<string, string>>
 
 ---
 
+## Deprecation Strategy
+
+### Functions to Remove
+
+These functions are **infrastructure that was deployed but never used in the client UI**:
+
+1. **`lambda/wml/copyWML/`** - Entire directory including `index.ts` and `index.test.ts`
+2. **`lambda/wml/resetWML/`** - Entire directory including `index.ts`
+3. **`stepFunctions/publishWML.asl.yaml`** - Step function definition
+4. **Handler cases in `lambda/wml/app.ts`** - Lines 80-92 (copyWML, resetWML cases)
+5. **CloudFormation resources in `template.yaml`**:
+   - `PublishWMLStateMachine` (lines ~1755-1770)
+   - `PublishWMLStateMachineLogs` (line ~1753)
+
+**Rationale**: These functions predate Phase 1 architecture and implement workflows using path-based zone storage. The publishing feature will be rebuilt using `moveAsset` (zone tag updates) + rotating v4 draft UUIDs when client UI is implemented. See [Publishing Strategy](AGENT.s3storage.publishing.plan.md).
+
+**Benefits of Deprecation**:
+- Removes migration burden (don't need to update path construction for unused code)
+- Clean slate for implementing publishing with Phase 1 architecture
+- Eliminates complex copy+delete pattern in favor of atomic zone tag updates
+
+---
+
 ## Notes
 
-- **Draft Assets**: Currently use special path `Personal/{player}/Assets/draft.wml`. Phase 1 decision: Assign stable UUIDs (e.g., `draft[{player}]`)
+- **Draft Assets**: Use rotating v4 UUIDs (from `uuid` package) for draft assets. Track current draft UUID in Player metadata (`currentDraftAssetId` field). See [Publishing Strategy](AGENT.s3storage.publishing.plan.md).
 - **Archive Zone**: Phase 1 defers archiving. May remove Archive zone handling temporarily.
 - **Backup Operations**: `backupWML` deferred to Phase 2 (chunk-based architecture)
 - **S3 Tags vs Metadata**: Tags are mutable (good for Zone), Metadata is set-once (good for Player/Owner)

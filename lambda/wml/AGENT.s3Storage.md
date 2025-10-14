@@ -275,8 +275,9 @@ await archiveAsset(assetAddress, backupId)
 ### Key Files
 - **Core Implementation**: `packages/mtw-asset-workspace/ts/readOnly.ts` - AssetWorkspace class and file operations
 - **WML Operations**: `lambda/wml/dataSource/applyEdit/` - Main WML edit processing and file management
-- **Zone Transitions**: `lambda/wml/copyWML/index.ts` - Asset copying and zone movement
-- **Backup Operations**: `lambda/wml/backupWML/index.ts` - Asset archival and backup creation
+- **Zone Transitions**: `lambda/wml/dataSource/moveAsset/` - Asset zone transitions (refactored for Phase 1)
+- ~~**Asset Copying**: `lambda/wml/copyWML/index.ts`~~ - DEPRECATED (removed in Phase 1 migration)
+- **Backup Operations**: `lambda/wml/backupWML/index.ts` - Asset archival and backup creation (deferred to Phase 2)
 
 ### Related Documentation
 - **[WML Language System](../../packages/mtw-wml/ts/AGENT.md)**: WML syntax and parsing details

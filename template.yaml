@@ -1750,31 +1750,6 @@ Resources:
         - LambdaInvokePolicy:
             FunctionName: !Ref UpdateEphemeraFunction
         - CloudWatchLogsFullAccess
-  PublishWMLStateMachineLogs:
-    Type: AWS::Logs::LogGroup
-  PublishWMLStateMachine:
-    Type: AWS::Serverless::StateMachine
-    Properties:
-      Name: !Sub '${TablePrefix}_publish_wml_step_function'
-      Type: EXPRESS
-      DefinitionUri: ./stepFunctions/publishWML.asl.yaml
-      Tracing:
-        Enabled: true
-      Logging:
-        Destinations:
-          - CloudWatchLogsLogGroup: 
-              LogGroupArn: !GetAtt PublishWMLStateMachineLogs.Arn
-        IncludeExecutionData: true
-        Level: ALL
-      DefinitionSubstitutions:
-        WMLFunctionArn: !GetAtt WMLFunction.Arn
-        TopicArn: !GetAtt MTWFeedbackTopic.TopicArn
-      Policies:
-        - LambdaInvokePolicy:
-            FunctionName: !Ref WMLFunction
-        - CloudWatchLogsFullAccess
-        - SNSPublishMessagePolicy:
-            TopicName: !GetAtt MTWFeedbackTopic.TopicName
   FetchImportsStateMachineLogs:
     Type: AWS::Logs::LogGroup
   FetchImportsStateMachine:

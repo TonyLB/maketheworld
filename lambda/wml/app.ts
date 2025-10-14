@@ -1,5 +1,3 @@
-import copyWML from './copyWML';
-import { resetWML } from './resetWML';
 import backupWML from "./backupWML";
 import { checkLock, requestLock, yieldAtomicLock } from "./atomicLock";
 import delayPromise from "@tonylb/mtw-utilities/ts/dynamoDB/delayPromise";
@@ -77,20 +75,8 @@ export const handler = async (event: any) => {
     }
 
     switch(event.message) {
-        case 'copyWML':
-            return await copyWML(event)
         case 'backupWML':
             return await backupWML(event)
-        case 'resetWML':
-            if (event.address.zone === 'Draft') {
-                return await resetWML({
-                    ...event,
-                    key: `draft[${event.address.player}]`
-                })
-            }
-            else {
-                return await resetWML(event)
-            }
         case 'requestLock':
             const lock = await requestLock(event.AssetId)
             return await checkLock(event.AssetId, lock)
