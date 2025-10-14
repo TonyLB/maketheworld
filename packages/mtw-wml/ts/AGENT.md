@@ -17,7 +17,7 @@ The World Markup Language (WML) is a custom markup format that serves as both a 
 WML uses XML-like syntax with custom tags and attributes:
 
 ```xml
-<Asset key=(Dungeon)>
+<Asset uuid=(Dungeon)>
     <Room key=(VORTEX)>
         <Exit to=(cave)>cave</Exit>
         <Example uuid=(example1)>
@@ -55,7 +55,7 @@ that behavior. Part of the process of *standardizing* a WML asset is to transfor
 For instance, in the following example:
 
 ```xml
-<Asset key=(MarketSquare)>
+<Asset uuid=(MarketSquare)>
     <Feature key=(fountain) uuid=(fountain-123)>
         <Example uuid=(fountain-example-1)>
             <Name>Central Fountain</Name>
@@ -79,7 +79,7 @@ place, and the `Description` added in another are aggregated to the same compone
 standard form, the data would be expresed as follows:
 
 ```xml
-<Asset key=(MarketSquare)>
+<Asset uuid=(MarketSquare)>
     <Feature key=(fountain) uuid=(fountain-123)>
         <Example uuid=(fountain-example-1)>
             <Name>Central Fountain</Name>
@@ -146,7 +146,7 @@ edit tags allow the language to be used for both storage and transmission of mod
 Edit tags are processed by the standardization system to merge changes into the base content. For example:
 
 ```xml
-<Asset key=(Test)>
+<Asset uuid=(Test)>
     <Room key=(testRoom)>
         <Example uuid=(testRoom-example)>
             <Replace><Description>bare and spindly trees.</Description></Replace>
@@ -161,7 +161,7 @@ The edit system supports merging multiple edits together and can detect conflict
 attempted. For instance, merging the above changes into the following:
 
 ```xml
-<Asset key=(Test)>
+<Asset uuid=(Test)>
     <Room key=(testRoom)>
         <Example uuid=(testRoom-example)>
             <Description>A walkway by a canal, winding through bare and spindly trees.</Description>
@@ -174,7 +174,7 @@ attempted. For instance, merging the above changes into the following:
 ... would result in the following:
 
 ```xml
-<Asset key=(Test)>
+<Asset uuid=(Test)>
     <Room key=(testRoom)>
         <Example uuid=(testRoom-example)>
             <Description>A walkway by a canal, winding through cherry trees lushly in bloom.</Description>

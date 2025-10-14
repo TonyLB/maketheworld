@@ -16,7 +16,7 @@ describe('MapDThree', () => {
 
         // Create inherited StandardForm with a map
         const inherited = new StandardForm(`
-            <Asset key=(inheritedAsset)>
+            <Asset uuid=(inheritedAsset)>
                 <Map uuid=(testMap)>
                     <Room uuid=(GHI)>
                         <Position x="300" y="300" />
@@ -28,7 +28,7 @@ describe('MapDThree', () => {
 
         // Create editable StandardForm with additional rooms
         const editable = new StandardForm(`
-            <Asset key=(editableAsset)>
+            <Asset uuid=(editableAsset)>
                 <Map uuid=(testMap)>
                     <Room uuid=(DEF)>
                         <Position x="300" y="200" />
@@ -69,7 +69,7 @@ describe('MapDThree', () => {
         const mockOnTick = vi.fn()
 
         const inherited = new StandardForm(`
-            <Asset key=(inheritedAsset)>
+            <Asset uuid=(inheritedAsset)>
                 <Map uuid=(testMap)>
                     <Room uuid=(GHI)>
                         <Position x="300" y="300" />
@@ -79,7 +79,7 @@ describe('MapDThree', () => {
         `)
 
         const editable = new StandardForm(`
-            <Asset key=(editableAsset)>
+            <Asset uuid=(editableAsset)>
                 <Map uuid=(testMap)>
                     <Room uuid=(DEF)>
                         <Position x="300" y="200" />

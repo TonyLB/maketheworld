@@ -2,7 +2,7 @@
 
 exports[`LibraryAsset context provider > should provide currentWML 1`] = `
 "
-<Asset key=(Test)>
+<Asset uuid=(Test)>
     <Import from=(BASE)>
         <Room key=(DEF) />
     </Import>

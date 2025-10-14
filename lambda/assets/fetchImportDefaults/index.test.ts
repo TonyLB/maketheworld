@@ -18,7 +18,7 @@ describe('fetchImportsMessage', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        const testFinal = new StandardForm(`<Asset key=(testFinal)>
+        const testFinal = new StandardForm(`<Asset uuid=(testFinal)>
             <Room uuid=(testNonImport) key=(testNonImport)>
                 <Example uuid=(testNonImportExample)>
                     <Description>
@@ -54,7 +54,7 @@ describe('fetchImportsMessage', () => {
             </Room>
             <Feature uuid=(testFeature) key=(featureImport) from=(ASSET#testImportAssetFour) />
         </Asset>`)
-        const testImportOne = new StandardForm(`<Asset key=(testImportAssetOne)>
+        const testImportOne = new StandardForm(`<Asset uuid=(testImportAssetOne)>
             <Room uuid=(testImportOne)>
                 <Example uuid=(testImportOneExample)>
                     <Description>
@@ -74,7 +74,7 @@ describe('fetchImportsMessage', () => {
                 </Example>
             </Room>
         </Asset>`)
-        const testImportTwo = new StandardForm(`<Asset key=(testImportAssetTwo)>
+        const testImportTwo = new StandardForm(`<Asset uuid=(testImportAssetTwo)>
             <Room uuid=(testImportThree) key=(basic) from=(ASSET#testImportAssetThree)>
                 <Example uuid=(testImportTwoExample)>
                     <Description>
@@ -85,7 +85,7 @@ describe('fetchImportsMessage', () => {
             </Room>
             <Room uuid=(testStubOne) key=(stub) from=(ASSET#testImportAssetThree) />
         </Asset>`)
-        const testImportThree = new StandardForm(`<Asset key=(testImportAssetThree)>
+        const testImportThree = new StandardForm(`<Asset uuid=(testImportAssetThree)>
             <Room uuid=(testImportThree) key=(basicOne)>
                 <Exit to=(stub)>test exit</Exit>
             </Room>
@@ -96,7 +96,7 @@ describe('fetchImportsMessage', () => {
                 <ShortName>AssetThreeStub</ShortName>
             </Room>
         </Asset>`)
-        const testImportFour = new StandardForm(`<Asset key=(testImportAssetFour)>
+        const testImportFour = new StandardForm(`<Asset uuid=(testImportAssetFour)>
             <Feature uuid=(testFeature) key=(featureImport)>
                 <Example uuid=(testFeatureExample)>
                     <Description>Feature test</Description>

@@ -12,7 +12,7 @@ describe('WMLEventSerializer', () => {
     describe('Content Events', () => {
         it('should serialize Content Update event to WML string', () => {
             const standardForm = new StandardForm(deIndentWML(`
-                <Asset key=(test-asset)>
+                <Asset uuid=(test-asset)>
                     <Room key=(test-room) uuid=(test-room)>
                         <Name>Test Room</Name>
                         <Description>A test room for testing purposes</Description>
@@ -47,7 +47,7 @@ describe('WMLEventSerializer', () => {
 
         it('should deserialize Content Update event from WML string', () => {
             const wmlString = deIndentWML(`
-                <Asset key=(test-asset)>
+                <Asset uuid=(test-asset)>
                     <Room key=(test-room) uuid=(test-room)>
                         <Name>Test Room</Name>
                         <Description>A test room for testing purposes</Description>
@@ -76,7 +76,7 @@ describe('WMLEventSerializer', () => {
 
         it('should handle Content Update round-trip correctly', () => {
             const originalForm = new StandardForm(deIndentWML(`
-                <Asset key=(test-asset)>
+                <Asset uuid=(test-asset)>
                     <Room key=(test-room) uuid=(test-room)>
                         <Name>Test Room</Name>
                         <Description>A test room for testing purposes</Description>

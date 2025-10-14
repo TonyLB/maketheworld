@@ -24,7 +24,7 @@ const componentTemplates: ComponentProcessingTemplate[] = [
 describe("processAuthorizations", () => {
     it('should return an empty object when given an empty schema', () => {
         const schema = new Schema()
-        schema.loadWML(`<Asset key=(test) />`)
+        schema.loadWML(`<Asset uuid=(test) />`)
         const result = processAuthorizations({
             componentTemplates,
             schema: schema.schema,
@@ -34,7 +34,7 @@ describe("processAuthorizations", () => {
 
     it('should parse a provided schema with grants', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Grant player=(test1) actions="action1" />
                 </Room>
@@ -56,7 +56,7 @@ describe("processAuthorizations", () => {
 
     it('should handle nested components with grants', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Feature key=(testFeature)>
                         <Grant player=(test1) actions="action1" />
@@ -82,7 +82,7 @@ describe("processAuthorizations", () => {
 
     it('should handle remove tags', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Remove>
                         <Grant player=(test1) actions="action1" />
@@ -105,7 +105,7 @@ describe("processAuthorizations", () => {
 
     it('should handle replace tags', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Replace>
                         <Grant player=(test1) actions="action1" />

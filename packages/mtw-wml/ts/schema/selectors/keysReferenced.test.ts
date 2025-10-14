@@ -6,7 +6,7 @@ describe('keyReferenced selector', () => {
     it('should select keys referenced from a room', () => {
         const testOne = new Schema()
         testOne.loadWML(`
-            <Asset key=(testOne)>
+            <Asset uuid=(testOne)>
                 <Room key=(room1)>
                     <Name>Test room</Name>
                     <Description>
@@ -25,7 +25,7 @@ describe('keyReferenced selector', () => {
     it('should select keys referenced in a map', () => {
         const testOne = new Schema()
         testOne.loadWML(`
-            <Asset key=(testOne)>
+            <Asset uuid=(testOne)>
                 <Room key=(room1) />
                 <Room key=(room2) />
                 <Map key=(map1)>

@@ -32,7 +32,6 @@ Object {
   "components": Array [
     Object {
       "context": undefined,
-      "exits": Array [],
       "key": "testRoom",
       "shortName": "Test Room",
       "tag": "Room",
@@ -41,6 +40,7 @@ Object {
   ],
   "key": "Test",
   "metaData": Array [],
+  "universalKey": "ASSET#Test",
 }
 `;
 
@@ -76,5 +76,6 @@ Object {
   ],
   "key": "Test",
   "metaData": Array [],
+  "universalKey": "ASSET#Test",
 }
 `;

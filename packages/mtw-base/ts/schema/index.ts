@@ -97,9 +97,9 @@ export const isImportableTag = (tag: string): boolean => (
     ['Example', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment'].includes(tag)
 )
 
-export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMessageTag | SchemaMomentTag
+export type SchemaWithKey = SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMessageTag | SchemaMomentTag
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
-    ['Asset', 'Story', 'Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Message', 'Moment'].includes(value.tag)
+    ['Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Message', 'Moment'].includes(value.tag)
 )
 export type SchemaComponent = SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMessageTag | SchemaMomentTag
 export const isSchemaComponentTag = (tag: string): tag is SchemaComponent["tag"] => (

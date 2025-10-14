@@ -15,7 +15,7 @@ describe('schemaFromParse', () => {
 
     it('should make a schema from parse elements correctly', () => {
         const testParse = parse(tokenizer(new SourceStream(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Meta key=(ABC) time="1234" />
                 <Import from=(BASE)>
                     <Room key=(overview) />
@@ -57,7 +57,7 @@ describe('schemaFromParse', () => {
         expect(schemaFromParse(testParse)).toEqual([{
             data: {
                 Story: undefined,
-                key: "Test",
+                uuid: "ASSET#Test",
                 tag: "Asset"
             },
             children: [
@@ -171,7 +171,7 @@ describe('schemaFromParse', () => {
 
     it('should parse room with feature included', () => {
         const testParse = parse(tokenizer(new SourceStream(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(ABC)>
                     <Feature key=(DEF) />
                 </Room>
@@ -180,7 +180,8 @@ describe('schemaFromParse', () => {
         expect(schemaFromParse(testParse)).toEqual([{
             data: {
                 tag: "Asset",
-                key: "Test"
+                uuid: "ASSET#Test",
+                Story: undefined
             },
             children: [
                 {
@@ -198,7 +199,7 @@ describe('schemaFromParse', () => {
 
     it('should correctly parse property replace tags', () => {
         const testWML = `
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(room1)>
                     <Example uuid=(123-room1-replace-example)>
                         <Replace><Name>Lobby</Name></Replace>
@@ -211,7 +212,8 @@ describe('schemaFromParse', () => {
         expect(schemaFromParse(testParse)).toEqual([{
             data: {
                 tag: "Asset",
-                key: "test"
+                uuid: "ASSET#test",
+                Story: undefined
             },
             children: [
                 {
@@ -266,7 +268,7 @@ describe('schemaFromParse', () => {
 
     it('should correctly parse property remove tags', () => {
         const testWML = `
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(room1)>
                     <Remove><Exit to=(room2)>out</Exit></Remove>
                 </Room>
@@ -276,7 +278,8 @@ describe('schemaFromParse', () => {
         expect(schemaFromParse(testParse)).toEqual([{
             data: {
                 tag: "Asset",
-                key: "test"
+                uuid: "ASSET#test",
+                Story: undefined
             },
             children: [
                 {
@@ -292,7 +295,7 @@ describe('schemaFromParse', () => {
 
     it('should correctly parse component remove tags', () => {
         const testWML = `
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Remove>
                     <Room key=(room1)><Exit to=(room2)>out</Exit></Room>
                 </Remove>
@@ -302,7 +305,8 @@ describe('schemaFromParse', () => {
         expect(schemaFromParse(testParse)).toEqual([{
             data: {
                 tag: "Asset",
-                key: "test"
+                uuid: "ASSET#test",
+                Story: undefined
             },
             children: [{
                 data: { tag: 'Remove' },
@@ -336,7 +340,7 @@ describe('schemaFromParse', () => {
 
     it('should correctly extract map rooms', () => {
         const testParse = parse(tokenizer(new SourceStream(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Map key=(testMap)>
                     <Image key=(image1) />
                     <Name>Test Map</Name>
@@ -348,7 +352,8 @@ describe('schemaFromParse', () => {
         expect(schemaFromParse(testParse)).toEqual([{
             data: {
                 tag: "Asset",
-                key: "Test"
+                uuid: "ASSET#Test",
+                Story: undefined
             },
             children: [
                 {
@@ -392,13 +397,13 @@ describe('schemaFromParse', () => {
 //
 describe('schemaToWML', () => {
     it('should correctly round-trip the simplest asset', () => {
-        const testWML = `<Asset key=(Test)><Room key=(VORTEX) /></Asset>`
+        const testWML = `<Asset uuid=(Test)><Room key=(VORTEX) /></Asset>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
     it('should correctly round-trip all components with uuid', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room uuid=(123-VORTEX) key=(VORTEX)>
                     <Example uuid=(123-Example) key=(example1)>
                         <Name>Vortex</Name>
@@ -457,7 +462,7 @@ describe('schemaToWML', () => {
 
     it('should correctly round-trip complicated rooms', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(VORTEX)>
                     <ShortName>Vortex</ShortName>
                     <Example key=(example1)>
@@ -497,7 +502,7 @@ describe('schemaToWML', () => {
 
     it('should correctly round-trip edit tags', () => {
         const testWML = deIndentWML(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(room1)>
                     <Example uuid=(123-room1-edit-example)>
                         <Replace><Name>Lobby</Name></Replace><With><Name>Foyer</Name></With>
@@ -511,19 +516,19 @@ describe('schemaToWML', () => {
 
     it('should correctly not persist exits without targets', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(VORTEX)><Exit>Exit to nowhere</Exit></Room>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))), { persistentOnly: true })).toEqual(deIndentWML(`
-            <Asset key=(Test)><Room key=(VORTEX) /></Asset>
+            <Asset uuid=(Test)><Room key=(VORTEX) /></Asset>
         `))
     })
 
     it('should correctly parse exits with universalKey targets', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(VORTEX)><Exit to=(ROOM#target)>Exit to nowhere</Exit></Room>
                 <Room uuid=(target)>
                     <Example uuid=(123-target-example)><Name>Nowhere</Name></Example>
@@ -536,7 +541,7 @@ describe('schemaToWML', () => {
 
     it('should correctly round-trip knowledge items', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Knowledge key=(test)>
                     <Example uuid=(123-knowledge-test-example)>
                         <Name>Learning is power!</Name>
@@ -563,7 +568,7 @@ describe('schemaToWML', () => {
 
     it('should correctly round-trip nested remove tags', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(room1)>
                     <Remove><Example uuid=(123-room1-remove-example) /></Remove>
                 </Room>
@@ -574,7 +579,7 @@ describe('schemaToWML', () => {
 
     it('should correctly round-trip remove with nested tags', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Remove>
                     <Room key=(room1)><Example uuid=(123-room1-remove-example) /></Room>
                 </Remove>
@@ -586,7 +591,7 @@ describe('schemaToWML', () => {
 
     it('should correctly round-trip nested line-wrapped text', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Feature key=(doors)>
                     <Example uuid=(123-doors-linewrapped-example)>
                         <Name>Drifting doors</Name>
@@ -603,7 +608,7 @@ describe('schemaToWML', () => {
 
     it('should correctly escape special characters', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Example uuid=(123-test-escape-example)>
                         <Description>Test \\\\ \\< \\></Description>
@@ -617,7 +622,7 @@ describe('schemaToWML', () => {
 
     it('should correctly round-trip import', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Import from=(BASE)>
                     <Room uuid=(Room1) key=(test) />
                     <Room uuid=(testTwo) />
@@ -635,7 +640,7 @@ describe('schemaToWML', () => {
 
     it('should correctly round-trip mixes of freeText and non-freeText', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test) />
                 <Message key=(msg)><Room key=(test) />Test</Message>
             </Asset>
@@ -646,7 +651,7 @@ describe('schemaToWML', () => {
 
     it('should correctly round-trip free-text on a single line', () => {
         const testWML = deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Example uuid=(123-test-freetext-example)>
                         <Name>Lobby in the dark</Name>

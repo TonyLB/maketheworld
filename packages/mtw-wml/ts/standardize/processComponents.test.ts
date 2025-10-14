@@ -34,7 +34,7 @@ const componentTemplates: ComponentProcessingTemplate[] = [
 describe("processComponents", () => {
     it('should return an empty object when given an empty object', () => {
         const schema = new Schema()
-        schema.loadWML(`<Asset key=(test) />`)
+        schema.loadWML(`<Asset uuid=(test) />`)
         const result = processComponents({
             componentTemplates,
             schema: schema.schema,
@@ -44,7 +44,7 @@ describe("processComponents", () => {
 
     it('should parse a provided schema', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Example uuid=(testRoomExample)>
                         <Name>Test Room</Name>
@@ -85,7 +85,7 @@ describe("processComponents", () => {
 
     it('should correctly localize subcomponents', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Example uuid=(testRoomExample)>
                         <Name>Test Room</Name>
@@ -142,7 +142,7 @@ describe("processComponents", () => {
 
     it('should combine descriptions in rooms and features', () => {
         const test = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Example uuid=(testRoomExample)>
                         <Summary>
@@ -199,7 +199,7 @@ describe("processComponents", () => {
 
     it('should combine exits in rooms', () => {
         const test = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Example uuid=(testRoomExample)>
                         <Description>
@@ -235,7 +235,7 @@ describe("processComponents", () => {
 
     it('should combine render in nested rooms', () => {
         const test = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Example uuid=(testRoomExample)>
                         <Description>
@@ -286,7 +286,7 @@ describe("processComponents", () => {
 
     it('should render features and links correctly', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Example uuid=(testRoomExample)>
                         <Description>
@@ -351,7 +351,7 @@ describe("processComponents", () => {
 
     it('should correctly parse a map', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Map key=(testMap)>
                     <Room key=(testRoom)>
                         <Example uuid=(testRoomExample)><Description>Test</Description></Example>
@@ -389,7 +389,7 @@ describe("processComponents", () => {
 
     it('should parse a remove tag', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Remove>
                     <Room key=(test)>
                         <Example uuid=(testRoomExample)><Description>Test</Description></Example>
@@ -417,7 +417,7 @@ describe("processComponents", () => {
 
     it('should parse a replace tag', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Replace>
                     <Room key=(test)>
                         <Example uuid=(testRoomExample)>
@@ -490,7 +490,7 @@ describe("processComponents", () => {
 
     it('should correctly process context', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(testRoom)>
                     <Feature key=(testFeatureLocal) />
                 </Room>
@@ -520,7 +520,7 @@ describe("processComponents", () => {
 
     it('should allow Characters as legal sub-components of Room', () => {
         const testSource = `
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(testRoom)>
                     <Character key=(testCharacter)>
                         <Name>Test Character</Name>

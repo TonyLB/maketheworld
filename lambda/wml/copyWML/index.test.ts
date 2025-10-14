@@ -19,7 +19,7 @@ describe('copyWML', () => {
 
     it('should replace asset key', async () => {
         const testSource = deIndentWML(`
-            <Asset key=(draft)>
+            <Asset uuid=(draft)>
                 <Room uuid=(room1) key=(TestRoom)>
                     <Example uuid=(example1)><Name>Test Name</Name></Example>
                 </Room>
@@ -31,7 +31,7 @@ describe('copyWML', () => {
         s3ClientMock.get.mockResolvedValueOnce(ndjsonTransform(testForm.toNDJSON()))
 
         await copyWML({
-            key: 'testCopy',
+            uuid: 'testCopy',
             from: {
                 zone: 'Draft',
                 player: 'Test'
@@ -47,7 +47,7 @@ describe('copyWML', () => {
         expect(s3ClientMock.put).toHaveBeenCalledWith({
             Key: 'Personal/Test/Assets/testCopy.wml',
             Body: deIndentWML(`
-                <Asset key=(testCopy)>
+                <Asset uuid=(testCopy)>
                     <Room uuid=(room1) key=(TestRoom)>
                         <Example uuid=(example1)><Name>Test Name</Name></Example>
                     </Room>
@@ -58,7 +58,7 @@ describe('copyWML', () => {
         const jsonIndex = s3ClientMock.put.mock.calls.findIndex((args) => (args[0].Key === 'Personal/Test/Assets/testCopy.ndjson'))
         expect(jsonIndex).not.toEqual(-1)
         expect(s3ClientMock.put.mock.calls[jsonIndex][0].Body.split('\n').map((line) => (JSON.parse(line)))).toEqual([
-            { key: 'testCopy', tag: 'Asset', universalKey: 'ASSET#testCopy' },
+            { tag: 'Asset', universalKey: 'ASSET#testCopy' },
             testForm.byUniversalId['ROOM#room1'].toJSON(),
             testForm.byUniversalId['EXAMPLE#example1'].toJSON()
         ])

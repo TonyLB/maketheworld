@@ -65,7 +65,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                     connectionTargets: subscribedConnections,
                                     active: false as false,
                                     MapId: mapId as `MAP#${string}`,
-                                    description: '<Asset key=(render) />'
+                                    description: '<Asset uuid=(render) />'
                                 }))
                         ]
                     })
@@ -109,7 +109,7 @@ export const mapUpdateMessage = async ({ payloads, messageBus }: { payloads: Map
                                     connectionTargets: subscribedConnections,
                                     active: false as false,
                                     MapId: mapId as `MAP#${string}`,
-                                    description: '<Asset key=(render) />'
+                                    description: '<Asset uuid=(render) />'
                                 }))
                         ]
                     })

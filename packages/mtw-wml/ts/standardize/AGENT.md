@@ -87,7 +87,7 @@ StandardForm supports multiple construction patterns:
 const asset = new StandardForm("TestAsset")
 
 // 2. WML string constructor
-const asset = new StandardForm(`<Asset key=(Test)>
+const asset = new StandardForm(`<Asset uuid=(Test)>
     <Room key=(mainHall)><Exit to=(kitchen)>kitchen</Exit></Room>
 </Asset>`)
 
@@ -152,7 +152,7 @@ StandardForm merge operations combine two assets intelligently:
 
 ```typescript
 // Merge two assets
-const base = new StandardForm(`<Asset key=(Test)>
+const base = new StandardForm(`<Asset uuid=(Test)>
     <Room key=(mainHall)>
         <Example uuid=(base)>
             <Description>Main hall</Description>
@@ -160,7 +160,7 @@ const base = new StandardForm(`<Asset key=(Test)>
     </Room>
 </Asset>`)
 
-const incoming = new StandardForm(`<Asset key=(Test)>
+const incoming = new StandardForm(`<Asset uuid=(Test)>
     <Room key=(mainHall)><Exit to=(kitchen)>kitchen</Exit></Room>
     <Room key=(kitchen)>
         <Example uuid=(kitchenBase)>
@@ -172,7 +172,7 @@ const incoming = new StandardForm(`<Asset key=(Test)>
 const merged = base.merge(incoming)
 // Result: Combined asset with WML as follows:
 //
-// <Asset key=(Test)>
+// <Asset uuid=(Test)>
 //    <Room key=(kitchen)>
 //        <Example uuid=(kitchenBase)>
 //            <Description>Kitchen</Description>
@@ -250,7 +250,7 @@ StandardForm diff creates a minimal representation of changes:
 
 ```typescript
 // Create diff between assets
-const original = new StandardForm(`<Asset key=(Test)>
+const original = new StandardForm(`<Asset uuid=(Test)>
     <Room key=(mainHall)>
         <Example uuid=(base)>
             <Description>Main hall</Description>
@@ -258,7 +258,7 @@ const original = new StandardForm(`<Asset key=(Test)>
     </Room>
 </Asset>`)
 
-const modified = new StandardForm(`<Asset key=(Test)>
+const modified = new StandardForm(`<Asset uuid=(Test)>
     <Room key=(mainHall)>
         <Example uuid=(base)>
             <Description>Grand hall</Description>

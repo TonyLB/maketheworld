@@ -13,9 +13,9 @@ describe('wml simple parser', () => {
         expect(parse([])).toEqual([])
     })
     it('should parse a single tag', () => {
-        const testTokens = tokenizer(new SourceStream('<Asset key=(Test)></Asset>'))
+        const testTokens = tokenizer(new SourceStream('<Asset uuid=(Test)></Asset>'))
         expect(parse(testTokens)).toEqual([
-            { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'Test' }] },
+            { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'uuid', value: 'Test' }] },
             { type: ParseTypes.Close, tag: 'Asset' }
         ])
     })
@@ -27,24 +27,24 @@ describe('wml simple parser', () => {
         ])
     })
     it('should ignore whitespace outside tags', () => {
-        const testTokens = tokenizer(new SourceStream('    <Asset key=(Test)></Asset>\n    '))
+        const testTokens = tokenizer(new SourceStream('    <Asset uuid=(Test)></Asset>\n    '))
         expect(parse(testTokens)).toEqual([
-            { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'Test' }] },
+            { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'uuid', value: 'Test' }] },
             { type: ParseTypes.Close, tag: 'Asset' }
         ])
     })
     it('should parse one level of nesting', () => {
-        const testTokens = tokenizer(new SourceStream('<Asset key=(Test)><Room key=(ABC) /></Asset>'))
+        const testTokens = tokenizer(new SourceStream('<Asset uuid=(Test)><Room key=(ABC) /></Asset>'))
         expect(parse(testTokens)).toEqual([
-            { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'Test' }] },
+            { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'uuid', value: 'Test' }] },
             { type: ParseTypes.SelfClosure, tag: 'Room', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'ABC' }] },
             { type: ParseTypes.Close, tag: 'Asset' }
         ])
     })
     it('should parse key with periods', () => {
-        const testTokens = tokenizer(new SourceStream('<Asset key=(Test.Test)></Asset>'))
+        const testTokens = tokenizer(new SourceStream('<Asset uuid=(Test.Test)></Asset>'))
         expect(parse(testTokens)).toEqual([
-            { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'Test.Test' }] },
+            { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'uuid', value: 'Test.Test' }] },
             { type: ParseTypes.Close, tag: 'Asset' }
         ])
     })
@@ -68,7 +68,7 @@ describe('wml simple parser', () => {
     })
     it('should parse elements correctly', () => {
         const testTokens = tokenizer(new SourceStream(`
-            <Asset key=(Test) fileName="test">
+            <Asset uuid=(Test) fileName="test">
                 <Import from=(BASE)>
                     <Room uuid=(123) key=(ABC) />
                 </Import>
@@ -104,7 +104,7 @@ describe('wml simple parser', () => {
             </Asset>
         `))
         expect(parse(testTokens)).toEqual([
-            { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'key', value: 'Test' }, { type: ParsePropertyTypes.Literal, key: 'fileName', value: 'test' }] },
+            { type: ParseTypes.Open, tag: 'Asset', properties: [{ type: ParsePropertyTypes.Key, key: 'uuid', value: 'Test' }, { type: ParsePropertyTypes.Literal, key: 'fileName', value: 'test' }] },
             { type: ParseTypes.Open, tag: 'Import', properties: [{ type: ParsePropertyTypes.Key, key: 'from', value: 'BASE'}]},
             { type: ParseTypes.SelfClosure, tag: 'Room', properties: [
                 { type: ParsePropertyTypes.Key, key: 'uuid', value: '123' },

@@ -169,7 +169,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             assetDBMock.query.mockResolvedValue(mockAssets)
 
             // Mock asset data with components that have headers
-            const mockStandardForm = new StandardForm(`<Asset key=(test)>
+            const mockStandardForm = new StandardForm(`<Asset uuid=(test)>
                 <Room uuid=(room1) key=(room1)>
                     <ShortName>Test Room</ShortName>
                 </Room>
@@ -216,7 +216,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const canonAsset = snapshot!.assets[0]
             const canonWML = schemaToWML([canonAsset.standardForm.schema])
             expect(canonWML).toBe(deIndentWML(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room uuid=(room1)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `))
@@ -224,7 +224,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const libraryAsset = snapshot!.assets[1]
             const libraryWML = schemaToWML([libraryAsset.standardForm.schema])
             expect(libraryWML).toBe(deIndentWML(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room uuid=(room1)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `))
@@ -232,7 +232,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const personalAsset = snapshot!.assets[2]
             const personalWML = schemaToWML([personalAsset.standardForm.schema])
             expect(personalWML).toBe(deIndentWML(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room uuid=(room1)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `))
@@ -282,7 +282,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'ASSET#asset123',
                     event: {
                         type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
                         component: mockHeaderComponent
                     },
                     timestamp: Date.now()
@@ -308,7 +307,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const standardForm = streamEventCall.update.standardForm
                 const wmlContent = schemaToWML([standardForm.schema])
                 expect(wmlContent).toBe(deIndentWML(`
-                    <Asset key=(asset123)>
+                    <Asset uuid=(asset123)>
                         <Room uuid=(room123)><ShortName>Test Room</ShortName></Room>
                     </Asset>
                 `))
@@ -323,7 +322,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'ASSET#asset123',
                     event: {
                         type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
                         component: new StandardRoom({
                             tag: 'Room',
                             shortName: 'Test Room',
@@ -356,31 +354,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'ASSET#asset123',
                     event: {
                         type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
-                        component: new StandardRoom({
-                            tag: 'Room',
-                            shortName: 'Test Room',
-                            universalKey: 'ROOM#room123'
-                        })
-                    },
-                    timestamp: Date.now()
-                }
-
-                await contentHeadersDataSource.receiveEvents?.({
-                    events: [componentUpdatedEvent],
-                    streamEvent: mockStreamEvent
-                })
-
-                expect(mockStreamEvent).not.toHaveBeenCalled()
-            })
-
-            it('should handle missing assetId gracefully', async () => {
-                const componentUpdatedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset123',
-                    event: {
-                        type: 'Component Updated',
-                        assetId: undefined as any,
                         component: new StandardRoom({
                             tag: 'Room',
                             shortName: 'Test Room',
@@ -404,7 +377,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'ASSET#asset123',
                     event: {
                         type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
                         component: undefined as any
                     },
                     timestamp: Date.now()
@@ -427,7 +399,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'ASSET#asset123',
                     event: {
                         type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
                         component: new StandardRoom({
                             tag: 'Room',
                             shortName: 'Test Room',
@@ -465,7 +436,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'ASSET#asset123',
                     event: {
                         type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
                         component: new StandardRemove(new StandardRoom({
                             tag: 'Room',
                             shortName: 'Test Room',
@@ -494,7 +464,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'ASSET#asset123',
                     event: {
                         type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
                         component: new StandardRemove(new StandardRoom({
                             tag: 'Room',
                             shortName: 'Test Room',
@@ -518,7 +487,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'ASSET#asset123',
                     event: {
                         type: 'Component Updated',
-                        assetId: undefined as any,
                         component: new StandardRemove(new StandardRoom({
                             tag: 'Room',
                             shortName: 'Test Room',
@@ -542,7 +510,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'ASSET#asset123',
                     event: {
                         type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
                         component: undefined as any
                     },
                     timestamp: Date.now()
@@ -565,7 +532,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamKey: 'ASSET#asset123',
                     event: {
                         type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
                         component: new StandardRemove(new StandardRoom({
                             tag: 'Room',
                             shortName: 'Test Room',
@@ -694,7 +660,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         streamKey: 'ASSET#test1',
                         event: {
                             type: 'Component Updated',
-                            assetId: 'ASSET#test1',
                             component: new StandardRoom({
                                 tag: 'Room',
                                 shortName: 'Updated Room',
@@ -751,7 +716,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         streamKey: 'ASSET#asset1',
                         event: {
                             type: 'Component Updated',
-                            assetId: 'ASSET#asset1',
                             component: new StandardRoom({
                                 tag: 'Room',
                                 shortName: 'Room 1',
@@ -765,7 +729,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         streamKey: 'ASSET#asset2',
                         event: {
                             type: 'Component Updated',
-                            assetId: 'ASSET#asset2',
                             component: new StandardRemove(new StandardRoom({
                                 tag: 'Room',
                                 shortName: 'Room 2',

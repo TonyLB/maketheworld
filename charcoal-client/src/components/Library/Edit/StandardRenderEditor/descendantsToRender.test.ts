@@ -7,13 +7,13 @@ describe('descendantsToRender', () => {
     // Test Basic Text Rendering
     describe('Basic Text Rendering', () => {
         it('should return an empty StandardRender from empty paragraph', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = [{ type: 'paragraph', children: [{ text: '' }]}]
             expect(descendantsToRender(standard)(items).toJSON()).toEqual([])
         })
 
         it('should return a text description', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = [{
                 type: 'paragraph',
                 children: [{
@@ -36,13 +36,13 @@ describe('descendantsToRender', () => {
         })
 
         it('should handle single character text', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = [{ type: 'paragraph', children: [{ text: 'A' }]}]
             expect(descendantsToRender(standard)(items).toJSON()).toEqual(['A'])
         })
 
         it('should handle special characters', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = [{ type: 'paragraph', children: [{ text: 'Hello & World! @#$%' }]}]
             expect(descendantsToRender(standard)(items).toJSON()).toEqual(['Hello & World! @#$%'])
         })
@@ -51,7 +51,7 @@ describe('descendantsToRender', () => {
     // Test Link Rendering
     describe('Link Rendering', () => {
         it('should handle feature links correctly', () => {
-            const standard = new StandardForm('<Asset key=(base)><Feature key=(testFeature) /></Asset>')
+            const standard = new StandardForm('<Asset uuid=(base)><Feature key=(testFeature) /></Asset>')
             const items: Descendant[] = [{
                 type: 'paragraph',
                 children: [
@@ -68,7 +68,7 @@ describe('descendantsToRender', () => {
         })
 
         it('should handle knowledge links correctly', () => {
-            const standard = new StandardForm('<Asset key=(base)><Knowledge key=(testKnowledge) /></Asset>')
+            const standard = new StandardForm('<Asset uuid=(base)><Knowledge key=(testKnowledge) /></Asset>')
             const items: Descendant[] = [{
                 type: 'paragraph',
                 children: [
@@ -85,7 +85,7 @@ describe('descendantsToRender', () => {
         })
 
         it('should handle multiple links in sequence', () => {
-            const standard = new StandardForm('<Asset key=(base)><Feature key=(feature1) /><Knowledge key=(knowledge1) /></Asset>')
+            const standard = new StandardForm('<Asset uuid=(base)><Feature key=(feature1) /><Knowledge key=(knowledge1) /></Asset>')
             const items: Descendant[] = [{
                 type: 'paragraph',
                 children: [
@@ -105,7 +105,7 @@ describe('descendantsToRender', () => {
     // Test Whitespace Handling
     describe('Whitespace Handling', () => {
         it('should replace space at end of last line (only) with Space tag', () => {
-            const standard = new StandardForm('<Asset key=(base)><Feature key=(testFeature) /></Asset>')
+            const standard = new StandardForm('<Asset uuid=(base)><Feature key=(testFeature) /></Asset>')
             const items: Descendant[] = [{
                 type: 'paragraph',
                 children: [{ text: 'This is a test. ' }]
@@ -132,7 +132,7 @@ describe('descendantsToRender', () => {
         })
 
         it('should handle multiple consecutive spaces', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = [{
                 type: 'paragraph',
                 children: [{ text: 'Text    with    multiple    spaces' }]
@@ -141,7 +141,7 @@ describe('descendantsToRender', () => {
         })
 
         it('should handle tabs and newlines in text', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = [{
                 type: 'paragraph',
                 children: [{ text: 'Text\twith\ttabs\nand\nnewlines' }]
@@ -153,7 +153,7 @@ describe('descendantsToRender', () => {
     // Test Line Break Handling
     describe('Line Break Handling', () => {
         it('should replace paragraph breaks with LineBreak tags', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = [{
                 type: 'paragraph',
                 children: [{ text: 'This is a test.' }]
@@ -170,7 +170,7 @@ describe('descendantsToRender', () => {
         })
 
         it('should handle multiple consecutive paragraphs', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = [
                 { type: 'paragraph', children: [{ text: 'First paragraph' }] },
                 { type: 'paragraph', children: [{ text: 'Second paragraph' }] },
@@ -186,7 +186,7 @@ describe('descendantsToRender', () => {
         })
 
         it('should handle empty paragraphs', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = [
                 { type: 'paragraph', children: [{ text: 'First' }] },
                 { type: 'paragraph', children: [{ text: '' }] },
@@ -203,7 +203,7 @@ describe('descendantsToRender', () => {
     // Test Mixed Content
     describe('Mixed Content', () => {
         it('should handle complex mixed content with links and formatting', () => {
-            const standard = new StandardForm('<Asset key=(base)><Feature key=(feature1) /><Knowledge key=(knowledge1) /></Asset>')
+            const standard = new StandardForm('<Asset uuid=(base)><Feature key=(feature1) /><Knowledge key=(knowledge1) /></Asset>')
             const items: Descendant[] = [{
                 type: 'paragraph',
                 children: [
@@ -224,7 +224,7 @@ describe('descendantsToRender', () => {
         })
 
         it('should handle mixed content across multiple paragraphs', () => {
-            const standard = new StandardForm('<Asset key=(base)><Feature key=(feature1) /></Asset>')
+            const standard = new StandardForm('<Asset uuid=(base)><Feature key=(feature1) /></Asset>')
             const items: Descendant[] = [
                 {
                     type: 'paragraph',
@@ -250,26 +250,26 @@ describe('descendantsToRender', () => {
     // Test Edge Cases
     describe('Edge Cases', () => {
         it('should handle single character paragraphs', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = [{ type: 'paragraph', children: [{ text: 'A' }]}]
             expect(descendantsToRender(standard)(items).toJSON()).toEqual(['A'])
         })
 
         it('should handle very long text', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const longText = 'A'.repeat(1000)
             const items: Descendant[] = [{ type: 'paragraph', children: [{ text: longText }]}]
             expect(descendantsToRender(standard)(items).toJSON()).toEqual([longText])
         })
 
         it('should handle unicode characters', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = [{ type: 'paragraph', children: [{ text: 'Hello 世界! 🌍' }]}]
             expect(descendantsToRender(standard)(items).toJSON()).toEqual(['Hello 世界! 🌍'])
         })
 
         it('should handle empty input array', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = []
             expect(descendantsToRender(standard)(items).toJSON()).toEqual([])
         })
@@ -278,7 +278,7 @@ describe('descendantsToRender', () => {
     // Test Performance Considerations
     describe('Performance', () => {
         it('should handle large numbers of paragraphs efficiently', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const items: Descendant[] = Array.from({ length: 100 }, (_, i) => ({
                 type: 'paragraph' as const,
                 children: [{ text: `Paragraph ${i + 1}` }]
@@ -293,7 +293,7 @@ describe('descendantsToRender', () => {
         })
 
         it('should handle large text blocks efficiently', () => {
-            const standard = new StandardForm('<Asset key=(base) />')
+            const standard = new StandardForm('<Asset uuid=(base) />')
             const largeText = 'Lorem ipsum '.repeat(1000)
             const items: Descendant[] = [{ type: 'paragraph', children: [{ text: largeText }]}]
             

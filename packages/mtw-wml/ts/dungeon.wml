@@ -1,4 +1,4 @@
-<Asset key=(Dungeon)>
+<Asset uuid=(Dungeon)>
     <Room key=(VORTEX)>
         <Exit to=(cave)>cave</Exit>
         <Example uuid=(example1)>

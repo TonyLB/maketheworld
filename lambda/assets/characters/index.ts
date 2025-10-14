@@ -66,9 +66,8 @@ const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnap
         .filter(excludeUndefined)
 
     // Create a StandardForm with the asset and all character components
-    const assetKey = assetId.replace('ASSET#', '') // Extract key from AssetUUID
     const standardForm = new StandardForm([
-        { tag: 'Asset', key: assetKey, universalKey: assetId as ComponentUUID },
+        { tag: 'Asset', universalKey: assetId },
         ...characterComponents.map(component => component.toJSON())
     ])
 

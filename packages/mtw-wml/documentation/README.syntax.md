@@ -9,7 +9,7 @@ of these things is wrapped within another, it is a sign that the things are rela
 wrapped in both will exist in the context of the **relationship** between those two things. So, for instance:
 
 ```
-<Asset key=(testAsset)>
+<Asset uuid=(testAsset)>
     <Map key=(testMap)>
         <Room key=(room1)>
             <Name>Lobby</Name>
@@ -25,7 +25,7 @@ a Map), but the **Position** only has meaning in the context of a Room's relatio
 Because the Map and Room tags are only there to establish context, the **order** in which they appear is semi-arbitray. The same meaning could be conveyed with the following structure:
 
 ```
-<Asset key=(testAsset)>
+<Asset uuid=(testAsset)>
     <Room key=(room1)>
         <Name>Lobby</Name>
         <Map key=(testMap)>
@@ -40,7 +40,7 @@ Again, the **Position** tag exists within the context of all the tags needed to 
 For some relationship, there is nothing associated with the relationship ... the mere fact of a connection is enough. For instance:
 
 ```
-<Asset key=(testAsset)>
+<Asset uuid=(testAsset)>
     <Message key=(alert)>
         A blaring horn sounds in three quick blats!
         <Room key=(room1) />
@@ -57,7 +57,7 @@ Tags *without* keys are generally some manner of content definine the details of
 the following:
 
 ```
-<Asset key=(testAsset)>
+<Asset uuid=(testAsset)>
     <Room key=(room1)>
         <Example uuid=(room1-example)>
             <Name>Lobby</Name>
@@ -103,7 +103,7 @@ The things in the Make The World spaces react to changes in their underlying var
 by making some sections of their names, descriptions, etc., *conditional*. Anything placed withing an `<If>` tag only
 appears in the world when that condition is met. So, for instance:
 ```
-<Asset key=(testAsset)>
+<Asset uuid=(testAsset)>
     <Variable key=(dayTime) default={true} />
     <Room key=(lobby)>
         <Example uuid=(lobby-example)>
@@ -130,7 +130,7 @@ appears in the world when that condition is met. So, for instance:
 ```
 When the `dayTime` variable is set to true, this will render as if it were the following:
 ```
-<Asset key=(testAsset)>
+<Asset uuid=(testAsset)>
     <Variable key=(dayTime) default={true} />
     <Room key=(lobby)>
         <Example uuid=(lobby-example)>
@@ -147,7 +147,7 @@ When the `dayTime` variable is set to true, this will render as if it were the f
 ```
 ... and if the `dayTime` variable is not set to true, it will render as the following:
 ```
-<Asset key=(testAsset)>
+<Asset uuid=(testAsset)>
     <Variable key=(dayTime) default={true} />
     <Room key=(lobby)>
         <Example uuid=(lobby-example)>
@@ -166,7 +166,7 @@ When the `dayTime` variable is set to true, this will render as if it were the f
 As with other context tags, `If` tags can be reordered in their position in the tree, so the first text could be
 rewritten more compactly (and perhaps more readably) as:
 ```
-<Asset key=(testAsset)>
+<Asset uuid=(testAsset)>
     <Variable key=(dayTime) default={true} />
     <Room key=(lobby)>
         <Name>

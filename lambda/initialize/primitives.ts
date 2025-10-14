@@ -1,5 +1,5 @@
 export const primitivesData = `
-    <Asset key=(primitives)>
+    <Asset uuid=(primitives)>
         <Room uuid=(VORTEX) />
         <Knowledge uuid=(knowledgeRoot) />
     </Asset>

@@ -183,7 +183,7 @@ export class ReadOnlyAssetWorkspace {
             await Promise.all([
                 s3Client.put({
                     Key,
-                    Body: `<Asset key=(draft) />`
+                    Body: `<Asset uuid=(draft) />`
                 }),
                 s3Client.put({
                     Key: `${this.fileNameBase}.ndjson`,

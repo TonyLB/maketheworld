@@ -17,7 +17,7 @@ export class AssetData {
             defaultValue: (cacheKey) => {
                 return {
                     AssetId: cacheKey as `ASSET#${string}`,
-                    standardForm: new StandardForm(`<Asset key=(${cacheKey.split('#').slice(1)[0] ?? ''}) />`)
+                    standardForm: new StandardForm(`<Asset uuid=(${cacheKey.split('#').slice(1)[0] ?? ''}) />`)
                 }
             }
         })

@@ -27,7 +27,7 @@ describe('parseCommand', () => {
             
             // Mock the ComponentRender.get to return a StandardForm with embedded WML
             internalCacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
-                <Asset key=(render)>
+                <Asset uuid=(render)>
                     <Room uuid=(ROOM#456)>
                         <Exit to=(ROOM#789)>north</Exit>
                         <Exit to=(ROOM#101)>south</Exit>
@@ -153,7 +153,7 @@ describe('parseCommand', () => {
             
             // Mock the ComponentRender.get to return a StandardForm with embedded WML
             internalCacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
-                <Asset key=(render)>
+                <Asset uuid=(render)>
                     <Room uuid=(ROOM#456)>
                         <Exit to=(ROOM#789)>north</Exit>
                         <Exit to=(ROOM#101)>south</Exit>
@@ -245,7 +245,7 @@ describe('parseCommand', () => {
             
             // Mock the ComponentRender.get to return a StandardForm with embedded WML
             internalCacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
-                <Asset key=(render)>
+                <Asset uuid=(render)>
                     <Room uuid=(ROOM#456)>
                         <Exit to=(ROOM#789)>north</Exit>
                         <Exit to=(ROOM#101)>south</Exit>
@@ -285,7 +285,7 @@ describe('parseCommand', () => {
             
             // Mock the ComponentRender.get to return a StandardForm with embedded WML
             internalCacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
-                <Asset key=(render)>
+                <Asset uuid=(render)>
                     <Room uuid=(ROOM#456)>
                         <Exit to=(ROOM#789)>north</Exit>
                         <Exit to=(ROOM#101)>south</Exit>
@@ -393,7 +393,7 @@ describe('parseCommand', () => {
             
             // Mock the ComponentRender.get to return a StandardForm with embedded WML
             internalCacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
-                <Asset key=(render)>
+                <Asset uuid=(render)>
                     <Room uuid=(ROOM#456)>
                         <Exit to=(ROOM#789)>north</Exit>
                         <Exit to=(ROOM#101)>south</Exit>
@@ -472,7 +472,7 @@ describe('parseCommand', () => {
             
             // Mock the ComponentRender.get to return a StandardForm with embedded WML
             internalCacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
-                <Asset key=(render)>
+                <Asset uuid=(render)>
                     <Room uuid=(ROOM#456)>
                         <Exit to=(ROOM#789)>north</Exit>
                         <Exit to=(ROOM#101)>south</Exit>

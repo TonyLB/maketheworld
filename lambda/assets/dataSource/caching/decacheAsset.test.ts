@@ -38,7 +38,7 @@ describe('Decache Asset (Data Source)', () => {
             {
                 AssetId: 'ASSET#Test',
                 standardForm: new StandardForm(deIndentWML(`
-                    <Asset key=(Test)>
+                    <Asset uuid=(Test)>
                         <Room key=(VORTEX) uuid=(VORTEX) />
                         <Knowledge key=(knowledgeRoot) uuid=(knowledgeRoot) />
                     </Asset>
@@ -75,7 +75,7 @@ describe('Decache Asset (Data Source)', () => {
             {
                 AssetId: 'ASSET#Test',
                 standardForm: new StandardForm(deIndentWML(`
-                    <Asset key=(Test) />
+                    <Asset uuid=(Test) />
                 `))
             }
         ])
@@ -95,7 +95,7 @@ describe('Decache Asset (Data Source)', () => {
             {
                 AssetId: 'ASSET#Test',
                 standardForm: new StandardForm(deIndentWML(`
-                    <Asset key=(Test)>
+                    <Asset uuid=(Test)>
                         <Room key=(VORTEX) uuid=(VORTEX) />
                     </Asset>
                 `))
@@ -121,7 +121,7 @@ describe('Decache Asset (Data Source)', () => {
             {
                 AssetId: 'ASSET#TestAsset',
                 standardForm: new StandardForm(deIndentWML(`
-                    <Asset key=(TestAsset)>
+                    <Asset uuid=(TestAsset)>
                         <Room key=(VORTEX) uuid=(VORTEX) />
                     </Asset>
                 `))

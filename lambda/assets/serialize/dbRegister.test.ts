@@ -41,7 +41,7 @@ describe('dbRegister', () => {
                 json: 'Clean'
             },
             standard: new StandardForm(`
-                <Asset key=(TEST)>
+                <Asset uuid=(TEST)>
                     <Map key=(Village)>
                         <Room key=(Welcome)><Position x="0" y="100" /></Room>
                     </Map>
@@ -65,7 +65,7 @@ describe('dbRegister', () => {
             namespaceIdToDB: [],
             universalKey: jest.fn().mockReturnValue(undefined),
             standard: new StandardForm(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room uuid=(ROOM#VORTEX) from=(ASSET#primitives) />
                 </Asset>
             `)

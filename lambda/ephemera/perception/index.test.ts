@@ -65,7 +65,7 @@ describe('Perception message', () => {
             type: 'PublishMessage',
             displayProtocol: 'PerceptionMessage',
             targets: ['CHARACTER#TESS'],
-            wmlContent: `<Asset key=(render)>
+            wmlContent: `<Asset uuid=(render)>
     <Character uuid=(CHARACTER#TESS)>
         <Name>Tess</Name>
         <Pronouns>she/her</Pronouns>
@@ -110,7 +110,7 @@ describe('Perception message', () => {
                 },
                 ComponentRender: {
                     get: jest.fn().mockResolvedValue(new StandardForm(`
-                        <Asset key=(render)>
+                        <Asset uuid=(render)>
                             <Message uuid=(Test)>
                                 <Room uuid=(VORTEX) />
                                 <Room uuid=(ABC) />
@@ -173,7 +173,7 @@ describe('Perception message', () => {
                 },
                 ComponentRender: {
                     get: jest.fn().mockResolvedValue(new StandardForm(`
-                        <Asset key=(render)>
+                        <Asset uuid=(render)>
                             <Message uuid=(Test)>
                                 <Room uuid=(ABC) />
                                 Test Message
@@ -227,7 +227,7 @@ describe('Perception message', () => {
                 },
                 ComponentRender: {
                     get: jest.fn().mockResolvedValue(new StandardForm(`
-                        <Asset key=(render)>
+                        <Asset uuid=(render)>
                             <Message uuid=(Test)>
                                 <Room uuid=(ABC) />
                                 <Room uuid=(VORTEX) />

@@ -1,6 +1,7 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import type { SerializeNDJSONMixin, StandardComponentData, StandardComponentTag } from "../../baseClasses"
 import { isSchemaTreeNode } from "../../../schema"
+import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 import { isStandardCharacter, StandardCharacterData } from "./character"
 
@@ -100,6 +101,7 @@ export const unwrapStandardComponent = (component: StandardComponentData): Stand
 
 export type StandardFormData = {
     key?: string;
+    universalKey: AssetUUID;
     components: StandardComponentData[];
     metaData: GenericTree<SchemaTag>;
 }

@@ -42,7 +42,7 @@ describe('dbRegister', () => {
                 { internalKey: 'Welcome', universalKey: 'ROOM#12345' }
             ],
             standard: new StandardForm(`
-                <Asset key=(TEST)>
+                <Asset uuid=(TEST)>
                     <Map key=(Village)>
                         <Name>Test Village</Name>
                         <Room key=(Welcome)><Position x="0" y="100" /></Room>
@@ -68,7 +68,7 @@ describe('dbRegister', () => {
             },
             namespaceIdToDB: [],
             standard: new StandardForm(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room key=(VORTEX) from=(ASSET#primitives)>
                         <ShortName>Welcome</ShortName>
                     </Room>

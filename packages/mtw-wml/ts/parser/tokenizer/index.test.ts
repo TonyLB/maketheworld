@@ -25,7 +25,7 @@ describe('tokenizer', () => {
         expect(tokenizer(testStream)).toMatchSnapshot()
     })
     it('should tokenize nested tags', () => {
-        const testSource = `<Asset key=(Test)>
+        const testSource = `<Asset uuid=(Test)>
             <Room key=(ABC)>
                 <Feature key=(DEF) />
             </Room>
@@ -40,7 +40,7 @@ describe('tokenizer', () => {
         }).toThrow(TokenizeException)
     })
     it('should tokenize descriptions', () => {
-        const testSource = `<Asset key=(Test)>
+        const testSource = `<Asset uuid=(Test)>
             <Room key=(ABC)>
                 <Description>
                     <Space />
@@ -54,7 +54,7 @@ describe('tokenizer', () => {
         expect(tokenizer(testStream)).toMatchSnapshot()
     })
     it('should tokenize escaped characters in descriptions', () => {
-        const testSource = `<Asset key=(Test)>
+        const testSource = `<Asset uuid=(Test)>
             <Room key=(ABC)>
                 <Description>\\\\ \\< \\></Description>
             </Room>
@@ -63,7 +63,7 @@ describe('tokenizer', () => {
         expect(tokenizer(testStream)).toMatchSnapshot()
     })
     it('should tokenize comments', () => {
-        const testSource = `<Asset key=(Test)>
+        const testSource = `<Asset uuid=(Test)>
             <Room /* Comment */ key=(ABC)>
                 <Description>
                     Test description//Comment
@@ -76,7 +76,7 @@ describe('tokenizer', () => {
         expect(tokenizer(testStream)).toMatchSnapshot()
     })
     xit('should perform quickly (only activate when performance-tuning)', () => {
-        const testSource = `<Asset key=(Test)>
+        const testSource = `<Asset uuid=(Test)>
             <Room key=(ABC)>
                 <Feature key=(DEF) />
             </Room>

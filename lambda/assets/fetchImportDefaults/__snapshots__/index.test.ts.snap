@@ -5,7 +5,7 @@ Object {
   "importsByAsset": Array [
     Object {
       "assetId": "ASSET#testFinal",
-      "wml": "<Asset key=(testFinal)>
+      "wml": "<Asset uuid=(testFinal)>
     <Room
         uuid=(testImportFoo)
         key=(testImportFoo)
@@ -32,7 +32,7 @@ Object {
   "importsByAsset": Array [
     Object {
       "assetId": "ASSET#testFinal",
-      "wml": "<Asset key=(testFinal)>
+      "wml": "<Asset uuid=(testFinal)>
     <Room uuid=(stub) origin=(ASSET#testImportAssetThree)>
         <ShortName>AssetThreeStub</ShortName>
     </Room>
@@ -65,7 +65,7 @@ Object {
   "importsByAsset": Array [
     Object {
       "assetId": "ASSET#testFinal",
-      "wml": "<Asset key=(testFinal)>
+      "wml": "<Asset uuid=(testFinal)>
     <Feature
         uuid=(testFeature)
         key=(featureImport)
@@ -90,7 +90,7 @@ Object {
   "importsByAsset": Array [
     Object {
       "assetId": "ASSET#testFinal",
-      "wml": "<Asset key=(testFinal)>
+      "wml": "<Asset uuid=(testFinal)>
     <Room
         uuid=(testImportOne)
         key=(testImportOne)
@@ -123,7 +123,7 @@ Object {
   "importsByAsset": Array [
     Object {
       "assetId": "ASSET#testFinal",
-      "wml": "<Asset key=(testFinal)>
+      "wml": "<Asset uuid=(testFinal)>
     <Room uuid=(testNonImport) key=(testNonImport) origin=(ASSET#testFinal)>
         <Example uuid=(testNonImportExample) origin=(ASSET#testFinal)>
             <Description>DescriptionOne</Description>
@@ -149,7 +149,7 @@ Object {
   "importsByAsset": Array [
     Object {
       "assetId": "ASSET#testFinal",
-      "wml": "<Asset key=(testFinal) />",
+      "wml": "<Asset uuid=(testFinal) />",
     },
   ],
   "messageType": "FetchImports",

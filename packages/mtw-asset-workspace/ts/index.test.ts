@@ -83,7 +83,7 @@ describe('AssetWorkspace', () => {
     describe('loadJSON', () => {
         it('should correctly parse and assign JSON properties', async () => {
             const lines: StandardNDJSON = [
-                { tag: "Asset", key: 'Test' },
+                { tag: "Asset", universalKey: 'ASSET#Test' },
                 {
                     tag: 'Room',
                     key: 'testRoom',
@@ -122,7 +122,7 @@ describe('AssetWorkspace', () => {
                 player: 'Test'
             })
             await testWorkspace.loadJSON()
-            expect(testWorkspace.standard?.toJSON()).toEqual({ key: '', metaData: [], components: [] })
+            expect(testWorkspace.standard?.toJSON()).toEqual({ key: '', universalKey: 'ASSET#', metaData: [], components: [] })
         })
 
     })
@@ -130,7 +130,7 @@ describe('AssetWorkspace', () => {
     describe('loadAuthorizationJSON', () => {
         it('should correctly parse and assign JSON properties', async () => {
             const json: StandardAuthorizationCollectionNDJSON[] = [
-                { tag: 'Asset', key: 'Test' },
+                { tag: 'Asset', universalKey: 'ASSET#Test' },
                 { referenceStack: [{ tag: 'Room', key: 'Room1' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
             ]
             s3ClientMock.get.mockResolvedValue(json.map((line) => (JSON.stringify(line))).join('\n'))
@@ -171,7 +171,7 @@ describe('AssetWorkspace', () => {
     describe('loadAuthorizationWML', () => {
         it('should correctly parse and assign WML authorizations', async () => {
             const wml = `
-                <Asset key=(Test)>
+                <Asset uuid=(Test)>
                     <Room key=(Room1)>
                         <Grant player=(Player1) actions="action1" />
                     </Room>
@@ -206,7 +206,7 @@ describe('AssetWorkspace', () => {
             })
             uuidv4Mock.mockImplementation(uuidMockFactory())
             await testWorkspace.setWML(`
-                <Asset key=(Test)>
+                <Asset uuid=(Test)>
                     <Room key=(a123)>
                         <Exit to=(b456)>welcome</Exit>
                     </Room>
@@ -227,10 +227,10 @@ describe('AssetWorkspace', () => {
             uuidv4Mock.mockImplementation(uuidMockFactory())
             await expect(async () => {
                 await testWorkspace.setWML(`
-                    <Asset key=(TestOne)>
+                    <Asset uuid=(TestOne)>
                         <Room key=(a123) />
                     </Asset>
-                    <Asset key=(TestTwo)>
+                    <Asset uuid=(TestTwo)>
                         <Room key=(a123) />
                     </Asset>
                 `)
@@ -253,7 +253,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.ndjson',
-                Body: `{"tag":"Asset","key":"Test","universalKey":"ASSET#Test"}`
+                Body: `{"tag":"Asset","universalKey":"ASSET#Test"}`
             })
         })
 
@@ -269,7 +269,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Library/Test.ndjson',
-                Body: `{"tag":"Asset","key":"Test","universalKey":"ASSET#Test"}`
+                Body: `{"tag":"Asset","universalKey":"ASSET#Test"}`
             })
         })
 
@@ -284,7 +284,7 @@ describe('AssetWorkspace', () => {
             })
             testWorkspace.assetId = 'ASSET#Test'
             testWorkspace.authorizations = new StandardAuthorizationCollection(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room key=(Room1)>
                         <Grant player=(Player1) actions="action1" />
                     </Room>
@@ -295,7 +295,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.authStatus.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.auth.ndjson',
-                Body: `{"tag":"Asset","key":"test"}\n{"referenceStack":[{"key":"Room1","tag":"Room"}],"grant":{"tag":"Grant","player":"Player1","actions":["action1"]}}`
+                Body: `{"tag":"Asset","universalKey":"ASSET#test"}\n{"referenceStack":[{"key":"Room1","tag":"Room"}],"grant":{"tag":"Grant","player":"Player1","actions":["action1"]}}`
             })
         })
 
@@ -309,7 +309,7 @@ describe('AssetWorkspace', () => {
             })
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
-                <Asset key=(Test)>
+                <Asset uuid=(Test)>
                     <Room uuid=(room1) key=(a123)><Exit to=(b456)>welcome</Exit></Room>
                     <Room uuid=(room2) key=(b456)><Exit to=(a123)>vortex</Exit></Room>
                 </Asset>
@@ -335,7 +335,7 @@ describe('AssetWorkspace', () => {
             })
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testWML = `
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room key=(Room1)><Grant player=(Player1) actions="action1" /></Room>
                 </Asset>
             `
@@ -360,7 +360,7 @@ describe('AssetWorkspace', () => {
             })
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
-                <Asset key=(Test)>
+                <Asset uuid=(Test)>
                     <Room uuid=(room1) key=(a123)><Exit to=(b456)>welcome</Exit></Room>
                     <Room uuid=(room2) key=(b456)><Exit to=(a123)>vortex</Exit></Room>
                 </Asset>

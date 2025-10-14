@@ -56,7 +56,7 @@ describe('ComponentRender cache handler', () => {
         ])
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
-            <Asset key=(render)>
+            <Asset uuid=(render)>
                 <Character uuid=(TESS)><Name>Tess</Name></Character>
                 <Room uuid=(TestOne)>
                     <ShortName>TestRoom</ShortName>
@@ -112,7 +112,7 @@ describe('ComponentRender cache handler', () => {
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
-            <Asset key=(render)>
+            <Asset uuid=(render)>
                 <Feature uuid=(TestOne)>
                     <Example uuid=(rendered)>
                         <Name>Example Name</Name>
@@ -166,7 +166,7 @@ describe('ComponentRender cache handler', () => {
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
-            <Asset key=(render)>
+            <Asset uuid=(render)>
                 <Knowledge uuid=(TestOne)>
                     <Example uuid=(rendered)>
                         <Name>Example Name</Name>
@@ -243,7 +243,7 @@ describe('ComponentRender cache handler', () => {
         // EvaluateCode removed - Variable/Computed evaluation no longer available
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
-            <Asset key=(render)>
+            <Asset uuid=(render)>
                 <Room uuid=(TestRoomOne)>
                     <ShortName>Test Room One</ShortName>
                     <Exit to=(ROOM#TestRoomTwo)>Other Room</Exit>

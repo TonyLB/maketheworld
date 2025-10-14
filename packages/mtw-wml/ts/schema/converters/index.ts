@@ -13,21 +13,26 @@ import { tagRender } from "./tagRender"
 import { exampleConverters, examplePrintMap } from "./example"
 import { SchemaAssetTag } from "@tonylb/mtw-base/ts/schema/asset"
 import { isSchemaAsset, isSchemaAssetContents } from "@tonylb/mtw-base/ts/schema"
+import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 
 const validationTemplates = {
     Asset: {
-        key: { required: true, type: ParsePropertyTypes.Key },
+        uuid: { required: true, type: ParsePropertyTypes.Key },
         update: { type: ParsePropertyTypes.Boolean }
     }
 } as const
 
 export const converterMap: Record<string, ConverterMapEntry> = {
     Asset: {
-        initialize: ({ parseOpen }): SchemaAssetTag => ({
-            tag: 'Asset',
-            Story: undefined,
-            ...validateProperties(validationTemplates.Asset)(parseOpen)
-        }),
+        initialize: ({ parseOpen }): SchemaAssetTag => {
+            const { uuid, ...rest } = validateProperties(validationTemplates.Asset)(parseOpen)
+            return {
+                tag: 'Asset',
+                Story: undefined,
+                uuid: enforceTypedKey('ASSET')(uuid),
+                ...rest
+            }
+        },
         typeCheckContents: isSchemaAssetContents
     },
     ...exampleConverters,
@@ -49,7 +54,7 @@ export const printMap: Record<string, PrintMapEntry> = {
             ...args,
             tag: 'Asset',
             properties: [
-                { key: 'key', type: 'key', value: tag.key ?? '' },
+                { key: 'uuid', type: 'key', value: stripTypedKey('ASSET')(tag.uuid) },
                 { key: 'Story', type: 'boolean', value: tag.Story ?? false },
                 { key: 'update', type: 'boolean', value: tag.update ?? false }
             ],

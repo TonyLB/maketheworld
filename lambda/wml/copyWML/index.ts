@@ -5,7 +5,7 @@ import { dbRegister } from "../serialize/dbRegister";
 import { isSchemaAsset } from "@tonylb/mtw-base/ts/schema";
 
 export type CopyWMLArguments = {
-    key: string;
+    uuid: string;  // Asset UUID without ASSET# prefix
     from: AssetWorkspaceAddress;
     to: AssetWorkspaceAddress;
 }
@@ -33,13 +33,13 @@ export const copyWML = async (args: CopyWMLArguments) => {
     schema.loadWML(wml)
 
     //
-    // Update the key of the outermost element of the schema
+    // Update the uuid of the outermost element of the schema
     //
     const schemaRaw = schema.schema[0]
     if (!treeNodeTypeguard(isSchemaAsset)(schemaRaw)) {
         throw new Error('Invalid WML source in copyWML')
     }
-    schema._schema = [{ ...schema.schema[0], data: { ...schemaRaw.data, key: args.key } }]
+    schema._schema = [{ ...schema.schema[0], data: { ...schemaRaw.data, uuid: `ASSET#${args.uuid}` } }]
 
     //
     // Reload the new schema and new address over the existing data, and push to S3

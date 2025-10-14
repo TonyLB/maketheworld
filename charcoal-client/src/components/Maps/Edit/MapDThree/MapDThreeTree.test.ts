@@ -21,7 +21,7 @@ describe('mapTranslate', () => {
 
     it('should translate a simple map with rooms and positions', () => {
         const testStandard = new StandardForm(`
-            <Asset key=(testOne)>
+            <Asset uuid=(testOne)>
                 <Map uuid=(testMap)>
                     <Room uuid=(Room1)><Position x="100" y="100" /></Room>
                     <Room uuid=(Room2)><Position x="200" y="150" /></Room>
@@ -45,7 +45,7 @@ describe('mapTranslate', () => {
 
     it('should translate a map with rooms, positions, and exits', () => {
         const testStandard = new StandardForm(`
-            <Asset key=(testOne)>
+            <Asset uuid=(testOne)>
                 <Map uuid=(testMap)>
                     <Room uuid=(Room1)><Position x="100" y="100" /></Room>
                     <Room uuid=(Room2)>
@@ -76,7 +76,7 @@ describe('mapTranslate', () => {
 
     it('should throw error when map is not found', () => {
         const testStandard = new StandardForm(`
-            <Asset key=(testOne)>
+            <Asset uuid=(testOne)>
                 <Room uuid=(Room1)><Position x="100" y="100" /></Room>
             </Asset>
         `)
@@ -93,7 +93,7 @@ describe('MapDThreeStack', () => {
 
     const testSchema = new Schema()
     testSchema.loadWML(`
-        <Asset key=(testOne)>
+        <Asset uuid=(testOne)>
             <Map key=(testMap)>
                 <Room key=(GHI)><Position x="300" y="300" /></Room>
                 <Room key=(DEF)><Position x="300" y="200" /></Room>
@@ -168,7 +168,7 @@ describe('MapDThreeStack', () => {
 
     it('should initialize layers on construction', () => {
         const inherited = new StandardForm(`
-            <Asset key=(inherited)>
+            <Asset uuid=(inherited)>
                 <Map uuid=(testMap)>
                     <Room uuid=(ABC) origin=(ASSET#inherited)><Position x="200" y="200" /></Room>
                     <Room uuid=(DEF) origin=(ASSET#inherited)><Position x="100" y="200" /></Room>
@@ -176,7 +176,7 @@ describe('MapDThreeStack', () => {
             </Asset>
         `)
         const editable = new StandardForm(`
-            <Asset key=(editable)>
+            <Asset uuid=(editable)>
                 <Map uuid=(testMap)>
                     <Room uuid=(DEF)><Position x="300" y="200" /></Room>
                     <Room uuid=(GHI)><Position x="300" y="300" /></Room>

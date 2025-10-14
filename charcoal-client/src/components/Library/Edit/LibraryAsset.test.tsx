@@ -15,7 +15,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 const mockStore = configureStore()
 const currentWML = `
-<Asset key=(Test)>
+<Asset uuid=(Test)>
     <Import from=(BASE)>
         <Room key=(DEF) />
     </Import>
@@ -43,7 +43,7 @@ schemaConvert.loadWML(currentWML)
 const baseSchema = schemaConvert.schema
 
 const standardForm = new StandardForm(baseSchema[0])
-const inherited = new StandardForm(`<Asset key=(Test)>
+const inherited = new StandardForm(`<Asset uuid=(Test)>
     <Room key=(DEF)><Description>A welcome area</Description></Room>
 </Asset>`)
 const combined = inherited.merge(standardForm)
