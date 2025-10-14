@@ -79,9 +79,9 @@ The WML Lambda receives events from multiple sources:
 **Direct API Calls** (via Step Functions or WebSocket API):
 - `applyEdit` - Apply WML edit to existing content (processed via DataSource)
 - `moveAsset` - Move asset between zones (processed via DataSource)
-- `copyWML` - Copy asset to new location
-- `resetWML` - Clear asset content
-- `backupWML` - Create backup of asset
+- ~~`copyWML`~~ - DEPRECATED (removed in Phase 1 migration)
+- ~~`resetWML`~~ - DEPRECATED (removed in Phase 1 migration)
+- `backupWML` - Create backup of asset (deferred to Phase 2)
 - Atomic lock operations (`requestLock`, `checkLock`, `yieldLock`)
 
 ### Outgoing Events
@@ -194,7 +194,7 @@ This document is part of a coordinated event flow documentation effort across th
 ### High Priority
 
 1. **Implement Content Removed Events**
-   - Add event emission in `resetWML/index.ts` when content is cleared
+   - ~~Add event emission in `resetWML/index.ts` when content is cleared~~ - N/A (resetWML deprecated)
    - Add event emission in asset archival/deletion workflows
    - Required by Assets Lambda for proper cache invalidation
    - Event contract already defined in `mtw-interfaces`
@@ -231,9 +231,9 @@ This document is part of a coordinated event flow documentation effort across th
 **Business Logic**:
 - `lambda/wml/dataSource/applyEdit/` - Content edit application via DataSource
 - `lambda/wml/dataSource/moveAsset/` - Asset zone transitions via DataSource
-- `lambda/wml/resetWML/index.ts` - Content clearing (needs Content Removed event)
-- `lambda/wml/copyWML/index.ts` - Asset copying
-- `lambda/wml/backupWML/index.ts` - Asset backup creation
+- ~~`lambda/wml/resetWML/index.ts`~~ - DEPRECATED (removed in Phase 1)
+- ~~`lambda/wml/copyWML/index.ts`~~ - DEPRECATED (removed in Phase 1)
+- `lambda/wml/backupWML/index.ts` - Asset backup creation (deferred to Phase 2)
 
 **Event Contracts**:
 - `packages/mtw-interfaces/ts/eventBridge/wml/index.ts` - Event type definitions
