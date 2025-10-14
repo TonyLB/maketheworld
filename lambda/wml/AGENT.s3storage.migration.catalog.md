@@ -1,0 +1,389 @@
+# S3 File Write Operations Catalog
+
+**Purpose**: Document all locations where WML/NDJSON files are written to S3, to guide Phase 1 refactoring.
+
+**Date**: October 14, 2025
+
+---
+
+## Overview
+
+This catalog identifies all code paths that write asset files to S3. These locations will need refactoring to:
+1. Use flat UUID-based storage (no zone subdirectories)
+2. Add S3 object tags for Zone information
+3. Add S3 object metadata for Player/Owner information
+
+---
+
+## Primary Write Interface: `AssetWorkspace`
+
+**Location**: `packages/mtw-asset-workspace/ts/index.ts`
+
+### Write Methods
+
+All S3 writes for asset content go through these four methods:
+
+1. **`pushWML()`** - Writes WML source file
+   - Path: `${this.fileNameBase}.wml`
+   - Current implementation: Lines 145-152
+
+2. **`pushJSON()`** - Writes both `.json` and `.ndjson` files
+   - Paths: `${this.fileNameBase}.json` and `${this.fileNameBase}.ndjson`
+   - Current implementation: Lines 113-131
+
+3. **`pushAuthorizationWML()`** - Writes authorization WML
+   - Path: `${this.fileNameBase}.auth.wml`
+   - Current implementation: Lines 154-165
+
+4. **`pushAuthorizationJSON()`** - Writes authorization NDJSON
+   - Path: `${this.fileNameBase}.auth.ndjson`
+   - Current implementation: Lines 133-143
+
+### Path Construction Logic
+
+**Location**: `packages/mtw-asset-workspace/ts/readOnly.ts`
+
+**Key Methods**:
+- `get filePath()` (Lines 148-162): Constructs zone-based subdirectory path
+- `get fileName()` (Line 168-170): Returns fileName or 'draft' for Draft zone
+- `get fileNameBase()` (Line 164-166): Combines `filePath` + `fileName`
+
+**Current Path Structure**:
+```typescript
+// Canon/Library zones
+`${zone}/${subFolder}/${fileName}`
+// Example: "Canon/Assets/primitives"
+
+// Personal zone
+`Personal/${player}/${subFolder}/${fileName}`
+// Example: "Personal/alice/Assets/myAdventure"
+
+// Draft zone (special case)
+`Personal/${player}/Assets/draft`
+
+// Archive zone
+`${backupId}` (just the backup ID, no zone prefix)
+```
+
+**Refactoring Impact**: All of these path construction methods must be replaced with flat UUID-based naming.
+
+---
+
+## Lambda Functions That Write Asset Files
+
+### 1. `lambda/wml` - WML Management Lambda
+
+**Handler**: `lambda/wml/app.ts`
+
+#### Write Operations:
+
+**a) `applyEdit` (Edit Application)**
+- **Location**: `lambda/wml/dataSource/applyEdit/index.ts`
+- **Lines**: 84-85
+- **Operations**: `pushJSON()`, `pushWML()`
+- **Purpose**: Apply user edits to asset content
+- **Address Source**: From `args.address` or fetched from DynamoDB via `internalCache.Meta.get()`
+- **Refactoring Need**: Address lookup must return UUID; path construction changes
+
+**b) `copyWML` (Asset Duplication)**
+- **Location**: `lambda/wml/copyWML/index.ts`
+- **Lines**: 50-51
+- **Operations**: `pushJSON()`, `pushWML()`
+- **Purpose**: Copy asset from one location to another with new UUID
+- **Address Source**: `args.to` (provided in request)
+- **Refactoring Need**: 
+  - ✅ Already updated to use `uuid` parameter
+  - Need to update address handling to use UUID-based paths
+  - Will need to add zone/player as tags/metadata instead of path components
+
+**c) `resetWML` (Clear Asset Content)**
+- **Location**: `lambda/wml/resetWML/index.ts`
+- **Lines**: 20-21
+- **Operations**: `pushJSON()`, `pushWML()`
+- **Purpose**: Clear all content from an asset
+- **Address Source**: `args.address` (provided in request)
+- **Refactoring Need**: Address must become UUID-based
+
+**d) `moveAsset` (Zone Transitions)**
+- **Location**: `lambda/wml/dataSource/moveAsset/index.ts`
+- **Lines**: 148-174
+- **Operations**: Direct S3 `CopyObjectCommand` + `DeleteObjectCommand`
+- **Purpose**: Move assets between zones
+- **Current Behavior**: 
+  - Copies files from one zone path to another
+  - Deletes original files
+  - **THIS IS THE PRIMARY TARGET FOR PHASE 1 REFACTORING**
+- **Refactoring Need**: 
+  - Replace copy+delete with S3 PutObjectTagging
+  - Update Zone tag instead of moving files
+  - This is explicitly called out in migration plan (lines 136-139)
+
+**e) `backupWML` (Asset Backup to tar.gz)**
+- **Location**: `lambda/wml/backupWML/index.ts`
+- **Operations**: Reads from S3, writes tar.gz archive (not WML files)
+- **Purpose**: Create compressed backups of assets
+- **Note**: Phase 1 defers backup functionality (line 152 of migration plan)
+
+---
+
+### 2. `lambda/assets` - Asset Data Lambda
+
+**Handler**: `lambda/assets/app.ts`
+
+#### Write Operations:
+
+**a) `cacheAsset` (DynamoDB Cache Sync)**
+- **Location**: `lambda/assets/cacheAsset/index.ts`
+- **Operations**: No direct file writes (reads from S3, writes to DynamoDB)
+- **Purpose**: Sync S3 content to DynamoDB cache
+- **Refactoring Need**: Minimal - just update path reading
+
+**b) Read-Only Operations**
+- Most operations in `lambda/assets` are read-only or DynamoDB-focused
+- Uses `ReadOnlyAssetWorkspace` for file access
+- No direct S3 writes for WML/NDJSON files
+
+---
+
+### 3. `lambda/initialize` - System Initialization
+
+**Handler**: `lambda/initialize/app.ts`
+
+#### Write Operations:
+
+**a) `initializePrimitivesData` (Bootstrap)**
+- **Location**: `lambda/initialize/app.ts`
+- **Lines**: 60-67
+- **Operations**: Direct `PutObjectCommand`
+- **Path**: `Canon/Assets/primitives.wml`
+- **Content**: Defined in `lambda/initialize/primitives.ts`
+- **Purpose**: Create initial system primitives asset
+- **Refactoring Need**: 
+  - Change path from `Canon/Assets/primitives.wml` to `primitives.wml` (flat)
+  - Add S3 tags: `Zone=Canon`
+  - No player metadata needed (system asset)
+
+---
+
+### 4. `lambda/imageProcessor` - Image Upload Processing
+
+**Location**: `lambda/imageProcessor/app.ts`
+
+- **Operations**: Image processing and upload (not WML files)
+- **Refactoring Need**: None for WML storage
+
+---
+
+### 5. `lambda/addressLookup` - Address Resolution
+
+**Location**: `lambda/addressLookup/app.ts`
+
+**Current Function**: 
+- Looks up `AssetWorkspaceAddress` from DynamoDB for given AssetUUIDs
+- Returns zone/player/fileName/subFolder structure
+- Special handling for Draft assets (lines 27-36)
+
+**Refactoring Need**: 
+- Phase 1: This lambda becomes simpler - just returns UUID
+- Zone information will come from S3 tags instead
+- Player information from S3 metadata
+- May eventually become obsolete if we query S3 directly
+
+---
+
+## Helper Functions
+
+### `forceDefault()` - Draft Asset Initialization
+
+**Location**: `packages/mtw-asset-workspace/ts/readOnly.ts`
+- **Lines**: 176-194
+- **Operations**: Direct `s3Client.put()` calls
+- **Paths**: 
+  - `${this.fileNameBase}.wml`
+  - `${this.fileNameBase}.ndjson`
+- **Content**: Creates default empty draft asset
+- **Refactoring Need**: Update to flat UUID-based paths with tags/metadata
+
+### `dbRegister()` - DynamoDB Registration
+
+**Locations**: 
+- `lambda/wml/serialize/dbRegister.ts`
+- `lambda/assets/serialize/dbRegister.ts`
+
+**Purpose**: Register asset metadata in DynamoDB after S3 writes
+
+**Current Behavior**:
+- Stores `AssetWorkspaceAddress` structure in DynamoDB
+- Links AssetUUID to zone/player/fileName/subFolder
+
+**Refactoring Need**:
+- Store simplified metadata (AssetUUID → zone/player mapping)
+- Zone will be redundant with S3 tags (can be source of truth validation)
+- Player ownership is primary metadata to track
+
+---
+
+## S3 Path Construction Summary
+
+### Current Implementation
+
+**Canon/Library Assets**:
+```
+{zone}/{subFolder}/{fileName}.wml
+{zone}/{subFolder}/{fileName}.ndjson
+{zone}/{subFolder}/{fileName}.auth.wml
+{zone}/{subFolder}/{fileName}.auth.ndjson
+```
+
+**Personal Assets**:
+```
+Personal/{player}/{subFolder}/{fileName}.wml
+Personal/{player}/{subFolder}/{fileName}.ndjson
+Personal/{player}/{subFolder}/{fileName}.auth.wml
+Personal/{player}/{subFolder}/{fileName}.auth.ndjson
+```
+
+**Draft Assets** (Special Case):
+```
+Personal/{player}/Assets/draft.wml
+Personal/{player}/Assets/draft.ndjson
+```
+
+### Target Implementation (Phase 1)
+
+**All Assets** (Flat Structure):
+```
+{uuid}.wml              # S3 Tags: Zone={zone}; S3 Metadata: player={player}
+{uuid}.ndjson           # S3 Tags: Zone={zone}; S3 Metadata: player={player}
+{uuid}.auth.wml         # S3 Tags: Zone={zone}; S3 Metadata: player={player}
+{uuid}.auth.ndjson      # S3 Tags: Zone={zone}; S3 Metadata: player={player}
+```
+
+**Example**:
+- Old: `Personal/alice/Assets/myAdventure.wml`
+- New: `myAdventure.wml` with tags `{Zone: Personal}` and metadata `{player: alice}`
+
+---
+
+## Refactoring Scope
+
+### Critical Path Changes
+
+1. **`AssetWorkspace.filePath` getter** - Must return empty string (no subdirectories)
+2. **`AssetWorkspace.fileName` getter** - Must return UUID without `ASSET#` prefix
+3. **`AssetWorkspace.pushWML/pushJSON`** - Must add S3 tags and metadata on writes
+4. **`moveAsset` function** - Must use `PutObjectTagging` instead of copy+delete
+5. **`addressLookup` lambda** - Simplified or potentially deprecated
+6. **`dbRegister` functions** - Update metadata schema
+
+### Files Requiring Changes
+
+**Core Infrastructure**:
+- `packages/mtw-asset-workspace/ts/readOnly.ts` - Path construction
+- `packages/mtw-asset-workspace/ts/index.ts` - Write operations with tags/metadata
+
+**Lambda Write Operations**:
+- `lambda/wml/dataSource/applyEdit/index.ts` - Uses workspace.push methods
+- `lambda/wml/copyWML/index.ts` - Uses workspace.push methods
+- `lambda/wml/resetWML/index.ts` - Uses workspace.push methods
+- `lambda/wml/dataSource/moveAsset/index.ts` - **Primary refactoring target**
+- `lambda/initialize/app.ts` - Direct primitives write
+
+**Supporting Functions**:
+- `lambda/wml/serialize/dbRegister.ts` - Metadata registration
+- `lambda/assets/serialize/dbRegister.ts` - Metadata registration
+- `lambda/addressLookup/app.ts` - Address resolution (simplify/deprecate)
+
+### Read Operations (Indirect Impact)
+
+Functions that read files will need to:
+- Look up UUID-based paths instead of zone-based paths
+- Query S3 tags for zone information when needed
+- Read S3 metadata for player/owner information
+
+**Primary Read Locations**:
+- `AssetWorkspace.loadWML()` - `packages/mtw-asset-workspace/ts/readOnly.ts`
+- `AssetWorkspace.loadJSON()` - `packages/mtw-asset-workspace/ts/readOnly.ts`
+- `cacheAsset` - `lambda/assets/dataSource/caching/cacheAsset.ts`
+
+---
+
+## Implementation Strategy
+
+### Phase 1A: Update Write Operations
+
+1. Modify `AssetWorkspace` path construction (filePath, fileName, fileNameBase)
+2. Add S3 tagging to push methods (Zone tag)
+3. Add S3 metadata to push methods (Player metadata)
+4. Update `moveAsset` to use tagging instead of copy+delete
+5. Update `initializePrimitivesData` to use flat path with tags
+6. Update `forceDefault()` to use flat paths with tags/metadata
+
+### Phase 1B: Update Address Resolution
+
+1. Modify `addressLookup` to work with UUID-based lookups
+2. Update `dbRegister` to store simplified metadata
+3. Update `assetWorkspaceFromAssetId` utilities to construct addresses from UUIDs
+
+### Phase 1C: Update Read Operations
+
+1. Update `AssetWorkspace.load*` methods to use UUID-based paths
+2. Ensure S3 tag/metadata reading where needed
+3. Update cache invalidation logic
+
+---
+
+## Testing Strategy
+
+After each change:
+1. Unit tests for path construction
+2. Integration tests for write operations with tag verification
+3. Round-trip tests (write then read)
+4. Zone transition tests
+5. Multi-zone query tests
+
+---
+
+## S3 Client Extensions Needed
+
+**Location**: `packages/mtw-asset-workspace/ts/clients.ts`
+
+The current `s3Client` wrapper provides:
+- `check({ Key })` - HeadObjectCommand
+- `get({ Key, upload? })` - GetObjectCommand  
+- `put({ Key, Body })` - PutObjectCommand
+- `internalClient` - Direct S3Client access
+
+**Extensions needed for Phase 1**:
+
+```typescript
+// Add to s3Client wrapper:
+async putWithTags({ Key, Body, Tags, Metadata }: {
+    Key: string;
+    Body: string;
+    Tags?: Record<string, string>;      // e.g., { Zone: 'Canon' }
+    Metadata?: Record<string, string>;  // e.g., { player: 'alice' }
+}): Promise<void>
+
+async getTags({ Key }: { Key: string }): Promise<Record<string, string>>
+
+async updateTags({ Key, Tags }: {
+    Key: string;
+    Tags: Record<string, string>;
+}): Promise<void>  // For zone transitions
+
+async getMetadata({ Key }: { Key: string }): Promise<Record<string, string>>
+```
+
+**Reference Implementation**: `lambda/imageProcessor/app.ts` (lines 64-80) already uses `GetObjectTaggingCommand`
+
+---
+
+## Notes
+
+- **Draft Assets**: Currently use special path `Personal/{player}/Assets/draft.wml`. Phase 1 decision: Assign stable UUIDs (e.g., `draft[{player}]`)
+- **Archive Zone**: Phase 1 defers archiving. May remove Archive zone handling temporarily.
+- **Backup Operations**: `backupWML` deferred to Phase 2 (chunk-based architecture)
+- **S3 Tags vs Metadata**: Tags are mutable (good for Zone), Metadata is set-once (good for Player/Owner)
+- **Tag Query**: S3 doesn't natively support tag-based queries. DynamoDB remains the primary query layer for zone-based lookups
+
