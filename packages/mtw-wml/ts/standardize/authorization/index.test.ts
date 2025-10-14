@@ -31,7 +31,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should initialize with GenericTreeNode<SchemaTag>', () => {
         const node: GenericTreeNode<SchemaTag> = {
-            data: { tag: 'Asset', key: 'TestKey', Story: undefined },
+            data: { tag: 'Asset', uuid: 'ASSET#TestKey', Story: undefined },
             children: []
         }
         const collection = new StandardAuthorizationCollection(node)
@@ -41,7 +41,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should initialize with NDJSON', () => {
         const ndjson: StandardAuthorizationCollectionNDJSON[] = [
-            { tag: 'Asset', key: 'Test' },
+            { tag: 'Asset', universalKey: 'ASSET#Test' },
             { referenceStack: [], grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
             { referenceStack: [{ key: 'Room1', tag: 'Room' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } },
             { referenceStack: [{ key: 'Room1', tag: 'Room' }], grant: { tag: 'Grant', player: 'Player2', actions: ['action2'] } },
@@ -91,13 +91,13 @@ describe('StandardAuthorizationCollection', () => {
         const collection = new StandardAuthorizationCollection('TestKey')
         expect(collection.header).toEqual({
             tag: 'Asset',
-            key: 'TestKey'
+            universalKey: 'ASSET#TestKey'
         })
     })
 
     it('should return byId', () => {
         const collection = new StandardAuthorizationCollection(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Grant player=(Player1) actions="action0" />
                 <Room key=(Room1)>
                     <Grant player=(Player1) actions="action1" />
@@ -117,7 +117,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should return global resource', () => {
         const collection = new StandardAuthorizationCollection(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Grant player=(Player1) actions="action0" />
                 <Room key=(Room1)>
                     <Grant player=(Player1) actions="action1" />
@@ -143,7 +143,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should return JSON representation', () => {
         const collection = new StandardAuthorizationCollection(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Grant player=(Player1) actions="action0" />
                 <Room key=(Room1)>
                     <Grant player=(Player1) actions="action1" />
@@ -175,7 +175,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should return NDJSON representation', () => {
         const collection = new StandardAuthorizationCollection(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Grant player=(Player1) actions="action0" />
                 <Room key=(Room1)>
                     <Grant player=(Player1) actions="action1" />
@@ -183,7 +183,7 @@ describe('StandardAuthorizationCollection', () => {
             </Asset>
         `)
         expect(collection.toNDJSON()).toEqual([
-            { tag: 'Asset', key: 'test' },
+            { tag: 'Asset', universalKey: 'ASSET#test' },
             { referenceStack: [], grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
             { referenceStack: [{ key: 'Room1', tag: 'Room' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
         ])
@@ -191,7 +191,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should return schema', () => {
         const testWML = deIndentWML(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Grant player=(Player1) actions="action0" />
                 <Room key=(Room1)><Grant player=(Player1) actions="action1" /></Room>
             </Asset>
@@ -202,7 +202,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should ignore non-authorization content', () => {
         const test = new StandardAuthorizationCollection(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)>
                     <Grant player=(testPlayer) actions="test" />
                     <Example key=(base)>
@@ -215,7 +215,7 @@ describe('StandardAuthorizationCollection', () => {
             </Asset>
         `)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room key=(test)><Grant player=(testPlayer) actions="test" /></Room>
             </Asset>
         `))
@@ -223,14 +223,14 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should sort schema appropriately', () => {
         const collection = new StandardAuthorizationCollection(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Feature key=(FeatureTwo)><Grant player=(Player1) actions="action2" /></Feature>
                 <Room key=(Room1)><Grant player=(Player1) actions="action3" /></Room>
                 <Feature key=(FeatureOne)><Grant player=(Player1) actions="action1" /></Feature>
             </Asset>
         `)
         expect(schemaToWML([collection.schema])).toEqual(deIndentWML(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Feature key=(FeatureOne)>
                     <Grant player=(Player1) actions="action1" />
                 </Feature>
@@ -244,7 +244,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should correctly render nested schema', () => {
         const testWML = deIndentWML(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(Room1)>
                     <Feature key=(Feature2)>
                         <Grant player=(Player1) actions="action2" />
@@ -258,7 +258,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should correctly sort nested schema', () => {
         const collection = new StandardAuthorizationCollection((`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(Room1)>
                     <Feature key=(FeatureTwo)>
                         <Grant player=(Player1) actions="action2" />
@@ -270,7 +270,7 @@ describe('StandardAuthorizationCollection', () => {
             </Asset>
         `))
         expect(schemaToWML([collection.schema])).toEqual(deIndentWML(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(Room1)>
                     <Feature key=(FeatureOne)>
                         <Grant player=(Player1) actions="action1" />
@@ -285,7 +285,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should clone collection', () => {
         const collection = new StandardAuthorizationCollection(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Grant player=(Player1) actions="action0" />
                 <Room key=(Room1)>
                     <Grant player=(Player1) actions="action1" />
@@ -301,7 +301,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should merge collections', () => {
         const baseCollection = new StandardAuthorizationCollection(`
-            <Asset key=(TestKey)>
+            <Asset uuid=(TestKey)>
                 <Grant player=(Player1) actions="action0" />
                 <Room key=(Room1)>
                     <Grant player=(Player1) actions="action1" />
@@ -309,7 +309,7 @@ describe('StandardAuthorizationCollection', () => {
             </Asset>
         `)
         const incomingCollection = new StandardAuthorizationCollection(`
-            <Asset key=(TestKey)>
+            <Asset uuid=(TestKey)>
                 <Grant player=(Player2) actions="action2" />
                 <Room key=(Room1)>
                     <Grant player=(Player1) actions="action3" />
@@ -318,7 +318,7 @@ describe('StandardAuthorizationCollection', () => {
         `)
         const mergedCollection = baseCollection.merge(incomingCollection)
         expect(schemaToWML([mergedCollection.schema])).toEqual(deIndentWML(`
-            <Asset key=(TestKey)>
+            <Asset uuid=(TestKey)>
                 <Grant player=(Player1) actions="action0" />
                 <Grant player=(Player2) actions="action2" />
                 <Room key=(Room1)>
@@ -330,7 +330,7 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should diff collections', () => {
         const baseCollection = new StandardAuthorizationCollection(`
-            <Asset key=(TestKey)>
+            <Asset uuid=(TestKey)>
                 <Grant player=(Player1) actions="action0" />
                 <Room key=(Room1)>
                     <Grant player=(Player1) actions="action1" />
@@ -338,7 +338,7 @@ describe('StandardAuthorizationCollection', () => {
             </Asset>
         `)
         const incomingCollection = new StandardAuthorizationCollection(`
-            <Asset key=(TestKey)>
+            <Asset uuid=(TestKey)>
                 <Room key=(Room1)>
                     <Grant player=(Player1) actions="action2" />
                 </Room>  
@@ -346,7 +346,7 @@ describe('StandardAuthorizationCollection', () => {
         `)
         const diffCollection = baseCollection.diff(incomingCollection)
         expect(schemaToWML([diffCollection.schema])).toEqual(deIndentWML(`
-            <Asset key=(TestKey)>
+            <Asset uuid=(TestKey)>
                 <Remove><Grant player=(Player1) actions="action0" /></Remove>
                 <Room key=(Room1)>
                     <Replace><Grant player=(Player1) actions="action1" /></Replace>
@@ -359,7 +359,7 @@ describe('StandardAuthorizationCollection', () => {
     it('should rename keys', () => {
 
         const collection = new StandardAuthorizationCollection(`
-            <Asset key=(TestKey)>
+            <Asset uuid=(TestKey)>
                 <Room key=(Room1)>
                     <Grant player=(Player1) actions="action1" />
                 </Room>
@@ -367,7 +367,7 @@ describe('StandardAuthorizationCollection', () => {
         `)
         const renamedCollection = collection.renameKey([{ fromKey: 'Room1', toKey: 'testRoom' }])
         expect(schemaToWML([renamedCollection.schema])).toEqual(deIndentWML(`
-            <Asset key=(TestKey)>
+            <Asset uuid=(TestKey)>
                 <Room key=(testRoom)><Grant player=(Player1) actions="action1" /></Room>
             </Asset>
         `))

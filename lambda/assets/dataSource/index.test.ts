@@ -225,7 +225,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 event: {
                     type: 'Content Update' as const,
                     AssetId: 'ASSET#test123',
-                    schema: new StandardForm(`<Asset key=(test123) />`)
+                    schema: new StandardForm(`<Asset uuid=(test123) />`)
                 },
                 timestamp: Date.now()
             }
@@ -509,7 +509,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     event: {
                         type: 'Content Update',
                         AssetId: 'ASSET#test123',
-                        schema: new StandardForm(`<Asset key=(test123) />`)
+                        schema: new StandardForm(`<Asset uuid=(test123) />`)
                     },
                     timestamp: Date.now()
                 } as const,
@@ -527,7 +527,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     event: {
                         type: 'Content Update',
                         AssetId: 'ASSET#test456',
-                        schema: new StandardForm(`<Asset key=(test456) />`)
+                        schema: new StandardForm(`<Asset uuid=(test456) />`)
                     },
                     timestamp: Date.now()
                 } as const

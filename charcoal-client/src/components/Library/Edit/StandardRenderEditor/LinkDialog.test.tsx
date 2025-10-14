@@ -49,7 +49,7 @@ describe('LinkDialog', () => {
     const mockOnClose = vi.fn()
     
     const mockStandardForm = new StandardForm(`
-        <Asset key=(testAsset)>
+        <Asset uuid=(testAsset)>
             <Feature key=(feature1) />
             <Feature key=(feature2) />
             <Knowledge key=(knowledge1) />
@@ -175,7 +175,7 @@ describe('LinkDialog', () => {
 
     describe('Empty State Handling', () => {
         it('handles empty standardForm gracefully', () => {
-            const emptyStandardForm = new StandardForm(`<Asset key=(testAsset) />`)
+            const emptyStandardForm = new StandardForm(`<Asset uuid=(testAsset) />`)
             
             mockUseLibraryAsset.mockReturnValue({
                 standardForm: emptyStandardForm

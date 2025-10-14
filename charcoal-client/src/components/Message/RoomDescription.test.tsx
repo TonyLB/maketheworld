@@ -82,7 +82,7 @@ describe('RoomDescription', () => {
 
         it('should render room with StandardForm data', () => {
             const standardForm = new StandardForm(deIndentWML(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room key=(testRoom) uuid=(ROOM#testRoom)>
                         <Example key=(example1) uuid=(EXAMPLE#example1)>
                             <Name>Test Room</Name>
@@ -110,7 +110,7 @@ describe('RoomDescription', () => {
 
         it('should handle room with exits and characters', () => {
             const standardForm = new StandardForm(deIndentWML(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room key=(testRoom) uuid=(ROOM#testRoom)>
                         <Example key=(example1) uuid=(EXAMPLE#example1)>
                             <Name>Room with Exits</Name>
@@ -150,7 +150,7 @@ describe('RoomDescription', () => {
     describe('Header Mode', () => {
         it('should render in header mode', () => {
             const standardForm = new StandardForm(deIndentWML(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room key=(testRoom) uuid=(ROOM#testRoom)>
                         <Example key=(example1) uuid=(EXAMPLE#example1)>
                             <Name>Header Room</Name>
@@ -219,7 +219,7 @@ describe('RoomDescription', () => {
     describe('Edge Cases', () => {
         it('should handle room with no examples gracefully', () => {
             const standardForm = new StandardForm(deIndentWML(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room key=(testRoom) uuid=(ROOM#testRoom) />
                 </Asset>
             `))
@@ -241,7 +241,7 @@ describe('RoomDescription', () => {
 
         it('should handle missing room component gracefully', () => {
             const standardForm = new StandardForm(deIndentWML(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Feature key=(notARoom)>
                         <Name>Not a Room</Name>
                     </Feature>

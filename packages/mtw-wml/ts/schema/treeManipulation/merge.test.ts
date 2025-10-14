@@ -10,7 +10,7 @@ describe('mergeSchemaTrees', () => {
 
     it('should merge two simple trees', () => {
         const testOne = schemaTest(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)>
                     <Description>Test description</Description>
                     <Exit to=(testRoomTwo)>out</Exit>
@@ -19,7 +19,7 @@ describe('mergeSchemaTrees', () => {
             </Asset>
         `)
         const testTwo = schemaTest(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne) />
                 <Room key=(testRoomTwo)>
                     <Description>The other test description</Description>
@@ -27,7 +27,7 @@ describe('mergeSchemaTrees', () => {
             </Asset>
         `)
         expect(schemaToWML(mergeSchemaTrees(testOne, testTwo))).toEqual(deIndentWML(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)>
                     <Description>Test description</Description>
                     <Exit to=(testRoomTwo)>out</Exit>

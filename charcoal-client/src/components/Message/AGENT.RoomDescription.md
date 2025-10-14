@@ -121,7 +121,7 @@ export type RoomCharacter = {
 Based on the WML standard, room data should be structured as:
 
 ```xml
-<Asset key=(RoomName)>
+<Asset uuid=(RoomName)>
     <Room uuid=(room-uuid)>
         <Example uuid=(room-example-1)>
             <Name>Room Display Name</Name>

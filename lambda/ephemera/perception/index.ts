@@ -186,7 +186,7 @@ export const perceptionMessage = async ({
                 const { Name = 'Unknown', Pronouns = 'they/them' } = characterDescription
                 const fileURL = ('fileURL' in characterDescription) ? characterDescription.fileURL : undefined
                 const imageTag = fileURL ? `<Image key=(portrait) fileURL="${fileURL}" />` : ''
-                const wmlContent = `<Asset key=(render)>
+                const wmlContent = `<Asset uuid=(render)>
     <Character uuid=(${ephemeraId})>
         <Name>${Name}</Name>
         <Pronouns>${Pronouns}</Pronouns>

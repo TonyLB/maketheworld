@@ -5,7 +5,7 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 const schema = new Schema()
-schema.loadWML(`<Asset key=(testAsset)>
+schema.loadWML(`<Asset uuid=(testAsset)>
     <Room uuid=(testRoom) from=(ASSET#testImport)><Name>: imported</Name></Room>
 </Asset>`)
 const standard = new StandardForm(schema.schema[0])
@@ -37,13 +37,13 @@ describe('personalAssets slice', () => {
                 update: expect.any(Function)
             })
             const base = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Room uuid=(testRoom) from=(ASSET#testImport) />
                 </Asset>
             `)
             const diff = base.diff(overrideUpdateStandardInternal.mock.calls[0][0].update(base._clone()))
             console.log(`diff: ${schemaToWML([diff.schema])}`)
-            expect(schemaToWML([diff.schema])).toEqual('<Asset key=(testAsset) />')
+            expect(schemaToWML([diff.schema])).toEqual('<Asset uuid=(testAsset) />')
         })
 
         it('should add children on an import from same asset', () => {
@@ -58,7 +58,7 @@ describe('personalAssets slice', () => {
                 update: expect.any(Function)
             })
             const base = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Import from=(testImport)><Room key=(testRoom) /></Import>
                 </Asset>
             `)
@@ -67,7 +67,7 @@ describe('personalAssets slice', () => {
             expect(diff).toBeDefined()
             if (diff) {
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
-                    <Asset key=(testAsset)>
+                    <Asset uuid=(testAsset)>
                         <Room uuid=(testRoomTwo) from=(ASSET#testImport) />
                     </Asset>
                 `))
@@ -86,7 +86,7 @@ describe('personalAssets slice', () => {
                 update: expect.any(Function)
             })
             const base = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Import from=(testImport)><Room key=(testRoom) /></Import>
                 </Asset>
             `)
@@ -95,7 +95,7 @@ describe('personalAssets slice', () => {
             expect(diff).toBeDefined()
             if (diff) {
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
-                    <Asset key=(testAsset)>
+                    <Asset uuid=(testAsset)>
                         <Room uuid=(testRoomTwo) from=(ASSET#testImportTwo) />
                     </Asset>
                 `))

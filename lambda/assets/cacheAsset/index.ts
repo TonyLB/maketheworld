@@ -17,16 +17,16 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
 
             const assetUUID = AssetKey(assetId)
             const [dbAsset, fileAsset] = await Promise.all([
-                internalCache.AssetData.get([assetUUID]).then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset key=(${assetId}) />`))),
+                internalCache.AssetData.get([assetUUID]).then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset uuid=(${assetId}) />`))),
                 (async () => {
                     const assetMeta = (await internalCache.AssetMetaData.get([assetUUID]))[0]
                     const { address } = assetMeta ?? {}
                     if (!address) {
-                        return new StandardForm(`<Asset key=(${assetId}) />`)
+                        return new StandardForm(`<Asset uuid=(${assetId}) />`)
                     }
                     const assetWorkspace = new AssetWorkspace(address)
                     await assetWorkspace.loadJSON()
-                    return assetWorkspace.standard ?? new StandardForm(`<Asset key=(${assetId}) />`)
+                    return assetWorkspace.standard ?? new StandardForm(`<Asset uuid=(${assetId}) />`)
                 })()
             ])
 

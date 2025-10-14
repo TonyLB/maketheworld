@@ -20,7 +20,7 @@ export const getCachedPerception = ({ CharacterId, EphemeraId }: { CharacterId?:
     else {
         return {
             fetched: false,
-            wmlContent: `<Asset key=(empty) />`
+            wmlContent: `<Asset uuid=(empty) />`
         }
     }
 }

@@ -92,7 +92,7 @@ describe('StandardRenderEditor Integration', () => {
         vi.useFakeTimers()
         
         mockOnChange = vi.fn()
-        mockStandardForm = new StandardForm('<Asset key=(test)><Feature key=(feature1) /><Knowledge key=(knowledge1) /></Asset>')
+        mockStandardForm = new StandardForm('<Asset uuid=(test)><Feature key=(feature1) /><Knowledge key=(knowledge1) /></Asset>')
         mockReadonly = false
         
         // Setup default mocks

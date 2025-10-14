@@ -1,4 +1,4 @@
-import { isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaWithKey, SchemaTag, isSchemaAsset } from "@tonylb/mtw-base/ts/schema"
 import TagTree, { TagTreeFilterArguments, TagTreePruneArgs } from "."
 import { deepEqual } from "../lib/objects"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
@@ -30,11 +30,20 @@ export class SchemaTagTree extends TagTree<SchemaTag> {
         super({
             tree: addWrapperKey(tree),
             compare: ({ data: A }, { data: B }) => {
+                if (isSchemaAsset(A)) {
+                    return isSchemaAsset(B) && A.uuid === B.uuid
+                }
+                if (A.tag === 'Story') {
+                    return B.tag === 'Story' && A.uuid === B.uuid
+                }
                 if (isSchemaWithKey(A)) {
-                    return Boolean(isSchemaWithKey(B) && (
+                    if (!isSchemaWithKey(B)) {
+                        return false
+                    }
+                    return Boolean(
                         (A.key && A.key === B.key) ||
                         ('uuid' in A && 'uuid' in B && A.uuid && A.uuid === B.uuid)
-                    ))
+                    )
                 }
                 if (isSchemaReplace(A) && isSchemaReplace(B)) {
                     return A.wrapperKey === B.wrapperKey

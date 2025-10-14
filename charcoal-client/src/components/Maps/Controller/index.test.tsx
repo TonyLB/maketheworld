@@ -42,7 +42,7 @@ describe('mapTreeMemo', () => {
     describe('basic functionality', () => {
         it('should return a StandardForm containing the map item', () => {
             const testWML = `
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
@@ -77,7 +77,7 @@ describe('mapTreeMemo', () => {
 
         it('should include room stubs with ShortNames', () => {
             const testWML = `
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
@@ -111,7 +111,7 @@ describe('mapTreeMemo', () => {
 
         it('should include relevant exits for each room', () => {
             const testWML = `
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
                             <Position x="100" y="100" />
@@ -152,7 +152,7 @@ describe('mapTreeMemo', () => {
     describe('room stub content', () => {
         it('should include only ShortName and exits in room stubs', () => {
             const testWML = `
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
                             <Position x="100" y="100" />
@@ -191,7 +191,7 @@ describe('mapTreeMemo', () => {
 
         it('should handle rooms without ShortNames', () => {
             const testWML = `
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
                             <Position x="100" y="100" />
@@ -214,7 +214,7 @@ describe('mapTreeMemo', () => {
     describe('exit handling', () => {
         it('should include exit descriptions when present', () => {
             const testWML = `
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
                             <Position x="100" y="100" />
@@ -242,7 +242,7 @@ describe('mapTreeMemo', () => {
 
         it('should handle exits without descriptions', () => {
             const testWML = `
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
                             <Position x="100" y="100" />
@@ -272,7 +272,7 @@ describe('mapTreeMemo', () => {
     describe('error handling', () => {
         it('should throw error for invalid map ID format', () => {
             const testWML = `
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
                             <Position x="100" y="100" />
@@ -290,7 +290,7 @@ describe('mapTreeMemo', () => {
 
         it('should handle maps with no rooms', () => {
             const testWML = `
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Empty Map</Name>
                     </Map>

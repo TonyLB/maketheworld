@@ -16,7 +16,7 @@ import processComponents, { ComponentProcessingTemplate } from "./processCompone
 import { StandardRemove, StandardReplace } from "./components/edits"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardToJSONOptions } from "./components/baseClasses"
-import { ComponentUUID, isSchemaAsset, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, isSchemaAsset, isSchemaAssetUUID, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaImport, isSchemaMeta } from "@tonylb/mtw-base/ts/schema/metaData"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
@@ -89,7 +89,7 @@ const lookupInComponentList = (componentList: StandardComponent[], key: Standard
 
 
 export class StandardForm {
-    _key?: string;
+    _universalKey: AssetUUID;
     _components: StandardComponent[];
     _metaData: GenericTree<SchemaTag>;
     /**
@@ -101,13 +101,13 @@ export class StandardForm {
 
     constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string) {
         if (typeof args === 'string' && (isLegalKey(args) || args === '')) {
-            this._key = args
+            this._universalKey = args.startsWith('ASSET#') ? args as AssetUUID : `ASSET#${args}`
             this._components = []
             this._metaData = []
             return
         }
         if (isStandardForm(args)) {
-            this._key = args.key
+            this._universalKey = args.universalKey
 
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
             this._components = args.components.reduce<StandardComponent[]>((previous, standardData) => {
@@ -129,7 +129,10 @@ export class StandardForm {
             if (!assetLine) {
                 throw new Error('No asset header found in StandardForm NDJSON input')
             }
-            this._key = assetLine.key
+            if (!assetLine.universalKey || !isSchemaAssetUUID(assetLine.universalKey)) {
+                throw new Error('Asset universalKey is required in NDJSON')
+            }
+            this._universalKey = assetLine.universalKey
             this._components = args.filter(isStandardComponentData).reduce<StandardComponent[]>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
@@ -151,7 +154,7 @@ export class StandardForm {
                 : args
 
             if (treeNodeTypeguard(isSchemaAsset)(node)) {
-                this._key = node.data.key
+                this._universalKey = node.data.uuid
 
                 this._metaData = node.children.filter(wrappedNodeTypeGuard(isSchemaMeta))
 
@@ -233,8 +236,7 @@ export class StandardForm {
     get header(): { tag: 'Asset' } & StandardBaseData & SerializeNDJSONMixin {
         return {
             tag: 'Asset',
-            key: this._key,
-            universalKey: `ASSET#${this._key}`
+            universalKey: this._universalKey
         }
     }
 
@@ -314,12 +316,14 @@ export class StandardForm {
         return returnProxy as unknown as Record<ComponentUUID, StandardComponent>
     }
 
-    get key(): string { return this._key ?? '' }
+    get key(): string { return this._universalKey.replace('ASSET#', '') }
+    get universalKey(): AssetUUID { return this._universalKey }
 
     toJSON(options?: StandardToJSONOptions): StandardFormData {
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
         return {
-            key: this._key,
+            key: this._universalKey.replace('ASSET#', ''),
+            universalKey: this._universalKey,
             metaData: this.metaData,
             components: this._components.map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON(options) as StandardComponentData))
         }
@@ -344,7 +348,7 @@ export class StandardForm {
         const children = sortedChildren
             .map((component) => (component.withMapping(mapKeys).remapReferences('key').nestedSchema(this._lookup.bind(this), { context: [] })))
         return {
-            data: { tag: 'Asset', key: this._key, Story: undefined },
+            data: { tag: 'Asset', uuid: this._universalKey, Story: undefined },
             children: [
                 ...metaData.filter(treeNodeTypeguard(isSchemaMeta)),
                 ...children

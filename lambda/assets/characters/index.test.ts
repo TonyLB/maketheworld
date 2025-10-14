@@ -406,7 +406,7 @@ describe('CharactersDataSource', () => {
 
     describe('Snapshot Generation', () => {
         it('should query primary component storage for characters by asset UUID', async () => {
-            const assetUUID = 'asset-uuid-123'
+            const assetUUID = 'ASSET#asset-uuid-123'
             assetDBMock.query.mockResolvedValueOnce([
                 {
                     AssetId: 'CHARACTER#char-001',
@@ -455,7 +455,7 @@ describe('CharactersDataSource', () => {
 
             expect(snapshot.streamKey).toBe(assetUUID)
             expect((snapshot as any).characters).toEqual(deIndentWML(`
-                <Asset key=(asset-uuid-456)>
+                <Asset uuid=(asset-uuid-456)>
                     <Character uuid=(char-001) key=(char-001)>
                         <ShortName>Alpha</ShortName>
                     </Character>
@@ -469,7 +469,7 @@ describe('CharactersDataSource', () => {
 
     describe('DataSource Integration', () => {
         it('should support getSnapshot calls', async () => {
-            const testStreamKey = 'integration-test-asset'
+            const testStreamKey = 'ASSET#integration-test-asset'
             
             // Reset the mock and set up a new one for this test
             assetDBMock.query.mockReset()
@@ -489,7 +489,7 @@ describe('CharactersDataSource', () => {
             expect(snapshot).toHaveProperty('characters')
             expect(snapshot).toHaveProperty('timestamp')
             expect(snapshot.characters).toEqual(deIndentWML(`
-                <Asset key=(integration-test-asset)>
+                <Asset uuid=(integration-test-asset)>
                     <Character uuid=(char-001) key=(char-001)>
                         <ShortName>Test Character</ShortName>
                     </Character>
@@ -501,7 +501,7 @@ describe('CharactersDataSource', () => {
             const sessionId = 'SESSION#session123'
             
             await expect(
-                dataSource.initializeSubscription({ sessionId, streamKey: 'asset123' })
+                dataSource.initializeSubscription({ sessionId, streamKey: 'ASSET#asset123' })
             ).resolves.not.toThrow()
         })
 

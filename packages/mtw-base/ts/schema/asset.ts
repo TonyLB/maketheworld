@@ -1,7 +1,8 @@
 import { SchemaBase } from "./baseClasses";
+import { AssetUUID } from ".";
 
 type SchemaAssetBase = {
-    key?: string;
+    uuid: AssetUUID;
     fileName?: string;
     zone?: string;
     subFolder?: string;

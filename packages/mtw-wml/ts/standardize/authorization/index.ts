@@ -1,5 +1,5 @@
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaAsset, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, isSchemaAsset, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardAuthorizationItem } from "./components/baseClasses"
 import { isStandardAuthorizationCollection, StandardAuthorizationCollectionData } from "./components/dataTypes"
 import { isLegalKey } from "../utils"
@@ -35,24 +35,24 @@ export type StandardAuthorizationCollectionGrant = {
     grants: StandardAuthorizationItem[];
 }
 
-export type StandardAuthorizationCollectionNDJSON = { tag: 'Asset', key: string } | StandardAuthorizationResourceNDJSON
+export type StandardAuthorizationCollectionNDJSON = { tag: 'Asset', universalKey: AssetUUID } | StandardAuthorizationResourceNDJSON
 
 export const isStandardAuthorizationCollectionNDJSON = (value: any): value is StandardAuthorizationCollectionNDJSON => {
-    return isStandardAuthorizationResourceNDJSON(value) || Boolean(typeof value === 'object' && value.tag === 'Asset' && isLegalKey(value.key))
+    return isStandardAuthorizationResourceNDJSON(value) || Boolean(typeof value === 'object' && value.tag === 'Asset' && isSchemaAssetUUID(value.universalKey))
 }
 
 export class StandardAuthorizationCollection {
-    _key: string;
+    _universalKey: AssetUUID;
     _grants: StandardAuthorizationResource[];
 
     constructor(args: StandardAuthorizationCollectionData | GenericTreeNode<SchemaTag> | string | StandardAuthorizationCollectionNDJSON[]) {
         if (typeof args === 'string' && (isLegalKey(args) || args === '')) {
-            this._key = args
+            this._universalKey = args.startsWith('ASSET#') ? args as AssetUUID : `ASSET#${args}`
             this._grants = []
             return
         }
         if (isStandardAuthorizationCollection(args)) {
-            this._key = args.key
+            this._universalKey = args.key.startsWith('ASSET#') ? args.key as AssetUUID : `ASSET#${args.key}`
 
             const grantsByReference = args.grants.reduce<Record<string, StandardAuthorizationResource>>((previous, standardResource) => {
                 const { referenceStack } = standardResource
@@ -65,11 +65,11 @@ export class StandardAuthorizationCollection {
             return
         }
         if (Array.isArray(args) && args.every(isStandardAuthorizationCollectionNDJSON)) {
-            const assetKeyRow = args.find((row): row is { tag: 'Asset', key: string } => ('tag' in row && row.tag === 'Asset'))
+            const assetKeyRow = args.find((row): row is { tag: 'Asset', universalKey: AssetUUID } => ('tag' in row && row.tag === 'Asset'))
             if (!assetKeyRow) {
                 throw new Error('StandardAuthorizationCollection constructor requires an Asset row')
             }
-            this._key = assetKeyRow.key
+            this._universalKey = assetKeyRow.universalKey
             this._grants = args
                 .filter(isStandardAuthorizationResourceNDJSON)
                 .reduce<StandardAuthorizationResourceNDJSON[][]>((previous, row) => {
@@ -88,13 +88,13 @@ export class StandardAuthorizationCollection {
                 : args
 
             this._grants = []
-            this._key = ''
+            this._universalKey = 'ASSET#'
 
             if (treeNodeTypeguard(isSchemaAsset)(node)) {
-                if (!node.data.key) {
-                    throw new Error('StandardAuthorizationCollection constructor requires a key')
+                if (!node.data.uuid) {
+                    throw new Error('StandardAuthorizationCollection constructor requires a uuid')
                 }
-                this._key = node.data.key
+                this._universalKey = node.data.uuid
 
                 //
                 // Templates for the following component tags: 'Character', 'Image', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action'
@@ -133,10 +133,10 @@ export class StandardAuthorizationCollection {
         throw new Error('Invalid arguments in StandardAuthorization constructor')
     }
 
-    get header(): { tag: 'Asset', key: string } & StandardBaseData {
+    get header(): { tag: 'Asset', universalKey: AssetUUID } {
         return {
             tag: 'Asset',
-            key: this._key
+            universalKey: this._universalKey
         }
     }
 
@@ -159,11 +159,12 @@ export class StandardAuthorizationCollection {
         }
         return new StandardAuthorizationResource({ referenceStack: [], grants: [] })
     }
-    get key(): string { return this._key }
+    get key(): string { return this._universalKey.replace('ASSET#', '') }
+    get universalKey(): AssetUUID { return this._universalKey }
 
     toJSON(options?: StandardToJSONOptions): StandardAuthorizationCollectionData {
         return {
-            key: this._key,
+            key: this.key,
             grants: this._grants.map((resource) => (resource.toJSON()))
         }
     }
@@ -253,7 +254,7 @@ export class StandardAuthorizationCollection {
             .map((resource) => (resource.nestedSchema({ authorizationsById, sortOrder })))
             .flat(1)
         return {
-            data: { tag: 'Asset', key: this._key, Story: undefined },
+            data: { tag: 'Asset', uuid: this._universalKey, Story: undefined },
             children: [...globalChildren, ...byIdChildren]
         }
     }
@@ -278,7 +279,7 @@ export class StandardAuthorizationCollection {
                     return [...previous, baseResource ?? incomingResource].filter(excludeUndefined)
                 }
             }, [])
-        return new StandardAuthorizationCollection({ key: this._key, grants: newGrants.map((resource) => (resource.toJSON())) })
+        return new StandardAuthorizationCollection({ key: this.key, grants: newGrants.map((resource) => (resource.toJSON())) })
     }
 
     diff(incoming: StandardAuthorizationCollection): StandardAuthorizationCollection {
@@ -301,7 +302,7 @@ export class StandardAuthorizationCollection {
                 }
                 return previous
             }, [])
-        return new StandardAuthorizationCollection({ key: this._key, grants: newGrants.map((resource) => (resource.toJSON())) })
+        return new StandardAuthorizationCollection({ key: this.key, grants: newGrants.map((resource) => (resource.toJSON())) })
     }
 
     renameKey(props: { fromKey: string; toKey: string; }[]): StandardAuthorizationCollection {

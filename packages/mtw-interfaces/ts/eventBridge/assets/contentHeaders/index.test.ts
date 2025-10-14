@@ -32,7 +32,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 it('should add a new asset when it does not exist', () => {
                     const emptySnapshot = aggregator.createEmpty()
                     const standardForm = new StandardForm(deIndentWML(`
-                        <Asset key=(test)>
+                        <Asset uuid=(test)>
                             <Room key=(room1)><ShortName>Test Room</ShortName></Room>
                         </Asset>
                     `))
@@ -58,7 +58,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 it('should merge StandardForms when asset already exists', () => {
                     // Create initial snapshot with an asset
                     const initialStandardForm = new StandardForm(deIndentWML(`
-                        <Asset key=(test)>
+                        <Asset uuid=(test)>
                             <Room key=(room1)><ShortName>Room 1</ShortName></Room>
                         </Asset>
                     `))
@@ -74,7 +74,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                     // Create update with additional component
                     const updateStandardForm = new StandardForm(deIndentWML(`
-                        <Asset key=(test)>
+                        <Asset uuid=(test)>
                             <Room key=(room2)><ShortName>Room 2</ShortName></Room>
                         </Asset>
                     `))
@@ -100,7 +100,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 it('should handle edits in the update StandardForm (Edits to be Applied mode)', () => {
                     // Create initial snapshot with a room
                     const initialStandardForm = new StandardForm(deIndentWML(`
-                        <Asset key=(test)>
+                        <Asset uuid=(test)>
                             <Room key=(room1)><ShortName>Original Name</ShortName></Room>
                         </Asset>
                     `))
@@ -116,7 +116,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                     // Create update with a replace edit
                     const updateStandardForm = new StandardForm(deIndentWML(`
-                        <Asset key=(test)>
+                        <Asset uuid=(test)>
                             <Room key=(room1)>
                                 <Replace><ShortName>Original Name</ShortName></Replace>
                                 <With><ShortName>Updated Name</ShortName></With>
@@ -145,7 +145,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                 it('should update zone when processing update for existing asset', () => {
                     const initialStandardForm = new StandardForm(deIndentWML(`
-                        <Asset key=(test)>
+                        <Asset uuid=(test)>
                             <Room key=(room1)><ShortName>Test Room</ShortName></Room>
                         </Asset>
                     `))
@@ -160,7 +160,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     }
 
                     const updateStandardForm = new StandardForm(deIndentWML(`
-                        <Asset key=(test)>
+                        <Asset uuid=(test)>
                             <Room key=(room2)><ShortName>Room 2</ShortName></Room>
                         </Asset>
                     `))
@@ -187,7 +187,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test1',
                         zone: 'Canon',
                         standardForm: new StandardForm(deIndentWML(`
-                            <Asset key=(test1)>
+                            <Asset uuid=(test1)>
                                 <Room key=(room1)><ShortName>Room 1</ShortName></Room>
                             </Asset>
                         `))
@@ -202,7 +202,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test2',
                         zone: 'Library',
                         standardForm: new StandardForm(deIndentWML(`
-                            <Asset key=(test2)>
+                            <Asset uuid=(test2)>
                                 <Room key=(room2)><ShortName>Room 2</ShortName></Room>
                             </Asset>
                         `))
@@ -220,7 +220,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
             describe('Zone Updated events', () => {
                 it('should update zone for existing asset', () => {
                     const initialStandardForm = new StandardForm(deIndentWML(`
-                        <Asset key=(test)>
+                        <Asset uuid=(test)>
                             <Room key=(room1)><ShortName>Test Room</ShortName></Room>
                         </Asset>
                     `))
@@ -279,7 +279,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                                 assetId: 'ASSET#test1' as const,
                                 zone: 'Canon' as const,
                                 standardForm: new StandardForm(deIndentWML(`
-                                    <Asset key=(test1)>
+                                    <Asset uuid=(test1)>
                                         <Room key=(room1)><ShortName>Room 1</ShortName></Room>
                                     </Asset>
                                 `))
@@ -288,7 +288,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                                 assetId: 'ASSET#test2' as const,
                                 zone: 'Library' as const,
                                 standardForm: new StandardForm(deIndentWML(`
-                                    <Asset key=(test2)>
+                                    <Asset uuid=(test2)>
                                         <Room key=(room2)><ShortName>Room 2</ShortName></Room>
                                     </Asset>
                                 `))
@@ -322,7 +322,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assets: [{
                             assetId: 'ASSET#old' as const,
                             zone: 'Canon' as const,
-                            standardForm: new StandardForm('<Asset key=(old)></Asset>')
+                            standardForm: new StandardForm('<Asset uuid=(old)></Asset>')
                         }]
                     }
 
@@ -331,7 +331,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assets: [{
                             assetId: 'ASSET#new' as const,
                             zone: 'Library' as const,
-                            standardForm: new StandardForm('<Asset key=(new)></Asset>')
+                            standardForm: new StandardForm('<Asset uuid=(new)></Asset>')
                         }]
                     }
                     
@@ -352,7 +352,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
-                            standardForm: new StandardForm(`<Asset key=(test)>
+                            standardForm: new StandardForm(`<Asset uuid=(test)>
                                 <Room key=(room1)><ShortName>Room 1</ShortName></Room>
                             </Asset>`)
                         }]
@@ -360,7 +360,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                     // Create a malformed StandardForm that will cause merge to throw
                     // We'll mock the merge method to throw an error
-                    const updateStandardForm = new StandardForm(`<Asset key=(test)>
+                    const updateStandardForm = new StandardForm(`<Asset uuid=(test)>
                         <Room key=(room2)><ShortName>Room 2</ShortName></Room>
                     </Asset>`)
                     
@@ -393,7 +393,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
-                            standardForm: new StandardForm('<Asset key=(test)></Asset>')
+                            standardForm: new StandardForm('<Asset uuid=(test)></Asset>')
                         }]
                     }
 
@@ -407,7 +407,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
-                        standardForm: new StandardForm('<Asset key=(test)><Room key=(room1)></Room></Asset>')
+                        standardForm: new StandardForm('<Asset uuid=(test)><Room key=(room1)></Room></Asset>')
                     })
 
                     // Restore original merge
@@ -427,7 +427,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
-                            standardForm: new StandardForm('<Asset key=(test)></Asset>')
+                            standardForm: new StandardForm('<Asset uuid=(test)></Asset>')
                         }]
                     }
                     const originalAssetsLength = originalSnapshot.assets.length
@@ -436,7 +436,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         type: 'Headers Updated',
                         assetId: 'ASSET#new',
                         zone: 'Library',
-                        standardForm: new StandardForm('<Asset key=(new)></Asset>')
+                        standardForm: new StandardForm('<Asset uuid=(new)></Asset>')
                     })
 
                     expect(originalSnapshot.assets.length).toBe(originalAssetsLength)
@@ -448,7 +448,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
-                            standardForm: new StandardForm('<Asset key=(test)></Asset>')
+                            standardForm: new StandardForm('<Asset uuid=(test)></Asset>')
                         }]
                     }
                     const originalZone = originalSnapshot.assets[0].zone
@@ -476,7 +476,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
         describe('serialize', () => {
             it('should serialize Headers Updated event to external format', () => {
                 const standardForm = new StandardForm(deIndentWML(`
-                    <Asset key=(test)>
+                    <Asset uuid=(test)>
                         <Room key=(room1)><ShortName>Test Room</ShortName></Room>
                     </Asset>
                 `))
@@ -501,7 +501,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                 // Verify WML is correctly serialized
                 const external = result as ContentHeadersUpdateExternal
-                expect(external.wml).toContain('<Asset key=(test)>')
+                expect(external.wml).toContain('<Asset uuid=(test)>')
                 expect(external.wml).toContain('<Room key=(room1)>')
             })
         })
@@ -512,7 +512,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     type: 'Headers Updated',
                     assetId: 'ASSET#test',
                     zone: 'Canon',
-                    wml: '<Asset key=(test)><Room key=(room1)><ShortName>Test Room</ShortName></Room></Asset>'
+                    wml: '<Asset uuid=(test)><Room key=(room1)><ShortName>Test Room</ShortName></Room></Asset>'
                 }
 
                 const result = serializer.deserialize({
@@ -541,12 +541,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         {
                             assetId: 'ASSET#test1' as const,
                             zone: 'Canon' as const,
-                            standardForm: new StandardForm('<Asset key=(test1)><Room key=(room1)><ShortName>Room 1</ShortName></Room></Asset>')
+                            standardForm: new StandardForm('<Asset uuid=(test1)><Room key=(room1)><ShortName>Room 1</ShortName></Room></Asset>')
                         },
                         {
                             assetId: 'ASSET#test2' as const,
                             zone: 'Library' as const,
-                            standardForm: new StandardForm('<Asset key=(test2)><Room key=(room2)><ShortName>Room 2</ShortName></Room></Asset>')
+                            standardForm: new StandardForm('<Asset uuid=(test2)><Room key=(room2)><ShortName>Room 2</ShortName></Room></Asset>')
                         }
                     ]
                 }
@@ -579,12 +579,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         {
                             assetId: 'ASSET#test1',
                             zone: 'Canon',
-                            wml: '<Asset key=(test1)><Room key=(room1)><ShortName>Room 1</ShortName></Room></Asset>'
+                            wml: '<Asset uuid=(test1)><Room key=(room1)><ShortName>Room 1</ShortName></Room></Asset>'
                         },
                         {
                             assetId: 'ASSET#test2',
                             zone: 'Library',
-                            wml: '<Asset key=(test2)><Room key=(room2)><ShortName>Room 2</ShortName></Room></Asset>'
+                            wml: '<Asset uuid=(test2)><Room key=(room2)><ShortName>Room 2</ShortName></Room></Asset>'
                         }
                     ]
                 }

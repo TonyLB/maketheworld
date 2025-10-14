@@ -138,10 +138,11 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] 
             checkTypes(
                 line,
                 {
-                    key: 'string'
+                    universalKey: 'string'
                 },
                 {}
-            )
+            ),
+            isSchemaAssetUUID(line.universalKey)
         )
     }
     return checkAll(

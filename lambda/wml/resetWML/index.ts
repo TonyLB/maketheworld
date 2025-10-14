@@ -11,7 +11,7 @@ export type ResetWMLArguments = {
 //
 export const resetWML = async (args: ResetWMLArguments) => {
     const workspace = new AssetWorkspace(args.address)
-    await workspace.setWML(`<Asset key=(${args.key}) />`)
+    await workspace.setWML(`<Asset uuid=(${args.key}) />`)
 
     //
     // Reload the new schema and new address over the existing data, and push to S3

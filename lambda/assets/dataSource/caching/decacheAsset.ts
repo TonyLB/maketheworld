@@ -28,8 +28,8 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
     // Load current cached asset form and synthesize an empty form to diff against
     const dbAsset = await internalCache.AssetData
         .get([assetUUID])
-        .then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset key=(${assetId}) />`)))
-    const emptyAsset = new StandardForm(`<Asset key=(${assetId}) />`)
+        .then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset uuid=(${assetId}) />`)))
+    const emptyAsset = new StandardForm(`<Asset uuid=(${assetId}) />`)
 
     const diff = dbAsset.diff(emptyAsset)
     if (!diff) {

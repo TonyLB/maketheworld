@@ -5,7 +5,7 @@ import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 describe('descendantsFromRender', () => {
     const standardForm = new StandardForm(deIndentWML(`
-        <Asset key=(test)>
+        <Asset uuid=(test)>
             <Feature key=(feature1) />
             <Knowledge key=(knowledge1) />
         </Asset>
@@ -430,7 +430,7 @@ describe('descendantsFromRender', () => {
             
             // Convert to StandardRender and back
             const standardForm = new StandardForm(deIndentWML(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Feature key=(feature1) />
                 </Asset>
             `))

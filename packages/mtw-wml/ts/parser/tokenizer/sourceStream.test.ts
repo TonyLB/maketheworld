@@ -1,7 +1,7 @@
 import SourceStream from './sourceStream'
 
 describe('SourceStream', () => {
-    const testSource = `<Asset key=(Test)>
+    const testSource = `<Asset uuid=(Test)>
         <Room key=(entry)></Room>
     </Asset>`
 
@@ -17,17 +17,17 @@ describe('SourceStream', () => {
     it('should return lookAhead for number input', () => {
         const testStream = new SourceStream(testSource)
         testStream.consume(7)
-        expect(testStream.lookAhead(4)).toEqual('key=')
+        expect(testStream.lookAhead(5)).toEqual('uuid=')
     })
     it('should consume successfully when given string', () => {
         const testStream = new SourceStream(testSource)
         testStream.consume('<Asset ')
-        expect(testStream.lookAhead('key=(Test)')).toBe(true)
+        expect(testStream.lookAhead('uuid=(Test)')).toBe(true)
     })
     it('should consume successfully when given number', () => {
         const testStream = new SourceStream(testSource)
         expect(testStream.consume(6)).toEqual('<Asset')
-        expect(testStream.consume(4)).toEqual(' key')
+        expect(testStream.consume(5)).toEqual(' uuid')
     })
     it('should successfully consume the last character', () => {
         const testStream = new SourceStream('x')
@@ -36,7 +36,7 @@ describe('SourceStream', () => {
     })
     it('should successfully consume the entire source', () => {
         const testStream = new SourceStream(testSource)
-        testStream.consume('<Asset key=(Test)>\n')
+        testStream.consume('<Asset uuid=(Test)>\n')
         expect(testStream.consume(undefined)).toEqual(`        <Room key=(entry)></Room>\n    </Asset>`)
         expect(testStream.isEndOfSource).toBe(true)
     })
@@ -49,8 +49,8 @@ describe('SourceStream', () => {
     it('should correctly calculate nextInstante', () => {
         const testStream = new SourceStream(testSource)
         testStream.consume('<Asset')
-        expect(testStream.nextInstance(['key', 'test'])).toEqual(1)
-        expect(testStream.nextInstance(['Test'])).toEqual(6)
+        expect(testStream.nextInstance(['uuid', 'test'])).toEqual(1)
+        expect(testStream.nextInstance(['Test'])).toEqual(7)
         expect(testStream.nextInstance(['<Asset'])).toEqual(-1)
     })
 })

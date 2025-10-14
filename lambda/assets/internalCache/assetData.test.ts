@@ -42,7 +42,7 @@ describe('AssetData cache class', () => {
             }
         ])
         expect(schemaToWML([result[0].standardForm.schema])).toEqual(deIndentWML(`
-            <Asset key=(Test)>
+            <Asset uuid=(Test)>
                 <Room uuid=(ABCDEF) key=(Room1)>
                     <ShortName>Lobby</ShortName>
                     <Example uuid=(GHIJKL)>

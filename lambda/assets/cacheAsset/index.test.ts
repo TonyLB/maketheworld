@@ -32,7 +32,7 @@ jest.mock('../internalCache', () => ({
 
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 
-let standardFormMock = new StandardForm('<Asset key=(Test) />')
+let standardFormMock = new StandardForm('<Asset uuid=(Test) />')
 jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
@@ -57,7 +57,7 @@ describe('Cache Asset', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        standardFormMock = new StandardForm('<Asset key=(Test) />')
+        standardFormMock = new StandardForm('<Asset uuid=(Test) />')
     })
 
     it('should not publish Character Removed event (handled by characters data source)', async () => {
@@ -68,7 +68,7 @@ describe('Cache Asset', () => {
 
         internalCacheMock.AssetData.get.mockResolvedValue([{
             AssetId: 'ASSET#Test',
-            standardForm: new StandardForm('<Asset key=(Test)><Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
+            standardForm: new StandardForm('<Asset uuid=(Test)><Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
         }])
         internalCacheMock.ComponentData.get.mockResolvedValue([])
 
@@ -87,13 +87,13 @@ describe('Cache Asset', () => {
 
         internalCacheMock.AssetData.get.mockResolvedValue([{
             AssetId: 'ASSET#Test',
-            standardForm: new StandardForm('<Asset key=(Test)><Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
+            standardForm: new StandardForm('<Asset uuid=(Test)><Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
         }])
         internalCacheMock.ComponentData.get.mockResolvedValue([{
             ComponentId: 'CHARACTER#12345',
             byAssets: [{ AssetId: 'ASSET#Test', component: new StandardCharacter('<Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character>') }]
         }])
-        standardFormMock = new StandardForm('<Asset key=(Test)><Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
+        standardFormMock = new StandardForm('<Asset uuid=(Test)><Character uuid=(12345) key=(TestCharacter)><ShortName>Test</ShortName></Character></Asset>')
 
         const messageBus = {
             send: jest.fn()
@@ -112,7 +112,7 @@ describe('Cache Asset', () => {
             // Mock empty dbAsset (no existing data)
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                standardForm: new StandardForm('<Asset key=(primitives) />')
+                standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
             // Mock AssetMetaData.get to return address
@@ -127,7 +127,7 @@ describe('Cache Asset', () => {
 
             // Mock fileAsset with content
             standardFormMock = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                     <Knowledge uuid=(knowledgeRoot) />
                 </Asset>
@@ -159,7 +159,7 @@ describe('Cache Asset', () => {
             // Mock empty dbAsset (no existing data)
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                standardForm: new StandardForm('<Asset key=(primitives) />')
+                standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
             // Mock AssetMetaData.get to return address
@@ -174,7 +174,7 @@ describe('Cache Asset', () => {
 
             // Mock fileAsset with content
             standardFormMock = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                     <Knowledge uuid=(knowledgeRoot) />
                 </Asset>
@@ -208,7 +208,7 @@ describe('Cache Asset', () => {
             // Mock empty dbAsset
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                standardForm: new StandardForm('<Asset key=(primitives) />')
+                standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
             // Mock AssetMetaData.get to return no address
@@ -237,7 +237,7 @@ describe('Cache Asset', () => {
             // Mock empty dbAsset
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                standardForm: new StandardForm('<Asset key=(primitives) />')
+                standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
             // Mock AssetMetaData.get to return address
@@ -252,7 +252,7 @@ describe('Cache Asset', () => {
 
             // Mock fileAsset with content
             standardFormMock = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                 </Asset>
             `)
@@ -280,7 +280,7 @@ describe('Cache Asset', () => {
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
                 standardForm: new StandardForm(`
-                    <Asset key=(primitives)>
+                    <Asset uuid=(primitives)>
                         <Room uuid=(VORTEX) />
                         <Knowledge uuid=(knowledgeRoot) />
                     </Asset>
@@ -299,7 +299,7 @@ describe('Cache Asset', () => {
 
             // Mock fileAsset with only one component (removed one)
             standardFormMock = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                 </Asset>
             `)
@@ -326,7 +326,7 @@ describe('Cache Asset', () => {
             } as const
 
             const identicalForm = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                 </Asset>
             `)
@@ -369,7 +369,7 @@ describe('Cache Asset', () => {
             // Mock empty dbAsset
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                standardForm: new StandardForm('<Asset key=(primitives) />')
+                standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
             internalCacheMock.AssetMetaData.get.mockResolvedValue([{
@@ -383,7 +383,7 @@ describe('Cache Asset', () => {
 
             // Mock fileAsset with content
             standardFormMock = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                     <Knowledge uuid=(knowledgeRoot) />
                 </Asset>

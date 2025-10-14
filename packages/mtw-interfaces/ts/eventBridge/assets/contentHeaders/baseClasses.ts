@@ -140,7 +140,7 @@ export class ContentHeadersAggregator {
                 // Get the StandardForm (existing or create empty placeholder)
                 const standardForm = existing 
                     ? existing.standardForm
-                    : new StandardForm(`<Asset key=(${assetId.split('#')[1] || 'unknown'})></Asset>`)
+                    : new StandardForm(`<Asset uuid=(${assetId.split('#')[1] || 'unknown'})></Asset>`)
                 
                 // Create baseline by filtering out the existing record, then add the updated one
                 const baselineAssets = snapshot.assets.filter(asset => asset.assetId !== assetId)

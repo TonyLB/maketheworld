@@ -11,7 +11,7 @@ describe('applyEdits', () => {
 
     it('should leave non-edit syntax untouched', () => {
         const testOne = schemaTest(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)>
                     <Description>Test description</Description>
                     <Exit to=(testRoomTwo)>out</Exit>
@@ -24,7 +24,7 @@ describe('applyEdits', () => {
 
     it('should apply replace that matches present content', () => {
         const test = schemaTest(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)>
                     <Description>Test description</Description>
                     <Replace><Description>Test description</Description></Replace>
@@ -33,7 +33,7 @@ describe('applyEdits', () => {
             </Asset>
         `)
         expect(schemaToWML(applyEdits(test))).toEqual(deIndentWML(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)><Description>New test</Description></Room>
             </Asset>
         `))
@@ -41,7 +41,7 @@ describe('applyEdits', () => {
 
     it('should correctly remove keyed items', () => {
         const test = schemaTest(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne) />
                 <Room key=(testRoomTwo)>
                     <Exit to=(testRoomOne)>out</Exit>
@@ -51,7 +51,7 @@ describe('applyEdits', () => {
             </Asset>
         `)
         expect(schemaToWML(applyEdits(test))).toEqual(deIndentWML(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne) />
                 <Room key=(testRoomTwo)><Exit to=(testRoomOne)>depart</Exit></Room>
             </Asset>
@@ -60,7 +60,7 @@ describe('applyEdits', () => {
 
     it('should apply replace that exceeds present content', () => {
         const test = schemaTest(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)>
                     <Description>description</Description>
                     <Replace><Description>Test description</Description></Replace>
@@ -69,7 +69,7 @@ describe('applyEdits', () => {
             </Asset>
         `)
         expect(schemaToWML(applyEdits(test))).toEqual(deIndentWML(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)>
                     <Replace><Description>Test<Space /></Description></Replace>
                     <With><Description>New test</Description></With>
@@ -80,7 +80,7 @@ describe('applyEdits', () => {
 
     it('should no-op an add combined with a matching remove', () => {
         const test = schemaTest(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)>
                     <Description>Test description</Description>
                     <Remove><Description>Test description</Description></Remove>
@@ -88,13 +88,13 @@ describe('applyEdits', () => {
             </Asset>
         `)
         expect(schemaToWML(applyEdits(test))).toEqual(deIndentWML(`
-            <Asset key=(test)><Room key=(testRoomOne) /></Asset>
+            <Asset uuid=(test)><Room key=(testRoomOne) /></Asset>
         `))
     })
 
     it('should leave edit syntax with no preceding referent untouched', () => {
         const testOne = schemaTest(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)>
                     <Replace><Description>Test description</Description></Replace>
                     <With><Description>New description</Description></With>
@@ -108,7 +108,7 @@ describe('applyEdits', () => {
 
     it('should merge with empty values', () => {
         const testOne = schemaTest(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)>
                     <ShortName />
                     <Replace><ShortName>Test</ShortName></Replace>
@@ -117,7 +117,7 @@ describe('applyEdits', () => {
             </Asset>
         `)
         expect(schemaToWML(applyEdits(testOne))).toEqual(deIndentWML(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)>
                     <Replace><ShortName>Test</ShortName></Replace>
                     <With><ShortName>TestReplace</ShortName></With>
@@ -128,7 +128,7 @@ describe('applyEdits', () => {
 
     it('should filter no-op replace combinations', () => {
         const testOne = schemaTest(`
-            <Asset key=(test)>
+            <Asset uuid=(test)>
                 <Room key=(testRoomOne)>
                     <Replace><ShortName>One</ShortName></Replace>
                     <With><ShortName>Two</ShortName></With>
@@ -138,7 +138,7 @@ describe('applyEdits', () => {
             </Asset>
         `)
         expect(schemaToWML(applyEdits(testOne))).toEqual(deIndentWML(`
-            <Asset key=(test)><Room key=(testRoomOne) /></Asset>
+            <Asset uuid=(test)><Room key=(testRoomOne) /></Asset>
         `))
     })
 

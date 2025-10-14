@@ -33,7 +33,7 @@ jest.mock('../../internalCache', () => ({
 
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 
-let standardFormMock = new StandardForm('<Asset key=(Test) />')
+let standardFormMock = new StandardForm('<Asset uuid=(Test) />')
 jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
@@ -55,7 +55,7 @@ describe('Cache Asset (Data Source)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        standardFormMock = new StandardForm('<Asset key=(Test) />')
+        standardFormMock = new StandardForm('<Asset uuid=(Test) />')
         mockStreamEvent.mockResolvedValue(undefined)
     })
 
@@ -64,7 +64,7 @@ describe('Cache Asset (Data Source)', () => {
             // Mock empty dbAsset (no existing data)
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                standardForm: new StandardForm('<Asset key=(primitives) />')
+                standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
             // Mock AssetMetaData.get to return address
@@ -79,7 +79,7 @@ describe('Cache Asset (Data Source)', () => {
 
             // Mock fileAsset with content
             standardFormMock = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                     <Knowledge uuid=(knowledgeRoot) />
                 </Asset>
@@ -102,7 +102,7 @@ describe('Cache Asset (Data Source)', () => {
             // Mock empty dbAsset (no existing data)
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                standardForm: new StandardForm('<Asset key=(primitives) />')
+                standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
             // Mock AssetMetaData.get to return address
@@ -117,7 +117,7 @@ describe('Cache Asset (Data Source)', () => {
 
             // Mock fileAsset with content
             standardFormMock = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                     <Knowledge uuid=(knowledgeRoot) />
                 </Asset>
@@ -142,7 +142,7 @@ describe('Cache Asset (Data Source)', () => {
             // Mock empty dbAsset
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                standardForm: new StandardForm('<Asset key=(primitives) />')
+                standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
             // Mock AssetMetaData.get to return no address
@@ -162,7 +162,7 @@ describe('Cache Asset (Data Source)', () => {
             // Mock empty dbAsset
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                standardForm: new StandardForm('<Asset key=(primitives) />')
+                standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
             // Mock AssetMetaData.get to return address
@@ -177,7 +177,7 @@ describe('Cache Asset (Data Source)', () => {
 
             // Mock fileAsset with content
             standardFormMock = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                 </Asset>
             `)
@@ -196,7 +196,7 @@ describe('Cache Asset (Data Source)', () => {
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
                 standardForm: new StandardForm(`
-                    <Asset key=(primitives)>
+                    <Asset uuid=(primitives)>
                         <Room uuid=(VORTEX) />
                         <Knowledge uuid=(knowledgeRoot) />
                     </Asset>
@@ -215,7 +215,7 @@ describe('Cache Asset (Data Source)', () => {
 
             // Mock fileAsset with only one component (removed one)
             standardFormMock = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                 </Asset>
             `)
@@ -241,7 +241,7 @@ describe('Cache Asset (Data Source)', () => {
     describe('Diff behavior', () => {
         it('should detect no changes when dbAsset and fileAsset are identical', async () => {
             const identicalForm = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                 </Asset>
             `)
@@ -275,7 +275,7 @@ describe('Cache Asset (Data Source)', () => {
             // Mock empty dbAsset
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                standardForm: new StandardForm('<Asset key=(primitives) />')
+                standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
             internalCacheMock.AssetMetaData.get.mockResolvedValue([{
@@ -289,7 +289,7 @@ describe('Cache Asset (Data Source)', () => {
 
             // Mock fileAsset with content
             standardFormMock = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX) />
                     <Knowledge uuid=(knowledgeRoot) />
                 </Asset>
@@ -336,7 +336,7 @@ describe('Cache Asset (Data Source)', () => {
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
                 standardForm: new StandardForm(`
-                    <Asset key=(primitives)>
+                    <Asset uuid=(primitives)>
                         <Room uuid=(VORTEX) />
                     </Asset>
                 `)
@@ -353,7 +353,7 @@ describe('Cache Asset (Data Source)', () => {
 
             // file adds a ShortName to the existing Room (delta should be StandardReplace for Room with ShortName)
             standardFormMock = new StandardForm(`
-                <Asset key=(primitives)>
+                <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX)><ShortName>Vortex</ShortName></Room>
                 </Asset>
             `)

@@ -4,11 +4,14 @@ import parse from '../simpleParser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { deIndentWML } from '../schema/utils'
-import { SchemaTag, isSchemaWithKey } from '@tonylb/mtw-base/ts/schema'
+import { SchemaTag, isSchemaWithKey, isSchemaAsset } from '@tonylb/mtw-base/ts/schema'
 import { deepEqual } from '../lib/objects'
 
 const classify = ({ tag }: SchemaTag) => (tag)
 const compare = (A: { data: SchemaTag }, B: { data: SchemaTag }) => {
+    if (isSchemaAsset(A.data)) {
+        return (isSchemaAsset(B.data) && A.data.uuid === B.data.uuid)
+    }
     if (isSchemaWithKey(A.data)) {
         return (isSchemaWithKey(B.data) && A.data.key === B.data.key)
     }
@@ -19,7 +22,7 @@ describe('TagTree', () => {
     describe('tagListFromTree', () => {
         it('should create a tag list from a simple tree', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room key=(room1) uuid=(Room1)>
                         <Example uuid=(room1-example)>
                             <Description>Test description</Description>
@@ -40,26 +43,26 @@ describe('TagTree', () => {
             // The system converts UUIDs to full format and adds system properties
             expect(tagTree._tagList).toEqual([
                 [
-                    { data: { tag: 'Asset', key: 'test' } },
+                    { data: { tag: 'Asset', uuid: 'ASSET#test' } },
                     { data: { tag: 'Room', key: 'room1', uuid: 'ROOM#Room1' } },
                     { data: { tag: 'Example', uuid: 'EXAMPLE#room1-example' } },
                     { data: { tag: 'Description' } },
                     { data: { tag: 'String', value: 'Test description' } },
                 ],
                 [
-                    { data: { tag: 'Asset', key: 'test' } },
+                    { data: { tag: 'Asset', uuid: 'ASSET#test' } },
                     { data: { tag: 'Room', key: 'room1', uuid: 'ROOM#Room1' } },
                     { data: { tag: 'Example', uuid: 'EXAMPLE#room1-example' } },
                     { data: { tag: 'Name' } },
                     { data: { tag: 'String', value: 'Test room' } },
                 ],
                 [
-                    { data: { tag: 'Asset', key: 'test' } },
+                    { data: { tag: 'Asset', uuid: 'ASSET#test' } },
                     { data: { tag: 'Room', key: 'room1', uuid: 'ROOM#Room1' } },
                     { data: { tag: 'Exit', to: 'room2' } }
                 ],
                 [
-                    { data: { tag: 'Asset', key: 'test' } },
+                    { data: { tag: 'Asset', uuid: 'ASSET#test' } },
                     { data: { tag: 'Room', key: 'room2', uuid: 'ROOM#Room2' } }
                 ]
             ])
@@ -67,7 +70,7 @@ describe('TagTree', () => {
 
         it('should handle nested structures with order independence', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room key=(room1) uuid=(Room1)>
                         <Example uuid=(room1-example)>
                             <Name>Main Hall</Name>
@@ -155,7 +158,7 @@ describe('TagTree', () => {
 
         beforeEach(() => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room key=(room1) uuid=(Room1)>
                         <Example uuid=(room1-example)>
                             <Name>Main Hall</Name>
@@ -336,7 +339,7 @@ describe('TagTree', () => {
 
         beforeEach(() => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
-                <Asset key=(test)>
+                <Asset uuid=(test)>
                     <Room key=(room1) uuid=(Room1)>
                         <Example uuid=(room1-example)>
                             <Name>Hall</Name>
@@ -413,7 +416,7 @@ describe('TagTree', () => {
     describe('TagTree with complex WML structures', () => {
         it('should handle nested components with proper ordering', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
-                <Asset key=(complex)>
+                <Asset uuid=(complex)>
                     <Feature key=(doors) uuid=(Feature1)>
                         <Example uuid=(doors-example)>
                             <Name>Magic Doors</Name>
@@ -455,7 +458,7 @@ describe('TagTree', () => {
 
         it('should maintain text content ordering within examples', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
-                <Asset key=(text)>
+                <Asset uuid=(text)>
                     <Room key=(room1) uuid=(Room1)>
                         <Example uuid=(room1-example)>
                             <Description>
@@ -493,7 +496,7 @@ describe('TagTree', () => {
 
         it('should handle components that still include content directly', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
-                <Asset key=(mixed)>
+                <Asset uuid=(mixed)>
                     <Character key=(npc1) uuid=(Character1)>
                         <Name>Guard Captain</Name>
                     </Character>

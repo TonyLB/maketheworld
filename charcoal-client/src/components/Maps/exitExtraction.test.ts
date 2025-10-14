@@ -14,7 +14,7 @@ describe('extractExitsFromStandardForm', () => {
 
         it('should return empty array when mapId does not exist', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(otherMap)>
                         <Name>Other Map</Name>
                     </Map>
@@ -27,7 +27,7 @@ describe('extractExitsFromStandardForm', () => {
 
         it('should return empty array for map with no rooms', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                     </Map>
@@ -40,7 +40,7 @@ describe('extractExitsFromStandardForm', () => {
 
         it('should return empty array for map with rooms but no exits', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
@@ -63,7 +63,7 @@ describe('extractExitsFromStandardForm', () => {
     describe('exit extraction', () => {
         it('should extract single exit from room', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
@@ -93,7 +93,7 @@ describe('extractExitsFromStandardForm', () => {
 
         it('should extract multiple exits from single room', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
@@ -132,7 +132,7 @@ describe('extractExitsFromStandardForm', () => {
 
         it('should extract exits from multiple rooms', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
@@ -184,7 +184,7 @@ describe('extractExitsFromStandardForm', () => {
 
         it('should filter out exits to rooms not positioned in the map', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
@@ -243,7 +243,7 @@ describe('extractExitsFromStandardForm', () => {
     describe('exit properties', () => {
         it('should preserve exit name data structure', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
@@ -278,7 +278,7 @@ describe('extractExitsFromStandardForm', () => {
     describe('combined form handling', () => {
         it('should extract exits from combined inherited and local data', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1) origin=(ASSET#parent)>
@@ -328,7 +328,7 @@ describe('extractExitsFromStandardForm', () => {
 
         it('should handle local overrides of inherited exits', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1) origin=(ASSET#parent)>
@@ -365,7 +365,7 @@ describe('extractExitsFromStandardForm', () => {
     describe('edge cases', () => {
         it('should handle exits with missing name data', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
@@ -393,7 +393,7 @@ describe('extractExitsFromStandardForm', () => {
 
         it('should handle rooms without positions', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
@@ -415,7 +415,7 @@ describe('extractExitsFromStandardForm', () => {
     describe('map filtering', () => {
         it('should only extract exits from specified map', () => {
             const standardForm = new StandardForm(`
-                <Asset key=(testAsset)>
+                <Asset uuid=(testAsset)>
                     <Map uuid=(map1)>
                         <Name>Map One</Name>
                         <Room uuid=(room1)>
