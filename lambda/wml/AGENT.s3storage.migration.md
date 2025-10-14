@@ -165,11 +165,60 @@ The migration aims to address these limitations by:
 
 **Concurrency**: Existing `atomicLock` function handles concurrent updates to S3 objects (no additional work needed).
 
-### Phase 2: [TBD]
-*Details to be added*
+### Phase 2: Chunk-Based Snapshot Architecture
+
+**Goal**: Replace monolithic versioned objects with chunk-based, manifest-driven snapshots for immutable history and efficient storage.
+
+#### Core Concepts:
+
+1. **Immutable Chunks**
+   - Each change produces a new, standalone chunk file
+   - Chunks stored under predictable prefix: `{objectId}.wml/chunks/{timestamp}.wml`
+   - WML edit schemas (using Replace/Remove tags) representing the change
+   - Never overwritten once written
+   - S3 metadata for immutable provenance (player, requestId, timestamp)
+   - Lifecycle policies can archive old chunks to Glacier based on prefix and age
+
+2. **Snapshots**
+   - Full materialized WML content at specific points in time
+   - Stored at: `{objectId}.wml/snapshots/{timestamp}.wml`
+   - Created on-demand (replaces legacy `Backup` functionality)
+   - Enables efficient point-in-time reconstruction (start from snapshot, apply chunks forward)
+   - Can be used for recovery, rollback, or historical access
+
+3. **Manifests**
+   - Small JSON files listing chunks and snapshots in chronological order
+   - Describes how to reconstruct current state (latest snapshot + subsequent chunks)
+   - Stored at stable key: `{objectId}.wml/manifest-latest.json`
+   - Frequently overwritten (not versioned to avoid storage expansion)
+   - **Reconstructible**: Can be rebuilt from chunk/snapshot metadata if lost (list objects, sort by timestamp)
+
+4. **Materialized Current Object**
+   - Optional assembled object at: `{objectId}.wml`
+   - Represents current merged WML for direct client access
+   - Can be served via presigned URLs
+   - Rebuilt from manifest when needed
+
+#### Benefits Over Phase 1:
+
+- **Reduces storage amplification** from repeated large object overwrites
+- **Enables object-level provenance and history** without secondary database
+- **Supports efficient snapshot rebuilds** and point-in-time access
+- **Natural lifecycle integration** for archiving older chunks to Glacier
+- **Queryable via S3 Inventory** and Athena for analytics
+
+#### Scope:
+
+- Implement chunk-based storage for all edits
+- Create snapshots on-demand (replaces backup functionality from Phase 1)
+- Build manifest management for efficient current-state access
+- **Reintroduce Archive zone** as a normal zone (Zone=Archive tag)
+- S3 lifecycle policies transition archived content to cold storage
+- Add versioning and history capabilities via chunk replay
+- Support point-in-time recovery by replaying chunks from snapshots
 
 ### Phase 3: [TBD]
-*Details to be added*
+*Details to be added - potential future enhancements beyond chunk-based architecture*
 
 ## Architectural Considerations
 
