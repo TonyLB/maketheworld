@@ -1,8 +1,10 @@
 # WML S3 Storage Migration - Architectural Planning
 
-**Status: PLANNING PHASE**
+**Status: PHASE 1 IN PROGRESS**
 
-This document tracks the planned migration away from the "zones as subdirectories" storage pattern to a more flexible and maintainable architecture.
+**Last Updated: October 14, 2025**
+
+This document tracks the migration away from the "zones as subdirectories" storage pattern to a more flexible and maintainable architecture.
 
 ## Current Architecture
 
@@ -109,14 +111,55 @@ The migration aims to address these limitations by:
 
 ### Phase 1: Flat UUID-Based Storage
 
+**Status**: IN PROGRESS
+
 **Goal**: Replace zone-as-subdirectory with flat UUID-based storage using S3 tags/metadata for organizational information.
+
+#### Implementation Status:
+
+✅ **Completed:**
+1. **Asset Tag UUID Refactoring** (October 14, 2025)
+   - Removed `key` attribute from `Asset` tag in WML
+   - Added required `uuid` attribute to `Asset` tag (stored as `AssetUUID` in schema)
+   - Updated WML serialization to strip `ASSET#` prefix (e.g., `<Asset uuid=(MyAsset)>` stores as `ASSET#MyAsset` internally)
+   - Updated `StandardForm` to use `_universalKey` internally and expose as `universalKey` in header/NDJSON
+   - Updated `StandardAuthorizationCollection` similarly to use `_universalKey`
+   - Updated all test files across packages and lambdas (700+ tests updated)
+   - All tests passing in: `mtw-base`, `mtw-interfaces`, `mtw-wml`, `mtw-asset-workspace`, `lambda/wml`, `lambda/ephemera`, `lambda/assets`
+   - Updated `copyWML` function to use `uuid` parameter instead of `key`
+   
+   **Breaking Changes:**
+   - WML format: `<Asset key=(name)>` is now `<Asset uuid=(name)>`
+   - NDJSON format: Asset header line changed from `{ tag: 'Asset', key: 'name' }` to `{ tag: 'Asset', universalKey: 'ASSET#name' }`
+   - `copyWML` lambda event: Parameter changed from `key` to `uuid`
+   - Any external systems reading/writing WML or NDJSON must be updated
+   
+   **Technical Details:**
+   - Modified `packages/mtw-base/ts/schema/asset.ts`: Changed `SchemaAssetBase` from `key?: string` to `uuid: AssetUUID`
+   - Modified `packages/mtw-wml/ts/schema/converters/index.ts`: Updated Asset converter to use `enforceTypedKey('ASSET')` and `stripTypedKey('ASSET')`
+   - Modified `packages/mtw-wml/ts/standardize/index.ts`: Changed `StandardForm._key` to `_universalKey: AssetUUID`
+   - Modified `packages/mtw-wml/ts/standardize/authorization/index.ts`: Changed `StandardAuthorizationCollection._key` to `_universalKey: AssetUUID`
+   - Modified `packages/mtw-wml/ts/tagTree/schema.ts`: Updated comparison logic to handle Asset and Story tags by uuid
+   - Modified `lambda/assets/characters/index.ts`: Updated character snapshot generation to use universalKey
+   - Modified `lambda/wml/copyWML/index.ts`: Changed parameter from `key: string` to `uuid: string`
+   - All WML test files and strings in TypeScript updated systematically (64 files)
+
+🔄 **In Progress:**
+- None currently
+
+⏳ **Remaining:**
+2. **Flat S3 Object Structure** - Store objects at bucket root with UUID-based naming
+3. **Zone as S3 Tags** - Implement mutable zone storage in object tags
+4. **Player/Owner as S3 Metadata** - Implement immutable ownership in object metadata
+5. **Zone Change Operations Refactor** - Replace copy+delete with tag updates
+6. **Access Pattern Updates** - Refactor `AssetWorkspaceAddress` usage
 
 #### Core Changes:
 
 1. **StandardForm UUID Keys for Assets**
-   - Enable assets to use `AssetUUID` instead of human-readable keys
-   - Eliminate the distinction between "local key" and "UUID" at asset level
-   - UUID becomes the primary identifier for file naming
+   - ✅ Enable assets to use `AssetUUID` instead of human-readable keys
+   - ✅ Eliminate the distinction between "local key" and "UUID" at asset level
+   - ✅ UUID becomes the primary identifier for file naming
 
 2. **Flat S3 Object Structure**
    - Store all objects at bucket root level: `{uuid}.wml`, `{uuid}.ndjson`
