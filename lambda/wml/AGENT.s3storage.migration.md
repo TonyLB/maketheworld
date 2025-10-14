@@ -149,10 +149,19 @@ The migration aims to address these limitations by:
 
 ⏳ **Remaining:**
 2. **Flat S3 Object Structure** - Store objects at bucket root with UUID-based naming
+   - Files to modify: `packages/mtw-asset-workspace/ts/readOnly.ts` (path construction)
+   - See [Write Operations Catalog](AGENT.s3storage.migration.catalog.md) for complete scope
 3. **Zone as S3 Tags** - Implement mutable zone storage in object tags
+   - Extend `s3Client` wrapper with tagging support
+   - Update `AssetWorkspace.push*` methods to write tags
+   - Update `moveAsset` to use `PutObjectTagging` instead of copy+delete
 4. **Player/Owner as S3 Metadata** - Implement immutable ownership in object metadata
+   - Update `AssetWorkspace.push*` methods to write metadata
 5. **Zone Change Operations Refactor** - Replace copy+delete with tag updates
+   - Primary target: `lambda/wml/dataSource/moveAsset/index.ts`
 6. **Access Pattern Updates** - Refactor `AssetWorkspaceAddress` usage
+   - Simplify/update `addressLookup` lambda
+   - Update `dbRegister` functions to store simplified metadata
 
 #### Core Changes:
 
@@ -282,6 +291,7 @@ The migration aims to address these limitations by:
 ## Related Documentation
 
 - **[Current S3 Storage](AGENT.s3Storage.md)**: Documentation of current storage patterns
+- **[Write Operations Catalog](AGENT.s3storage.migration.catalog.md)**: Complete catalog of all S3 write locations for refactoring
 - **[Event Architecture](../../AGENT.architecture.events.md)**: Event-driven patterns and coordination
 - **[WML DataSource](dataSource/)**: DataSource pattern and event handling
 - **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File operations and abstractions
