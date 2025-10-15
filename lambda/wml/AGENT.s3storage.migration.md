@@ -147,21 +147,28 @@ The migration aims to address these limitations by:
 🔄 **In Progress:**
 - None currently
 
+✅ **Recently Completed:**
+2. **Flat S3 Object Structure** (October 14, 2025)
+   - ✅ Modified `AssetWorkspace` path construction for flat UUID-based naming
+   - ✅ Removed obsolete `parseAssetWorkspaceAddress` function
+   - ✅ All tests passing (22/22)
+
+3. **Zone as S3 Tags & Player Metadata** (October 14, 2025)
+   - ✅ Extended `s3Client` wrapper with `putWithTags()`, `getTags()`, `updateTags()`
+   - ✅ Updated all `AssetWorkspace.push*` methods to write Zone tags
+   - ✅ Added Player metadata for Personal/Draft zones
+   - ✅ All tests passing with tag/metadata verification
+
 ⏳ **Remaining:**
-2. **Flat S3 Object Structure** - Store objects at bucket root with UUID-based naming
-   - Files to modify: `packages/mtw-asset-workspace/ts/readOnly.ts` (path construction)
-   - See [Write Operations Catalog](AGENT.s3storage.migration.catalog.md) for complete scope
-3. **Zone as S3 Tags** - Implement mutable zone storage in object tags
-   - Extend `s3Client` wrapper with tagging support
-   - Update `AssetWorkspace.push*` methods to write tags
-   - Update `moveAsset` to use `PutObjectTagging` instead of copy+delete
-4. **Player/Owner as S3 Metadata** - Implement immutable ownership in object metadata
-   - Update `AssetWorkspace.push*` methods to write metadata
-5. **Zone Change Operations Refactor** - Replace copy+delete with tag updates
+4. **Zone Change Operations Refactor** - Replace copy+delete with tag updates
    - Primary target: `lambda/wml/dataSource/moveAsset/index.ts`
+   - Use `s3Client.updateTags()` instead of CopyObject + DeleteObject
+5. **Initialize Primitives** - Update for flat storage
+   - Update `lambda/initialize/app.ts` to use flat path with tags
 6. **Access Pattern Updates** - Refactor `AssetWorkspaceAddress` usage
    - Simplify/update `addressLookup` lambda
    - Update `dbRegister` functions to store simplified metadata
+   - Update read operations to handle UUID-based paths
 
 #### Core Changes:
 

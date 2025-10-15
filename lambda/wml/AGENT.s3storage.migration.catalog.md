@@ -312,16 +312,27 @@ Functions that read files will need to:
 
 ### Phase 1A: Update Write Operations
 
-1. ✅ **COMPLETED** - Modify `AssetWorkspace` path construction (filePath, fileName, fileNameBase)
+1. ✅ **COMPLETED** (October 14, 2025) - Modify `AssetWorkspace` path construction (filePath, fileName, fileNameBase)
    - Implemented flat UUID-based paths (no zone subdirectories)
    - Removed obsolete `parseAssetWorkspaceAddress` function and tests
    - Updated `forceDefault()` for UUID-based naming
    - All tests passing (22/22)
-2. 🔄 **IN PROGRESS** - Add S3 tagging to push methods (Zone tag)
-3. Add S3 metadata to push methods (Player metadata)
-4. Update `moveAsset` to use tagging instead of copy+delete
-5. Update `initializePrimitivesData` to use flat path with tags
-6. Update `forceDefault()` to use flat paths with tags/metadata
+
+2. ✅ **COMPLETED** (October 14, 2025) - Add S3 tagging and metadata to all push methods
+   - Extended `s3Client` wrapper with `putWithTags()`, `getTags()`, `updateTags()` methods
+   - Updated `pushWML()`, `pushJSON()`, `pushAuthorizationWML()`, `pushAuthorizationJSON()` to include Zone tags
+   - Added Player metadata for Personal/Draft zones
+   - Updated `forceDefault()` to use tags and metadata
+   - All tests passing (22/22)
+   - **Files Modified**:
+     - `packages/mtw-asset-workspace/ts/clients.ts` - Added tagging/metadata methods
+     - `packages/mtw-asset-workspace/ts/index.ts` - All push methods now use `putWithTags()`
+     - `packages/mtw-asset-workspace/ts/readOnly.ts` - Updated `forceDefault()`
+     - `packages/mtw-asset-workspace/ts/index.test.ts` - Updated all test expectations
+
+3. ⏳ **REMAINING** - Update `moveAsset` to use tagging instead of copy+delete
+4. ⏳ **REMAINING** - Update `initializePrimitivesData` to use flat path with tags
+5. ⏳ **REMAINING** - Update read operations to handle UUID-based paths
 
 ### Phase 1B: Update Address Resolution
 
