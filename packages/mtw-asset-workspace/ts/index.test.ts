@@ -32,6 +32,7 @@ describe('AssetWorkspace', () => {
         jest.resetAllMocks();
         s3ClientMock.get.mockResolvedValue('')
         s3ClientMock.put.mockResolvedValue()
+        s3ClientMock.putWithTags.mockResolvedValue()
     })
 
     describe('loadJSON', () => {
@@ -205,9 +206,11 @@ describe('AssetWorkspace', () => {
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
-            expect(s3Client.put).toHaveBeenCalledWith({
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith({
                 Key: 'Test.ndjson',
-                Body: `{"tag":"Asset","universalKey":"ASSET#Test"}`
+                Body: `{"tag":"Asset","universalKey":"ASSET#Test"}`,
+                Tags: { Zone: 'Personal' },
+                Metadata: { player: 'Test' }
             })
         })
 
@@ -221,9 +224,11 @@ describe('AssetWorkspace', () => {
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
-            expect(s3Client.put).toHaveBeenCalledWith({
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith({
                 Key: 'Test.ndjson',
-                Body: `{"tag":"Asset","universalKey":"ASSET#Test"}`
+                Body: `{"tag":"Asset","universalKey":"ASSET#Test"}`,
+                Tags: { Zone: 'Library' },
+                Metadata: undefined
             })
         })
 
@@ -247,9 +252,11 @@ describe('AssetWorkspace', () => {
             testWorkspace.authStatus.json = 'Dirty'
             await testWorkspace.pushAuthorizationJSON()
             expect(testWorkspace.authStatus.json).toEqual('Clean')
-            expect(s3Client.put).toHaveBeenCalledWith({
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith({
                 Key: 'Test.auth.ndjson',
-                Body: `{"tag":"Asset","universalKey":"ASSET#test"}\n{"referenceStack":[{"key":"Room1","tag":"Room"}],"grant":{"tag":"Grant","player":"Player1","actions":["action1"]}}`
+                Body: `{"tag":"Asset","universalKey":"ASSET#test"}\n{"referenceStack":[{"key":"Room1","tag":"Room"}],"grant":{"tag":"Grant","player":"Player1","actions":["action1"]}}`,
+                Tags: { Zone: 'Personal' },
+                Metadata: { player: 'Test' }
             })
         })
 
@@ -273,9 +280,11 @@ describe('AssetWorkspace', () => {
             await testWorkspace.pushWML()
             expect(testWorkspace.status.wml).toEqual('Clean')
             expect(testWorkspace.status.json).toEqual('Dirty')
-            expect(s3Client.put).toHaveBeenCalledWith({
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith({
                 Key: 'Test.wml',
-                Body: deIndentWML(testSource)
+                Body: deIndentWML(testSource),
+                Tags: { Zone: 'Library' },
+                Metadata: undefined
             })
         })
 
@@ -298,9 +307,11 @@ describe('AssetWorkspace', () => {
             await testWorkspace.pushAuthorizationWML()
             expect(testWorkspace.authStatus.wml).toEqual('Clean')
             expect(testWorkspace.authStatus.json).toEqual('Dirty')
-            expect(s3Client.put).toHaveBeenCalledWith({
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith({
                 Key: 'Test.auth.wml',
-                Body: deIndentWML(testWML)
+                Body: deIndentWML(testWML),
+                Tags: { Zone: 'Library' },
+                Metadata: undefined
             })
         })
 
