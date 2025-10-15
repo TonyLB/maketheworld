@@ -161,17 +161,17 @@ All S3 writes for asset content go through these four methods:
 
 #### Write Operations:
 
-**a) `initializePrimitivesData` (Bootstrap)**
+**a) `initializePrimitivesData` (Bootstrap)** - ✅ **COMPLETED**
 - **Location**: `lambda/initialize/app.ts`
-- **Lines**: 60-67
-- **Operations**: Direct `PutObjectCommand`
-- **Path**: `Canon/Assets/primitives.wml`
+- **Lines**: 60-70
+- **Operations**: Direct `PutObjectCommand` with Zone tag
+- **Path**: `primitives.wml` (flat storage)
 - **Content**: Defined in `lambda/initialize/primitives.ts`
 - **Purpose**: Create initial system primitives asset
-- **Refactoring Need**: 
-  - Change path from `Canon/Assets/primitives.wml` to `primitives.wml` (flat)
-  - Add S3 tags: `Zone=Canon`
-  - No player metadata needed (system asset)
+- **Implementation**: 
+  - ✅ Changed path from `Canon/Assets/primitives.wml` to `primitives.wml`
+  - ✅ Added S3 tag: `Zone=Canon`
+  - ✅ No player metadata (Canon system asset)
 
 ---
 
@@ -351,7 +351,12 @@ Functions that read files will need to:
      - `lambda/wml/dataSource/moveAsset/index.test.ts` - Rewritten for tag-based behavior
      - `lambda/wml/dataSource/coordinationSerializer.ts` - Marked deprecated parameters
 
-4. ⏳ **REMAINING** - Update `initializePrimitivesData` to use flat path with tags
+4. ✅ **COMPLETED** (October 15, 2025) - Update `initializePrimitivesData` to use flat path with tags
+   - Changed path from `Canon/Assets/primitives.wml` to `primitives.wml`
+   - Added `Tagging: 'Zone=Canon'` to PutObjectCommand
+   - Single-line change, no tests to update
+   - **File Modified**: `lambda/initialize/app.ts`
+
 5. ⏳ **REMAINING** - Update read operations to handle UUID-based paths
 
 ### Phase 1B: Update Address Resolution
