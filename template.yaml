@@ -1438,22 +1438,6 @@ Resources:
               Resource: '*'
               Action:
                 - events:PutEvents  
-  AddressLookupFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-        Tracing: Active
-        CodeUri: lambda/addressLookup/build/
-        Handler: lambda.handler
-        MemorySize: 256
-        Runtime: nodejs18.x
-        Timeout: 3
-        Environment:
-          Variables:
-            TABLE_PREFIX: !Ref TablePrefix
-            S3_BUCKET: !Sub '${TablePrefix}-assets'
-        Policies:
-          - DynamoDBReadPolicy:
-              TableName: !Sub '${TablePrefix}_assets'
   ImageProcessorFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -1686,13 +1670,10 @@ Resources:
         IncludeExecutionData: true
         Level: ALL
       DefinitionSubstitutions:
-        AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
         EphemeraFunctionArn: !GetAtt EphemeraFunction.Arn
         AssetsFunctionArn: !GetAtt AssetsFunction.Arn
         TopicArn: !GetAtt MTWFeedbackTopic.TopicArn
       Policies:
-        - LambdaInvokePolicy:
-            FunctionName: !Ref AddressLookupFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref EphemeraFunction
         - LambdaInvokePolicy:
@@ -1789,14 +1770,11 @@ Resources:
         IncludeExecutionData: true
         Level: ALL
       DefinitionSubstitutions:
-        AddressLookupFunctionArn: !GetAtt AddressLookupFunction.Arn
         WMLFunctionArn: !GetAtt WMLFunction.Arn
         TopicArn: !GetAtt MTWFeedbackTopic.TopicArn
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref WMLFunction
-        - LambdaInvokePolicy:
-            FunctionName: !Ref AddressLookupFunction
         - CloudWatchLogsFullAccess
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt MTWFeedbackTopic.TopicName

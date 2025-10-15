@@ -175,13 +175,20 @@ The migration aims to address these limitations by:
    - ✅ Implicitly completed by path construction changes
    - ✅ All load methods automatically use UUID-based paths via `fileNameBase` getter
 
-⏳ **Remaining:**
-7. **Access Pattern Updates (Phase 1B)** - Refactor `AssetWorkspaceAddress` usage
-   - Simplify/update `addressLookup` lambda
+✅ **More Recently Completed:**
+7. **Remove `addressLookup` Lambda** (October 15, 2025)
+   - ✅ Removed `lambda/addressLookup/` directory completely
+   - ✅ Updated `applyWMLEdit.asl.yaml` - removed 4 address-related steps
+   - ✅ Updated `cacheAssets.asl.yaml` - removed address lookup steps
+   - ✅ Updated `template.yaml` - removed `AddressLookupFunction` definition and references
+   - ✅ Verified consumer lambdas work with cache fallbacks
+
+⏳ **Remaining (Phase 1B):**
+8. **Complete Address Resolution Updates**
    - Update `dbRegister` functions to store simplified metadata
    - Update `assetWorkspaceFromAssetId` utilities to ensure `assetId` is always set
    - Consolidate AssetWorkspace getters (see `AGENT.assetworkspace.simplification.md`)
-   - Remove temporary analysis documents after completion
+   - Remove temporary analysis document after completion
 
 #### Core Changes:
 

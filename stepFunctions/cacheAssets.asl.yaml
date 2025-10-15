@@ -21,7 +21,7 @@ States:
             -
                 Variable: "$.args.options"
                 IsPresent: True
-                Next: Check for Addresses
+                Next: Cache All
         Default: Default options
     "Default options":
         Type: Pass
@@ -29,34 +29,7 @@ States:
             updateOnly: false
             check: false
         ResultPath: "$.args.options"
-        Next: Check for Addresses
-    "Check for Addresses":
-        Type: Choice
-        Choices:
-            -
-                Variable: "$.args.addresses"
-                IsPresent: True
-                Next: Cache All
-        Default: Assign Addresses
-    "Assign Addresses":
-        Type: Task
         Next: Cache All
-        Resource: "${AddressLookupFunctionArn}"
-        Parameters:
-            "assetIds.$": "$.args.assetIds"
-        ResultPath: "$.args.addresses"
-        Retry:
-            -
-                ErrorEquals:
-                    - States.TaskFailed
-                IntervalSeconds: 2
-                MaxAttempts: 3
-                BackoffRate: 1
-        Catch:
-            -
-                ErrorEquals:
-                    - States.All
-                Next: Notify of Failure
     "Cache All":
         Type: Parallel
         Next: Done
@@ -81,7 +54,6 @@ States:
                         Parameters:
                             "message": "cacheAssets"
                             "assetIds.$": "$.args.assetIds"
-                            "addresses.$": "$.args.addresses"
                             "options.$": "$.args.options"
         Catch:
             -

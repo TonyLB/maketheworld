@@ -121,13 +121,28 @@ All S3 writes for asset content go through these four methods:
   
   **Rationale**: Personal/Draft assets have player metadata (set at creation). Canon/Library assets don't. Since S3 metadata is immutable, moving Canon/Library assets to Personal/Draft is impossible. To get a Canon asset into Personal, use a copy operation that creates a new object with player metadata.
 
-**e) `backupWML` (Asset Backup to tar.gz)**
+**e) ~~`addressLookup` Lambda~~ - ✅ REMOVED** (Phase 1B, October 15, 2025)
+- **Location**: `lambda/addressLookup/` (deleted)
+- **Status**: ✅ **REMOVED** - Was redundant with flat UUID-based storage
+- **Replacement**: Lambdas fetch from cache directly (already had fallbacks)
+- **Changes Made**: 
+  - ✅ Updated `stepFunctions/applyWMLEdit.asl.yaml` - Removed 4 address-related steps
+  - ✅ Updated `stepFunctions/cacheAssets.asl.yaml` - Removed address lookup and check steps
+  - ✅ Removed `AddressLookupFunction` from `template.yaml`
+  - ✅ Deleted `lambda/addressLookup/` directory and all source files
+  - ✅ Verified no remaining references (only historical migration docs)
+- **Impact**: 
+  - Reduced step function latency (one less lambda invocation)
+  - Simplified architecture (one less failure mode)
+  - With flat storage, UUID alone provides S3 key
+
+**f) `backupWML` (Asset Backup to tar.gz)**
 - **Location**: `lambda/wml/backupWML/index.ts`
 - **Operations**: Reads from S3, writes tar.gz archive (not WML files)
 - **Purpose**: Create compressed backups of assets
 - **Note**: Phase 1 defers backup functionality (line 152 of migration plan)
 
-**f) ~~`publishWML` Step Function~~ - DEPRECATED**
+**g) ~~`publishWML` Step Function~~ - DEPRECATED**
 - **Location**: `stepFunctions/publishWML.asl.yaml`
 - **Status**: ⚠️ **TO BE REMOVED** - Infrastructure deployed but not used in client
 - **Current Workflow**: copyWML (Draft → Target) + resetWML (clear Draft)
@@ -366,12 +381,24 @@ Functions that read files will need to:
 
 ### Phase 1B: Update Address Resolution
 
-1. Modify `addressLookup` to work with UUID-based lookups
-2. Update `dbRegister` to store simplified metadata
-3. Update `assetWorkspaceFromAssetId` utilities to construct addresses from UUIDs
-4. Consolidate AssetWorkspace getters (eliminate `fileNameBase`, use `fileName` directly)
-5. Update `backupWML` to remove `filePath` usage (mark as Phase 2 when refactoring)
-6. **Remove temporary analysis document** `lambda/wml/AGENT.assetworkspace.simplification.md` after completion
+1. ✅ **COMPLETED** (October 15, 2025) - Remove `addressLookup` lambda
+   - Removed `lambda/addressLookup/` directory and all source files
+   - Updated Step Functions:
+     - `applyWMLEdit.asl.yaml` - Removed "Assign Address", "Check Address", "Extract First Address", "Merge Address" steps
+     - `cacheAssets.asl.yaml` - Removed "Assign Addresses" and "Check for Addresses" steps
+   - Removed `AddressLookupFunction` from `template.yaml`
+   - Lambdas now fetch addresses from cache directly (already had fallbacks)
+
+2. ⏳ Update `dbRegister` to store simplified metadata
+
+3. ⏳ Update `assetWorkspaceFromAssetId` utilities to construct addresses from UUIDs
+
+4. ⏳ Consolidate AssetWorkspace getters (eliminate `fileNameBase`, use `fileName` directly)
+
+5. ⏳ Update `backupWML` to remove `filePath` usage (mark as Phase 2 when refactoring)
+
+6. **Remove temporary analysis document** after completion:
+   - `lambda/wml/AGENT.assetworkspace.simplification.md`
 
 ### Phase 1C: Update Read Operations (Deprecated - mostly complete)
 
