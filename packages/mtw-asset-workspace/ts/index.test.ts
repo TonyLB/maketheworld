@@ -4,7 +4,7 @@ jest.mock('uuid')
 import { v4 as uuidv4 } from 'uuid'
 import { AssetWorkspaceException } from './errors'
 
-import AssetWorkspace, { parseAssetWorkspaceAddress } from '.'
+import AssetWorkspace from '.'
 import { StandardNDJSON } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -23,54 +23,8 @@ const uuidMockFactory = () => {
     }
 }
 
-describe('parseAssetWorkspaceAddress', () => {
-    beforeEach(() => {
-        jest.clearAllMocks()
-        jest.resetAllMocks();
-    })
-    
-    it('should reject a Personal zone address without player', () => {
-        expect(() => { parseAssetWorkspaceAddress('Personal/Test')}).toThrow(AssetWorkspaceException)
-    })
-
-    it('should reject address without fileName', () => {
-        expect(() => { parseAssetWorkspaceAddress('Library/')}).toThrow(AssetWorkspaceException)
-    })
-
-    it('should reject illegal zone', () => {
-        expect(() => { parseAssetWorkspaceAddress('Wrong/Test/TestB')}).toThrow(AssetWorkspaceException)
-    })
-
-    it('should properly parse Personal zone address', () => {
-        expect(parseAssetWorkspaceAddress('Personal/Test/TestB')).toEqual({
-            zone: 'Personal',
-            player: 'Test',
-            fileName: 'TestB'
-        })
-    })
-
-    it('should properly parse Library zone address', () => {
-        expect(parseAssetWorkspaceAddress('Library/TestB')).toEqual({
-            zone: 'Library',
-            fileName: 'TestB'
-        })
-    })
-
-    it('should properly extract subfolders', () => {
-        expect(parseAssetWorkspaceAddress('Library/Test/Another/TestB')).toEqual({
-            zone: 'Library',
-            subFolder: 'Test/Another',
-            fileName: 'TestB'
-        })
-        expect(parseAssetWorkspaceAddress('Personal/Test/Another/TestB')).toEqual({
-            zone: 'Personal',
-            player: 'Test',
-            subFolder: 'Another',
-            fileName: 'TestB'
-        })
-    })
-
-})
+// parseAssetWorkspaceAddress tests removed in Phase 1 migration
+// With flat UUID-based storage, zone-based path parsing is no longer needed
 
 describe('AssetWorkspace', () => {
     beforeEach(() => {
@@ -252,7 +206,7 @@ describe('AssetWorkspace', () => {
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
-                Key: 'Personal/Test/Test.ndjson',
+                Key: 'Test.ndjson',
                 Body: `{"tag":"Asset","universalKey":"ASSET#Test"}`
             })
         })
@@ -268,7 +222,7 @@ describe('AssetWorkspace', () => {
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
-                Key: 'Library/Test.ndjson',
+                Key: 'Test.ndjson',
                 Body: `{"tag":"Asset","universalKey":"ASSET#Test"}`
             })
         })
@@ -294,7 +248,7 @@ describe('AssetWorkspace', () => {
             await testWorkspace.pushAuthorizationJSON()
             expect(testWorkspace.authStatus.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
-                Key: 'Personal/Test/Test.auth.ndjson',
+                Key: 'Test.auth.ndjson',
                 Body: `{"tag":"Asset","universalKey":"ASSET#test"}\n{"referenceStack":[{"key":"Room1","tag":"Room"}],"grant":{"tag":"Grant","player":"Player1","actions":["action1"]}}`
             })
         })
@@ -320,7 +274,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.status.wml).toEqual('Clean')
             expect(testWorkspace.status.json).toEqual('Dirty')
             expect(s3Client.put).toHaveBeenCalledWith({
-                Key: 'Library/Test.wml',
+                Key: 'Test.wml',
                 Body: deIndentWML(testSource)
             })
         })
@@ -345,7 +299,7 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.authStatus.wml).toEqual('Clean')
             expect(testWorkspace.authStatus.json).toEqual('Dirty')
             expect(s3Client.put).toHaveBeenCalledWith({
-                Key: 'Library/Test.auth.wml',
+                Key: 'Test.auth.wml',
                 Body: deIndentWML(testWML)
             })
         })
