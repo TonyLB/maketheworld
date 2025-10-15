@@ -8,7 +8,7 @@ import { deepEqual } from "./objects"
 import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "./readOnly"
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
 
-export { AssetWorkspaceAddress, isAssetWorkspaceAddress, parseAssetWorkspaceAddress } from './readOnly'
+export { AssetWorkspaceAddress, isAssetWorkspaceAddress } from './readOnly'
 
 export class AssetWorkspace extends ReadOnlyAssetWorkspace {
 

@@ -68,35 +68,8 @@ export const isAssetWorkspaceAddress = (item: any): item is AssetWorkspaceAddres
     return true
 }
 
-export const parseAssetWorkspaceAddress = (fileName: string): AssetWorkspaceAddress => {
-    const folders = fileName.split('/').filter((value) => (value))
-    const testZone = folders[0]
-    if (!['Canon', 'Library', 'Personal'].includes(testZone)) {
-        throw new AssetWorkspaceException(`"${testZone}" is not a legal Asset zone`)
-    }
-    const zone = testZone as 'Canon' | 'Library' | 'Personal'
-    if (zone === 'Personal') {
-        if (folders.length < 3) {
-            throw new AssetWorkspaceException(`"${fileName}" is not a legal Asset address`)
-        }
-        return {
-            zone,
-            player: folders[1],
-            subFolder: folders.length > 3 ? folders.slice(2, -1).join('/') : undefined,
-            fileName: folders.slice(-1)[0]
-        }
-    }
-    else {
-        if (folders.length < 2) {
-            throw new AssetWorkspaceException(`"${fileName}" is not a legal Asset address`)
-        }
-        return {
-            zone,
-            subFolder: folders.length > 2 ? folders.slice(1, -1).join('/') : undefined,
-            fileName: folders.slice(-1)[0]
-        }
-    }
-}
+// parseAssetWorkspaceAddress removed in Phase 1 migration
+// With flat UUID-based storage, zone-based path parsing is no longer needed
 
 type AssetWorkspaceStatusItem = 'Initial' | 'Clean' | 'Dirty' | 'Error'
 
@@ -146,32 +119,28 @@ export class ReadOnlyAssetWorkspace {
     }
 
     get filePath(): string {
-        if (this.address.zone === 'Draft') {
-            return `Personal/${this.address.player}/Assets/`
-        }
-        if (this.address.zone === 'Archive') {
-            return ''
-        }
-        const subFolderElements = (this.address.subFolder || '').split('/').filter((value) => (value))
-        const subFolderOutput = (subFolderElements.length > 0) ? `${subFolderElements.join('/')}/` : ''
-
-        const filePath = this.address.zone === 'Personal'
-            ? `${this.address.zone}/${this.address.player}/${subFolderOutput}`
-            : `${this.address.zone}/${subFolderOutput}`
-        return filePath
+        // Phase 1: Flat UUID-based storage - no subdirectories
+        return ''
     }
 
     get fileNameBase(): string {
-        return `${this.filePath}${this.fileName}`
+        return this.fileName
     }
 
     get fileName(): string {
-        return this.address.zone === 'Archive' ? '' : this.address.zone === 'Draft' ? 'draft' : this.address.fileName
+        // Phase 1: Use UUID (without ASSET# prefix) as the filename
+        if (this.assetId) {
+            return this.assetId.replace('ASSET#', '')
+        }
+        
+        // Fallback to address.fileName for backward compatibility during transition
+        // This handles cases where assetId hasn't been set yet
+        return this.address.fileName || ''
     }
 
     //
-    // forceDefault assumes that it is being called on a draft workspace ... would need to be refactored in order to
-    // operate on a workspace where key is defined differently.
+    // forceDefault creates default empty draft files if they don't exist
+    // Phase 1: Uses UUID-based naming with flat structure
     //
     async forceDefault(): Promise<void> {
         const Key = `${this.fileNameBase}.wml`
@@ -179,15 +148,17 @@ export class ReadOnlyAssetWorkspace {
         if (!found) {
             //
             // If no object exists, create default files for a draft asset
+            // Note: assetId should already be set with the draft's UUID
             //
+            const uuid = this.assetId?.replace('ASSET#', '') || 'draft'
             await Promise.all([
                 s3Client.put({
                     Key,
-                    Body: `<Asset uuid=(draft) />`
+                    Body: `<Asset uuid=(${uuid}) />`
                 }),
                 s3Client.put({
                     Key: `${this.fileNameBase}.ndjson`,
-                    Body: `{"tag":"Asset","key":"draft"}`
+                    Body: `{"tag":"Asset","universalKey":"${this.assetId || 'ASSET#draft'}"}`
                 })
             ])
         }
