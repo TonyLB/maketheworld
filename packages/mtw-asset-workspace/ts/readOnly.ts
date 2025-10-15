@@ -135,12 +135,15 @@ export class ReadOnlyAssetWorkspace {
         
         // Fallback to address.fileName for backward compatibility during transition
         // This handles cases where assetId hasn't been set yet
-        return this.address.fileName || ''
+        if ('fileName' in this.address) {
+            return this.address.fileName || ''
+        }
+        return ''
     }
 
     //
     // forceDefault creates default empty draft files if they don't exist
-    // Phase 1: Uses UUID-based naming with flat structure
+    // Phase 1: Uses UUID-based naming with flat structure and Zone tags
     //
     async forceDefault(): Promise<void> {
         const Key = `${this.fileNameBase}.wml`
@@ -151,14 +154,25 @@ export class ReadOnlyAssetWorkspace {
             // Note: assetId should already be set with the draft's UUID
             //
             const uuid = this.assetId?.replace('ASSET#', '') || 'draft'
+            
+            // Phase 1: Add Zone tag to S3 objects
+            const tags = { Zone: this.address.zone }
+            const metadata = this.address.zone === 'Personal' && this.address.player
+                ? { player: this.address.player }
+                : undefined
+            
             await Promise.all([
-                s3Client.put({
+                s3Client.putWithTags({
                     Key,
-                    Body: `<Asset uuid=(${uuid}) />`
+                    Body: `<Asset uuid=(${uuid}) />`,
+                    Tags: tags,
+                    Metadata: metadata
                 }),
-                s3Client.put({
+                s3Client.putWithTags({
                     Key: `${this.fileNameBase}.ndjson`,
-                    Body: `{"tag":"Asset","universalKey":"${this.assetId || 'ASSET#draft'}"}`
+                    Body: `{"tag":"Asset","universalKey":"${this.assetId || 'ASSET#draft'}"}`,
+                    Tags: tags,
+                    Metadata: metadata
                 })
             ])
         }

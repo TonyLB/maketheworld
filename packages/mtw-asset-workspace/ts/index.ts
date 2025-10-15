@@ -117,14 +117,25 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
             assetId: this.assetId ?? '',
             standard: standardForm
         })
+        
+        // Phase 1: Add Zone tag to S3 objects
+        const tags = { Zone: this.address.zone }
+        const metadata = this.address.zone === 'Personal' && this.address.player
+            ? { player: this.address.player }
+            : undefined
+        
         await Promise.all([
-            s3Client.put({
+            s3Client.putWithTags({
                 Key: filePath,
-                Body: contents
+                Body: contents,
+                Tags: tags,
+                Metadata: metadata
             }),
-            s3Client.put({
+            s3Client.putWithTags({
                 Key: `${this.fileNameBase}.ndjson`,
-                Body: standardForm.toNDJSON().map((line) => (JSON.stringify(line))).join('\n')
+                Body: standardForm.toNDJSON().map((line) => (JSON.stringify(line))).join('\n'),
+                Tags: tags,
+                Metadata: metadata
             })
         ])
         this.status.json = 'Clean'
@@ -134,9 +145,17 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         const filePath = `${this.fileNameBase}.auth.ndjson`
         const contents = this.authorizations?.toNDJSON().map((line) => (JSON.stringify(line))).join('\n') || ''
         if (contents) {
-            await s3Client.put({
+            // Phase 1: Add Zone tag to S3 objects
+            const tags = { Zone: this.address.zone }
+            const metadata = this.address.zone === 'Personal' && this.address.player
+                ? { player: this.address.player }
+                : undefined
+            
+            await s3Client.putWithTags({
                 Key: filePath,
-                Body: contents
+                Body: contents,
+                Tags: tags,
+                Metadata: metadata
             })
             this.authStatus.json = 'Clean'
         }
@@ -144,9 +163,18 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
 
     async pushWML(): Promise<void> {
         const filePath = `${this.fileNameBase}.wml`
-        await s3Client.put({
+        
+        // Phase 1: Add Zone tag to S3 objects
+        const tags = { Zone: this.address.zone }
+        const metadata = this.address.zone === 'Personal' && this.address.player
+            ? { player: this.address.player }
+            : undefined
+        
+        await s3Client.putWithTags({
             Key: filePath,
-            Body: this.wml || ''
+            Body: this.wml || '',
+            Tags: tags,
+            Metadata: metadata
         })
         this.status.wml = 'Clean'
     }
@@ -155,9 +183,18 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         if (this.authorizations) {
             const wml = schemaToWML([this.authorizations.schema])
             const filePath = `${this.fileNameBase}.auth.wml`
-            await s3Client.put({
+            
+            // Phase 1: Add Zone tag to S3 objects
+            const tags = { Zone: this.address.zone }
+            const metadata = this.address.zone === 'Personal' && this.address.player
+                ? { player: this.address.player }
+                : undefined
+            
+            await s3Client.putWithTags({
                 Key: filePath,
-                Body: wml
+                Body: wml,
+                Tags: tags,
+                Metadata: metadata
             })
             this.authStatus.wml = 'Clean'
             this.authStatus.json = 'Dirty'
