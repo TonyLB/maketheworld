@@ -58,11 +58,14 @@ const initializeClientData = async (subDir: string = ''): Promise<void> => {
 }
 
 const initializePrimitivesData = async (): Promise<void> => {
+    // Phase 1: Flat UUID-based storage with Zone tag
     await s3Client.send(new PutObjectCommand({
         Bucket: process.env.ASSET_BUCKET,
-        Key: `Canon/Assets/primitives.wml`,
+        Key: `primitives.wml`,  // Flat storage: just the UUID
         Body: primitivesData,
-        ContentType: 'text/plain'
+        ContentType: 'text/plain',
+        Tagging: 'Zone=Canon'  // Zone stored as S3 tag
+        // No Metadata needed (Canon assets don't have player ownership)
     }))
 }
 

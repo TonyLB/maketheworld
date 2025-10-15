@@ -167,9 +167,11 @@ The migration aims to address these limitations by:
    - ✅ All tests passing (12/12)
    - See [Write Operations Catalog](AGENT.s3storage.migration.catalog.md) for valid zone transitions
 
+✅ **Also Completed:**
+5. **Initialize Primitives** (October 15, 2025)
+   - ✅ Updated `lambda/initialize/app.ts` to use flat path (`primitives.wml`) with Zone tag
+
 ⏳ **Remaining:**
-5. **Initialize Primitives** - Update for flat storage
-   - Update `lambda/initialize/app.ts` to use flat path with tags
 6. **Access Pattern Updates** - Refactor `AssetWorkspaceAddress` usage
    - Simplify/update `addressLookup` lambda
    - Update `dbRegister` functions to store simplified metadata
