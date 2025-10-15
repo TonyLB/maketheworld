@@ -1,56 +1,20 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 
-// Mock AWS SDK
-jest.mock('@aws-sdk/client-s3')
-import { CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
-
-// Mock internal cache
-jest.mock('../../internalCache')
-import internalCache from '../../internalCache'
-
-// Mock asset workspace
-jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
-    return jest.fn().mockImplementation((address: any) => {
-        return {
-            address,
-            status: {
-                json: 'Clean'
-            },
-            get fileNameBase() {
-                if (address.zone === 'Personal') {
-                    return `Personal/${address.player}/${address.fileName}`
-                } else if (address.zone === 'Archive') {
-                    return `Archive/${address.backupId}/${address.fileName}`
-                } else {
-                    return `${address.zone}/${address.fileName}`
-                }
-            },
-            loadJSON: jest.fn()
-        }
-    })
-})
-import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
+// Mock s3Client from mtw-asset-workspace
+jest.mock('@tonylb/mtw-asset-workspace/ts/clients')
+import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 
 import { moveAsset } from './index'
 import { isMoveAssetRequest, MoveAssetRequest } from '../coordinationSerializer'
 
-const ReadOnlyAssetWorkspaceMock = ReadOnlyAssetWorkspace as jest.Mocked<typeof ReadOnlyAssetWorkspace>
-const internalCacheMock = jest.mocked(internalCache, { shallow: false })
+const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 
 describe('moveAsset', () => {
-    let mockS3Client: any
     const assetId = 'ASSET#test-asset'
 
     beforeEach(() => {
         jest.clearAllMocks()
-        
-        // Mock S3 client following assets lambda pattern
-        mockS3Client = {
-            send: jest.fn()
-        }
-        internalCacheMock.Connection.get.mockResolvedValue(mockS3Client as any)
-        
-        
+        s3ClientMock.updateTags.mockResolvedValue()
     })
 
     describe('isMoveAssetRequest', () => {
@@ -83,192 +47,44 @@ describe('moveAsset', () => {
         })
     })
 
-    describe('moveAsset', () => {
-        it('should successfully move asset between zones', async () => {
+    describe('moveAsset - Phase 1 Tag-Based Implementation', () => {
+        it('should successfully move asset between zones using tag updates', async () => {
             const request: MoveAssetRequest = {
                 type: 'Move Asset',
                 fromZone: 'Personal',
                 toZone: 'Library',
-                player: 'alice'
+                player: 'alice'  // Deprecated but kept for backward compatibility
             }
             
             const result = await moveAsset(assetId, request)
             
             expect(result.success).toBe(true)
-            expect(result.message).toContain('Files successfully moved')
-            expect(result.newLocation).toBe('Library/test-asset')
+            expect(result.message).toContain('zone changed')
+            expect(result.message).toContain('Personal')
+            expect(result.message).toContain('Library')
+            expect(result.newLocation).toBe('test-asset')
             
-            // Verify S3 operations were called (4 calls: 2 copy + 2 delete)
-            expect(mockS3Client.send).toHaveBeenCalledTimes(4)
-            
-            // Verify CopyObjectCommand was called with correct parameters
-            expect(CopyObjectCommand).toHaveBeenCalledWith({
-                Bucket: undefined,
-                CopySource: 'undefined/Personal/alice/test-asset.ndjson',
-                Key: 'Library/test-asset.ndjson'
+            // Phase 1: Verify S3 tag updates were called (4 files)
+            expect(s3ClientMock.updateTags).toHaveBeenCalledTimes(4)
+            expect(s3ClientMock.updateTags).toHaveBeenCalledWith({
+                Key: 'test-asset.wml',
+                Tags: { Zone: 'Library' }
             })
-            
-            expect(CopyObjectCommand).toHaveBeenCalledWith({
-                Bucket: undefined,
-                CopySource: 'undefined/Personal/alice/test-asset.wml',
-                Key: 'Library/test-asset.wml'
+            expect(s3ClientMock.updateTags).toHaveBeenCalledWith({
+                Key: 'test-asset.ndjson',
+                Tags: { Zone: 'Library' }
             })
-            
-            // Verify DeleteObjectCommand was called with correct parameters
-            expect(DeleteObjectCommand).toHaveBeenCalledWith({
-                Bucket: undefined,
-                Key: 'Personal/alice/test-asset.wml'
+            expect(s3ClientMock.updateTags).toHaveBeenCalledWith({
+                Key: 'test-asset.auth.wml',
+                Tags: { Zone: 'Library' }
             })
-            
-            expect(DeleteObjectCommand).toHaveBeenCalledWith({
-                Bucket: undefined,
-                Key: 'Personal/alice/test-asset.ndjson'
+            expect(s3ClientMock.updateTags).toHaveBeenCalledWith({
+                Key: 'test-asset.auth.ndjson',
+                Tags: { Zone: 'Library' }
             })
         })
 
-        it('should handle Archive zone correctly', async () => {
-            const request: MoveAssetRequest = {
-                type: 'Move Asset',
-                fromZone: 'Library',
-                toZone: 'Archive'
-            }
-            
-            const result = await moveAsset(assetId, request)
-            
-            expect(result.success).toBe(true)
-            expect(result.message).toContain('Asset archived (files deleted from source location)')
-            
-            // Verify only delete operations were called (no copy for Archive)
-            const copyCalls = mockS3Client.send.mock.calls.filter(call => 
-                call[0].constructor.name === 'CopyObjectCommand'
-            )
-            expect(copyCalls).toHaveLength(0)
-            
-            // Verify delete operations
-            expect(DeleteObjectCommand).toHaveBeenCalledWith({
-                Bucket: undefined,
-                Key: 'Library/test-asset.wml'
-            })
-            
-            expect(DeleteObjectCommand).toHaveBeenCalledWith({
-                Bucket: undefined,
-                Key: 'Library/test-asset.ndjson'
-            })
-        })
-
-        it('should handle dirty asset state', async () => {
-            // Mock asset workspace to return dirty state
-            const mockWorkspace = {
-                address: { zone: 'Personal', player: 'alice', fileName: 'test-asset' },
-                status: { json: 'Dirty' },
-                fileNameBase: 'Personal/alice/test-asset',
-                loadJSON: jest.fn()
-            }
-            ReadOnlyAssetWorkspaceMock.mockImplementation(() => mockWorkspace as any)
-            
-            const request: MoveAssetRequest = {
-                type: 'Move Asset',
-                fromZone: 'Personal',
-                toZone: 'Library',
-                player: 'alice'
-            }
-            
-            const result = await moveAsset(assetId, request)
-            
-            expect(result.success).toBe(false)
-            expect(result.message).toContain('not in a clean state')
-            expect(result.message).toContain('Dirty')
-        })
-
-        it('should handle S3 errors gracefully', async () => {
-            // Mock workspace to return Clean status for this test
-            ReadOnlyAssetWorkspaceMock.mockImplementation((address) => ({
-                address,
-                status: {
-                    json: 'Clean',
-                    wml: 'Clean'
-                },
-                get fileNameBase() {
-                    if (address.zone === 'Personal') {
-                        return 'Personal/alice/test-asset'
-                    } else if (address.zone === 'Archive') {
-                        return 'Archive/BACKUP#123/test-asset'
-                    } else {
-                        return `${address.zone}/test-asset`
-                    }
-                },
-                loadJSON: jest.fn(),
-                authStatus: {
-                    json: 'Clean',
-                    wml: 'Clean'
-                },
-                _isGlobal: false,
-                filePath: '',
-                fileName: 'test-asset',
-                normal: {},
-                namespaceIdToDB: [],
-                rootNodes: [],
-                forceDefault: jest.fn(),
-                presignedURL: jest.fn(),
-                setWorkspaceLookup: jest.fn(),
-                loadAuthorizationJSON: jest.fn()
-            }))
-            
-            // Mock S3 client to throw error on copy operations
-            mockS3Client.send.mockImplementation((command: any) => {
-                if (command.constructor.name === 'CopyObjectCommand') {
-                    return Promise.reject(new Error('S3 operation failed'))
-                }
-                return Promise.resolve({})
-            })
-            
-            const request: MoveAssetRequest = {
-                type: 'Move Asset',
-                fromZone: 'Personal',
-                toZone: 'Library',
-                player: 'alice'
-            }
-            
-            const result = await moveAsset(assetId, request)
-            
-            expect(result.success).toBe(false)
-            expect(result.message).toContain('S3 operation failed')
-        })
-
-        it('should handle requests without optional fields', async () => {
-            // Reset mock to default Clean status
-            ReadOnlyAssetWorkspaceMock.mockImplementation((address) => ({
-                address,
-                status: {
-                    json: 'Clean',
-                    wml: 'Clean'
-                },
-                get fileNameBase() {
-                    if (address.zone === 'Personal') {
-                        return 'Personal/alice/test-asset'
-                    } else if (address.zone === 'Archive') {
-                        return 'Archive/BACKUP#123/test-asset'
-                    } else {
-                        return `${address.zone}/test-asset`
-                    }
-                },
-                loadJSON: jest.fn(),
-                authStatus: {
-                    json: 'Clean',
-                    wml: 'Clean'
-                },
-                _isGlobal: false,
-                filePath: '',
-                fileName: 'test-asset',
-                normal: {},
-                namespaceIdToDB: [],
-                rootNodes: [],
-                forceDefault: jest.fn(),
-                presignedURL: jest.fn(),
-                setWorkspaceLookup: jest.fn(),
-                loadAuthorizationJSON: jest.fn()
-            }))
-            
+        it('should handle Library to Canon transitions', async () => {
             const request: MoveAssetRequest = {
                 type: 'Move Asset',
                 fromZone: 'Library',
@@ -278,42 +94,61 @@ describe('moveAsset', () => {
             const result = await moveAsset(assetId, request)
             
             expect(result.success).toBe(true)
-            expect(result.newLocation).toBe('Canon/test-asset')
+            expect(result.newLocation).toBe('test-asset')
+            expect(s3ClientMock.updateTags).toHaveBeenCalledTimes(4)
+            expect(s3ClientMock.updateTags).toHaveBeenCalledWith(expect.objectContaining({
+                Tags: { Zone: 'Canon' }
+            }))
         })
 
-        it('should extract fileName from AssetId with ASSET# prefix', async () => {
-            // Reset mock to default Clean status
-            ReadOnlyAssetWorkspaceMock.mockImplementation((address) => ({
-                address,
-                status: {
-                    json: 'Clean',
-                    wml: 'Clean'
-                },
-                get fileNameBase() {
-                    if (address.zone === 'Personal') {
-                        return 'Personal/alice/test-asset'
-                    } else if (address.zone === 'Archive') {
-                        return 'Archive/BACKUP#123/test-asset'
-                    } else {
-                        return `${address.zone}/test-asset`
-                    }
-                },
-                loadJSON: jest.fn(),
-                authStatus: {
-                    json: 'Clean',
-                    wml: 'Clean'
-                },
-                _isGlobal: false,
-                filePath: '',
-                fileName: 'test-asset',
-                normal: {},
-                namespaceIdToDB: [],
-                rootNodes: [],
-                forceDefault: jest.fn(),
-                presignedURL: jest.fn(),
-                setWorkspaceLookup: jest.fn(),
-                loadAuthorizationJSON: jest.fn()
-            }))
+        it('should reject moves from Canon/Library to Personal (immutable metadata limitation)', async () => {
+            const request: MoveAssetRequest = {
+                type: 'Move Asset',
+                fromZone: 'Library',
+                toZone: 'Personal',
+                player: 'alice'
+            }
+            
+            const result = await moveAsset(assetId, request)
+            
+            expect(result.success).toBe(false)
+            expect(result.message).toContain('Cannot move from Library to Personal')
+            expect(result.message).toContain('player metadata')
+            expect(s3ClientMock.updateTags).not.toHaveBeenCalled()
+        })
+
+        it('should reject moves from Canon to Draft (immutable metadata limitation)', async () => {
+            const request: MoveAssetRequest = {
+                type: 'Move Asset',
+                fromZone: 'Canon',
+                toZone: 'Draft'
+            }
+            
+            const result = await moveAsset(assetId, request)
+            
+            expect(result.success).toBe(false)
+            expect(result.message).toContain('Cannot move from Canon to Draft')
+            expect(result.message).toContain('player metadata')
+            expect(s3ClientMock.updateTags).not.toHaveBeenCalled()
+        })
+
+        it('should handle Archive zone correctly (deferred to Phase 2)', async () => {
+            const request: MoveAssetRequest = {
+                type: 'Move Asset',
+                fromZone: 'Library',
+                toZone: 'Archive'
+            }
+            
+            const result = await moveAsset(assetId, request)
+            
+            // Phase 1: Archive functionality deferred to Phase 2
+            expect(result.success).toBe(false)
+            expect(result.message).toContain('Archive functionality deferred to Phase 2')
+            expect(s3ClientMock.updateTags).not.toHaveBeenCalled()
+        })
+
+        it('should handle S3 tagging errors gracefully', async () => {
+            s3ClientMock.updateTags.mockRejectedValue(new Error('S3 tagging failed'))
             
             const request: MoveAssetRequest = {
                 type: 'Move Asset',
@@ -324,8 +159,51 @@ describe('moveAsset', () => {
             
             const result = await moveAsset(assetId, request)
             
+            expect(result.success).toBe(false)
+            expect(result.message).toContain('Failed to update zone tags')
+        })
+
+        it('should extract fileName from AssetId with ASSET# prefix', async () => {
+            const request: MoveAssetRequest = {
+                type: 'Move Asset',
+                fromZone: 'Personal',
+                toZone: 'Library',
+                player: 'alice'
+            }
+            
+            const result = await moveAsset(assetId, request)
+            
             expect(result.success).toBe(true)
-            expect(result.newLocation).toBe('Library/test-asset')
+            expect(result.newLocation).toBe('test-asset')
+            expect(s3ClientMock.updateTags).toHaveBeenCalledWith(expect.objectContaining({
+                Key: 'test-asset.wml'  // Verifies ASSET# prefix was stripped
+            }))
+        })
+
+        it('should allow Draft to Personal moves (same metadata required)', async () => {
+            const request: MoveAssetRequest = {
+                type: 'Move Asset',
+                fromZone: 'Draft',
+                toZone: 'Personal'
+            }
+            
+            const result = await moveAsset(assetId, request)
+            
+            expect(result.success).toBe(true)
+            expect(s3ClientMock.updateTags).toHaveBeenCalledTimes(4)
+        })
+
+        it('should allow Canon to Library moves (decanonization)', async () => {
+            const request: MoveAssetRequest = {
+                type: 'Move Asset',
+                fromZone: 'Canon',
+                toZone: 'Library'
+            }
+            
+            const result = await moveAsset(assetId, request)
+            
+            expect(result.success).toBe(true)
+            expect(s3ClientMock.updateTags).toHaveBeenCalledTimes(4)
         })
     })
 })

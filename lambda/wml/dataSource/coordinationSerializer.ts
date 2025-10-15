@@ -14,8 +14,8 @@ export type MoveAssetRequest = {
     type: 'Move Asset';
     fromZone: Zone;
     toZone: Zone;
-    player?: string;
-    subFolder?: string;
+    player?: string;      // DEPRECATED Phase 1: No longer used (player stored in S3 metadata)
+    subFolder?: string;   // DEPRECATED Phase 1: No longer used (flat storage, no subdirectories)
 }
 
 export type ApplyEditRequest = {
@@ -41,8 +41,8 @@ export type MoveAssetRequestExternal = {
     type: 'Move Asset';
     fromZone: Zone;
     toZone: Zone;
-    player?: string;
-    subFolder?: string;
+    player?: string;      // DEPRECATED Phase 1: No longer used (player stored in S3 metadata)
+    subFolder?: string;   // DEPRECATED Phase 1: No longer used (flat storage, no subdirectories)
 }
 
 export type ApplyEditRequestExternal = {

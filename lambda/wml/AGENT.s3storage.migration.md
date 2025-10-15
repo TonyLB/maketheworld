@@ -159,10 +159,15 @@ The migration aims to address these limitations by:
    - ✅ Added Player metadata for Personal/Draft zones
    - ✅ All tests passing with tag/metadata verification
 
+✅ **More Recently Completed:**
+4. **Zone Change Operations Refactor** (October 15, 2025)
+   - ✅ Refactored `moveAsset` to use `s3Client.updateTags()` instead of copy+delete
+   - ✅ Added validation for immutable metadata constraints (Canon/Library → Personal/Draft blocked)
+   - ✅ Simplified from ~190 lines to ~80 lines
+   - ✅ All tests passing (12/12)
+   - See [Write Operations Catalog](AGENT.s3storage.migration.catalog.md) for valid zone transitions
+
 ⏳ **Remaining:**
-4. **Zone Change Operations Refactor** - Replace copy+delete with tag updates
-   - Primary target: `lambda/wml/dataSource/moveAsset/index.ts`
-   - Use `s3Client.updateTags()` instead of CopyObject + DeleteObject
 5. **Initialize Primitives** - Update for flat storage
    - Update `lambda/initialize/app.ts` to use flat path with tags
 6. **Access Pattern Updates** - Refactor `AssetWorkspaceAddress` usage
