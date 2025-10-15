@@ -97,19 +97,29 @@ All S3 writes for asset content go through these four methods:
 - **Replacement Strategy**: See [Publishing Strategy](AGENT.s3storage.publishing.plan.md)
 - **Reason**: Replaced by creating new empty draft asset with fresh UUID
 
-**d) `moveAsset` (Zone Transitions)**
+**d) `moveAsset` (Zone Transitions)** - ✅ **COMPLETED**
 - **Location**: `lambda/wml/dataSource/moveAsset/index.ts`
-- **Lines**: 148-174
-- **Operations**: Direct S3 `CopyObjectCommand` + `DeleteObjectCommand`
-- **Purpose**: Move assets between zones
-- **Current Behavior**: 
-  - Copies files from one zone path to another
-  - Deletes original files
-  - **THIS IS THE PRIMARY TARGET FOR PHASE 1 REFACTORING**
-- **Refactoring Need**: 
-  - Replace copy+delete with S3 PutObjectTagging
-  - Update Zone tag instead of moving files
-  - This is explicitly called out in migration plan (lines 136-139)
+- **Operations**: S3 `PutObjectTaggingCommand` (updates Zone tag)
+- **Purpose**: Move assets between zones via atomic tag updates
+- **Implementation**: Updates Zone tag on 4 files (.wml, .ndjson, .auth.wml, .auth.ndjson)
+- **Critical Limitation**: Due to immutable S3 metadata, certain transitions are not allowed:
+  
+  **Valid Zone Transitions**:
+  - ✅ Personal → Library (Publishing)
+  - ✅ Personal → Canon (Publishing)
+  - ✅ Draft → Personal (Publishing)
+  - ✅ Draft → Library (Publishing)
+  - ✅ Draft → Canon (Publishing)
+  - ✅ Library → Canon (Canonization)
+  - ✅ Canon → Library (Decanonization)
+  
+  **Invalid Transitions** (rejected with error):
+  - ❌ Canon → Personal (no player metadata)
+  - ❌ Canon → Draft (no player metadata)
+  - ❌ Library → Personal (no player metadata)
+  - ❌ Library → Draft (no player metadata)
+  
+  **Rationale**: Personal/Draft assets have player metadata (set at creation). Canon/Library assets don't. Since S3 metadata is immutable, moving Canon/Library assets to Personal/Draft is impossible. To get a Canon asset into Personal, use a copy operation that creates a new object with player metadata.
 
 **e) `backupWML` (Asset Backup to tar.gz)**
 - **Location**: `lambda/wml/backupWML/index.ts`
@@ -330,7 +340,17 @@ Functions that read files will need to:
      - `packages/mtw-asset-workspace/ts/readOnly.ts` - Updated `forceDefault()`
      - `packages/mtw-asset-workspace/ts/index.test.ts` - Updated all test expectations
 
-3. ⏳ **REMAINING** - Update `moveAsset` to use tagging instead of copy+delete
+3. ✅ **COMPLETED** (October 15, 2025) - Update `moveAsset` to use tagging instead of copy+delete
+   - Refactored to use `s3Client.updateTags()` instead of CopyObject + DeleteObject
+   - Reduced from ~190 lines to ~80 lines (much simpler!)
+   - Added validation for invalid zone transitions (Canon/Library → Personal/Draft)
+   - Marked `player` and `subFolder` parameters as deprecated (no longer used)
+   - All tests passing (12/12) with comprehensive coverage
+   - **Files Modified**:
+     - `lambda/wml/dataSource/moveAsset/index.ts` - Complete rewrite using tag updates
+     - `lambda/wml/dataSource/moveAsset/index.test.ts` - Rewritten for tag-based behavior
+     - `lambda/wml/dataSource/coordinationSerializer.ts` - Marked deprecated parameters
+
 4. ⏳ **REMAINING** - Update `initializePrimitivesData` to use flat path with tags
 5. ⏳ **REMAINING** - Update read operations to handle UUID-based paths
 

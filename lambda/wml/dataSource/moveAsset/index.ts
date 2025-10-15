@@ -1,19 +1,14 @@
 /**
  * Move Asset functionality for WML DataSource
  * 
- * This module handles asset zone transitions, moving assets between different
- * access zones (Canon, Library, Personal, Draft, Archive) and updating
- * associated S3 metadata and file organization.
+ * Phase 1: This module handles asset zone transitions by updating S3 object tags.
+ * With flat UUID-based storage, zone transitions are simple tag updates rather than
+ * file copy+delete operations.
  */
 
-import { CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
-import { S3Client } from "@aws-sdk/client-s3"
-import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
-import internalCache from "../../internalCache"
+import { s3Client } from "@tonylb/mtw-asset-workspace/ts/clients"
 import { MoveAssetRequest } from "../coordinationSerializer"
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
-
-const { S3_BUCKET } = process.env
 
 export interface MoveAssetResponse {
     success: boolean
@@ -24,166 +19,81 @@ export interface MoveAssetResponse {
 /**
  * Move an asset from one zone to another
  * 
- * This function handles the complete zone transition process:
- * - Validates the move operation
- * - Updates S3 file organization and metadata
- * - Publishes zone transition events
- * - Coordinates with Assets Lambda for cache updates
+ * Phase 1: With flat UUID-based storage, this function simply updates the Zone tag
+ * on S3 objects. No file copying or path changes are needed.
+ * 
+ * IMPORTANT LIMITATION: This function can only move assets that already have appropriate
+ * S3 metadata for the target zone. Since Player metadata is immutable (set at object creation):
+ * - ✅ Personal/Draft → Library/Canon: Allowed (publishing workflow)
+ * - ❌ Library/Canon → Personal/Draft: NOT ALLOWED (would require player metadata)
+ * 
+ * To "move" a Canon/Library asset to Personal, use a copy operation instead, which
+ * creates a new object with player metadata.
+ * 
+ * @param assetId - The asset UUID (does not change during move)
+ * @param request - Zone transition request (fromZone, toZone)
+ *                  Note: player/subFolder fields are deprecated and ignored
  */
 export async function moveAsset(assetId: AssetUUID, request: MoveAssetRequest): Promise<MoveAssetResponse> {
-    const { fromZone, toZone, player, subFolder } = request
+    const { fromZone, toZone } = request
+    
+    // Phase 1: Validate that we're not trying to move TO Personal/Draft from Canon/Library
+    // (would require player metadata that doesn't exist on Canon/Library assets)
+    if ((toZone === 'Personal' || toZone === 'Draft') && 
+        (fromZone === 'Canon' || fromZone === 'Library')) {
+        return {
+            success: false,
+            message: `Cannot move from ${fromZone} to ${toZone}: Target zone requires player metadata that doesn't exist on source asset. Use copy operation instead.`
+        }
+    }
     
     try {
-        // Get S3 client from internal cache
-        const s3Client = await internalCache.Connection.get('s3Client')
-        if (!s3Client) {
+        // Phase 1: Zone transition is just a tag update
+        const fileName = assetId.replace('ASSET#', '')
+        
+        // Handle Archive zone as deletion (Phase 1 defers proper archiving to Phase 2)
+        if (toZone === 'Archive') {
+            // TODO Phase 2: Replace deletion with Zone='Archive' tag when implementing chunk-based storage
             return {
                 success: false,
-                message: 'S3 client not available'
+                message: 'Archive functionality deferred to Phase 2'
             }
         }
         
-        // Build source asset workspace address
-        const fromAddress = buildAssetWorkspaceAddress(assetId, fromZone, player, subFolder)
-        const fromAssetWorkspace = new ReadOnlyAssetWorkspace(fromAddress)
+        // Update Zone tag on all asset files atomically
+        await Promise.all([
+            s3Client.updateTags({
+                Key: `${fileName}.wml`,
+                Tags: { Zone: toZone }
+            }),
+            s3Client.updateTags({
+                Key: `${fileName}.ndjson`,
+                Tags: { Zone: toZone }
+            }),
+            s3Client.updateTags({
+                Key: `${fileName}.auth.wml`,
+                Tags: { Zone: toZone }
+            }),
+            s3Client.updateTags({
+                Key: `${fileName}.auth.ndjson`,
+                Tags: { Zone: toZone }
+            })
+        ])
         
-        // Load and validate the source asset
-        await fromAssetWorkspace.loadJSON()
-        if (fromAssetWorkspace.status.json !== 'Clean') {
-            return {
-                success: false,
-                message: `Source asset ${assetId} is not in a clean state (status: ${fromAssetWorkspace.status.json})`
-            }
-        }
-        
-        // Build destination asset workspace address
-        const toAddress = buildAssetWorkspaceAddress(assetId, toZone, player, subFolder)
-        const toAssetWorkspace = new ReadOnlyAssetWorkspace(toAddress)
-        
-        // Handle the move operation
-        const result = await performS3Move(s3Client, fromAssetWorkspace, toAssetWorkspace)
-        
-        if (result.success) {
-            return {
-                success: true,
-                message: result.message || `Successfully moved asset ${assetId} from ${fromZone} to ${toZone}`,
-                newLocation: result.newLocation || toAssetWorkspace.fileNameBase
-            }
-        } else {
-            return result
+        return {
+            success: true,
+            message: `Asset ${assetId} zone changed from ${fromZone} to ${toZone}`,
+            newLocation: fileName
         }
         
     } catch (error) {
         console.error(`Error moving asset ${assetId}:`, error)
         return {
             success: false,
-            message: `Failed to move asset: ${error instanceof Error ? error.message : String(error)}`
+            message: `Failed to update zone tags: ${error instanceof Error ? error.message : String(error)}`
         }
     }
 }
 
-/**
- * Build an AssetWorkspaceAddress from the provided parameters
- */
-function buildAssetWorkspaceAddress(
-    assetId: string, 
-    zone: string, 
-    player?: string, 
-    subFolder?: string
-): any {
-    // Extract fileName from assetId (remove ASSET# prefix if present)
-    const fileName = assetId.replace(/^ASSET#/, '')
-    
-    const baseAddress = {
-        zone: zone as any,
-        fileName,
-        ...(subFolder && { subFolder })
-    }
-    
-    // Add player for Personal zone
-    if (zone === 'Personal' && player) {
-        return { ...baseAddress, player }
-    }
-    
-    // Add backupId for Archive zone (we'll need to handle this case)
-    if (zone === 'Archive') {
-        return { ...baseAddress, backupId: `BACKUP#${Date.now()}` }
-    }
-    
-    return baseAddress
-}
-
-/**
- * Perform the actual S3 file operations for the move
- */
-async function performS3Move(
-    s3Client: S3Client,
-    fromWorkspace: ReadOnlyAssetWorkspace,
-    toWorkspace: ReadOnlyAssetWorkspace
-): Promise<MoveAssetResponse> {
-    const fromFileNameBase = fromWorkspace.fileNameBase
-    const toFileNameBase = toWorkspace.fileNameBase
-    
-    // Handle Archive zone special case - no file copying needed
-    if (toWorkspace.address.zone === 'Archive') {
-        // For Archive, we just delete the source files
-        await Promise.all([
-            s3Client.send(new DeleteObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: `${fromFileNameBase}.wml`
-            })),
-            s3Client.send(new DeleteObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: `${fromFileNameBase}.ndjson`
-            }))
-        ])
-        
-        return {
-            success: true,
-            message: `Asset archived (files deleted from source location)`,
-            newLocation: toFileNameBase
-        }
-    }
-    
-    // Handle regular zone transitions - copy files then delete originals
-    try {
-        // Copy files to new location
-        await Promise.all([
-            s3Client.send(new CopyObjectCommand({
-                Bucket: S3_BUCKET,
-                CopySource: `${S3_BUCKET}/${fromFileNameBase}.ndjson`,
-                Key: `${toFileNameBase}.ndjson`
-            })),
-            s3Client.send(new CopyObjectCommand({
-                Bucket: S3_BUCKET,
-                CopySource: `${S3_BUCKET}/${fromFileNameBase}.wml`,
-                Key: `${toFileNameBase}.wml`
-            }))
-        ])
-        
-        // Delete original files
-        await Promise.all([
-            s3Client.send(new DeleteObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: `${fromFileNameBase}.wml`
-            })),
-            s3Client.send(new DeleteObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: `${fromFileNameBase}.ndjson`
-            }))
-        ])
-        
-        return {
-            success: true,
-            message: `Files successfully moved from ${fromFileNameBase} to ${toFileNameBase}`,
-            newLocation: toFileNameBase
-        }
-        
-    } catch (error) {
-        console.error('S3 move operation failed:', error)
-        return {
-            success: false,
-            message: `S3 operation failed: ${error instanceof Error ? error.message : String(error)}`
-        }
-    }
-}
+// Phase 1: Helper functions for path-based moves removed
+// Zone transitions are now simple tag updates on existing files
