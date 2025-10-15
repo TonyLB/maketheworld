@@ -171,11 +171,24 @@ The migration aims to address these limitations by:
 5. **Initialize Primitives** (October 15, 2025)
    - ✅ Updated `lambda/initialize/app.ts` to use flat path (`primitives.wml`) with Zone tag
 
-⏳ **Remaining:**
-6. **Access Pattern Updates** - Refactor `AssetWorkspaceAddress` usage
-   - Simplify/update `addressLookup` lambda
+6. **Read Operations** (October 14, 2025)
+   - ✅ Implicitly completed by path construction changes
+   - ✅ All load methods automatically use UUID-based paths via `fileNameBase` getter
+
+✅ **More Recently Completed:**
+7. **Remove `addressLookup` Lambda** (October 15, 2025)
+   - ✅ Removed `lambda/addressLookup/` directory completely
+   - ✅ Updated `applyWMLEdit.asl.yaml` - removed 4 address-related steps
+   - ✅ Updated `cacheAssets.asl.yaml` - removed address lookup steps
+   - ✅ Updated `template.yaml` - removed `AddressLookupFunction` definition and references
+   - ✅ Verified consumer lambdas work with cache fallbacks
+
+⏳ **Remaining (Phase 1B):**
+8. **Complete Address Resolution Updates**
    - Update `dbRegister` functions to store simplified metadata
-   - Update read operations to handle UUID-based paths
+   - Update `assetWorkspaceFromAssetId` utilities to ensure `assetId` is always set
+   - Consolidate AssetWorkspace getters (see `AGENT.assetworkspace.simplification.md`)
+   - Remove temporary analysis document after completion
 
 #### Core Changes:
 

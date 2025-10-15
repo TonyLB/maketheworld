@@ -16,51 +16,10 @@ States:
             tag: "Asset"
     "Apply Defaults":
         Type: Pass
-        Next: Assign Address
+        Next: Request Lock
         ResultPath: "$"
         Parameters:
             "args.$": "States.JsonMerge($.inputDefaults, $$.Execution.Input, false)"
-    "Assign Address":
-        Type: Task
-        Next: Check Address
-        Resource: "${AddressLookupFunctionArn}"
-        Parameters:
-            "assetIds.$": "States.Array($.args.assetId)"
-            "player.$": "$.args.player"
-            "tag.$": "$.args.tag"
-        ResultPath: "$.addressList"
-        Retry:
-            -
-                ErrorEquals:
-                    - States.TaskFailed
-                IntervalSeconds: 2
-                MaxAttempts: 3
-                BackoffRate: 1
-        Catch:
-            -
-                ErrorEquals:
-                    - States.ALL
-                Next: Notify of Failure
-    "Check Address":
-        Type: Choice
-        Choices:
-            -
-                Variable: "$.addressList[0]"
-                IsPresent: false
-                Next: Notify of Failure
-        Default: Extract First Address
-    "Extract First Address":
-        Type: Pass
-        Parameters:
-            "address.$": "$.addressList[0].address"
-        ResultPath: "$.toMerge"
-        Next: Merge Address
-    "Merge Address":
-        Type: Pass
-        Parameters:
-            "args.$": "States.JsonMerge($.args, $.toMerge, false)"
-        ResultPath: "$"
-        Next: Request Lock
     "Request Lock":
         Type: Task
         Resource: "${WMLFunctionArn}"
@@ -103,7 +62,6 @@ States:
             "message": "applyEdit"
             "AssetId.$": "$.args.assetId"
             "RequestId.$": "$.args.requestId"
-            "address.$": "$.args.address"
             "schema.$": "$.args.schema"
         Catch:
             -
