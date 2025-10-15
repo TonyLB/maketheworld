@@ -357,19 +357,28 @@ Functions that read files will need to:
    - Single-line change, no tests to update
    - **File Modified**: `lambda/initialize/app.ts`
 
-5. ⏳ **REMAINING** - Update read operations to handle UUID-based paths
+5. ✅ **COMPLETED** (October 14, 2025) - Update read operations to handle UUID-based paths
+   - Implicitly completed as part of item 1 (path construction refactoring)
+   - All read methods (`loadWML`, `loadJSON`, `loadAuthorizationWML`, `loadAuthorizationJSON`) use `this.fileNameBase` getter
+   - No hardcoded zone-based paths remain in `mtw-asset-workspace` package
+   - No additional code changes required
+   - **Analysis**: Read operations automatically adopted UUID-based paths when getters were updated
 
 ### Phase 1B: Update Address Resolution
 
 1. Modify `addressLookup` to work with UUID-based lookups
 2. Update `dbRegister` to store simplified metadata
 3. Update `assetWorkspaceFromAssetId` utilities to construct addresses from UUIDs
+4. Consolidate AssetWorkspace getters (eliminate `fileNameBase`, use `fileName` directly)
+5. Update `backupWML` to remove `filePath` usage (mark as Phase 2 when refactoring)
+6. **Remove temporary analysis document** `lambda/wml/AGENT.assetworkspace.simplification.md` after completion
 
-### Phase 1C: Update Read Operations
+### Phase 1C: Update Read Operations (Deprecated - mostly complete)
 
-1. Update `AssetWorkspace.load*` methods to use UUID-based paths
-2. Ensure S3 tag/metadata reading where needed
-3. Update cache invalidation logic
+**Status**: Most work already completed by Phase 1A item 1
+1. ✅ `AssetWorkspace.load*` methods already use UUID-based paths via `fileNameBase` getter
+2. ⏳ Ensure S3 tag/metadata reading where needed (Phase 1B dependency)
+3. ⏳ Update cache invalidation logic (Phase 1B dependency)
 
 ---
 
