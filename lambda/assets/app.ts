@@ -19,8 +19,8 @@ import {
 
 import messageBus from "./messageBus/index.js"
 import { sfnClient, snsClient } from "./clients"
-import { assetWorkspaceFromAssetId } from "./utilities/assets"
 import { AssetKey, ConnectionKey } from "@tonylb/mtw-utilities/ts/types"
+import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
@@ -96,7 +96,7 @@ export const handler = async (event, context) => {
                 return await Promise.all(
                     (event.assetIds || []).map(async (assetId) => {
                         const assetKey = AssetKey(assetId)
-                        const assetWorkspace = await assetWorkspaceFromAssetId(assetKey)
+                        const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(assetKey)
                         return assetWorkspace?.address
                     })
                 )

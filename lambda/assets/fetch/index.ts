@@ -3,8 +3,7 @@ import { splitType } from '@tonylb/mtw-utilities/ts/types'
 import { FetchAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { MessageBus } from "../messageBus/baseClasses"
-import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts/readOnly"
-import { assetWorkspaceFromAssetId } from "../utilities/assets"
+import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 
 const createFetchLink = async ({ PlayerName, fileName, AssetId }: { PlayerName: string; fileName?: string; AssetId?: string }) => {
     if (AssetId) {

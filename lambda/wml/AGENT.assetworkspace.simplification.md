@@ -1,9 +1,15 @@
 # AssetWorkspace Simplification Analysis
 
-**Date**: October 15, 2025  
-**Context**: Phase 1 S3 Storage Migration - Post-flat storage implementation  
-**Status**: ⚠️ TEMPORARY DOCUMENT - to be removed after Phase 1B item 4 completion  
+**Date**: October 16, 2025  
+**Context**: Phase 1B S3 Storage Migration - Post-`assetWorkspaceFromAssetId` removal  
+**Status**: ⚠️ TEMPORARY DOCUMENT - Ready for getter consolidation (Option 2)  
 **Tracked in**: `lambda/wml/AGENT.s3storage.migration.md` (Temporary Documents section)
+
+## ✅ **Recent Updates** (October 16, 2025)
+
+- **`assetWorkspaceFromAssetId` REMOVED** (not refactored - fully deleted)
+- `AssetWorkspace.fromUUID()` now ensures `assetId` is always set
+- All prerequisites for Option 2 (getter consolidation) are now met
 
 ## Current Getter Structure
 
@@ -143,13 +149,14 @@ class ReadOnlyAssetWorkspace {
 
 **Do nothing.** Current implementation works correctly and all tests pass.
 
-### Phase 1B (Address Resolution)
+### ✅ Phase 1B Complete (October 16, 2025)
 
-When refactoring `assetWorkspaceFromAssetId`:
-1. Ensure `assetId` is always set on workspace
-2. Consider **Option 2**: Eliminate `fileNameBase`, use `fileName` directly
-3. Update `backupWML` to use `fileName` only (remove `filePath` usage)
-4. Mark `filePath` getter as deprecated
+~~When refactoring `assetWorkspaceFromAssetId`:~~
+1. ✅ ~~Ensure `assetId` is always set on workspace~~ - Done via `fromUUID()`
+2. ✅ `assetWorkspaceFromAssetId` **REMOVED** (entire file deleted)
+3. **Ready for Option 2**: Eliminate `fileNameBase`, use `fileName` directly
+4. **Next**: Update `backupWML` to use `fileName` only (remove `filePath` usage)
+5. **Next**: Mark `filePath` getter as deprecated
 
 ### Phase 1C / Phase 2
 
@@ -175,9 +182,16 @@ All internal load/push methods
 
 ## Conclusion
 
-**Current Status**: ✅ System is working correctly with redundant-but-harmless getters
+**Current Status** (October 16, 2025): ✅ Phase 1B prerequisites complete
+- `assetWorkspaceFromAssetId` removed
+- `assetId` always set via `fromUUID()`
+- System working correctly with redundant getters
 
-**Next Action**: Wait for Phase 1B to ensure `assetId` is always set, then consolidate `fileNameBase → fileName`
+**Next Action**: **READY TO PROCEED** with Option 2 (consolidate `fileNameBase → fileName`)
+1. Update `backupWML` first (only external consumer)
+2. Replace all internal `this.fileNameBase` → `this.fileName`
+3. Remove `fileNameBase` getter
+4. Deprecate `filePath` getter
 
-**Future Action**: Phase 2 (chunk-based) is natural time for full simplification to `s3Key` API
+**Future Action**: Phase 2 is natural time for full simplification to `s3Key` API (Option 3)
 
