@@ -119,10 +119,10 @@ describe('fetchImportsMessage', () => {
             { from: 'ASSET#importTestTwo', to: 'ASSET#importTestFour' }
         ], {}))
         internalCacheMock.AssetMetaData.get.mockResolvedValue([
-            { AssetId: 'ASSET#importTestOne', address: { zone: 'Canon', fileName: 'testOne' } },
-            { AssetId: 'ASSET#importTestTwo', address: { zone: 'Canon', fileName: 'testTwo' } },
-            { AssetId: 'ASSET#importTestThree', address: { zone: 'Canon', fileName: 'testThree' } },
-            { AssetId: 'ASSET#importTestFour', address: { zone: 'Canon', fileName: 'testFour' } }
+            { AssetId: 'ASSET#importTestOne', zone: 'Canon' },
+            { AssetId: 'ASSET#importTestTwo', zone: 'Canon' },
+            { AssetId: 'ASSET#importTestThree', zone: 'Canon' },
+            { AssetId: 'ASSET#importTestFour', zone: 'Canon' }
         ])
         
         // Mock the internalCache.Connection.get method to return different values based on the key

@@ -1,10 +1,13 @@
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
-import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import internalCache from "../internalCache";
 
-export class InheritanceGraph extends Graph<EphemeraAssetId, { key: EphemeraAssetId; address: AssetWorkspaceAddress }, {}> {}
+/**
+ * Phase 1B: Simplified inheritance graph
+ * Only stores asset key - address was never used by FetchImportsJSONHelper
+ */
+export class InheritanceGraph extends Graph<EphemeraAssetId, { key: EphemeraAssetId }, {}> {}
 
 export class FetchImportsJSONHelper {
     _inheritanceGraph: InheritanceGraph

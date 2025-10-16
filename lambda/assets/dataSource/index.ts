@@ -86,7 +86,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         
                         // Get asset metadata to determine zone
                         const assetMeta = (await internalCache.AssetMetaData.get([assetId]))[0]
-                        const zone = assetMeta?.address?.zone || 'Unknown'
+                        const zone = assetMeta?.zone || 'Unknown'
                         
                         // Emit Asset Added event for new assets (before Asset Cached)
                         // Consumed by mtw.assets.library DataSource for automatic Library cache updates

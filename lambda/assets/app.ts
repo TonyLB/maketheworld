@@ -217,15 +217,15 @@ export const handler = async (event, context) => {
             internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
         }
         if (isMetaDataAPIMessage(request)) {
-            const addresses = await internalCache.AssetMetaData.get(request.assetIds)
+            const metaItems = await internalCache.AssetMetaData.get(request.assetIds)
             if (connectionId) {
-                await Promise.all(addresses.map(({ AssetId, address }) => (
+                await Promise.all(metaItems.map(({ AssetId, zone }) => (
                     snsClient.send(new PublishCommand({
                         TopicArn: FEEDBACK_TOPIC,
                         Message: JSON.stringify({
                             messageType: 'MetaData',
                             AssetId,
-                            zone: address ? address.zone : 'None'
+                            zone: zone || 'None'
                         }),
                         MessageAttributes: {
                             RequestId: { DataType: 'String', StringValue: request.RequestId },

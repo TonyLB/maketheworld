@@ -27,11 +27,12 @@ export const fetchImportsMessage = async ({ payloads }: { payloads: FetchImports
             // Format: Store 'childAsset::parentAsset' pairs in Meta::${componentTag}.imports
             // See: lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md
             const ancestry = await internalCache.Graph.get(importsFromAsset.map(({ assetId }) => (assetId)), 'back', { fetchEdges: true })
-            const addresses = await internalCache.AssetMetaData.get(Object.keys(ancestry.nodes) as EphemeraAssetId[])
+            // Phase 1B: Simplified graph nodes - only store asset key
+            const assetIds = Object.keys(ancestry.nodes) as EphemeraAssetId[]
             const inheritanceGraph: InheritanceGraph = new Graph(
-                Object.assign({}, ...addresses.map(({ address, AssetId }) => ({ [AssetId]: { key: AssetId, address } }))),
+                Object.assign({}, ...assetIds.map((AssetId) => ({ [AssetId]: { key: AssetId } }))),
                 ancestry.edges as any,
-                { address: {} as any }
+                {} as any
             )
             const jsonHelper = new FetchImportsJSONHelper(inheritanceGraph)
 

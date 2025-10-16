@@ -23,7 +23,7 @@ jest.mock('../../internalCache', () => ({
         invalidate: jest.fn()
     },
     AssetMetaData: {
-        get: jest.fn().mockResolvedValue([{ address: { zone: 'Draft', player: 'Test' } }]),
+        get: jest.fn().mockResolvedValue([{ zone: 'Draft', player: 'Test' }]),
         invalidate: jest.fn()
     },
     ComponentData: {
@@ -87,14 +87,10 @@ describe('Cache Asset (Data Source)', () => {
                 standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
-            // Mock AssetMetaData.get to return address
+            // Mock AssetMetaData.get to return zone
             internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                address: {
-                    zone: 'Canon',
-                    fileName: 'primitives',
-                    subFolder: 'Assets'
-                }
+                zone: 'Canon'
             }])
 
             // Mock fileAsset with content
@@ -126,14 +122,10 @@ describe('Cache Asset (Data Source)', () => {
                 standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
-            // Mock AssetMetaData.get to return address
+            // Mock AssetMetaData.get to return zone
             internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                address: {
-                    zone: 'Canon',
-                    fileName: 'primitives',
-                    subFolder: 'Assets'
-                }
+                zone: 'Canon'
             }])
 
             // Mock fileAsset with content
@@ -167,10 +159,10 @@ describe('Cache Asset (Data Source)', () => {
                 standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
-            // Mock AssetMetaData.get to return no address
+            // Mock AssetMetaData.get to return no zone
             internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                address: undefined
+                zone: undefined
             }])
 
             await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
@@ -187,14 +179,10 @@ describe('Cache Asset (Data Source)', () => {
                 standardForm: new StandardForm('<Asset uuid=(primitives) />')
             }])
 
-            // Mock AssetMetaData.get to return address
+            // Mock AssetMetaData.get to return zone
             internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                address: {
-                    zone: 'Canon',
-                    fileName: 'primitives',
-                    subFolder: 'Assets'
-                }
+                zone: 'Canon'
             }])
 
             // Mock fileAsset with content
@@ -225,14 +213,10 @@ describe('Cache Asset (Data Source)', () => {
                 `)
             }])
 
-            // Mock AssetMetaData.get to return address
+            // Mock AssetMetaData.get to return zone
             internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                address: {
-                    zone: 'Canon',
-                    fileName: 'primitives',
-                    subFolder: 'Assets'
-                }
+                zone: 'Canon'
             }])
 
             // Mock fileAsset with only one component (removed one)
@@ -276,11 +260,7 @@ describe('Cache Asset (Data Source)', () => {
 
             internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                address: {
-                    zone: 'Canon',
-                    fileName: 'primitives',
-                    subFolder: 'Assets'
-                }
+                zone: 'Canon'
             }])
 
             standardFormMock = identicalForm
@@ -309,11 +289,7 @@ describe('Cache Asset (Data Source)', () => {
 
             internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                address: {
-                    zone: 'Canon',
-                    fileName: 'primitives',
-                    subFolder: 'Assets'
-                }
+                zone: 'Canon'
             }])
 
             // Mock fileAsset with content
@@ -373,11 +349,7 @@ describe('Cache Asset (Data Source)', () => {
 
             internalCacheMock.AssetMetaData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
-                address: {
-                    zone: 'Canon',
-                    fileName: 'primitives',
-                    subFolder: 'Assets'
-                }
+                zone: 'Canon'
             }])
 
             // file adds a ShortName to the existing Room (delta should be StandardReplace for Room with ShortName)
