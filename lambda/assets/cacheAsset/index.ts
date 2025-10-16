@@ -41,7 +41,6 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                         DataCategory: 'Meta::Asset',
                         zone,
                         ...(zone === 'Personal' && player ? { player } : {})
-                        // Note: Stores zone/player directly (no AssetWorkspaceAddress)
                         // Note: No import graph maintenance (deferred to component-level redesign)
                     })
                 }

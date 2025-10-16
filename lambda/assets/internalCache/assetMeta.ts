@@ -2,10 +2,6 @@ import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
-/**
- * Phase 1B: Simplified metadata cache structure
- * Stores zone/player directly instead of full AssetWorkspaceAddress
- */
 type MetaCache = {
     AssetId: AssetUUID;
     zone?: 'Canon' | 'Library' | 'Personal';

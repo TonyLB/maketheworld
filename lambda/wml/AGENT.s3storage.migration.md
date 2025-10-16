@@ -13,6 +13,7 @@ This document tracks the migration away from the "zones as subdirectories" stora
 **Active - Need Cleanup After Phase 1B**:
 - `lambda/wml/AGENT.assetworkspace.simplification.md` - Analysis of getter usage (Phase 1B item 4)
 - `lambda/assets/PHASE1B-COMPLETE.md` - Working notes for dbRegister consolidation (Phase 1B item 2)
+- `lambda/assets/AGENT.assetworkspaceaddress-remaining.md` - Analysis of remaining AssetWorkspaceAddress uses before final removal (October 16, 2025)
 
 **Completed - Already Deleted**:
 - ~~`lambda/wml/AGENT.refactoring.md`~~ - moveAsset analysis (deleted after Phase 1A)
