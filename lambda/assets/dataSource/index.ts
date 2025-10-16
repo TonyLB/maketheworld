@@ -72,11 +72,33 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                 const assetId = event.streamKey as AssetUUID
                 if (assetId) {
                     try {
+                        // Check if this is a new asset (for Asset Added event)
+                        const priorMeta = await assetDB.getItem({
+                            Key: {
+                                AssetId: assetId,
+                                DataCategory: 'Meta::Asset'
+                            },
+                            ProjectionFields: ['AssetId']
+                        })
+                        const isNewAsset = !(priorMeta && priorMeta.AssetId)
+                        
                         await cacheAsset({ assetId, streamEvent })
                         
                         // Get asset metadata to determine zone
                         const assetMeta = (await internalCache.AssetMetaData.get([assetId]))[0]
                         const zone = assetMeta?.address?.zone || 'Unknown'
+                        
+                        // Emit Asset Added event for new assets (before Asset Cached)
+                        // Consumed by mtw.assets.library DataSource for automatic Library cache updates
+                        if (isNewAsset) {
+                            await streamEvent({
+                                update: {
+                                    type: 'Asset Added',
+                                    zone
+                                },
+                                streamKey: assetId
+                            })
+                        }
                         
                         // Stream the caching event for real-time subscribers
                         await streamEvent({

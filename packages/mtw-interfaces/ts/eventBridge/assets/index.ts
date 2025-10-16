@@ -38,10 +38,14 @@ export const isAssetsComponentEvent = (event: any): event is ComponentEventUpdat
 }
 
 export const isAssetsLevelEvent = (event: AssetsEventUpdate): event is AssetLevelEventUpdate => {
-    return 'type' in event && ['Asset Cached', 'Asset Decached', 'Asset Removed', 'Canon Updated', 'Zone Updated'].includes(event.type)
+    return 'type' in event && ['Asset Added', 'Asset Cached', 'Asset Decached', 'Asset Removed', 'Canon Updated', 'Zone Updated'].includes(event.type)
 }
 
 // Specific type guards for each asset-level event type
+export const isAssetAddedEvent = (event: any): event is AssetAddedEventUpdate => {
+    return event?.type === 'Asset Added' && typeof event.zone === 'string'
+}
+
 export const isAssetCachedEvent = (event: any): event is AssetCachedEventUpdate => {
     return event?.type === 'Asset Cached' && typeof event.zone === 'string'
 }
@@ -77,6 +81,11 @@ export type AssetsEventUpdate = ComponentEventUpdate | AssetLevelEventUpdate
 
 // Specific asset-level event types (non-component events)
 // Note: assetId is available via streamKey, so we don't duplicate it in the payload
+export type AssetAddedEventUpdate = {
+    type: 'Asset Added'
+    zone: string
+}
+
 export type AssetCachedEventUpdate = {
     type: 'Asset Cached'
     zone: string
@@ -104,6 +113,7 @@ export type ZoneUpdatedEventUpdate = {
 
 // Union type for all asset-level event updates
 export type AssetLevelEventUpdate = 
+    | AssetAddedEventUpdate
     | AssetCachedEventUpdate 
     | AssetDecachedEventUpdate 
     | AssetRemovedEventUpdate 
@@ -115,6 +125,11 @@ export type AssetsEventExternal = ComponentEventExternal | AssetLevelEventExtern
 
 // Specific external asset-level event types
 // Note: assetId is available via streamKey, so we don't duplicate it in the payload
+export type AssetAddedEventExternal = {
+    type: 'Asset Added'
+    zone: string
+}
+
 export type AssetCachedEventExternal = {
     type: 'Asset Cached'
     zone: string
@@ -142,6 +157,7 @@ export type ZoneUpdatedEventExternal = {
 
 // Union type for all external asset-level events
 export type AssetLevelEventExternal = 
+    | AssetAddedEventExternal
     | AssetCachedEventExternal 
     | AssetDecachedEventExternal 
     | AssetRemovedEventExternal 

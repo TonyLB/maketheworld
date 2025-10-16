@@ -20,6 +20,12 @@ export const fetchImportsMessage = async ({ payloads }: { payloads: FetchImports
 
     await Promise.all(
         payloads.map(async ({ importsFromAsset }) => {
+            // ⚠️ KNOWN ISSUE: Asset-level import graph is broken (not maintained since Phase 1B)
+            // Old dbRegister maintained this graph but was never called in production
+            // This query likely returns empty/stale data, causing import resolution to fail
+            // TODO Phase 2: Redesign as component-level graph with asset-pair relationships
+            // Format: Store 'childAsset::parentAsset' pairs in Meta::${componentTag}.imports
+            // See: lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md
             const ancestry = await internalCache.Graph.get(importsFromAsset.map(({ assetId }) => (assetId)), 'back', { fetchEdges: true })
             const addresses = await internalCache.AssetMetaData.get(Object.keys(ancestry.nodes) as EphemeraAssetId[])
             const inheritanceGraph: InheritanceGraph = new Graph(

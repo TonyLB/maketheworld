@@ -229,22 +229,45 @@ All S3 writes for asset content go through these four methods:
 - **Content**: Creates default empty draft asset
 - **Refactoring Need**: Update to flat UUID-based paths with tags/metadata
 
-### `dbRegister()` - DynamoDB Registration
+### `dbRegister()` - DynamoDB Registration - ⚠️ **OBSOLETE PATTERN, REPLACED**
 
-**Locations**: 
-- `lambda/wml/serialize/dbRegister.ts`
-- `lambda/assets/serialize/dbRegister.ts`
+**Status**: Functions deleted, responsibilities redistributed (Phase 1B, October 15, 2025)
 
-**Purpose**: Register asset metadata in DynamoDB after S3 writes
+**Historical Locations**: 
+- `lambda/wml/serialize/dbRegister.ts` (deleted)
+- `lambda/assets/serialize/dbRegister.ts` (deleted)
 
-**Current Behavior**:
-- Stores `AssetWorkspaceAddress` structure in DynamoDB
-- Links AssetUUID to zone/player/fileName/subFolder
+**Why Deprecated**:
+1. **Never called**: Neither function was integrated into application code
+2. **Asset-level import graph is wrong pattern**:
+   - `fetchImportDefaults` operates at component-level (universalKey-based)
+   - Import ancestry should be per-component (`Meta::Room`, etc.), not per-asset
+   - Asset-level graph doesn't match actual usage pattern
+3. **Mixed responsibilities**: Conflated metadata, graph maintenance, events, cache updates
 
-**Refactoring Need**:
-- Store simplified metadata (AssetUUID → zone/player mapping)
-- Zone will be redundant with S3 tags (can be source of truth validation)
-- Player ownership is primary metadata to track
+**Replacement Strategy (Phase 1B)**:
+
+**1. `Meta::Asset` Records** - ✅ Added to `cacheAsset`:
+- **Location**: `lambda/assets/dataSource/caching/cacheAsset.ts`
+- **Timing**: When asset is cached after Content Update
+- **Data Stored**: Minimal metadata (AssetId, zone, player if Personal)
+- **No full address**: Flat storage makes complex address obsolete
+- **Purpose**: Enable cache fallback in `applyEdit`, support zone queries
+
+**2. "Asset Added" Events** - ✅ Published from assets DataSource:
+- **Location**: `lambda/assets/dataSource/index.ts`
+- **Timing**: When new asset first cached (no prior `Meta::Asset` record)
+- **Consumer**: `mtw.assets.library` DataSource
+- **Purpose**: Automatic Library cache updates on publication
+
+**3. Import Graph** - ⚠️ **DEFERRED TO PHASE 2**:
+- **Current State**: Asset-level graph exists but is not maintained (broken)
+- **Problem**: `fetchImportDefaults` likely failing silently
+- **Future Design**: Component-level graph stored in `Meta::${componentTag}` records
+- **Benefits**: Subscribe to `Component Updated` events, true component-level ancestry
+- **See**: `lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md`
+
+**4. PlayerLibrary Updates** - Handled by existing cache/DataSource patterns
 
 ---
 
@@ -389,7 +412,12 @@ Functions that read files will need to:
    - Removed `AddressLookupFunction` from `template.yaml`
    - Lambdas now fetch addresses from cache directly (already had fallbacks)
 
-2. ⏳ Update `dbRegister` to store simplified metadata
+2. ✅ Update `dbRegister` to store simplified metadata
+   - Removed both `dbRegister` implementations (wml & assets)
+   - Integrated `Meta::Asset` write into `cacheAsset`
+   - Moved `Asset Added` event emission to DataSource
+   - Deferred import graph redesign to Phase 2
+   - See: `lambda/assets/PHASE1B-COMPLETE.md`
 
 3. ⏳ Update `assetWorkspaceFromAssetId` utilities to construct addresses from UUIDs
 

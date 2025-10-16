@@ -31,8 +31,28 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
             ])
 
             const diff = dbAsset.diff(fileAsset)
+            
+            // Parallelize Meta::Asset write with component updates for efficiency
+            const metaAssetWrite = (async () => {
+                // Register Meta::Asset record (simplified metadata)
+                const assetMeta = (await internalCache.AssetMetaData.get([assetUUID]))[0]
+                const { address } = assetMeta ?? {}
+                if (address) {
+                    await assetDB.putItem({
+                        AssetId: assetUUID,
+                        DataCategory: 'Meta::Asset',
+                        zone: address.zone,
+                        ...(address.zone === 'Personal' ? { player: address.player } : {})
+                        // Note: No full 'address' field stored (Phase 1B simplification)
+                        // Note: No import graph maintenance (deferred to component-level redesign)
+                    })
+                }
+            })()
+            
             if (diff) {
-                await Promise.all(diff._components
+                await Promise.all([
+                    metaAssetWrite,
+                    ...diff._components
                     .map(async (component) => {
                         if (!component.universalKey) {
                             return
@@ -73,7 +93,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                             ])
                         }
                     })
-                )
+                ])
                 const characterChanges = diff._components
                     .filter((component): component is StandardRemove | StandardReplace | StandardCharacter => {
                         if (component instanceof StandardRemove) {
@@ -91,6 +111,9 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                     }
                 })
                 // Character events are now handled by mtw.assets.characters data source
+            } else {
+                // Even with no diff, write Meta::Asset record
+                await metaAssetWrite
             }
         })
     )

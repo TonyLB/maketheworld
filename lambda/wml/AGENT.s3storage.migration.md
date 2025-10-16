@@ -2,9 +2,31 @@
 
 **Status: PHASE 1 IN PROGRESS**
 
-**Last Updated: October 14, 2025**
+**Last Updated: October 16, 2025**
 
 This document tracks the migration away from the "zones as subdirectories" storage pattern to a more flexible and maintainable architecture.
+
+---
+
+## Temporary Documents (For Cleanup)
+
+**Active - Need Cleanup After Phase 1B**:
+- `lambda/wml/AGENT.assetworkspace.simplification.md` - Analysis of getter usage (Phase 1B item 4)
+- `lambda/assets/PHASE1B-COMPLETE.md` - Working notes for dbRegister consolidation (Phase 1B item 2)
+
+**Completed - Already Deleted**:
+- ~~`lambda/wml/AGENT.refactoring.md`~~ - moveAsset analysis (deleted after Phase 1A)
+- ~~`lambda/addressLookup/AGENT.deprecation-analysis.md`~~ - addressLookup analysis (deleted after Phase 1B item 1)
+- ~~`lambda/wml/AGENT.dbRegister.analysis.md`~~ - dbRegister analysis (deleted after Phase 1B item 2)
+- ~~`lambda/assets/AGENT.dbRegister-continuation.md`~~ - dbRegister continuation notes (deleted after Phase 1B item 2)
+
+**Permanent Documentation** (Keep):
+- `lambda/wml/AGENT.s3storage.migration.md` - Main migration plan (this file)
+- `lambda/wml/AGENT.s3storage.migration.catalog.md` - Detailed write operations catalog
+- `lambda/wml/AGENT.s3storage.publishing.plan.md` - Publishing strategy design
+- `lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md` - Import graph future design
+
+---
 
 ## Current Architecture
 
@@ -185,10 +207,10 @@ The migration aims to address these limitations by:
 
 ⏳ **Remaining (Phase 1B):**
 8. **Complete Address Resolution Updates**
-   - Update `dbRegister` functions to store simplified metadata
+   - ✅ Update `dbRegister` functions to store simplified metadata (see `lambda/assets/PHASE1B-COMPLETE.md`)
    - Update `assetWorkspaceFromAssetId` utilities to ensure `assetId` is always set
    - Consolidate AssetWorkspace getters (see `AGENT.assetworkspace.simplification.md`)
-   - Remove temporary analysis document after completion
+   - **Cleanup**: Remove temporary documents listed in "Temporary Documents" section above
 
 #### Core Changes:
 

@@ -2,7 +2,8 @@
 
 **Date**: October 15, 2025  
 **Context**: Phase 1 S3 Storage Migration - Post-flat storage implementation  
-**Status**: Temporary analysis document - to be removed after Phase 1B completion
+**Status**: ⚠️ TEMPORARY DOCUMENT - to be removed after Phase 1B item 4 completion  
+**Tracked in**: `lambda/wml/AGENT.s3storage.migration.md` (Temporary Documents section)
 
 ## Current Getter Structure
 
