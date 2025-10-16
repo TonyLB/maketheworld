@@ -10,7 +10,8 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     assetDB: {
         deleteItem: jest.fn(),
         putItem: jest.fn(),
-        optimisticUpdate: jest.fn()
+        optimisticUpdate: jest.fn(),
+        getItem: jest.fn()
     }
 }))
 
@@ -58,6 +59,8 @@ describe('Cache Asset', () => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
         standardFormMock = new StandardForm('<Asset uuid=(Test) />')
+        // Mock getItem to return empty result by default (simulating no prior Meta::Asset record)
+        assetDBMock.getItem.mockResolvedValue({})
     })
 
     it('should not publish Character Removed event (handled by characters data source)', async () => {
@@ -139,10 +142,11 @@ describe('Cache Asset', () => {
 
             await cacheAssetMessage({ payloads: [event], messageBus })
 
-            // Should call putItem for each new component
-            expect(assetDBMock.putItem).toHaveBeenCalledTimes(2)
+            // Phase 1B: Should call putItem for Meta::Asset + each new component (1 + 2 = 3)
+            expect(assetDBMock.putItem).toHaveBeenCalledTimes(3)
             const putItemCalls = assetDBMock.putItem.mock.calls
             const componentIds = putItemCalls.map(call => call[0].AssetId)
+            expect(componentIds).toContain('ASSET#primitives')  // Meta::Asset
             expect(componentIds).toContain('ROOM#VORTEX')
             expect(componentIds).toContain('KNOWLEDGE#knowledgeRoot')
 
@@ -186,10 +190,11 @@ describe('Cache Asset', () => {
 
             await cacheAssetMessage({ payloads: [event], messageBus })
 
-            // Should call putItem for each new component
-            expect(assetDBMock.putItem).toHaveBeenCalledTimes(2)
+            // Phase 1B: Should call putItem for Meta::Asset + each new component (1 + 2 = 3)
+            expect(assetDBMock.putItem).toHaveBeenCalledTimes(3)
             const putItemCalls = assetDBMock.putItem.mock.calls
             const componentIds = putItemCalls.map(call => call[0].AssetId)
+            expect(componentIds).toContain('ASSET#primitives')  // Meta::Asset
             expect(componentIds).toContain('ROOM#VORTEX')
             expect(componentIds).toContain('KNOWLEDGE#knowledgeRoot')
 
@@ -263,8 +268,8 @@ describe('Cache Asset', () => {
 
             await cacheAssetMessage({ payloads: [event], messageBus })
 
-            // Should call putItem for the new component
-            expect(assetDBMock.putItem).toHaveBeenCalledTimes(1)
+            // Phase 1B: Should call putItem for Meta::Asset + the new component (1 + 1 = 2)
+            expect(assetDBMock.putItem).toHaveBeenCalledTimes(2)
             expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
         })
     })
@@ -354,8 +359,15 @@ describe('Cache Asset', () => {
 
             await cacheAssetMessage({ payloads: [event], messageBus })
 
-            // Should not call any database operations
-            expect(assetDBMock.putItem).not.toHaveBeenCalled()
+            // Phase 1B: Should write Meta::Asset even with no component changes
+            expect(assetDBMock.putItem).toHaveBeenCalledTimes(1)
+            expect(assetDBMock.putItem).toHaveBeenCalledWith({
+                AssetId: 'ASSET#primitives',
+                DataCategory: 'Meta::Asset',
+                zone: 'Canon'
+            })
+            
+            // Should not call component-related operations
             expect(assetDBMock.deleteItem).not.toHaveBeenCalled()
             expect(assetDBMock.optimisticUpdate).not.toHaveBeenCalled()
         })
@@ -395,8 +407,8 @@ describe('Cache Asset', () => {
 
             await cacheAssetMessage({ payloads: [event], messageBus })
 
-            // Should call putItem for each new component
-            expect(assetDBMock.putItem).toHaveBeenCalledTimes(2)
+            // Phase 1B: Should call putItem for Meta::Asset + each new component (1 + 2 = 3)
+            expect(assetDBMock.putItem).toHaveBeenCalledTimes(3)
             expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
         })
     })

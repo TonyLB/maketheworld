@@ -22,7 +22,6 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
     streamEvent: (params: {
         update: ComponentEventUpdate;
         streamKey: string;
-        detailType: string;
     }) => Promise<void>;
 }): Promise<void> => {
     const assetUUID = AssetKey(assetId)
@@ -42,8 +41,29 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
     ])
 
     const diff = dbAsset.diff(fileAsset)
+    
+    // Phase 1B: Parallelize Meta::Asset write with component updates for efficiency
+    // Replaces old dbRegister function with minimal, focused metadata write
+    const metaAssetWrite = (async () => {
+        const assetMeta = (await internalCache.AssetMetaData.get([assetUUID]))[0]
+        const { address } = assetMeta ?? {}
+        
+        if (address) {
+            await assetDB.putItem({
+                AssetId: assetUUID,
+                DataCategory: 'Meta::Asset',
+                zone: address.zone,
+                ...(address.zone === 'Personal' ? { player: address.player } : {})
+                // Note: No full 'address' field (Phase 1B simplification for flat storage)
+                // Note: No import graph maintenance (deferred to component-level redesign)
+            })
+        }
+    })()
+    
     if (diff) {
-        await Promise.all(diff._components
+        await Promise.all([
+            metaAssetWrite,
+            ...diff._components
             .map(async (component) => {
                 if (!component.universalKey) {
                     return
@@ -84,7 +104,7 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
                     ])
                 }
             })
-        )
+        ])
 
         // Prepare component-level events with StandardComponent objects (same for removes and updates)
         const componentsUpdated = diff._components
@@ -108,10 +128,12 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             componentsUpdated.map((componentUpdatedEvent) => (
                 streamEvent({
                     update: componentUpdatedEvent,
-                    streamKey: assetId,
-                    detailType: 'Component Updated'
+                    streamKey: assetId
                 })
             ))
         )
+    } else {
+        // Even with no diff, write Meta::Asset record
+        await metaAssetWrite
     }
 }

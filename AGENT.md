@@ -164,6 +164,50 @@ Include specific guidance for AI assistants:
 3. **Review Regularly**: Periodically review for accuracy
 4. **Evolve Standards**: Improve patterns based on experience
 
+#### **Temporary Working Documents**
+
+For complex migrations or multi-step tasks, temporary analysis documents help track progress and decision-making:
+
+**When to Create**:
+- Complex architectural changes requiring analysis
+- Multi-phase migrations with multiple decision points
+- Deep dives into system behavior that inform refactoring
+- Working notes that aid task completion but aren't needed long-term
+
+**Required Practices**:
+1. **Mark as Temporary**: Add `⚠️ TEMPORARY DOCUMENT` warning in header
+2. **Central Tracking**: List in parent planning document (e.g., main migration doc)
+3. **Cleanup Task**: Add explicit cleanup step in task completion checklist
+4. **Bidirectional Links**: Link from temp doc to parent, and parent to temp doc
+
+**Example Pattern**:
+```markdown
+# Analysis Document Title
+
+**Date**: October 16, 2025
+**Status**: ⚠️ TEMPORARY DOCUMENT - delete after Phase 1B item 4 completion
+**Tracked in**: `path/to/main-planning-doc.md` (Temporary Documents section)
+```
+
+**Parent Document Section**:
+```markdown
+## Temporary Documents (For Cleanup)
+
+**Active** (need cleanup):
+- `path/to/analysis.md` - Analysis for Phase 1B item 4
+
+**Completed** (already deleted):
+- ~~`path/to/old-analysis.md`~~ - Deleted after Phase 1A
+```
+
+**Benefits**:
+- Encourages thorough analysis during complex work
+- Prevents documentation clutter after task completion
+- Maintains clear audit trail of temporary vs permanent docs
+- Ensures systematic cleanup at task boundaries
+
+**See Example**: `lambda/wml/AGENT.s3storage.migration.md` for a working implementation
+
 #### **AI Assistant Guidelines**
 1. **Start Here**: Begin with this root `AGENT.md` for context
 2. **Follow Links**: Use cross-references to navigate between systems
