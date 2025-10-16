@@ -7,6 +7,8 @@ import { s3Client } from "./clients"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { isStandardAuthorizationCollectionNDJSON, StandardAuthorizationCollection } from "@tonylb/mtw-wml/ts/standardize/authorization"
+import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+import { splitType } from "@tonylb/mtw-utilities/ts/types"
 
 const { S3_BUCKET = 'Test' } = process.env;
 
@@ -92,6 +94,8 @@ type AddressLookup = {
     (key: `ASSET#${string}`): Promise<ReadOnlyAssetWorkspace | undefined>;
 }
 
+export type Zone = 'Canon' | 'Library' | 'Personal' | 'Draft' | 'Archive'
+
 export class ReadOnlyAssetWorkspace {
     address: AssetWorkspaceAddress;
     assetId?: string;
@@ -107,11 +111,128 @@ export class ReadOnlyAssetWorkspace {
     authorizations?: StandardAuthorizationCollection;
     _workspaceFromKey?: AddressLookup;
     
-    constructor(args: AssetWorkspaceAddress) {
-        if (!(args.zone === 'Draft' || args.zone === 'Archive' || args.fileName)) {
-            throw new AssetWorkspaceException('Invalid arguments to AssetWorkspace constructor')
+    // New constructor signature using UUID + Zone + Player directly
+    constructor(assetId: string, zone: Zone, player?: string)
+    // Legacy constructor using AssetWorkspaceAddress
+    constructor(address: AssetWorkspaceAddress)
+    // Implementation
+    constructor(
+        assetIdOrAddress: string | AssetWorkspaceAddress,
+        zone?: Zone,
+        player?: string
+    ) {
+        if (typeof assetIdOrAddress === 'string') {
+            // Phase 1B: New path - construct from UUID + Zone + Player
+            const assetId = assetIdOrAddress
+            if (!zone) {
+                throw new AssetWorkspaceException('Zone is required when constructing from assetId')
+            }
+            this.assetId = assetId
+            
+            // Build legacy address for backward compatibility
+            // Will be removed in Phase 2
+            const fileName = assetId.replace('ASSET#', '').replace('CHARACTER#', '')
+            if (zone === 'Personal' || zone === 'Draft') {
+                if (!player) {
+                    throw new AssetWorkspaceException('Player is required for Personal/Draft zones')
+                }
+                this.address = {
+                    zone,
+                    player,
+                    fileName,
+                    subFolder: 'Assets'
+                } as AssetWorkspaceAddress
+            } else if (zone === 'Archive') {
+                throw new AssetWorkspaceException('Archive zone not supported in new constructor')
+            } else {
+                // Canon or Library
+                this.address = {
+                    zone,
+                    fileName,
+                    subFolder: 'Assets'
+                } as AssetWorkspaceAddress
+            }
+        } else {
+            // Legacy path - construct from address
+            const args = assetIdOrAddress
+            if (!(args.zone === 'Draft' || args.zone === 'Archive' || args.fileName)) {
+                throw new AssetWorkspaceException('Invalid arguments to AssetWorkspace constructor')
+            }
+            this.address = args
         }
-        this.address = args
+    }
+
+    /**
+     * Create ReadOnlyAssetWorkspace from UUID by fetching metadata
+     * 
+     * Fetches zone and player information from DynamoDB (Meta::Asset) with
+     * S3 fallback (reading Zone tag and player metadata).
+     * 
+     */
+    static async fromUUID(assetId: string, options?: {
+        preferDynamo?: boolean
+        allowS3Fallback?: boolean
+    }): Promise<ReadOnlyAssetWorkspace | undefined> {
+        const { preferDynamo = true, allowS3Fallback = true } = options || {}
+        
+        // Determine the appropriate DataCategory based on assetId type
+        const [type] = splitType(assetId)
+        const dataCategory = type === 'CHARACTER' ? 'Meta::Character' : 'Meta::Asset'
+        
+        // Try DynamoDB first if preferred
+        if (preferDynamo) {
+            try {
+                const { zone, player } = (await assetDB.getItem<{ zone?: Zone; player?: string }>({
+                    Key: {
+                        AssetId: assetId,
+                        DataCategory: dataCategory
+                    },
+                    ProjectionFields: ['zone', 'player']
+                })) || {}
+                
+                if (zone) {
+                    return new ReadOnlyAssetWorkspace(assetId, zone, player)
+                }
+            } catch (error) {
+                console.warn(`DynamoDB lookup failed for ${assetId}:`, error)
+                // Fall through to S3 fallback if enabled
+            }
+        }
+        
+        // Try S3 fallback if enabled
+        if (allowS3Fallback) {
+            try {
+                const fileName = assetId.replace('ASSET#', '').replace('CHARACTER#', '')
+                
+                // Get Zone from S3 tags
+                const tags = await s3Client.getTags({ Key: `${fileName}.wml` })
+                const zone = tags?.Zone as Zone | undefined
+                
+                if (!zone) {
+                    console.warn(`No Zone tag found for ${assetId}`)
+                    return undefined
+                }
+                
+                // Get player from S3 metadata (only for Personal/Draft)
+                let player: string | undefined
+                if (zone === 'Personal' || zone === 'Draft') {
+                    const metadata = await s3Client.getMetadata({ Key: `${fileName}.wml` })
+                    player = metadata?.player
+                    
+                    if (!player) {
+                        console.warn(`No player metadata found for ${assetId} in ${zone} zone`)
+                        return undefined
+                    }
+                }
+                
+                return new ReadOnlyAssetWorkspace(assetId, zone, player)
+            } catch (error) {
+                console.warn(`S3 fallback failed for ${assetId}:`, error)
+                return undefined
+            }
+        }
+        
+        return undefined
     }
 
     get _isGlobal(): boolean {

@@ -102,5 +102,22 @@ export const s3Client = {
         }))
     },
 
+    async getMetadata({ Key }: {
+        Key: string;
+    }): Promise<Record<string, string> | undefined> {
+        try {
+            const response = await internalS3Client.send(new HeadObjectCommand({
+                Bucket: S3_BUCKET,
+                Key
+            }))
+            return response.Metadata
+        } catch (err: any) {
+            if (err && err.name === 'NotFound') {
+                return undefined
+            }
+            throw err
+        }
+    },
+
     internalClient: internalS3Client
 }
