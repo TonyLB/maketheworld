@@ -34,17 +34,34 @@ jest.mock('../internalCache', () => ({
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 
 let standardFormMock = new StandardForm('<Asset uuid=(Test) />')
-jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
-    return jest.fn().mockImplementation((address: any) => {
-        return {
-            status: {
-                json: 'Clean'
-            },
-            address,
-            loadJSON: jest.fn(),
-            standard: standardFormMock
-        }
-    })
+const mockLoadJSON = jest.fn()
+
+jest.mock('@tonylb/mtw-asset-workspace', () => {
+    const mockAssetWorkspaceClass = jest.fn().mockImplementation((address: any) => ({
+        status: {
+            json: 'Clean'
+        },
+        address,
+        loadJSON: mockLoadJSON,
+        get standard() { return standardFormMock }
+    }));
+    
+    // Add static fromUUID method to the mock class
+    (mockAssetWorkspaceClass as any).fromUUID = jest.fn().mockImplementation(async (assetId: string) => ({
+        status: {
+            json: 'Clean'
+        },
+        address: { zone: 'Canon', fileName: assetId.replace('ASSET#', '').replace('CHARACTER#', ''), subFolder: 'Assets' },
+        assetId,
+        loadJSON: mockLoadJSON,
+        get standard() { return standardFormMock }
+    }))
+    
+    return {
+        __esModule: true,
+        default: mockAssetWorkspaceClass,
+        AssetWorkspace: mockAssetWorkspaceClass
+    }
 })
 
 jest.mock('@tonylb/mtw-utilities/ts/eventBridge', () => ({

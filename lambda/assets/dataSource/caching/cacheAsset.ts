@@ -29,12 +29,10 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
     const [dbAsset, fileAsset] = await Promise.all([
         internalCache.AssetData.get([assetUUID]).then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset uuid=(${assetId}) />`))),
         (async () => {
-            const assetMeta = (await internalCache.AssetMetaData.get([assetUUID]))[0]
-            const { address } = assetMeta ?? {}
-            if (!address) {
+            const assetWorkspace = await AssetWorkspace.fromUUID(assetId)
+            if (!assetWorkspace) {
                 return new StandardForm(`<Asset uuid=(${assetId}) />`)
             }
-            const assetWorkspace = new AssetWorkspace(address)
             await assetWorkspace.loadJSON()
             return assetWorkspace.standard ?? new StandardForm(`<Asset uuid=(${assetId}) />`)
         })()

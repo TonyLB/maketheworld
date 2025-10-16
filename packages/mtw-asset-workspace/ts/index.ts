@@ -5,12 +5,28 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 import { s3Client } from "./clients"
 import { deepEqual } from "./objects"
-import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "./readOnly"
+import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress, Zone } from "./readOnly"
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
 
-export { AssetWorkspaceAddress, isAssetWorkspaceAddress } from './readOnly'
+export { AssetWorkspaceAddress, isAssetWorkspaceAddress, Zone } from './readOnly'
 
 export class AssetWorkspace extends ReadOnlyAssetWorkspace {
+    constructor(assetId: string, zone: Zone, player?: string)
+    constructor(address: AssetWorkspaceAddress)
+    constructor(assetIdOrAddress: string | AssetWorkspaceAddress, zone?: Zone, player?: string) {
+        super(assetIdOrAddress as any, zone as any, player)
+    }
+    
+    static override async fromUUID(assetId: string, options?: {
+        preferDynamo?: boolean
+        allowS3Fallback?: boolean
+    }): Promise<AssetWorkspace | undefined> {
+        const readOnly = await ReadOnlyAssetWorkspace.fromUUID(assetId, options)
+        if (!readOnly) {
+            return undefined
+        }
+        return new AssetWorkspace(readOnly.address)
+    }
 
     get wml(): string | undefined {
         if (this.standard) {

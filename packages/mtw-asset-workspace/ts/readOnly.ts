@@ -40,6 +40,10 @@ type AssetWorkspaceConstructorArchive = {
     backupId: `BACKUP#${string}`;
 }
 
+/**
+ * @deprecated Phase 1B: Use direct constructor parameters (assetId, zone, player) or AssetWorkspace.fromUUID() instead.
+ * This type will be removed in Phase 2 of the S3 storage migration.
+ */
 export type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal | AssetWorkspaceConstructorDraft | AssetWorkspaceConstructorArchive
 
 export const isAssetWorkspaceAddress = (item: any): item is AssetWorkspaceAddress => {
