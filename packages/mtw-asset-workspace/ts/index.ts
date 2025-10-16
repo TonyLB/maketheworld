@@ -35,10 +35,6 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         return undefined
     }
 
-    changeAddress(address: AssetWorkspaceAddress) {
-        this.address = address
-    }
-
     async setJSON(standardForm: StandardForm): Promise<void> {
         const finalStandardForm = standardForm.finalize()
 
