@@ -1,5 +1,4 @@
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts"
 
 type CreateEntryArgs = {
     AssetId: EphemeraAssetId;
@@ -16,7 +15,7 @@ type CreateEntryArgs = {
  */
 export const createBackupEntry = async ({ AssetId }: CreateEntryArgs): Promise<{ 
     suffix: string; 
-    address: AssetWorkspaceAddress; 
+    assetId: EphemeraAssetId;
     backupId: `BACKUP#${string}`; 
     fileName: string 
 }> => {

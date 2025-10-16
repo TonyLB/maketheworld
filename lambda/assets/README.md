@@ -113,9 +113,10 @@ The lambda uses a sophisticated caching system with multiple specialized caches:
 - **Data**: StandardForm objects containing asset structure
 
 ### AssetMetaData Cache
-- **Purpose**: Caches asset metadata and S3 address information
+- **Purpose**: Caches asset metadata and zone information
 - **Key**: `ASSET#${string}` (AssetUUID)
-- **Data**: AssetWorkspaceAddress, cached status, zone ('Canon' | 'Library' | 'Personal')
+- **Data**: AssetId, zone ('Canon' | 'Library' | 'Personal'), player (for Personal zone), cached status
+- **Phase 1B**: Simplified from AssetWorkspaceAddress to direct zone/player storage
 
 ### ComponentData Cache
 - **Purpose**: Caches individual component data for efficient retrieval

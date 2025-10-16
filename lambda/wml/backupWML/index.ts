@@ -1,7 +1,7 @@
-import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
+import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 
 export type BackupWMLArguments = {
-    from: AssetWorkspaceAddress;
+    assetId: EphemeraAssetId;
     to: string;
 }
 
