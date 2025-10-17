@@ -11,19 +11,21 @@ This document tracks the migration away from the "zones as subdirectories" stora
 ## Temporary Documents (For Cleanup)
 
 **Active - Need Cleanup After Phase 1B**:
-- `lambda/wml/AGENT.assetworkspace.simplification.md` - Analysis of getter usage (Phase 1B item 4)
-- `lambda/assets/PHASE1B-COMPLETE.md` - Working notes for dbRegister consolidation (Phase 1B item 2)
-- `lambda/assets/AGENT.assetworkspaceaddress-remaining.md` - Analysis of remaining AssetWorkspaceAddress uses before final removal (October 16, 2025)
+- None - all temporary documents cleaned up
 
 **Completed - Already Deleted**:
 - ~~`lambda/wml/AGENT.refactoring.md`~~ - moveAsset analysis (deleted after Phase 1A)
 - ~~`lambda/addressLookup/AGENT.deprecation-analysis.md`~~ - addressLookup analysis (deleted after Phase 1B item 1)
 - ~~`lambda/wml/AGENT.dbRegister.analysis.md`~~ - dbRegister analysis (deleted after Phase 1B item 2)
 - ~~`lambda/assets/AGENT.dbRegister-continuation.md`~~ - dbRegister continuation notes (deleted after Phase 1B item 2)
+- ~~`lambda/wml/AGENT.assetworkspace.simplification.md`~~ - Getter usage analysis (deleted after Phase 1B completion)
+- ~~`lambda/assets/AGENT.assetworkspaceaddress-remaining.md`~~ - AssetWorkspaceAddress cleanup analysis (deleted after Phase 1B completion)
+- ~~`lambda/assets/PHASE1B-COMPLETE.md`~~ - dbRegister working notes (deleted after Phase 1B completion)
+- ~~`lambda/wml/dataSource/moveAsset/AGENT.development.md`~~ - moveAsset development priorities (deleted - issues resolved by Phase 1 refactor)
+- ~~`lambda/wml/AGENT.s3storage.migration.catalog.md`~~ - Detailed write operations catalog (deleted after Phase 1 completion)
 
 **Permanent Documentation** (Keep):
 - `lambda/wml/AGENT.s3storage.migration.md` - Main migration plan (this file)
-- `lambda/wml/AGENT.s3storage.migration.catalog.md` - Detailed write operations catalog
 - `lambda/wml/AGENT.s3storage.publishing.plan.md` - Publishing strategy design
 - `lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md` - Import graph future design
 
@@ -134,7 +136,7 @@ The migration aims to address these limitations by:
 
 ### Phase 1: Flat UUID-Based Storage
 
-**Status**: IN PROGRESS
+**Status**: ✅ **COMPLETE** (October 16, 2025)
 
 **Goal**: Replace zone-as-subdirectory with flat UUID-based storage using S3 tags/metadata for organizational information.
 
@@ -188,7 +190,7 @@ The migration aims to address these limitations by:
    - ✅ Added validation for immutable metadata constraints (Canon/Library → Personal/Draft blocked)
    - ✅ Simplified from ~190 lines to ~80 lines
    - ✅ All tests passing (12/12)
-   - See [Write Operations Catalog](AGENT.s3storage.migration.catalog.md) for valid zone transitions
+   - Valid transitions: Personal/Draft → Library/Canon (publishing), Library ↔ Canon (canonization)
 
 ✅ **Also Completed:**
 5. **Initialize Primitives** (October 15, 2025)
@@ -206,8 +208,8 @@ The migration aims to address these limitations by:
    - ✅ Updated `template.yaml` - removed `AddressLookupFunction` definition and references
    - ✅ Verified consumer lambdas work with cache fallbacks
 
-✅ **Phase 1B Complete** (October 16, 2025):
-8. **Complete Address Resolution Updates & AssetWorkspaceAddress Removal**
+✅ **Phase 1B & 1C Complete** (October 16, 2025):
+8. **Complete Address Resolution Updates & AssetWorkspaceAddress Removal (Phase 1B)**
    - ✅ Updated `dbRegister` functions - integrated into `cacheAsset` flow
    - ✅ Removed `assetWorkspaceFromAssetId` utilities entirely
    - ✅ Added `AssetWorkspace.fromUUID()` with DynamoDB/S3 fallback
@@ -223,6 +225,11 @@ The migration aims to address these limitations by:
    - ✅ Proper typing: `assetId` is `AssetUUID`, removed `CHARACTER#` dead code
    - ✅ All tests passing (193 total across 3 lambdas + package)
 
+9. **Read Operations Verification (Phase 1C)** - ✅ Complete
+   - ✅ S3 tag/metadata reading implemented in `fromUUID()` and `moveAsset()`
+   - ✅ Cache invalidation already UUID-based (no changes needed)
+   - ✅ All load operations use UUID-based paths
+
 #### Core Changes:
 
 1. **StandardForm UUID Keys for Assets**
@@ -230,30 +237,36 @@ The migration aims to address these limitations by:
    - ✅ Eliminate the distinction between "local key" and "UUID" at asset level
    - ✅ UUID becomes the primary identifier for file naming
 
-2. **Flat S3 Object Structure**
-   - Store all objects at bucket root level: `{uuid}.wml`, `{uuid}.ndjson`
-   - Authorization files: `{uuid}.auth.wml`, `{uuid}.auth.ndjson`
-   - No subdirectories for zones or players
+2. **Flat S3 Object Structure** ✅
+   - ✅ All objects stored at bucket root: `{uuid}.wml`, `{uuid}.ndjson`
+   - ✅ Authorization files: `{uuid}.auth.wml`, `{uuid}.auth.ndjson`
+   - ✅ No subdirectories - `filePath` always returns `''`
+   - ✅ `s3KeyFor(type)` method generates flat paths
 
-3. **Zone as S3 Tags** (Mutable Attributes)
-   - Zone stored in S3 object tags (e.g., `Zone=Canon`)
-   - Zone transitions = tag updates (no file moves)
-   - Enables atomic zone changes
+3. **Zone as S3 Tags** (Mutable Attributes) ✅
+   - ✅ Zone stored in S3 object tags (`Zone=Canon`)
+   - ✅ All `push*` methods write Zone tags (Phase 1A)
+   - ✅ Zone transitions use tag updates, no file moves
+   - ✅ `fromUUID()` reads Zone tags as fallback (Phase 1B)
+   - ✅ Atomic zone changes via `moveAsset()` (Phase 1A)
 
-4. **Player/Owner as S3 Metadata** (Immutable Attributes)
-   - Player stored in S3 user-defined metadata (e.g., `x-amz-meta-player=alice`)
-   - Set once on object creation
-   - Cannot change (appropriate for ownership)
+4. **Player/Owner as S3 Metadata** (Immutable Attributes) ✅
+   - ✅ Player stored in S3 metadata (`x-amz-meta-player=alice`)
+   - ✅ All `push*` methods write player metadata for Personal/Draft zones
+   - ✅ Set once on object creation, immutable
+   - ✅ `fromUUID()` reads player metadata as fallback (Phase 1B)
 
-5. **Zone Change Operations Refactor**
-   - Replace S3 CopyObject + DeleteObject with S3 PutObjectTagging
-   - Update `moveAsset` to use tagging API
-   - Maintain same event emission (Zone Changed)
+5. **Zone Change Operations Refactor** ✅
+   - ✅ Replaced CopyObject + DeleteObject with PutObjectTagging (Phase 1A)
+   - ✅ `moveAsset()` uses `s3Client.updateTags()` (Phase 1A)
+   - ✅ Maintains same event emission (Zone Changed)
+   - ✅ Simplified from ~190 lines to ~80 lines
 
-6. **Access Pattern Updates**
-   - Refactor code using `AssetWorkspaceAddress` to use `AssetUUID` consistently
-   - Update S3 key construction logic
-   - Simplify path parsing/generation
+6. **Access Pattern Updates** ✅
+   - ✅ Removed `AssetWorkspaceAddress` entirely (Phase 1B)
+   - ✅ All code uses `AssetUUID` consistently (typed properly)
+   - ✅ S3 key construction via `s3KeyFor(type)` - type-safe
+   - ✅ Removed all path parsing (no longer needed with flat storage)
 
 #### Key Decisions:
 
@@ -350,14 +363,15 @@ The migration aims to address these limitations by:
 
 ## Related Documentation
 
+- **[Asset Zones](AGENT.zones.md)**: Zone system concepts and access patterns
 - **[Current S3 Storage](AGENT.s3Storage.md)**: Documentation of current storage patterns
-- **[Write Operations Catalog](AGENT.s3storage.migration.catalog.md)**: Complete catalog of all S3 write locations for refactoring
 - **[Publishing Strategy](AGENT.s3storage.publishing.plan.md)**: Draft management and publishing workflow using Phase 1 architecture
 - **[Event Architecture](../../AGENT.architecture.events.md)**: Event-driven patterns and coordination
 - **[WML DataSource](dataSource/)**: DataSource pattern and event handling
 - **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File operations and abstractions
+- **[Import Graph Redesign](../../lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md)**: Component-level graph architecture (Phase 2)
 
 ---
 
-**Document Status**: This is a planning document for a multi-phase architectural migration. It will be updated as design decisions are made and implementation progresses.
+**Document Status**: Phase 1 migration complete (October 16, 2025). This document now serves as permanent record of the migration and planning document for future phases (Phase 2: chunk-based architecture).
 

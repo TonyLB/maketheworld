@@ -248,13 +248,6 @@ export class ReadOnlyAssetWorkspace {
         this.authStatus.json = 'Clean'
     }
 
-    get rootNodes(): StandardAsset[] {
-        const key = this.standard?.key
-        return key
-            ? [{ tag: 'Asset', key }]
-            : []
-    }
-
 }
 
 export default ReadOnlyAssetWorkspace
