@@ -419,14 +419,43 @@ Functions that read files will need to:
    - Deferred import graph redesign to Phase 2
    - See: `lambda/assets/PHASE1B-COMPLETE.md`
 
-3. ⏳ Update `assetWorkspaceFromAssetId` utilities to construct addresses from UUIDs
+3. ✅ REMOVED `assetWorkspaceFromAssetId` utilities entirely (October 16, 2025)
+   - Deleted `lambda/assets/utilities/assets.ts` and `lambda/wml/utilities/assets.ts`
+   - Replaced all usages with `AssetWorkspace.fromUUID()` static method
+   - Added DynamoDB/S3 fallback logic to `fromUUID()`
 
-4. ⏳ Consolidate AssetWorkspace getters (eliminate `fileNameBase`, use `fileName` directly)
+4. ✅ REFACTORED `AssetMetaData` internal cache (October 16, 2025)
+   - Changed from `address: AssetWorkspaceAddress` to direct `zone`/`player` fields
+   - Fixed filter bug where new assets would be rejected
+   - Updated all consumers (`cacheAsset`, `dataSource/index`, `app.ts`, `fetchImportDefaults`, `contentHeaders`)
 
-5. ⏳ Update `backupWML` to remove `filePath` usage (mark as Phase 2 when refactoring)
+5. ✅ REMOVED dead code (October 16, 2025)
+   - `lambda/wml/internalCache/meta.ts` - Entire Meta cache (instantiated but never used)
+   - `lambda/ephemera/internalCache/assetAddress.ts` - AssetAddress cache (never used)
+   - `AssetWorkspace.changeAddress()` method (never called)
+   - `address?` parameter from ApplyEditRequest chain (always undefined)
+   - Duplicate `AssetWorkspaceAddress` types in `mtw-interfaces` package
 
-6. **Remove temporary analysis document** after completion:
-   - `lambda/wml/AGENT.assetworkspace.simplification.md`
+6. ✅ UPDATED backup stubs to use AssetId (October 16, 2025)
+   - `lambda/assets/backups/index.ts` - Return type changed to `assetId` instead of `address`
+   - `lambda/wml/backupWML/index.ts` - Arguments changed to `assetId` instead of `from: AssetWorkspaceAddress`
+   - `stepFunctions/backupAsset.asl.yaml` - Updated to pass `assetId`
+   - Original implementations preserved as comments for Phase 2 reference
+
+7. ✅ **REMOVED `AssetWorkspaceAddress` TYPE ENTIRELY** (October 16, 2025 - Phase 2 Start)
+   - Removed all type definitions and constructor types from `readOnly.ts`
+   - Removed `isAssetWorkspaceAddress()` type guard
+   - Replaced internal `address` property with direct `assetId`, `zone`, `player` fields
+   - Removed legacy constructor overload - single signature: `(assetId: string, zone: Zone, player?: string)`
+   - Updated all internal methods (`forceDefault`, `presignedURL`, `loadJSON`, etc.) to use new properties
+   - Updated all `push*` methods in `AssetWorkspace` to use new properties
+   - Updated all tests to use new constructor signature
+   - **Result**: Clean, simplified API with no backward compatibility overhead
+
+8. **Temporary documents tracking**:
+   - `lambda/wml/AGENT.assetworkspace.simplification.md` - Ready for cleanup (getter consolidation deferred)
+   - `lambda/assets/AGENT.assetworkspaceaddress-remaining.md` - Ready for cleanup (all items addressed)
+   - `lambda/assets/PHASE1B-COMPLETE.md` - Ready for cleanup (dbRegister work complete)
 
 ### Phase 1C: Update Read Operations (Deprecated - mostly complete)
 

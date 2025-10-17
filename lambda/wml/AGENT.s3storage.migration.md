@@ -206,12 +206,18 @@ The migration aims to address these limitations by:
    - ✅ Updated `template.yaml` - removed `AddressLookupFunction` definition and references
    - ✅ Verified consumer lambdas work with cache fallbacks
 
-⏳ **Remaining (Phase 1B):**
-8. **Complete Address Resolution Updates**
-   - ✅ Update `dbRegister` functions to store simplified metadata (see `lambda/assets/PHASE1B-COMPLETE.md`)
-   - Update `assetWorkspaceFromAssetId` utilities to ensure `assetId` is always set
-   - Consolidate AssetWorkspace getters (see `AGENT.assetworkspace.simplification.md`)
-   - **Cleanup**: Remove temporary documents listed in "Temporary Documents" section above
+✅ **Phase 1B Complete** (October 16, 2025):
+8. **Complete Address Resolution Updates & AssetWorkspaceAddress Removal**
+   - ✅ Updated `dbRegister` functions - integrated into `cacheAsset` flow
+   - ✅ Removed `assetWorkspaceFromAssetId` utilities entirely
+   - ✅ Added `AssetWorkspace.fromUUID()` with DynamoDB/S3 fallback
+   - ✅ Refactored `AssetMetaData` cache to use `zone`/`player` directly
+   - ✅ Removed all dead code (WML Meta cache, ephemera AssetAddress cache, etc.)
+   - ✅ Updated backup stubs to use `AssetId` instead of `AssetWorkspaceAddress`
+   - ✅ **Removed `AssetWorkspaceAddress` type entirely** - Phase 2 start
+   - ✅ Simplified `AssetWorkspace` to single constructor: `(assetId, zone, player?)`
+   - ✅ All tests passing (193 total across 3 lambdas + package)
+   - **Deferred**: Getter consolidation (low priority - system works correctly)
 
 #### Core Changes:
 

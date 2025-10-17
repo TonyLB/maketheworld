@@ -12,71 +12,6 @@ import { splitType } from "@tonylb/mtw-utilities/ts/types"
 
 const { S3_BUCKET = 'Test' } = process.env;
 
-type AssetWorkspaceConstructorBase = {
-    fileName: string;
-    subFolder?: string;
-}
-
-type AssetWorkspaceConstructorCanon = {
-    zone: 'Canon';
-} & AssetWorkspaceConstructorBase
-
-type AssetWorkspaceConstructorLibrary = {
-    zone: 'Library';
-} & AssetWorkspaceConstructorBase
-
-type AssetWorkspaceConstructorPersonal = {
-    zone: 'Personal';
-    player: string;
-} & AssetWorkspaceConstructorBase
-
-type AssetWorkspaceConstructorDraft = {
-    zone: 'Draft';
-    player: string;
-}
-
-type AssetWorkspaceConstructorArchive = {
-    zone: 'Archive';
-    backupId: `BACKUP#${string}`;
-}
-
-/**
- * @deprecated Phase 1B: Use direct constructor parameters (assetId, zone, player) or AssetWorkspace.fromUUID() instead.
- * This type will be removed in Phase 2 of the S3 storage migration.
- */
-export type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal | AssetWorkspaceConstructorDraft | AssetWorkspaceConstructorArchive
-
-export const isAssetWorkspaceAddress = (item: any): item is AssetWorkspaceAddress => {
-    if (!item) {
-        return false
-    }
-    if (!(typeof item === 'object')) {
-        return false
-    }
-    if (!(item.fileName && typeof item.fileName === 'string')) {
-        return false
-    }
-    if (!(item.zone && typeof item.zone === 'string')) {
-        return false
-    }
-    if (item.zone === 'Draft' && item.player && typeof item.player === 'string') {
-        return true
-    }
-    if (item.subFolder && typeof item.subFolder !== 'string') {
-        return false
-    }
-    if (item.zone === 'Personal' && !(item.player && typeof item.player === 'string')) {
-        return false
-    }
-    if (item.zone === 'Archive' && !(item.backupId && typeof item.backupId === 'string' && item.backupId.startsWith('BACKUP#'))) {
-        return false
-    }
-    return true
-}
-
-// parseAssetWorkspaceAddress removed in Phase 1 migration
-// With flat UUID-based storage, zone-based path parsing is no longer needed
-
 type AssetWorkspaceStatusItem = 'Initial' | 'Clean' | 'Dirty' | 'Error'
 
 type AssetWorkspaceStatus = {
@@ -94,15 +29,12 @@ export type WorkspaceProperties = {
     [name: string]: WorkspacePropertyItem;
 }
 
-type AddressLookup = {
-    (key: `ASSET#${string}`): Promise<ReadOnlyAssetWorkspace | undefined>;
-}
-
 export type Zone = 'Canon' | 'Library' | 'Personal' | 'Draft' | 'Archive'
 
 export class ReadOnlyAssetWorkspace {
-    address: AssetWorkspaceAddress;
-    assetId?: string;
+    assetId: string;
+    zone: Zone;
+    player?: string;
     status: AssetWorkspaceStatus = {
         json: 'Initial',
         wml: 'Initial'
@@ -113,57 +45,24 @@ export class ReadOnlyAssetWorkspace {
     };
     standard?: StandardForm;
     authorizations?: StandardAuthorizationCollection;
-    _workspaceFromKey?: AddressLookup;
     
-    // New constructor signature using UUID + Zone + Player directly
-    constructor(assetId: string, zone: Zone, player?: string)
-    // Legacy constructor using AssetWorkspaceAddress
-    constructor(address: AssetWorkspaceAddress)
-    // Implementation
-    constructor(
-        assetIdOrAddress: string | AssetWorkspaceAddress,
-        zone?: Zone,
-        player?: string
-    ) {
-        if (typeof assetIdOrAddress === 'string') {
-            // Phase 1B: New path - construct from UUID + Zone + Player
-            const assetId = assetIdOrAddress
-            if (!zone) {
-                throw new AssetWorkspaceException('Zone is required when constructing from assetId')
-            }
-            this.assetId = assetId
-            
-            // Build legacy address for backward compatibility
-            // Will be removed in Phase 2
-            const fileName = assetId.replace('ASSET#', '').replace('CHARACTER#', '')
-            if (zone === 'Personal' || zone === 'Draft') {
-                if (!player) {
-                    throw new AssetWorkspaceException('Player is required for Personal/Draft zones')
-                }
-                this.address = {
-                    zone,
-                    player,
-                    fileName,
-                    subFolder: 'Assets'
-                } as AssetWorkspaceAddress
-            } else if (zone === 'Archive') {
-                throw new AssetWorkspaceException('Archive zone not supported in new constructor')
-            } else {
-                // Canon or Library
-                this.address = {
-                    zone,
-                    fileName,
-                    subFolder: 'Assets'
-                } as AssetWorkspaceAddress
-            }
-        } else {
-            // Legacy path - construct from address
-            const args = assetIdOrAddress
-            if (!(args.zone === 'Draft' || args.zone === 'Archive' || args.fileName)) {
-                throw new AssetWorkspaceException('Invalid arguments to AssetWorkspace constructor')
-            }
-            this.address = args
+    constructor(assetId: string, zone: Zone, player?: string) {
+        if (!assetId) {
+            throw new AssetWorkspaceException('AssetId is required')
         }
+        if (!zone) {
+            throw new AssetWorkspaceException('Zone is required')
+        }
+        if ((zone === 'Personal' || zone === 'Draft') && !player) {
+            throw new AssetWorkspaceException('Player is required for Personal/Draft zones')
+        }
+        if (zone === 'Archive') {
+            throw new AssetWorkspaceException('Archive zone not supported (deferred to Phase 2)')
+        }
+        
+        this.assetId = assetId
+        this.zone = zone
+        this.player = player
     }
 
     /**
@@ -240,11 +139,10 @@ export class ReadOnlyAssetWorkspace {
     }
 
     get _isGlobal(): boolean {
-        return (this.address.zone === 'Canon' && this.address.fileName === 'primitives')
+        return (this.zone === 'Canon' && this.assetId === 'ASSET#primitives')
     }
 
     get filePath(): string {
-        // Phase 1: Flat UUID-based storage - no subdirectories
         return ''
     }
 
@@ -253,17 +151,7 @@ export class ReadOnlyAssetWorkspace {
     }
 
     get fileName(): string {
-        // Phase 1: Use UUID (without ASSET# prefix) as the filename
-        if (this.assetId) {
-            return this.assetId.replace('ASSET#', '')
-        }
-        
-        // Fallback to address.fileName for backward compatibility during transition
-        // This handles cases where assetId hasn't been set yet
-        if ('fileName' in this.address) {
-            return this.address.fileName || ''
-        }
-        return ''
+        return this.assetId.replace('ASSET#', '').replace('CHARACTER#', '')
     }
 
     //
@@ -278,12 +166,11 @@ export class ReadOnlyAssetWorkspace {
             // If no object exists, create default files for a draft asset
             // Note: assetId should already be set with the draft's UUID
             //
-            const uuid = this.assetId?.replace('ASSET#', '') || 'draft'
+            const uuid = this.assetId.replace('ASSET#', '').replace('CHARACTER#', '')
             
-            // Phase 1: Add Zone tag to S3 objects
-            const tags = { Zone: this.address.zone }
-            const metadata = this.address.zone === 'Personal' && this.address.player
-                ? { player: this.address.player }
+            const tags = { Zone: this.zone }
+            const metadata = this.zone === 'Personal' && this.player
+                ? { player: this.player }
                 : undefined
             
             await Promise.all([
@@ -295,7 +182,7 @@ export class ReadOnlyAssetWorkspace {
                 }),
                 s3Client.putWithTags({
                     Key: `${this.fileNameBase}.ndjson`,
-                    Body: `{"tag":"Asset","universalKey":"${this.assetId || 'ASSET#draft'}"}`,
+                    Body: `{"tag":"Asset","universalKey":"${this.assetId}"}`,
                     Tags: tags,
                     Metadata: metadata
                 })
@@ -314,12 +201,8 @@ export class ReadOnlyAssetWorkspace {
     
     }
 
-    setWorkspaceLookup(lookup: AddressLookup) {
-        this._workspaceFromKey = lookup
-    }
-
     async loadJSON() {
-        if (this.address.zone === 'Archive') {
+        if (this.zone === 'Archive') {
             this.standard = new StandardForm('')
             this.status.json = 'Clean'
             return
@@ -345,7 +228,7 @@ export class ReadOnlyAssetWorkspace {
     }
 
     async loadAuthorizationJSON() {
-        if (this.address.zone === 'Archive') {
+        if (this.zone === 'Archive') {
             this.authorizations = new StandardAuthorizationCollection('')
             this.authStatus.json = 'Clean'
             return
