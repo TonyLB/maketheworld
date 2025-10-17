@@ -146,10 +146,6 @@ export class ReadOnlyAssetWorkspace {
         return ''
     }
 
-    get fileNameBase(): string {
-        return this.fileName
-    }
-
     get fileName(): string {
         return this.assetId.replace('ASSET#', '').replace('CHARACTER#', '')
     }
@@ -159,7 +155,7 @@ export class ReadOnlyAssetWorkspace {
     // Phase 1: Uses UUID-based naming with flat structure and Zone tags
     //
     async forceDefault(): Promise<void> {
-        const Key = `${this.fileNameBase}.wml`
+        const Key = `${this.fileName}.wml`
         const found = await s3Client.check({ Key })
         if (!found) {
             //
@@ -181,7 +177,7 @@ export class ReadOnlyAssetWorkspace {
                     Metadata: metadata
                 }),
                 s3Client.putWithTags({
-                    Key: `${this.fileNameBase}.ndjson`,
+                    Key: `${this.fileName}.ndjson`,
                     Body: `{"tag":"Asset","universalKey":"${this.assetId}"}`,
                     Tags: tags,
                     Metadata: metadata
@@ -194,7 +190,7 @@ export class ReadOnlyAssetWorkspace {
     async presignedURL(): Promise<string> {
         const getCommand = new GetObjectCommand({
             Bucket: S3_BUCKET,
-            Key: `${this.fileNameBase}.wml`
+            Key: `${this.fileName}.wml`
         })
         const presignedOutput = await getSignedUrl(s3Client.internalClient as any, getCommand as any, { expiresIn: 60 })
         return presignedOutput
@@ -207,7 +203,7 @@ export class ReadOnlyAssetWorkspace {
             this.status.json = 'Clean'
             return
         }
-        const filePath = `${this.fileNameBase}.ndjson`
+        const filePath = `${this.fileName}.ndjson`
         
         let contents = ''
         try {
@@ -233,7 +229,7 @@ export class ReadOnlyAssetWorkspace {
             this.authStatus.json = 'Clean'
             return
         }
-        const filePath = `${this.fileNameBase}.auth.ndjson`
+        const filePath = `${this.fileName}.auth.ndjson`
         
         let contents = ''
         try {

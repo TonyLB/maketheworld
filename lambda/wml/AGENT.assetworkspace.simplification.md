@@ -1,15 +1,16 @@
 # AssetWorkspace Simplification Analysis
 
 **Date**: October 16, 2025  
-**Context**: Phase 1B S3 Storage Migration - Post-`assetWorkspaceFromAssetId` removal  
-**Status**: ⚠️ TEMPORARY DOCUMENT - Ready for getter consolidation (Option 2)  
+**Context**: Phase 1B S3 Storage Migration - Getter Consolidation  
+**Status**: ✅ **COMPLETE - Ready for cleanup**  
 **Tracked in**: `lambda/wml/AGENT.s3storage.migration.md` (Temporary Documents section)
 
-## ✅ **Recent Updates** (October 16, 2025)
+## ✅ **Completed** (October 16, 2025)
 
 - **`assetWorkspaceFromAssetId` REMOVED** (not refactored - fully deleted)
 - `AssetWorkspace.fromUUID()` now ensures `assetId` is always set
-- All prerequisites for Option 2 (getter consolidation) are now met
+- **Option 2 IMPLEMENTED**: `fileNameBase` getter removed, all internal code uses `fileName` directly
+- All tests passing (193/193 across 3 lambdas + package)
 
 ## Current Getter Structure
 
@@ -182,16 +183,18 @@ All internal load/push methods
 
 ## Conclusion
 
-**Current Status** (October 16, 2025): ✅ Phase 1B prerequisites complete
+**Current Status** (October 16, 2025): ✅ **COMPLETE**
 - `assetWorkspaceFromAssetId` removed
 - `assetId` always set via `fromUUID()`
-- System working correctly with redundant getters
+- **Option 2 COMPLETE**: All internal code now uses `fileName` directly
+  - Replaced 12 instances of `this.fileNameBase` → `this.fileName`
+  - Removed `fileNameBase` getter
+  - `backupWML` already uses `fileName` (commented code for Phase 2 reference)
+  - All 193 tests passing
 
-**Next Action**: **READY TO PROCEED** with Option 2 (consolidate `fileNameBase → fileName`)
-1. Update `backupWML` first (only external consumer)
-2. Replace all internal `this.fileNameBase` → `this.fileName`
-3. Remove `fileNameBase` getter
-4. Deprecate `filePath` getter
+**Deferred**: 
+- `filePath` getter deprecation (low priority - always returns empty string)
+- Option 3 full simplification to `s3Key` API (Phase 2 chunk-based architecture)
 
-**Future Action**: Phase 2 is natural time for full simplification to `s3Key` API (Option 3)
+**This document is now ready for cleanup.**
 

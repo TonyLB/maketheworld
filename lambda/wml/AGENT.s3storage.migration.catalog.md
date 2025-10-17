@@ -453,9 +453,16 @@ Functions that read files will need to:
    - **Result**: Clean, simplified API with no backward compatibility overhead
 
 8. **Temporary documents tracking**:
-   - `lambda/wml/AGENT.assetworkspace.simplification.md` - Ready for cleanup (getter consolidation deferred)
-   - `lambda/assets/AGENT.assetworkspaceaddress-remaining.md` - Ready for cleanup (all items addressed)
-   - `lambda/assets/PHASE1B-COMPLETE.md` - Ready for cleanup (dbRegister work complete)
+   - `lambda/wml/AGENT.assetworkspace.simplification.md` - ✅ COMPLETE (getter consolidation done)
+   - `lambda/assets/AGENT.assetworkspaceaddress-remaining.md` - ✅ COMPLETE (all items addressed)
+   - `lambda/assets/PHASE1B-COMPLETE.md` - ✅ COMPLETE (dbRegister work complete)
+
+9. ✅ CONSOLIDATED AssetWorkspace getters (October 16, 2025)
+   - Removed `fileNameBase` getter entirely
+   - Replaced all 12 internal uses of `this.fileNameBase` with `this.fileName`
+   - External consumer (`backupWML`) already uses `fileName` in commented code
+   - All tests passing (193/193)
+   - **Result**: One less concept, clearer code
 
 ### Phase 1C: Update Read Operations (Deprecated - mostly complete)
 
