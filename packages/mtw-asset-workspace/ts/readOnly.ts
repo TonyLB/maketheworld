@@ -8,7 +8,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { isStandardAuthorizationCollectionNDJSON, StandardAuthorizationCollection } from "@tonylb/mtw-wml/ts/standardize/authorization"
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
-import { splitType } from "@tonylb/mtw-utilities/ts/types"
+import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 const { S3_BUCKET = 'Test' } = process.env;
 
@@ -32,7 +32,7 @@ export type WorkspaceProperties = {
 export type Zone = 'Canon' | 'Library' | 'Personal' | 'Draft' | 'Archive'
 
 export class ReadOnlyAssetWorkspace {
-    assetId: string;
+    assetId: AssetUUID;
     zone: Zone;
     player?: string;
     status: AssetWorkspaceStatus = {
@@ -46,7 +46,7 @@ export class ReadOnlyAssetWorkspace {
     standard?: StandardForm;
     authorizations?: StandardAuthorizationCollection;
     
-    constructor(assetId: string, zone: Zone, player?: string) {
+    constructor(assetId: AssetUUID, zone: Zone, player?: string) {
         if (!assetId) {
             throw new AssetWorkspaceException('AssetId is required')
         }
@@ -72,15 +72,11 @@ export class ReadOnlyAssetWorkspace {
      * S3 fallback (reading Zone tag and player metadata).
      * 
      */
-    static async fromUUID(assetId: string, options?: {
+    static async fromUUID(assetId: AssetUUID, options?: {
         preferDynamo?: boolean
         allowS3Fallback?: boolean
     }): Promise<ReadOnlyAssetWorkspace | undefined> {
         const { preferDynamo = true, allowS3Fallback = true } = options || {}
-        
-        // Determine the appropriate DataCategory based on assetId type
-        const [type] = splitType(assetId)
-        const dataCategory = type === 'CHARACTER' ? 'Meta::Character' : 'Meta::Asset'
         
         // Try DynamoDB first if preferred
         if (preferDynamo) {
@@ -88,7 +84,7 @@ export class ReadOnlyAssetWorkspace {
                 const { zone, player } = (await assetDB.getItem<{ zone?: Zone; player?: string }>({
                     Key: {
                         AssetId: assetId,
-                        DataCategory: dataCategory
+                        DataCategory: 'Meta::Asset'
                     },
                     ProjectionFields: ['zone', 'player']
                 })) || {}
@@ -105,7 +101,7 @@ export class ReadOnlyAssetWorkspace {
         // Try S3 fallback if enabled
         if (allowS3Fallback) {
             try {
-                const fileName = assetId.replace('ASSET#', '').replace('CHARACTER#', '')
+                const fileName = assetId.replace('ASSET#', '')
                 
                 // Get Zone from S3 tags
                 const tags = await s3Client.getTags({ Key: `${fileName}.wml` })
@@ -142,12 +138,12 @@ export class ReadOnlyAssetWorkspace {
         return (this.zone === 'Canon' && this.assetId === 'ASSET#primitives')
     }
 
-    get filePath(): string {
-        return ''
+    get s3Key(): string {
+        return this.assetId.replace('ASSET#', '')
     }
 
-    get fileName(): string {
-        return this.assetId.replace('ASSET#', '').replace('CHARACTER#', '')
+    s3KeyFor(type: 'wml' | 'ndjson' | 'json' | 'auth.wml' | 'auth.ndjson'): string {
+        return `${this.s3Key}.${type}`
     }
 
     //
@@ -155,14 +151,14 @@ export class ReadOnlyAssetWorkspace {
     // Phase 1: Uses UUID-based naming with flat structure and Zone tags
     //
     async forceDefault(): Promise<void> {
-        const Key = `${this.fileName}.wml`
+        const Key = this.s3KeyFor('wml')
         const found = await s3Client.check({ Key })
         if (!found) {
             //
             // If no object exists, create default files for a draft asset
             // Note: assetId should already be set with the draft's UUID
             //
-            const uuid = this.assetId.replace('ASSET#', '').replace('CHARACTER#', '')
+            const uuid = this.s3Key
             
             const tags = { Zone: this.zone }
             const metadata = this.zone === 'Personal' && this.player
@@ -177,7 +173,7 @@ export class ReadOnlyAssetWorkspace {
                     Metadata: metadata
                 }),
                 s3Client.putWithTags({
-                    Key: `${this.fileName}.ndjson`,
+                    Key: this.s3KeyFor('ndjson'),
                     Body: `{"tag":"Asset","universalKey":"${this.assetId}"}`,
                     Tags: tags,
                     Metadata: metadata
@@ -190,7 +186,7 @@ export class ReadOnlyAssetWorkspace {
     async presignedURL(): Promise<string> {
         const getCommand = new GetObjectCommand({
             Bucket: S3_BUCKET,
-            Key: `${this.fileName}.wml`
+            Key: this.s3KeyFor('wml')
         })
         const presignedOutput = await getSignedUrl(s3Client.internalClient as any, getCommand as any, { expiresIn: 60 })
         return presignedOutput
@@ -203,7 +199,7 @@ export class ReadOnlyAssetWorkspace {
             this.status.json = 'Clean'
             return
         }
-        const filePath = `${this.fileName}.ndjson`
+        const filePath = this.s3KeyFor('ndjson')
         
         let contents = ''
         try {
@@ -229,7 +225,7 @@ export class ReadOnlyAssetWorkspace {
             this.authStatus.json = 'Clean'
             return
         }
-        const filePath = `${this.fileName}.auth.ndjson`
+        const filePath = this.s3KeyFor('auth.ndjson')
         
         let contents = ''
         try {

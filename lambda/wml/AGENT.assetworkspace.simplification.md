@@ -1,8 +1,8 @@
 # AssetWorkspace Simplification Analysis
 
 **Date**: October 16, 2025  
-**Context**: Phase 1B S3 Storage Migration - Getter Consolidation  
-**Status**: ✅ **COMPLETE - Ready for cleanup**  
+**Context**: Phase 1B S3 Storage Migration - Full Getter Simplification  
+**Status**: ✅ **COMPLETE - Option 3 Implemented - Ready for cleanup**  
 **Tracked in**: `lambda/wml/AGENT.s3storage.migration.md` (Temporary Documents section)
 
 ## ✅ **Completed** (October 16, 2025)
@@ -10,6 +10,12 @@
 - **`assetWorkspaceFromAssetId` REMOVED** (not refactored - fully deleted)
 - `AssetWorkspace.fromUUID()` now ensures `assetId` is always set
 - **Option 2 IMPLEMENTED**: `fileNameBase` getter removed, all internal code uses `fileName` directly
+- **Option 3 IMPLEMENTED**: Full simplification with `s3Key` API + proper typing
+  - Added `s3Key` getter and `s3KeyFor(type)` method
+  - Removed `fileName` and `filePath` getters entirely
+  - Replaced all 12 string templates with type-safe `s3KeyFor()` calls
+  - Properly typed `assetId` as `AssetUUID` (not `string`)
+  - Removed unnecessary `CHARACTER#` handling (dead code)
 - All tests passing (193/193 across 3 lambdas + package)
 
 ## Current Getter Structure
@@ -183,18 +189,21 @@ All internal load/push methods
 
 ## Conclusion
 
-**Current Status** (October 16, 2025): ✅ **COMPLETE**
+**Current Status** (October 16, 2025): ✅ **COMPLETE - Option 3 Implemented**
 - `assetWorkspaceFromAssetId` removed
 - `assetId` always set via `fromUUID()`
-- **Option 2 COMPLETE**: All internal code now uses `fileName` directly
-  - Replaced 12 instances of `this.fileNameBase` → `this.fileName`
-  - Removed `fileNameBase` getter
-  - `backupWML` already uses `fileName` (commented code for Phase 2 reference)
-  - All 193 tests passing
+- **Option 2 COMPLETE**: All internal code uses `fileName` directly (12 replacements)
+- **Option 3 COMPLETE**: Full simplification implemented
+  - ✅ Added `s3Key` getter (returns UUID without `ASSET#` prefix)
+  - ✅ Added `s3KeyFor(type)` method with type-safe file extensions
+  - ✅ Removed `fileName` getter entirely (no external usage)
+  - ✅ Removed `filePath` getter entirely (always returned `''`)
+  - ✅ Replaced all 12 string templates with `s3KeyFor()` calls
+  - ✅ Properly typed `assetId` as `AssetUUID` (not `string`)
+  - ✅ Removed unnecessary `CHARACTER#` handling (dead code)
+  - ✅ All 193 tests passing
 
-**Deferred**: 
-- `filePath` getter deprecation (low priority - always returns empty string)
-- Option 3 full simplification to `s3Key` API (Phase 2 chunk-based architecture)
+**Result**: Clean, type-safe, self-documenting API - `workspace.s3KeyFor('wml')`
 
 **This document is now ready for cleanup.**
 

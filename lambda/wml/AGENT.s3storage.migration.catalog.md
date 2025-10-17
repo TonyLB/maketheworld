@@ -457,12 +457,19 @@ Functions that read files will need to:
    - `lambda/assets/AGENT.assetworkspaceaddress-remaining.md` - ✅ COMPLETE (all items addressed)
    - `lambda/assets/PHASE1B-COMPLETE.md` - ✅ COMPLETE (dbRegister work complete)
 
-9. ✅ CONSOLIDATED AssetWorkspace getters (October 16, 2025)
-   - Removed `fileNameBase` getter entirely
-   - Replaced all 12 internal uses of `this.fileNameBase` with `this.fileName`
-   - External consumer (`backupWML`) already uses `fileName` in commented code
+9. ✅ CONSOLIDATED & SIMPLIFIED AssetWorkspace getters - Option 3 Complete (October 16, 2025)
+   - **Step 1**: Removed `fileNameBase` getter, replaced 12 uses with `this.fileName`
+   - **Step 2**: Implemented Option 3 full simplification:
+     - Added `s3Key` getter (returns UUID without prefix)
+     - Added `s3KeyFor(type)` method with type-safe extensions ('wml' | 'ndjson' | 'json' | 'auth.wml' | 'auth.ndjson')
+     - Removed `fileName` getter entirely (no external usage)
+     - Removed `filePath` getter entirely (always returned `''`)
+     - Replaced all 12 string templates with `s3KeyFor()` calls
+   - **Step 3**: Proper typing and cleanup:
+     - Typed `assetId` as `AssetUUID` (was `string`)
+     - Removed unnecessary `CHARACTER#` handling (dead code)
    - All tests passing (193/193)
-   - **Result**: One less concept, clearer code
+   - **Result**: Clean, type-safe, self-documenting API
 
 ### Phase 1C: Update Read Operations (Deprecated - mostly complete)
 

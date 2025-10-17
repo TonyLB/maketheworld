@@ -214,10 +214,14 @@ The migration aims to address these limitations by:
    - ✅ Refactored `AssetMetaData` cache to use `zone`/`player` directly
    - ✅ Removed all dead code (WML Meta cache, ephemera AssetAddress cache, etc.)
    - ✅ Updated backup stubs to use `AssetId` instead of `AssetWorkspaceAddress`
-   - ✅ **Removed `AssetWorkspaceAddress` type entirely** - Phase 2 start
-   - ✅ Simplified `AssetWorkspace` to single constructor: `(assetId, zone, player?)`
+   - ✅ **Removed `AssetWorkspaceAddress` type entirely**
+   - ✅ Simplified `AssetWorkspace` to single constructor: `(assetId: AssetUUID, zone, player?)`
+   - ✅ **Full getter simplification (Option 3)**:
+     - Added `s3Key` getter and `s3KeyFor(type)` method
+     - Removed `fileName`, `filePath`, and `fileNameBase` getters
+     - All S3 key construction now type-safe and self-documenting
+   - ✅ Proper typing: `assetId` is `AssetUUID`, removed `CHARACTER#` dead code
    - ✅ All tests passing (193 total across 3 lambdas + package)
-   - **Deferred**: Getter consolidation (low priority - system works correctly)
 
 #### Core Changes:
 

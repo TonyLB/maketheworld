@@ -57,7 +57,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     }
 
     async loadWML(): Promise<void> {
-        const filePath = `${this.fileName}.wml`
+        const filePath = this.s3KeyFor('wml')
         
         let contents = ''
         try {
@@ -76,7 +76,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     }
 
     async loadAuthorizationWML(): Promise<void> {
-        const filePath = `${this.fileName}.auth.wml`
+        const filePath = this.s3KeyFor('auth.wml')
         
         let contents = ''
         try {
@@ -117,7 +117,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     }
 
     async pushJSON(): Promise<void> {
-        const filePath = `${this.fileName}.json`
+        const filePath = this.s3KeyFor('json')
         const standardForm = this.standard || new StandardForm(this.assetId?.split('#')?.slice(1)?.[0] || '')
         const contents = JSON.stringify({
             assetId: this.assetId ?? '',
@@ -138,7 +138,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                 Metadata: metadata
             }),
             s3Client.putWithTags({
-                Key: `${this.fileName}.ndjson`,
+                Key: this.s3KeyFor('ndjson'),
                 Body: standardForm.toNDJSON().map((line) => (JSON.stringify(line))).join('\n'),
                 Tags: tags,
                 Metadata: metadata
@@ -148,7 +148,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     }
 
     async pushAuthorizationJSON(): Promise<void> {
-        const filePath = `${this.fileName}.auth.ndjson`
+        const filePath = this.s3KeyFor('auth.ndjson')
         const contents = this.authorizations?.toNDJSON().map((line) => (JSON.stringify(line))).join('\n') || ''
         if (contents) {
             const tags = { Zone: this.zone }
@@ -167,7 +167,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     }
 
     async pushWML(): Promise<void> {
-        const filePath = `${this.fileName}.wml`
+        const filePath = this.s3KeyFor('wml')
         
         // Phase 1: Add Zone tag to S3 objects
         const tags = { Zone: this.zone }
@@ -187,7 +187,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     async pushAuthorizationWML(): Promise<void> {
         if (this.authorizations) {
             const wml = schemaToWML([this.authorizations.schema])
-            const filePath = `${this.fileName}.auth.wml`
+            const filePath = this.s3KeyFor('auth.wml')
             
             const tags = { Zone: this.zone }
             const metadata = this.zone === 'Personal' && this.player
