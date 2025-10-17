@@ -47,7 +47,6 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                     const result = await applyEdit({
                         AssetId: event.streamKey,
                         RequestId: payload.RequestId,
-                        address: payload.address,
                         schema: payload.schema
                     })
                     

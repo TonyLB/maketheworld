@@ -3,29 +3,22 @@ import { splitType } from '@tonylb/mtw-utilities/ts/types'
 import { FetchAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { MessageBus } from "../messageBus/baseClasses"
-import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/ts/readOnly"
-import { assetWorkspaceFromAssetId } from "../utilities/assets"
+import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 
 const createFetchLink = async ({ PlayerName, fileName, AssetId }: { PlayerName: string; fileName?: string; AssetId?: string }) => {
-    // let derivedFileName: string = `Personal/${PlayerName}/${fileName}`
     if (AssetId) {
         if (AssetId === 'ASSET#draft') {
+            // Special case: Draft zone workspace for player (no specific asset)
             const assetWorkspace = new ReadOnlyAssetWorkspace({
                 zone: 'Draft',
                 player: PlayerName
             })
             return await assetWorkspace.presignedURL()
         }
-        const DataCategory = (splitType(AssetId)[0] === 'CHARACTER') ? 'Meta::Character' : 'Meta::Asset'
-        const { address } = (await assetDB.getItem<{ address: AssetWorkspaceAddress }>({
-            Key: {
-                AssetId,
-                DataCategory
-            },
-            ProjectionFields: ['address']
-        })) || {}
-        if (address) {
-            const assetWorkspace = new ReadOnlyAssetWorkspace(address)
+        
+        // Phase 1B: Use fromUUID for regular asset lookups
+        const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(AssetId)
+        if (assetWorkspace) {
             return await assetWorkspace.forceDefault().then(() => (assetWorkspace.presignedURL()))
         }
     }

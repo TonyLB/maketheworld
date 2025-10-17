@@ -27,8 +27,6 @@ import internalCache from './internalCache'
 import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
 
-import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/readOnly'
-
 import { sfnClient } from './clients'
 import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'

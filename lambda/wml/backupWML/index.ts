@@ -1,3 +1,32 @@
+import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+
+export type BackupWMLArguments = {
+    assetId: EphemeraAssetId;
+    to: string;
+}
+
+/**
+ * Phase 1B: Stubbed out for Phase 2 S3 refactor
+ * 
+ * Backup functionality will be completely redesigned in Phase 2
+ * to work with the new flat UUID-based storage architecture.
+ * 
+ * This stub exists to maintain API compatibility with existing
+ * app.ts handlers during the transition.
+ */
+export const backupWML = async (args: BackupWMLArguments) => {
+    throw new Error('Backup functionality temporarily disabled during Phase 1B migration. Will be reimplemented in Phase 2.')
+}
+
+export default backupWML
+
+/* ============================================================================
+ * ORIGINAL IMPLEMENTATION - Preserved for Phase 2 reference
+ * 
+ * The tar-stream packaging logic below will be useful when reimplementing
+ * backup functionality with flat UUID-based storage.
+ * ============================================================================
+
 import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
 import { s3Client } from "../clients"
 import { Upload } from "@aws-sdk/lib-storage"
@@ -102,3 +131,5 @@ export const backupWML = async (args: BackupWMLArguments) => {
 }
 
 export default backupWML
+
+============================================================================ */

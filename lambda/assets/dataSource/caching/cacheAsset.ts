@@ -29,12 +29,10 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
     const [dbAsset, fileAsset] = await Promise.all([
         internalCache.AssetData.get([assetUUID]).then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset uuid=(${assetId}) />`))),
         (async () => {
-            const assetMeta = (await internalCache.AssetMetaData.get([assetUUID]))[0]
-            const { address } = assetMeta ?? {}
-            if (!address) {
+            const assetWorkspace = await AssetWorkspace.fromUUID(assetId)
+            if (!assetWorkspace) {
                 return new StandardForm(`<Asset uuid=(${assetId}) />`)
             }
-            const assetWorkspace = new AssetWorkspace(address)
             await assetWorkspace.loadJSON()
             return assetWorkspace.standard ?? new StandardForm(`<Asset uuid=(${assetId}) />`)
         })()
@@ -46,15 +44,15 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
     // Replaces old dbRegister function with minimal, focused metadata write
     const metaAssetWrite = (async () => {
         const assetMeta = (await internalCache.AssetMetaData.get([assetUUID]))[0]
-        const { address } = assetMeta ?? {}
+        const { zone, player } = assetMeta ?? {}
         
-        if (address) {
+        if (zone) {
             await assetDB.putItem({
                 AssetId: assetUUID,
                 DataCategory: 'Meta::Asset',
-                zone: address.zone,
-                ...(address.zone === 'Personal' ? { player: address.player } : {})
-                // Note: No full 'address' field (Phase 1B simplification for flat storage)
+                zone,
+                ...(zone === 'Personal' && player ? { player } : {})
+                // Note: Stores zone/player directly (no AssetWorkspaceAddress)
                 // Note: No import graph maintenance (deferred to component-level redesign)
             })
         }

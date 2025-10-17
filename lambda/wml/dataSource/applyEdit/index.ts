@@ -1,12 +1,11 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
-import AssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace";
+import AssetWorkspace from "@tonylb/mtw-asset-workspace";
 import internalCache from "../../internalCache";
 import { isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 export type ApplyEditArguments = {
     AssetId: `ASSET#${string}` | `CHARACTER#${string}`;
     RequestId: string;
-    address?: AssetWorkspaceAddress;
     schema: string;
 }
 
@@ -43,15 +42,13 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResu
         }
     }
 
-    const address = args.address ?? await internalCache.Meta.get([args.AssetId]).then(([{ address }]) => (address))
-    if (!address) {
+    const assetWorkspace = await AssetWorkspace.fromUUID(args.AssetId)
+    if (!assetWorkspace) {
         return {
             success: false,
-            error: 'Asset address not found'
+            error: 'Asset not found'
         }
     }
-
-    const assetWorkspace = new AssetWorkspace(address)
     const loadPromise = assetWorkspace.loadJSON()
     
     //

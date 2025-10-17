@@ -19,8 +19,8 @@ import {
 
 import messageBus from "./messageBus/index.js"
 import { sfnClient, snsClient } from "./clients"
-import { assetWorkspaceFromAssetId } from "./utilities/assets"
 import { AssetKey, ConnectionKey } from "@tonylb/mtw-utilities/ts/types"
+import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
@@ -96,7 +96,7 @@ export const handler = async (event, context) => {
                 return await Promise.all(
                     (event.assetIds || []).map(async (assetId) => {
                         const assetKey = AssetKey(assetId)
-                        const assetWorkspace = await assetWorkspaceFromAssetId(assetKey)
+                        const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(assetKey)
                         return assetWorkspace?.address
                     })
                 )
@@ -217,15 +217,15 @@ export const handler = async (event, context) => {
             internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
         }
         if (isMetaDataAPIMessage(request)) {
-            const addresses = await internalCache.AssetMetaData.get(request.assetIds)
+            const metaItems = await internalCache.AssetMetaData.get(request.assetIds)
             if (connectionId) {
-                await Promise.all(addresses.map(({ AssetId, address }) => (
+                await Promise.all(metaItems.map(({ AssetId, zone }) => (
                     snsClient.send(new PublishCommand({
                         TopicArn: FEEDBACK_TOPIC,
                         Message: JSON.stringify({
                             messageType: 'MetaData',
                             AssetId,
-                            zone: address ? address.zone : 'None'
+                            zone: zone || 'None'
                         }),
                         MessageAttributes: {
                             RequestId: { DataType: 'String', StringValue: request.RequestId },

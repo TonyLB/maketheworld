@@ -1,4 +1,4 @@
-import { Zone, AssetWorkspaceAddress } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Internal types for coordination events
@@ -21,7 +21,6 @@ export type MoveAssetRequest = {
 export type ApplyEditRequest = {
     type: 'Apply Edit';
     RequestId: string;
-    address?: AssetWorkspaceAddress;
     schema: string;
 }
 
@@ -48,7 +47,6 @@ export type MoveAssetRequestExternal = {
 export type ApplyEditRequestExternal = {
     type: 'Apply Edit';
     RequestId: string;
-    address?: AssetWorkspaceAddress;
     schema: string;
 }
 
@@ -122,7 +120,6 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
             return {
                 type: update.type,
                 RequestId: update.RequestId,
-                address: update.address,
                 schema: update.schema
             }
         } else {
@@ -159,7 +156,6 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
             return {
                 type: 'Apply Edit',
                 RequestId: externalUpdate.RequestId,
-                address: externalUpdate.address,
                 schema: externalUpdate.schema
             }
         } else {

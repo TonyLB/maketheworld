@@ -343,8 +343,8 @@ export type FetchAssetMessage = {
 export type MoveAssetMessage = {
     type: 'MoveAsset';
     AssetId: string;
-    from: AssetWorkspaceAddress;
-    to: AssetWorkspaceAddress;
+    fromZone: Zone;
+    toZone: Zone;
 }
 
 // Use optional fields for data that might not always be present

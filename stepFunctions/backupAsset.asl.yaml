@@ -18,7 +18,7 @@ States:
             "args.$": "States.JsonMerge($.inputDefaults, $$.Execution.Input, false)"
     "Assign Backup Entry":
         Type: Task
-        Next: Check Address
+        Next: Check Backup Entry
         Resource: "${AssetsFunctionArn}"
         Parameters:
             "message": "createBackupEntry"
@@ -36,7 +36,7 @@ States:
                 ErrorEquals:
                     - States.ALL
                 Next: Notify of Failure
-    "Check Address":
+    "Check Backup Entry":
         Type: Choice
         Choices:
             -
@@ -48,7 +48,7 @@ States:
                 IsPresent: false
                 Next: Notify of Failure
             -
-                Variable: "$.results.address"
+                Variable: "$.results.assetId"
                 IsPresent: false
                 Next: Notify of Failure
         Default: Backup WML
@@ -58,7 +58,7 @@ States:
         Resource: "${WMLFunctionArn}"
         Parameters:
             "message": "backupWML"
-            "from.$": "$.results.address"
+            "assetId.$": "$.results.assetId"
             "to.$": "$.results.fileName"
         ResultPath: "$.backupResults"
         Retry:

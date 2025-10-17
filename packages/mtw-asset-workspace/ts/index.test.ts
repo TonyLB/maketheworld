@@ -49,11 +49,7 @@ describe('AssetWorkspace', () => {
             ]
             s3ClientMock.get.mockResolvedValue(lines.map((line) => (JSON.stringify(line))).join('\n'))
     
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Personal',
-                player: 'Test'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.loadJSON()
             expect(testWorkspace.standard?.toJSON()).toMatchSnapshot()
         })
@@ -71,11 +67,7 @@ describe('AssetWorkspace', () => {
                 throw error
             })
     
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Personal',
-                player: 'Test'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.loadJSON()
             expect(testWorkspace.standard?.toJSON()).toEqual({ key: '', universalKey: 'ASSET#', metaData: [], components: [] })
         })
@@ -90,11 +82,7 @@ describe('AssetWorkspace', () => {
             ]
             s3ClientMock.get.mockResolvedValue(json.map((line) => (JSON.stringify(line))).join('\n'))
     
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Personal',
-                player: 'Test'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.loadAuthorizationJSON()
             expect(testWorkspace.authorizations?.toJSON()).toMatchSnapshot()
         })
@@ -112,11 +100,7 @@ describe('AssetWorkspace', () => {
                 throw error
             })
     
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Personal',
-                player: 'Test'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.loadAuthorizationJSON()
             expect(testWorkspace.authorizations?.toJSON()).toEqual({ key: '', grants: [] })
         })
@@ -134,11 +118,7 @@ describe('AssetWorkspace', () => {
             `
             s3ClientMock.get.mockResolvedValue(wml)
     
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Personal',
-                player: 'Test'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.loadAuthorizationWML()
             expect(testWorkspace.authorizations?.toJSON()).toEqual({
                 key: 'Test',
@@ -154,11 +134,7 @@ describe('AssetWorkspace', () => {
 
     describe('setWML', () => {
         it('should correctly parse WML input', async () => {
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Personal',
-                player: 'Test'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             uuidv4Mock.mockImplementation(uuidMockFactory())
             await testWorkspace.setWML(`
                 <Asset uuid=(Test)>
@@ -174,11 +150,7 @@ describe('AssetWorkspace', () => {
         })
 
         it('should throw an exception on multi-asset file', async () => {
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Personal',
-                player: 'Test'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             uuidv4Mock.mockImplementation(uuidMockFactory())
             await expect(async () => {
                 await testWorkspace.setWML(`
@@ -196,11 +168,7 @@ describe('AssetWorkspace', () => {
 
     describe('pushJSON', () => {
         it('should correctly push JSON content to player zone', async () => {
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Personal',
-                player: 'Test'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             testWorkspace.assetId = 'ASSET#Test'
             testWorkspace.standard = new StandardForm('Test')
             testWorkspace.status.json = 'Dirty'
@@ -215,10 +183,7 @@ describe('AssetWorkspace', () => {
         })
 
         it('should correctly push JSON content to library zone', async () => {
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Library'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Library')
             testWorkspace.assetId = 'ASSET#Test'
             testWorkspace.standard = new StandardForm('Test')
             testWorkspace.status.json = 'Dirty'
@@ -236,11 +201,7 @@ describe('AssetWorkspace', () => {
 
     describe('pushAuthorizationJSON', () => {
         it('should correctly push NDJSON content', async () => {
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Personal',
-                player: 'Test'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             testWorkspace.assetId = 'ASSET#Test'
             testWorkspace.authorizations = new StandardAuthorizationCollection(`
                 <Asset uuid=(test)>
@@ -264,10 +225,7 @@ describe('AssetWorkspace', () => {
 
     describe('pushWML', () => {
         it('should correctly push WML content', async () => {
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Library'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Library')
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset uuid=(Test)>
@@ -292,10 +250,7 @@ describe('AssetWorkspace', () => {
 
     describe('pushWML', () => {
         it('should correctly push WML content', async () => {
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Library'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Library')
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testWML = `
                 <Asset uuid=(test)>
@@ -319,10 +274,7 @@ describe('AssetWorkspace', () => {
 
     describe('setWML', () => {
         it('should not set JSON dirty on no-op', async () => {
-            const testWorkspace = new AssetWorkspace({
-                fileName: 'Test',
-                zone: 'Library'
-            })
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Library')
             uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset uuid=(Test)>

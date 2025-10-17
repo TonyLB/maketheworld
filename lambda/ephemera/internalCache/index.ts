@@ -8,7 +8,6 @@ import ComponentMetaData from './componentMeta';
 import { CacheAssetRoomsData, CacheRoomAssetsData } from './assetRooms';
 import { GraphCacheType, GraphEdgeType, GraphNodeType } from './graph';
 import OrchestrateMessagesData from './orchestrateMessages';
-import CacheAssetAddressData from './assetAddress';
 import CacheCharacterSessionsData from './characterSessions';
 import { CacheSessionConnectionsData } from '@tonylb/mtw-sessions/ts/sessionCache';
 import CachePlayerSessionsData from './playerSessions';
@@ -36,7 +35,6 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
 export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
     PlayerMeta: CachePlayerMetaData;
-    AssetAddress: CacheAssetAddressData = new CacheAssetAddressData()
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     RoomCharacterList: CacheRoomCharacterListsData = new CacheRoomCharacterListsData()
     CharacterMeta: CacheCharacterMetaData = new CacheCharacterMetaData()
@@ -83,7 +81,6 @@ export class InternalCache {
     clear() {
         this.Global.clear()
         this.PlayerMeta.clear()
-        this.AssetAddress.clear()
         this.OrchestrateMessages.clear()
         this.RoomCharacterList.clear()
         this.CharacterMeta.clear()

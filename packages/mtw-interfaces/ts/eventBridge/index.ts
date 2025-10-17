@@ -1,26 +1,5 @@
 import { EphemeraCharacterId } from "../baseClasses";
 
-// Legacy EventBridge types (existing functionality)
-type AssetWorkspaceConstructorBase = {
-    fileName: string;
-    subFolder?: string;
-}
-
-type AssetWorkspaceConstructorCanon = {
-    zone: 'Canon';
-} & AssetWorkspaceConstructorBase
-
-type AssetWorkspaceConstructorLibrary = {
-    zone: 'Library';
-} & AssetWorkspaceConstructorBase
-
-type AssetWorkspaceConstructorPersonal = {
-    zone: 'Personal';
-    player: string;
-} & AssetWorkspaceConstructorBase
-
-type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal
-
 export type EventBridgeUpdatePlayerCharacter = {
     CharacterId: EphemeraCharacterId;
     Name: string;

@@ -19,12 +19,10 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
             const [dbAsset, fileAsset] = await Promise.all([
                 internalCache.AssetData.get([assetUUID]).then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset uuid=(${assetId}) />`))),
                 (async () => {
-                    const assetMeta = (await internalCache.AssetMetaData.get([assetUUID]))[0]
-                    const { address } = assetMeta ?? {}
-                    if (!address) {
+                    const assetWorkspace = await AssetWorkspace.fromUUID(assetId)
+                    if (!assetWorkspace) {
                         return new StandardForm(`<Asset uuid=(${assetId}) />`)
                     }
-                    const assetWorkspace = new AssetWorkspace(address)
                     await assetWorkspace.loadJSON()
                     return assetWorkspace.standard ?? new StandardForm(`<Asset uuid=(${assetId}) />`)
                 })()
@@ -36,14 +34,13 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
             const metaAssetWrite = (async () => {
                 // Register Meta::Asset record (simplified metadata)
                 const assetMeta = (await internalCache.AssetMetaData.get([assetUUID]))[0]
-                const { address } = assetMeta ?? {}
-                if (address) {
+                const { zone, player } = assetMeta ?? {}
+                if (zone) {
                     await assetDB.putItem({
                         AssetId: assetUUID,
                         DataCategory: 'Meta::Asset',
-                        zone: address.zone,
-                        ...(address.zone === 'Personal' ? { player: address.player } : {})
-                        // Note: No full 'address' field stored (Phase 1B simplification)
+                        zone,
+                        ...(zone === 'Personal' && player ? { player } : {})
                         // Note: No import graph maintenance (deferred to component-level redesign)
                     })
                 }

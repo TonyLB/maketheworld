@@ -1,4 +1,3 @@
-import { MetaData } from "./meta"
 import { S3Client } from "@aws-sdk/client-s3"
 
 type CacheConnectionKeys = 's3Client'
@@ -21,14 +20,12 @@ class CacheConnectionData {
 }
 
 class InternalCache {
-    Meta: MetaData = new MetaData()
     Connection: CacheConnectionData = new CacheConnectionData()
     
     constructor() {
     }
 
     clear(): void {
-        this.Meta.clear()
         this.Connection.clear()
     }
 

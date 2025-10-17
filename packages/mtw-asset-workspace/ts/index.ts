@@ -5,22 +5,28 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 import { s3Client } from "./clients"
 import { deepEqual } from "./objects"
-import ReadOnlyAssetWorkspace, { AssetWorkspaceAddress } from "./readOnly"
+import ReadOnlyAssetWorkspace, { Zone } from "./readOnly"
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
 
-export { AssetWorkspaceAddress, isAssetWorkspaceAddress } from './readOnly'
+export { Zone } from './readOnly'
 
 export class AssetWorkspace extends ReadOnlyAssetWorkspace {
+    static override async fromUUID(assetId: string, options?: {
+        preferDynamo?: boolean
+        allowS3Fallback?: boolean
+    }): Promise<AssetWorkspace | undefined> {
+        const readOnly = await ReadOnlyAssetWorkspace.fromUUID(assetId, options)
+        if (!readOnly) {
+            return undefined
+        }
+        return new AssetWorkspace(readOnly.assetId, readOnly.zone, readOnly.player)
+    }
 
     get wml(): string | undefined {
         if (this.standard) {
             return schemaToWML([this.standard.schema])
         }
         return undefined
-    }
-
-    changeAddress(address: AssetWorkspaceAddress) {
-        this.address = address
     }
 
     async setJSON(standardForm: StandardForm): Promise<void> {
@@ -119,9 +125,9 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         })
         
         // Phase 1: Add Zone tag to S3 objects
-        const tags = { Zone: this.address.zone }
-        const metadata = this.address.zone === 'Personal' && this.address.player
-            ? { player: this.address.player }
+        const tags = { Zone: this.zone }
+        const metadata = this.zone === 'Personal' && this.player
+            ? { player: this.player }
             : undefined
         
         await Promise.all([
@@ -145,10 +151,9 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         const filePath = `${this.fileNameBase}.auth.ndjson`
         const contents = this.authorizations?.toNDJSON().map((line) => (JSON.stringify(line))).join('\n') || ''
         if (contents) {
-            // Phase 1: Add Zone tag to S3 objects
-            const tags = { Zone: this.address.zone }
-            const metadata = this.address.zone === 'Personal' && this.address.player
-                ? { player: this.address.player }
+            const tags = { Zone: this.zone }
+            const metadata = this.zone === 'Personal' && this.player
+                ? { player: this.player }
                 : undefined
             
             await s3Client.putWithTags({
@@ -165,9 +170,9 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         const filePath = `${this.fileNameBase}.wml`
         
         // Phase 1: Add Zone tag to S3 objects
-        const tags = { Zone: this.address.zone }
-        const metadata = this.address.zone === 'Personal' && this.address.player
-            ? { player: this.address.player }
+        const tags = { Zone: this.zone }
+        const metadata = this.zone === 'Personal' && this.player
+            ? { player: this.player }
             : undefined
         
         await s3Client.putWithTags({
@@ -184,10 +189,9 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
             const wml = schemaToWML([this.authorizations.schema])
             const filePath = `${this.fileNameBase}.auth.wml`
             
-            // Phase 1: Add Zone tag to S3 objects
-            const tags = { Zone: this.address.zone }
-            const metadata = this.address.zone === 'Personal' && this.address.player
-                ? { player: this.address.player }
+            const tags = { Zone: this.zone }
+            const metadata = this.zone === 'Personal' && this.player
+                ? { player: this.player }
                 : undefined
             
             await s3Client.putWithTags({

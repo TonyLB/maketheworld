@@ -1,13 +1,12 @@
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
-import { isAssetWorkspaceAddress, AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 type MetaCache = {
     AssetId: AssetUUID;
-    address?: AssetWorkspaceAddress;
-    cached?: boolean;
     zone?: 'Canon' | 'Library' | 'Personal';
+    player?: string;  // Only present for Personal zone
+    cached?: boolean;
 }
 
 export class AssetMetaData {
@@ -32,14 +31,15 @@ export class AssetMetaData {
     }
 
     async _getPromiseFactory(AssetIds: AssetUUID[]): Promise<MetaCache[]> {
-        const addresses = (await assetDB.getItems<MetaCache>({
+        const metaItems = (await assetDB.getItems<MetaCache>({
             Keys: AssetIds.map((AssetId) => ({
                 AssetId,
                 DataCategory: 'Meta::Asset'
             })),
-            ProjectionFields: ['AssetId', 'address', 'cached', 'zone']
+            ProjectionFields: ['AssetId', 'zone', 'player', 'cached']
         })) || []
-        return addresses.filter(({ address }) => (isAssetWorkspaceAddress(address)))
+        // Phase 1B: Only return items that have a zone (i.e., exist in DB)
+        return metaItems.filter(({ zone }) => Boolean(zone))
     }
 
     async get(AssetIds: AssetUUID[]): Promise<MetaCache[]> {
@@ -52,8 +52,9 @@ export class AssetMetaData {
                     ...(fetches.map((fetch) => ({
                         [fetch.AssetId]: {
                             AssetId: fetch.AssetId,
-                            address: fetch.address,
-                            zone: fetch.zone
+                            zone: fetch.zone,
+                            player: fetch.player,
+                            cached: fetch.cached
                         }
                     })))
                 )

@@ -1,6 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { AssetPlayerSettingsAPIMessage } from '@tonylb/mtw-interfaces/ts/asset';
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema';
 

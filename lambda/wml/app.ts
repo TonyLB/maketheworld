@@ -94,7 +94,6 @@ export const handler = async (event: any) => {
                 event: {
                     type: 'Apply Edit',
                     RequestId: event.RequestId,
-                    address: event.address,
                     schema: event.schema
                 },
                 timestamp: Date.now()
