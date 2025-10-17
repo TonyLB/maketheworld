@@ -79,9 +79,9 @@ The zone system addresses fundamental content management needs:
 - Individual creative projects
 
 **Use Cases**:
-- Personal content creation and development
-- Private story development
-- Content testing and experimentation
+- Personal content development
+- Private storytelling
+- Character-specific assets
 - Individual creative expression
 
 ### Draft Zone
@@ -117,25 +117,26 @@ The zone system addresses fundamental content management needs:
 **Typical Content**:
 - Deprecated or outdated assets
 - Removed community content
-- Historical versions of modified assets
-- Content awaiting permanent deletion
+- Historical versions and snapshots
+- Reference material for development
 
 **Use Cases**:
 - Content lifecycle management
 - Historical preservation
-- Reference integrity maintenance
-- Gradual content deprecation
+- Reference and auditing
+- Potential content restoration
+
+**Phase 1 Status**: Archive functionality deferred to Phase 2 (chunk-based architecture). Currently, Archive zone transitions are rejected with an error message.
 
 ## Zone Transition Patterns
 
 ### Promotion Pathways
-Content can move between zones following established promotion patterns:
 
 #### Personal → Library
-- **Purpose**: Share personal content with the broader community
-- **Requirements**: Quality evaluation and community approval
-- **Process**: Submission, review, and approval workflow
-- **Outcome**: Content becomes discoverable by other players
+- **Purpose**: Share personal content with broader community
+- **Requirements**: Content quality meets community standards
+- **Process**: Player-initiated promotion workflow
+- **Outcome**: Content becomes available to all players through story context
 
 #### Library → Canon
 - **Purpose**: Elevate community content to universal status
@@ -179,10 +180,10 @@ Content can move between zones following established promotion patterns:
 ## Integration with System Architecture
 
 ### Asset Management
-- **Zone Metadata**: Zone information stored with asset metadata
-- **Access Queries**: Zone membership used for content filtering
-- **Transition Processing**: Zone changes trigger appropriate system updates
-- **Cache Invalidation**: Zone transitions update relevant cache entries
+- **Zone Metadata**: Zone information stored as S3 tags (Phase 1: mutable via tag updates)
+- **Access Queries**: DynamoDB maintains zone information for efficient querying
+- **Transition Processing**: Zone changes are atomic S3 tag updates (Phase 1)
+- **Cache Invalidation**: Zone transitions trigger cache updates
 
 ### Content Distribution
 - **Streaming Systems**: Zone membership determines content distribution patterns
@@ -207,16 +208,18 @@ Content can move between zones following established promotion patterns:
 ### Enhanced Collaboration
 - **Faction-Based Zones**: Group ownership and access patterns
 - **Collaborative Editing**: Multi-user content development workflows
-- **Version Control**: Zone-aware content versioning and history
-- **Conflict Resolution**: Managing simultaneous content modifications
+- **Content Versioning**: Version-aware zone transitions
+- **Community Governance**: Community-driven content management
 
-### Analytics and Optimization
-- **Usage Tracking**: Zone-based content usage analytics
-- **Performance Monitoring**: Zone-specific performance metrics
-- **Access Pattern Analysis**: Understanding content discovery and usage
-- **Optimization Opportunities**: Data-driven zone transition recommendations
+### Storage Evolution
+- **Phase 1 (Complete)**: Flat UUID-based storage with Zone as S3 tags
+- **Phase 2 (Future)**: Chunk-based storage for improved performance and backup
+- **Metadata Enrichment**: Additional metadata for advanced features
+- **Cross-Zone References**: Enhanced support for content spanning zones
 
-## Navigation Tips
+## Navigation Guide for Developers
+
+### Understanding Zone Behavior
 
 1. **Start with Access Patterns**: Understand how zones control content visibility before diving into implementation
 2. **Follow Transition Flows**: Study how content moves between zones to understand the complete lifecycle
@@ -226,12 +229,15 @@ Content can move between zones following established promotion patterns:
 ## Development Notes
 
 ### Current Implementation
-- **Zone Types**: Canon, Library, Personal, Draft, and Archive zones are implemented
-- **Transition Support**: Asset movement between zones is functional
+- **Zone Storage**: Implemented as S3 object tags (Phase 1)
+- **Zone Types**: Canon, Library, Personal, Draft zones are fully implemented
+- **Archive Zone**: Deferred to Phase 2 - currently rejects Archive transitions
+- **Transition Support**: Zone changes are atomic S3 tag updates (no file moves)
 - **Access Control**: Zone-based access filtering is active
 - **Cache Integration**: Zone information integrated with caching systems
 
 ### Future Enhancements
+- **Archive Implementation**: Proper backup/restore with chunk-based storage (Phase 2)
 - **Advanced Permissions**: More granular access control within zones
 - **Dynamic Zones**: Zones that adapt based on community patterns
 - **Enhanced Analytics**: Better tracking of zone-based usage patterns
@@ -239,3 +245,13 @@ Content can move between zones following established promotion patterns:
 
 ### Architectural Considerations
 The zone system provides a clean abstraction for content access control that can be implemented using various storage and organizational strategies. The key is maintaining the access patterns and permission boundaries while allowing flexibility in the underlying implementation details.
+
+**Phase 1 Achievement**: Zones are now decoupled from storage structure - zone is metadata (S3 tags), not file location. This enables atomic zone transitions and flexible future architecture evolution.
+
+## Related Documentation
+
+- **[WML Lambda](README.md)**: WML lambda overview and primary zone authority
+- **[MoveAsset](dataSource/moveAsset/AGENT.md)**: Zone transition implementation
+- **[S3 Storage Migration](AGENT.s3storage.migration.md)**: How zones moved from folders to tags
+- **[Publishing Strategy](AGENT.s3storage.publishing.plan.md)**: Draft → Library/Canon workflows
+

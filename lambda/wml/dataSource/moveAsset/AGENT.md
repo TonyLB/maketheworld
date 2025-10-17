@@ -86,19 +86,18 @@ const result = await moveAsset(request)
 ## Navigation Tips
 
 **Getting Started**:
-- Begin with `index.ts` to understand the main flow
+- Begin with `index.ts` to understand the tag update flow
 - Review `MoveAssetRequest` and `MoveAssetResponse` interfaces
-- Study `performS3Move()` for S3 operation patterns
+- Note the immutable metadata constraints (Personal/Draft require player)
 
 **Key Files**:
 - `index.ts`: Main implementation and orchestration
 - `index.test.ts`: Comprehensive test coverage
-- `AGENT.development.md`: Development priorities and known issues
 
 **Related Documentation**:
+- [`../AGENT.zones.md`](../AGENT.zones.md): Zone system overview and conceptual architecture
 - [`../AGENT.s3Storage.md`](../AGENT.s3Storage.md): S3 storage patterns
 - [`../AGENT.event.md`](../AGENT.event.md): Event handling architecture
-- [`../../../AGENT.zones.md`](../../../AGENT.zones.md): Zone system overview
 
 ## Development Notes
 
@@ -106,7 +105,4 @@ const result = await moveAsset(request)
 
 **Future Plans**: 
 - Implement event streaming to inform assets lambda of zone changes
-- Migrate zone authority completely to WML lambda
 - Enhance error handling and monitoring
-
-**Technical Debt**: See [`AGENT.development.md`](AGENT.development.md) for specific issues and priorities.

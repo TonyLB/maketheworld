@@ -235,9 +235,8 @@ const metaRecord = await assetDB.getItem({
 - `messageBus/`: Event system integration
 
 ### Related Documentation
+- **[Asset Zones](../wml/AGENT.zones.md)**: Zone system concepts and access patterns (WML lambda is zone authority)
 - **[WML System](../wml/)**: Content format and parsing
 - **[Ephemera System](../ephemera/)**: Real-time state management
 - **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File utilities
-- **[Address Lookup System](../addressLookup/)**: S3 address resolution and zone management
-- **[Address Lookup AGENT.md](../addressLookup/AGENT.md)**: Detailed documentation of address resolution, zone management, and draft asset handling
 - **[Event Flow Documentation](AGENT.event.md)**: Event processing patterns and flow analysis (planned documentation)

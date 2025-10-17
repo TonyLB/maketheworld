@@ -202,7 +202,7 @@ S3 Bucket Structure (Future):
 - **Authorization System**: Separate storage and management of access control data
 
 ### Cross-References
-- **[Asset Zones Documentation](../AGENT.zones.md)**: Zone concepts and access control patterns
+- **[Asset Zones Documentation](AGENT.zones.md)**: Zone concepts and access control patterns
 - **[Assets Lambda](../assets/README.md)**: Integration with asset caching and metadata management
 - **[Event Architecture](../../AGENT.architecture.events.md)**: Event-driven zone transition patterns
 
@@ -267,7 +267,7 @@ await archiveAsset(assetAddress, backupId)
 ## Navigation Tips
 
 ### Getting Started
-1. **Understand Zones**: Review [Asset Zones Documentation](../AGENT.zones.md) for zone concepts
+1. **Understand Zones**: Review [Asset Zones Documentation](AGENT.zones.md) for zone concepts
 2. **Explore AssetWorkspace**: Start with `packages/mtw-asset-workspace/ts/readOnly.ts` for core file operations
 3. **Study Current Implementation**: Examine `lambda/wml/dataSource/applyEdit/` for typical usage patterns
 4. **Review Event Flow**: Check [Event Architecture](../../AGENT.architecture.events.md) for integration patterns

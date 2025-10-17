@@ -54,7 +54,10 @@ with the current state of the asset
 
 ## Related Documentation
 
-- **[Event Flow Documentation](AGENT.event.md)**: Event processing patterns and content flow analysis (planned documentation)
+- **[Asset Zones](AGENT.zones.md)**: Zone system concepts and access patterns (WML lambda is zone authority)
+- **[S3 Storage Migration](AGENT.s3storage.migration.md)**: Phase 1 flat storage migration (complete)
+- **[Publishing Strategy](AGENT.s3storage.publishing.plan.md)**: Draft management and publishing workflow
+- **[Event Flow Documentation](AGENT.event.md)**: Event processing patterns and content flow analysis
 - **[WML Language System](../../packages/mtw-wml/ts/AGENT.md)**: Core WML language documentation and parsing
 - **[Assets System](../assets/)**: Asset caching and component management integration
 - **[Ephemera System](../ephemera/)**: Real-time game state and character interaction system
