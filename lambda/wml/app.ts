@@ -7,6 +7,7 @@ import messageBus from "./messageBus";
 import { extractReturnValue } from "./returnValue/index";
 import { CoordinationEventExternal, CoordinationEventSerializer, CoordinationEventUpdate } from './dataSource/coordinationSerializer';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
+import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics';
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.wml DataSource
@@ -17,6 +18,7 @@ const s3Client = new S3Client(params)
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {
     'mtw.coordination': new CoordinationEventSerializer(),
+    'mtw.diagnostics': new DiagnosticsEventSerializer(),
     // Add other data source deserializers here as needed
 }
 
@@ -39,7 +41,7 @@ export const handler = async (event: any) => {
             const internalEvent = deserializer.deserialize({
                 dataSourceKey: coreFormat.dataSourceKey,
                 streamKey: coreFormat.streamKey,
-                externalUpdate: coreFormat.update as CoordinationEventExternal
+                externalUpdate: coreFormat.update as any
             })
             
             // If deserialization failed, log error and skip this event
@@ -54,9 +56,9 @@ export const handler = async (event: any) => {
                 // Publish deserialized event to messageBus for DataSource processing
                 messageBus.send({
                     type: 'StreamingEvent',
-                    dataSourceKey: coreFormat.dataSourceKey as 'internal',
+                    dataSourceKey: coreFormat.dataSourceKey as any,
                     streamKey: coreFormat.streamKey,
-                    event: internalEvent as CoordinationEventUpdate,
+                    event: internalEvent as any,
                     timestamp: event.time ? new Date(event.time).getTime() : Date.now()
                 })
             }

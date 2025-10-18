@@ -1546,6 +1546,15 @@ Resources:
               Action:
                 - events:PutEvents
         Events:
+          Diagnostics:
+            Type: CloudWatchEvent
+            Properties:
+              EventBusName: !Sub ${TablePrefix}-bus
+              Pattern:
+                source:
+                  - mtw.diagnostics
+                detail-type:
+                  - S3 Structure Finding
           Coordination:
             Type: CloudWatchEvent
             Properties:
