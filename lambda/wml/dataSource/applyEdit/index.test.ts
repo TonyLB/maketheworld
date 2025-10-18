@@ -1,9 +1,9 @@
 import { applyEdit } from './index'
-import AssetWorkspace from '@tonylb/mtw-asset-workspace'
+import AssetWorkspace from '../../AssetWorkspace'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
-// Mock AssetWorkspace
-jest.mock('@tonylb/mtw-asset-workspace')
+// Mock local AssetWorkspace
+jest.mock('../../AssetWorkspace')
 
 const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
 

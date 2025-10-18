@@ -1,20 +1,20 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`AssetWorkspace loadAuthorizationJSON should correctly parse and assign JSON properties 1`] = `
-Object {
-  "grants": Array [
-    Object {
-      "grants": Array [
-        Object {
-          "actions": Array [
+exports[`AssetWorkspace (WML Lambda) loadAuthorizationJSON should correctly parse and assign JSON properties 1`] = `
+{
+  "grants": [
+    {
+      "grants": [
+        {
+          "actions": [
             "action1",
           ],
           "player": "Player1",
           "tag": "Grant",
         },
       ],
-      "referenceStack": Array [
-        Object {
+      "referenceStack": [
+        {
           "context": undefined,
           "key": "Room1",
           "tag": "Room",
@@ -27,10 +27,10 @@ Object {
 }
 `;
 
-exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 1`] = `
-Object {
-  "components": Array [
-    Object {
+exports[`AssetWorkspace (WML Lambda) loadJSON should correctly parse and assign JSON properties 1`] = `
+{
+  "components": [
+    {
       "context": undefined,
       "key": "testRoom",
       "shortName": "Test Room",
@@ -39,43 +39,43 @@ Object {
     },
   ],
   "key": "Test",
-  "metaData": Array [],
+  "metaData": [],
   "universalKey": "ASSET#Test",
 }
 `;
 
-exports[`AssetWorkspace setWML should correctly parse WML input 1`] = `
-Object {
-  "components": Array [
-    Object {
+exports[`AssetWorkspace (WML Lambda) setWML should correctly parse WML input 1`] = `
+{
+  "components": [
+    {
       "context": undefined,
-      "exits": Array [
-        Object {
+      "exits": [
+        {
           "description": "welcome",
-          "to": "ROOM#UUID-1",
+          "to": "ROOM#room2",
         },
       ],
-      "key": "a123",
+      "key": undefined,
       "shortName": undefined,
       "tag": "Room",
-      "universalKey": "ROOM#UUID-0",
+      "universalKey": "ROOM#room1",
     },
-    Object {
+    {
       "context": undefined,
-      "exits": Array [
-        Object {
+      "exits": [
+        {
           "description": "vortex",
-          "to": "ROOM#UUID-0",
+          "to": "ROOM#room1",
         },
       ],
-      "key": "b456",
+      "key": undefined,
       "shortName": undefined,
       "tag": "Room",
-      "universalKey": "ROOM#UUID-1",
+      "universalKey": "ROOM#room2",
     },
   ],
   "key": "Test",
-  "metaData": Array [],
+  "metaData": [],
   "universalKey": "ASSET#Test",
 }
 `;

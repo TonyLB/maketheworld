@@ -13,7 +13,7 @@
  * This differs from applyEdit which would create a no-op chunk even if no changes needed.
  */
 
-import AssetWorkspace from "@tonylb/mtw-asset-workspace"
+import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import { applyEdit } from "../applyEdit"
 
 const PRIMITIVES_ASSET_ID = 'ASSET#primitives'
@@ -31,7 +31,7 @@ export async function initializePrimitives(): Promise<{
     console.log('Initialize Primitives: Starting idempotent check')
     
     // Primitives must be in Canon zone - construct workspace directly
-    const assetWorkspace = new AssetWorkspace(PRIMITIVES_ASSET_ID, 'Canon')
+    const assetWorkspace = new ReadOnlyAssetWorkspace(PRIMITIVES_ASSET_ID, 'Canon')
     
     // Try to load existing primitives content
     try {

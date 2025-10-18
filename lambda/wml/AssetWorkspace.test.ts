@@ -1,14 +1,12 @@
-jest.mock('./clients')
-import { s3Client } from './clients'
+jest.mock('@tonylb/mtw-asset-workspace/ts/clients')
+import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 jest.mock('uuid')
 import { v4 as uuidv4 } from 'uuid'
-import { AssetWorkspaceException } from './errors'
 
-import AssetWorkspace from '.'
+import AssetWorkspace from './AssetWorkspace'
 import { StandardNDJSON } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { StandardAuthorizationCollectionData } from '@tonylb/mtw-wml/ts/standardize/authorization/components/dataTypes'
 import { StandardAuthorizationCollection, StandardAuthorizationCollectionNDJSON } from '@tonylb/mtw-wml/ts/standardize/authorization'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
@@ -23,10 +21,7 @@ const uuidMockFactory = () => {
     }
 }
 
-// parseAssetWorkspaceAddress tests removed in Phase 1 migration
-// With flat UUID-based storage, zone-based path parsing is no longer needed
-
-describe('AssetWorkspace', () => {
+describe('AssetWorkspace (WML Lambda)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks();
@@ -135,14 +130,13 @@ describe('AssetWorkspace', () => {
     describe('setWML', () => {
         it('should correctly parse WML input', async () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
-            uuidv4Mock.mockImplementation(uuidMockFactory())
             await testWorkspace.setWML(`
                 <Asset uuid=(Test)>
-                    <Room key=(a123)>
-                        <Exit to=(b456)>welcome</Exit>
+                    <Room uuid=(room1)>
+                        <Exit to=(ROOM#room2)>welcome</Exit>
                     </Room>
-                    <Room key=(b456)>
-                        <Exit to=(a123)>vortex</Exit>
+                    <Room uuid=(room2)>
+                        <Exit to=(ROOM#room1)>vortex</Exit>
                     </Room>
                 </Asset>
             `)
@@ -151,14 +145,13 @@ describe('AssetWorkspace', () => {
 
         it('should throw an exception on multi-asset file', async () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
-            uuidv4Mock.mockImplementation(uuidMockFactory())
             await expect(async () => {
                 await testWorkspace.setWML(`
                     <Asset uuid=(TestOne)>
-                        <Room key=(a123) />
+                        <Room uuid=(roomA) />
                     </Asset>
                     <Asset uuid=(TestTwo)>
-                        <Room key=(a123) />
+                        <Room uuid=(roomB) />
                     </Asset>
                 `)
             }).rejects.toThrow()
@@ -226,11 +219,10 @@ describe('AssetWorkspace', () => {
     describe('pushWML', () => {
         it('should correctly push WML content', async () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Library')
-            uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset uuid=(Test)>
-                    <Room uuid=(room1) key=(a123)><Exit to=(b456)>welcome</Exit></Room>
-                    <Room uuid=(room2) key=(b456)><Exit to=(a123)>vortex</Exit></Room>
+                    <Room uuid=(room1)><Exit to=(ROOM#room2)>welcome</Exit></Room>
+                    <Room uuid=(room2)><Exit to=(ROOM#room1)>vortex</Exit></Room>
                 </Asset>
             `
             await testWorkspace.setWML(testSource)
@@ -248,10 +240,12 @@ describe('AssetWorkspace', () => {
 
     })
 
-    describe('pushWML', () => {
+    describe('pushAuthorizationWML', () => {
         it('should correctly push WML content', async () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Library')
-            uuidv4Mock.mockImplementation(uuidMockFactory())
+            // Note: Using 'key' instead of 'uuid' for Room because StandardAuthorizationCollection
+            // hasn't been updated for uuid/universalKey migration yet.
+            // See Technical Debt in packages/mtw-wml/ts/standardize/components/AGENT.md
             const testWML = `
                 <Asset uuid=(test)>
                     <Room key=(Room1)><Grant player=(Player1) actions="action1" /></Room>
@@ -275,11 +269,10 @@ describe('AssetWorkspace', () => {
     describe('setWML', () => {
         it('should not set JSON dirty on no-op', async () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Library')
-            uuidv4Mock.mockImplementation(uuidMockFactory())
             const testSource = `
                 <Asset uuid=(Test)>
-                    <Room uuid=(room1) key=(a123)><Exit to=(b456)>welcome</Exit></Room>
-                    <Room uuid=(room2) key=(b456)><Exit to=(a123)>vortex</Exit></Room>
+                    <Room uuid=(room1)><Exit to=(ROOM#room2)>welcome</Exit></Room>
+                    <Room uuid=(room2)><Exit to=(ROOM#room1)>vortex</Exit></Room>
                 </Asset>
             `
             await testWorkspace.setWML(testSource)
@@ -294,3 +287,4 @@ describe('AssetWorkspace', () => {
 
     })
 })
+
