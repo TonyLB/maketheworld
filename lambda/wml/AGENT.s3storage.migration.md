@@ -292,13 +292,15 @@ The migration aims to address these limitations by:
 
 ### Phase 2: Chunk-Based Snapshot Architecture
 
+**Status**: 📋 **PLANNING** (October 18, 2025)
+
 **Goal**: Replace monolithic versioned objects with chunk-based, manifest-driven snapshots for immutable history and efficient storage.
 
 #### Core Concepts:
 
 1. **Immutable Chunks**
    - Each change produces a new, standalone chunk file
-   - Chunks stored under predictable prefix: `{objectId}.wml/chunks/{timestamp}.wml`
+   - Chunks stored under predictable prefix: `{uuid}.wml/chunks/{timestamp}.wml`
    - WML edit schemas (using Replace/Remove tags) representing the change
    - Never overwritten once written
    - S3 metadata for immutable provenance (player, requestId, timestamp)
@@ -306,23 +308,35 @@ The migration aims to address these limitations by:
 
 2. **Snapshots**
    - Full materialized WML content at specific points in time
-   - Stored at: `{objectId}.wml/snapshots/{timestamp}.wml`
-   - Created on-demand (replaces legacy `Backup` functionality)
+   - Stored at: `{uuid}.wml/snapshots/{timestamp}.wml`
+   - Created on-demand via manual trigger (automatic triggers deferred to Phase 3)
    - Enables efficient point-in-time reconstruction (start from snapshot, apply chunks forward)
    - Can be used for recovery, rollback, or historical access
+   - **Decision**: Only WML snapshots needed (NDJSON reconstructible from WML)
 
 3. **Manifests**
-   - Small JSON files listing chunks and snapshots in chronological order
+   - NDJSON event log tracking asset history
+   - Events include: chunks, snapshots, zone changes, potential future merges
    - Describes how to reconstruct current state (latest snapshot + subsequent chunks)
-   - Stored at stable key: `{objectId}.wml/manifest-latest.json`
+   - Stored at stable key: `{uuid}.wml/manifest-latest.ndjson`
    - Frequently overwritten (not versioned to avoid storage expansion)
-   - **Reconstructible**: Can be rebuilt from chunk/snapshot metadata if lost (list objects, sort by timestamp)
+   - Protected by `atomicLock` to prevent concurrent update conflicts
+   - **Reconstructible**: Can be rebuilt from chunk/snapshot metadata if lost (Phase 3 feature)
 
 4. **Materialized Current Object**
-   - Optional assembled object at: `{objectId}.wml`
+   - Always-updated assembled object at: `{uuid}.wml` (and `.ndjson`)
    - Represents current merged WML for direct client access
    - Can be served via presigned URLs
-   - Rebuilt from manifest when needed
+   - Rebuilt from manifest on every write (latency acceptable for our update frequency)
+   - Maintains backward compatibility with Phase 1 read patterns
+
+5. **Authorization History** (Parallel Structure)
+   - `.auth.wml` files use identical structure under `{uuid}.auth.wml/` prefix
+   - Manifest: `{uuid}.auth.wml/manifest-latest.ndjson`
+   - Chunks: `{uuid}.auth.wml/chunks/{timestamp}.wml`
+   - Snapshots: `{uuid}.auth.wml/snapshots/{timestamp}.wml`
+   - Materialized view: `{uuid}.auth.wml` (and `.auth.ndjson`)
+   - **Benefit**: No special-case code - same operations, different prefix
 
 #### Benefits Over Phase 1:
 
@@ -332,18 +346,300 @@ The migration aims to address these limitations by:
 - **Natural lifecycle integration** for archiving older chunks to Glacier
 - **Queryable via S3 Inventory** and Athena for analytics
 
+#### Design Decisions (October 18, 2025):
+
+- ✅ **Materialized Views**: Maintain updated `{uuid}.wml` on every write for backward compatibility
+- ✅ **NDJSON Snapshots**: Not needed (WML is source of truth, NDJSON reconstructible)
+- ✅ **Authorization History**: Parallel structure under `{uuid}.auth.wml/` prefix (no special-case code)
+- ✅ **Snapshot Frequency**: Manual capability in Phase 2, automatic triggers in Phase 3
+- ✅ **Manifest Format**: NDJSON event log (not JSON array) for extensibility
+- ✅ **Reconstruction Strategy**: Rebuild materialized view on every write
+- ✅ **Concurrency**: Use `atomicLock` for manifest updates (no elaborate merge conflict resolution)
+- ✅ **Archive Zone**: Freezes asset in place (simpler than Phase 1 backup complexity)
+- ✅ **Manifest Loss Recovery**: Phase 3 feature (pattern supports it, not implementing yet)
+- ✅ **Generic Operations**: Chunk/manifest/snapshot operations accept prefix parameter for reusability
+
+#### Storage Structure:
+
+**Content Files** (under `{uuid}.wml/` prefix):
+```
+{uuid}.wml/
+  manifest-latest.ndjson          # Event log
+  chunks/
+    {timestamp}.wml               # Delta chunks
+  snapshots/
+    {timestamp}.wml               # Full snapshots
+{uuid}.wml                        # Materialized current content
+{uuid}.ndjson                     # Materialized NDJSON (Phase 1 compat)
+```
+
+**Authorization Files** (parallel structure under `{uuid}.auth.wml/` prefix):
+```
+{uuid}.auth.wml/
+  manifest-latest.ndjson          # Event log (same format)
+  chunks/
+    {timestamp}.wml               # Delta chunks (same structure)
+  snapshots/
+    {timestamp}.wml               # Full snapshots (same structure)
+{uuid}.auth.wml                   # Materialized current auth
+{uuid}.auth.ndjson                # Materialized NDJSON (Phase 1 compat)
+```
+
+**Key Design**: Content and auth use identical structure with different prefixes. This enables:
+- Generic chunk/snapshot/manifest operations (pass prefix as parameter)
+- No special-case code for authorization
+- Parallel processing of content and auth updates
+- Independent lifecycle policies per file type
+
 #### Scope:
 
-- Implement chunk-based storage for all edits
-- Create snapshots on-demand (replaces backup functionality from Phase 1)
-- Build manifest management for efficient current-state access
-- **Reintroduce Archive zone** as a normal zone (Zone=Archive tag)
+- Refactor `initialize` lambda to use `applyEdit` pattern (prerequisite)
+- Implement chunk-based storage for all edits (content and authorization)
+- Create snapshots on-demand via manual trigger
+- Build manifest management (NDJSON event log pattern)
+- Maintain materialized views on every write
+- Update `moveAsset` to handle chunk-based assets (add zone change events to manifest)
+- **Reintroduce Archive zone** as frozen state (Zone=Archive tag)
 - S3 lifecycle policies transition archived content to cold storage
-- Add versioning and history capabilities via chunk replay
-- Support point-in-time recovery by replaying chunks from snapshots
+- Support point-in-time recovery by replaying chunks from snapshots (read-only initially)
 
-### Phase 3: [TBD]
-*Details to be added - potential future enhancements beyond chunk-based architecture*
+#### Implementation Plan Overview:
+
+The Phase 2 migration consists of **28 discrete tasks** organized into **10 phases**:
+
+| Phase | Task Count | Focus Area |
+|-------|-----------|------------|
+| 2.0 | 1 | Prerequisites (initialize refactor) |
+| 2.1 | 3 | Manifest Infrastructure |
+| 2.2 | 3 | Reconstruction Logic |
+| 2.3 | 3 | Content Write Path Integration |
+| 2.4 | 1 | Zone Change Integration |
+| 2.5 | 2 | Authorization History |
+| 2.6 | 2 | Read Path Updates |
+| 2.7 | 2 | Archive Zone |
+| 2.8 | 4 | Testing |
+| 2.9 | 3 | Documentation |
+
+**Estimated Complexity**: Medium-High
+- Foundation phases (2.1-2.2): ~5-7 days
+- Integration phases (2.3-2.7): ~7-10 days  
+- Testing & Documentation (2.8-2.9): ~3-5 days
+- **Total**: ~15-22 working days
+
+**Dependencies**:
+- All tasks depend on Phase 1 completion ✅
+- Phase 2.1-2.2 (Foundation) must complete before integration phases
+- Phase 2.3-2.7 (Integration) can partially overlap after foundation is stable
+- Phase 2.8 (Testing) should run in parallel with integration phases
+- Phase 2.9 (Documentation) can start early, complete at end
+
+#### Detailed Task Breakdown:
+
+**Phase 2.0: Prerequisites** (Simplification)
+- [ ] **Task 2.0.1**: Refactor `initialize` lambda primitives initialization
+  - Remove direct S3 `PutObject` for `primitives.wml`
+  - Use `applyEdit` pattern instead (creates asset through standard edit flow)
+  - Ensures primitives will work naturally with chunk-based storage
+  - **Rationale**: Direct S3 writes bypass chunk/manifest system
+
+**Phase 2.1: Foundation - Manifest Infrastructure**
+- [ ] **Task 2.1.1**: Design manifest event schema
+  - Define TypeScript types for manifest events (ChunkEvent, SnapshotEvent, ZoneChangeEvent)
+  - Define NDJSON format for manifest file
+  - Document event metadata fields (timestamp, requestId, player, etc.)
+  - Add to `mtw-interfaces` package
+  
+- [ ] **Task 2.1.2**: Implement manifest operations in `mtw-asset-workspace`
+  - `loadManifest(prefix)` - Read and parse manifest NDJSON (accepts prefix like `{uuid}.wml/` or `{uuid}.auth.wml/`)
+  - `appendManifestEvent(prefix, event)` - Append event to manifest (with `atomicLock`)
+  - `writeManifest(prefix, events)` - Write full manifest (for initialization)
+  - Handle missing manifest gracefully (return empty event log)
+  - **Design**: Generic operations work with any prefix for content/auth reusability
+  
+- [ ] **Task 2.1.3**: Implement chunk writing operations
+  - `writeChunk(prefix, timestamp, content, metadata)` - Write immutable chunk to S3
+  - S3 key pattern: `{prefix}/chunks/{timestamp}.wml`
+  - Add S3 metadata: requestId, player, timestamp
+  - Include Zone tag for lifecycle management
+  - Return chunk reference for manifest
+  - **Design**: Generic operation accepts prefix parameter (e.g., `{uuid}.wml/` or `{uuid}.auth.wml/`)
+
+**Phase 2.2: Foundation - Reconstruction**
+- [ ] **Task 2.2.1**: Implement snapshot operations
+  - `writeSnapshot(prefix, timestamp, content)` - Write full WML snapshot
+  - S3 key pattern: `{prefix}/snapshots/{timestamp}.wml`
+  - Add S3 metadata: timestamp, snapshotType (manual vs automatic)
+  - Return snapshot reference for manifest
+  - **Design**: Generic operation accepts prefix parameter
+  
+- [ ] **Task 2.2.2**: Implement manifest reconstruction logic
+  - `reconstructFromManifest(prefix)` - Build current state from manifest
+  - Load latest snapshot (or start with empty)
+  - Apply chunks in chronological order
+  - Return merged `StandardForm` (or `StandardAuthorizationCollection` for auth)
+  - Add comprehensive error handling (missing chunks, corrupt manifest)
+  - **Design**: Works with any prefix (content or auth)
+  
+- [ ] **Task 2.2.3**: Add manual snapshot creation capability
+  - New function: `createSnapshot(prefix)` exposed via DataSource
+  - Reconstruct current state, write snapshot, update manifest
+  - Clear old chunks after successful snapshot (or mark for archival)
+  - Emit `Snapshot Created` event
+  - **Design**: Works for both content (`{uuid}.wml/`) and auth (`{uuid}.auth.wml/`) prefixes
+
+**Phase 2.3: Integration - Content Write Path**
+- [ ] **Task 2.3.1**: Update `applyEdit` to write chunks
+  - Replace `pushJSON()`/`pushWML()` with chunk-based pattern
+  - Write delta as chunk: `writeChunk('{uuid}.wml/', timestamp, editStandard.schema)`
+  - Append chunk event to manifest at `{uuid}.wml/manifest-latest.ndjson`
+  - Add lazy migration: If no manifest exists, create initial snapshot from current content
+  
+- [ ] **Task 2.3.2**: Update `applyEdit` to rebuild materialized views
+  - After writing chunk and updating manifest, reconstruct current state
+  - Use `reconstructFromManifest('{uuid}.wml/')` to get merged content
+  - Write materialized `{uuid}.wml` and `{uuid}.ndjson`
+  - Maintain Phase 1 materialized view locations for backward compatibility
+  - Add timing logs to monitor rebuild latency
+  
+- [ ] **Task 2.3.3**: Handle chunk-based asset detection
+  - Add `AssetWorkspace.isChunkBased(prefix)` - Check for manifest existence at given prefix
+  - Update all write paths to detect and handle both patterns
+  - Ensure lazy migration on first edit to legacy assets
+
+**Phase 2.4: Integration - Zone Changes**
+- [ ] **Task 2.4.1**: Update `moveAsset` for chunk-based assets
+  - Detect if asset is chunk-based (has manifest at `{uuid}.wml/` or `{uuid}.auth.wml/`)
+  - For chunk-based: Append ZoneChangeEvent to both content and auth manifests
+  - For chunk-based: Update Zone tags on manifest, chunks, snapshots (both prefixes)
+  - For legacy: Keep existing tag-update behavior
+  - Maintain same event emission pattern
+
+**Phase 2.5: Authorization History**
+- [ ] **Task 2.5.1**: Refactor chunk/manifest operations to accept prefix parameter
+  - Modify manifest operations to work with any prefix (e.g., `{uuid}.wml/` or `{uuid}.auth.wml/`)
+  - Modify chunk operations to accept prefix parameter
+  - Modify snapshot operations to accept prefix parameter
+  - Modify reconstruction logic to accept prefix parameter
+  - **Benefit**: No auth-specific code needed - same operations, different prefix
+  
+- [ ] **Task 2.5.2**: Update authorization write operations
+  - Modify `pushAuthorizationWML()` to use chunk-based pattern with `{uuid}.auth.wml/` prefix
+  - Reuse generic chunk/manifest operations (just pass different prefix)
+  - Rebuild materialized `{uuid}.auth.wml` from manifest using generic reconstruction
+  - Maintain backward compatibility with Phase 1 auth files
+
+**Phase 2.6: Read Path Updates**
+- [ ] **Task 2.6.1**: Update `loadJSON()` for chunk-based assets
+  - Check for manifest existence at `{uuid}.wml/manifest-latest.ndjson`
+  - If present: Use `reconstructFromManifest('{uuid}.wml/')` instead of loading flat file
+  - If absent: Fall back to Phase 1 pattern (lazy migration on next write)
+  - Cache reconstructed state in memory (already done)
+  
+- [ ] **Task 2.6.2**: Update `loadAuthorizationJSON()` for chunk-based assets
+  - Check for manifest existence at `{uuid}.auth.wml/manifest-latest.ndjson`
+  - If present: Use `reconstructFromManifest('{uuid}.auth.wml/')` (reusing same generic function)
+  - If absent: Fall back to flat auth files if no manifest
+
+**Phase 2.7: Archive Zone Reintroduction**
+- [ ] **Task 2.7.1**: Remove Archive zone restrictions
+  - Remove "Archive not supported" error from `AssetWorkspace` constructor
+  - Allow `moveAsset` to Archive zone (adds ZoneChangeEvent to manifest)
+  - Archive = frozen state (no further edits allowed)
+  
+- [ ] **Task 2.7.2**: Add S3 lifecycle policies for archived content
+  - Transition `Zone=Archive` objects to Glacier after N days
+  - Apply to chunks, snapshots, manifests, materialized views
+  - Document lifecycle policy configuration
+
+**Phase 2.8: Testing**
+- [ ] **Task 2.8.1**: Unit tests for manifest operations
+  - Test manifest NDJSON parsing and writing
+  - Test `appendManifestEvent` with `atomicLock`
+  - Test event schema validation
+  
+- [ ] **Task 2.8.2**: Unit tests for chunk/snapshot operations
+  - Test chunk writing with metadata
+  - Test snapshot creation
+  - Test reconstruction from manifest (snapshot + chunks)
+  
+- [ ] **Task 2.8.3**: Integration tests for edit flow
+  - Test full cycle: edit → chunk → manifest → reconstruct → materialized view
+  - Test lazy migration from Phase 1 flat files
+  - Test concurrent edit handling with `atomicLock`
+  - Test zone changes with chunk-based assets
+  
+- [ ] **Task 2.8.4**: Integration tests for authorization history
+  - Test auth chunk writing and manifest management
+  - Test auth reconstruction from manifest
+  - Test auth zone changes
+
+**Phase 2.9: Documentation**
+- [ ] **Task 2.9.1**: Document manifest event schema
+  - Add `AGENT.manifest.md` with event format specifications
+  - Include examples of each event type
+  - Document reconstruction algorithm
+  
+- [ ] **Task 2.9.2**: Update AssetWorkspace documentation
+  - Document new chunk/snapshot/manifest operations
+  - Update usage examples for Phase 2 pattern
+  - Document lazy migration behavior
+  
+- [ ] **Task 2.9.3**: Update migration document
+  - Mark Phase 2 tasks as complete
+  - Document any deviations from plan
+  - Add lessons learned section
+
+#### GitHub Issue Templates:
+
+Each task above should be created as a GitHub issue with the following template:
+
+```markdown
+**Phase**: 2.[X] [Phase Name]
+**Task**: 2.[X].[Y] [Task Name]
+
+**Description**:
+[Copy task description from implementation plan]
+
+**Acceptance Criteria**:
+- [ ] [Specific deliverable 1]
+- [ ] [Specific deliverable 2]
+- [ ] All existing tests continue to pass
+- [ ] New functionality has test coverage
+
+**Dependencies**:
+- Depends on: [List task IDs]
+- Blocks: [List task IDs]
+
+**Files to Modify**:
+- [List primary files]
+
+**Related Documentation**:
+- `lambda/wml/AGENT.s3storage.migration.md`
+- [Other relevant AGENT.md files]
+
+**Labels**: `enhancement`, `phase-2-chunk-storage`, `[specific-area]`
+```
+
+**Suggested Issue Grouping**:
+
+1. **Milestone: Phase 2 Foundation** (Tasks 2.0.1, 2.1.1-2.1.3, 2.2.1-2.2.3)
+   - Core infrastructure that must complete first
+   
+2. **Milestone: Phase 2 Integration** (Tasks 2.3.1-2.3.3, 2.4.1, 2.5.1-2.5.2, 2.6.1-2.6.2)
+   - Integration with existing write/read paths
+   
+3. **Milestone: Phase 2 Completion** (Tasks 2.7.1-2.7.2, 2.8.1-2.8.4, 2.9.1-2.9.3)
+   - Archive zone, testing, documentation
+
+### Phase 3: Advanced Features
+*Future enhancements to be planned:*
+- Automatic snapshot triggers (time/count/size-based)
+- Manifest archival and pagination for long-lived assets
+- Manifest loss recovery from chunk metadata
+- Point-in-time queries and rollback UI
+- Asset merge history tracking
+- Performance optimization (parallel chunk loading, caching strategies)
+- Investigation: Manifest growth patterns and archival strategies
 
 ## Architectural Considerations
 
