@@ -1,7 +1,7 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import internalCache from "../internalCache";
 import { CacheAssetMessage, MessageBus } from "../messageBus/baseClasses";
-import AssetWorkspace from "@tonylb/mtw-asset-workspace";
+import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly";
 import { StandardRemove, StandardReplace } from "@tonylb/mtw-wml/ts/standardize/components/edits";
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import StandardCharacter from "@tonylb/mtw-wml/ts/standardize/components/character";
@@ -19,7 +19,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
             const [dbAsset, fileAsset] = await Promise.all([
                 internalCache.AssetData.get([assetUUID]).then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset uuid=(${assetId}) />`))),
                 (async () => {
-                    const assetWorkspace = await AssetWorkspace.fromUUID(assetId)
+                    const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(assetId)
                     if (!assetWorkspace) {
                         return new StandardForm(`<Asset uuid=(${assetId}) />`)
                     }

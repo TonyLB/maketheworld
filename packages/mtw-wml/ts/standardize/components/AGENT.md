@@ -27,6 +27,26 @@ The `standardize/components` directory contains the core WML component classes t
 
 **Developer Note**: Current `fileURL` handling is temporary. Feel free to insert temporary stub implementations for images in order to progress on other functionality.
 
+### **StandardAuthorizationCollection UUID/UniversalKey Migration** 🟡
+
+**Component**: `StandardAuthorizationCollection`
+
+**Problem**: Authorization system still relies on `key` attributes and hasn't been updated to properly handle `uuid` and `universalKey` attributes in WML structures.
+
+**Evidence**: Tests in `lambda/wml/AssetWorkspace.test.ts` require `<Room key=(Room1)>` instead of `<Room uuid=(Room1)>` in authorization WML, unlike standard components which support both.
+
+**Impact**: Authorization WML cannot use the same `uuid`-based patterns as other WML components, creating inconsistency in the system.
+
+**Proposed Solution**: Update `StandardAuthorizationCollection` and related authorization parsing to handle `uuid` and `universalKey` attributes consistently with standard components.
+
+**Related Files**: 
+- `packages/mtw-wml/ts/standardize/authorization/index.ts`
+- `lambda/wml/AssetWorkspace.test.ts` (lines 246-250)
+
+**Priority**: Medium - works with `key` attributes but creates WML inconsistency
+
+**Developer Note**: Current implementation works but requires `key` attributes. For new authorization WML, continue using `key` until this migration is complete.
+
 
 
 ## Core Concepts

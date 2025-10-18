@@ -36,7 +36,7 @@ const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 let standardFormMock = new StandardForm('<Asset uuid=(Test) />')
 const mockLoadJSON = jest.fn()
 
-jest.mock('@tonylb/mtw-asset-workspace', () => {
+jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
     const mockAssetWorkspaceClass = jest.fn().mockImplementation((address: any) => ({
         status: {
             json: 'Clean'
@@ -60,7 +60,7 @@ jest.mock('@tonylb/mtw-asset-workspace', () => {
     return {
         __esModule: true,
         default: mockAssetWorkspaceClass,
-        AssetWorkspace: mockAssetWorkspaceClass
+        ReadOnlyAssetWorkspace: mockAssetWorkspaceClass
     }
 })
 

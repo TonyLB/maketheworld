@@ -1,13 +1,13 @@
 import { initializePrimitives } from './index'
-import AssetWorkspace from '@tonylb/mtw-asset-workspace'
+import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { applyEdit } from '../applyEdit'
 
 // Mock dependencies
-jest.mock('@tonylb/mtw-asset-workspace')
+jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly')
 jest.mock('../applyEdit')
 
-const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
+const MockAssetWorkspace = ReadOnlyAssetWorkspace as jest.MockedClass<typeof ReadOnlyAssetWorkspace>
 const applyEditMock = applyEdit as jest.MockedFunction<typeof applyEdit>
 
 describe('initializePrimitives', () => {
