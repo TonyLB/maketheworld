@@ -1,14 +1,10 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import AssetWorkspace, { Zone } from "../../AssetWorkspace";
 import internalCache from "../../internalCache";
-import { isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 export type ApplyEditArguments = {
-    /**
-     * Asset UUID to apply edits to.
-     * Note: While the type allows CHARACTER#, only ASSET# is currently validated and supported.
-     */
-    AssetId: `ASSET#${string}` | `CHARACTER#${string}`;
+    AssetId: AssetUUID;
     RequestId: string;
     schema: string;
     /**

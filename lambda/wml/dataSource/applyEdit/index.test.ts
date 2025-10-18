@@ -43,9 +43,9 @@ describe("applyEdit", () => {
             }
         })
 
-        it('should reject CHARACTER# prefix (only ASSET# is valid)', async () => {
+        it('should reject malformed ASSET# ids', async () => {
             const result = await applyEdit({
-                AssetId: 'CHARACTER#test',
+                AssetId: 'ASSET#' as any, // Empty id after prefix
                 RequestId: 'test-request',
                 schema: '<Asset uuid=(test) />'
             })
