@@ -1,5 +1,5 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
-import AssetWorkspace from "@tonylb/mtw-asset-workspace";
+import AssetWorkspace, { Zone } from "@tonylb/mtw-asset-workspace";
 import internalCache from "../../internalCache";
 import { isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 
@@ -7,6 +7,16 @@ export type ApplyEditArguments = {
     AssetId: `ASSET#${string}` | `CHARACTER#${string}`;
     RequestId: string;
     schema: string;
+    /**
+     * If true, creates the asset if it doesn't exist or has no content.
+     * Requires zone to be specified when creating.
+     * Default: false (returns error if asset doesn't exist)
+     */
+    createIfNeeded?: boolean;
+    /**
+     * Zone to use when creating new assets (only used if createIfNeeded is true)
+     */
+    zone?: Zone;
 }
 
 export type ApplyEditSuccess = {
@@ -42,13 +52,24 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResu
         }
     }
 
-    const assetWorkspace = await AssetWorkspace.fromUUID(args.AssetId)
+    // Try to load existing asset
+    let assetWorkspace = await AssetWorkspace.fromUUID(args.AssetId)
+    
+    // Handle asset not found
     if (!assetWorkspace) {
-        return {
-            success: false,
-            error: 'Asset not found'
+        if (args.createIfNeeded && args.zone) {
+            // Create new asset workspace in specified zone
+            assetWorkspace = new AssetWorkspace(args.AssetId, args.zone)
+        } else {
+            return {
+                success: false,
+                error: args.createIfNeeded 
+                    ? 'Asset not found and zone not specified for creation'
+                    : 'Asset not found'
+            }
         }
     }
+    
     const loadPromise = assetWorkspace.loadJSON()
     
     //
@@ -60,15 +81,25 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResu
     // Merge incoming changes with ndjson
     //
     await loadPromise
-    if (!assetWorkspace.standard) {
-        return {
-            success: false,
-            error: 'Asset content not found'
+    
+    // Get existing content or create empty StandardForm if createIfNeeded is true
+    let existingStandard = assetWorkspace.standard
+    
+    if (!existingStandard || existingStandard._components.length === 0) {
+        if (args.createIfNeeded) {
+            // Start with empty StandardForm - edit will become initial content
+            const assetKey = args.AssetId.replace('ASSET#', '')
+            existingStandard = new StandardForm(assetKey)
+        } else {
+            return {
+                success: false,
+                error: 'Asset content not found'
+            }
         }
     }
 
     try {
-        const mergedStandard = assetWorkspace.standard.merge(editStandard)
+        const mergedStandard = existingStandard.merge(editStandard)
 
         console.log(`Merged standard: ${JSON.stringify(mergedStandard.toJSON(), null, 4)}`)
 
