@@ -4,14 +4,22 @@ import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from '@tonylb/mt
 import { moveAsset } from './moveAsset'
 import { applyEdit } from './applyEdit'
 import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, MoveAssetRequest } from './coordinationSerializer'
+import { DiagnosticsEventUpdate, isS3StructureFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { initializePrimitives } from './initializePrimitives'
 
 // Union type constraint for legitimate incoming subscribed events
-type WMLSubscribedEvent = StreamingEventPayload & {
-    dataSourceKey: 'internal';
-    streamKey: string;
-    event: CoordinationEventUpdate
-}
+type WMLSubscribedEvent = 
+    | (StreamingEventPayload & {
+        dataSourceKey: 'internal';
+        streamKey: string;
+        event: CoordinationEventUpdate;
+    })
+    | (StreamingEventPayload & {
+        dataSourceKey: 'mtw.diagnostics';
+        streamKey: string;
+        event: DiagnosticsEventUpdate;
+    })
 
 //
 // Non-replayable DataSource singleton for mtw.wml
@@ -30,11 +38,18 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
     replayable: false, // Non-replayable - focuses on event streaming and serialization
     // No snapshotContentGenerator needed for non-replayable data sources
     subscribedEventTypeGuard: (event: StreamingEventPayload): event is WMLSubscribedEvent => {
-        // Subscribe to internal Move Asset events for direct API calls
-        return Boolean(event.dataSourceKey === 'internal' &&
-            event.event &&
-            typeof event.event === 'object' &&
-            isCoordinationEventUpdate(event.event))
+        // Subscribe to:
+        // 1. Internal coordination events (direct API calls)
+        // 2. mtw.diagnostics events (system health findings)
+        return Boolean(
+            (event.dataSourceKey === 'internal' &&
+                event.event &&
+                typeof event.event === 'object' &&
+                isCoordinationEventUpdate(event.event)) ||
+            (event.dataSourceKey === 'mtw.diagnostics' &&
+                event.event &&
+                typeof event.event === 'object')
+        )
     },
     receiveEvents: async ({ events, streamEvent }) => {
         // Process internal coordination events from direct API calls and EventBridge
@@ -158,6 +173,19 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                 } catch (error) {
                     console.error(`Error processing coordination event:`, error)
                 }
+            }
+            
+            // Handle mtw.diagnostics S3 Structure Finding events
+            if (isS3StructureFindingEvent(payload)) {
+                // Respond to missing primitives.wml
+                if (payload.source === 'primitives.wml' && payload.status === 'missing') {
+                    try {
+                        const result = await initializePrimitives()
+                    } catch (error) {
+                        console.error(`WML DataSource: Error initializing primitives:`, error)
+                    }
+                }
+                // Future: Handle other S3 Structure Finding events here
             }
         }))
     },

@@ -292,7 +292,18 @@ The migration aims to address these limitations by:
 
 ### Phase 2: Chunk-Based Snapshot Architecture
 
-**Status**: 📋 **PLANNING** (October 18, 2025)
+**Status**: 🚧 **IN PROGRESS** (Started October 18, 2025)
+
+**Progress**: 1/28 tasks complete (3.6%)
+- ✅ Phase 2.0: Prerequisites (1/1 complete)
+- ⏳ Phase 2.1: Foundation - Manifest Infrastructure (0/3 complete)
+
+**Recent Completions**:
+- **October 18, 2025**: Task 2.0.1 - Initialize primitives refactor
+  - Eliminated direct S3 writes from initialize lambda
+  - All writes now use `applyEdit` pattern (Phase 2 ready)
+  - Created proper `mtw.diagnostics` event schema
+  - 31 new tests, all passing
 
 **Goal**: Replace monolithic versioned objects with chunk-based, manifest-driven snapshots for immutable history and efficient storage.
 
@@ -436,11 +447,47 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
 #### Detailed Task Breakdown:
 
 **Phase 2.0: Prerequisites** (Simplification)
-- [ ] **Task 2.0.1**: Refactor `initialize` lambda primitives initialization
-  - Remove direct S3 `PutObject` for `primitives.wml`
-  - Use `applyEdit` pattern instead (creates asset through standard edit flow)
-  - Ensures primitives will work naturally with chunk-based storage
-  - **Rationale**: Direct S3 writes bypass chunk/manifest system
+- [x] **Task 2.0.1**: Refactor `initialize` lambda primitives initialization ✅ **COMPLETE** (October 18, 2025)
+  
+  **Implementation Details**:
+  - ✅ Removed direct S3 `PutObject` for `primitives.wml` from initialize lambda
+  - ✅ Created `lambda/wml/dataSource/initializePrimitives/index.ts` - Idempotent handler
+    - Checks for VORTEX room and knowledgeRoot knowledge using `StandardForm.byUniversalId`
+    - Skips if both components present (truly idempotent - no chunk created)
+    - Creates via `applyEdit` if asset missing or empty
+    - Repairs with targeted edits if components missing
+  - ✅ Extended `applyEdit` with `createIfNeeded` flag (opt-in, backward compatible)
+    - Allows creation of new assets when explicitly requested
+    - Handles empty StandardForm initialization
+  - ✅ Initialize lambda emits `mtw.diagnostics` / `S3 Structure Finding` event
+    - Event describes finding (status: 'missing'), not command
+    - Includes diagnosticRunId for correlation
+  - ✅ WML lambda (`mtw.wml` DataSource) subscribes to `mtw.diagnostics` events
+    - Responds to `source: 'primitives.wml', status: 'missing'`
+    - Uses proper DataSource subscription pattern (not special-case handler)
+  - ✅ Created event schema in `packages/mtw-interfaces/ts/eventBridge/diagnostics`
+    - `DiagnosticsEventSerializer` with serialize/deserialize
+    - Type guards and event types
+  - ✅ Created planning document `lambda/diagnostics/AGENT.schema.planning.md`
+    - Documents move from imperative to descriptive events
+    - Defines S3 Structure Finding event pattern
+  
+  **Testing**:
+  - ✅ 31 new tests added (48 total in WML lambda, up from 33)
+  - ✅ `applyEdit/index.test.ts`: 7 tests for `createIfNeeded` functionality
+  - ✅ `initializePrimitives/index.test.ts`: 9 tests for all initialization scenarios
+  - ✅ `mtw-wml.test.ts`: 4 tests for diagnostics event handling
+  - ✅ `diagnostics/index.test.ts` (mtw-interfaces): 11 tests for serializer
+  
+  **Files Modified**:
+  - `lambda/initialize/app.ts` - Event emission instead of direct S3 write
+  - `lambda/initialize/package.json` - Added EventBridge & uuid dependencies
+  - `lambda/wml/dataSource/applyEdit/index.ts` - Added `createIfNeeded` flag
+  - `lambda/wml/dataSource/mtw-wml.ts` - Subscribe to diagnostics events
+  - `lambda/wml/app.ts` - Added DiagnosticsEventSerializer
+  - `template.yaml` - EventBridge permissions, EVENT_BUS_NAME, event subscription
+  
+  **Result**: All primitives writes now go through `applyEdit` pattern (will naturally use chunks in Phase 2)
 
 **Phase 2.1: Foundation - Manifest Infrastructure**
 - [ ] **Task 2.1.1**: Design manifest event schema

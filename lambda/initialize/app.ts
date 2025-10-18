@@ -1,10 +1,13 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client, ListObjectsCommand, DeleteObjectsCommand, PutObjectCommand } from "@aws-sdk/client-s3"
+import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { readdir, stat, readFile } from 'node:fs/promises'
-import primitivesData from "./primitives"
+import { v4 as uuidv4 } from 'uuid'
+// Note: primitivesData import removed - WML lambda now handles primitives content
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
+const eventBridgeClient = new EventBridgeClient(params)
 
 const contentTypeMapping = {
     ico: 'image/vnd.microsoft.icon',
@@ -58,15 +61,25 @@ const initializeClientData = async (subDir: string = ''): Promise<void> => {
 }
 
 const initializePrimitivesData = async (): Promise<void> => {
-    // Phase 1: Flat UUID-based storage with Zone tag
-    await s3Client.send(new PutObjectCommand({
-        Bucket: process.env.ASSET_BUCKET,
-        Key: `primitives.wml`,  // Flat storage: just the UUID
-        Body: primitivesData,
-        ContentType: 'text/plain',
-        Tagging: 'Zone=Canon'  // Zone stored as S3 tag
-        // No Metadata needed (Canon assets don't have player ownership)
+    // Emit S3 Structure Finding event for primitives.wml
+    // The WML lambda will respond by checking and initializing if needed
+    const diagnosticRunId = uuidv4()
+    
+    await eventBridgeClient.send(new PutEventsCommand({
+        Entries: [{
+            Source: 'mtw.diagnostics',
+            DetailType: 'S3 Structure Finding',
+            EventBusName: process.env.EVENT_BUS_NAME,
+            Detail: JSON.stringify({
+                source: 'primitives.wml',
+                status: 'missing',
+                diagnosticRunId,
+                timestamp: new Date().toISOString()
+            })
+        }]
     }))
+    
+    console.log(`Initialize: Emitted S3 Structure Finding event for primitives.wml (runId: ${diagnosticRunId})`)
 }
 
 export const handler = async (event, context) => {

@@ -2,15 +2,21 @@ import { wmlDataSource } from './index'
 import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { moveAsset } from './moveAsset'
 import { MoveAssetRequest } from './coordinationSerializer'
+import { initializePrimitives } from './initializePrimitives'
 
-// Mock the moveAsset function
+// Mock the moveAsset and initializePrimitives functions
 jest.mock('./moveAsset', () => ({
     moveAsset: jest.fn()
+}))
+
+jest.mock('./initializePrimitives', () => ({
+    initializePrimitives: jest.fn()
 }))
 
 // No need to mock messageBus baseClasses since we're testing behavior, not implementation
 
 const moveAssetMock = moveAsset as jest.MockedFunction<typeof moveAsset>
+const initializePrimitivesMock = initializePrimitives as jest.MockedFunction<typeof initializePrimitives>
 
 describe('WML DataSource', () => {
     beforeEach(() => {
@@ -246,6 +252,146 @@ describe('WML DataSource', () => {
 
             expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
             expect(mockStreamEvent).toHaveBeenCalled()
+        })
+    })
+
+    describe('Diagnostics Event Type Guard', () => {
+        it('should recognize valid S3 Structure Finding events', () => {
+            const validEvent = {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                event: {
+                    type: 'S3 Structure Finding',
+                    source: 'primitives.wml',
+                    status: 'missing',
+                    diagnosticRunId: 'test-run-123',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+            }
+
+            expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(validEvent as any)
+            expect(isRecognized).toBe(true)
+        })
+
+        it('should accept diagnostics events with any event structure', () => {
+            // DataSource should accept mtw.diagnostics events even if we don't recognize the specific type yet
+            const unknownDiagnosticsEvent = {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                event: {
+                    type: 'Future Event Type',
+                    someField: 'someValue'
+                }
+            }
+
+            expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(unknownDiagnosticsEvent as any)
+            expect(isRecognized).toBe(true)
+        })
+    })
+
+    describe('S3 Structure Finding Event Processing', () => {
+        it('should call initializePrimitives for missing primitives.wml', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            
+            initializePrimitivesMock.mockResolvedValue({
+                success: true,
+                action: 'created',
+                message: 'Primitives asset created'
+            })
+
+            const event = {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                event: {
+                    type: 'S3 Structure Finding',
+                    source: 'primitives.wml',
+                    status: 'missing',
+                    diagnosticRunId: 'test-run-123',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+            }
+
+            expect(wmlDataSource.receiveEvents).toBeDefined()
+            await wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })
+
+            expect(initializePrimitivesMock).toHaveBeenCalled()
+        })
+
+        it('should not call initializePrimitives for present primitives.wml', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            const event = {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                event: {
+                    type: 'S3 Structure Finding',
+                    source: 'primitives.wml',
+                    status: 'present',  // Not missing
+                    diagnosticRunId: 'test-run-123',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+            }
+
+            await wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })
+
+            expect(initializePrimitivesMock).not.toHaveBeenCalled()
+        })
+
+        it('should not call initializePrimitives for other S3 findings', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            const event = {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                event: {
+                    type: 'S3 Structure Finding',
+                    source: 'other-asset.wml',  // Different source
+                    status: 'missing',
+                    diagnosticRunId: 'test-run-123',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+            }
+
+            await wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })
+
+            expect(initializePrimitivesMock).not.toHaveBeenCalled()
+        })
+
+        it('should handle initializePrimitives errors gracefully', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            
+            initializePrimitivesMock.mockRejectedValue(new Error('Initialization failed'))
+
+            const event = {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                event: {
+                    type: 'S3 Structure Finding',
+                    source: 'primitives.wml',
+                    status: 'missing',
+                    diagnosticRunId: 'test-run-123',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+            }
+
+            // Should not throw - errors should be caught and logged
+            await expect(wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })).resolves.not.toThrow()
+
+            expect(initializePrimitivesMock).toHaveBeenCalled()
         })
     })
 })
