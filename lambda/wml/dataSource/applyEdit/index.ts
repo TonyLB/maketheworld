@@ -1,10 +1,10 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import AssetWorkspace, { Zone } from "../../AssetWorkspace";
 import internalCache from "../../internalCache";
-import { isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 export type ApplyEditArguments = {
-    AssetId: `ASSET#${string}` | `CHARACTER#${string}`;
+    AssetId: AssetUUID;
     RequestId: string;
     schema: string;
     /**

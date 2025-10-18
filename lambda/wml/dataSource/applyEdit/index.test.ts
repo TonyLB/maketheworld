@@ -1,6 +1,8 @@
 import { applyEdit } from './index'
 import AssetWorkspace from '../../AssetWorkspace'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 // Mock local AssetWorkspace
 jest.mock('../../AssetWorkspace')
@@ -10,6 +12,49 @@ const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorksp
 describe("applyEdit", () => {
     beforeEach(() => {
         jest.clearAllMocks()
+    })
+
+    describe("input validation", () => {
+        it('should reject invalid AssetId format', async () => {
+            const result = await applyEdit({
+                AssetId: 'INVALID#test' as any,
+                RequestId: 'test-request',
+                schema: '<Asset uuid=(test) />'
+            })
+
+            expect(result.success).toBe(false)
+            if (!result.success) {
+                expect(result.error).toBe('Invalid AssetId format')
+            }
+        })
+
+        it('should accept ASSET# prefix', async () => {
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(undefined)
+
+            const result = await applyEdit({
+                AssetId: 'ASSET#test',
+                RequestId: 'test-request',
+                schema: '<Asset uuid=(test) />'
+            })
+
+            expect(result.success).toBe(false) // Fails because asset doesn't exist, but validation passed
+            if (!result.success) {
+                expect(result.error).toBe('Asset not found')
+            }
+        })
+
+        it('should reject malformed ASSET# ids', async () => {
+            const result = await applyEdit({
+                AssetId: 'ASSET#' as any, // Empty id after prefix
+                RequestId: 'test-request',
+                schema: '<Asset uuid=(test) />'
+            })
+
+            expect(result.success).toBe(false)
+            if (!result.success) {
+                expect(result.error).toBe('Invalid AssetId format')
+            }
+        })
     })
 
     describe("createIfNeeded flag", () => {
@@ -157,6 +202,751 @@ describe("applyEdit", () => {
                 expect(mergedSchema.byUniversalId['ROOM#testRoom']).toBeDefined()
                 expect(mergedSchema.byUniversalId['FEATURE#existingFeature']).toBeDefined()
             })
+        })
+    })
+
+    describe("basic merging operations", () => {
+        const testAssetId = 'ASSET#test'
+
+        it('should add new room to existing asset', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                            <Description>A grand lobby</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(kitchen)>
+                        <Example uuid=(kitchenExample)>
+                            <Name>Kitchen</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            if (result.success) {
+                const mergedWML = schemaToWML([result.schema.schema])
+                expect(mergedWML).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)>
+                                <Name>Lobby</Name>
+                                <Description>A grand lobby</Description>
+                            </Example>
+                        </Room>
+                        <Room uuid=(kitchen)>
+                            <Example uuid=(kitchenExample)><Name>Kitchen</Name></Example>
+                        </Room>
+                    </Asset>
+                `))
+            }
+        })
+
+        it('should merge content into existing room', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Exit to=(kitchen)>north</Exit>
+                    </Room>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            if (result.success) {
+                const mergedWML = schemaToWML([result.schema.schema])
+                expect(mergedWML).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)><Name>Lobby</Name></Example>
+                            <Exit to=(kitchen)>north</Exit>
+                        </Room>
+                    </Asset>
+                `))
+            }
+        })
+
+        it('should add feature to existing room', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Feature uuid=(desk)>
+                        <Example uuid=(deskExample)>
+                            <Name>Reception Desk</Name>
+                        </Example>
+                    </Feature>
+                    <Room uuid=(lobby)>
+                        <Feature uuid=(desk) />
+                    </Room>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            if (result.success) {
+                const mergedWML = schemaToWML([result.schema.schema])
+                expect(mergedWML).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Feature uuid=(desk)>
+                            <Example uuid=(deskExample)><Name>Reception Desk</Name></Example>
+                        </Feature>
+                        <Room uuid=(lobby)>
+                            <Feature uuid=(desk) />
+                            <Example uuid=(lobbyExample)><Name>Lobby</Name></Example>
+                        </Room>
+                    </Asset>
+                `))
+            }
+        })
+    })
+
+    describe("edit operations (Replace/Remove)", () => {
+        const testAssetId = 'ASSET#test'
+
+        it('should apply Replace operation to update room description', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Description>Old description</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Replace><Description>Old description</Description></Replace>
+                            <With><Description>New description</Description></With>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            if (result.success) {
+                const mergedWML = schemaToWML([result.schema.schema])
+                expect(mergedWML).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)>
+                                <Description>New description</Description>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `))
+            }
+        })
+
+        it('should apply Remove operation to delete a room', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                    <Room uuid=(kitchen)>
+                        <Example uuid=(kitchenExample)>
+                            <Name>Kitchen</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Remove>
+                        <Room uuid=(kitchen)>
+                            <Example uuid=(kitchenExample)>
+                                <Name>Kitchen</Name>
+                            </Example>
+                        </Room>
+                    </Remove>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            if (result.success) {
+                const mergedWML = schemaToWML([result.schema.schema])
+                expect(mergedWML).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)><Name>Lobby</Name></Example>
+                        </Room>
+                    </Asset>
+                `))
+            }
+        })
+
+        it('should remove exit from room', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                        <Exit to=(kitchen)>north</Exit>
+                        <Exit to=(bathroom)>south</Exit>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Remove><Exit to=(kitchen)>north</Exit></Remove>
+                    </Room>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            if (result.success) {
+                const mergedWML = schemaToWML([result.schema.schema])
+                expect(mergedWML).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)><Name>Lobby</Name></Example>
+                            <Exit to=(bathroom)>south</Exit>
+                        </Room>
+                    </Asset>
+                `))
+            }
+        })
+    })
+
+    describe("merge conflict handling", () => {
+        const testAssetId = 'ASSET#test'
+
+        it('should return error on merge conflict (Replace with non-matching base)', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Description>Current description</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            // Try to replace with non-matching original
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Replace><Description>Wrong old description</Description></Replace>
+                            <With><Description>New description</Description></With>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(false)
+            if (!result.success) {
+                expect(result.error).toBeTruthy()
+            }
+        })
+
+        it('should return error on merge conflict (Remove with non-matching content)', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            // Try to remove with non-matching content
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Remove>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)>
+                                <Name>Wrong Name</Name>
+                            </Example>
+                        </Room>
+                    </Remove>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(false)
+            if (!result.success) {
+                expect(result.error).toBeTruthy()
+            }
+        })
+    })
+
+    describe("complex component scenarios", () => {
+        const testAssetId = 'ASSET#test'
+
+        it('should handle nested features and examples', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Feature uuid=(desk)>
+                            <Example uuid=(deskExample)>
+                                <Name>Reception Desk</Name>
+                                <Description>A sleek desk</Description>
+                            </Example>
+                        </Feature>
+                    </Room>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            if (result.success) {
+                const mergedWML = schemaToWML([result.schema.schema])
+                expect(mergedWML).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(lobby)>
+                            <Feature uuid=(desk)>
+                                <Example uuid=(deskExample)>
+                                    <Name>Reception Desk</Name>
+                                    <Description>A sleek desk</Description>
+                                </Example>
+                            </Feature>
+                            <Example uuid=(lobbyExample)><Name>Lobby</Name></Example>
+                        </Room>
+                    </Asset>
+                `))
+            }
+        })
+
+        it('should handle multiple component types in single edit', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(kitchen)>
+                        <Example uuid=(kitchenExample)>
+                            <Name>Kitchen</Name>
+                        </Example>
+                    </Room>
+                    <Feature uuid=(oven)>
+                        <Example uuid=(ovenExample)>
+                            <Name>Oven</Name>
+                        </Example>
+                    </Feature>
+                    <Knowledge uuid=(cookingSkill)>
+                        <Example uuid=(cookingExample)>
+                            <Name>Cooking</Name>
+                        </Example>
+                    </Knowledge>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            if (result.success) {
+                const mergedWML = schemaToWML([result.schema.schema])
+                expect(mergedWML).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Feature uuid=(oven)>
+                            <Example uuid=(ovenExample)><Name>Oven</Name></Example>
+                        </Feature>
+                        <Knowledge uuid=(cookingSkill)>
+                            <Example uuid=(cookingExample)><Name>Cooking</Name></Example>
+                        </Knowledge>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)><Name>Lobby</Name></Example>
+                        </Room>
+                        <Room uuid=(kitchen)>
+                            <Example uuid=(kitchenExample)><Name>Kitchen</Name></Example>
+                        </Room>
+                    </Asset>
+                `))
+            }
+        })
+
+        it('should handle character references in rooms', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            // Characters have name/image/pronouns properties, not Example children
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Character uuid=(receptionist)>
+                        <Name>Jane</Name>
+                    </Character>
+                    <Room uuid=(lobby)>
+                        <Character uuid=(receptionist) />
+                    </Room>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            if (result.success) {
+                const mergedWML = schemaToWML([result.schema.schema])
+                expect(mergedWML).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Character uuid=(receptionist)><Name>Jane</Name></Character>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)><Name>Lobby</Name></Example>
+                            <Character uuid=(receptionist) />
+                        </Room>
+                    </Asset>
+                `))
+            }
+        })
+
+        it('should handle map with positioned rooms', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Map uuid=(mainMap)>
+                        <Room uuid=(lobby)>
+                            <Position x="0" y="0" />
+                        </Room>
+                    </Map>
+                </Asset>
+            `)
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            if (result.success) {
+                const mergedWML = schemaToWML([result.schema.schema])
+                expect(mergedWML).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)><Name>Lobby</Name></Example>
+                        </Room>
+                        <Map uuid=(mainMap)>
+                            <Room uuid=(lobby)><Position x="0" y="0" /></Room>
+                        </Map>
+                    </Asset>
+                `))
+            }
+        })
+    })
+
+    describe("content preservation and persistence", () => {
+        const testAssetId = 'ASSET#test'
+
+        it('should write both JSON and WML to S3', async () => {
+            // Create an existing asset with at least one component to avoid empty content error
+            const existingStandard = new StandardForm('<Asset uuid=(test)><Room uuid=(existingRoom) /></Asset>')
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            const editSchema = '<Asset uuid=(test)><Room uuid=(testRoom) /></Asset>'
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            expect(mockWorkspace.setJSON).toHaveBeenCalledTimes(1)
+            expect(mockWorkspace.pushJSON).toHaveBeenCalledTimes(1)
+            expect(mockWorkspace.pushWML).toHaveBeenCalledTimes(1)
+        })
+
+        it('should return merged StandardForm in success result', async () => {
+            const existingWML = '<Asset uuid=(test)><Room uuid=(lobby) /></Asset>'
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+
+            const editSchema = '<Asset uuid=(test)><Room uuid=(kitchen) /></Asset>'
+
+            const result = await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            expect(result.success).toBe(true)
+            if (result.success) {
+                expect(result.schema).toBeInstanceOf(StandardForm)
+                const mergedWML = schemaToWML([result.schema.schema])
+                expect(mergedWML).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(lobby) />
+                        <Room uuid=(kitchen) />
+                    </Asset>
+                `))
+            }
         })
     })
 
