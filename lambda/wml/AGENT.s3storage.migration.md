@@ -294,15 +294,25 @@ The migration aims to address these limitations by:
 
 **Status**: 🚧 **IN PROGRESS** (Started October 18, 2025)
 
-**Progress**: 2/28 tasks complete (7.1%)
+**Progress**: 3/28 tasks complete (10.7%)
 - ✅ Phase 2.0: Prerequisites (1/1 complete)
-- 🚧 Phase 2.1: Foundation - Manifest Infrastructure (1/3 complete)
+- 🚧 Phase 2.1: Foundation - Manifest Infrastructure (2/3 complete)
 
 **Recent Completions**:
+- **October 19, 2025**: Task 2.1.2 - Manifest operations implementation
+  - Implemented `loadManifest(prefix)` - Read and parse manifest NDJSON
+  - Implemented `appendManifestEvents(prefix, events)` - Batch append events to manifest
+  - Both operations are generic (work with any prefix)
+  - Graceful handling of non-existent manifests (returns empty array)
+  - Robust error handling (skips invalid events, continues processing)
+  - Batch support for efficient multi-event operations (minimizes S3 writes)
+  - 19 comprehensive tests, all passing (112 total tests in lambda/wml)
+  - Created `lambda/wml/s3Storage/manifest/operations.ts` and tests
 - **October 18, 2025**: Task 2.1.1 - Manifest event schema design
   - Defined ChunkEvent, SnapshotEvent, ZoneChangeEvent types
   - Documented NDJSON format and reconstruction pattern
   - Created comprehensive type guards and tests (15 tests)
+  - Organized into `s3Storage/` subsystem (co-located AssetWorkspace + manifest code)
 - **October 18, 2025**: Task 2.0.1 - Initialize primitives refactor
   - Eliminated direct S3 writes from initialize lambda
   - All writes now use `applyEdit` pattern (Phase 2 ready)
@@ -497,24 +507,40 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
 - [x] **Task 2.1.1**: Design manifest event schema ✅ **COMPLETE** (October 18, 2025)
   - ✅ Defined TypeScript types: `ManifestChunkEvent`, `ManifestSnapshotEvent`, `ManifestZoneChangeEvent`
   - ✅ Documented NDJSON format (one event per line, chronological order)
-  - ✅ Event metadata fields: timestamp, eventId, requestId, player, s3Key, etc.
-  - ✅ Created `lambda/wml/manifest/baseClasses.ts` with type guards
-  - ✅ Created `lambda/wml/manifest/baseClasses.test.ts` - 15 tests, all passing
-  - ✅ Created `lambda/wml/manifest/AGENT.md` - Documentation with examples
+  - ✅ Event metadata fields: timestamp, eventId, authoringPlayer, s3Key, etc.
+  - ✅ Created `lambda/wml/s3Storage/manifest/baseClasses.ts` with type guards
+  - ✅ Created `lambda/wml/s3Storage/manifest/baseClasses.test.ts` - 15 tests, all passing
+  - ✅ Created `lambda/wml/s3Storage/manifest/AGENT.md` - Documentation with examples
   - ✅ Defined `ManifestReconstructionState` helper type for efficient state building
-  - **Location**: `lambda/wml/manifest/` (domain authority in WML lambda)
+  - ✅ Organized into `s3Storage/` subsystem (co-located with AssetWorkspace)
+  - **Location**: `lambda/wml/s3Storage/manifest/` (domain authority in WML lambda)
   - **Result**: Schema ready for implementation in Tasks 2.1.2-2.1.3
   
-- [ ] **Task 2.1.2**: Implement manifest operations in WML lambda
-  - Add to `lambda/wml/manifest/operations.ts`
-  - `loadManifest(prefix)` - Read and parse manifest NDJSON (accepts prefix like `{uuid}.wml/` or `{uuid}.auth.wml/`)
-  - `appendManifestEvent(prefix, event)` - Append event to manifest (with `atomicLock`)
-  - `writeManifest(prefix, events)` - Write full manifest (for initialization)
-  - Handle missing manifest gracefully (return empty event log)
-  - **Design**: Generic operations work with any prefix for content/auth reusability
+- [x] **Task 2.1.2**: Implement manifest operations in WML lambda ✅ **COMPLETE** (October 19, 2025)
+  - ✅ Created `lambda/wml/s3Storage/manifest/operations.ts`
+  - ✅ `loadManifest(prefix)` - Read and parse manifest NDJSON
+    - Returns array of ManifestEvent objects in chronological order
+    - Returns empty array if manifest doesn't exist (graceful handling)
+    - Skips invalid events and unparseable lines (continues processing)
+    - Works with both content (`{uuid}.wml/`) and auth (`{uuid}.auth.wml/`) prefixes
+  - ✅ `appendManifestEvents(prefix, events)` - Append batch of events to manifest
+    - Accepts array of events for efficient batch operations (minimizes S3 writes)
+    - Handles non-existent manifest gracefully (creates new manifest)
+    - Atomically reads current manifest, appends events, writes back
+    - Works for both initialization and subsequent appends
+    - Validates all events using type guards before appending
+    - Handles empty array as no-op
+  - ✅ Created `lambda/wml/s3Storage/manifest/operations.test.ts` - 19 tests, all passing
+  - **Implementation Details**:
+    - Generic operations work with any prefix for content/auth reusability
+    - Caller (applyEdit) holds atomicLock on materialized file (covers all operations)
+    - Robust error handling with graceful degradation
+    - Batch support enables efficient multi-event operations
+    - No separate `writeManifest` needed - `appendManifestEvents` handles initialization
+  - **Result**: Manifest read/write operations ready for use in Task 2.1.3
   
 - [ ] **Task 2.1.3**: Implement chunk writing operations in WML lambda
-  - Add to `lambda/wml/manifest/chunks.ts`
+  - Add to `lambda/wml/s3Storage/manifest/chunks.ts`
   - `writeChunk(prefix, timestamp, content, metadata)` - Write immutable chunk to S3
   - S3 key pattern: `{prefix}/chunks/{timestamp}-{uuid}.wml` (uuid prevents collision on concurrent edits)
   - Add S3 metadata: requestId, player, timestamp
@@ -524,6 +550,7 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
 
 **Phase 2.2: Foundation - Reconstruction**
 - [ ] **Task 2.2.1**: Implement snapshot operations
+  - Add to `lambda/wml/s3Storage/manifest/snapshots.ts`
   - `writeSnapshot(prefix, timestamp, content)` - Write full WML snapshot
   - S3 key pattern: `{prefix}/snapshots/{timestamp}.wml`
   - Add S3 metadata: timestamp, snapshotType (manual vs automatic)
@@ -531,6 +558,7 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - **Design**: Generic operation accepts prefix parameter
   
 - [ ] **Task 2.2.2**: Implement manifest reconstruction logic
+  - Add to `lambda/wml/s3Storage/manifest/reconstruction.ts`
   - `reconstructFromManifest(prefix)` - Build current state from manifest
   - Load latest snapshot (or start with empty)
   - Apply chunks in chronological order
@@ -539,7 +567,8 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - **Design**: Works with any prefix (content or auth)
   
 - [ ] **Task 2.2.3**: Add manual snapshot creation capability
-  - New function: `createSnapshot(prefix)` exposed via DataSource
+  - Add to `lambda/wml/s3Storage/manifest/snapshots.ts`
+  - `createSnapshot(prefix)` - Exposed via DataSource
   - Reconstruct current state, write snapshot, update manifest
   - Clear old chunks after successful snapshot (or mark for archival)
   - Emit `Snapshot Created` event
@@ -704,6 +733,16 @@ Each task above should be created as a GitHub issue with the following template:
   - Validate manifests using WML's own reconstruction code
   - Emit findings back to diagnostics for aggregation
   - Maintains domain authority (WML validates WML storage)
+- **Manifest Corruption Detection and Self-Healing**:
+  - **Current State (Phase 2)**: `loadManifest()` silently skips invalid/unparseable events with console warnings
+  - **Future Enhancement**: Detect corruption and trigger diagnostic run
+  - When invalid events detected during load:
+    - Emit diagnostic event describing corruption (invalid line numbers, event types)
+    - Trigger self-healing workflow to reconstruct manifest from S3 metadata
+    - Use chunk/snapshot object metadata to rebuild authoritative manifest
+    - Compare reconstructed vs corrupted manifest and emit comprehensive finding
+  - **Pattern**: Transform silent failures into observable, self-repairing system
+  - **Note**: Maintains backward compatibility - Phase 2 gracefully degrades, Phase 3 actively heals
 
 ## Architectural Considerations
 

@@ -1,5 +1,5 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
-import AssetWorkspace, { Zone } from "../../AssetWorkspace";
+import AssetWorkspace, { Zone } from "../../s3Storage/AssetWorkspace";
 import internalCache from "../../internalCache";
 import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 
