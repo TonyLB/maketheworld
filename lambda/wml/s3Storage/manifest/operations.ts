@@ -14,6 +14,8 @@ import { ManifestEvent, isManifestEvent } from './baseClasses'
 /**
  * Load and parse a manifest file
  * 
+ * @param prefix - S3 prefix without ASSET# (e.g., "uuid.wml/" or "uuid.auth.wml/")
+ * @returns Array of ManifestEvent objects in chronological order
  */
 export const loadManifest = async (prefix: string): Promise<ManifestEvent[]> => {
     const manifestKey = `${prefix}manifest-latest.ndjson`
@@ -66,6 +68,8 @@ export const loadManifest = async (prefix: string): Promise<ManifestEvent[]> => 
  * subsequent appends to existing manifests. Accepts a batch of events
  * to minimize S3 write operations.
  * 
+ * @param prefix - S3 prefix without ASSET# (e.g., "uuid.wml/" or "uuid.auth.wml/")
+ * @param events - Array of ManifestEvent objects to append
  */
 export const appendManifestEvents = async (prefix: string, events: ManifestEvent[]): Promise<void> => {
     const manifestKey = `${prefix}manifest-latest.ndjson`

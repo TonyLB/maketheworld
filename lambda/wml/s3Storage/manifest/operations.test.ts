@@ -22,18 +22,18 @@ describe('Manifest Operations', () => {
             // Simulate NoSuchKey error
             mockS3Client.get.mockRejectedValue({ Code: 'NoSuchKey' })
 
-            const result = await loadManifest('ASSET#test.wml/')
+            const result = await loadManifest('test.wml/')
 
             expect(result).toEqual([])
             expect(mockS3Client.get).toHaveBeenCalledWith({
-                Key: 'ASSET#test.wml/manifest-latest.ndjson'
+                Key: 'test.wml/manifest-latest.ndjson'
             })
         })
 
         it('should return empty array for empty manifest file', async () => {
             mockS3Client.get.mockResolvedValue('')
 
-            const result = await loadManifest('ASSET#test.wml/')
+            const result = await loadManifest('test.wml/')
 
             expect(result).toEqual([])
         })
@@ -41,7 +41,7 @@ describe('Manifest Operations', () => {
         it('should return empty array for whitespace-only manifest', async () => {
             mockS3Client.get.mockResolvedValue('   \n  \n  ')
 
-            const result = await loadManifest('ASSET#test.wml/')
+            const result = await loadManifest('test.wml/')
 
             expect(result).toEqual([])
         })
@@ -51,13 +51,13 @@ describe('Manifest Operations', () => {
                 type: 'chunk',
                 timestamp: '2025-10-18T12:00:00.000Z',
                 eventId: 'event-1',
-                s3Key: 'ASSET#test.wml/chunks/1729252800000-abc123.wml',
+                s3Key: 'test.wml/chunks/1729252800000-abc123.wml',
                 authoringPlayer: 'alice'
             }
 
             mockS3Client.get.mockResolvedValue(JSON.stringify(chunkEvent))
 
-            const result = await loadManifest('ASSET#test.wml/')
+            const result = await loadManifest('test.wml/')
 
             expect(result).toEqual([chunkEvent])
         })
@@ -68,20 +68,20 @@ describe('Manifest Operations', () => {
                     type: 'chunk',
                     timestamp: '2025-10-18T10:00:00.000Z',
                     eventId: 'event-1',
-                    s3Key: 'ASSET#test.wml/chunks/1729249200000-abc123.wml',
+                    s3Key: 'test.wml/chunks/1729249200000-abc123.wml',
                     authoringPlayer: 'alice'
                 },
                 {
                     type: 'chunk',
                     timestamp: '2025-10-18T11:00:00.000Z',
                     eventId: 'event-2',
-                    s3Key: 'ASSET#test.wml/chunks/1729252800000-def456.wml'
+                    s3Key: 'test.wml/chunks/1729252800000-def456.wml'
                 },
                 {
                     type: 'snapshot',
                     timestamp: '2025-10-18T12:00:00.000Z',
                     eventId: 'event-3',
-                    s3Key: 'ASSET#test.wml/snapshots/1729256400000.wml',
+                    s3Key: 'test.wml/snapshots/1729256400000.wml',
                     snapshotType: 'manual',
                     chunksBeforeSnapshot: 2
                 },
@@ -97,7 +97,7 @@ describe('Manifest Operations', () => {
             const ndjson = events.map(e => JSON.stringify(e)).join('\n')
             mockS3Client.get.mockResolvedValue(ndjson)
 
-            const result = await loadManifest('ASSET#test.wml/')
+            const result = await loadManifest('test.wml/')
 
             expect(result).toEqual(events)
         })
@@ -107,7 +107,7 @@ describe('Manifest Operations', () => {
                 type: 'chunk',
                 timestamp: '2025-10-18T12:00:00.000Z',
                 eventId: 'event-1',
-                s3Key: 'ASSET#test.wml/chunks/1729252800000-abc123.wml'
+                s3Key: 'test.wml/chunks/1729252800000-abc123.wml'
             }
 
             const ndjson = [
@@ -118,7 +118,7 @@ describe('Manifest Operations', () => {
 
             mockS3Client.get.mockResolvedValue(ndjson)
 
-            const result = await loadManifest('ASSET#test.wml/')
+            const result = await loadManifest('test.wml/')
 
             // Should have 2 valid events (invalid one skipped)
             expect(result).toEqual([validEvent, validEvent])
@@ -129,7 +129,7 @@ describe('Manifest Operations', () => {
                 type: 'chunk',
                 timestamp: '2025-10-18T12:00:00.000Z',
                 eventId: 'event-1',
-                s3Key: 'ASSET#test.wml/chunks/1729252800000-abc123.wml'
+                s3Key: 'test.wml/chunks/1729252800000-abc123.wml'
             }
 
             const ndjson = [
@@ -140,7 +140,7 @@ describe('Manifest Operations', () => {
 
             mockS3Client.get.mockResolvedValue(ndjson)
 
-            const result = await loadManifest('ASSET#test.wml/')
+            const result = await loadManifest('test.wml/')
 
             expect(result).toEqual([validEvent, validEvent])
         })
@@ -150,16 +150,16 @@ describe('Manifest Operations', () => {
                 type: 'chunk',
                 timestamp: '2025-10-18T12:00:00.000Z',
                 eventId: 'event-1',
-                s3Key: 'ASSET#test.auth.wml/chunks/1729252800000-abc123.wml'
+                s3Key: 'test.auth.wml/chunks/1729252800000-abc123.wml'
             }
 
             mockS3Client.get.mockResolvedValue(JSON.stringify(event))
 
-            const result = await loadManifest('ASSET#test.auth.wml/')
+            const result = await loadManifest('test.auth.wml/')
 
             expect(result).toEqual([event])
             expect(mockS3Client.get).toHaveBeenCalledWith({
-                Key: 'ASSET#test.auth.wml/manifest-latest.ndjson'
+                Key: 'test.auth.wml/manifest-latest.ndjson'
             })
         })
 
@@ -167,7 +167,7 @@ describe('Manifest Operations', () => {
             const error = new Error('Network error')
             mockS3Client.get.mockRejectedValue(error)
 
-            await expect(loadManifest('ASSET#test.wml/')).rejects.toThrow('Network error')
+            await expect(loadManifest('test.wml/')).rejects.toThrow('Network error')
         })
     })
 
@@ -181,14 +181,14 @@ describe('Manifest Operations', () => {
                 type: 'chunk',
                 timestamp: '2025-10-18T12:00:00.000Z',
                 eventId: 'event-1',
-                s3Key: 'ASSET#test.wml/chunks/1729252800000-abc123.wml',
+                s3Key: 'test.wml/chunks/1729252800000-abc123.wml',
                 authoringPlayer: 'alice'
             }
 
-            await appendManifestEvents('ASSET#test.wml/', [event])
+            await appendManifestEvents('test.wml/', [event])
 
             expect(mockS3Client.put).toHaveBeenCalledWith({
-                Key: 'ASSET#test.wml/manifest-latest.ndjson',
+                Key: 'test.wml/manifest-latest.ndjson',
                 Body: JSON.stringify(event)
             })
         })
@@ -198,20 +198,20 @@ describe('Manifest Operations', () => {
                 type: 'chunk',
                 timestamp: '2025-10-18T10:00:00.000Z',
                 eventId: 'event-1',
-                s3Key: 'ASSET#test.wml/chunks/1729249200000-abc123.wml'
+                s3Key: 'test.wml/chunks/1729249200000-abc123.wml'
             }
 
             const newEvent: ManifestChunkEvent = {
                 type: 'chunk',
                 timestamp: '2025-10-18T12:00:00.000Z',
                 eventId: 'event-2',
-                s3Key: 'ASSET#test.wml/chunks/1729252800000-def456.wml'
+                s3Key: 'test.wml/chunks/1729252800000-def456.wml'
             }
 
             mockS3Client.get.mockResolvedValue(JSON.stringify(existingEvent))
             mockS3Client.put.mockResolvedValue(undefined)
 
-            await appendManifestEvents('ASSET#test.wml/', [newEvent])
+            await appendManifestEvents('test.wml/', [newEvent])
 
             const expectedNdjson = [
                 JSON.stringify(existingEvent),
@@ -219,7 +219,7 @@ describe('Manifest Operations', () => {
             ].join('\n')
 
             expect(mockS3Client.put).toHaveBeenCalledWith({
-                Key: 'ASSET#test.wml/manifest-latest.ndjson',
+                Key: 'test.wml/manifest-latest.ndjson',
                 Body: expectedNdjson
             })
         })
@@ -230,13 +230,13 @@ describe('Manifest Operations', () => {
                     type: 'chunk',
                     timestamp: '2025-10-18T10:00:00.000Z',
                     eventId: 'event-1',
-                    s3Key: 'ASSET#test.wml/chunks/1729249200000-abc123.wml'
+                    s3Key: 'test.wml/chunks/1729249200000-abc123.wml'
                 },
                 {
                     type: 'snapshot',
                     timestamp: '2025-10-18T11:00:00.000Z',
                     eventId: 'event-2',
-                    s3Key: 'ASSET#test.wml/snapshots/1729252800000.wml',
+                    s3Key: 'test.wml/snapshots/1729252800000.wml',
                     snapshotType: 'manual',
                     chunksBeforeSnapshot: 1
                 },
@@ -254,13 +254,13 @@ describe('Manifest Operations', () => {
             mockS3Client.put.mockResolvedValue(undefined)
 
             // Append all three events in a single batch
-            await appendManifestEvents('ASSET#test.wml/', events)
+            await appendManifestEvents('test.wml/', events)
 
             // Verify all events written in single operation
             const expectedNdjson = events.map(e => JSON.stringify(e)).join('\n')
             expect(mockS3Client.put).toHaveBeenCalledTimes(1)
             expect(mockS3Client.put).toHaveBeenCalledWith({
-                Key: 'ASSET#test.wml/manifest-latest.ndjson',
+                Key: 'test.wml/manifest-latest.ndjson',
                 Body: expectedNdjson
             })
         })
@@ -273,19 +273,19 @@ describe('Manifest Operations', () => {
                 type: 'chunk',
                 timestamp: '2025-10-18T12:00:00.000Z',
                 eventId: 'event-1',
-                s3Key: 'ASSET#test.auth.wml/chunks/1729252800000-abc123.wml'
+                s3Key: 'test.auth.wml/chunks/1729252800000-abc123.wml'
             }
 
-            await appendManifestEvents('ASSET#test.auth.wml/', [event])
+            await appendManifestEvents('test.auth.wml/', [event])
 
             expect(mockS3Client.put).toHaveBeenCalledWith({
-                Key: 'ASSET#test.auth.wml/manifest-latest.ndjson',
+                Key: 'test.auth.wml/manifest-latest.ndjson',
                 Body: JSON.stringify(event)
             })
         })
 
         it('should handle empty array as no-op', async () => {
-            await appendManifestEvents('ASSET#test.wml/', [])
+            await appendManifestEvents('test.wml/', [])
 
             expect(mockS3Client.get).not.toHaveBeenCalled()
             expect(mockS3Client.put).not.toHaveBeenCalled()
@@ -299,7 +299,7 @@ describe('Manifest Operations', () => {
             } as any
 
             await expect(
-                appendManifestEvents('ASSET#test.wml/', [invalidEvent])
+                appendManifestEvents('test.wml/', [invalidEvent])
             ).rejects.toThrow('Invalid manifest event at index 0')
         })
 
@@ -308,7 +308,7 @@ describe('Manifest Operations', () => {
                 type: 'chunk',
                 timestamp: '2025-10-18T12:00:00.000Z',
                 eventId: 'event-1',
-                s3Key: 'ASSET#test.wml/chunks/1729252800000-abc123.wml'
+                s3Key: 'test.wml/chunks/1729252800000-abc123.wml'
             }
 
             const invalidEvent = {
@@ -317,7 +317,7 @@ describe('Manifest Operations', () => {
             } as any
 
             await expect(
-                appendManifestEvents('ASSET#test.wml/', [validEvent, invalidEvent, validEvent])
+                appendManifestEvents('test.wml/', [validEvent, invalidEvent, validEvent])
             ).rejects.toThrow('Invalid manifest event at index 1')
         })
 
@@ -329,7 +329,7 @@ describe('Manifest Operations', () => {
                 type: 'chunk',
                 timestamp: '2025-10-18T12:00:00.000Z',
                 eventId: 'event-1',
-                s3Key: 'ASSET#test.wml/chunks/1729252800000-abc123.wml',
+                s3Key: 'test.wml/chunks/1729252800000-abc123.wml',
                 authoringPlayer: 'alice',
                 chunkSize: 1024
             }
@@ -338,7 +338,7 @@ describe('Manifest Operations', () => {
                 type: 'snapshot',
                 timestamp: '2025-10-18T13:00:00.000Z',
                 eventId: 'event-2',
-                s3Key: 'ASSET#test.wml/snapshots/1729256400000.wml',
+                s3Key: 'test.wml/snapshots/1729256400000.wml',
                 snapshotType: 'automatic',
                 chunksBeforeSnapshot: 10,
                 snapshotSize: 50000
@@ -353,7 +353,7 @@ describe('Manifest Operations', () => {
             }
 
             // Append all event types in a single batch
-            await appendManifestEvents('ASSET#test.wml/', [chunkEvent, snapshotEvent, zoneChangeEvent])
+            await appendManifestEvents('test.wml/', [chunkEvent, snapshotEvent, zoneChangeEvent])
 
             const expectedBody = [chunkEvent, snapshotEvent, zoneChangeEvent]
                 .map(e => JSON.stringify(e))
@@ -361,7 +361,7 @@ describe('Manifest Operations', () => {
 
             expect(mockS3Client.put).toHaveBeenCalledTimes(1)
             expect(mockS3Client.put).toHaveBeenCalledWith({
-                Key: 'ASSET#test.wml/manifest-latest.ndjson',
+                Key: 'test.wml/manifest-latest.ndjson',
                 Body: expectedBody
             })
         })
@@ -394,29 +394,29 @@ describe('Manifest Operations', () => {
                 type: 'chunk',
                 timestamp: '2025-10-18T10:00:00.000Z',
                 eventId: 'event-1',
-                s3Key: 'ASSET#test.wml/chunks/1729249200000-abc123.wml'
+                s3Key: 'test.wml/chunks/1729249200000-abc123.wml'
             }
 
             const event2: ManifestChunkEvent = {
                 type: 'chunk',
                 timestamp: '2025-10-18T11:00:00.000Z',
                 eventId: 'event-2',
-                s3Key: 'ASSET#test.wml/chunks/1729252800000-def456.wml'
+                s3Key: 'test.wml/chunks/1729252800000-def456.wml'
             }
 
             const event3: ManifestSnapshotEvent = {
                 type: 'snapshot',
                 timestamp: '2025-10-18T12:00:00.000Z',
                 eventId: 'event-3',
-                s3Key: 'ASSET#test.wml/snapshots/1729256400000.wml',
+                s3Key: 'test.wml/snapshots/1729256400000.wml',
                 snapshotType: 'manual',
                 chunksBeforeSnapshot: 2
             }
 
             // Append all events in a single batch
-            await appendManifestEvents('ASSET#test.wml/', [event1, event2, event3])
+            await appendManifestEvents('test.wml/', [event1, event2, event3])
 
-            const loaded = await loadManifest('ASSET#test.wml/')
+            const loaded = await loadManifest('test.wml/')
 
             expect(loaded).toEqual([event1, event2, event3])
             expect(loaded[0].timestamp).toBe('2025-10-18T10:00:00.000Z')
@@ -449,13 +449,13 @@ describe('Manifest Operations', () => {
                     type: 'chunk',
                     timestamp: '2025-10-18T10:00:00.000Z',
                     eventId: 'event-1',
-                    s3Key: 'ASSET#test.wml/chunks/1729249200000-abc123.wml'
+                    s3Key: 'test.wml/chunks/1729249200000-abc123.wml'
                 },
                 {
                     type: 'chunk',
                     timestamp: '2025-10-18T11:00:00.000Z',
                     eventId: 'event-2',
-                    s3Key: 'ASSET#test.wml/chunks/1729252800000-def456.wml'
+                    s3Key: 'test.wml/chunks/1729252800000-def456.wml'
                 }
             ]
 
@@ -464,7 +464,7 @@ describe('Manifest Operations', () => {
                     type: 'snapshot',
                     timestamp: '2025-10-18T12:00:00.000Z',
                     eventId: 'event-3',
-                    s3Key: 'ASSET#test.wml/snapshots/1729256400000.wml',
+                    s3Key: 'test.wml/snapshots/1729256400000.wml',
                     snapshotType: 'manual',
                     chunksBeforeSnapshot: 2
                 },
@@ -472,17 +472,17 @@ describe('Manifest Operations', () => {
                     type: 'chunk',
                     timestamp: '2025-10-18T13:00:00.000Z',
                     eventId: 'event-4',
-                    s3Key: 'ASSET#test.wml/chunks/1729260000000-ghi789.wml'
+                    s3Key: 'test.wml/chunks/1729260000000-ghi789.wml'
                 }
             ]
 
             // Append first batch
-            await appendManifestEvents('ASSET#test.wml/', batch1)
+            await appendManifestEvents('test.wml/', batch1)
 
             // Append second batch
-            await appendManifestEvents('ASSET#test.wml/', batch2)
+            await appendManifestEvents('test.wml/', batch2)
 
-            const loaded = await loadManifest('ASSET#test.wml/')
+            const loaded = await loadManifest('test.wml/')
 
             expect(loaded).toHaveLength(4)
             expect(loaded).toEqual([...batch1, ...batch2])

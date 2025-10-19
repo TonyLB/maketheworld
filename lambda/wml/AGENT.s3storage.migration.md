@@ -294,11 +294,21 @@ The migration aims to address these limitations by:
 
 **Status**: 🚧 **IN PROGRESS** (Started October 18, 2025)
 
-**Progress**: 3/28 tasks complete (10.7%)
+**Progress**: 4/28 tasks complete (14.3%)
 - ✅ Phase 2.0: Prerequisites (1/1 complete)
-- 🚧 Phase 2.1: Foundation - Manifest Infrastructure (2/3 complete)
+- ✅ Phase 2.1: Foundation - Manifest Infrastructure (3/3 complete)
 
 **Recent Completions**:
+- **October 19, 2025**: Task 2.1.3 - Chunk writing operations implementation
+  - Implemented `writeChunk(options)` - Write immutable chunks to S3
+  - S3 key format: `{prefix}/chunks/{timestamp}-{uuid}.wml`
+  - UUID prevents collision on concurrent edits at same millisecond
+  - Zone tags for lifecycle management (archival policies)
+  - Player metadata for authorship tracking (immutable)
+  - Returns ChunkReference with s3Key and chunkSize for manifest tracking
+  - Generic operation works with any prefix (content or auth)
+  - 12 comprehensive tests, all passing (124 total tests in lambda/wml)
+  - Created `lambda/wml/s3Storage/manifest/chunks.ts` and tests
 - **October 19, 2025**: Task 2.1.2 - Manifest operations implementation
   - Implemented `loadManifest(prefix)` - Read and parse manifest NDJSON
   - Implemented `appendManifestEvents(prefix, events)` - Batch append events to manifest
@@ -306,7 +316,8 @@ The migration aims to address these limitations by:
   - Graceful handling of non-existent manifests (returns empty array)
   - Robust error handling (skips invalid events, continues processing)
   - Batch support for efficient multi-event operations (minimizes S3 writes)
-  - 19 comprehensive tests, all passing (112 total tests in lambda/wml)
+  - Functional programming style (map/filter, findIndex)
+  - 19 comprehensive tests, all passing
   - Created `lambda/wml/s3Storage/manifest/operations.ts` and tests
 - **October 18, 2025**: Task 2.1.1 - Manifest event schema design
   - Defined ChunkEvent, SnapshotEvent, ZoneChangeEvent types
@@ -539,14 +550,22 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
     - No separate `writeManifest` needed - `appendManifestEvents` handles initialization
   - **Result**: Manifest read/write operations ready for use in Task 2.1.3
   
-- [ ] **Task 2.1.3**: Implement chunk writing operations in WML lambda
-  - Add to `lambda/wml/s3Storage/manifest/chunks.ts`
-  - `writeChunk(prefix, timestamp, content, metadata)` - Write immutable chunk to S3
-  - S3 key pattern: `{prefix}/chunks/{timestamp}-{uuid}.wml` (uuid prevents collision on concurrent edits)
-  - Add S3 metadata: requestId, player, timestamp
-  - Include Zone tag for lifecycle management
-  - Return chunk reference for manifest
-  - **Design**: Generic operation accepts prefix parameter (e.g., `{uuid}.wml/` or `{uuid}.auth.wml/`)
+- [x] **Task 2.1.3**: Implement chunk writing operations in WML lambda ✅ **COMPLETE** (October 19, 2025)
+  - ✅ Created `lambda/wml/s3Storage/manifest/chunks.ts`
+  - ✅ `writeChunk(options)` - Write immutable chunk to S3
+    - S3 key pattern: `{prefix}/chunks/{timestamp}-{uuid}.wml`
+    - UUID generated with uuidv4() prevents collision on concurrent edits
+    - Returns `ChunkReference` with s3Key and chunkSize for manifest tracking
+  - ✅ Zone tags for lifecycle management (enables archival policies)
+  - ✅ Immutable S3 metadata: timestamp, player (optional)
+  - ✅ Calculated chunk size using `Buffer.byteLength()` for accurate byte count
+  - ✅ Created `lambda/wml/s3Storage/manifest/chunks.test.ts` - 12 tests, all passing
+  - **Implementation Details**:
+    - Generic operation accepts prefix parameter (works with any prefix)
+    - Proper handling of multi-byte characters in size calculation
+    - Comprehensive test coverage: concurrent writes, all zones, auth prefix, empty content
+    - Timestamp precision preserved in metadata
+  - **Result**: Chunk writing ready for integration in Phase 2.3 (applyEdit)
 
 **Phase 2.2: Foundation - Reconstruction**
 - [ ] **Task 2.2.1**: Implement snapshot operations
