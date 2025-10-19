@@ -92,28 +92,148 @@ interface S3StructureFinding {
 
 ### Future design possibilities
 
-- DynamoDB Consistency Finding
-- Player State Finding
-- Diagnostic Run Completed
+- **Diagnostic Run Started** - Trigger coordinated self-diagnostics
+- **Diagnostic Run Completed** - Summary of findings from a run
+- **DynamoDB Consistency Finding** - Cache inconsistencies, orphaned records
+- **Player State Finding** - Player data corruption, permission mismatches
 
 ---
+
+## Existing Healing Infrastructure
+
+### Current Self-Healing Functions
+
+The system already has foundation for self-healing:
+
+**Assets Lambda** (`lambda/assets/selfHealing/globalValues.ts`):
+- `healGlobalValues()` - Repairs session mappings and canon asset state
+- Fixes connection metadata and global asset cache
+
+**Diagnostics Lambda** (`lambda/diagnostics/player/index.ts`):
+- `healPlayer()` - Repairs player-specific data corruption
+- Rebuilds player asset library and character listings
+
+**Heal Step Function**: Orchestrates player healing operations
+
+### Integration with New Pattern
+
+These existing healing functions should be **triggered by findings**, not run directly:
+
+**Current** (imperative):
+```typescript
+// Direct call to healing function
+await healPlayer(playerId)
+```
+
+**Target** (event-driven):
+```typescript
+// Finding triggers healing
+if (event.type === 'Player State Finding' && event.status === 'corrupted') {
+  await healPlayer(event.playerId)
+}
+```
+
+This aligns healing with the self-diagnostic pattern - findings describe problems, domain lambdas remediate.
+
+---
+
+## Architectural Decision: Diagnostics as Orchestration Layer
+
+**Decision Date**: October 18, 2025
+
+### Principle: Domain Authority Stays in Domain Lambdas
+
+The diagnostics lambda should **NOT** directly validate storage from other lambdas. Instead:
+
+**Diagnostics Lambda Role**: Orchestration and aggregation
+- Triggers diagnostic runs across the system
+- Aggregates findings from domain lambdas
+- Provides unified diagnostic reporting
+- Does NOT import lambda-specific code or validate their storage directly
+
+**Domain Lambda Role**: Self-validation
+- Each lambda validates its own storage using its own code
+- Emits findings about problems discovered
+- Maintains authority over its storage format and validation rules
+
+### Example Pattern
+
+**Diagnostics triggers run**:
+```typescript
+// Diagnostics lambda
+await eventBridge.putEvents({
+  Source: 'mtw.diagnostics',
+  DetailType: 'Diagnostic Run Started',
+  Detail: { diagnosticRunId, scope: 'full' }
+})
+```
+
+**Each lambda performs self-diagnostics**:
+```typescript
+// WML lambda listens for Diagnostic Run Started
+if (event.type === 'Diagnostic Run Started') {
+  // WML validates its own manifests using its own reconstruction code
+  await checkManifestIntegrity(diagnosticRunId)
+}
+
+// Assets lambda listens for Diagnostic Run Started
+if (event.type === 'Diagnostic Run Started') {
+  // Assets validates its own DynamoDB cache consistency
+  await checkCacheConsistency(diagnosticRunId)
+}
+```
+
+**Diagnostics aggregates results**:
+```typescript
+// Diagnostics lambda listens for all findings
+// Aggregates by diagnosticRunId
+// Emits summary when run completes
+```
+
+### Future: Step Functions Orchestration
+
+**Potential Pattern** (premature to design now):
+- Diagnostics lambda triggers Step Function for orchestrated diagnostic run
+- Step Function coordinates parallel lambda diagnostics
+- Each lambda returns findings to Step Function
+- Step Function hands results back to diagnostics for aggregation
+- Enables timeout handling, retry logic, parallelization
+
+**Benefits**:
+- Better visibility into diagnostic progress
+- Coordinated timeouts and error handling
+- Parallel execution of independent checks
+- Clean separation: orchestration (Step Functions) vs aggregation (Diagnostics)
+
+### Implications for Storage Format Code
+
+**Manifest Types & Operations**: Located in `packages/mtw-asset-workspace`
+- This is a shared utility package (like `mtw-wml`, `mtw-utilities`)
+- Multiple lambdas can import utility packages (not lambda code)
+- Manifest parsing/reconstruction lives here
+- Both AssetWorkspace AND WML diagnostics use this code (no duplication)
+
+**Rule**: Lambdas don't import from other **lambdas**. Utility packages serve multiple consumers.
+
+**DRY Maintained**: Single implementation of manifest logic in mtw-asset-workspace
 
 ## Implementation Notes
 
 ### Event Emission
 
 Diagnostics lambda should:
-1. Run diagnostic checks
-2. Collect findings
-3. Emit **one event per finding** (not batched)
-4. Include `diagnosticRunId` for correlation
+1. Trigger diagnostic runs via coordination events
+2. Aggregate findings emitted by domain lambdas
+3. Emit summary/completion events
+4. Include `diagnosticRunId` for correlation across distributed checks
 
 ### Event Consumption
 
-Consumers should:
-1. Filter events by relevant criteria
-2. Make idempotent decisions about how to respond
-3. Log actions taken in response to findings
+Domain lambdas should:
+1. Listen for diagnostic run triggers
+2. Validate their own storage using their own code
+3. Emit findings about problems discovered
+4. Make idempotent decisions about auto-remediation
 
 ---
 

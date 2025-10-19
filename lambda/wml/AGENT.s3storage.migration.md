@@ -494,7 +494,12 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - Define TypeScript types for manifest events (ChunkEvent, SnapshotEvent, ZoneChangeEvent)
   - Define NDJSON format for manifest file
   - Document event metadata fields (timestamp, requestId, player, etc.)
-  - Add to `mtw-interfaces` package
+  - Add to `packages/mtw-asset-workspace/ts/manifest/` 
+  - **Rationale**: mtw-asset-workspace is a shared utility package (like mtw-wml, mtw-utilities)
+    - Multiple lambdas can import utility packages (not lambda code)
+    - Manifest types are storage format definitions (like WML schema types)
+    - Both production code AND diagnostics use same parsing/validation logic (DRY maintained)
+  - **Note**: NOT in `mtw-interfaces` - that's for EventBridge contracts, not storage formats
   
 - [ ] **Task 2.1.2**: Implement manifest operations in `mtw-asset-workspace`
   - `loadManifest(prefix)` - Read and parse manifest NDJSON (accepts prefix like `{uuid}.wml/` or `{uuid}.auth.wml/`)
@@ -687,6 +692,12 @@ Each task above should be created as a GitHub issue with the following template:
 - Asset merge history tracking
 - Performance optimization (parallel chunk loading, caching strategies)
 - Investigation: Manifest growth patterns and archival strategies
+- **WML Lambda Self-Diagnostics**: 
+  - Create `lambda/wml/diagnostics/` directory for self-validation
+  - Listen for `Diagnostic Run Started` events from mtw.diagnostics
+  - Validate manifests using WML's own reconstruction code
+  - Emit findings back to diagnostics for aggregation
+  - Maintains domain authority (WML validates WML storage)
 
 ## Architectural Considerations
 
