@@ -294,11 +294,15 @@ The migration aims to address these limitations by:
 
 **Status**: 🚧 **IN PROGRESS** (Started October 18, 2025)
 
-**Progress**: 1/28 tasks complete (3.6%)
+**Progress**: 2/28 tasks complete (7.1%)
 - ✅ Phase 2.0: Prerequisites (1/1 complete)
-- ⏳ Phase 2.1: Foundation - Manifest Infrastructure (0/3 complete)
+- 🚧 Phase 2.1: Foundation - Manifest Infrastructure (1/3 complete)
 
 **Recent Completions**:
+- **October 18, 2025**: Task 2.1.1 - Manifest event schema design
+  - Defined ChunkEvent, SnapshotEvent, ZoneChangeEvent types
+  - Documented NDJSON format and reconstruction pattern
+  - Created comprehensive type guards and tests (15 tests)
 - **October 18, 2025**: Task 2.0.1 - Initialize primitives refactor
   - Eliminated direct S3 writes from initialize lambda
   - All writes now use `applyEdit` pattern (Phase 2 ready)
@@ -490,22 +494,29 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   **Result**: All primitives writes now go through `applyEdit` pattern (will naturally use chunks in Phase 2)
 
 **Phase 2.1: Foundation - Manifest Infrastructure**
-- [ ] **Task 2.1.1**: Design manifest event schema
-  - Define TypeScript types for manifest events (ChunkEvent, SnapshotEvent, ZoneChangeEvent)
-  - Define NDJSON format for manifest file
-  - Document event metadata fields (timestamp, requestId, player, etc.)
-  - Add to `mtw-interfaces` package
+- [x] **Task 2.1.1**: Design manifest event schema ✅ **COMPLETE** (October 18, 2025)
+  - ✅ Defined TypeScript types: `ManifestChunkEvent`, `ManifestSnapshotEvent`, `ManifestZoneChangeEvent`
+  - ✅ Documented NDJSON format (one event per line, chronological order)
+  - ✅ Event metadata fields: timestamp, eventId, requestId, player, s3Key, etc.
+  - ✅ Created `lambda/wml/manifest/baseClasses.ts` with type guards
+  - ✅ Created `lambda/wml/manifest/baseClasses.test.ts` - 15 tests, all passing
+  - ✅ Created `lambda/wml/manifest/AGENT.md` - Documentation with examples
+  - ✅ Defined `ManifestReconstructionState` helper type for efficient state building
+  - **Location**: `lambda/wml/manifest/` (domain authority in WML lambda)
+  - **Result**: Schema ready for implementation in Tasks 2.1.2-2.1.3
   
-- [ ] **Task 2.1.2**: Implement manifest operations in `mtw-asset-workspace`
+- [ ] **Task 2.1.2**: Implement manifest operations in WML lambda
+  - Add to `lambda/wml/manifest/operations.ts`
   - `loadManifest(prefix)` - Read and parse manifest NDJSON (accepts prefix like `{uuid}.wml/` or `{uuid}.auth.wml/`)
   - `appendManifestEvent(prefix, event)` - Append event to manifest (with `atomicLock`)
   - `writeManifest(prefix, events)` - Write full manifest (for initialization)
   - Handle missing manifest gracefully (return empty event log)
   - **Design**: Generic operations work with any prefix for content/auth reusability
   
-- [ ] **Task 2.1.3**: Implement chunk writing operations
+- [ ] **Task 2.1.3**: Implement chunk writing operations in WML lambda
+  - Add to `lambda/wml/manifest/chunks.ts`
   - `writeChunk(prefix, timestamp, content, metadata)` - Write immutable chunk to S3
-  - S3 key pattern: `{prefix}/chunks/{timestamp}.wml`
+  - S3 key pattern: `{prefix}/chunks/{timestamp}-{uuid}.wml` (uuid prevents collision on concurrent edits)
   - Add S3 metadata: requestId, player, timestamp
   - Include Zone tag for lifecycle management
   - Return chunk reference for manifest
@@ -687,6 +698,12 @@ Each task above should be created as a GitHub issue with the following template:
 - Asset merge history tracking
 - Performance optimization (parallel chunk loading, caching strategies)
 - Investigation: Manifest growth patterns and archival strategies
+- **WML Lambda Self-Diagnostics**: 
+  - Create `lambda/wml/diagnostics/` directory for self-validation
+  - Listen for `Diagnostic Run Started` events from mtw.diagnostics
+  - Validate manifests using WML's own reconstruction code
+  - Emit findings back to diagnostics for aggregation
+  - Maintains domain authority (WML validates WML storage)
 
 ## Architectural Considerations
 
