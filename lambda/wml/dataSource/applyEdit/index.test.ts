@@ -1,11 +1,11 @@
 import { applyEdit } from './index'
-import AssetWorkspace from '../../AssetWorkspace'
+import AssetWorkspace from '../../s3Storage/AssetWorkspace'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 // Mock local AssetWorkspace
-jest.mock('../../AssetWorkspace')
+jest.mock('../../s3Storage/AssetWorkspace')
 
 const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
 

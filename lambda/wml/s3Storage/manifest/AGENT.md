@@ -106,9 +106,10 @@ To reconstruct current state from manifest:
 - **atomicLock**: Concurrent manifest update protection
 
 ### Usage Locations
-- **manifest/operations.ts**: Manifest read/write operations
-- **manifest/chunks.ts**: Chunk writing operations  
-- **manifest/snapshots.ts**: Snapshot operations
+- **s3Storage/manifest/operations.ts**: Manifest read/write operations
+- **s3Storage/manifest/chunks.ts**: Chunk writing operations  
+- **s3Storage/manifest/snapshots.ts**: Snapshot operations (Phase 2.2)
+- **s3Storage/AssetWorkspace.ts**: Local writable AssetWorkspace extension
 - **dataSource/applyEdit**: Writes chunks, updates manifest
 - **dataSource/moveAsset**: Appends zone change events
 - Future: **diagnostics/**: Self-validation of manifest integrity
@@ -131,11 +132,29 @@ To reconstruct current state from manifest:
 - **Chosen**: Single `manifest-latest.ndjson` file
 - **Phase 3**: May archive old sections for long-lived assets
 
+## File Organization
+
+This manifest system is part of the S3 storage subsystem:
+
+```
+lambda/wml/s3Storage/
+  AssetWorkspace.ts         # Local writable AssetWorkspace (extends package read-only version)
+  AssetWorkspace.test.ts    # AssetWorkspace tests
+  manifest/
+    baseClasses.ts          # Event types and type guards
+    baseClasses.test.ts     # Type guard tests
+    operations.ts           # Manifest read/write (Task 2.1.2)
+    chunks.ts               # Chunk operations (Task 2.1.3)
+    snapshots.ts            # Snapshot operations (Task 2.2.1)
+    AGENT.md                # This file
+```
+
 ## Related Documentation
 
-- **[S3 Storage Migration](../AGENT.s3storage.migration.md)**: Overall Phase 2 migration plan
-- **[Asset Workspace Package](../../../packages/mtw-asset-workspace/)**: Read-only utilities
-- **[Apply Edit](../dataSource/applyEdit/)**: Primary chunk writer
+- **[S3 Storage Migration](../../AGENT.s3storage.migration.md)**: Overall Phase 2 migration plan
+- **[Asset Workspace Package](../../../../packages/mtw-asset-workspace/)**: Read-only utilities
+- **[Apply Edit](../../dataSource/applyEdit/)**: Primary chunk writer
+- **[S3 Storage Subsystem](../AssetWorkspace.ts)**: Local writable AssetWorkspace
 
 ---
 
