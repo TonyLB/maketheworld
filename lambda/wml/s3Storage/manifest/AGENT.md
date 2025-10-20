@@ -108,7 +108,7 @@ To reconstruct current state from manifest:
 ### Usage Locations
 - **s3Storage/manifest/operations.ts**: Manifest read/write operations
 - **s3Storage/manifest/chunks.ts**: Chunk writing operations  
-- **s3Storage/manifest/snapshots.ts**: Snapshot operations (Phase 2.2)
+- **s3Storage/manifest/snapshots.ts**: Snapshot operations ✅
 - **s3Storage/AssetWorkspace.ts**: Local writable AssetWorkspace extension
 - **dataSource/applyEdit**: Writes chunks, updates manifest
 - **dataSource/moveAsset**: Appends zone change events
@@ -132,6 +132,39 @@ To reconstruct current state from manifest:
 - **Chosen**: Single `manifest-latest.ndjson` file
 - **Phase 3**: May archive old sections for long-lived assets
 
+## Snapshot Operations
+
+Snapshots represent full materialized content at specific points in time. They enable efficient reconstruction by providing a baseline.
+
+### Writing Snapshots
+
+```typescript
+import { writeSnapshot } from './snapshots'
+
+const snapshotRef = await writeSnapshot({
+    prefix: 'test.wml/',              // Or 'test.auth.wml/' for auth
+    timestamp: Date.now(),            // Milliseconds since epoch
+    zone: 'Library',                  // For lifecycle management
+    snapshotType: 'manual',           // Or 'automatic' (Phase 3)
+    chunksBeforeSnapshot: 25          // Number of chunks this replaces
+})
+
+// Returns: { s3Key: 'test.wml/snapshots/1729252800000.wml', snapshotSize: 50000 }
+```
+
+**Implementation Details:**
+- Uses S3 `CopyObject` to efficiently copy materialized view to snapshot location
+- Parallel `HeadObject` on source to get size without sequential latency
+- S3 key pattern: `{prefix}/snapshots/{timestamp}.wml`
+- No UUID needed (snapshots are coordinated operations under atomicLock)
+- Metadata: timestamp, snapshotType, chunksBeforeSnapshot
+- Tags: Zone (for lifecycle policies)
+
+**Efficiency:**
+- No data transfer through Lambda (S3-to-S3 copy)
+- Parallel operations minimize latency
+- Size from source is reliable (snapshot = exact copy of materialized view)
+
 ## File Organization
 
 This manifest system is part of the S3 storage subsystem:
@@ -143,9 +176,12 @@ lambda/wml/s3Storage/
   manifest/
     baseClasses.ts          # Event types and type guards
     baseClasses.test.ts     # Type guard tests
-    operations.ts           # Manifest read/write (Task 2.1.2)
-    chunks.ts               # Chunk operations (Task 2.1.3)
-    snapshots.ts            # Snapshot operations (Task 2.2.1)
+    operations.ts           # Manifest read/write ✅
+    operations.test.ts      # Manifest operations tests ✅
+    chunks.ts               # Chunk operations ✅
+    chunks.test.ts          # Chunk operations tests ✅
+    snapshots.ts            # Snapshot operations ✅ (Task 2.2.1 - Oct 20, 2025)
+    snapshots.test.ts       # Snapshot operations tests ✅
     AGENT.md                # This file
 ```
 
@@ -158,5 +194,7 @@ lambda/wml/s3Storage/
 
 ---
 
-**Document Status**: Created October 18, 2025 as part of Phase 2.1 (Task 2.1.1)
+**Document Status**: 
+- Created October 18, 2025 as part of Phase 2.1 (Task 2.1.1)
+- Updated October 20, 2025 with snapshot operations (Task 2.2.1)
 

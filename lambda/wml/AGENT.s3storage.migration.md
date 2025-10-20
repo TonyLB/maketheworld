@@ -373,11 +373,25 @@ The migration aims to address these limitations by:
 
 **Status**: 🚧 **IN PROGRESS** (Started October 18, 2025)
 
-**Progress**: 4/28 tasks complete (14.3%)
+**Progress**: 5/28 tasks complete (17.9%)
 - ✅ Phase 2.0: Prerequisites (1/1 complete)
 - ✅ Phase 2.1: Foundation - Manifest Infrastructure (3/3 complete)
+- 🚧 Phase 2.2: Foundation - Reconstruction (1/3 complete)
 
 **Recent Completions**:
+- **October 20, 2025**: Task 2.2.1 - Snapshot writing operations implementation
+  - Implemented `writeSnapshot(options)` - Write full WML snapshots to S3
+  - S3 key format: `{prefix}/snapshots/{timestamp}.wml`
+  - Uses S3 CopyObject to efficiently copy materialized view (no data through Lambda)
+  - Parallel HeadObject on source to get size without sequential latency
+  - Returns SnapshotReference with s3Key and snapshotSize for manifest tracking
+  - Zone tags for lifecycle management (archival policies)
+  - Immutable S3 metadata: timestamp, snapshotType (manual/automatic), chunksBeforeSnapshot
+  - Generic operation works with any prefix (content or auth)
+  - Extended s3Client with `copyWithTags()` and `getSize()` methods
+  - 15 comprehensive tests, all passing (139 total tests in lambda/wml)
+  - Created `lambda/wml/s3Storage/manifest/snapshots.ts` and tests
+  - Updated `packages/mtw-asset-workspace/ts/clients.ts` with new methods
 - **October 19, 2025**: Task 2.1.3 - Chunk writing operations implementation
   - Implemented `writeChunk(options)` - Write immutable chunks to S3
   - S3 key format: `{prefix}/chunks/{timestamp}-{uuid}.wml`
@@ -647,13 +661,16 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - **Result**: Chunk writing ready for integration in Phase 2.3 (applyEdit)
 
 **Phase 2.2: Foundation - Reconstruction**
-- [ ] **Task 2.2.1**: Implement snapshot operations
-  - Add to `lambda/wml/s3Storage/manifest/snapshots.ts`
-  - `writeSnapshot(prefix, timestamp, content)` - Write full WML snapshot
-  - S3 key pattern: `{prefix}/snapshots/{timestamp}.wml`
-  - Add S3 metadata: timestamp, snapshotType (manual vs automatic)
-  - Return snapshot reference for manifest
-  - **Design**: Generic operation accepts prefix parameter
+- [x] **Task 2.2.1**: Implement snapshot operations ✅ **COMPLETE** (October 20, 2025)
+  - ✅ Created `lambda/wml/s3Storage/manifest/snapshots.ts`
+  - ✅ `writeSnapshot(options)` - Write full WML snapshot using S3 CopyObject
+  - ✅ S3 key pattern: `{prefix}/snapshots/{timestamp}.wml`
+  - ✅ S3 metadata: timestamp, snapshotType (manual/automatic), chunksBeforeSnapshot
+  - ✅ Return SnapshotReference with s3Key and snapshotSize
+  - ✅ Generic operation accepts prefix parameter (content or auth)
+  - ✅ Extended s3Client with `copyWithTags()` and `getSize()` methods
+  - ✅ 15 comprehensive tests, all passing
+  - **Implementation**: Uses CopyObject + parallel HeadObject for efficiency
   
 - [ ] **Task 2.2.2**: Implement manifest reconstruction logic
   - Add to `lambda/wml/s3Storage/manifest/reconstruction.ts`
@@ -903,12 +920,13 @@ Record observations for each new AI chat session:
 
 ### Observations Log
 
-**Session 1** - [Date]:
-- Context gathering:
-- Understanding of task:
-- Issues encountered:
-- Additional context needed:
-- Overall effectiveness: ⭐⭐⭐⭐⭐ (1-5 stars)
+**Session 1** - October 20, 2025 (Task 2.2.1 - Snapshot Operations):
+- **Context gathering**: ✅ Successfully gathered all necessary context by following the 7-step guide. Read foundational documents (AGENT.md, S3 storage patterns, applyEdit), reviewed implemented Phase 2.1 code (manifest infrastructure, chunks), and understood conventions.
+- **Understanding of task**: ✅ Correctly identified task 2.2.1 requirements (snapshot writing operations). Understood the architectural context (materialized views as source, S3 CopyObject pattern) and how snapshots fit into the broader chunk-based architecture.
+- **Issues encountered**: None. The guide provided clear direction on what to read and in what order. Conventions section was particularly helpful (S3 prefix format, functional style, generic design patterns).
+- **Additional context needed**: Minimal. One clarification question about content source (materialized view) which was anticipated and quickly resolved. No surprise knowledge gaps or missing documentation.
+- **Overall effectiveness**: ⭐⭐⭐⭐⭐ (5/5 stars)
+- **Notes**: The structured approach worked excellently. Having explicit steps with "Why" explanations made it easy to understand not just what to read, but why each piece mattered. The progression from foundations → current implementation → next task felt natural and efficient.
 
 **Session 2** - [Date]:
 - Context gathering:
