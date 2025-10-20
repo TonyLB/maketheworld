@@ -182,8 +182,52 @@ lambda/wml/s3Storage/
     chunks.test.ts          # Chunk operations tests ✅
     snapshots.ts            # Snapshot operations ✅ (Task 2.2.1 - Oct 20, 2025)
     snapshots.test.ts       # Snapshot operations tests ✅
+    reconstruction.ts       # Reconstruction operations ✅ (Task 2.2.2 - Oct 20, 2025)
+    reconstruction.test.ts  # Reconstruction operations tests ✅
     AGENT.md                # This file
 ```
+
+## Reconstruction
+
+Reconstruction rebuilds current state from manifest events. This is the core read operation for chunk-based storage.
+
+### Usage
+
+```typescript
+import { reconstructFromManifest } from './reconstruction'
+
+// Reconstruct content
+const contentResult = await reconstructFromManifest('test.wml/')
+if (contentResult.type === 'content') {
+    const standard = contentResult.standard  // StandardForm
+    console.log(`Used snapshot: ${contentResult.metadata.snapshotUsed}`)
+    console.log(`Applied ${contentResult.metadata.chunksApplied} chunks`)
+}
+
+// Reconstruct authorization
+const authResult = await reconstructFromManifest('test.auth.wml/')
+if (authResult.type === 'auth') {
+    const authorization = authResult.authorization  // StandardAuthorizationCollection
+}
+```
+
+**Algorithm:**
+1. Load manifest events from `{prefix}/manifest-latest.ndjson`
+2. Find latest snapshot (if any)
+3. Load baseline from snapshot or start with empty
+4. Apply all chunks after snapshot in chronological order
+5. Return type-specific result with metadata
+
+**Error Handling:**
+- Missing snapshot → Falls back to empty baseline, continues with chunks
+- Missing chunk → Logs warning, continues with remaining chunks
+- Corrupt WML → Logs warning, skips that chunk
+- No manifest → Returns empty content
+
+**Performance:** 
+- Parallel S3 downloads: All chunk GET requests kick off immediately
+- Sequential merge processing: Chunks merge in order as they arrive
+- Uses async reduce pattern for optimal latency with correctness guarantee
 
 ## Related Documentation
 
@@ -197,4 +241,5 @@ lambda/wml/s3Storage/
 **Document Status**: 
 - Created October 18, 2025 as part of Phase 2.1 (Task 2.1.1)
 - Updated October 20, 2025 with snapshot operations (Task 2.2.1)
+- Updated October 20, 2025 with reconstruction operations (Task 2.2.2)
 
