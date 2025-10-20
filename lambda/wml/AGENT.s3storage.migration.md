@@ -1,10 +1,89 @@
 # WML S3 Storage Migration - Architectural Planning
 
+> **🤖 AI Agent?** Jump to [Getting Started](#-ai-agent-getting-started) section below for onboarding instructions.
+
 **Status: PHASE 1 IN PROGRESS**
 
 **Last Updated: October 16, 2025**
 
 This document tracks the migration away from the "zones as subdirectories" storage pattern to a more flexible and maintainable architecture.
+
+---
+
+## 🤖 AI Agent: Getting Started
+
+**New to this migration? Follow these steps to get oriented:**
+
+### Step 1: Understand Project Foundations
+Read these foundational documents first (essential context):
+
+1. **`AGENT.md`** (project root)
+   - **Why**: Project documentation standards and testing patterns
+   - **Key Info**: How to write documentation, naming conventions, testing guidelines
+   
+2. **`packages/mtw-wml/`** - WML Format Documentation
+   - **Why**: Understanding WML is essential - we're storing/parsing WML chunks
+   - **Key Files**: Look for README, schema documentation, examples
+   - **Focus**: How WML represents assets, what Replace/Remove operations look like
+   
+3. **`lambda/wml/AGENT.s3Storage.md`** - Current S3 Storage Patterns  
+   - **Why**: Understand existing storage architecture we're building on
+   - **Key Info**: How S3 storage currently works, what patterns exist
+   - **Note**: This describes pre-chunk architecture (Phase 1 complete)
+
+### Step 2: Read This Migration Document
+You're here! Read the following sections in order:
+1. **Current Architecture** (below) - Understanding what we're migrating from
+2. **Migration Objectives** - Why we're doing this
+3. **Phase 2: Chunk-Based Snapshot Architecture** - Current work focus
+4. **Progress tracking** - See what's complete and what's next
+5. **Detailed Task Breakdown** - Find your specific task
+
+### Step 3: Understand applyEdit Pattern
+**Critical**: This is the core write path we're modifying in Phase 2.
+
+- **`lambda/wml/dataSource/applyEdit/index.ts`** - Core edit application logic
+  - **Current State**: Writes directly to materialized `.wml` and `.ndjson` files
+  - **Phase 2 Goal**: Will write chunks + update manifests + rebuild materialized views
+  - **Pattern**: Load current state, merge edits, write result
+  
+- **`lambda/wml/dataSource/applyEdit/index.test.ts`** - Usage patterns and examples
+  - **Review**: See how edits are applied, what success/conflict responses look like
+  - **Important**: This is the primary integration point for Phase 2.3
+
+### Step 4: Review Implemented Phase 2.1 Code
+After understanding the foundations, review what's been implemented:
+- **`lambda/wml/s3Storage/manifest/baseClasses.ts`** - Manifest event types and schemas
+- **`lambda/wml/s3Storage/manifest/operations.ts`** - Manifest read/write operations
+- **`lambda/wml/s3Storage/manifest/chunks.ts`** - Chunk writing operations
+- **`lambda/wml/s3Storage/manifest/AGENT.md`** - Manifest subsystem documentation
+- **`lambda/wml/s3Storage/AssetWorkspace.ts`** - Writable AssetWorkspace implementation
+
+### Step 5: Check Testing Patterns
+Review test files to understand usage patterns:
+- **`lambda/wml/s3Storage/manifest/*.test.ts`** - See how operations are used
+- Note: All prefixes should NOT include `ASSET#` (e.g., use `uuid.wml/` not `ASSET#uuid.wml/`)
+
+### Step 6: Identify Next Task
+Look at the **Detailed Task Breakdown** section below:
+- Find tasks marked with `[ ]` (not yet complete)
+- Check **Progress** percentages to see current phase
+- Review **Recent Completions** to understand what was just finished
+- Read the specific task description for implementation details
+
+### Step 7: Run Tests Before Starting
+```bash
+cd lambda/wml
+npm test -- --watchAll=false
+```
+All tests should pass before beginning new work (currently 124 tests).
+
+### Key Conventions
+- **S3 Prefixes**: Strip `ASSET#` from UUIDs (use `uuid.wml/` not `ASSET#uuid.wml/`)
+- **Functional Style**: Prefer `map`/`filter`/`findIndex` over imperative loops
+- **Batch Operations**: Design for efficiency (e.g., `appendManifestEvents` accepts arrays)
+- **Generic Design**: Operations work with both content and auth prefixes
+- **Immutability**: Chunks and snapshots are immutable once written
 
 ---
 
@@ -294,11 +373,25 @@ The migration aims to address these limitations by:
 
 **Status**: 🚧 **IN PROGRESS** (Started October 18, 2025)
 
-**Progress**: 4/28 tasks complete (14.3%)
+**Progress**: 5/28 tasks complete (17.9%)
 - ✅ Phase 2.0: Prerequisites (1/1 complete)
 - ✅ Phase 2.1: Foundation - Manifest Infrastructure (3/3 complete)
+- 🚧 Phase 2.2: Foundation - Reconstruction (1/3 complete)
 
 **Recent Completions**:
+- **October 20, 2025**: Task 2.2.1 - Snapshot writing operations implementation
+  - Implemented `writeSnapshot(options)` - Write full WML snapshots to S3
+  - S3 key format: `{prefix}/snapshots/{timestamp}.wml`
+  - Uses S3 CopyObject to efficiently copy materialized view (no data through Lambda)
+  - Parallel HeadObject on source to get size without sequential latency
+  - Returns SnapshotReference with s3Key and snapshotSize for manifest tracking
+  - Zone tags for lifecycle management (archival policies)
+  - Immutable S3 metadata: timestamp, snapshotType (manual/automatic), chunksBeforeSnapshot
+  - Generic operation works with any prefix (content or auth)
+  - Extended s3Client with `copyWithTags()` and `getSize()` methods
+  - 15 comprehensive tests, all passing (139 total tests in lambda/wml)
+  - Created `lambda/wml/s3Storage/manifest/snapshots.ts` and tests
+  - Updated `packages/mtw-asset-workspace/ts/clients.ts` with new methods
 - **October 19, 2025**: Task 2.1.3 - Chunk writing operations implementation
   - Implemented `writeChunk(options)` - Write immutable chunks to S3
   - S3 key format: `{prefix}/chunks/{timestamp}-{uuid}.wml`
@@ -568,13 +661,16 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - **Result**: Chunk writing ready for integration in Phase 2.3 (applyEdit)
 
 **Phase 2.2: Foundation - Reconstruction**
-- [ ] **Task 2.2.1**: Implement snapshot operations
-  - Add to `lambda/wml/s3Storage/manifest/snapshots.ts`
-  - `writeSnapshot(prefix, timestamp, content)` - Write full WML snapshot
-  - S3 key pattern: `{prefix}/snapshots/{timestamp}.wml`
-  - Add S3 metadata: timestamp, snapshotType (manual vs automatic)
-  - Return snapshot reference for manifest
-  - **Design**: Generic operation accepts prefix parameter
+- [x] **Task 2.2.1**: Implement snapshot operations ✅ **COMPLETE** (October 20, 2025)
+  - ✅ Created `lambda/wml/s3Storage/manifest/snapshots.ts`
+  - ✅ `writeSnapshot(options)` - Write full WML snapshot using S3 CopyObject
+  - ✅ S3 key pattern: `{prefix}/snapshots/{timestamp}.wml`
+  - ✅ S3 metadata: timestamp, snapshotType (manual/automatic), chunksBeforeSnapshot
+  - ✅ Return SnapshotReference with s3Key and snapshotSize
+  - ✅ Generic operation accepts prefix parameter (content or auth)
+  - ✅ Extended s3Client with `copyWithTags()` and `getSize()` methods
+  - ✅ 15 comprehensive tests, all passing
+  - **Implementation**: Uses CopyObject + parallel HeadObject for efficiency
   
 - [ ] **Task 2.2.2**: Implement manifest reconstruction logic
   - Add to `lambda/wml/s3Storage/manifest/reconstruction.ts`
@@ -788,6 +884,75 @@ Each task above should be created as a GitHub issue with the following template:
 - **[WML DataSource](dataSource/)**: DataSource pattern and event handling
 - **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File operations and abstractions
 - **[Import Graph Redesign](../../lambda/assets/fetchImportDefaults/AGENT.graph-redesign.md)**: Component-level graph architecture (Phase 2)
+
+---
+
+## 📊 Evaluation: "Getting Started" Pattern Effectiveness
+
+**Pattern Introduced**: October 20, 2025 (added to this document)
+
+**Purpose**: Evaluate whether structured AI agent onboarding should be adopted project-wide.
+
+### What We're Testing
+The "Getting Started" section (above) provides a 7-step onboarding process for AI agents:
+1. Understand project foundations (AGENT.md, WML docs, S3 storage)
+2. Read migration plan
+3. Understand applyEdit pattern
+4. Review implemented code
+5. Check testing patterns
+6. Identify next task
+7. Run tests before starting
+
+### Evaluation Criteria
+Record observations for each new AI chat session:
+
+**Effectiveness Metrics:**
+- ✅ Did the AI gather all necessary context without additional prompting?
+- ✅ Did the AI understand conventions (S3 prefix format, functional style, etc.)?
+- ✅ Did the AI identify the correct next task to work on?
+- ✅ Were there any knowledge gaps despite following the guide?
+- ✅ How much additional context was needed beyond the guide?
+
+**Efficiency Metrics:**
+- Time to orient (measured by number of initial file reads)
+- Questions asked before starting implementation
+- Context-related errors during implementation
+
+### Observations Log
+
+**Session 1** - October 20, 2025 (Task 2.2.1 - Snapshot Operations):
+- **Context gathering**: ✅ Successfully gathered all necessary context by following the 7-step guide. Read foundational documents (AGENT.md, S3 storage patterns, applyEdit), reviewed implemented Phase 2.1 code (manifest infrastructure, chunks), and understood conventions.
+- **Understanding of task**: ✅ Correctly identified task 2.2.1 requirements (snapshot writing operations). Understood the architectural context (materialized views as source, S3 CopyObject pattern) and how snapshots fit into the broader chunk-based architecture.
+- **Issues encountered**: None. The guide provided clear direction on what to read and in what order. Conventions section was particularly helpful (S3 prefix format, functional style, generic design patterns).
+- **Additional context needed**: Minimal. One clarification question about content source (materialized view) which was anticipated and quickly resolved. No surprise knowledge gaps or missing documentation.
+- **Overall effectiveness**: ⭐⭐⭐⭐⭐ (5/5 stars)
+- **Notes**: The structured approach worked excellently. Having explicit steps with "Why" explanations made it easy to understand not just what to read, but why each piece mattered. The progression from foundations → current implementation → next task felt natural and efficient.
+
+**Session 2** - [Date]:
+- Context gathering:
+- Understanding of task:
+- Issues encountered:
+- Additional context needed:
+- Overall effectiveness: ⭐⭐⭐⭐⭐ (1-5 stars)
+
+*(Add more sessions as needed)*
+
+### Decision Point
+**After 5+ sessions with the pattern:**
+
+- [ ] **Adopt project-wide** - Pattern is effective, add to `AGENT.md` as recommended practice
+- [ ] **Revise and retry** - Pattern needs refinement before broader adoption
+- [ ] **Context-specific only** - Pattern works for complex migrations but not general use
+- [ ] **Abandon** - Pattern doesn't provide sufficient value
+
+**Rationale for decision**:
+*(Record reasons here once decision is made)*
+
+**If adopting project-wide, include in `AGENT.md`:**
+- Template for "Getting Started" sections
+- When to use structured onboarding (complexity threshold)
+- Best practices for step-by-step context gathering
+- Examples from this migration document
 
 ---
 

@@ -1,4 +1,4 @@
-import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand, GetObjectTaggingCommand, PutObjectTaggingCommand } from "@aws-sdk/client-s3"
+import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand, GetObjectTaggingCommand, PutObjectTaggingCommand, CopyObjectCommand } from "@aws-sdk/client-s3"
 import { streamToString } from "./stream"
 
 const params = { region: process.env.AWS_REGION }
@@ -117,6 +117,33 @@ export const s3Client = {
             }
             throw err
         }
+    },
+
+    async getSize({ Key }: {
+        Key: string;
+    }): Promise<number> {
+        const response = await internalS3Client.send(new HeadObjectCommand({
+            Bucket: S3_BUCKET,
+            Key
+        }))
+        return response.ContentLength ?? 0
+    },
+
+    async copyWithTags({ CopySource, Key, Metadata, Tags }: {
+        CopySource: string;
+        Key: string;
+        Metadata: Record<string, string>;
+        Tags: Record<string, string>;
+    }): Promise<void> {
+        await internalS3Client.send(new CopyObjectCommand({
+            Bucket: S3_BUCKET,
+            CopySource: `${S3_BUCKET}/${CopySource}`,
+            Key,
+            Metadata,
+            MetadataDirective: 'REPLACE',
+            Tagging: Object.entries(Tags).map(([k, v]) => `${k}=${v}`).join('&'),
+            TaggingDirective: 'REPLACE'
+        }))
     },
 
     internalClient: internalS3Client
