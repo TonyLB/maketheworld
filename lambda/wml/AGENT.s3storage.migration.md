@@ -942,17 +942,35 @@ Record observations for each new AI chat session:
 - **Overall effectiveness**: ⭐⭐⭐⭐⭐ (5/5 stars)
 - **Notes**: The structured approach worked excellently. Having explicit steps with "Why" explanations made it easy to understand not just what to read, but why each piece mattered. The progression from foundations → current implementation → next task felt natural and efficient.
 
-**Session 2** - [Date]:
-- Context gathering:
-- Understanding of task:
-- Issues encountered:
-- Additional context needed:
-- Overall effectiveness: ⭐⭐⭐⭐⭐ (1-5 stars)
+**Session 2** - October 20, 2025 (Task 2.2.2 - Reconstruction Logic):
+- **Context gathering**: ✅ Followed 7-step guide systematically. Read AGENT.md, manifest AGENT.md, baseClasses.ts, operations.ts, chunks.ts, snapshots.ts, and applyEdit/index.ts. All necessary context gathered upfront without additional prompting.
+- **Understanding of task**: ✅ Correctly identified task 2.2.2 requirements immediately. Understood the reconstruction algorithm (load manifest → find snapshot → load baseline → apply chunks), type-awareness needs (StandardForm vs StandardAuthorizationCollection), and error handling strategy.
+- **Issues encountered**: None blocking. Minor test adjustments needed for authorization WML format (Grant tags require `player` and `actions` attributes, components need `key` not just `uuid`), but these were domain knowledge issues, not gaps in the guide.
+- **Additional context needed**: Zero. The guide's Step 4 (Review Implemented Phase 2.1 Code) was particularly effective - seeing snapshots.ts implementation patterns made reconstruction implementation straightforward. The conventions section (functional style, generic design, error handling) set clear expectations.
+- **Overall effectiveness**: ⭐⭐⭐⭐⭐ (5/5 stars)
+- **Notes**: The guide's progressive structure (foundations → current implementation → next task) worked excellently. Having explicit "Why" explanations for each reading made context gathering efficient. The user then requested performance optimization (parallel downloads) and functional refactoring (eliminate mutations) - both implemented successfully using patterns established in the codebase. The guide prepared me well for both the primary task and iterative improvements.
 
 *(Add more sessions as needed)*
 
+### Key Findings (So Far)
+
+**Consistent Success Pattern (2/2 sessions)**:
+- Both sessions achieved 5/5 star effectiveness
+- Zero knowledge gaps requiring user intervention
+- AI successfully completed primary tasks AND iterative improvements
+- Progressive structure (foundations → implementation → next task) works well
+
+**Critical Innovation Identified**:
+The key differentiator is making the **reasoning** behind each step explicit ("Why read this?") rather than just listing files. This helps AI agents:
+1. Understand the PURPOSE of each context piece
+2. Make connections between related systems
+3. Prioritize information appropriately
+4. Know when they have sufficient context vs need more
+
+**Observation**: If subsequent sessions continue this pattern, we may conclude evaluation early rather than waiting for full Phase 2 completion. Consistent 5-star results across diverse tasks would be strong evidence for project-wide adoption.
+
 ### Decision Point
-**After 5+ sessions with the pattern:**
+**After 5+ sessions OR clear pattern emergence:**
 
 - [ ] **Adopt project-wide** - Pattern is effective, add to `AGENT.md` as recommended practice
 - [ ] **Revise and retry** - Pattern needs refinement before broader adoption
