@@ -2,6 +2,12 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import AssetWorkspace, { Zone } from "../../s3Storage/AssetWorkspace";
 import internalCache from "../../internalCache";
 import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { writeChunk } from "../../s3Storage/manifest/chunks";
+import { writeSnapshot } from "../../s3Storage/manifest/snapshots";
+import { loadManifest, appendManifestEvents } from "../../s3Storage/manifest/operations";
+import { ManifestChunkEvent, ManifestSnapshotEvent } from "../../s3Storage/manifest/baseClasses";
+import { v4 as uuidv4 } from 'uuid';
+import { schemaToWML } from "@tonylb/mtw-wml/ts/schema";
 
 export type ApplyEditArguments = {
     AssetId: AssetUUID;
@@ -104,7 +110,69 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResu
         console.log(`Merged standard: ${JSON.stringify(mergedStandard.toJSON(), null, 4)}`)
 
         //
-        // Write ndjson and wml
+        // Write chunk and update manifest
+        //
+        const assetUuid = args.AssetId.replace('ASSET#', '')
+        const prefix = `${assetUuid}.wml/`
+        const timestamp = Date.now()
+        
+        // Check if lazy migration is needed
+        const manifest = await loadManifest(prefix)
+        const needsMigration = manifest.length === 0 && existingStandard._components.length > 0
+        
+        const eventsToAppend: (ManifestChunkEvent | ManifestSnapshotEvent)[] = []
+        
+        // Lazy migration: create initial snapshot from existing content
+        if (needsMigration) {
+            console.log(`Lazy migration: Creating initial snapshot for ${args.AssetId}`)
+            
+            // Create snapshot from existing materialized view
+            // (No need to write - we just loaded from it, so it already exists)
+            const snapshotRef = await writeSnapshot({
+                prefix,
+                timestamp,
+                zone: assetWorkspace.zone,
+                snapshotType: 'manual',
+                chunksBeforeSnapshot: 0  // Migration boundary - no chunks before this
+            })
+            
+            const snapshotEvent: ManifestSnapshotEvent = {
+                type: 'snapshot',
+                timestamp: new Date(timestamp).toISOString(),
+                eventId: uuidv4(),
+                s3Key: snapshotRef.s3Key,
+                snapshotType: 'manual',
+                chunksBeforeSnapshot: 0,
+                snapshotSize: snapshotRef.snapshotSize
+            }
+            
+            eventsToAppend.push(snapshotEvent)
+        }
+        
+        // Write chunk with the edit delta (not the merged result)
+        const chunkWml = schemaToWML([editStandard.schema])
+        const chunkRef = await writeChunk({
+            prefix,
+            timestamp,
+            content: chunkWml,
+            zone: assetWorkspace.zone
+        })
+        
+        const chunkEvent: ManifestChunkEvent = {
+            type: 'chunk',
+            timestamp: new Date(timestamp).toISOString(),
+            eventId: uuidv4(),
+            s3Key: chunkRef.s3Key,
+            chunkSize: chunkRef.chunkSize
+        }
+        
+        eventsToAppend.push(chunkEvent)
+        
+        // Append events to manifest (snapshot + chunk for migration, chunk only for normal)
+        await appendManifestEvents(prefix, eventsToAppend)
+
+        //
+        // Write ndjson and wml (materialized views)
         //
     
         assetWorkspace.setJSON(mergedStandard)
