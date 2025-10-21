@@ -7,11 +7,39 @@ import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 // Mock local AssetWorkspace
 jest.mock('../../s3Storage/AssetWorkspace')
 
+// Mock manifest operations
+jest.mock('../../s3Storage/manifest/chunks')
+jest.mock('../../s3Storage/manifest/snapshots')
+jest.mock('../../s3Storage/manifest/operations')
+
 const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
+
+import { writeChunk } from '../../s3Storage/manifest/chunks'
+import { writeSnapshot } from '../../s3Storage/manifest/snapshots'
+import { loadManifest, appendManifestEvents } from '../../s3Storage/manifest/operations'
+
+const mockWriteChunk = writeChunk as jest.MockedFunction<typeof writeChunk>
+const mockWriteSnapshot = writeSnapshot as jest.MockedFunction<typeof writeSnapshot>
+const mockLoadManifest = loadManifest as jest.MockedFunction<typeof loadManifest>
+const mockAppendManifestEvents = appendManifestEvents as jest.MockedFunction<typeof appendManifestEvents>
 
 describe("applyEdit", () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        
+        // Setup default mock implementations for manifest operations
+        mockWriteChunk.mockResolvedValue({
+            s3Key: 'test.wml/chunks/1234567890-abc123.wml',
+            chunkSize: 500
+        })
+        
+        mockWriteSnapshot.mockResolvedValue({
+            s3Key: 'test.wml/snapshots/1234567890.wml',
+            snapshotSize: 2000
+        })
+        
+        mockLoadManifest.mockResolvedValue([])
+        mockAppendManifestEvents.mockResolvedValue(undefined)
     })
 
     describe("input validation", () => {
@@ -199,8 +227,8 @@ describe("applyEdit", () => {
                 expect(result.success).toBe(true)
                 // Should merge, not replace
                 const mergedSchema = (mockWorkspace.setJSON as jest.Mock).mock.calls[0][0]
-                expect(mergedSchema.byUniversalId['ROOM#testRoom']).toBeDefined()
-                expect(mergedSchema.byUniversalId['FEATURE#existingFeature']).toBeDefined()
+                expect(mergedSchema._components.find((c: any) => c.universalKey === 'ROOM#testRoom')).toBeDefined()
+                expect(mergedSchema._components.find((c: any) => c.universalKey === 'FEATURE#existingFeature')).toBeDefined()
             })
         })
     })
@@ -971,6 +999,384 @@ describe("applyEdit", () => {
             
             // Should NOT try to create the asset
             expect(MockAssetWorkspace).not.toHaveBeenCalled()
+        })
+    })
+
+    describe("Chunk writing and manifest updates", () => {
+        const testAssetId = 'ASSET#test'
+        
+        describe("normal edit with existing manifest", () => {
+            it('should write chunk and append to manifest', async () => {
+                const existingWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)>
+                                <Name>Lobby</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `)
+                const existingStandard = new StandardForm(existingWML)
+                
+                const mockWorkspace = {
+                    loadJSON: jest.fn().mockResolvedValue(undefined),
+                    standard: existingStandard,
+                    zone: 'Library' as const,
+                    setJSON: jest.fn(),
+                    pushJSON: jest.fn().mockResolvedValue(undefined),
+                    pushWML: jest.fn().mockResolvedValue(undefined)
+                }
+
+                MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+                
+                // Mock manifest with existing events (not empty)
+                mockLoadManifest.mockResolvedValue([
+                    {
+                        type: 'chunk',
+                        timestamp: '2025-10-01T10:00:00.000Z',
+                        eventId: 'old-event-1',
+                        s3Key: 'test.wml/chunks/1234567890-old.wml'
+                    }
+                ])
+
+                const editSchema = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(kitchen)>
+                            <Example uuid=(kitchenExample)>
+                                <Name>Kitchen</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `)
+
+                const result = await applyEdit({
+                    AssetId: testAssetId,
+                    RequestId: 'test-request',
+                    schema: editSchema
+                })
+
+                // Should succeed
+                expect(result.success).toBe(true)
+                
+                // Should load manifest to check for lazy migration
+                expect(mockLoadManifest).toHaveBeenCalledWith('test.wml/')
+                
+                // Should NOT create snapshot (manifest already exists)
+                expect(mockWriteSnapshot).not.toHaveBeenCalled()
+                
+                // Should write chunk with edit delta
+                expect(mockWriteChunk).toHaveBeenCalledWith(expect.objectContaining({
+                    prefix: 'test.wml/',
+                    content: expect.stringContaining('<Room uuid=(kitchen)>'),
+                    zone: 'Library'
+                }))
+                
+                // Should append only chunk event to manifest
+                expect(mockAppendManifestEvents).toHaveBeenCalledWith('test.wml/', expect.arrayContaining([
+                    expect.objectContaining({
+                        type: 'chunk',
+                        s3Key: 'test.wml/chunks/1234567890-abc123.wml',
+                        chunkSize: 500
+                    })
+                ]))
+                
+                // Should have exactly 1 event in the batch (no snapshot)
+                const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
+                expect(eventsAppended).toHaveLength(1)
+                
+                // Should still write materialized views
+                expect(mockWorkspace.pushJSON).toHaveBeenCalled()
+                expect(mockWorkspace.pushWML).toHaveBeenCalled()
+            })
+        })
+
+        describe("lazy migration - existing asset, no manifest", () => {
+            it('should create snapshot and then write chunk', async () => {
+                const existingWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)>
+                                <Name>Lobby</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `)
+                const existingStandard = new StandardForm(existingWML)
+                
+                const mockWorkspace = {
+                    loadJSON: jest.fn().mockResolvedValue(undefined),
+                    standard: existingStandard,
+                    zone: 'Library' as const,
+                    setJSON: jest.fn(),
+                    pushJSON: jest.fn().mockResolvedValue(undefined),
+                    pushWML: jest.fn().mockResolvedValue(undefined)
+                }
+
+                MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+                
+                // Mock manifest as empty (triggers lazy migration)
+                mockLoadManifest.mockResolvedValue([])
+
+                const editSchema = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(kitchen)>
+                            <Example uuid=(kitchenExample)>
+                                <Name>Kitchen</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `)
+
+                const result = await applyEdit({
+                    AssetId: testAssetId,
+                    RequestId: 'test-request',
+                    schema: editSchema
+                })
+
+                // Should succeed
+                expect(result.success).toBe(true)
+                
+                // Should load manifest
+                expect(mockLoadManifest).toHaveBeenCalledWith('test.wml/')
+                
+                // Should create initial snapshot (from already-existing materialized view)
+                expect(mockWriteSnapshot).toHaveBeenCalledWith(expect.objectContaining({
+                    prefix: 'test.wml/',
+                    zone: 'Library',
+                    snapshotType: 'manual',
+                    chunksBeforeSnapshot: 0
+                }))
+                
+                // Should write chunk with edit delta
+                expect(mockWriteChunk).toHaveBeenCalledWith(expect.objectContaining({
+                    prefix: 'test.wml/',
+                    content: expect.stringContaining('<Room uuid=(kitchen)>'),
+                    zone: 'Library'
+                }))
+                
+                // Should append both snapshot and chunk events to manifest
+                expect(mockAppendManifestEvents).toHaveBeenCalledWith('test.wml/', expect.arrayContaining([
+                    expect.objectContaining({
+                        type: 'snapshot',
+                        s3Key: 'test.wml/snapshots/1234567890.wml',
+                        snapshotType: 'manual',
+                        chunksBeforeSnapshot: 0,
+                        snapshotSize: 2000
+                    }),
+                    expect.objectContaining({
+                        type: 'chunk',
+                        s3Key: 'test.wml/chunks/1234567890-abc123.wml',
+                        chunkSize: 500
+                    })
+                ]))
+                
+                // Should have exactly 2 events in the batch (snapshot + chunk)
+                const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
+                expect(eventsAppended).toHaveLength(2)
+                expect(eventsAppended[0].type).toBe('snapshot')
+                expect(eventsAppended[1].type).toBe('chunk')
+                
+                // Should write final merged result to materialized views (exactly once)
+                expect(mockWorkspace.setJSON).toHaveBeenCalledTimes(1)
+                expect(mockWorkspace.pushJSON).toHaveBeenCalledTimes(1)
+                expect(mockWorkspace.pushWML).toHaveBeenCalledTimes(1)
+            })
+            
+            it('should skip lazy migration if asset is empty (createIfNeeded case)', async () => {
+                // Test with createIfNeeded: true and zone specified (new asset case)
+                MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(undefined)
+                
+                const mockWorkspace = {
+                    loadJSON: jest.fn().mockResolvedValue(undefined),
+                    standard: undefined,
+                    zone: 'Library' as const,
+                    setJSON: jest.fn(),
+                    pushJSON: jest.fn().mockResolvedValue(undefined),
+                    pushWML: jest.fn().mockResolvedValue(undefined)
+                }
+                
+                // @ts-ignore - partial mock
+                MockAssetWorkspace.mockImplementation(() => mockWorkspace)
+                
+                // Mock manifest as empty
+                mockLoadManifest.mockResolvedValue([])
+
+                const editSchema = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(kitchen)>
+                            <Example uuid=(kitchenExample)>
+                                <Name>Kitchen</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `)
+
+                const result = await applyEdit({
+                    AssetId: testAssetId,
+                    RequestId: 'test-request',
+                    schema: editSchema,
+                    createIfNeeded: true,
+                    zone: 'Library'
+                })
+
+                // Should succeed
+                expect(result.success).toBe(true)
+                
+                // Should NOT create snapshot (asset was empty, nothing to snapshot)
+                expect(mockWriteSnapshot).not.toHaveBeenCalled()
+                
+                // Should still write chunk
+                expect(mockWriteChunk).toHaveBeenCalled()
+                
+                // Should append only chunk event (no snapshot)
+                const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
+                expect(eventsAppended).toHaveLength(1)
+                expect(eventsAppended[0].type).toBe('chunk')
+            })
+        })
+
+        describe("chunk content verification", () => {
+            it('should write edit delta as chunk, not merged result', async () => {
+                const existingWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(lobby)>
+                            <Example uuid=(lobbyExample)>
+                                <Name>Lobby</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `)
+                const existingStandard = new StandardForm(existingWML)
+                
+                const mockWorkspace = {
+                    loadJSON: jest.fn().mockResolvedValue(undefined),
+                    standard: existingStandard,
+                    zone: 'Canon' as const,
+                    setJSON: jest.fn(),
+                    pushJSON: jest.fn().mockResolvedValue(undefined),
+                    pushWML: jest.fn().mockResolvedValue(undefined)
+                }
+
+                MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+                mockLoadManifest.mockResolvedValue([{ type: 'chunk', timestamp: '', eventId: '', s3Key: '' }])
+
+                const editSchema = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(kitchen)>
+                            <Example uuid=(kitchenExample)>
+                                <Name>Kitchen</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `)
+
+                await applyEdit({
+                    AssetId: testAssetId,
+                    RequestId: 'test-request',
+                    schema: editSchema
+                })
+
+                // Chunk content should be the edit delta only
+                const chunkCall = mockWriteChunk.mock.calls[0][0]
+                expect(chunkCall.content).toContain('<Room uuid=(kitchen)>')
+                expect(chunkCall.content).not.toContain('<Room uuid=(lobby)>') // Should NOT include existing content
+            })
+        })
+
+        describe("createIfNeeded with chunks", () => {
+            it('should write chunk when creating new asset', async () => {
+                MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(undefined)
+                
+                const mockWorkspace = {
+                    loadJSON: jest.fn().mockResolvedValue(undefined),
+                    standard: undefined,
+                    zone: 'Library' as const,
+                    setJSON: jest.fn(),
+                    pushJSON: jest.fn().mockResolvedValue(undefined),
+                    pushWML: jest.fn().mockResolvedValue(undefined)
+                }
+                
+                // @ts-ignore - partial mock
+                MockAssetWorkspace.mockImplementation(() => mockWorkspace)
+
+                const editSchema = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(firstRoom)>
+                            <Example uuid=(firstExample)>
+                                <Name>First Room</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `)
+
+                const result = await applyEdit({
+                    AssetId: testAssetId,
+                    RequestId: 'test-request',
+                    schema: editSchema,
+                    createIfNeeded: true,
+                    zone: 'Library'
+                })
+
+                expect(result.success).toBe(true)
+                
+                // Should write chunk even for new asset
+                expect(mockWriteChunk).toHaveBeenCalled()
+                
+                // Should append chunk event
+                expect(mockAppendManifestEvents).toHaveBeenCalled()
+                
+                // Should write materialized views
+                expect(mockWorkspace.pushJSON).toHaveBeenCalled()
+                expect(mockWorkspace.pushWML).toHaveBeenCalled()
+            })
+        })
+
+        describe("event metadata", () => {
+            it('should include correct metadata in chunk events', async () => {
+                const existingWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(existing)>
+                            <Example uuid=(example1)>
+                                <Name>Existing Room</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `)
+                const existingStandard = new StandardForm(existingWML)
+                
+                const mockWorkspace = {
+                    loadJSON: jest.fn().mockResolvedValue(undefined),
+                    standard: existingStandard,
+                    zone: 'Personal' as const,
+                    setJSON: jest.fn(),
+                    pushJSON: jest.fn().mockResolvedValue(undefined),
+                    pushWML: jest.fn().mockResolvedValue(undefined)
+                }
+
+                MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+                mockLoadManifest.mockResolvedValue([{ type: 'chunk', timestamp: '', eventId: '', s3Key: '' }])
+
+                await applyEdit({
+                    AssetId: testAssetId,
+                    RequestId: 'test-request',
+                    schema: '<Asset uuid=(test)><Room uuid=(r1) /></Asset>'
+                })
+
+                const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
+                const chunkEvent = eventsAppended.find((e: any) => e.type === 'chunk')
+                
+                expect(chunkEvent).toBeDefined()
+                expect(chunkEvent).toMatchObject({
+                    type: 'chunk',
+                    timestamp: expect.any(String),
+                    eventId: expect.any(String),
+                    s3Key: expect.stringContaining('.wml/chunks/'),
+                    chunkSize: expect.any(Number)
+                })
+                
+                // Timestamp should be ISO 8601
+                expect(new Date(chunkEvent!.timestamp).toISOString()).toBe(chunkEvent!.timestamp)
+            })
         })
     })
 })

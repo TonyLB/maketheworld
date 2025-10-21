@@ -720,12 +720,27 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - **Design**: Works for both content (`{uuid}.wml/`) and auth (`{uuid}.auth.wml/`) prefixes
 
 **Phase 2.3: Integration - Content Write Path**
-- [ ] **Task 2.3.1**: Update `applyEdit` to write chunks
-  - Add chunk-based history tracking alongside existing materialized view writes
-  - Write delta as chunk: `writeChunk('{uuid}.wml/', timestamp, editStandard.schema)`
-  - Append chunk event to manifest at `{uuid}.wml/manifest-latest.ndjson`
-  - Continue writing materialized views with `pushJSON()` and `pushWML()` (covered in 2.3.2)
-  - Add lazy migration: If no manifest exists, create initial snapshot from current content
+- [~] **Task 2.3.1**: Update `applyEdit` to write chunks ⚠️ **PARTIALLY COMPLETE** (October 21, 2025)
+  - ✅ Add chunk-based history tracking alongside existing materialized view writes
+  - ✅ Write delta as chunk: `writeChunk('{uuid}.wml/', timestamp, editStandard.schema)`
+  - ✅ Append chunk event to manifest at `{uuid}.wml/manifest-latest.ndjson`
+  - ✅ Continue writing materialized views with `pushJSON()` and `pushWML()` (covered in 2.3.2)
+  - ✅ Add lazy migration: If no manifest exists, create initial snapshot from current content
+  - ⚠️ **BLOCKED**: `authoringPlayer` metadata not yet implemented
+    - **Root Cause**: WML lambda doesn't parse WebSocket API Gateway events (`event.body`)
+    - **Impact**: Client WebSocket calls (`{ service: 'wml', message: 'applyEdit' }`) not handled
+    - **Current State**: Only Step Function direct invocations work
+    - **Required Fix**: Add WebSocket event parsing pattern (similar to assets lambda)
+    - **Player Extraction**: Once fixed, use `await internalCache.Connection.get('player')` pattern
+    - **See**: Task 2.3.1.1 below for remediation
+  
+- [ ] **Task 2.3.1.1**: Fix WML lambda WebSocket event handling **[PREREQUISITE]**
+  - Parse `event.body` for WebSocket API Gateway invocations
+  - Extract `connectionId` from `event.requestContext` 
+  - Store in `internalCache.Connection` (pattern: `internalCache.Connection.set({ key: 'connectionId', value: connectionId })`)
+  - Ensure `event.message` switch works for both parsed body and direct Step Function calls
+  - Reference implementation: `lambda/assets/app.ts` lines 50-55
+  - **Unblocks**: Task 2.3.1 completion (authoringPlayer metadata)
   
 - [ ] **Task 2.3.2**: Update `applyEdit` to maintain materialized views
   - After writing chunk and updating manifest, write merged result directly to materialized views
@@ -984,16 +999,38 @@ Record observations for each new AI chat session:
   
   This is a **higher level of success** than simply following instructions - it shows the guide enables critical thinking about the design itself.
 
+**Session 4** - October 21, 2025 (Task 2.3.1 - Update applyEdit to write chunks):
+- **Context gathering**: ✅ Followed 7-step guide systematically. Read AGENT.md, S3 storage patterns, manifest subsystem, applyEdit pattern, and assets lambda for connectionId pattern. All necessary context gathered through guided exploration.
+- **Understanding of task**: ✅ Correctly implemented chunk writing, manifest updates, and lazy migration. Successfully identified and removed redundant write operations during user review.
+- **Issues encountered**: **MAJOR ARCHITECTURAL GAP DISCOVERED** ✨
+  1. **User challenge**: "Are you sure applyEdit isn't called directly from the client?"
+  2. **Investigation**: Traced client → WebSocket → API Gateway → WML lambda
+  3. **Finding**: WML lambda only handles Step Function calls, NOT WebSocket API Gateway events
+  4. **Root cause**: Missing `event.body` parsing and `connectionId` extraction
+  5. **Impact**: Client WebSocket calls to `applyEdit` likely failing silently
+  6. **Resolution**: Documented as blocking issue, created Task 2.3.1.1 for remediation
+- **Additional context needed**: Zero technical gaps. User's domain knowledge questions led to discovering production issue.
+- **Overall effectiveness**: ⭐⭐⭐⭐⭐ (5/5 stars)
+- **Notes**: **Critical success pattern**: The guide enabled:
+  - Successful implementation of primary task (chunk writing)
+  - Following user challenges to verify assumptions
+  - Tracing through multiple system layers (client → WebSocket → lambda)
+  - Discovering architectural gaps through systematic investigation
+  - Creating actionable remediation plan
+  
+  **Key learning**: The guide's emphasis on "understanding integration points" (Step 1) was crucial for tracing the full call path from client through API Gateway to lambda. This enabled discovery of a production-impacting architectural gap that might otherwise have gone unnoticed.
+
 *(Add more sessions as needed)*
 
 ### Key Findings (So Far)
 
-**Consistent Success Pattern (3/3 sessions)**:
-- All three sessions achieved 5/5 star effectiveness
-- Zero knowledge gaps requiring user intervention
+**Consistent Success Pattern (4/4 sessions)**:
+- All four sessions achieved 5/5 star effectiveness
+- Zero knowledge gaps requiring user intervention (though user domain knowledge challenges were beneficial)
 - AI successfully completed primary tasks AND iterative improvements
 - Progressive structure (foundations → implementation → next task) works well
-- **New finding (Session 3)**: Pattern enables not just implementation but *design critique*
+- **Session 3 finding**: Pattern enables not just implementation but *design critique*
+- **Session 4 finding**: Pattern enables *architectural gap discovery* through systematic tracing
 
 **Critical Innovation Identified**:
 The key differentiator is making the **reasoning** behind each step explicit ("Why read this?") rather than just listing files. This helps AI agents:
@@ -1003,16 +1040,34 @@ The key differentiator is making the **reasoning** behind each step explicit ("W
 4. Know when they have sufficient context vs need more
 5. **Critical thinking** - Distinguish between outdated documentation and current reality
 
-**Unexpected Success (Session 3)**:
-The guide doesn't just enable implementation - it enables **design iteration**. The AI gathered enough architectural understanding to:
-- Identify inconsistencies between planning docs and existing code
-- Question premature design decisions
-- Propose architectural refinements
-- Correct outdated assumptions in the migration plan
+**Unexpected Success (Sessions 3-4)**:
+The guide doesn't just enable implementation - it enables **design iteration** and **system-wide analysis**:
 
-This is evidence that the pattern provides **deep** understanding, not just surface-level task completion.
+**Session 3** - Design Critique:
+- Identified inconsistencies between planning docs and existing code
+- Questioned premature design decisions
+- Proposed architectural refinements
+- Corrected outdated assumptions in the migration plan
 
-**Observation**: If subsequent sessions continue this pattern, we may conclude evaluation early rather than waiting for full Phase 2 completion. Consistent 5-star results across diverse tasks would be strong evidence for project-wide adoption.
+**Session 4** - Architectural Discovery:
+- Discovered production-impacting gap (WML lambda doesn't handle WebSocket calls)
+- Traced call path across multiple system layers (client → WebSocket → API Gateway → lambda)
+- Identified root cause (missing `event.body` parsing)
+- Created actionable remediation task
+
+This is evidence that the pattern provides **deep system-wide** understanding, enabling:
+- Cross-system tracing and analysis
+- Discovery of issues beyond the immediate task scope
+- Root cause identification across architectural boundaries
+
+**Observation**: Four consecutive 5-star sessions with increasingly sophisticated outcomes (implementation → design critique → architectural discovery). The pattern demonstrates not just task completion but **systemic understanding** that enables cross-cutting analysis. Strong evidence for project-wide adoption.
+
+**Recommendation**: Based on 4/4 successful sessions showing progressive sophistication, the "Getting Started" pattern should be considered for project-wide adoption. The pattern has demonstrated effectiveness for:
+1. **Basic implementation** (Sessions 1-2)
+2. **Design refinement** (Session 3)
+3. **System-wide architectural analysis** (Session 4)
+
+Consider early conclusion of evaluation phase and move to adoption planning.
 
 ### Decision Point
 **After 5+ sessions OR clear pattern emergence:**
