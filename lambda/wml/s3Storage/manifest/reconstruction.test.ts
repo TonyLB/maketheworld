@@ -7,8 +7,7 @@
  */
 
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
-import { reconstructFromManifest, ContentReconstructionResult, AuthReconstructionResult } from './reconstruction'
-import { appendManifestEvents } from './operations'
+import { reconstructFromManifest } from './reconstruction'
 import { ManifestChunkEvent, ManifestSnapshotEvent } from './baseClasses'
 
 // Mock s3Client

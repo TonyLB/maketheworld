@@ -3,10 +3,12 @@ import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource
 import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { moveAsset } from './moveAsset'
 import { applyEdit } from './applyEdit'
-import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, MoveAssetRequest } from './coordinationSerializer'
+import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, isCreateSnapshotRequest, MoveAssetRequest } from './coordinationSerializer'
 import { DiagnosticsEventUpdate, isS3StructureFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { initializePrimitives } from './initializePrimitives'
+import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
+import AssetWorkspace from '../s3Storage/AssetWorkspace'
 
 // Union type constraint for legitimate incoming subscribed events
 type WMLSubscribedEvent = 
@@ -172,6 +174,51 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                     }
                 } catch (error) {
                     console.error(`Error processing coordination event:`, error)
+                }
+            }
+            
+            // Handle Create Snapshot events
+            if (isCreateSnapshotRequest(payload) && isSchemaAssetUUID(event.streamKey)) {
+                try {
+                    // Load AssetWorkspace to get zone
+                    const assetWorkspace = await AssetWorkspace.fromUUID(event.streamKey)
+                    
+                    if (!assetWorkspace) {
+                        console.error(`Error creating snapshot: Asset ${event.streamKey} not found`)
+                        return
+                    }
+                    
+                    // Get asset key (without ASSET# prefix) for prefixes
+                    const assetKey = event.streamKey.replace('ASSET#', '')
+                    
+                    // Create snapshot for content
+                    const contentResult = await createManualSnapshot({
+                        prefix: `${assetKey}.wml/`,
+                        zone: assetWorkspace.zone
+                    })
+                    
+                    // Create snapshot for authorization
+                    const authResult = await createManualSnapshot({
+                        prefix: `${assetKey}.auth.wml/`,
+                        zone: assetWorkspace.zone
+                    })
+                    
+                    // Stream Snapshot Created event
+                    try {
+                        await streamEvent({
+                            update: {
+                                type: 'Snapshot Created',
+                                chunksBeforeSnapshot: contentResult.chunksBeforeSnapshot,
+                                snapshotSize: contentResult.snapshotReference.snapshotSize + authResult.snapshotReference.snapshotSize
+                            },
+                            streamKey: event.streamKey
+                        })
+                    } catch (streamError) {
+                        console.error(`Error streaming Snapshot Created event for ${event.streamKey}:`, streamError)
+                        // Don't fail the snapshot operation if streaming fails
+                    }
+                } catch (error) {
+                    console.error(`Error creating snapshot for ${event.streamKey}:`, error)
                 }
             }
             
