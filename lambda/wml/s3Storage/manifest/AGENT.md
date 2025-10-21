@@ -184,6 +184,8 @@ lambda/wml/s3Storage/
     snapshots.test.ts       # Snapshot operations tests ✅
     reconstruction.ts       # Reconstruction operations ✅ (Task 2.2.2 - Oct 20, 2025)
     reconstruction.test.ts  # Reconstruction operations tests ✅
+    orchestration.ts        # High-level orchestration ✅ (Task 2.2.3 - Oct 21, 2025)
+    orchestration.test.ts   # Orchestration tests ✅
     AGENT.md                # This file
 ```
 
@@ -229,6 +231,37 @@ if (authResult.type === 'auth') {
 - Sequential merge processing: Chunks merge in order as they arrive
 - Uses async reduce pattern for optimal latency with correctness guarantee
 
+## Orchestration
+
+Higher-level operations that coordinate multiple manifest subsystem operations for complete workflows.
+
+### Creating Manual Snapshots
+
+```typescript
+import { createManualSnapshot } from './orchestration'
+
+const result = await createManualSnapshot({
+    prefix: 'test.wml/',     // Or 'test.auth.wml/' for auth
+    zone: 'Library'          // For lifecycle management
+})
+
+// Returns:
+// {
+//   success: true,
+//   snapshotReference: { s3Key: '...', snapshotSize: 5000 },
+//   chunksBeforeSnapshot: 25
+// }
+```
+
+**What it does:**
+1. Loads manifest to count chunks since last snapshot
+2. Writes snapshot (copies materialized view to snapshot location)
+3. Appends SnapshotEvent to manifest
+
+**Concurrency:** Caller must hold `atomicLock` on the asset
+
+**Event emission:** Caller (DataSource) is responsible for emitting "Snapshot Created" event
+
 ## Related Documentation
 
 - **[S3 Storage Migration](../../AGENT.s3storage.migration.md)**: Overall Phase 2 migration plan
@@ -242,4 +275,5 @@ if (authResult.type === 'auth') {
 - Created October 18, 2025 as part of Phase 2.1 (Task 2.1.1)
 - Updated October 20, 2025 with snapshot operations (Task 2.2.1)
 - Updated October 20, 2025 with reconstruction operations (Task 2.2.2)
+- Updated October 21, 2025 with orchestration operations (Task 2.2.3)
 

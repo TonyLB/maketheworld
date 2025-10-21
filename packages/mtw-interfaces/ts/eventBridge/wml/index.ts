@@ -31,8 +31,14 @@ export type WMLZoneEvent = {
     subFolder?: string
 }
 
+export type WMLSnapshotEvent = {
+    type: 'Snapshot Created'
+    chunksBeforeSnapshot: number
+    snapshotSize: number
+}
+
 // Union type for all internal WML events
-export type WMLEventUpdate = WMLContentEvent | WMLZoneEvent
+export type WMLEventUpdate = WMLContentEvent | WMLZoneEvent | WMLSnapshotEvent
 
 // External types for WML events
 export type WMLContentEventExternal = 
@@ -56,8 +62,14 @@ export type WMLZoneEventExternal = {
     subFolder?: string
 }
 
+export type WMLSnapshotEventExternal = {
+    type: 'Snapshot Created'
+    chunksBeforeSnapshot: number
+    snapshotSize: number
+}
+
 // Union type for all external WML events
-export type WMLEventExternal = WMLContentEventExternal | WMLZoneEventExternal
+export type WMLEventExternal = WMLContentEventExternal | WMLZoneEventExternal | WMLSnapshotEventExternal
 
 // Type guards
 export const isWMLContentEvent = (event: any): event is WMLContentEvent => {
@@ -127,6 +139,17 @@ export const isWMLZoneEvent = (event: any): event is WMLZoneEvent => {
     )
 }
 
+export const isWMLSnapshotEvent = (event: any): event is WMLSnapshotEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        'type' in event &&
+        event.type === 'Snapshot Created' &&
+        typeof event.chunksBeforeSnapshot === 'number' &&
+        typeof event.snapshotSize === 'number'
+    )
+}
+
 /**
  * Serializer/Deserializer for WML format events
  * 
@@ -147,6 +170,9 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
         if (isWMLZoneEvent(update)) {
             // Zone events pass through as-is (they're already structured data)
             return update as WMLZoneEventExternal
+        } else if (isWMLSnapshotEvent(update)) {
+            // Snapshot events pass through as-is (they're already structured data)
+            return update as WMLSnapshotEventExternal
         } else if (isWMLContentUpdateEvent(update)) {
             // Content Update events need WML conversion
             return {
@@ -178,6 +204,9 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
         if (externalUpdate.type === 'Zone Changed') {
             // Zone events pass through as-is
             return externalUpdate as WMLZoneEvent
+        } else if (externalUpdate.type === 'Snapshot Created') {
+            // Snapshot events pass through as-is
+            return externalUpdate as WMLSnapshotEvent
         } else if (externalUpdate.type === 'Content Update') {
             if ('wml' in externalUpdate && externalUpdate.wml) {
                 try {

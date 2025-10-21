@@ -24,8 +24,12 @@ export type ApplyEditRequest = {
     schema: string;
 }
 
+export type CreateSnapshotRequest = {
+    type: 'Create Snapshot';
+}
+
 // Union type for all internal coordination events
-export type CoordinationEventUpdate = CoordinationCanonizeEvent | CoordinationDecanonizeEvent | MoveAssetRequest | ApplyEditRequest
+export type CoordinationEventUpdate = CoordinationCanonizeEvent | CoordinationDecanonizeEvent | MoveAssetRequest | ApplyEditRequest | CreateSnapshotRequest
 
 // External types for coordination events (same as internal since they're hand-created)
 export type CoordinationCanonizeEventExternal = {
@@ -50,11 +54,16 @@ export type ApplyEditRequestExternal = {
     schema: string;
 }
 
+export type CreateSnapshotRequestExternal = {
+    type: 'Create Snapshot';
+}
+
 export type CoordinationEventExternal = 
     | CoordinationCanonizeEventExternal 
     | CoordinationDecanonizeEventExternal 
     | MoveAssetRequestExternal
     | ApplyEditRequestExternal
+    | CreateSnapshotRequestExternal
 
 // Type guards
 export const isMoveAssetRequest = (event: any): event is MoveAssetRequest => {
@@ -86,11 +95,18 @@ export const isApplyEditRequest = (event: any): event is ApplyEditRequest => {
         typeof event.schema === 'string'
 }
 
+export const isCreateSnapshotRequest = (event: any): event is CreateSnapshotRequest => {
+    return event && 
+        typeof event === 'object' && 
+        event.type === 'Create Snapshot'
+}
+
 export const isCoordinationEventUpdate = (event: unknown): event is CoordinationEventUpdate => {
     return isCoordinationCanonizeEvent(event) || 
            isCoordinationDecanonizeEvent(event) || 
            isMoveAssetRequest(event) ||
-           isApplyEditRequest(event)
+           isApplyEditRequest(event) ||
+           isCreateSnapshotRequest(event)
 }
 
 /**
@@ -121,6 +137,10 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
                 type: update.type,
                 RequestId: update.RequestId,
                 schema: update.schema
+            }
+        } else if (update.type === 'Create Snapshot') {
+            return {
+                type: update.type
             }
         } else {
             return {
@@ -157,6 +177,10 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
                 type: 'Apply Edit',
                 RequestId: externalUpdate.RequestId,
                 schema: externalUpdate.schema
+            }
+        } else if (externalUpdate.type === 'Create Snapshot') {
+            return {
+                type: 'Create Snapshot'
             }
         } else {
             return null
