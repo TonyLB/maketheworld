@@ -696,26 +696,28 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - **Implementation**: Parallel S3 downloads with sequential merge processing (async reduce pattern)
   
 - [ ] **Task 2.2.3**: Add manual snapshot creation capability
-  - Add to `lambda/wml/s3Storage/manifest/snapshots.ts`
-  - `createSnapshot(prefix)` - Exposed via DataSource
-  - Reconstruct current state, write snapshot, update manifest
-  - Clear old chunks after successful snapshot (or mark for archival)
+  - Add to `lambda/wml/s3Storage/manifest/orchestration.ts`
+  - `createManualSnapshot(prefix, zone)` - Exposed via DataSource
+  - Load manifest to count chunks since last snapshot
+  - Write snapshot using existing `writeSnapshot()` (copies materialized view)
+  - Append SnapshotEvent to manifest
   - Emit `Snapshot Created` event
   - **Design**: Works for both content (`{uuid}.wml/`) and auth (`{uuid}.auth.wml/`) prefixes
 
 **Phase 2.3: Integration - Content Write Path**
 - [ ] **Task 2.3.1**: Update `applyEdit` to write chunks
-  - Replace `pushJSON()`/`pushWML()` with chunk-based pattern
+  - Add chunk-based history tracking alongside existing materialized view writes
   - Write delta as chunk: `writeChunk('{uuid}.wml/', timestamp, editStandard.schema)`
   - Append chunk event to manifest at `{uuid}.wml/manifest-latest.ndjson`
+  - Continue writing materialized views with `pushJSON()` and `pushWML()` (covered in 2.3.2)
   - Add lazy migration: If no manifest exists, create initial snapshot from current content
   
-- [ ] **Task 2.3.2**: Update `applyEdit` to rebuild materialized views
-  - After writing chunk and updating manifest, reconstruct current state
-  - Use `reconstructFromManifest('{uuid}.wml/')` to get merged content
-  - Write materialized `{uuid}.wml` and `{uuid}.ndjson`
+- [ ] **Task 2.3.2**: Update `applyEdit` to maintain materialized views
+  - After writing chunk and updating manifest, write merged result directly to materialized views
+  - Continue using existing `pushJSON()` and `pushWML()` to write `{uuid}.wml` and `{uuid}.ndjson`
+  - Materialized view is kept up-to-date by direct write (not reconstruction)
   - Maintain Phase 1 materialized view locations for backward compatibility
-  - Add timing logs to monitor rebuild latency
+  - Note: Reconstruction (`reconstructFromManifest`) is only for diagnostic/recovery scenarios
   
 - [ ] **Task 2.3.3**: Handle chunk-based asset detection
   - Add `AssetWorkspace.isChunkBased(prefix)` - Check for manifest existence at given prefix
