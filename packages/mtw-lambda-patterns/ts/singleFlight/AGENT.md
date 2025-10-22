@@ -1,52 +1,3 @@
-# Stream of consciousness
-
-Here are some responses from ChatGPT from my early design attempts:
-
-| Yes — what you’re describing is a “single-flight” or “request coalescing” problem: multiple callers want the same computation, but you want to run it once and then fan the result back to all the waiting requestors.
-| 
-| In AWS’s serverless ecosystem there isn’t a single out-of-the-box service that does this, but you can build it with a combination of primitives.
-
-... and ...
-
-| Usage Notes for DynamoDB-based SingleFlight
-|
-| This implementation is designed for short-running computations where collisions are infrequent.
-|
-| Best fit conditions:
-|
-| Expected computation duration: <1 second (low-seconds at most).
-|
-| Probability of multiple concurrent requests for the same job: low.
-|
-| Callers require synchronous responses (e.g., API Gateway → Lambda → client).
-|
-| The cost of occasional polling loops (extra DynamoDB reads + brief Lambda execution time) is acceptable.
-|
-| Not recommended if:
-|
-| Computations may take several seconds or more.
-|
-| High collision rates are expected (e.g., hot keys or bursty workloads).
-|
-| Asynchronous fan-out or “notify when complete” semantics are acceptable.
-|
-| In those cases, prefer an async orchestration approach (e.g., DynamoDB Streams + SNS/SQS, Step Functions, or WebSockets).
-|
-| Summary of solution:
-|
-| Each request checks DynamoDB for an existing in-progress job keyed by the computation parameters.
-|
-| If no job exists, the caller creates the record with a conditional write and performs the computation.
-|
-| Other callers detecting the in-progress record enter a short polling loop (100–300 ms with jitter) until the result field is populated.
-|
-| Once the leader writes the result, all waiting callers read it and return synchronously.
-
-That said, the `singleFlight` that ChatGPT is envisioning assumes that the results of the execution will be stored alongside
-the control record, but I think that most of the patterns in Make The World would lend themselves to a singleFlight that simply
-returns true or false, which *side-effects* other distributed data (e.g. Dynamo) in ways that the polling instances could
-all read out of the shared store when they receive a successful response.
-
 # DataSource Pattern - Agent Navigation Guide
 
 ## Overview
@@ -245,6 +196,7 @@ The singleFlight pattern is fully implemented and tested with both coalesce and 
 - **TypeScript interfaces**: Type-safe contracts for singleFlight operations
 - **Coalesce mode**: Result-sharing coordination for expensive computations (used by dataSource pattern)
 - **Sequential mode**: Queue-based execution for atomic operations (can replace atomicLock pattern)
+- **Instance cleanup**: Opportunistic removal of old COMPLETED/FAILED instances to prevent unbounded growth
 - **Comprehensive tests**: Full test coverage for both modes including edge cases
 
 ### **Current Usage**
@@ -253,7 +205,6 @@ The singleFlight pattern is fully implemented and tested with both coalesce and 
 
 ### **Future Enhancements**
 - **Migrate atomicLock usage**: Replace WML edit Step Function with sequential mode singleFlight
-- **Instance cleanup**: Implement opportunistic removal of old COMPLETED/FAILED instances to prevent unbounded growth (recommended: remove instances where `expiresAt` is older than 10x the timeout period)
 - **Metrics and monitoring**: Built-in performance tracking and coordination analytics
 - **Configuration options**: Additional timeout and polling strategies
 - **Error handling improvements**: Enhanced retry logic and failure recovery
