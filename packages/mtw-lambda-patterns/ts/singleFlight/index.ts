@@ -289,6 +289,7 @@ async function waitForEarlierInstances(
                                 myInstanceDraft.expiresAt = timestamp + timeoutMs
                             }
                         },
+                        priorFetch: record,  // Use the record we already fetched
                         maxRetries: 0
                     })
                     return true // We transitioned to IN_PROGRESS
@@ -304,7 +305,8 @@ async function waitForEarlierInstances(
                     config,
                     primaryKey,
                     argumentHash,
-                    expiredInProgress.UUID
+                    expiredInProgress.UUID,
+                    record  // Use the record we already fetched
                 )
             } catch (error) {
                 // Ignore errors - another process may have updated it
@@ -471,7 +473,8 @@ async function markInstanceFailed(
     config: SingleFlightConfig,
     primaryKey: string,
     argumentHash: string,
-    instanceUUID: string
+    instanceUUID: string,
+    priorFetch?: SingleFlightRecord<any, any>
 ): Promise<void> {
     await config.optimisticUpdateFunction({
         Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
@@ -485,6 +488,7 @@ async function markInstanceFailed(
             }
             draft.Instances[instanceIndex].Status = 'FAILED'
         },
+        priorFetch,  // Use priorFetch if provided to avoid redundant getItem
         maxRetries: 0
     })
 }
