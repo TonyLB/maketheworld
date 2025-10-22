@@ -1,10 +1,12 @@
 import { wmlDataSource } from './index'
 import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { moveAsset } from './moveAsset'
-import { MoveAssetRequest } from './coordinationSerializer'
+import { MoveAssetRequest, isApplyEditRequest } from './coordinationSerializer'
 import { initializePrimitives } from './initializePrimitives'
 import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
 import AssetWorkspace from '../s3Storage/AssetWorkspace'
+import { applyEdit } from './applyEdit'
+import { ApplyEditResult } from './applyEdit'
 
 // Mock the moveAsset, initializePrimitives, and createManualSnapshot functions
 jest.mock('./moveAsset', () => ({
@@ -26,12 +28,28 @@ jest.mock('../s3Storage/AssetWorkspace', () => ({
     }
 }))
 
+// Mock applyEdit function
+jest.mock('./applyEdit', () => ({
+    applyEdit: jest.fn()
+}))
+
+// Mock singleFlight factory to simply execute the computation as a passthrough
+jest.mock('@tonylb/mtw-lambda-patterns/ts/singleFlight', () => ({
+    singleFlightFactory: jest.fn(() => {
+        return jest.fn(async (params: any) => {
+            // Simple passthrough - just execute the computation function
+            return await params.computation()
+        })
+    })
+}))
+
 // No need to mock messageBus baseClasses since we're testing behavior, not implementation
 
 const moveAssetMock = moveAsset as jest.MockedFunction<typeof moveAsset>
 const initializePrimitivesMock = initializePrimitives as jest.MockedFunction<typeof initializePrimitives>
 const createManualSnapshotMock = createManualSnapshot as jest.MockedFunction<typeof createManualSnapshot>
 const AssetWorkspaceMock = AssetWorkspace as jest.Mocked<typeof AssetWorkspace>
+const applyEditMock = applyEdit as jest.MockedFunction<typeof applyEdit>
 
 describe('WML DataSource', () => {
     beforeEach(() => {
@@ -267,6 +285,232 @@ describe('WML DataSource', () => {
 
             expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
             expect(mockStreamEvent).toHaveBeenCalled()
+        })
+    })
+
+    describe('Apply Edit Event Processing', () => {
+        it('should process successful applyEdit events', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockApplyEditRequest = {
+                type: 'Apply Edit',
+                RequestId: 'test-request-123',
+                schema: 'test-wml-content'
+            }
+
+            const mockSuccessResult: ApplyEditResult = {
+                success: true,
+                schema: { type: 'Asset', content: 'test-content' } as any
+            }
+
+            applyEditMock.mockResolvedValue(mockSuccessResult)
+
+            const event = {
+                dataSourceKey: 'internal',
+                streamKey: 'ASSET#test-asset',
+                event: mockApplyEditRequest
+            }
+
+            // Simulate the receiveEvents processing
+            expect(wmlDataSource.receiveEvents).toBeDefined()
+            await wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })
+
+            // Verify applyEdit was called with correct parameters
+            expect(applyEditMock).toHaveBeenCalledWith({
+                AssetId: 'ASSET#test-asset',
+                RequestId: 'test-request-123',
+                schema: 'test-wml-content'
+            })
+
+            // Verify Content Update event was streamed
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Content Update',
+                    schema: mockSuccessResult.schema
+                },
+                streamKey: 'ASSET#test-asset'
+            })
+        })
+
+        it('should process failed applyEdit events without streaming', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockApplyEditRequest = {
+                type: 'Apply Edit',
+                RequestId: 'test-request-456',
+                schema: 'invalid-wml-content'
+            }
+
+            const mockFailureResult: ApplyEditResult = {
+                success: false,
+                error: 'Parse error'
+            }
+
+            applyEditMock.mockResolvedValue(mockFailureResult)
+
+            const event = {
+                dataSourceKey: 'internal',
+                streamKey: 'ASSET#test-asset',
+                event: mockApplyEditRequest
+            }
+
+            // Simulate the receiveEvents processing
+            await wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })
+
+            // Verify applyEdit was called
+            expect(applyEditMock).toHaveBeenCalledWith({
+                AssetId: 'ASSET#test-asset',
+                RequestId: 'test-request-456',
+                schema: 'invalid-wml-content'
+            })
+
+            // Verify no Content Update event was streamed for failed edits
+            expect(mockStreamEvent).not.toHaveBeenCalled()
+        })
+
+        it('should handle applyEdit processing errors gracefully', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockApplyEditRequest = {
+                type: 'Apply Edit',
+                RequestId: 'test-request-789',
+                schema: 'test-wml-content'
+            }
+
+            applyEditMock.mockRejectedValue(new Error('WML processing failed'))
+
+            const event = {
+                dataSourceKey: 'internal',
+                streamKey: 'ASSET#test-asset',
+                event: mockApplyEditRequest
+            }
+
+            // Should not throw - errors should be caught and logged
+            expect(wmlDataSource.receiveEvents).toBeDefined()
+            await expect(wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })).resolves.not.toThrow()
+
+            // Verify applyEdit was called
+            expect(applyEditMock).toHaveBeenCalledWith({
+                AssetId: 'ASSET#test-asset',
+                RequestId: 'test-request-789',
+                schema: 'test-wml-content'
+            })
+
+            // Verify no Content Update event was streamed
+            expect(mockStreamEvent).not.toHaveBeenCalled()
+        })
+
+        it('should handle streaming errors gracefully', async () => {
+            const mockStreamEvent = jest.fn().mockRejectedValue(new Error('Streaming failed'))
+            const mockApplyEditRequest = {
+                type: 'Apply Edit',
+                RequestId: 'test-request-999',
+                schema: 'test-wml-content'
+            }
+
+            const mockSuccessResult: ApplyEditResult = {
+                success: true,
+                schema: { type: 'Asset', content: 'test-content' } as any
+            }
+
+            applyEditMock.mockResolvedValue(mockSuccessResult)
+
+            const event = {
+                dataSourceKey: 'internal',
+                streamKey: 'ASSET#test-asset',
+                event: mockApplyEditRequest
+            }
+
+            // Should not throw - streaming errors should be caught and logged
+            expect(wmlDataSource.receiveEvents).toBeDefined()
+            await expect(wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })).resolves.not.toThrow()
+
+            // Verify applyEdit was called
+            expect(applyEditMock).toHaveBeenCalledWith({
+                AssetId: 'ASSET#test-asset',
+                RequestId: 'test-request-999',
+                schema: 'test-wml-content'
+            })
+
+            // Verify streaming was attempted
+            expect(mockStreamEvent).toHaveBeenCalled()
+        })
+
+        it('should only process Apply Edit events for valid asset UUIDs', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockApplyEditRequest = {
+                type: 'Apply Edit',
+                RequestId: 'test-request-000',
+                schema: 'test-wml-content'
+            }
+
+            // Test with invalid streamKey (not a valid asset UUID)
+            const event = {
+                dataSourceKey: 'internal',
+                streamKey: 'invalid-stream-key',
+                event: mockApplyEditRequest
+            }
+
+            await wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })
+
+            // Verify applyEdit was NOT called for invalid streamKey
+            expect(applyEditMock).not.toHaveBeenCalled()
+            expect(mockStreamEvent).not.toHaveBeenCalled()
+        })
+
+        it('should use singleFlight wrapper for applyEdit calls', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockApplyEditRequest = {
+                type: 'Apply Edit',
+                RequestId: 'test-request-singleflight',
+                schema: 'test-wml-content'
+            }
+
+            const mockSuccessResult: ApplyEditResult = {
+                success: true,
+                schema: { type: 'Asset', content: 'test-content' } as any
+            }
+
+            applyEditMock.mockResolvedValue(mockSuccessResult)
+
+            const event = {
+                dataSourceKey: 'internal',
+                streamKey: 'ASSET#test-asset',
+                event: mockApplyEditRequest
+            }
+
+            await wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })
+
+            // Verify that singleFlight was used (the mock passthrough should have called applyEdit)
+            expect(applyEditMock).toHaveBeenCalledWith({
+                AssetId: 'ASSET#test-asset',
+                RequestId: 'test-request-singleflight',
+                schema: 'test-wml-content'
+            })
+
+            // Verify the result was processed correctly
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Content Update',
+                    schema: mockSuccessResult.schema
+                },
+                streamKey: 'ASSET#test-asset'
+            })
         })
     })
 

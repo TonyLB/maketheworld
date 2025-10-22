@@ -9,6 +9,18 @@ import { isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { initializePrimitives } from './initializePrimitives'
 import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
 import AssetWorkspace from '../s3Storage/AssetWorkspace'
+import { singleFlightFactory } from '@tonylb/mtw-lambda-patterns/ts/singleFlight'
+import assetDB from '../atomicLock/mockableAssetDB'
+import { ApplyEditResult } from './applyEdit'
+
+// Single-flight factory for WML edits - ensures sequential processing per asset
+const wmlEditSingleFlight = singleFlightFactory({
+    primaryKey: 'AssetId',
+    optimisticUpdateFunction: assetDB.optimisticUpdate,
+    getItemFunction: assetDB.getItem,
+    mode: 'sequential', // Process edits sequentially, not concurrently
+    timeoutMs: 10000 // 10 second timeout for WML edits
+})
 
 // Union type constraint for legitimate incoming subscribed events
 type WMLSubscribedEvent = 
@@ -61,11 +73,18 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
             // Handle Apply Edit events
             if (isApplyEditRequest(payload) && isSchemaAssetUUID(event.streamKey)) {
                 try {
-                    const result = await applyEdit({
-                        AssetId: event.streamKey,
-                        RequestId: payload.RequestId,
-                        schema: payload.schema
-                    })
+                    // Use singleFlight to ensure sequential processing per asset
+                    const result = await wmlEditSingleFlight({
+                        category: 'wml-edit',
+                        argumentHash: event.streamKey, // Gate by AssetId so all edits on same asset are sequential
+                        computation: async (): Promise<ApplyEditResult> => {
+                            return await applyEdit({
+                                AssetId: event.streamKey as any, // Type assertion needed for AssetUUID
+                                RequestId: payload.RequestId,
+                                schema: payload.schema
+                            })
+                        }
+                    }) as ApplyEditResult
                     
                     if (result.success) {
                         // Stream Content Update event
@@ -82,18 +101,8 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                             // Don't fail the edit operation if streaming fails
                         }
                     } else {
-                        // Stream Merge Conflict event
-                        try {
-                            await streamEvent({
-                                update: {
-                                    type: 'Merge Conflict',
-                                    error: result.error
-                                },
-                                streamKey: event.streamKey
-                            })
-                        } catch (streamError) {
-                            console.error(`Error streaming Merge Conflict event for ${event.streamKey}:`, streamError)
-                        }
+                        // Failed edits don't stream events - they just fail silently
+                        // The error is logged but not propagated to clients
                     }
                 } catch (error) {
                     console.error(`Error processing applyEdit for ${event.streamKey}:`, error)
