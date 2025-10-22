@@ -5,10 +5,22 @@ import { moveAsset } from './moveAsset'
 import { applyEdit } from './applyEdit'
 import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, isCreateSnapshotRequest, MoveAssetRequest } from './coordinationSerializer'
 import { DiagnosticsEventUpdate, isS3StructureFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
-import { isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaAssetUUID, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { initializePrimitives } from './initializePrimitives'
 import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
 import AssetWorkspace from '../s3Storage/AssetWorkspace'
+import { singleFlightFactory } from '@tonylb/mtw-lambda-patterns/ts/singleFlight'
+import assetDB from '../atomicLock/mockableAssetDB'
+import { ApplyEditResult } from './applyEdit'
+
+// Single-flight factory for WML edits - ensures sequential processing per asset
+const wmlEditSingleFlight = singleFlightFactory({
+    primaryKey: 'AssetId',
+    optimisticUpdateFunction: assetDB.optimisticUpdate,
+    getItemFunction: assetDB.getItem,
+    mode: 'sequential', // Process edits sequentially, not concurrently
+    timeoutMs: 10000 // 10 second timeout for WML edits
+})
 
 // Union type constraint for legitimate incoming subscribed events
 type WMLSubscribedEvent = 
@@ -59,13 +71,26 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
             const payload = event.event as any
             
             // Handle Apply Edit events
-            if (isApplyEditRequest(payload) && isSchemaAssetUUID(event.streamKey)) {
+            if (isApplyEditRequest(payload)) {
+                // Validate AssetId for asset-specific operations
+                const AssetId = event.streamKey
+                if (!isSchemaAssetUUID(AssetId)) {
+                    console.error(`Invalid AssetId format: ${AssetId}`)
+                    return
+                }
                 try {
-                    const result = await applyEdit({
-                        AssetId: event.streamKey,
-                        RequestId: payload.RequestId,
-                        schema: payload.schema
-                    })
+                    // Use singleFlight to ensure sequential processing per asset
+                    const result = await wmlEditSingleFlight({
+                        category: 'wml-edit',
+                        argumentHash: AssetId, // Gate by AssetId so all edits on same asset are sequential
+                        computation: async (): Promise<ApplyEditResult> => {
+                            return await applyEdit({
+                                AssetId,
+                                RequestId: payload.RequestId,
+                                schema: payload.schema
+                            })
+                        }
+                    }) as ApplyEditResult
                     
                     if (result.success) {
                         // Stream Content Update event
@@ -75,36 +100,39 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                                     type: 'Content Update',
                                     schema: result.schema
                                 },
-                                streamKey: event.streamKey
+                                streamKey: AssetId
                             })
                         } catch (streamError) {
-                            console.error(`Error streaming Content Update event for ${event.streamKey}:`, streamError)
+                            console.error(`Error streaming Content Update event for ${AssetId}:`, streamError)
                             // Don't fail the edit operation if streaming fails
                         }
                     } else {
-                        // Stream Merge Conflict event
-                        try {
-                            await streamEvent({
-                                update: {
-                                    type: 'Merge Conflict',
-                                    error: result.error
-                                },
-                                streamKey: event.streamKey
-                            })
-                        } catch (streamError) {
-                            console.error(`Error streaming Merge Conflict event for ${event.streamKey}:`, streamError)
-                        }
+                        // Failed edits don't stream events - they just fail silently
+                        // The error is logged but not propagated to clients
                     }
                 } catch (error) {
-                    console.error(`Error processing applyEdit for ${event.streamKey}:`, error)
+                    console.error(`Error processing applyEdit for ${AssetId}:`, error)
                 }
             }
             
             // Handle Move Asset events
-            if (isMoveAssetRequest(payload) && isSchemaAssetUUID(event.streamKey)) {
+            if (isMoveAssetRequest(payload)) {
+                // Validate AssetId for asset-specific operations
+                const AssetId = event.streamKey
+                if (!isSchemaAssetUUID(AssetId)) {
+                    console.error(`Invalid AssetId format: ${AssetId}`)
+                    return
+                }
                 try {
-                    const moveRequest = payload
-                    const result = await moveAsset(event.streamKey, moveRequest)
+                    // Use singleFlight to ensure sequential processing per asset
+                    // This prevents race conditions between moveAsset and applyEdit operations
+                    const result = await wmlEditSingleFlight({
+                        category: 'wml-edit',
+                        argumentHash: AssetId, // Gate by AssetId so all operations on same asset are sequential
+                        computation: async () => {
+                            return await moveAsset(AssetId, payload)
+                        }
+                    }) as any // Type assertion for MoveAssetResponse
                     
                     // Stream zone changed event if move was successful
                     if (result.success) {
@@ -117,20 +145,26 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                                     ...(payload.player ? { player: payload.player } : {}),
                                     ...(payload.subFolder ? { subFolder: payload.subFolder } : {})
                                 },
-                                streamKey: event.streamKey
+                                streamKey: AssetId
                             })
                         } catch (streamError) {
-                            console.error(`Error streaming zone changed event for ${event.streamKey}:`, streamError)
+                            console.error(`Error streaming zone changed event for ${AssetId}:`, streamError)
                             // Don't fail the move operation if streaming fails
                         }
                     }
                 } catch (error) {
-                    console.error(`Error processing moveAsset for ${event.streamKey}:`, error)
+                    console.error(`Error processing moveAsset for ${AssetId}:`, error)
                 }
             }
             
             // Process coordination events for canonization/decanonization
-            if ((isCoordinationCanonizeEvent(payload) || isCoordinationDecanonizeEvent(payload)) && isSchemaAssetUUID(event.streamKey)) {
+            if (isCoordinationCanonizeEvent(payload) || isCoordinationDecanonizeEvent(payload)) {
+                // Validate AssetId for asset-specific operations
+                const AssetId = event.streamKey
+                if (!isSchemaAssetUUID(AssetId)) {
+                    console.error(`Invalid AssetId format: ${AssetId}`)
+                    return
+                }
                 try {
                     const coordinationEvent = payload
                     let moveRequest: MoveAssetRequest
@@ -154,7 +188,7 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                         return
                     }
                     
-                    const result = await moveAsset(event.streamKey, moveRequest)
+                    const result = await moveAsset(AssetId, moveRequest)
                     
                     // Stream zone changed event if move was successful
                     if (result.success) {
@@ -165,10 +199,10 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                                     fromZone: moveRequest.fromZone,
                                     toZone: moveRequest.toZone
                                 },
-                                streamKey: event.streamKey
+                                streamKey: AssetId
                             })
                         } catch (streamError) {
-                            console.error(`Error streaming zone changed event for ${event.streamKey}:`, streamError)
+                            console.error(`Error streaming zone changed event for ${AssetId}:`, streamError)
                             // Don't fail the move operation if streaming fails
                         }
                     }
@@ -178,18 +212,24 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
             }
             
             // Handle Create Snapshot events
-            if (isCreateSnapshotRequest(payload) && isSchemaAssetUUID(event.streamKey)) {
+            if (isCreateSnapshotRequest(payload)) {
+                // Validate AssetId for asset-specific operations
+                const AssetId = event.streamKey
+                if (!isSchemaAssetUUID(AssetId)) {
+                    console.error(`Invalid AssetId format: ${AssetId}`)
+                    return
+                }
                 try {
                     // Load AssetWorkspace to get zone
-                    const assetWorkspace = await AssetWorkspace.fromUUID(event.streamKey)
+                    const assetWorkspace = await AssetWorkspace.fromUUID(AssetId)
                     
                     if (!assetWorkspace) {
-                        console.error(`Error creating snapshot: Asset ${event.streamKey} not found`)
+                        console.error(`Error creating snapshot: Asset ${AssetId} not found`)
                         return
                     }
                     
                     // Get asset key (without ASSET# prefix) for prefixes
-                    const assetKey = event.streamKey.replace('ASSET#', '')
+                    const assetKey = AssetId.replace('ASSET#', '')
                     
                     // Create snapshot for content
                     const contentResult = await createManualSnapshot({
@@ -211,14 +251,14 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                                 chunksBeforeSnapshot: contentResult.chunksBeforeSnapshot,
                                 snapshotSize: contentResult.snapshotReference.snapshotSize + authResult.snapshotReference.snapshotSize
                             },
-                            streamKey: event.streamKey
+                            streamKey: AssetId
                         })
                     } catch (streamError) {
-                        console.error(`Error streaming Snapshot Created event for ${event.streamKey}:`, streamError)
+                        console.error(`Error streaming Snapshot Created event for ${AssetId}:`, streamError)
                         // Don't fail the snapshot operation if streaming fails
                     }
                 } catch (error) {
-                    console.error(`Error creating snapshot for ${event.streamKey}:`, error)
+                    console.error(`Error creating snapshot for ${AssetId}:`, error)
                 }
             }
             
