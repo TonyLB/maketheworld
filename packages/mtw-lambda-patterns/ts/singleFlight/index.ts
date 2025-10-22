@@ -31,6 +31,23 @@ export type SingleFlightRecord<KInternal extends string = string, KeyType extend
         Instances: SingleFlightInstance[]
     }
 
+// Helper function to clean up old COMPLETED/FAILED instances within an immer reducer
+const cleanupOldInstancesReducer = (cutoffTime: number) => (draft: any) => {
+    if (!draft?.Instances || draft.Instances.length === 0) {
+        return // No instances to clean up
+    }
+    
+    // Filter out old COMPLETED/FAILED instances
+    draft.Instances = draft.Instances.filter((inst: SingleFlightInstance) => {
+        // Keep instances that are still active (QUEUED or IN_PROGRESS)
+        if (inst.Status === 'QUEUED' || inst.Status === 'IN_PROGRESS') {
+            return true
+        }
+        // Keep COMPLETED/FAILED instances that haven't expired beyond the cutoff
+        return inst.expiresAt > cutoffTime
+    })
+}
+
 export const singleFlightFactory = <T>(config: SingleFlightConfig) => {
     const timeoutMs = config.timeoutMs ?? 30000
     const mode = config.mode ?? 'coalesce'
@@ -74,7 +91,8 @@ export const singleFlightFactory = <T>(config: SingleFlightConfig) => {
                 argumentHash,
                 inProgressInstance,
                 retrieval!,
-                computation
+                computation,
+                timeoutMs
             )
         } else {
             // Step 4: Try to create new instance and become leader
@@ -117,7 +135,8 @@ export const singleFlightFactory = <T>(config: SingleFlightConfig) => {
                             argumentHash,
                             currentInProgressInstance,
                             retrieval!,
-                            computation
+                            computation,
+                            timeoutMs
                         )
                     }
                 }
@@ -216,11 +235,6 @@ async function waitForEarlierInstances(
             return false // No instances, caller should transition
         }
         
-        // TODO: Implement cleanup for old COMPLETED/FAILED instances to prevent unbounded growth
-        // Current impact: ~2500-4000 instances before hitting 400KB DynamoDB limit
-        // Recommended approach: Remove instances where expiresAt is older than 10x the timeout period
-        // (i.e., if timeout is 30s, remove instances expired more than 300s ago)
-        // This cleanup should be opportunistic (run during normal polling) to avoid separate maintenance jobs
         
         // Check our own status - another process may have marked us as FAILED
         const currentInstance = record.Instances.find(
@@ -270,6 +284,10 @@ async function waitForEarlierInstances(
                         Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
                         updateKeys: ['Instances'],
                         updateReducer: (draft: any) => {
+                            // Cleanup old instances first
+                            const currentTime = getCurrentTimestamp()
+                            cleanupOldInstancesReducer(currentTime - (timeoutMs * 10))(draft)
+                            
                             // Recalculate which instances should be marked as FAILED from current state
                             // Mark all instances created before ours that are QUEUED or IN_PROGRESS
                             for (const instance of draft.Instances) {
@@ -341,6 +359,10 @@ async function createNewInstance(
         Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
         updateKeys: ['Instances'],
         updateReducer: (draft: any) => {
+            // Cleanup old instances first
+            const currentTime = getCurrentTimestamp()
+            cleanupOldInstancesReducer(currentTime - (timeoutMs * 10))(draft)
+            
             if (!draft.Instances) {
                 draft.Instances = []
             }
@@ -360,7 +382,8 @@ async function pollForCompletion<T>(
     argumentHash: string,
     instance: SingleFlightInstance,
     retrieval: () => Promise<T>,
-    computation: () => Promise<T>
+    computation: () => Promise<T>,
+    timeoutMs: number
 ): Promise<T> {
     // Poll for completion
     while (true) {
@@ -369,9 +392,6 @@ async function pollForCompletion<T>(
             ProjectionFields: ['Instances']
         })
         
-        // TODO: Implement cleanup for old COMPLETED/FAILED instances to prevent unbounded growth
-        // Same issue as sequential mode - instances accumulate indefinitely
-        // Recommended: Remove instances where expiresAt is older than 10x the timeout period
         
         const currentInstance = record?.Instances?.find(
             (inst: SingleFlightInstance) => inst.UUID === instance.UUID
@@ -424,6 +444,11 @@ async function selfPromote<T>(
         Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
         updateKeys: ['Instances'],
         updateReducer: (draft: any) => {
+            // Cleanup old instances first
+            const currentTime = getCurrentTimestamp()
+            const timeoutMs = config.timeoutMs ?? 30000
+            cleanupOldInstancesReducer(currentTime - (timeoutMs * 10))(draft)
+            
             const instanceIndex = draft.Instances.findIndex(
                 (inst: SingleFlightInstance) => inst.UUID === expiredInstance.UUID
             )
@@ -456,6 +481,11 @@ async function markInstanceCompleted(
         Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
         updateKeys: ['Instances'],
         updateReducer: (draft: any) => {
+            // Cleanup old instances first
+            const currentTime = getCurrentTimestamp()
+            const timeoutMs = config.timeoutMs ?? 30000
+            cleanupOldInstancesReducer(currentTime - (timeoutMs * 10))(draft)
+            
             const instanceIndex = draft.Instances.findIndex(
                 (inst: SingleFlightInstance) => inst.UUID === instanceUUID
             )
@@ -480,6 +510,11 @@ async function markInstanceFailed(
         Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
         updateKeys: ['Instances'],
         updateReducer: (draft: any) => {
+            // Cleanup old instances first
+            const currentTime = getCurrentTimestamp()
+            const timeoutMs = config.timeoutMs ?? 30000
+            cleanupOldInstancesReducer(currentTime - (timeoutMs * 10))(draft)
+            
             const instanceIndex = draft.Instances.findIndex(
                 (inst: SingleFlightInstance) => inst.UUID === instanceUUID
             )
@@ -505,6 +540,10 @@ async function transitionToInProgress(
         Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
         updateKeys: ['Instances'],
         updateReducer: (draft: any) => {
+            // Cleanup old instances first
+            const currentTime = getCurrentTimestamp()
+            cleanupOldInstancesReducer(currentTime - (timeoutMs * 10))(draft)
+            
             const instanceIndex = draft.Instances.findIndex(
                 (inst: SingleFlightInstance) => inst.UUID === instanceUUID
             )
@@ -513,7 +552,7 @@ async function transitionToInProgress(
             }
             draft.Instances[instanceIndex].Status = 'IN_PROGRESS'
             // Reset expiration time when actually starting execution
-            draft.Instances[instanceIndex].expiresAt = getCurrentTimestamp() + timeoutMs
+            draft.Instances[instanceIndex].expiresAt = currentTime + timeoutMs
         },
         maxRetries: 0
     })

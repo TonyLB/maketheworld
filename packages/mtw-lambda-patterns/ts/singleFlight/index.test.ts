@@ -1288,4 +1288,189 @@ describe('singleFlightFactory', () => {
             // Coalesce mode behavior confirmed
         })
     })
+
+    describe('cleanup functionality', () => {
+        describe('coalesce mode cleanup', () => {
+            it('should integrate cleanup into optimisticUpdate operations', async () => {
+                // Arrange - test that cleanup is integrated into update operations
+                const currentTime = 100000000
+                
+                mockGetCurrentTimestamp.mockReturnValue(currentTime)
+                
+                // First getItem: no existing record (coalesce mode creates new instance)
+                mockGetItem.mockResolvedValueOnce(undefined)
+                
+                // optimisticUpdate: create new instance with cleanup
+                mockOptimisticUpdate.mockResolvedValueOnce({})
+                
+                const mockComputation = jest.fn().mockResolvedValue('result')
+                const mockRetrieval = jest.fn().mockResolvedValue('result')
+                
+                const params: SingleFlightParams<string> = {
+                    category: 'test-category',
+                    argumentHash: 'test-hash',
+                    computation: mockComputation,
+                    retrieval: mockRetrieval
+                }
+
+                // Act
+                const result = await singleFlight(params)
+
+                // Assert
+                expect(result).toBe('result')
+                expect(mockOptimisticUpdate).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        Key: { PrimaryKey: 'SINGLEFLIGHT#test-category', DataCategory: 'test-hash' },
+                        updateKeys: ['Instances'],
+                        updateReducer: expect.any(Function)
+                    })
+                )
+                
+                // Extract the actual reducer used in the optimistic update and apply it
+                const updateCalls = mockOptimisticUpdate.mock.calls
+                expect(updateCalls.length).toBeGreaterThan(0)
+                const reducer = updateCalls[0][0].updateReducer
+                const currentTimeAfter = mockGetCurrentTimestamp.mock.results[0]?.value ?? currentTime
+                const cutoffTime = currentTimeAfter - (30000 * 10)
+
+                const testDraft = {
+                    Instances: [
+                        {
+                            UUID: 'old-instance',
+                            Status: 'COMPLETED',
+                            createdAt: currentTime - (30000 * 15),
+                            expiresAt: cutoffTime - 1000 // Very old - should be removed
+                        },
+                        {
+                            UUID: 'recent-instance',
+                            Status: 'COMPLETED',
+                            createdAt: currentTime - 1000,
+                            expiresAt: cutoffTime + 1000 // Recent - should be kept
+                        },
+                        {
+                            UUID: 'active-instance',
+                            Status: 'IN_PROGRESS',
+                            createdAt: currentTime - 500,
+                            expiresAt: currentTime + 29500 // Active - should be kept
+                        }
+                    ]
+                }
+                const resultDraft = produce(testDraft, reducer)
+
+                // Should have removed the old instance but kept recent and active ones
+                expect(resultDraft.Instances.find((inst: any) => inst.UUID === 'old-instance')).toBeUndefined()
+                expect(resultDraft.Instances.find((inst: any) => inst.UUID === 'recent-instance')).toBeDefined()
+                expect(resultDraft.Instances.find((inst: any) => inst.UUID === 'active-instance')).toBeDefined()
+            })
+        })
+
+        describe('sequential mode cleanup', () => {
+            beforeEach(() => {
+                // Reconfigure for sequential mode
+                config = {
+                    optimisticUpdateFunction: mockOptimisticUpdate,
+                    getItemFunction: mockGetItem,
+                    primaryKey: 'PrimaryKey',
+                    timeoutMs: 30000,
+                    mode: 'sequential'
+                }
+                singleFlight = singleFlightFactory(config)
+            })
+
+            it('should integrate cleanup into optimisticUpdate operations', async () => {
+                // Arrange - test that cleanup is integrated into update operations
+                const currentTime = 100000000
+                
+                mockGetCurrentTimestamp.mockReturnValue(currentTime)
+                
+                // First getItem: no existing record (sequential mode creates new instance)
+                mockGetItem.mockResolvedValueOnce(undefined)
+                
+                // optimisticUpdate: create new instance with cleanup
+                mockOptimisticUpdate.mockResolvedValueOnce({})
+                
+                // Second getItem: no earlier instances, proceed with execution
+                mockGetItem.mockResolvedValueOnce({
+                    PrimaryKey: 'SINGLEFLIGHT#test-category',
+                    DataCategory: 'test-hash',
+                    Instances: [
+                        {
+                            UUID: 'test-uuid-123', // Our new instance
+                            Status: 'QUEUED',
+                            createdAt: currentTime,
+                            expiresAt: currentTime + 30000
+                        }
+                    ]
+                })
+                
+                // Continue with normal sequential execution
+                mockOptimisticUpdate.mockResolvedValueOnce({}) // Transition to IN_PROGRESS
+                mockOptimisticUpdate.mockResolvedValueOnce({}) // Mark as COMPLETED
+                
+                const mockComputation = jest.fn().mockResolvedValue('result')
+                
+                const params: SingleFlightParams<string> = {
+                    category: 'test-category',
+                    argumentHash: 'test-hash',
+                    computation: mockComputation
+                }
+
+                // Act
+                const result = await singleFlight(params)
+
+                // Assert
+                expect(result).toBe('result')
+                expect(mockOptimisticUpdate).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        Key: { PrimaryKey: 'SINGLEFLIGHT#test-category', DataCategory: 'test-hash' },
+                        updateKeys: ['Instances'],
+                        updateReducer: expect.any(Function)
+                    })
+                )
+                
+                // Extract the actual reducer used in the optimistic update and apply it
+                const updateCalls = mockOptimisticUpdate.mock.calls
+                expect(updateCalls.length).toBeGreaterThan(0)
+                const reducer = updateCalls[0][0].updateReducer
+                const currentTimeAfter = mockGetCurrentTimestamp.mock.results[0]?.value ?? currentTime
+                const cutoffTime = currentTimeAfter - (30000 * 10)
+
+                const testDraft = {
+                    Instances: [
+                        {
+                            UUID: 'old-completed',
+                            Status: 'COMPLETED',
+                            createdAt: currentTime - (30000 * 15),
+                            expiresAt: cutoffTime - 1000 // Very old
+                        },
+                        {
+                            UUID: 'old-failed',
+                            Status: 'FAILED',
+                            createdAt: currentTime - (30000 * 15),
+                            expiresAt: cutoffTime - 1000 // Very old
+                        },
+                        {
+                            UUID: 'recent-completed',
+                            Status: 'COMPLETED',
+                            createdAt: currentTime - 1000,
+                            expiresAt: cutoffTime + 1000
+                        },
+                        {
+                            UUID: 'active-instance',
+                            Status: 'IN_PROGRESS',
+                            createdAt: currentTime - 500,
+                            expiresAt: currentTime + 29500
+                        }
+                    ]
+                }
+                const resultDraft2 = produce(testDraft, reducer)
+
+                // Should have removed the old instances but kept recent and active ones
+                expect(resultDraft2.Instances.find((inst: any) => inst.UUID === 'old-completed')).toBeUndefined()
+                expect(resultDraft2.Instances.find((inst: any) => inst.UUID === 'old-failed')).toBeUndefined()
+                expect(resultDraft2.Instances.find((inst: any) => inst.UUID === 'recent-completed')).toBeDefined()
+                expect(resultDraft2.Instances.find((inst: any) => inst.UUID === 'active-instance')).toBeDefined()
+            })
+        })
+    })
 })
