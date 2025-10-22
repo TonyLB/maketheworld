@@ -151,21 +151,25 @@ async function executeSequential<T>(
     )
     
     // Step 2: Wait for all earlier instances to complete
-    await waitForEarlierInstances(
+    // This may batch the transition to IN_PROGRESS with marking dead instances as FAILED
+    const transitionedInWait = await waitForEarlierInstances(
         config,
         primaryKey,
         argumentHash,
-        myInstance
-    )
-    
-    // Step 3: Transition to IN_PROGRESS now that we're ready to execute
-    await transitionToInProgress(
-        config,
-        primaryKey,
-        argumentHash,
-        myInstance.UUID,
+        myInstance,
         timeoutMs
     )
+    
+    // Step 3: Transition to IN_PROGRESS if not already done during wait
+    if (!transitionedInWait) {
+        await transitionToInProgress(
+            config,
+            primaryKey,
+            argumentHash,
+            myInstance.UUID,
+            timeoutMs
+        )
+    }
     
     // Step 4: Execute our computation
     try {
@@ -193,13 +197,14 @@ async function executeSequential<T>(
 }
 
 // Helper function to wait for earlier instances to complete
+// Returns true if it transitioned myInstance to IN_PROGRESS during cascading failure handling
 async function waitForEarlierInstances(
     config: SingleFlightConfig,
     primaryKey: string,
     argumentHash: string,
-    myInstance: SingleFlightInstance
-): Promise<void> {
-    const timeoutMs = config.timeoutMs ?? 30000
+    myInstance: SingleFlightInstance,
+    timeoutMs: number
+): Promise<boolean> {
     
     while (true) {
         const record = await config.getItemFunction({
@@ -208,7 +213,7 @@ async function waitForEarlierInstances(
         })
         
         if (!record?.Instances) {
-            return
+            return false // No instances, caller should transition
         }
         
         // Find all instances created before ours that are still QUEUED or IN_PROGRESS
@@ -220,7 +225,7 @@ async function waitForEarlierInstances(
         
         // If no earlier instances are active, we can proceed
         if (earlierActive.length === 0) {
-            return
+            return false // Caller should transition to IN_PROGRESS
         }
         
         const currentTime = getCurrentTimestamp()
@@ -236,11 +241,12 @@ async function waitForEarlierInstances(
             const queuedEarlier = earlierActive.filter(inst => inst.Status === 'QUEUED')
             
             // If enough time has passed for all QUEUED instances to have transitioned and timed out,
-            // they must be dead (not polling anymore). Mark them all as FAILED in one batch.
+            // they must be dead (not polling anymore). Mark them all as FAILED and transition us to IN_PROGRESS.
             if (queuedEarlier.length > 0 && timeSinceExpiration >= queuedEarlier.length * timeoutMs) {
-                // Cascading failure detected - mark all earlier instances as FAILED in one atomic operation
+                // Cascading failure detected - mark all earlier instances as FAILED and transition to IN_PROGRESS atomically
                 try {
                     const myCreatedAt = myInstance.createdAt
+                    const myUUID = myInstance.UUID
                     await config.optimisticUpdateFunction({
                         Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
                         updateKeys: ['Instances'],
@@ -253,14 +259,24 @@ async function waitForEarlierInstances(
                                     instance.Status = 'FAILED'
                                 }
                             }
+                            
+                            // Also transition our instance to IN_PROGRESS in the same atomic operation
+                            const myInstanceDraft = draft.Instances.find(
+                                (inst: SingleFlightInstance) => inst.UUID === myUUID
+                            )
+                            if (myInstanceDraft) {
+                                const timestamp = getCurrentTimestamp()
+                                myInstanceDraft.Status = 'IN_PROGRESS'
+                                myInstanceDraft.expiresAt = timestamp + timeoutMs
+                            }
                         },
                         maxRetries: 0
                     })
+                    return true // We transitioned to IN_PROGRESS
                 } catch (error) {
                     // Ignore errors - another process may have updated it
+                    // Fall through to continue polling
                 }
-                // After marking all as failed, next poll will see no earlier instances and proceed
-                continue
             }
             
             // Not a cascading failure yet - just mark the expired IN_PROGRESS instance

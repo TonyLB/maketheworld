@@ -969,7 +969,7 @@ describe('singleFlightFactory', () => {
             // D should detect that B and C are dead and mark them all as FAILED
             
             // Arrange
-            mockGetCurrentTimestamp.mockReturnValueOnce(100000000).mockReturnValueOnce(100000000).mockReturnValueOnce(100060000)
+            mockGetCurrentTimestamp.mockReturnValueOnce(100000000).mockReturnValueOnce(100000000).mockReturnValue(100060000)
             mockUuidv4.mockReturnValue('D-uuid')
             
             // First getItem: D sees A (expired), B (QUEUED), C (QUEUED)
@@ -1064,9 +1064,9 @@ describe('singleFlightFactory', () => {
                 },
                 {
                     UUID: 'D-uuid',
-                    Status: 'QUEUED',
+                    Status: 'IN_PROGRESS',
                     createdAt: 100000000,
-                    expiresAt: 100030000
+                    expiresAt: 100090000
                 }
             ]
             mockGetItem.mockResolvedValueOnce({
@@ -1099,11 +1099,10 @@ describe('singleFlightFactory', () => {
             // Verify that cascading failure was detected
             // Expected optimistic update calls:
             // 1. Add D as QUEUED
-            // 2. Mark A, B, C as FAILED in one batched call (cascading failure detection)
-            // 3. Transition D to IN_PROGRESS
-            // 4. Mark D as COMPLETED
-            // Total: 4 optimistic update calls
-            expect(mockOptimisticUpdate).toHaveBeenCalledTimes(4)
+            // 2. Mark A, B, C as FAILED AND transition D to IN_PROGRESS (batched atomic operation)
+            // 3. Mark D as COMPLETED
+            // Total: 3 optimistic update calls (batching saves one call!)
+            expect(mockOptimisticUpdate).toHaveBeenCalledTimes(3)
             
             // Verify that the batched failure call was made and actually works correctly
             const batchedFailureCall = mockOptimisticUpdate.mock.calls[1][0]
