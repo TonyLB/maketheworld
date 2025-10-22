@@ -24,6 +24,10 @@ const eventDeserializers = {
 
 export const handler = async (event: any) => {
 
+    // Parse WebSocket API Gateway events (similar to assets lambda pattern)
+    const request = (event.body && JSON.parse(event.body) || undefined)
+    const { connectionId } = request?.connectionId || event.requestContext || {}
+
     internalCache.clear()
     internalCache.Connection.set({ key: 's3Client', value: s3Client })
     messageBus.clear()
@@ -76,86 +80,103 @@ export const handler = async (event: any) => {
         return
     }
 
-    switch(event.message) {
-        case 'backupWML':
-            return await backupWML(event)
-        
-        // =============================================================================
-        // LEGACY ATOMIC LOCK PATTERN - DEPRECATED
-        // =============================================================================
-        // These handlers (requestLock, checkLock, yieldLock) are part of the old
-        // atomicLock pattern that was used with Step Functions for WML edit coordination.
-        // 
-        // MIGRATION STATUS: These are now OBSOLETE and can be removed once we fully
-        // migrate to the new singleFlight pattern in mtw-wml.ts data source.
-        //
-        // NEW PATTERN: WML edits now use singleFlight sequential mode in mtw-wml.ts:
-        // - category: 'wml-edit' 
-        // - argumentHash: AssetId (gates all edits per asset)
-        // - mode: 'sequential' (processes edits one at a time per asset)
-        // - timeoutMs: 10000 (10 second timeout)
-        //
-        // CLEANUP TARGETS when removing this legacy code:
-        // - Remove these 3 case handlers: requestLock, checkLock, yieldLock
-        // - Remove atomicLock import and dependencies
-        // - Remove Step Function orchestration (applyWMLEdit.asl.yaml)
-        // - Remove Step Function definition in template.yaml
-        // - Remove delayPromise import (only used by checkLock)
-        // =============================================================================
-        case 'requestLock':
-            const lock = await requestLock(event.AssetId)
-            return await checkLock(event.AssetId, lock)
-        case 'checkLock':
-            await delayPromise(500)
-            return await checkLock(event.AssetId, event.lock, event.timeoutCounter)
-        case 'yieldLock':
-            await yieldAtomicLock(event.AssetId, event.lock)
-            return {}
-        
-        // =============================================================================
-        // WML EDIT HANDLING - MIGRATED TO SINGLEFLIGHT
-        // =============================================================================
-        // This handler now routes to the mtw-wml data source which uses singleFlight
-        // sequential mode for proper concurrency control. The old atomicLock + Step
-        // Function pattern has been replaced with a more efficient singleFlight pattern.
-        //
-        // The actual coordination now happens in:
-        // - lambda/wml/dataSource/mtw-wml.ts (singleFlight wrapper)
-        // - packages/mtw-lambda-patterns/ts/singleFlight/ (coordination logic)
-        // =============================================================================
-        case 'applyEdit':
-            messageBus.send({
-                type: 'StreamingEvent',
-                dataSourceKey: 'internal',
-                streamKey: event.AssetId,
-                event: {
-                    type: 'Apply Edit',
-                    RequestId: event.RequestId,
-                    schema: event.schema
-                },
-                timestamp: Date.now()
-            })
-            await messageBus.flush()
-            return await extractReturnValue(messageBus)
-        case 'moveAsset':
-            messageBus.send({
-                type: 'StreamingEvent',
-                dataSourceKey: 'internal',
-                streamKey: event.AssetId,
-                event: {
-                    type: 'Move Asset',
-                    fromZone: event.fromZone,
-                    toZone: event.toZone,
-                    player: event.player,
-                    subFolder: event.subFolder
-                },
-                timestamp: Date.now()
-            })
-            await messageBus.flush()
-            return await extractReturnValue(messageBus)
+    // Handle WebSocket API Gateway calls (similar to assets lambda pattern)
+    if (request && request.message === 'applyEdit') {
+        messageBus.send({
+            type: 'StreamingEvent',
+            dataSourceKey: 'internal',
+            streamKey: request.AssetId,
+            event: {
+                type: 'Apply Edit',
+                RequestId: request.RequestId,
+                schema: request.schema
+            },
+            timestamp: Date.now()
+        })
+    } else {
+        switch(event.message) {
+            case 'backupWML':
+                return await backupWML(event)
+            
+            // =============================================================================
+            // LEGACY ATOMIC LOCK PATTERN - DEPRECATED
+            // =============================================================================
+            // These handlers (requestLock, checkLock, yieldLock) are part of the old
+            // atomicLock pattern that was used with Step Functions for WML edit coordination.
+            // 
+            // MIGRATION STATUS: These are now OBSOLETE and can be removed once we fully
+            // migrate to the new singleFlight pattern in mtw-wml.ts data source.
+            //
+            // NEW PATTERN: WML edits now use singleFlight sequential mode in mtw-wml.ts:
+            // - category: 'wml-edit' 
+            // - argumentHash: AssetId (gates all edits per asset)
+            // - mode: 'sequential' (processes edits one at a time per asset)
+            // - timeoutMs: 10000 (10 second timeout)
+            //
+            // CLEANUP TARGETS when removing this legacy code:
+            // - Remove these 3 case handlers: requestLock, checkLock, yieldLock
+            // - Remove atomicLock import and dependencies
+            // - Remove Step Function orchestration (applyWMLEdit.asl.yaml)
+            // - Remove Step Function definition in template.yaml
+            // - Remove delayPromise import (only used by checkLock)
+            // =============================================================================
+            case 'requestLock':
+                const lock = await requestLock(event.AssetId)
+                return await checkLock(event.AssetId, lock)
+            case 'checkLock':
+                await delayPromise(500)
+                return await checkLock(event.AssetId, event.lock, event.timeoutCounter)
+            case 'yieldLock':
+                await yieldAtomicLock(event.AssetId, event.lock)
+                return {}
+            
+            // =============================================================================
+            // WML EDIT HANDLING - MIGRATED TO SINGLEFLIGHT
+            // =============================================================================
+            // This handler now routes to the mtw-wml data source which uses singleFlight
+            // sequential mode for proper concurrency control. The old atomicLock + Step
+            // Function pattern has been replaced with a more efficient singleFlight pattern.
+            //
+            // The actual coordination now happens in:
+            // - lambda/wml/dataSource/mtw-wml.ts (singleFlight wrapper)
+            // - packages/mtw-lambda-patterns/ts/singleFlight/ (coordination logic)
+            // =============================================================================
+            case 'applyEdit':
+                // Handle both WebSocket calls (from request) and Step Function calls (from event)
+                const applyEditData = request || event
+                messageBus.send({
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'internal',
+                    streamKey: applyEditData.AssetId,
+                    event: {
+                        type: 'Apply Edit',
+                        RequestId: applyEditData.RequestId,
+                        schema: applyEditData.schema
+                    },
+                    timestamp: Date.now()
+                })
+                await messageBus.flush()
+                return await extractReturnValue(messageBus)
+            case 'moveAsset':
+                messageBus.send({
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'internal',
+                    streamKey: event.AssetId,
+                    event: {
+                        type: 'Move Asset',
+                        fromZone: event.fromZone,
+                        toZone: event.toZone,
+                        player: event.player,
+                        subFolder: event.subFolder
+                    },
+                    timestamp: Date.now()
+                })
+                await messageBus.flush()
+                return await extractReturnValue(messageBus)
+        }
     }
 
-    // Flush any EventBridge events that were processed
+    // Flush messageBus and return after handling either WebSocket or Step Function calls
     await messageBus.flush()
     return await extractReturnValue(messageBus)
 }
