@@ -1,6 +1,4 @@
 import backupWML from "./backupWML";
-import { checkLock, requestLock, yieldAtomicLock } from "./atomicLock";
-import delayPromise from "@tonylb/mtw-utilities/ts/dynamoDB/delayPromise";
 import internalCache from "./internalCache";
 import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
@@ -8,6 +6,7 @@ import { extractReturnValue } from "./returnValue/index";
 import { CoordinationEventExternal, CoordinationEventSerializer, CoordinationEventUpdate } from './dataSource/coordinationSerializer';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics';
+import { WMLAPIMessage, isApplyEditAPIMessage, isMoveAssetAPIMessage } from '@tonylb/mtw-interfaces/ts/wml';
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.wml DataSource
@@ -25,7 +24,7 @@ const eventDeserializers = {
 export const handler = async (event: any) => {
 
     // Parse WebSocket API Gateway events (similar to assets lambda pattern)
-    const request = (event.body && JSON.parse(event.body) || undefined)
+    const request = (event.body && JSON.parse(event.body) || undefined) as WMLAPIMessage | undefined
     const { connectionId } = request?.connectionId || event.requestContext || {}
 
     internalCache.clear()
@@ -81,14 +80,14 @@ export const handler = async (event: any) => {
     }
 
     // Handle WebSocket API Gateway calls (similar to assets lambda pattern)
-    if (request && request.message === 'applyEdit') {
+    if (request && isApplyEditAPIMessage(request)) {
         messageBus.send({
             type: 'StreamingEvent',
             dataSourceKey: 'internal',
             streamKey: request.AssetId,
             event: {
                 type: 'Apply Edit',
-                RequestId: request.RequestId,
+                RequestId: request.RequestId ?? '',
                 schema: request.schema
             },
             timestamp: Date.now()
@@ -99,41 +98,9 @@ export const handler = async (event: any) => {
                 return await backupWML(event)
             
             // =============================================================================
-            // LEGACY ATOMIC LOCK PATTERN - DEPRECATED
+            // WML EDIT HANDLING - USING SINGLEFLIGHT PATTERN
             // =============================================================================
-            // These handlers (requestLock, checkLock, yieldLock) are part of the old
-            // atomicLock pattern that was used with Step Functions for WML edit coordination.
-            // 
-            // MIGRATION STATUS: These are now OBSOLETE and can be removed once we fully
-            // migrate to the new singleFlight pattern in mtw-wml.ts data source.
-            //
-            // NEW PATTERN: WML edits now use singleFlight sequential mode in mtw-wml.ts:
-            // - category: 'wml-edit' 
-            // - argumentHash: AssetId (gates all edits per asset)
-            // - mode: 'sequential' (processes edits one at a time per asset)
-            // - timeoutMs: 10000 (10 second timeout)
-            //
-            // CLEANUP TARGETS when removing this legacy code:
-            // - Remove these 3 case handlers: requestLock, checkLock, yieldLock
-            // - Remove atomicLock import and dependencies
-            // - Remove Step Function orchestration (applyWMLEdit.asl.yaml)
-            // - Remove Step Function definition in template.yaml
-            // - Remove delayPromise import (only used by checkLock)
-            // =============================================================================
-            case 'requestLock':
-                const lock = await requestLock(event.AssetId)
-                return await checkLock(event.AssetId, lock)
-            case 'checkLock':
-                await delayPromise(500)
-                return await checkLock(event.AssetId, event.lock, event.timeoutCounter)
-            case 'yieldLock':
-                await yieldAtomicLock(event.AssetId, event.lock)
-                return {}
-            
-            // =============================================================================
-            // WML EDIT HANDLING - MIGRATED TO SINGLEFLIGHT
-            // =============================================================================
-            // This handler now routes to the mtw-wml data source which uses singleFlight
+            // This handler routes to the mtw-wml data source which uses singleFlight
             // sequential mode for proper concurrency control. The old atomicLock + Step
             // Function pattern has been replaced with a more efficient singleFlight pattern.
             //
@@ -142,16 +109,15 @@ export const handler = async (event: any) => {
             // - packages/mtw-lambda-patterns/ts/singleFlight/ (coordination logic)
             // =============================================================================
             case 'applyEdit':
-                // Handle both WebSocket calls (from request) and Step Function calls (from event)
-                const applyEditData = request || event
+                // Handle direct Lambda calls (from event)
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: 'internal',
-                    streamKey: applyEditData.AssetId,
+                    streamKey: event.AssetId,
                     event: {
                         type: 'Apply Edit',
-                        RequestId: applyEditData.RequestId,
-                        schema: applyEditData.schema
+                        RequestId: event.RequestId ?? '',
+                        schema: event.schema
                     },
                     timestamp: Date.now()
                 })
@@ -176,7 +142,7 @@ export const handler = async (event: any) => {
         }
     }
 
-    // Flush messageBus and return after handling either WebSocket or Step Function calls
+    // Flush messageBus and return after handling either WebSocket or direct Lambda calls
     await messageBus.flush()
     return await extractReturnValue(messageBus)
 }

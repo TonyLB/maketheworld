@@ -1,4 +1,4 @@
-import { EphemeraAssetId } from "./baseClasses";
+import { EphemeraAssetId, Zone } from "./baseClasses";
 
 export type ApplyEditAPIMessage = {
     message: 'applyEdit';
@@ -9,8 +9,8 @@ export type ApplyEditAPIMessage = {
 export type MoveAssetAPIMessage = {
     message: 'moveAsset';
     AssetId: EphemeraAssetId;
-    fromZone: string;
-    toZone: string;
+    fromZone: Zone;
+    toZone: Zone;
     player?: string;
     subFolder?: string;
 }
@@ -20,5 +20,5 @@ export type WMLAPIMessage = { RequestId?: string; connectionId?: string } & (
     MoveAssetAPIMessage
 )
 
-export const isApplyEditAPIMessage = (message: WMLAPIMessage): message is ApplyEditAPIMessage => (message.message === 'applyEdit')
-export const isMoveAssetAPIMessage = (message: WMLAPIMessage): message is MoveAssetAPIMessage => (message.message === 'moveAsset')
+export const isApplyEditAPIMessage = (message: WMLAPIMessage): message is ApplyEditAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'applyEdit')
+export const isMoveAssetAPIMessage = (message: WMLAPIMessage): message is MoveAssetAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'moveAsset')
