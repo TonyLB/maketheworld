@@ -7,18 +7,19 @@ export interface SingleFlightConfig {
     getItemFunction: (params: any) => Promise<any>
     primaryKey: string
     timeoutMs?: number // Default timeout for instance expiration (defaults to 30000ms)
+    mode?: 'coalesce' | 'sequential' // Default 'coalesce': share results; 'sequential': execute independently in order
 }
 
 export interface SingleFlightParams<T> {
     category: string
     argumentHash: string
     computation: () => Promise<T>
-    retrieval: () => Promise<T>
+    retrieval?: () => Promise<T> // Optional in sequential mode (required in coalesce mode)
 }
 
 export interface SingleFlightInstance {
     UUID: string
-    Status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
+    Status: 'QUEUED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
     createdAt: number
     expiresAt: number
 }
@@ -32,11 +33,28 @@ export type SingleFlightRecord<KInternal extends string = string, KeyType extend
 
 export const singleFlightFactory = <T>(config: SingleFlightConfig) => {
     const timeoutMs = config.timeoutMs ?? 30000
+    const mode = config.mode ?? 'coalesce'
     
     return async (params: SingleFlightParams<T>): Promise<T> => {
         const { category, argumentHash, computation, retrieval } = params
         const primaryKey = `SINGLEFLIGHT#${category}`
         
+        // Validate retrieval is provided in coalesce mode
+        if (mode === 'coalesce' && !retrieval) {
+            throw new Error('retrieval callback is required in coalesce mode')
+        }
+        
+        if (mode === 'sequential') {
+            return await executeSequential(
+                config,
+                primaryKey,
+                argumentHash,
+                computation,
+                timeoutMs
+            )
+        }
+        
+        // Coalesce mode (original behavior)
         // Step 1: Check for existing record
         const existingRecord = await config.getItemFunction({
             Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
@@ -55,7 +73,7 @@ export const singleFlightFactory = <T>(config: SingleFlightConfig) => {
                 primaryKey,
                 argumentHash,
                 inProgressInstance,
-                retrieval,
+                retrieval!,
                 computation
             )
         } else {
@@ -98,7 +116,7 @@ export const singleFlightFactory = <T>(config: SingleFlightConfig) => {
                             primaryKey,
                             argumentHash,
                             currentInProgressInstance,
-                            retrieval,
+                            retrieval!,
                             computation
                         )
                     }
@@ -109,17 +127,212 @@ export const singleFlightFactory = <T>(config: SingleFlightConfig) => {
     }
 }
 
+// Helper function to execute in sequential mode
+async function executeSequential<T>(
+    config: SingleFlightConfig,
+    primaryKey: string,
+    argumentHash: string,
+    computation: () => Promise<T>,
+    timeoutMs: number
+): Promise<T> {
+    // Step 1: Create our instance with QUEUED status
+    const existingRecord = await config.getItemFunction({
+        Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
+        ProjectionFields: ['Instances']
+    })
+    
+    const myInstance = await createNewInstance(
+        config,
+        primaryKey,
+        argumentHash,
+        existingRecord,
+        timeoutMs,
+        'QUEUED'  // Start in QUEUED status for sequential mode
+    )
+    
+    // Step 2: Wait for all earlier instances to complete
+    // This may batch the transition to IN_PROGRESS with marking dead instances as FAILED
+    const transitionedInWait = await waitForEarlierInstances(
+        config,
+        primaryKey,
+        argumentHash,
+        myInstance,
+        timeoutMs
+    )
+    
+    // Step 3: Transition to IN_PROGRESS if not already done during wait
+    if (!transitionedInWait) {
+        await transitionToInProgress(
+            config,
+            primaryKey,
+            argumentHash,
+            myInstance.UUID,
+            timeoutMs
+        )
+    }
+    
+    // Step 4: Execute our computation
+    try {
+        const result = await computation()
+        
+        // Step 5: Mark our instance as completed
+        await markInstanceCompleted(
+            config,
+            primaryKey,
+            argumentHash,
+            myInstance.UUID
+        )
+        
+        return result
+    } catch (error) {
+        // Mark instance as failed
+        await markInstanceFailed(
+            config,
+            primaryKey,
+            argumentHash,
+            myInstance.UUID
+        )
+        throw error
+    }
+}
+
+// Helper function to wait for earlier instances to complete
+// Returns true if it transitioned myInstance to IN_PROGRESS during cascading failure handling
+async function waitForEarlierInstances(
+    config: SingleFlightConfig,
+    primaryKey: string,
+    argumentHash: string,
+    myInstance: SingleFlightInstance,
+    timeoutMs: number
+): Promise<boolean> {
+    
+    while (true) {
+        const record = await config.getItemFunction({
+            Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
+            ProjectionFields: ['Instances']
+        })
+        
+        if (!record?.Instances) {
+            return false // No instances, caller should transition
+        }
+        
+        // TODO: Implement cleanup for old COMPLETED/FAILED instances to prevent unbounded growth
+        // Current impact: ~2500-4000 instances before hitting 400KB DynamoDB limit
+        // Recommended approach: Remove instances where expiresAt is older than 10x the timeout period
+        // (i.e., if timeout is 30s, remove instances expired more than 300s ago)
+        // This cleanup should be opportunistic (run during normal polling) to avoid separate maintenance jobs
+        
+        // Check our own status - another process may have marked us as FAILED
+        const currentInstance = record.Instances.find(
+            (inst: SingleFlightInstance) => inst.UUID === myInstance.UUID
+        )
+        
+        if (!currentInstance) {
+            throw new Error('Instance not found during waiting')
+        }
+        
+        if (currentInstance.Status === 'FAILED') {
+            throw new Error('Instance was marked as FAILED by another process (cascading failure)')
+        }
+        
+        // Find all instances created before ours that are still QUEUED or IN_PROGRESS
+        const earlierActive = record.Instances.filter(
+            (inst: SingleFlightInstance) => 
+                inst.createdAt < myInstance.createdAt && 
+                (inst.Status === 'QUEUED' || inst.Status === 'IN_PROGRESS')
+        )
+        
+        // If no earlier instances are active, we can proceed
+        if (earlierActive.length === 0) {
+            return false // Caller should transition to IN_PROGRESS
+        }
+        
+        const currentTime = getCurrentTimestamp()
+        
+        // Check for cascading failures: if an IN_PROGRESS instance expired long enough ago
+        // that all QUEUED instances ahead of us should have also failed, mark them all as FAILED
+        const expiredInProgress = earlierActive.find(
+            inst => inst.Status === 'IN_PROGRESS' && currentTime > inst.expiresAt
+        )
+        
+        if (expiredInProgress) {
+            const timeSinceExpiration = currentTime - expiredInProgress.expiresAt
+            const queuedEarlier = earlierActive.filter(inst => inst.Status === 'QUEUED')
+            
+            // If enough time has passed for all QUEUED instances to have transitioned and timed out,
+            // they must be dead (not polling anymore). Mark them all as FAILED and transition us to IN_PROGRESS.
+            if (queuedEarlier.length > 0 && timeSinceExpiration >= queuedEarlier.length * timeoutMs) {
+                // Cascading failure detected - mark all earlier instances as FAILED and transition to IN_PROGRESS atomically
+                try {
+                    const myCreatedAt = myInstance.createdAt
+                    const myUUID = myInstance.UUID
+                    await config.optimisticUpdateFunction({
+                        Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
+                        updateKeys: ['Instances'],
+                        updateReducer: (draft: any) => {
+                            // Recalculate which instances should be marked as FAILED from current state
+                            // Mark all instances created before ours that are QUEUED or IN_PROGRESS
+                            for (const instance of draft.Instances) {
+                                if (instance.createdAt < myCreatedAt && 
+                                    (instance.Status === 'QUEUED' || instance.Status === 'IN_PROGRESS')) {
+                                    instance.Status = 'FAILED'
+                                }
+                            }
+                            
+                            // Also transition our instance to IN_PROGRESS in the same atomic operation
+                            const myInstanceDraft = draft.Instances.find(
+                                (inst: SingleFlightInstance) => inst.UUID === myUUID
+                            )
+                            if (myInstanceDraft) {
+                                const timestamp = getCurrentTimestamp()
+                                myInstanceDraft.Status = 'IN_PROGRESS'
+                                myInstanceDraft.expiresAt = timestamp + timeoutMs
+                            }
+                        },
+                        priorFetch: record,  // Use the record we already fetched
+                        maxRetries: 0
+                    })
+                    return true // We transitioned to IN_PROGRESS
+                } catch (error) {
+                    // Ignore errors - another process may have updated it
+                    // Fall through to continue polling
+                }
+            }
+            
+            // Not a cascading failure yet - just mark the expired IN_PROGRESS instance
+            try {
+                await markInstanceFailed(
+                    config,
+                    primaryKey,
+                    argumentHash,
+                    expiredInProgress.UUID,
+                    record  // Use the record we already fetched
+                )
+            } catch (error) {
+                // Ignore errors - another process may have updated it
+            }
+        }
+        
+        // Wait before next poll
+        const baseDelay = 100
+        const jitter = Math.random() * 50
+        const delay = baseDelay + jitter
+        await delayPromise(delay)
+    }
+}
+
 // Helper function to create a new instance
 async function createNewInstance(
     config: SingleFlightConfig,
     primaryKey: string,
     argumentHash: string,
     existingRecord: SingleFlightRecord<any, any> | undefined,
-    timeoutMs: number
+    timeoutMs: number,
+    initialStatus: 'QUEUED' | 'IN_PROGRESS' = 'IN_PROGRESS'
 ): Promise<SingleFlightInstance> {
     const newInstance: SingleFlightInstance = {
         UUID: uuidv4(),
-        Status: 'IN_PROGRESS',
+        Status: initialStatus,
         createdAt: getCurrentTimestamp(),
         expiresAt: getCurrentTimestamp() + timeoutMs
     }
@@ -155,6 +368,10 @@ async function pollForCompletion<T>(
             Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
             ProjectionFields: ['Instances']
         })
+        
+        // TODO: Implement cleanup for old COMPLETED/FAILED instances to prevent unbounded growth
+        // Same issue as sequential mode - instances accumulate indefinitely
+        // Recommended: Remove instances where expiresAt is older than 10x the timeout period
         
         const currentInstance = record?.Instances?.find(
             (inst: SingleFlightInstance) => inst.UUID === instance.UUID
@@ -246,6 +463,57 @@ async function markInstanceCompleted(
                 throw new Error(`Instance with UUID ${instanceUUID} not found during completion`)
             }
             draft.Instances[instanceIndex].Status = 'COMPLETED'
+        },
+        maxRetries: 0
+    })
+}
+
+// Helper function to mark instance as failed
+async function markInstanceFailed(
+    config: SingleFlightConfig,
+    primaryKey: string,
+    argumentHash: string,
+    instanceUUID: string,
+    priorFetch?: SingleFlightRecord<any, any>
+): Promise<void> {
+    await config.optimisticUpdateFunction({
+        Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
+        updateKeys: ['Instances'],
+        updateReducer: (draft: any) => {
+            const instanceIndex = draft.Instances.findIndex(
+                (inst: SingleFlightInstance) => inst.UUID === instanceUUID
+            )
+            if (instanceIndex === -1) {
+                throw new Error(`Instance with UUID ${instanceUUID} not found during failure marking`)
+            }
+            draft.Instances[instanceIndex].Status = 'FAILED'
+        },
+        priorFetch,  // Use priorFetch if provided to avoid redundant getItem
+        maxRetries: 0
+    })
+}
+
+// Helper function to transition instance from QUEUED to IN_PROGRESS
+async function transitionToInProgress(
+    config: SingleFlightConfig,
+    primaryKey: string,
+    argumentHash: string,
+    instanceUUID: string,
+    timeoutMs: number
+): Promise<void> {
+    await config.optimisticUpdateFunction({
+        Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
+        updateKeys: ['Instances'],
+        updateReducer: (draft: any) => {
+            const instanceIndex = draft.Instances.findIndex(
+                (inst: SingleFlightInstance) => inst.UUID === instanceUUID
+            )
+            if (instanceIndex === -1) {
+                throw new Error(`Instance with UUID ${instanceUUID} not found during transition to IN_PROGRESS`)
+            }
+            draft.Instances[instanceIndex].Status = 'IN_PROGRESS'
+            // Reset expiration time when actually starting execution
+            draft.Instances[instanceIndex].expiresAt = getCurrentTimestamp() + timeoutMs
         },
         maxRetries: 0
     })
