@@ -1111,6 +1111,82 @@ describe('singleFlightFactory', () => {
             expect(reducerResult).toEqual({ Instances: expectedUpdatedInstances })
         })
 
+        it('should throw error when our own instance is marked as FAILED by another process', async () => {
+            // This tests the case where cascading failure detection by a later process
+            // marks our instance as FAILED while we're still polling
+            
+            // Arrange
+            mockGetCurrentTimestamp.mockReturnValueOnce(100000000).mockReturnValueOnce(100000000)
+            mockUuidv4.mockReturnValue('my-uuid')
+            
+            // First getItem: existing earlier instance
+            mockGetItem.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [{
+                    UUID: 'earlier-uuid',
+                    Status: 'IN_PROGRESS',
+                    createdAt: 99999999,
+                    expiresAt: 100030000
+                }]
+            })
+            
+            // optimisticUpdate: add our instance as QUEUED
+            mockOptimisticUpdate.mockResolvedValueOnce({})
+            
+            // First poll: we're still QUEUED, earlier instance still running
+            mockGetItem.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [
+                    {
+                        UUID: 'earlier-uuid',
+                        Status: 'IN_PROGRESS',
+                        createdAt: 99999999,
+                        expiresAt: 100030000
+                    },
+                    {
+                        UUID: 'my-uuid',
+                        Status: 'QUEUED',
+                        createdAt: 100000000,
+                        expiresAt: 100030000
+                    }
+                ]
+            })
+            
+            // Second poll: another process marked us as FAILED (cascading failure)
+            mockGetItem.mockResolvedValueOnce({
+                PrimaryKey: 'SINGLEFLIGHT#test-category',
+                DataCategory: 'test-hash',
+                Instances: [
+                    {
+                        UUID: 'earlier-uuid',
+                        Status: 'IN_PROGRESS',
+                        createdAt: 99999999,
+                        expiresAt: 100030000
+                    },
+                    {
+                        UUID: 'my-uuid',
+                        Status: 'FAILED', // ← Marked by another process
+                        createdAt: 100000000,
+                        expiresAt: 100030000
+                    }
+                ]
+            })
+            
+            const mockComputation = jest.fn()
+            
+            const params: SingleFlightParams<string> = {
+                category: 'test-category',
+                argumentHash: 'test-hash',
+                computation: mockComputation
+            }
+
+            // Act & Assert
+            await expect(singleFlight(params)).rejects.toThrow('Instance was marked as FAILED by another process')
+            expect(mockComputation).not.toHaveBeenCalled() // Should not execute if marked FAILED
+        })
+
         it('should execute multiple instances in order by createdAt', async () => {
             // This test simulates three processes arriving at different times
             // and verifies they execute in the correct order

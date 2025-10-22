@@ -253,6 +253,7 @@ The singleFlight pattern is fully implemented and tested with both coalesce and 
 
 ### **Future Enhancements**
 - **Migrate atomicLock usage**: Replace WML edit Step Function with sequential mode singleFlight
+- **Instance cleanup**: Implement opportunistic removal of old COMPLETED/FAILED instances to prevent unbounded growth (recommended: remove instances where `expiresAt` is older than 10x the timeout period)
 - **Metrics and monitoring**: Built-in performance tracking and coordination analytics
 - **Configuration options**: Additional timeout and polling strategies
 - **Error handling improvements**: Enhanced retry logic and failure recovery

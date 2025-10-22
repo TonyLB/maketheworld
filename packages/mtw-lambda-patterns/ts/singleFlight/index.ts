@@ -216,6 +216,25 @@ async function waitForEarlierInstances(
             return false // No instances, caller should transition
         }
         
+        // TODO: Implement cleanup for old COMPLETED/FAILED instances to prevent unbounded growth
+        // Current impact: ~2500-4000 instances before hitting 400KB DynamoDB limit
+        // Recommended approach: Remove instances where expiresAt is older than 10x the timeout period
+        // (i.e., if timeout is 30s, remove instances expired more than 300s ago)
+        // This cleanup should be opportunistic (run during normal polling) to avoid separate maintenance jobs
+        
+        // Check our own status - another process may have marked us as FAILED
+        const currentInstance = record.Instances.find(
+            (inst: SingleFlightInstance) => inst.UUID === myInstance.UUID
+        )
+        
+        if (!currentInstance) {
+            throw new Error('Instance not found during waiting')
+        }
+        
+        if (currentInstance.Status === 'FAILED') {
+            throw new Error('Instance was marked as FAILED by another process (cascading failure)')
+        }
+        
         // Find all instances created before ours that are still QUEUED or IN_PROGRESS
         const earlierActive = record.Instances.filter(
             (inst: SingleFlightInstance) => 
@@ -347,6 +366,10 @@ async function pollForCompletion<T>(
             Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
             ProjectionFields: ['Instances']
         })
+        
+        // TODO: Implement cleanup for old COMPLETED/FAILED instances to prevent unbounded growth
+        // Same issue as sequential mode - instances accumulate indefinitely
+        // Recommended: Remove instances where expiresAt is older than 10x the timeout period
         
         const currentInstance = record?.Instances?.find(
             (inst: SingleFlightInstance) => inst.UUID === instance.UUID
