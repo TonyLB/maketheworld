@@ -10,7 +10,7 @@ import { initializePrimitives } from './initializePrimitives'
 import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
 import AssetWorkspace from '../s3Storage/AssetWorkspace'
 import { singleFlightFactory } from '@tonylb/mtw-lambda-patterns/ts/singleFlight'
-import assetDB from '../atomicLock/mockableAssetDB'
+import assetDB from '../utilities/mockableAssetDB'
 import { ApplyEditResult } from './applyEdit'
 
 // Single-flight factory for WML edits - ensures sequential processing per asset

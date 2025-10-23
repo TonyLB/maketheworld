@@ -1,14 +1,14 @@
 jest.mock('uuid', () => ({ v4: jest.fn() }))
 import { v4 as uuidv4 } from 'uuid'
 
-jest.mock('./mockableTime', () => (jest.fn()))
-import now from './mockableTime'
+jest.mock('../utilities/mockableTime', () => (jest.fn()))
+import now from '../utilities/mockableTime'
 
-jest.mock('./mockableAssetDB', () => ({
+jest.mock('../utilities/mockableAssetDB', () => ({
     optimisticUpdate: jest.fn(),
     getItem: jest.fn()
 }))
-import assetDB from './mockableAssetDB'
+import assetDB from '../utilities/mockableAssetDB'
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/delayPromise')
 import delayPromise from '@tonylb/mtw-utilities/ts/dynamoDB/delayPromise'
 

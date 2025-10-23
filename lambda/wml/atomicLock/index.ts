@@ -1,8 +1,8 @@
 import { EphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
-import assetDB from "./mockableAssetDB"
+import assetDB from "../utilities/mockableAssetDB"
 import delayPromise from "@tonylb/mtw-utilities/ts/dynamoDB/delayPromise"
-import now from "./mockableTime"
+import now from "../utilities/mockableTime"
 import { v4 as uuidv4 } from 'uuid'
 
 export const requestLock = async (AssetId: EphemeraAssetId): Promise<string> => {
