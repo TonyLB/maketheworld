@@ -13,8 +13,20 @@ jest.mock('../../s3Storage/manifest/chunks')
 jest.mock('../../s3Storage/manifest/snapshots')
 jest.mock('../../s3Storage/manifest/operations')
 
+// Mock the helper function
+jest.mock('../utilities/appendManifestEventsWithLazyMigration')
+
 // Mock internalCache
 jest.mock('../../internalCache')
+
+// Mock uuid and time for deterministic testing
+jest.mock('uuid', () => ({
+    v4: jest.fn()
+}))
+
+jest.mock('../../utilities/mockableTime', () => ({
+    now: jest.fn()
+}))
 
 const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
@@ -22,15 +34,25 @@ const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 import { writeChunk } from '../../s3Storage/manifest/chunks'
 import { writeSnapshot } from '../../s3Storage/manifest/snapshots'
 import { loadManifest, appendManifestEvents } from '../../s3Storage/manifest/operations'
+import { appendManifestEventsWithLazyMigration } from '../utilities/appendManifestEventsWithLazyMigration'
+import { v4 as uuidv4 } from 'uuid'
+import { now } from '../../utilities/mockableTime'
 
 const mockWriteChunk = writeChunk as jest.MockedFunction<typeof writeChunk>
 const mockWriteSnapshot = writeSnapshot as jest.MockedFunction<typeof writeSnapshot>
 const mockLoadManifest = loadManifest as jest.MockedFunction<typeof loadManifest>
 const mockAppendManifestEvents = appendManifestEvents as jest.MockedFunction<typeof appendManifestEvents>
+const mockAppendManifestEventsWithLazyMigration = appendManifestEventsWithLazyMigration as jest.MockedFunction<typeof appendManifestEventsWithLazyMigration>
+const mockUuidv4 = uuidv4 as jest.MockedFunction<typeof uuidv4>
+const mockNow = now as jest.MockedFunction<typeof now>
 
 describe("applyEdit", () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        
+        // Setup deterministic mocks for uuid and time
+        mockUuidv4.mockReturnValue('test-uuid-123')
+        mockNow.mockReturnValue(1234567890)
         
         // Setup default mock implementations for manifest operations
         mockWriteChunk.mockResolvedValue({
@@ -45,6 +67,9 @@ describe("applyEdit", () => {
         
         mockLoadManifest.mockResolvedValue([])
         mockAppendManifestEvents.mockResolvedValue(undefined)
+        
+        // Mock the helper function
+        mockAppendManifestEventsWithLazyMigration.mockResolvedValue(undefined)
         
         // Setup default mock for internalCache.Connection.get
         internalCacheMock.Connection.get.mockImplementation(async (key: string) => {
@@ -1055,9 +1080,7 @@ describe("applyEdit", () => {
                 const editSchema = deIndentWML(`
                     <Asset uuid=(test)>
                         <Room uuid=(kitchen)>
-                            <Example uuid=(kitchenExample)>
-                                <Name>Kitchen</Name>
-                            </Example>
+                            <Example uuid=(kitchenExample)><Name>Kitchen</Name></Example>
                         </Room>
                     </Asset>
                 `)
@@ -1071,31 +1094,29 @@ describe("applyEdit", () => {
                 // Should succeed
                 expect(result.success).toBe(true)
                 
-                // Should load manifest to check for lazy migration
-                expect(mockLoadManifest).toHaveBeenCalledWith('test.wml/')
-                
-                // Should NOT create snapshot (manifest already exists)
-                expect(mockWriteSnapshot).not.toHaveBeenCalled()
-                
                 // Should write chunk with edit delta
                 expect(mockWriteChunk).toHaveBeenCalledWith(expect.objectContaining({
                     prefix: 'test.wml/',
-                    content: expect.stringContaining('<Room uuid=(kitchen)>'),
-                    zone: 'Library'
+                    content: editSchema,
+                    zone: 'Library',
+                    authoringPlayer: 'test-player-123',
+                    timestamp: 1234567890
                 }))
                 
-                // Should append only chunk event to manifest
-                expect(mockAppendManifestEvents).toHaveBeenCalledWith('test.wml/', expect.arrayContaining([
-                    expect.objectContaining({
+                // Should call helper function with correct parameters
+                expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
+                    'test.wml/',
+                    mockWorkspace,
+                    1234567890, // exact timestamp from mock
+                    [{
+                        authoringPlayer: 'test-player-123',
                         type: 'chunk',
                         s3Key: 'test.wml/chunks/1234567890-abc123.wml',
-                        chunkSize: 500
-                    })
-                ]))
-                
-                // Should have exactly 1 event in the batch (no snapshot)
-                const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
-                expect(eventsAppended).toHaveLength(1)
+                        chunkSize: 500,
+                        timestamp: '1970-01-15T06:56:07.890Z', // exact ISO string from mock timestamp
+                        eventId: 'test-uuid-123' // exact UUID from mock
+                    }]
+                )
                 
                 // Should still write materialized views
                 expect(mockWorkspace.pushJSON).toHaveBeenCalled()
@@ -1104,7 +1125,7 @@ describe("applyEdit", () => {
         })
 
         describe("lazy migration - existing asset, no manifest", () => {
-            it('should create snapshot and then write chunk', async () => {
+            it('should call helper function with correct parameters', async () => {
                 const existingWML = deIndentWML(`
                     <Asset uuid=(test)>
                         <Room uuid=(lobby)>
@@ -1126,16 +1147,11 @@ describe("applyEdit", () => {
                 }
 
                 MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
-                
-                // Mock manifest as empty (triggers lazy migration)
-                mockLoadManifest.mockResolvedValue([])
 
                 const editSchema = deIndentWML(`
                     <Asset uuid=(test)>
                         <Room uuid=(kitchen)>
-                            <Example uuid=(kitchenExample)>
-                                <Name>Kitchen</Name>
-                            </Example>
+                            <Example uuid=(kitchenExample)><Name>Kitchen</Name></Example>
                         </Room>
                     </Asset>
                 `)
@@ -1149,45 +1165,29 @@ describe("applyEdit", () => {
                 // Should succeed
                 expect(result.success).toBe(true)
                 
-                // Should load manifest
-                expect(mockLoadManifest).toHaveBeenCalledWith('test.wml/')
-                
-                // Should create initial snapshot (from already-existing materialized view)
-                expect(mockWriteSnapshot).toHaveBeenCalledWith(expect.objectContaining({
-                    prefix: 'test.wml/',
-                    zone: 'Library',
-                    snapshotType: 'manual',
-                    chunksBeforeSnapshot: 0
-                }))
-                
                 // Should write chunk with edit delta
                 expect(mockWriteChunk).toHaveBeenCalledWith(expect.objectContaining({
                     prefix: 'test.wml/',
-                    content: expect.stringContaining('<Room uuid=(kitchen)>'),
-                    zone: 'Library'
+                    content: editSchema,
+                    zone: 'Library',
+                    authoringPlayer: 'test-player-123',
+                    timestamp: 1234567890
                 }))
                 
-                // Should append both snapshot and chunk events to manifest
-                expect(mockAppendManifestEvents).toHaveBeenCalledWith('test.wml/', expect.arrayContaining([
-                    expect.objectContaining({
-                        type: 'snapshot',
-                        s3Key: 'test.wml/snapshots/1234567890.wml',
-                        snapshotType: 'manual',
-                        chunksBeforeSnapshot: 0,
-                        snapshotSize: 2000
-                    }),
-                    expect.objectContaining({
+                // Should call helper function with correct parameters
+                expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
+                    'test.wml/',
+                    mockWorkspace,
+                    1234567890, // exact timestamp from mock
+                    [{
+                        authoringPlayer: 'test-player-123',
                         type: 'chunk',
                         s3Key: 'test.wml/chunks/1234567890-abc123.wml',
-                        chunkSize: 500
-                    })
-                ]))
-                
-                // Should have exactly 2 events in the batch (snapshot + chunk)
-                const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
-                expect(eventsAppended).toHaveLength(2)
-                expect(eventsAppended[0].type).toBe('snapshot')
-                expect(eventsAppended[1].type).toBe('chunk')
+                        chunkSize: 500,
+                        timestamp: '1970-01-15T06:56:07.890Z', // exact ISO string from mock timestamp
+                        eventId: 'test-uuid-123' // exact UUID from mock
+                    }]
+                )
                 
                 // Should write final merged result to materialized views (exactly once)
                 expect(mockWorkspace.setJSON).toHaveBeenCalledTimes(1)
@@ -1195,7 +1195,7 @@ describe("applyEdit", () => {
                 expect(mockWorkspace.pushWML).toHaveBeenCalledTimes(1)
             })
             
-            it('should skip lazy migration if asset is empty (createIfNeeded case)', async () => {
+            it('should call helper function for createIfNeeded workflow', async () => {
                 // Test with createIfNeeded: true and zone specified (new asset case)
                 MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(undefined)
                 
@@ -1210,16 +1210,11 @@ describe("applyEdit", () => {
                 
                 // @ts-ignore - partial mock
                 MockAssetWorkspace.mockImplementation(() => mockWorkspace)
-                
-                // Mock manifest as empty
-                mockLoadManifest.mockResolvedValue([])
 
                 const editSchema = deIndentWML(`
                     <Asset uuid=(test)>
                         <Room uuid=(kitchen)>
-                            <Example uuid=(kitchenExample)>
-                                <Name>Kitchen</Name>
-                            </Example>
+                            <Example uuid=(kitchenExample)><Name>Kitchen</Name></Example>
                         </Room>
                     </Asset>
                 `)
@@ -1235,16 +1230,29 @@ describe("applyEdit", () => {
                 // Should succeed
                 expect(result.success).toBe(true)
                 
-                // Should NOT create snapshot (asset was empty, nothing to snapshot)
-                expect(mockWriteSnapshot).not.toHaveBeenCalled()
+                // Should write chunk with edit delta
+                expect(mockWriteChunk).toHaveBeenCalledWith(expect.objectContaining({
+                    prefix: 'test.wml/',
+                    content: editSchema,
+                    zone: 'Library',
+                    authoringPlayer: 'test-player-123',
+                    timestamp: 1234567890
+                }))
                 
-                // Should still write chunk
-                expect(mockWriteChunk).toHaveBeenCalled()
-                
-                // Should append only chunk event (no snapshot)
-                const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
-                expect(eventsAppended).toHaveLength(1)
-                expect(eventsAppended[0].type).toBe('chunk')
+                // Should call helper function with correct parameters
+                expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
+                    'test.wml/',
+                    mockWorkspace,
+                    1234567890, // exact timestamp from mock
+                    [{
+                        authoringPlayer: 'test-player-123',
+                        type: 'chunk',
+                        s3Key: 'test.wml/chunks/1234567890-abc123.wml',
+                        chunkSize: 500,
+                        timestamp: '1970-01-15T06:56:07.890Z', // exact ISO string from mock timestamp
+                        eventId: 'test-uuid-123' // exact UUID from mock
+                    }]
+                )
             })
         })
 
@@ -1335,8 +1343,20 @@ describe("applyEdit", () => {
                 // Should write chunk even for new asset
                 expect(mockWriteChunk).toHaveBeenCalled()
                 
-                // Should append chunk event
-                expect(mockAppendManifestEvents).toHaveBeenCalled()
+                // Should call helper function with correct parameters
+                expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
+                    'test.wml/',
+                    mockWorkspace,
+                    1234567890, // exact timestamp from mock
+                    [{
+                        authoringPlayer: 'test-player-123',
+                        type: 'chunk',
+                        s3Key: 'test.wml/chunks/1234567890-abc123.wml',
+                        chunkSize: 500,
+                        timestamp: '1970-01-15T06:56:07.890Z', // exact ISO string from mock timestamp
+                        eventId: 'test-uuid-123' // exact UUID from mock
+                    }]
+                )
                 
                 // Should write materialized views
                 expect(mockWorkspace.pushJSON).toHaveBeenCalled()
@@ -1375,20 +1395,20 @@ describe("applyEdit", () => {
                     schema: '<Asset uuid=(test)><Room uuid=(r1) /></Asset>'
                 })
 
-                const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
-                const chunkEvent = eventsAppended.find((e: any) => e.type === 'chunk')
-                
-                expect(chunkEvent).toBeDefined()
-                expect(chunkEvent).toMatchObject({
-                    type: 'chunk',
-                    timestamp: expect.any(String),
-                    eventId: expect.any(String),
-                    s3Key: expect.stringContaining('.wml/chunks/'),
-                    chunkSize: expect.any(Number)
-                })
-                
-                // Timestamp should be ISO 8601
-                expect(new Date(chunkEvent!.timestamp).toISOString()).toBe(chunkEvent!.timestamp)
+                // Should call helper function with correct parameters
+                expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
+                    'test.wml/',
+                    mockWorkspace,
+                    1234567890, // exact timestamp from mock
+                    [{
+                        authoringPlayer: 'test-player-123',
+                        type: 'chunk',
+                        s3Key: 'test.wml/chunks/1234567890-abc123.wml',
+                        chunkSize: 500,
+                        timestamp: '1970-01-15T06:56:07.890Z', // exact ISO string from mock timestamp
+                        eventId: 'test-uuid-123' // exact UUID from mock
+                    }]
+                )
             })
         })
     })
@@ -1423,9 +1443,7 @@ describe("applyEdit", () => {
             const editSchema = deIndentWML(`
                 <Asset uuid=(test)>
                     <Room uuid=(kitchen)>
-                        <Example uuid=(kitchenExample)>
-                            <Name>Kitchen</Name>
-                        </Example>
+                        <Example uuid=(kitchenExample)><Name>Kitchen</Name></Example>
                     </Room>
                 </Asset>
             `)
@@ -1442,9 +1460,10 @@ describe("applyEdit", () => {
             // Verify that writeChunk was called with player metadata
             expect(mockWriteChunk).toHaveBeenCalledWith(expect.objectContaining({
                 prefix: 'test.wml/',
-                content: expect.stringContaining('<Room uuid=(kitchen)>'),
+                content: editSchema,
                 zone: 'Library',
-                player: 'test-player-123'
+                authoringPlayer: 'test-player-123',
+                timestamp: 1234567890
             }))
         })
 
@@ -1460,9 +1479,7 @@ describe("applyEdit", () => {
             const existingWML = deIndentWML(`
                 <Asset uuid=(test)>
                     <Room uuid=(lobby)>
-                        <Example uuid=(lobbyExample)>
-                            <Name>Lobby</Name>
-                        </Example>
+                        <Example uuid=(lobbyExample)><Name>Lobby</Name></Example>
                     </Room>
                 </Asset>
             `)
@@ -1483,9 +1500,7 @@ describe("applyEdit", () => {
             const editSchema = deIndentWML(`
                 <Asset uuid=(test)>
                     <Room uuid=(kitchen)>
-                        <Example uuid=(kitchenExample)>
-                            <Name>Kitchen</Name>
-                        </Example>
+                        <Example uuid=(kitchenExample)><Name>Kitchen</Name></Example>
                     </Room>
                 </Asset>
             `)
@@ -1499,9 +1514,10 @@ describe("applyEdit", () => {
             // Verify that writeChunk was called with undefined player
             expect(mockWriteChunk).toHaveBeenCalledWith(expect.objectContaining({
                 prefix: 'test.wml/',
-                content: expect.stringContaining('<Room uuid=(kitchen)>'),
+                content: editSchema,
                 zone: 'Library',
-                player: undefined
+                authoringPlayer: undefined,
+                timestamp: 1234567890
             }))
         })
 
@@ -1546,18 +1562,20 @@ describe("applyEdit", () => {
             })
 
             // Verify that chunk event includes authoringPlayer
-            const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
-            const chunkEvent = eventsAppended.find((e: any) => e.type === 'chunk')
-            
-            expect(chunkEvent).toBeDefined()
-            expect(chunkEvent).toMatchObject({
-                type: 'chunk',
-                timestamp: expect.any(String),
-                eventId: expect.any(String),
-                s3Key: expect.stringContaining('.wml/chunks/'),
-                chunkSize: expect.any(Number),
-                authoringPlayer: 'test-player-123'
-            })
+            // Should call helper function with correct parameters
+            expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
+                'test.wml/',
+                mockWorkspace,
+                1234567890, // exact timestamp from mock
+                [{
+                    authoringPlayer: 'test-player-123',
+                    type: 'chunk',
+                    s3Key: 'test.wml/chunks/1234567890-abc123.wml',
+                    chunkSize: 500,
+                    timestamp: '1970-01-15T06:56:07.890Z', // exact ISO string from mock timestamp
+                    eventId: 'test-uuid-123' // exact UUID from mock
+                }]
+            )
         })
 
         it('should work with lazy migration and authoringPlayer', async () => {
@@ -1589,9 +1607,7 @@ describe("applyEdit", () => {
             const editSchema = deIndentWML(`
                 <Asset uuid=(test)>
                     <Room uuid=(kitchen)>
-                        <Example uuid=(kitchenExample)>
-                            <Name>Kitchen</Name>
-                        </Example>
+                        <Example uuid=(kitchenExample)><Name>Kitchen</Name></Example>
                     </Room>
                 </Asset>
             `)
@@ -1605,18 +1621,26 @@ describe("applyEdit", () => {
             // Verify that writeChunk was called with player metadata during lazy migration
             expect(mockWriteChunk).toHaveBeenCalledWith(expect.objectContaining({
                 prefix: 'test.wml/',
-                content: expect.stringContaining('<Room uuid=(kitchen)>'),
+                content: editSchema,
                 zone: 'Canon',
-                player: 'test-player-123'
+                authoringPlayer: 'test-player-123',
+                timestamp: 1234567890
             }))
 
-            // Verify that both snapshot and chunk events were created
-            const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
-            expect(eventsAppended).toHaveLength(2)
-            expect(eventsAppended[0].type).toBe('snapshot')
-            expect(eventsAppended[1].type).toBe('chunk')
-            const chunkEvent = eventsAppended[1] as any
-            expect(chunkEvent.authoringPlayer).toBe('test-player-123')
+            // Should call helper function with correct parameters
+            expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
+                'test.wml/',
+                mockWorkspace,
+                1234567890, // exact timestamp from mock
+                [{
+                    authoringPlayer: 'test-player-123',
+                    type: 'chunk',
+                    s3Key: 'test.wml/chunks/1234567890-abc123.wml',
+                    chunkSize: 500,
+                    timestamp: '1970-01-15T06:56:07.890Z', // exact ISO string from mock timestamp
+                    eventId: 'test-uuid-123' // exact UUID from mock
+                }]
+            )
         })
     })
 })

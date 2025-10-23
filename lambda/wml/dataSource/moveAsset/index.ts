@@ -9,6 +9,11 @@
 import { s3Client } from "@tonylb/mtw-asset-workspace/ts/clients"
 import { MoveAssetRequest } from "../coordinationSerializer"
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { appendManifestEventsWithLazyMigration } from "../utilities/appendManifestEventsWithLazyMigration"
+import { ManifestZoneChangeEvent } from "../../s3Storage/manifest/baseClasses"
+import AssetWorkspace from "../../s3Storage/AssetWorkspace"
+import { v4 as uuidv4 } from 'uuid'
+import { now } from "../../utilities/mockableTime"
 
 export interface MoveAssetResponse {
     success: boolean
@@ -48,7 +53,6 @@ export async function moveAsset(assetId: AssetUUID, request: MoveAssetRequest): 
     }
     
     try {
-        // Phase 1: Zone transition is just a tag update
         const fileName = assetId.replace('ASSET#', '')
         
         // Handle Archive zone as deletion (Phase 1 defers proper archiving to Phase 2)
@@ -60,25 +64,43 @@ export async function moveAsset(assetId: AssetUUID, request: MoveAssetRequest): 
             }
         }
         
-        // Update Zone tag on all asset files atomically
+        // Always use lazy migration helper - it handles all cases
+        const timestamp = now()
+        const contentPrefix = `${fileName}.wml/`
+        const authPrefix = `${fileName}.auth.wml/`
+        
+        const zoneChangeEvent: ManifestZoneChangeEvent = {
+            type: 'zoneChange',
+            timestamp: new Date(timestamp).toISOString(),
+            eventId: uuidv4(),
+            fromZone,
+            toZone
+        }
+        
+        // Load asset content and authorization for the helper function
+        const assetWorkspace = new AssetWorkspace(assetId, fromZone)
+        
         await Promise.all([
-            s3Client.updateTags({
-                Key: `${fileName}.wml`,
-                Tags: { Zone: toZone }
-            }),
-            s3Client.updateTags({
-                Key: `${fileName}.ndjson`,
-                Tags: { Zone: toZone }
-            }),
-            s3Client.updateTags({
-                Key: `${fileName}.auth.wml`,
-                Tags: { Zone: toZone }
-            }),
-            s3Client.updateTags({
-                Key: `${fileName}.auth.ndjson`,
-                Tags: { Zone: toZone }
-            })
+            assetWorkspace.loadJSON(),
+            assetWorkspace.loadAuthorizationJSON()
         ])
+        
+        // Always call the helper function - it handles all cases including empty assets
+        const manifestUpdates = [
+            appendManifestEventsWithLazyMigration(contentPrefix, assetWorkspace, timestamp, [zoneChangeEvent]),
+            appendManifestEventsWithLazyMigration(authPrefix, assetWorkspace, timestamp, [zoneChangeEvent])
+        ]
+            
+        // Update Zone tags on materialized views
+        const tagUpdates = [
+            s3Client.updateTags({ Key: `${fileName}.wml`, Tags: { Zone: toZone } }),
+            s3Client.updateTags({ Key: `${fileName}.ndjson`, Tags: { Zone: toZone } }),
+            s3Client.updateTags({ Key: `${fileName}.auth.wml`, Tags: { Zone: toZone } }),
+            s3Client.updateTags({ Key: `${fileName}.auth.ndjson`, Tags: { Zone: toZone } })
+        ]
+            
+        // Execute all updates in parallel
+        await Promise.all([...manifestUpdates, ...tagUpdates])
         
         return {
             success: true,

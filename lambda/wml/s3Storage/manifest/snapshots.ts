@@ -33,6 +33,7 @@ export interface WriteSnapshotOptions {
     zone: Zone;                            // Zone for S3 tags (enables lifecycle policies)
     snapshotType: 'manual' | 'automatic';  // How was this snapshot created
     chunksBeforeSnapshot: number;          // Number of chunks this snapshot replaces
+    authoringPlayer?: string;              // Player who created this snapshot (if applicable)
 }
 
 /**
@@ -46,7 +47,7 @@ export interface WriteSnapshotOptions {
  * Parallel HeadObject on source to get size without sequential latency.
  */
 export const writeSnapshot = async (options: WriteSnapshotOptions): Promise<SnapshotReference> => {
-    const { prefix, timestamp, zone, snapshotType, chunksBeforeSnapshot } = options
+    const { prefix, timestamp, zone, snapshotType, chunksBeforeSnapshot, authoringPlayer } = options
     
     // Source: materialized view (e.g., "test.wml")
     // Remove trailing slash from prefix: "test.wml/" -> "test.wml"

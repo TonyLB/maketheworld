@@ -59,10 +59,14 @@ export interface ManifestSnapshotEvent extends ManifestEventBase {
  * 
  * Represents movement between zones (Personal → Library → Canon, etc.).
  * Does not involve content changes, only metadata updates.
+ * 
+ * Special case: Initial ZoneChange event (manifest creation)
+ * - fromZone: null (indicates zone establishment, not a change)
+ * - toZone: The initial zone where the asset was created
  */
 export interface ManifestZoneChangeEvent extends ManifestEventBase {
     type: 'zoneChange';
-    fromZone: Zone;
+    fromZone: Zone | null;  // null for initial zone establishment
     toZone: Zone;
 }
 
