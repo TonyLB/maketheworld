@@ -31,7 +31,7 @@ export interface WriteChunkOptions {
     timestamp: number;   // Milliseconds since epoch (for chronological ordering)
     content: string;     // WML content (delta with Replace/Remove operations)
     zone: Zone;          // Zone for S3 tags (enables lifecycle policies)
-    player?: string;     // Player who authored this edit (optional)
+    authoringPlayer?: string;     // Player who authored this edit (optional)
 }
 
 /**
@@ -43,7 +43,7 @@ export interface WriteChunkOptions {
  * 
  */
 export const writeChunk = async (options: WriteChunkOptions): Promise<ChunkReference> => {
-    const { prefix, timestamp, content, zone, player } = options
+    const { prefix, timestamp, content, zone, authoringPlayer } = options
     
     // Generate unique chunk identifier
     const chunkUuid = uuidv4()
@@ -59,8 +59,8 @@ export const writeChunk = async (options: WriteChunkOptions): Promise<ChunkRefer
         timestamp: timestamp.toString()
     }
     
-    if (player) {
-        metadata.player = player
+    if (authoringPlayer) {
+        metadata.authoringPlayer = authoringPlayer
     }
     
     // Write chunk to S3

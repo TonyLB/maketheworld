@@ -31,7 +31,7 @@ describe('Chunk Operations', () => {
                 timestamp: 1729252800000,
                 content: '<Asset uuid=(test)><Replace>...</Replace></Asset>',
                 zone: 'Library',
-                player: 'alice'
+                authoringPlayer: 'alice'
             }
 
             const result = await writeChunk(options)
@@ -66,14 +66,14 @@ describe('Chunk Operations', () => {
                 timestamp: 1729252800000,
                 content: '<Asset uuid=(test)></Asset>',
                 zone: 'Library',
-                player: 'bob'
+                authoringPlayer: 'bob'
             })
 
             expect(mockS3Client.putWithTags).toHaveBeenCalledWith(
                 expect.objectContaining({
                     Metadata: {
                         timestamp: '1729252800000',
-                        player: 'bob'
+                        authoringPlayer: 'bob'
                     }
                 })
             )
@@ -143,7 +143,7 @@ describe('Chunk Operations', () => {
                 timestamp: 1729252800000,
                 content,
                 zone: 'Library',
-                player: 'charlie'
+                authoringPlayer: 'charlie'
             })
 
             expect(mockS3Client.putWithTags).toHaveBeenCalledWith({
@@ -152,7 +152,7 @@ describe('Chunk Operations', () => {
                 Tags: { Zone: 'Library' },
                 Metadata: {
                     timestamp: '1729252800000',
-                    player: 'charlie'
+                    authoringPlayer: 'charlie'
                 }
             })
         })

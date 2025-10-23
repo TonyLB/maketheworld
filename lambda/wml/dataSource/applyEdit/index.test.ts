@@ -1099,7 +1099,7 @@ describe("applyEdit", () => {
                     prefix: 'test.wml/',
                     content: editSchema,
                     zone: 'Library',
-                    player: 'test-player-123',
+                    authoringPlayer: 'test-player-123',
                     timestamp: 1234567890
                 }))
                 
@@ -1170,7 +1170,7 @@ describe("applyEdit", () => {
                     prefix: 'test.wml/',
                     content: editSchema,
                     zone: 'Library',
-                    player: 'test-player-123',
+                    authoringPlayer: 'test-player-123',
                     timestamp: 1234567890
                 }))
                 
@@ -1235,7 +1235,7 @@ describe("applyEdit", () => {
                     prefix: 'test.wml/',
                     content: editSchema,
                     zone: 'Library',
-                    player: 'test-player-123',
+                    authoringPlayer: 'test-player-123',
                     timestamp: 1234567890
                 }))
                 
@@ -1462,7 +1462,7 @@ describe("applyEdit", () => {
                 prefix: 'test.wml/',
                 content: editSchema,
                 zone: 'Library',
-                player: 'test-player-123',
+                authoringPlayer: 'test-player-123',
                 timestamp: 1234567890
             }))
         })
@@ -1516,7 +1516,7 @@ describe("applyEdit", () => {
                 prefix: 'test.wml/',
                 content: editSchema,
                 zone: 'Library',
-                player: undefined,
+                authoringPlayer: undefined,
                 timestamp: 1234567890
             }))
         })
@@ -1623,7 +1623,7 @@ describe("applyEdit", () => {
                 prefix: 'test.wml/',
                 content: editSchema,
                 zone: 'Canon',
-                player: 'test-player-123',
+                authoringPlayer: 'test-player-123',
                 timestamp: 1234567890
             }))
 

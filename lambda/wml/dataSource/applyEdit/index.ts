@@ -125,7 +125,7 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResu
             timestamp,
             content: chunkWml,
             zone: assetWorkspace.zone,
-            player: authoringPlayer
+            authoringPlayer: authoringPlayer
         })
         
         const chunkEvent: ManifestChunkEvent = {
