@@ -101,8 +101,7 @@ export const handler = async (event: any) => {
             // WML EDIT HANDLING - USING SINGLEFLIGHT PATTERN
             // =============================================================================
             // This handler routes to the mtw-wml data source which uses singleFlight
-            // sequential mode for proper concurrency control. The old atomicLock + Step
-            // Function pattern has been replaced with a more efficient singleFlight pattern.
+            // sequential mode for proper concurrency control.
             //
             // The actual coordination now happens in:
             // - lambda/wml/dataSource/mtw-wml.ts (singleFlight wrapper)

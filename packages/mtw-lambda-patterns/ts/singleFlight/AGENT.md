@@ -195,16 +195,16 @@ The singleFlight pattern is fully implemented and tested with both coalesce and 
 - **DynamoDB coordination**: Instance-based coordination with nested structure
 - **TypeScript interfaces**: Type-safe contracts for singleFlight operations
 - **Coalesce mode**: Result-sharing coordination for expensive computations (used by dataSource pattern)
-- **Sequential mode**: Queue-based execution for atomic operations (can replace atomicLock pattern)
+- **Sequential mode**: Queue-based execution for atomic operations
 - **Instance cleanup**: Opportunistic removal of old COMPLETED/FAILED instances to prevent unbounded growth
 - **Comprehensive tests**: Full test coverage for both modes including edge cases
 
 ### **Current Usage**
 - **DataSource pattern**: Uses coalesce mode for snapshot generation coordination
-- **WML edits**: Currently uses separate atomicLock pattern (migration to sequential mode pending)
+- **WML edits**: Uses sequential mode for concurrency control
 
 ### **Future Enhancements**
-- **Migrate atomicLock usage**: Replace WML edit Step Function with sequential mode singleFlight
+- **Enhanced coordination**: Additional coordination patterns and use cases
 - **Metrics and monitoring**: Built-in performance tracking and coordination analytics
 - **Configuration options**: Additional timeout and polling strategies
 - **Error handling improvements**: Enhanced retry logic and failure recovery
@@ -241,4 +241,4 @@ This singleFlight pattern was originally designed to address the coordination ne
 The pattern is designed as a simple wrapper function that handles all the complex DynamoDB coordination logic while allowing callers to focus on their specific computation and (optionally) retrieval logic. Both modes share the same instance management, timeout handling, and self-promotion mechanisms, differing only in how they coordinate execution order and result handling.
 
 ### **Future Considerations**
-The sequential mode provides a path to migrate away from the atomicLock pattern and Step Function orchestration for WML edits, simplifying the architecture while maintaining the same coordination guarantees. This unification reduces code duplication and provides a single, well-tested coordination primitive for the entire system.
+The sequential mode has successfully replaced the atomicLock pattern and Step Function orchestration for WML edits, simplifying the architecture while maintaining the same coordination guarantees. This unification reduces code duplication and provides a single, well-tested coordination primitive for the entire system.

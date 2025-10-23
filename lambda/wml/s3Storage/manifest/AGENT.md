@@ -103,7 +103,7 @@ To reconstruct current state from manifest:
 ### Dependencies
 - **@tonylb/mtw-base/ts/schema**: AssetUUID type
 - **@tonylb/mtw-asset-workspace/ts/readOnly**: Zone type
-- **atomicLock**: Concurrent manifest update protection
+- **singleFlight**: Concurrent manifest update protection via sequential mode
 
 ### Usage Locations
 - **s3Storage/manifest/operations.ts**: Manifest read/write operations
@@ -156,7 +156,7 @@ const snapshotRef = await writeSnapshot({
 - Uses S3 `CopyObject` to efficiently copy materialized view to snapshot location
 - Parallel `HeadObject` on source to get size without sequential latency
 - S3 key pattern: `{prefix}/snapshots/{timestamp}.wml`
-- No UUID needed (snapshots are coordinated operations under atomicLock)
+- No UUID needed (snapshots are coordinated operations under singleFlight)
 - Metadata: timestamp, snapshotType, chunksBeforeSnapshot
 - Tags: Zone (for lifecycle policies)
 
@@ -258,7 +258,7 @@ const result = await createManualSnapshot({
 2. Writes snapshot (copies materialized view to snapshot location)
 3. Appends SnapshotEvent to manifest
 
-**Concurrency:** Caller must hold `atomicLock` on the asset
+**Concurrency:** Caller must use `singleFlight` pattern for coordination
 
 **Event emission:** Caller (DataSource) is responsible for emitting "Snapshot Created" event
 

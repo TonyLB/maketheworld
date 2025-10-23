@@ -4,8 +4,8 @@
  * Core operations for reading and writing manifest files (NDJSON event logs).
  * These operations are generic and work with any prefix (content or auth).
  * 
- * Concurrency: The caller is responsible for holding atomicLock on the asset
- * before calling these operations. These functions do not handle locking internally.
+ * Concurrency: The caller is responsible for using singleFlight pattern
+ * for concurrency control. These functions do not handle coordination internally.
  */
 
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'

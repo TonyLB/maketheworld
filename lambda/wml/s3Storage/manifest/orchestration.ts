@@ -8,7 +8,7 @@
  * Design principles:
  * - Orchestrate existing low-level operations (don't duplicate logic)
  * - Generic: Work with any prefix (content or auth)
- * - Caller holds atomicLock for concurrency protection
+ * - Caller uses singleFlight pattern for concurrency protection
  */
 
 import { Zone } from '@tonylb/mtw-asset-workspace/ts/readOnly'
@@ -44,7 +44,7 @@ export interface CreateManualSnapshotResult {
  * 3. Append SnapshotEvent to manifest
  * 
  * The caller is responsible for:
- * - Holding atomicLock on the asset
+ * - Using singleFlight pattern for concurrency control
  * - Emitting "Snapshot Created" event via DataSource
  * 
  * @param options - Snapshot creation options
