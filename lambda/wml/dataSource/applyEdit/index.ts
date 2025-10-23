@@ -151,11 +151,16 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResu
         
         // Write chunk with the edit delta (not the merged result)
         const chunkWml = schemaToWML([editStandard.schema])
+        
+        // Extract authoringPlayer metadata for chunk provenance
+        const authoringPlayer = await internalCache.Connection.get('player')
+        
         const chunkRef = await writeChunk({
             prefix,
             timestamp,
             content: chunkWml,
-            zone: assetWorkspace.zone
+            zone: assetWorkspace.zone,
+            player: authoringPlayer
         })
         
         const chunkEvent: ManifestChunkEvent = {
@@ -163,7 +168,8 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResu
             timestamp: new Date(timestamp).toISOString(),
             eventId: uuidv4(),
             s3Key: chunkRef.s3Key,
-            chunkSize: chunkRef.chunkSize
+            chunkSize: chunkRef.chunkSize,
+            authoringPlayer: authoringPlayer
         }
         
         eventsToAppend.push(chunkEvent)

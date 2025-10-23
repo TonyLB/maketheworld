@@ -28,6 +28,7 @@ export const handler = async (event: any) => {
     const { connectionId } = request?.connectionId || event.requestContext || {}
 
     internalCache.clear()
+    internalCache.Connection.set({ key: 'connectionId', value: connectionId })
     internalCache.Connection.set({ key: 's3Client', value: s3Client })
     messageBus.clear()
 
@@ -81,6 +82,9 @@ export const handler = async (event: any) => {
 
     // Handle WebSocket API Gateway calls (similar to assets lambda pattern)
     if (request && isApplyEditAPIMessage(request)) {
+        if (request.RequestId) {
+            internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
+        }
         messageBus.send({
             type: 'StreamingEvent',
             dataSourceKey: 'internal',
