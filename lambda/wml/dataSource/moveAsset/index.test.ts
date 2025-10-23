@@ -4,10 +4,38 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 jest.mock('@tonylb/mtw-asset-workspace/ts/clients')
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 
+// Mock manifest operations
+jest.mock('../../s3Storage/manifest/operations')
+import { loadManifest } from '../../s3Storage/manifest/operations'
+
+// Mock helper function
+jest.mock('../utilities/appendManifestEventsWithLazyMigration')
+import { appendManifestEventsWithLazyMigration } from '../utilities/appendManifestEventsWithLazyMigration'
+
+// Mock AssetWorkspace
+jest.mock('../../s3Storage/AssetWorkspace')
+import AssetWorkspace from '../../s3Storage/AssetWorkspace'
+
+// Mock utilities
+jest.mock('uuid', () => ({
+    v4: jest.fn()
+}))
+jest.mock('../../utilities/mockableTime', () => ({
+    now: jest.fn()
+}))
+
+import { v4 as uuidv4 } from 'uuid'
+import { now } from '../../utilities/mockableTime'
+
 import { moveAsset } from './index'
 import { isMoveAssetRequest, MoveAssetRequest } from '../coordinationSerializer'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
+const mockLoadManifest = loadManifest as jest.MockedFunction<typeof loadManifest>
+const mockAppendManifestEventsWithLazyMigration = appendManifestEventsWithLazyMigration as jest.MockedFunction<typeof appendManifestEventsWithLazyMigration>
+const mockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
+const mockUuidv4 = uuidv4 as jest.MockedFunction<typeof uuidv4>
+const mockNow = now as jest.MockedFunction<typeof now>
 
 describe('moveAsset', () => {
     const assetId = 'ASSET#test-asset'
@@ -15,6 +43,17 @@ describe('moveAsset', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         s3ClientMock.updateTags.mockResolvedValue()
+        mockLoadManifest.mockResolvedValue([])
+        mockAppendManifestEventsWithLazyMigration.mockResolvedValue()
+        mockUuidv4.mockReturnValue('test-uuid-123')
+        mockNow.mockReturnValue(1234567890)
+        
+        // Mock AssetWorkspace instances
+        const mockWorkspace = {
+            loadJSON: jest.fn().mockResolvedValue(undefined),
+            standard: { _components: [] }
+        }
+        mockAssetWorkspace.mockImplementation(() => mockWorkspace as any)
     })
 
     describe('isMoveAssetRequest', () => {
@@ -64,7 +103,7 @@ describe('moveAsset', () => {
             expect(result.message).toContain('Library')
             expect(result.newLocation).toBe('test-asset')
             
-            // Phase 1: Verify S3 tag updates were called (4 files)
+            // Phase 1: Verify S3 tag updates were called (4 materialized views) 
             expect(s3ClientMock.updateTags).toHaveBeenCalledTimes(4)
             expect(s3ClientMock.updateTags).toHaveBeenCalledWith({
                 Key: 'test-asset.wml',
@@ -204,6 +243,148 @@ describe('moveAsset', () => {
             
             expect(result.success).toBe(true)
             expect(s3ClientMock.updateTags).toHaveBeenCalledTimes(4)
+        })
+    })
+
+    describe('moveAsset - Chunk-Based Assets', () => {
+        it('should handle assets with content only', async () => {
+            // Mock AssetWorkspace to have content but no auth content
+            const mockContentWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: { _components: [{ type: 'Room' }] }
+            }
+            const mockAuthWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: { _components: [] }
+            }
+            mockAssetWorkspace.mockImplementation(({ isAuth }: any) => 
+                isAuth ? mockAuthWorkspace : mockContentWorkspace
+            )
+
+            const request: MoveAssetRequest = {
+                type: 'Move Asset',
+                fromZone: 'Library',
+                toZone: 'Canon'
+            }
+            
+            const result = await moveAsset(assetId, request)
+            
+            expect(result.success).toBe(true)
+            
+            // Should use lazy migration helper for both content and auth
+            expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledTimes(2)
+            expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
+                'test-asset.wml/',
+                mockContentWorkspace,
+                1234567890,
+                [{
+                    type: 'zoneChange',
+                    timestamp: '1970-01-15T06:56:07.890Z',
+                    eventId: 'test-uuid-123',
+                    fromZone: 'Library',
+                    toZone: 'Canon'
+                }]
+            )
+            
+            // Should update tags on all objects
+            expect(s3ClientMock.updateTags).toHaveBeenCalledTimes(4)
+        })
+
+        it('should handle assets with both content and auth', async () => {
+            // Mock AssetWorkspace to have both content and auth content
+            const mockContentWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: { _components: [{ type: 'Room' }] }
+            }
+            const mockAuthWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: { _components: [{ type: 'Permission' }] }
+            }
+            mockAssetWorkspace.mockImplementation(({ isAuth }: any) => 
+                isAuth ? mockAuthWorkspace : mockContentWorkspace
+            )
+
+            const request: MoveAssetRequest = {
+                type: 'Move Asset',
+                fromZone: 'Personal',
+                toZone: 'Library'
+            }
+            
+            const result = await moveAsset(assetId, request)
+            
+            expect(result.success).toBe(true)
+            
+            // Should use lazy migration helper for both content and auth
+            expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledTimes(2)
+            expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
+                'test-asset.wml/',
+                mockContentWorkspace,
+                1234567890,
+                [{
+                    type: 'zoneChange',
+                    timestamp: '1970-01-15T06:56:07.890Z',
+                    eventId: 'test-uuid-123',
+                    fromZone: 'Personal',
+                    toZone: 'Library'
+                }]
+            )
+            expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
+                'test-asset.auth.wml/',
+                mockAuthWorkspace,
+                1234567890,
+                [{
+                    type: 'zoneChange',
+                    timestamp: '1970-01-15T06:56:07.890Z',
+                    eventId: 'test-uuid-123',
+                    fromZone: 'Personal',
+                    toZone: 'Library'
+                }]
+            )
+            
+            // Should update tags on all objects
+            expect(s3ClientMock.updateTags).toHaveBeenCalledTimes(4)
+        })
+
+        it('should handle assets with no content (legacy behavior)', async () => {
+            // Mock AssetWorkspace to have no content
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: { _components: [] }
+            }
+            mockAssetWorkspace.mockReturnValue(mockWorkspace as any)
+
+            const request: MoveAssetRequest = {
+                type: 'Move Asset',
+                fromZone: 'Library',
+                toZone: 'Canon'
+            }
+            
+            const result = await moveAsset(assetId, request)
+            
+            expect(result.success).toBe(true)
+            
+            // Should use lazy migration helper for both content and auth (even with no content)
+            expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledTimes(2)
+            
+            // Should update tags on all objects (manifests + materialized views)
+            expect(s3ClientMock.updateTags).toHaveBeenCalledTimes(4)
+        })
+
+        it('should handle AssetWorkspace loading errors gracefully', async () => {
+            mockAssetWorkspace.mockImplementation(() => {
+                throw new Error('S3 access denied')
+            })
+
+            const request: MoveAssetRequest = {
+                type: 'Move Asset',
+                fromZone: 'Library',
+                toZone: 'Canon'
+            }
+            
+            const result = await moveAsset(assetId, request)
+            
+            expect(result.success).toBe(false)
+            expect(result.message).toContain('Failed to update zone tags')
         })
     })
 })

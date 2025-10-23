@@ -42,16 +42,20 @@ export const appendManifestEventsWithLazyMigration = async (
     
     // Check if lazy migration is needed
     const manifest = await loadManifest(prefix)
-    const needsMigration = manifest.length === 0 && (assetWorkspace.standard?._components?.length ?? 0) > 0
+    const hasContent = (assetWorkspace.standard?._components?.length ?? 0) > 0
+    const needsMigration = manifest.length === 0
     
     const eventsToAppend: ManifestEvent[] = []
     
-    // Lazy migration: create initial snapshot from existing content
+    // Lazy migration: create initial snapshot
     if (needsMigration) {
-        console.log(`Lazy migration: Creating initial snapshot for ${assetWorkspace.assetId || 'unknown'}`)
+        if (hasContent) {
+            console.log(`Lazy migration: Creating initial snapshot for ${assetWorkspace.assetId || 'unknown'}`)
+        } else {
+            console.log(`Lazy migration: Creating empty manifest for ${assetWorkspace.assetId || 'unknown'}`)
+        }
         
-        // Create snapshot from existing materialized view
-        // (No need to write - we just loaded from it, so it already exists)
+        // Create snapshot (from existing content or empty)
         const snapshotRef = await writeSnapshot({
             prefix,
             timestamp,

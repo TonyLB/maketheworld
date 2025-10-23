@@ -22,6 +22,28 @@ Manifests are stored as NDJSON files in S3:
 
 Each line in the file is a JSON-serialized `ManifestEvent`.
 
+### Initial ZoneChange Event (Required)
+
+**Every manifest must start with an initial ZoneChange event** that establishes foundational metadata:
+
+```typescript
+{
+  type: 'zoneChange',
+  timestamp: '2024-01-01T00:00:00.000Z',
+  eventId: 'initial-zone-establishment',
+  fromZone: null,  // Always null for initial events
+  toZone: 'Library'
+}
+```
+
+**Purpose:**
+- Establishes the initial zone where the asset was created
+- Provides foundational metadata for recovery if materialized views are lost
+- Eliminates need to store zone/player metadata on individual chunks/snapshots
+- Distinguishes "zone establishment" from "zone change" via `fromZone: null`
+
+**Lazy Migration:** When creating a new manifest for an existing asset, the system creates this initial event with the asset's current zone before appending any other events.
+
 ### Event Types
 
 #### 1. Chunk Event
@@ -89,6 +111,7 @@ To reconstruct current state from manifest:
 ### Example Manifest
 
 ```ndjson
+{"type":"zoneChange","timestamp":"2025-10-18T09:00:00.000Z","eventId":"e0","fromZone":null,"toZone":"Library"}
 {"type":"chunk","timestamp":"2025-10-18T10:00:00.000Z","eventId":"e1","s3Key":"test.wml/chunks/1729249200000-a1b2c3.wml","authoringPlayer":"alice"}
 {"type":"chunk","timestamp":"2025-10-18T11:00:00.000Z","eventId":"e2","s3Key":"test.wml/chunks/1729252800000-d4e5f6.wml"}
 {"type":"snapshot","timestamp":"2025-10-18T12:00:00.000Z","eventId":"e3","s3Key":"test.wml/snapshots/1729256400000.wml","snapshotType":"manual","chunksBeforeSnapshot":2}
@@ -96,7 +119,11 @@ To reconstruct current state from manifest:
 {"type":"zoneChange","timestamp":"2025-10-18T14:00:00.000Z","eventId":"e5","fromZone":"Library","toZone":"Canon"}
 ```
 
+**First line (e0)**: Initial ZoneChange event establishes the asset in Library zone (note `fromZone: null`)
+
 **Reconstruction**: Load snapshot e3, apply chunk e4 → Current state
+
+**Zone Recovery**: Last ZoneChange event (e5) shows current zone is Canon
 
 ## Integration Points
 

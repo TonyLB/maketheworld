@@ -53,10 +53,10 @@ You're here! Read the following sections in order:
 
 ### Step 4: Review Implemented Phase 2.1 Code
 After understanding the foundations, review what's been implemented:
+- **`lambda/wml/s3Storage/manifest/AGENT.md`** - **START HERE**: Manifest system guide with format specification and examples
 - **`lambda/wml/s3Storage/manifest/baseClasses.ts`** - Manifest event types and schemas
 - **`lambda/wml/s3Storage/manifest/operations.ts`** - Manifest read/write operations
 - **`lambda/wml/s3Storage/manifest/chunks.ts`** - Chunk writing operations
-- **`lambda/wml/s3Storage/manifest/AGENT.md`** - Manifest subsystem documentation
 - **`lambda/wml/s3Storage/AssetWorkspace.ts`** - Writable AssetWorkspace implementation
 
 ### Step 5: Check Testing Patterns
@@ -822,10 +822,11 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - Test auth zone changes
 
 **Phase 2.9: Documentation**
-- [ ] **Task 2.9.1**: Document manifest event schema
-  - Add `AGENT.manifest.md` with event format specifications
-  - Include examples of each event type
-  - Document reconstruction algorithm
+- [x] **Task 2.9.1**: Document manifest event schema
+  - ✅ Update `s3Storage/manifest/AGENT.md` with initial ZoneChange event pattern
+  - ✅ Include examples showing initial ZoneChange event
+  - ✅ Document zone recovery algorithm using ZoneChange events
+  - ✅ Document initial ZoneChange event pattern for foundational metadata
   
 - [ ] **Task 2.9.2**: Update AssetWorkspace documentation
   - Document new chunk/snapshot/manifest operations
