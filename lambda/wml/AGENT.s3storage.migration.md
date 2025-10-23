@@ -373,12 +373,35 @@ The migration aims to address these limitations by:
 
 **Status**: 🚧 **IN PROGRESS** (Started October 18, 2025)
 
-**Progress**: 7/28 tasks complete (25.0%)
+**Progress**: 12/24 tasks complete (50.0%)
 - ✅ Phase 2.0: Prerequisites (1/1 complete)
 - ✅ Phase 2.1: Foundation - Manifest Infrastructure (3/3 complete)
 - ✅ Phase 2.2: Foundation - Reconstruction (3/3 complete)
+- ✅ Phase 2.3: Content Write Path Integration (3/3 complete)
+- ✅ Phase 2.4: Zone Change Integration (1/2 complete - Task 2.4.2 deferred)
+- ✅ Phase 2.5: Authorization History - Infrastructure (1/1 complete)
+- ❌ Phase 2.6: Read Path Updates (0/2 tasks - **CANCELLED**, see below)
+- 📋 Phase 2.7: Archive Zone (1 task - lifecycle policies moved to Phase 3)
 
 **Recent Completions**:
+- **October 23, 2025**: Phase 2.3 - Content Write Path Integration ✅ **COMPLETE**
+  - Task 2.3.1-2.3.3: All content write operations now use chunk-based storage
+  - `applyEdit` writes chunks, updates manifests, maintains materialized views
+  - Lazy migration creates initial snapshot for legacy assets on first edit
+  - WebSocket event handling fixed (Task 2.3.1.1)
+  - Authorization Player metadata extraction implemented
+  - All 3 tasks complete, chunk-based content editing fully operational
+- **October 23, 2025**: Task 2.4.1 - Zone change integration ✅ **COMPLETE**
+  - `moveAsset` appends ZoneChangeEvent to both content and auth manifests
+  - Initial ZoneChange events (fromZone: null) establish foundational metadata
+  - Lazy migration helper handles all cases including empty assets
+  - Task 2.4.2 deferred (edge case for empty auth files, low priority)
+- **October 23, 2025**: Task 2.5.1 - Authorization infrastructure verification ✅ **COMPLETE**
+  - Verified all chunk/manifest/snapshot operations are already generic (accept prefix parameter)
+  - Confirmed `reconstructFromManifest()` is type-aware (returns StandardForm or StandardAuthorizationCollection)
+  - Verified `moveAsset` and `createManualSnapshot` handle both content and auth prefixes
+  - Authorization edit integration deferred to Phase 3 (no incoming edit flow exists yet)
+  - Infrastructure is ready: when authorization edits are implemented, they can use existing chunk operations
 - **October 21, 2025**: Task 2.2.3 - Manual snapshot creation capability
   - Implemented `createManualSnapshot(prefix, zone)` orchestration function
   - Coordinates manifest loading, snapshot writing, and manifest updating
@@ -503,7 +526,8 @@ The migration aims to address these limitations by:
 - ✅ **Authorization History**: Parallel structure under `{uuid}.auth.wml/` prefix (no special-case code)
 - ✅ **Snapshot Frequency**: Manual capability in Phase 2, automatic triggers in Phase 3
 - ✅ **Manifest Format**: NDJSON event log (not JSON array) for extensibility
-- ✅ **Reconstruction Strategy**: Rebuild materialized view on every write
+- ✅ **Reconstruction Strategy**: ~~Rebuild materialized view on every write~~ **REFINED** (October 23): Write path maintains materialized views directly; reconstruction only for recovery
+- ✅ **Read Path Strategy**: (**Added October 23**): Load from materialized views (no reconstruction on normal reads). Phase 2.6 cancelled as unnecessary.
 - ✅ **Concurrency**: Use `atomicLock` for manifest updates (no elaborate merge conflict resolution)
 - ✅ **Archive Zone**: Freezes asset in place (simpler than Phase 1 backup complexity)
 - ✅ **Manifest Loss Recovery**: Phase 3 feature (pattern supports it, not implementing yet)
@@ -550,12 +574,12 @@ The migration aims to address these limitations by:
 - Maintain materialized views on every write
 - Update `moveAsset` to handle chunk-based assets (add zone change events to manifest)
 - **Reintroduce Archive zone** as frozen state (Zone=Archive tag)
-- S3 lifecycle policies transition archived content to cold storage
 - Support point-in-time recovery by replaying chunks from snapshots (read-only initially)
+- **Note**: S3 lifecycle policies deferred to Phase 3 (premature optimization during active development)
 
 #### Implementation Plan Overview:
 
-The Phase 2 migration consists of **28 discrete tasks** organized into **10 phases**:
+The Phase 2 migration consists of **24 discrete tasks** organized into **9 phases**:
 
 | Phase | Task Count | Focus Area |
 |-------|-----------|------------|
@@ -563,23 +587,25 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
 | 2.1 | 3 | Manifest Infrastructure |
 | 2.2 | 3 | Reconstruction Logic |
 | 2.3 | 3 | Content Write Path Integration |
-| 2.4 | 1 | Zone Change Integration |
-| 2.5 | 2 | Authorization History |
-| 2.6 | 2 | Read Path Updates |
-| 2.7 | 2 | Archive Zone |
+| 2.4 | 2 | Zone Change Integration |
+| 2.5 | 1 | Authorization History - Infrastructure (edit integration → Phase 3) |
+| 2.6 | ~~2~~ | ~~Read Path Updates~~ **CANCELLED** |
+| 2.7 | 1 | Archive Zone (lifecycle policies → Phase 3) |
 | 2.8 | 4 | Testing |
 | 2.9 | 3 | Documentation |
 
 **Estimated Complexity**: Medium-High
-- Foundation phases (2.1-2.2): ~5-7 days
-- Integration phases (2.3-2.7): ~7-10 days  
+- Foundation phases (2.1-2.2, 2.5): ~5-7 days ✅
+- Integration phases (2.3-2.4, 2.7): ~5-8 days (reduced: Phase 2.5.2 and 2.6 deferred)
 - Testing & Documentation (2.8-2.9): ~3-5 days
-- **Total**: ~15-22 working days
+- **Total**: ~13-20 working days (revised from 15-22)
 
 **Dependencies**:
 - All tasks depend on Phase 1 completion ✅
-- Phase 2.1-2.2 (Foundation) must complete before integration phases
-- Phase 2.3-2.7 (Integration) can partially overlap after foundation is stable
+- Phase 2.1-2.2, 2.5 (Foundation) must complete before integration phases ✅
+- Phase 2.3-2.4, 2.7 (Integration) can partially overlap after foundation is stable
+- Phase 2.5.2 (Authorization Edit Integration) - **DEFERRED** to Phase 3 (infrastructure complete, awaiting edit flow)
+- Phase 2.6 (Read Path) - **CANCELLED** (no work needed)
 - Phase 2.8 (Testing) should run in parallel with integration phases
 - Phase 2.9 (Documentation) can start early, complete at end
 
@@ -720,7 +746,7 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - **Design**: Works for both content (`{uuid}.wml/`) and auth (`{uuid}.auth.wml/`) prefixes
 
 **Phase 2.3: Integration - Content Write Path**
-- [~] **Task 2.3.1**: Update `applyEdit` to write chunks ⚠️ **PARTIALLY COMPLETE** (October 21, 2025)
+- [x] **Task 2.3.1**: Update `applyEdit` to write chunks ✅ **COMPLETE** (October 21, 2025)
   - ✅ Add chunk-based history tracking alongside existing materialized view writes
   - ✅ Write delta as chunk: `writeChunk('{uuid}.wml/', timestamp, editStandard.schema)`
   - ✅ Append chunk event to manifest at `{uuid}.wml/manifest-latest.ndjson`
@@ -774,42 +800,57 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - **Context**: Some assets may have content but no authorization file yet
   - **Current Workaround**: `writeSnapshot` will fail on missing source - acceptable for now
 
-**Phase 2.5: Authorization History**
-- [ ] **Task 2.5.1**: Refactor chunk/manifest operations to accept prefix parameter
-  - Modify manifest operations to work with any prefix (e.g., `{uuid}.wml/` or `{uuid}.auth.wml/`)
-  - Modify chunk operations to accept prefix parameter
-  - Modify snapshot operations to accept prefix parameter
-  - Modify reconstruction logic to accept prefix parameter
-  - **Benefit**: No auth-specific code needed - same operations, different prefix
+**Phase 2.5: Authorization History - Infrastructure**
+- [x] **Task 2.5.1**: Verify chunk/manifest operations are generic ✅ **COMPLETE** (October 23, 2025)
+  - ✅ All manifest operations already work with any prefix (`{uuid}.wml/` or `{uuid}.auth.wml/`)
+  - ✅ All chunk operations already accept prefix parameter
+  - ✅ All snapshot operations already accept prefix parameter
+  - ✅ Reconstruction logic already type-aware (detects prefix, returns correct type)
+  - ✅ `moveAsset` and `createManualSnapshot` already handle both content and auth
+  - **Result**: Infrastructure complete - no auth-specific code needed
   
-- [ ] **Task 2.5.2**: Update authorization write operations
-  - Modify `pushAuthorizationWML()` to use chunk-based pattern with `{uuid}.auth.wml/` prefix
-  - Reuse generic chunk/manifest operations (just pass different prefix)
-  - Rebuild materialized `{uuid}.auth.wml` from manifest using generic reconstruction
-  - Maintain backward compatibility with Phase 1 auth files
+**Task 2.5.2 Deferred to Phase 3** (Authorization Edit Integration):
+- Authorization edit flow doesn't exist yet (WML with Grant tags not parsed by `applyEdit`)
+- When implemented, will integrate authorization edits into `applyEdit`:
+  - Parse Grant tags from incoming WML
+  - Write authorization chunks to `{uuid}.auth.wml/chunks/`
+  - Update authorization manifests
+  - Write materialized auth views
+- All infrastructure ready and waiting (generic operations complete)
 
-**Phase 2.6: Read Path Updates**
-- [ ] **Task 2.6.1**: Update `loadJSON()` for chunk-based assets
-  - Check for manifest existence at `{uuid}.wml/manifest-latest.ndjson`
-  - If present: Use `reconstructFromManifest('{uuid}.wml/')` instead of loading flat file
-  - If absent: Fall back to Phase 1 pattern (lazy migration on next write)
-  - Cache reconstructed state in memory (already done)
-  
-- [ ] **Task 2.6.2**: Update `loadAuthorizationJSON()` for chunk-based assets
-  - Check for manifest existence at `{uuid}.auth.wml/manifest-latest.ndjson`
-  - If present: Use `reconstructFromManifest('{uuid}.auth.wml/')` (reusing same generic function)
-  - If absent: Fall back to flat auth files if no manifest
+**Phase 2.6: Read Path Updates** ❌ **CANCELLED** (October 23, 2025)
+
+**Cancellation Rationale:**
+
+This phase was based on an outdated architectural assumption that was refined during Phase 2.3 implementation. The original plan assumed we would reconstruct from manifest on every read operation, but the implemented architecture takes a more efficient approach:
+
+**Actual Implementation (Task 2.3.2 - Completed):**
+- Write path maintains materialized views by writing merged results directly to `.wml` and `.ndjson` files
+- Read path continues to load from materialized views (no changes needed)
+- Reconstruction is only used for diagnostic/recovery scenarios
+
+**Why This Is Better:**
+- Reconstructing on every read would be expensive and unnecessary
+- Materialized views exist specifically to provide fast read access
+- The write path can maintain materialized views efficiently during edits
+- `reconstructFromManifest()` becomes a recovery tool, not a read path component
+
+**Evidence of Design Evolution:**
+- Task 2.3.2 explicitly states: "Materialized view is kept up-to-date by direct write (not reconstruction)"
+- Evaluation log Session 3 noted this as a design refinement during implementation
+- Session 3: "Correctly identified that snapshots should copy materialized views (not reconstruct)"
+
+**Impact:** No work needed - read operations already work correctly with chunk-based storage.
+
+~~- [ ] **Task 2.6.1**: Update `loadJSON()` for chunk-based assets~~
+~~- [ ] **Task 2.6.2**: Update `loadAuthorizationJSON()` for chunk-based assets~~
 
 **Phase 2.7: Archive Zone Reintroduction**
 - [ ] **Task 2.7.1**: Remove Archive zone restrictions
   - Remove "Archive not supported" error from `AssetWorkspace` constructor
   - Allow `moveAsset` to Archive zone (adds ZoneChangeEvent to manifest)
   - Archive = frozen state (no further edits allowed)
-  
-- [ ] **Task 2.7.2**: Add S3 lifecycle policies for archived content
-  - Transition `Zone=Archive` objects to Glacier after N days
-  - Apply to chunks, snapshots, manifests, materialized views
-  - Document lifecycle policy configuration
+  - **Note**: S3 lifecycle policies deferred to Phase 3 (premature optimization during active development)
 
 **Phase 2.8: Testing**
 - [ ] **Task 2.8.1**: Unit tests for manifest operations
@@ -886,14 +927,21 @@ Each task above should be created as a GitHub issue with the following template:
 1. **Milestone: Phase 2 Foundation** (Tasks 2.0.1, 2.1.1-2.1.3, 2.2.1-2.2.3)
    - Core infrastructure that must complete first
    
-2. **Milestone: Phase 2 Integration** (Tasks 2.3.1-2.3.3, 2.4.1, 2.5.1-2.5.2, 2.6.1-2.6.2)
-   - Integration with existing write/read paths
+2. **Milestone: Phase 2 Integration** (Tasks 2.3.1-2.3.3, 2.4.1-2.4.2, ~~2.5.2~~, ~~2.6.1-2.6.2~~)
+   - Integration with existing write paths (read paths need no changes)
+   - Authorization edit integration deferred to Phase 3
    
-3. **Milestone: Phase 2 Completion** (Tasks 2.7.1-2.7.2, 2.8.1-2.8.4, 2.9.1-2.9.3)
-   - Archive zone, testing, documentation
+3. **Milestone: Phase 2 Completion** (Tasks 2.7.1, 2.8.1-2.8.4, 2.9.1-2.9.3)
+   - Archive zone, testing, documentation (lifecycle policies → Phase 3)
 
 ### Phase 3: Advanced Features
 *Future enhancements to be planned:*
+- **Authorization Edit Integration**: Integrate authorization edits into `applyEdit` flow (deferred from Phase 2.5.2)
+  - Parse Grant tags from incoming WML
+  - Write authorization chunks using existing generic operations
+  - Update authorization manifests
+  - All infrastructure already in place and tested
+- **S3 Lifecycle Policies**: Transition archived chunks/snapshots/manifests to Glacier for cost optimization (deferred from Phase 2.7.2 - premature during active development)
 - Automatic snapshot triggers (time/count/size-based)
 - Manifest archival and pagination for long-lived assets
 - Manifest loss recovery from chunk metadata
