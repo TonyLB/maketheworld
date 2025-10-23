@@ -3,6 +3,7 @@ import AssetWorkspace from '../../s3Storage/AssetWorkspace'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import internalCache from '../../internalCache'
 
 // Mock local AssetWorkspace
 jest.mock('../../s3Storage/AssetWorkspace')
@@ -12,7 +13,11 @@ jest.mock('../../s3Storage/manifest/chunks')
 jest.mock('../../s3Storage/manifest/snapshots')
 jest.mock('../../s3Storage/manifest/operations')
 
+// Mock internalCache
+jest.mock('../../internalCache')
+
 const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
+const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 
 import { writeChunk } from '../../s3Storage/manifest/chunks'
 import { writeSnapshot } from '../../s3Storage/manifest/snapshots'
@@ -40,6 +45,14 @@ describe("applyEdit", () => {
         
         mockLoadManifest.mockResolvedValue([])
         mockAppendManifestEvents.mockResolvedValue(undefined)
+        
+        // Setup default mock for internalCache.Connection.get
+        internalCacheMock.Connection.get.mockImplementation(async (key: string) => {
+            if (key === 'player') {
+                return 'test-player-123'
+            }
+            return undefined
+        })
     })
 
     describe("input validation", () => {
@@ -1377,6 +1390,233 @@ describe("applyEdit", () => {
                 // Timestamp should be ISO 8601
                 expect(new Date(chunkEvent!.timestamp).toISOString()).toBe(chunkEvent!.timestamp)
             })
+        })
+    })
+
+    describe("authoringPlayer metadata extraction", () => {
+        const testAssetId = 'ASSET#test'
+
+        it('should extract authoringPlayer and pass to writeChunk', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                zone: 'Library' as const,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+            mockLoadManifest.mockResolvedValue([{ type: 'chunk', timestamp: '', eventId: '', s3Key: '' }])
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(kitchen)>
+                        <Example uuid=(kitchenExample)>
+                            <Name>Kitchen</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+
+            await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            // Verify that internalCache.Connection.get was called to fetch player
+            expect(internalCacheMock.Connection.get).toHaveBeenCalledWith('player')
+
+            // Verify that writeChunk was called with player metadata
+            expect(mockWriteChunk).toHaveBeenCalledWith(expect.objectContaining({
+                prefix: 'test.wml/',
+                content: expect.stringContaining('<Room uuid=(kitchen)>'),
+                zone: 'Library',
+                player: 'test-player-123'
+            }))
+        })
+
+        it('should handle missing player gracefully', async () => {
+            // Override mock to return undefined for player
+            internalCacheMock.Connection.get.mockImplementation(async (key: string) => {
+                if (key === 'player') {
+                    return undefined
+                }
+                return undefined
+            })
+
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                zone: 'Library' as const,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+            mockLoadManifest.mockResolvedValue([{ type: 'chunk', timestamp: '', eventId: '', s3Key: '' }])
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(kitchen)>
+                        <Example uuid=(kitchenExample)>
+                            <Name>Kitchen</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+
+            await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            // Verify that writeChunk was called with undefined player
+            expect(mockWriteChunk).toHaveBeenCalledWith(expect.objectContaining({
+                prefix: 'test.wml/',
+                content: expect.stringContaining('<Room uuid=(kitchen)>'),
+                zone: 'Library',
+                player: undefined
+            }))
+        })
+
+        it('should include authoringPlayer in chunk event metadata', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                zone: 'Personal' as const,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+            mockLoadManifest.mockResolvedValue([{ type: 'chunk', timestamp: '', eventId: '', s3Key: '' }])
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(kitchen)>
+                        <Example uuid=(kitchenExample)>
+                            <Name>Kitchen</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+
+            await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            // Verify that chunk event includes authoringPlayer
+            const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
+            const chunkEvent = eventsAppended.find((e: any) => e.type === 'chunk')
+            
+            expect(chunkEvent).toBeDefined()
+            expect(chunkEvent).toMatchObject({
+                type: 'chunk',
+                timestamp: expect.any(String),
+                eventId: expect.any(String),
+                s3Key: expect.stringContaining('.wml/chunks/'),
+                chunkSize: expect.any(Number),
+                authoringPlayer: 'test-player-123'
+            })
+        })
+
+        it('should work with lazy migration and authoringPlayer', async () => {
+            const existingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(lobby)>
+                        <Example uuid=(lobbyExample)>
+                            <Name>Lobby</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const existingStandard = new StandardForm(existingWML)
+            
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                standard: existingStandard,
+                zone: 'Canon' as const,
+                setJSON: jest.fn(),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined)
+            }
+
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspace)
+            
+            // Mock manifest as empty (triggers lazy migration)
+            mockLoadManifest.mockResolvedValue([])
+
+            const editSchema = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(kitchen)>
+                        <Example uuid=(kitchenExample)>
+                            <Name>Kitchen</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+
+            await applyEdit({
+                AssetId: testAssetId,
+                RequestId: 'test-request',
+                schema: editSchema
+            })
+
+            // Verify that writeChunk was called with player metadata during lazy migration
+            expect(mockWriteChunk).toHaveBeenCalledWith(expect.objectContaining({
+                prefix: 'test.wml/',
+                content: expect.stringContaining('<Room uuid=(kitchen)>'),
+                zone: 'Canon',
+                player: 'test-player-123'
+            }))
+
+            // Verify that both snapshot and chunk events were created
+            const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
+            expect(eventsAppended).toHaveLength(2)
+            expect(eventsAppended[0].type).toBe('snapshot')
+            expect(eventsAppended[1].type).toBe('chunk')
+            const chunkEvent = eventsAppended[1] as any
+            expect(chunkEvent.authoringPlayer).toBe('test-player-123')
         })
     })
 })

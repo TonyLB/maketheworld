@@ -726,33 +726,33 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - ✅ Append chunk event to manifest at `{uuid}.wml/manifest-latest.ndjson`
   - ✅ Continue writing materialized views with `pushJSON()` and `pushWML()` (covered in 2.3.2)
   - ✅ Add lazy migration: If no manifest exists, create initial snapshot from current content
-  - ⚠️ **BLOCKED**: `authoringPlayer` metadata not yet implemented
-    - **Root Cause**: WML lambda doesn't parse WebSocket API Gateway events (`event.body`)
-    - **Impact**: Client WebSocket calls (`{ service: 'wml', message: 'applyEdit' }`) not handled
-    - **Current State**: Only Step Function direct invocations work
-    - **Required Fix**: Add WebSocket event parsing pattern (similar to assets lambda)
-    - **Player Extraction**: Once fixed, use `await internalCache.Connection.get('player')` pattern
-    - **See**: Task 2.3.1.1 below for remediation
+  - ✅ `authoringPlayer` metadata implemented
+    - **Root Cause**: WML lambda doesn't parse WebSocket API Gateway events (`event.body`) - **RESOLVED**
+    - **Impact**: Client WebSocket calls (`{ service: 'wml', message: 'applyEdit' }`) not handled - **RESOLVED**
+    - **Current State**: Both Step Function direct invocations and WebSocket calls work
+    - **Required Fix**: Add WebSocket event parsing pattern (similar to assets lambda) - **COMPLETED**
+    - **Player Extraction**: Use `await internalCache.Connection.get('player')` pattern - **IMPLEMENTED**
+    - **See**: Task 2.3.1.1 below - **COMPLETED**
   
-- [ ] **Task 2.3.1.1**: Fix WML lambda WebSocket event handling **[PREREQUISITE]**
-  - Parse `event.body` for WebSocket API Gateway invocations
-  - Extract `connectionId` from `event.requestContext` 
-  - Store in `internalCache.Connection` (pattern: `internalCache.Connection.set({ key: 'connectionId', value: connectionId })`)
-  - Ensure `event.message` switch works for both parsed body and direct Step Function calls
-  - Reference implementation: `lambda/assets/app.ts` lines 50-55
-  - **Unblocks**: Task 2.3.1 completion (authoringPlayer metadata)
+- [x] **Task 2.3.1.1**: Fix WML lambda WebSocket event handling **[COMPLETED]**
+  - ✅ Parse `event.body` for WebSocket API Gateway invocations
+  - ✅ Extract `connectionId` from `event.requestContext` 
+  - ✅ Store in `internalCache.Connection` (pattern: `internalCache.Connection.set({ key: 'connectionId', value: connectionId })`)
+  - ✅ Ensure `event.message` switch works for both parsed body and direct Step Function calls
+  - ✅ Reference implementation: `lambda/assets/app.ts` lines 50-55
+  - ✅ **Unblocks**: Task 2.3.1 completion (authoringPlayer metadata)
   
-- [ ] **Task 2.3.2**: Update `applyEdit` to maintain materialized views
-  - After writing chunk and updating manifest, write merged result directly to materialized views
-  - Continue using existing `pushJSON()` and `pushWML()` to write `{uuid}.wml` and `{uuid}.ndjson`
-  - Materialized view is kept up-to-date by direct write (not reconstruction)
-  - Maintain Phase 1 materialized view locations for backward compatibility
-  - Note: Reconstruction (`reconstructFromManifest`) is only for diagnostic/recovery scenarios
+- [x] **Task 2.3.2**: Update `applyEdit` to maintain materialized views **[COMPLETED]**
+  - ✅ After writing chunk and updating manifest, write merged result directly to materialized views
+  - ✅ Continue using existing `pushJSON()` and `pushWML()` to write `{uuid}.wml` and `{uuid}.ndjson`
+  - ✅ Materialized view is kept up-to-date by direct write (not reconstruction)
+  - ✅ Maintain Phase 1 materialized view locations for backward compatibility
+  - ✅ Note: Reconstruction (`reconstructFromManifest`) is only for diagnostic/recovery scenarios
   
-- [ ] **Task 2.3.3**: Handle chunk-based asset detection
-  - Add `AssetWorkspace.isChunkBased(prefix)` - Check for manifest existence at given prefix
-  - Update all write paths to detect and handle both patterns
-  - Ensure lazy migration on first edit to legacy assets
+- [x] **Task 2.3.3**: Handle chunk-based asset detection **[COMPLETED]**
+  - ✅ Add `AssetWorkspace.isChunkBased(prefix)` - Check for manifest existence at given prefix
+  - ✅ Update all write paths to detect and handle both patterns
+  - ✅ Ensure lazy migration on first edit to legacy assets
 
 **Phase 2.4: Integration - Zone Changes**
 - [ ] **Task 2.4.1**: Update `moveAsset` for chunk-based assets
