@@ -50,8 +50,10 @@ describe('moveAsset', () => {
         
         // Mock AssetWorkspace instances
         const mockWorkspace = {
-            loadJSON: jest.fn().mockResolvedValue(undefined),
-            standard: { _components: [] }
+            loadJSON: jest.fn<() => Promise<void>>().mockResolvedValue(undefined as void),
+            loadAuthorizationJSON: jest.fn<() => Promise<void>>().mockResolvedValue(undefined as void),
+            standard: { _components: [] },
+            authorizations: { _grants: [] }
         }
         mockAssetWorkspace.mockImplementation(() => mockWorkspace as any)
     })
@@ -248,18 +250,14 @@ describe('moveAsset', () => {
 
     describe('moveAsset - Chunk-Based Assets', () => {
         it('should handle assets with content only', async () => {
-            // Mock AssetWorkspace to have content but no auth content
-            const mockContentWorkspace = {
-                loadJSON: jest.fn().mockResolvedValue(undefined),
-                standard: { _components: [{ type: 'Room' }] }
+            // Mock AssetWorkspace with content but no auth
+            const mockWorkspace = {
+                loadJSON: jest.fn<() => Promise<void>>().mockResolvedValue(undefined as void),
+                loadAuthorizationJSON: jest.fn<() => Promise<void>>().mockResolvedValue(undefined as void),
+                standard: { _components: [{ type: 'Room' }] },
+                authorizations: { _grants: [] }
             }
-            const mockAuthWorkspace = {
-                loadJSON: jest.fn().mockResolvedValue(undefined),
-                standard: { _components: [] }
-            }
-            mockAssetWorkspace.mockImplementation(({ isAuth }: any) => 
-                isAuth ? mockAuthWorkspace : mockContentWorkspace
-            )
+            mockAssetWorkspace.mockImplementation(() => mockWorkspace as any)
 
             const request: MoveAssetRequest = {
                 type: 'Move Asset',
@@ -275,7 +273,7 @@ describe('moveAsset', () => {
             expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledTimes(2)
             expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
                 'test-asset.wml/',
-                mockContentWorkspace,
+                mockWorkspace,
                 1234567890,
                 [{
                     type: 'zoneChange',
@@ -291,18 +289,14 @@ describe('moveAsset', () => {
         })
 
         it('should handle assets with both content and auth', async () => {
-            // Mock AssetWorkspace to have both content and auth content
-            const mockContentWorkspace = {
-                loadJSON: jest.fn().mockResolvedValue(undefined),
-                standard: { _components: [{ type: 'Room' }] }
+            // Mock AssetWorkspace with both content and auth
+            const mockWorkspace = {
+                loadJSON: jest.fn<() => Promise<void>>().mockResolvedValue(undefined as void),
+                loadAuthorizationJSON: jest.fn<() => Promise<void>>().mockResolvedValue(undefined as void),
+                standard: { _components: [{ type: 'Room' }] },
+                authorizations: { _grants: [{ type: 'Permission' }] }
             }
-            const mockAuthWorkspace = {
-                loadJSON: jest.fn().mockResolvedValue(undefined),
-                standard: { _components: [{ type: 'Permission' }] }
-            }
-            mockAssetWorkspace.mockImplementation(({ isAuth }: any) => 
-                isAuth ? mockAuthWorkspace : mockContentWorkspace
-            )
+            mockAssetWorkspace.mockImplementation(() => mockWorkspace as any)
 
             const request: MoveAssetRequest = {
                 type: 'Move Asset',
@@ -318,7 +312,7 @@ describe('moveAsset', () => {
             expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledTimes(2)
             expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
                 'test-asset.wml/',
-                mockContentWorkspace,
+                mockWorkspace,
                 1234567890,
                 [{
                     type: 'zoneChange',
@@ -330,7 +324,7 @@ describe('moveAsset', () => {
             )
             expect(mockAppendManifestEventsWithLazyMigration).toHaveBeenCalledWith(
                 'test-asset.auth.wml/',
-                mockAuthWorkspace,
+                mockWorkspace,
                 1234567890,
                 [{
                     type: 'zoneChange',
@@ -346,10 +340,12 @@ describe('moveAsset', () => {
         })
 
         it('should handle assets with no content (legacy behavior)', async () => {
-            // Mock AssetWorkspace to have no content
+            // Mock AssetWorkspace with no content or auth
             const mockWorkspace = {
-                loadJSON: jest.fn().mockResolvedValue(undefined),
-                standard: { _components: [] }
+                loadJSON: jest.fn<() => Promise<void>>().mockResolvedValue(undefined as void),
+                loadAuthorizationJSON: jest.fn<() => Promise<void>>().mockResolvedValue(undefined as void),
+                standard: { _components: [] },
+                authorizations: { _grants: [] }
             }
             mockAssetWorkspace.mockReturnValue(mockWorkspace as any)
 

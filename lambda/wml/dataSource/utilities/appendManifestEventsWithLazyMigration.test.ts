@@ -83,12 +83,15 @@ describe('appendManifestEventsWithLazyMigration', () => {
             expect(mockAppendManifestEvents).toHaveBeenCalledWith(testPrefix, [chunkEvent])
         })
 
-        it('should append events directly when asset has no content', async () => {
+        it('should create initial ZoneChange event for empty assets during lazy migration', async () => {
             // Mock empty asset (no content to migrate)
             const emptyAssetWorkspace = {
                 ...mockAssetWorkspace,
                 standard: new StandardForm('<Asset uuid=(test) />') // Empty asset
             } as AssetWorkspace
+            
+            // Mock empty manifest (triggers lazy migration)
+            mockLoadManifest.mockResolvedValue([])
             
             const zoneChangeEvent: ManifestZoneChangeEvent = {
                 type: 'zoneChange',
@@ -103,11 +106,17 @@ describe('appendManifestEventsWithLazyMigration', () => {
             // Should load manifest
             expect(mockLoadManifest).toHaveBeenCalledWith(testPrefix)
             
-            // Should NOT create snapshot (no content to migrate)
-            expect(mockWriteSnapshot).not.toHaveBeenCalled()
+            // Should create snapshot even for empty assets (establishes manifest)
+            expect(mockWriteSnapshot).toHaveBeenCalled()
             
-            // Should append only the zone change event
-            expect(mockAppendManifestEvents).toHaveBeenCalledWith(testPrefix, [zoneChangeEvent])
+            // Should append initial ZoneChange + snapshot + new zone change event
+            const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
+            expect(eventsAppended).toHaveLength(3)
+            expect(eventsAppended[0].type).toBe('zoneChange')
+            expect(eventsAppended[0].fromZone).toBeNull()
+            expect(eventsAppended[0].toZone).toBe('Library')
+            expect(eventsAppended[1].type).toBe('snapshot')
+            expect(eventsAppended[2].type).toBe('zoneChange')
         })
     })
 
@@ -138,8 +147,13 @@ describe('appendManifestEventsWithLazyMigration', () => {
                 chunksBeforeSnapshot: 0
             })
             
-            // Should append both snapshot and chunk events in single call
+            // Should append initial ZoneChange, snapshot, and chunk events in single call
             expect(mockAppendManifestEvents).toHaveBeenCalledWith(testPrefix, expect.arrayContaining([
+                expect.objectContaining({
+                    type: 'zoneChange',
+                    fromZone: null,
+                    toZone: 'Library'
+                }),
                 expect.objectContaining({
                     type: 'snapshot',
                     snapshotType: 'manual',
@@ -148,11 +162,13 @@ describe('appendManifestEventsWithLazyMigration', () => {
                 chunkEvent
             ]))
             
-            // Should have exactly 2 events in the batch
+            // Should have exactly 3 events in the batch (initial ZoneChange + snapshot + chunk)
             const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
-            expect(eventsAppended).toHaveLength(2)
-            expect(eventsAppended[0].type).toBe('snapshot')
-            expect(eventsAppended[1].type).toBe('chunk')
+            expect(eventsAppended).toHaveLength(3)
+            expect(eventsAppended[0].type).toBe('zoneChange')
+            expect(eventsAppended[0].fromZone).toBeNull()
+            expect(eventsAppended[1].type).toBe('snapshot')
+            expect(eventsAppended[2].type).toBe('chunk')
         })
 
         it('should handle multiple events with lazy migration', async () => {
@@ -180,12 +196,14 @@ describe('appendManifestEventsWithLazyMigration', () => {
             // Should create snapshot
             expect(mockWriteSnapshot).toHaveBeenCalled()
             
-            // Should append snapshot + both new events in single call
+            // Should append initial ZoneChange + snapshot + both new events in single call
             const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
-            expect(eventsAppended).toHaveLength(3)
-            expect(eventsAppended[0].type).toBe('snapshot')
-            expect(eventsAppended[1].type).toBe('chunk')
-            expect(eventsAppended[2].type).toBe('zoneChange')
+            expect(eventsAppended).toHaveLength(4)
+            expect(eventsAppended[0].type).toBe('zoneChange')
+            expect(eventsAppended[0].fromZone).toBeNull()
+            expect(eventsAppended[1].type).toBe('snapshot')
+            expect(eventsAppended[2].type).toBe('chunk')
+            expect(eventsAppended[3].type).toBe('zoneChange')
         })
 
         it('should use correct snapshot metadata', async () => {
@@ -202,9 +220,18 @@ describe('appendManifestEventsWithLazyMigration', () => {
             
             await appendManifestEventsWithLazyMigration(testPrefix, mockAssetWorkspace, testTimestamp, [chunkEvent])
             
-            // Verify snapshot event metadata
+            // Verify initial ZoneChange and snapshot event metadata
             const eventsAppended = mockAppendManifestEvents.mock.calls[0][1]
-            const snapshotEvent = eventsAppended[0] as any
+            const zoneChangeEvent = eventsAppended[0] as any
+            const snapshotEvent = eventsAppended[1] as any
+            
+            expect(zoneChangeEvent).toMatchObject({
+                type: 'zoneChange',
+                timestamp: new Date(testTimestamp).toISOString(),
+                eventId: expect.any(String),
+                fromZone: null,
+                toZone: 'Library'
+            })
             
             expect(snapshotEvent).toMatchObject({
                 type: 'snapshot',

@@ -77,28 +77,27 @@ export async function moveAsset(assetId: AssetUUID, request: MoveAssetRequest): 
             toZone
         }
         
-        // Load asset content for the helper function
-        const contentWorkspace = new AssetWorkspace({ zone: fromZone, fileName })
-        const authWorkspace = new AssetWorkspace({ zone: fromZone, fileName, isAuth: true })
+        // Load asset content and authorization for the helper function
+        const assetWorkspace = new AssetWorkspace(assetId, fromZone)
         
         await Promise.all([
-            contentWorkspace.loadJSON(),
-            authWorkspace.loadJSON()
+            assetWorkspace.loadJSON(),
+            assetWorkspace.loadAuthorizationJSON()
         ])
         
         // Always call the helper function - it handles all cases including empty assets
         const manifestUpdates = [
-            appendManifestEventsWithLazyMigration(contentPrefix, contentWorkspace, timestamp, [zoneChangeEvent]),
-            appendManifestEventsWithLazyMigration(authPrefix, authWorkspace, timestamp, [zoneChangeEvent])
+            appendManifestEventsWithLazyMigration(contentPrefix, assetWorkspace, timestamp, [zoneChangeEvent]),
+            appendManifestEventsWithLazyMigration(authPrefix, assetWorkspace, timestamp, [zoneChangeEvent])
         ]
             
-            // Update Zone tags on materialized views
-            const tagUpdates = [
-                s3Client.updateTags({ Key: `${fileName}.wml`, Tags: { Zone: toZone } }),
-                s3Client.updateTags({ Key: `${fileName}.ndjson`, Tags: { Zone: toZone } }),
-                s3Client.updateTags({ Key: `${fileName}.auth.wml`, Tags: { Zone: toZone } }),
-                s3Client.updateTags({ Key: `${fileName}.auth.ndjson`, Tags: { Zone: toZone } })
-            ]
+        // Update Zone tags on materialized views
+        const tagUpdates = [
+            s3Client.updateTags({ Key: `${fileName}.wml`, Tags: { Zone: toZone } }),
+            s3Client.updateTags({ Key: `${fileName}.ndjson`, Tags: { Zone: toZone } }),
+            s3Client.updateTags({ Key: `${fileName}.auth.wml`, Tags: { Zone: toZone } }),
+            s3Client.updateTags({ Key: `${fileName}.auth.ndjson`, Tags: { Zone: toZone } })
+        ]
             
         // Execute all updates in parallel
         await Promise.all([...manifestUpdates, ...tagUpdates])

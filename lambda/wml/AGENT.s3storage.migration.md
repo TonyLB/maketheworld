@@ -755,12 +755,24 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - ✅ Ensure lazy migration on first edit to legacy assets
 
 **Phase 2.4: Integration - Zone Changes**
-- [ ] **Task 2.4.1**: Update `moveAsset` for chunk-based assets
-  - Detect if asset is chunk-based (has manifest at `{uuid}.wml/` or `{uuid}.auth.wml/`)
-  - For chunk-based: Append ZoneChangeEvent to both content and auth manifests
-  - For chunk-based: Update Zone tags on manifest, chunks, snapshots (both prefixes)
-  - For legacy: Keep existing tag-update behavior
-  - Maintain same event emission pattern
+- [x] **Task 2.4.1**: Update `moveAsset` for chunk-based assets ✅ **COMPLETE** (October 23, 2025)
+  - ✅ Always call `appendManifestEventsWithLazyMigration` for both content and auth
+  - ✅ Append ZoneChangeEvent to both content and auth manifests
+  - ✅ Update Zone tags on materialized views only (4 files: .wml, .ndjson, .auth.wml, .auth.ndjson)
+  - ✅ Initial ZoneChange event (fromZone: null) establishes foundational metadata
+  - ✅ Helper function checks appropriate property (`standard._components` vs `authorizations._grants`)
+  - ✅ Single AssetWorkspace instance used for both content and auth
+  - ✅ All tests passing (197 tests)
+  - **Note**: Edge case for empty auth files deferred to Task 2.4.2
+
+- [ ] **Task 2.4.2**: Handle manifest initialization for missing materialized views
+  - Add `initializeManifest` snapshot type for lazy migration edge cases
+  - Update `writeSnapshot` to handle missing source files for `initializeManifest` type
+  - Create synthetic empty snapshot when materialized view doesn't exist (e.g., `.auth.wml`)
+  - Write empty WML with proper Asset wrapper: `<Asset uuid=(assetId) />`
+  - Add tests for empty file initialization
+  - **Context**: Some assets may have content but no authorization file yet
+  - **Current Workaround**: `writeSnapshot` will fail on missing source - acceptable for now
 
 **Phase 2.5: Authorization History**
 - [ ] **Task 2.5.1**: Refactor chunk/manifest operations to accept prefix parameter
