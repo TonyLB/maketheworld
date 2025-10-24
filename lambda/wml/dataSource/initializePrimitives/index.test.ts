@@ -72,7 +72,7 @@ describe('initializePrimitives', () => {
 
     describe('when primitives exists but is empty', () => {
         it('should create primitives content via applyEdit', async () => {
-            const emptyStandard = new StandardForm('primitives')
+            const emptyStandard = new StandardForm('ASSET#primitives')
             emptyStandard._components = []  // Explicitly empty
 
             const mockWorkspace = {

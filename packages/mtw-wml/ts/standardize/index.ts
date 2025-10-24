@@ -100,8 +100,8 @@ export class StandardForm {
     semanticMode?: StandardFormSemanticMode;
 
     constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string) {
-        if (typeof args === 'string' && (isLegalKey(args) || args === '')) {
-            this._universalKey = args.startsWith('ASSET#') ? args as AssetUUID : `ASSET#${args}`
+        if (typeof args === 'string' && isSchemaAssetUUID(args)) {
+            this._universalKey = args
             this._components = []
             this._metaData = []
             return
@@ -316,6 +316,11 @@ export class StandardForm {
         return returnProxy as unknown as Record<ComponentUUID, StandardComponent>
     }
 
+    /**
+     * @deprecated Legacy property. With UUID-based storage, stripping the ASSET# prefix provides
+     * no value over using universalKey directly. This property exists only for backward compatibility
+     * with code that expects a human-readable key. New code should use universalKey instead.
+     */
     get key(): string { return this._universalKey.replace('ASSET#', '') }
     get universalKey(): AssetUUID { return this._universalKey }
 
@@ -357,7 +362,7 @@ export class StandardForm {
     }
 
     _clone(): StandardForm {
-        const returnValue = new StandardForm(this.key)
+        const returnValue = new StandardForm(this.universalKey)
         returnValue._metaData = [...this._metaData]
         returnValue._components = this._components.map((component) => (component.clone()))
         return returnValue

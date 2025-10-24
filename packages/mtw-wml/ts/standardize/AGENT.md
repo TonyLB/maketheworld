@@ -83,8 +83,8 @@ particular context.
 StandardForm supports multiple construction patterns:
 
 ```typescript
-// 1. String constructor (creates empty asset with key)
-const asset = new StandardForm("TestAsset")
+// 1. String constructor (creates empty asset with AssetUUID)
+const asset = new StandardForm("ASSET#TestAsset")
 
 // 2. WML string constructor
 const asset = new StandardForm(`<Asset uuid=(Test)>
@@ -93,7 +93,7 @@ const asset = new StandardForm(`<Asset uuid=(Test)>
 
 // 3. Schema node constructor
 const asset = new StandardForm({
-    data: { tag: 'Asset', key: 'TestAsset' },
+    data: { tag: 'Asset', uuid: 'ASSET#TestAsset', Story: undefined },
     children: [{
         data: { tag: 'Room', key: 'mainHall' },
         children: [{
@@ -105,7 +105,7 @@ const asset = new StandardForm({
 
 // 4. StandardFormData constructor
 const asset = new StandardForm({
-    key: 'Test',
+    universalKey: 'ASSET#Test',
     metaData: [],
     components: [
         {
@@ -118,7 +118,7 @@ const asset = new StandardForm({
 
 // 5. StandardNDJSON constructor
 const asset = new StandardForm([
-    { tag: 'Asset', key: 'Test' },
+    { tag: 'Asset', universalKey: 'ASSET#Test' },
     { tag: 'Room', key: 'mainHall', exits: [] }
 ])
 

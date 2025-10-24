@@ -6,7 +6,7 @@ import { MapExit } from './Controller/baseClasses'
 describe('extractExitsFromStandardForm', () => {
     describe('basic functionality', () => {
         it('should return empty array for empty StandardForm', () => {
-            const standardForm = new StandardForm('')
+            const standardForm = new StandardForm('ASSET#empty')
             const result = extractExitsFromStandardForm(standardForm, 'MAP#testMap')
             
             expect(result).toEqual([])

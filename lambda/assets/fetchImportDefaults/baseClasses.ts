@@ -18,10 +18,10 @@ export class FetchImportsJSONHelper {
     async get(assetId: EphemeraAssetId): Promise<StandardForm> {
         const node = this._inheritanceGraph.nodes[assetId]
         if (node) {
-            return (await internalCache.AssetData.get([assetId]))?.[0]?.standardForm ?? new StandardForm('')
+            return (await internalCache.AssetData.get([assetId]))?.[0]?.standardForm ?? new StandardForm(assetId)
         }
         else {
-            return new StandardForm('')
+            return new StandardForm(assetId)
         }
     }
 }

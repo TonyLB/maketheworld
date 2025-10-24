@@ -16,7 +16,7 @@ export { Zone } from '@tonylb/mtw-asset-workspace/ts/readOnly'
  * over S3 write operations.
  */
 export class AssetWorkspace extends ReadOnlyAssetWorkspace {
-    static override async fromUUID(assetId: string, options?: {
+    static override async fromUUID(assetId: AssetUUID, options?: {
         preferDynamo?: boolean
         allowS3Fallback?: boolean
     }): Promise<AssetWorkspace | undefined> {
@@ -37,13 +37,16 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
     async setJSON(standardForm: StandardForm): Promise<void> {
         const finalStandardForm = standardForm.finalize()
 
+        // Validate that the StandardForm's universalKey matches this workspace's assetId
+        if (finalStandardForm.universalKey !== this.assetId) {
+            throw new Error(`Cannot set StandardForm with universalKey ${finalStandardForm.universalKey} on AssetWorkspace bound to ${this.assetId}`)
+        }
+
         if (!(this.standard && deepEqual(finalStandardForm.toJSON(), this.standard.toJSON()))) {
             this.status.json = 'Dirty'
             this.status.wml = 'Dirty'
             this.standard = finalStandardForm
         }
-    
-        this.assetId = `ASSET#${this.standard?.key}`
 
     }
 
@@ -58,6 +61,12 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
 
     async setAuthorizationWML(source: string): Promise<void> {
         const authorizations = new StandardAuthorizationCollection(source)
+        
+        // Validate that the StandardAuthorizationCollection's universalKey matches this workspace's assetId
+        if (authorizations.universalKey !== this.assetId) {
+            throw new Error(`Cannot set StandardAuthorizationCollection with universalKey ${authorizations.universalKey} on AssetWorkspace bound to ${this.assetId}`)
+        }
+        
         this.authorizations = authorizations
     }
 
@@ -123,7 +132,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
 
     async pushJSON(): Promise<void> {
         const filePath = this.s3KeyFor('json')
-        const standardForm = this.standard || new StandardForm(this.assetId?.split('#')?.slice(1)?.[0] || '')
+        const standardForm = this.standard || new StandardForm(this.assetId || 'ASSET#')
         const contents = JSON.stringify({
             assetId: this.assetId ?? '',
             standard: standardForm

@@ -46,8 +46,8 @@ export class StandardAuthorizationCollection {
     _grants: StandardAuthorizationResource[];
 
     constructor(args: StandardAuthorizationCollectionData | GenericTreeNode<SchemaTag> | string | StandardAuthorizationCollectionNDJSON[]) {
-        if (typeof args === 'string' && (isLegalKey(args) || args === '')) {
-            this._universalKey = args.startsWith('ASSET#') ? args as AssetUUID : `ASSET#${args}`
+        if (typeof args === 'string' && isSchemaAssetUUID(args)) {
+            this._universalKey = args
             this._grants = []
             return
         }
@@ -159,10 +159,17 @@ export class StandardAuthorizationCollection {
         }
         return new StandardAuthorizationResource({ referenceStack: [], grants: [] })
     }
+    /**
+     * @deprecated Legacy property. With UUID-based storage, stripping the ASSET# prefix provides
+     * no value over using universalKey directly. This property exists only for backward compatibility
+     * with code that expects a human-readable key. New code should use universalKey instead.
+     */
     get key(): string { return this._universalKey.replace('ASSET#', '') }
     get universalKey(): AssetUUID { return this._universalKey }
 
     toJSON(options?: StandardToJSONOptions): StandardAuthorizationCollectionData {
+        // TODO: This should also output universalKey like StandardForm.toJSON() does,
+        // but StandardAuthorizationCollectionData type doesn't include that field yet.
         return {
             key: this.key,
             grants: this._grants.map((resource) => (resource.toJSON()))
@@ -177,7 +184,7 @@ export class StandardAuthorizationCollection {
     }
 
     _clone(): StandardAuthorizationCollection {
-        const returnValue = new StandardAuthorizationCollection(this.key)
+        const returnValue = new StandardAuthorizationCollection(this.universalKey)
         returnValue._grants = this._grants.map((resource) => (resource.clone()))
         return returnValue
     }

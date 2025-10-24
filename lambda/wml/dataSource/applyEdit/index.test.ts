@@ -212,7 +212,7 @@ describe("applyEdit", () => {
             })
 
             it('should initialize empty asset when createIfNeeded is true', async () => {
-                const emptyStandard = new StandardForm('test') // Use key, not AssetUUID
+                const emptyStandard = new StandardForm('ASSET#test')
                 emptyStandard._components = [] // Explicitly empty
                 
                 const mockWorkspace = {

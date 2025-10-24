@@ -64,7 +64,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
     
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.loadJSON()
-            expect(testWorkspace.standard?.toJSON()).toEqual({ key: '', universalKey: 'ASSET#', metaData: [], components: [] })
+            expect(testWorkspace.standard?.toJSON()).toEqual({ key: 'Test', universalKey: 'ASSET#Test', metaData: [], components: [] })
         })
 
     })
@@ -97,7 +97,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
     
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.loadAuthorizationJSON()
-            expect(testWorkspace.authorizations?.toJSON()).toEqual({ key: '', grants: [] })
+            expect(testWorkspace.authorizations?.toJSON()).toEqual({ key: 'Test', grants: [] })
         })
 
     })
@@ -156,6 +156,17 @@ describe('AssetWorkspace (WML Lambda)', () => {
                 `)
             }).rejects.toThrow()
         })
+
+        it('should throw an exception when asset UUID does not match workspace assetId', async () => {
+            const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
+            await expect(async () => {
+                await testWorkspace.setWML(`
+                    <Asset uuid=(DifferentAsset)>
+                        <Room uuid=(roomA) />
+                    </Asset>
+                `)
+            }).rejects.toThrow('Cannot set StandardForm with universalKey ASSET#DifferentAsset on AssetWorkspace bound to ASSET#Test')
+        })
     
     })
 
@@ -163,7 +174,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
         it('should correctly push JSON content to player zone', async () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             testWorkspace.assetId = 'ASSET#Test'
-            testWorkspace.standard = new StandardForm('Test')
+            testWorkspace.standard = new StandardForm('ASSET#Test')
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
@@ -178,7 +189,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
         it('should correctly push JSON content to library zone', async () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Library')
             testWorkspace.assetId = 'ASSET#Test'
-            testWorkspace.standard = new StandardForm('Test')
+            testWorkspace.standard = new StandardForm('ASSET#Test')
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')

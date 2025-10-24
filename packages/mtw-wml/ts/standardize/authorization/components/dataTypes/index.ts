@@ -78,7 +78,18 @@ export const isStandardAuthorizationResourceData = (arg: any): arg is StandardAu
     )
 }
 
+/**
+ * @todo FUNCTIONALITY GAP: Unlike StandardFormData, this type does not include a universalKey field.
+ * This means authorization data cannot properly serialize/deserialize the AssetUUID, making
+ * authorizations less capable than StandardForm. This should be fixed by adding:
+ *   universalKey: AssetUUID;
+ * and updating toJSON() to include it, similar to StandardForm.toJSON().
+ */
 export type StandardAuthorizationCollectionData = {
+    /**
+     * @deprecated Legacy field. With UUID-based storage, this is just the universalKey with
+     * the ASSET# prefix stripped, providing no additional value. Kept for backward compatibility.
+     */
     key: string;
     grants: StandardAuthorizationResourceData[];
 }

@@ -100,6 +100,10 @@ export const unwrapStandardComponent = (component: StandardComponentData): Stand
 }
 
 export type StandardFormData = {
+    /**
+     * @deprecated Legacy field. With UUID-based storage, this is just the universalKey with
+     * the ASSET# prefix stripped, providing no additional value. Kept for backward compatibility.
+     */
     key?: string;
     universalKey: AssetUUID;
     components: StandardComponentData[];

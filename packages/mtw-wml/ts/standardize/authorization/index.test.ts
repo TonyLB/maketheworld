@@ -8,7 +8,7 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 describe('StandardAuthorizationCollection', () => {
     it('should initialize with a string key', () => {
-        const collection = new StandardAuthorizationCollection('TestKey')
+        const collection = new StandardAuthorizationCollection('ASSET#TestKey')
         expect(collection.key).toEqual('TestKey')
         expect(collection._grants).toEqual([])
     })
@@ -88,7 +88,7 @@ describe('StandardAuthorizationCollection', () => {
     })
 
     it('should return header', () => {
-        const collection = new StandardAuthorizationCollection('TestKey')
+        const collection = new StandardAuthorizationCollection('ASSET#TestKey')
         expect(collection.header).toEqual({
             tag: 'Asset',
             universalKey: 'ASSET#TestKey'
@@ -135,7 +135,7 @@ describe('StandardAuthorizationCollection', () => {
     })
 
     it('should return empty global resource if none exists', () => {
-        const collection = new StandardAuthorizationCollection('TestKey')
+        const collection = new StandardAuthorizationCollection('ASSET#TestKey')
         expect(collection.global).toBeInstanceOf(StandardAuthorizationResource)
         expect(collection.global.referenceStack).toEqual([])
         expect(collection.global.grants).toEqual([])
