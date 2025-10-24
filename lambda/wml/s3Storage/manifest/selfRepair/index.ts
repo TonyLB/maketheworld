@@ -12,8 +12,10 @@ import { Zone } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { ManifestEvent } from '../baseClasses'
 import { loadManifest } from '../operations'
-import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 import AssetWorkspace from '../../AssetWorkspace'
+import { reconstructFromManifest } from '../reconstruction'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
 
 /**
  * Manifest suffix for content vs authorization files
@@ -292,6 +294,93 @@ async function assessAndCheckState(
 }
 
 /**
+ * Execute the materialized view action (reconstruct, synthesize empty, or use existing)
+ */
+async function executeMaterializedViewAction(args: {
+    assetId: AssetUUID
+    suffix: ManifestSuffix
+    viewAction: MaterializedViewAction
+    assetWorkspace: AssetWorkspace | null
+    repairActions: string[]
+}): Promise<void> {
+    const { assetId, suffix, viewAction, assetWorkspace, repairActions } = args
+    
+    if (viewAction.type === 'use-existing') {
+        // Nothing to do - AssetWorkspace already has the content loaded
+        return
+    }
+    
+    const prefix = buildPrefix(assetId, suffix)
+    const isAuth = suffix === 'auth.wml'
+    
+    if (viewAction.type === 'reconstruct') {
+        // Reconstruct from manifest and write to S3
+        repairActions.push('Reconstructing materialized view from manifest')
+        
+        const result = await reconstructFromManifest(prefix)
+        
+        // Ensure we have an AssetWorkspace to write with
+        if (!assetWorkspace) {
+            throw new Error('AssetWorkspace should exist for reconstruction')
+        }
+        
+        // Load the reconstructed content into AssetWorkspace
+        if (result.type === 'content') {
+            await assetWorkspace.setJSON(result.standard)
+        } else {
+            // TODO: Add setAuthorizationJSON() method to AssetWorkspace for consistency
+            // For now, set directly (same as setAuthorizationWML does)
+            assetWorkspace.authorizations = result.authorization
+        }
+        
+        // Write to S3
+        if (isAuth) {
+            await Promise.all([
+                assetWorkspace.pushAuthorizationJSON(),
+                assetWorkspace.pushAuthorizationWML()
+            ])
+        } else {
+            await Promise.all([
+                assetWorkspace.pushJSON(),
+                assetWorkspace.pushWML()
+            ])
+        }
+        
+        repairActions.push('Materialized view reconstructed and written to S3')
+        return
+    }
+    
+    if (viewAction.type === 'synthesize-empty') {
+        // Create empty content and write to S3
+        repairActions.push('Synthesizing empty materialized view')
+        
+        // Ensure we have an AssetWorkspace to write with
+        if (!assetWorkspace) {
+            throw new Error('AssetWorkspace should exist for synthesis')
+        }
+        
+        // Create empty content
+        if (isAuth) {
+            assetWorkspace.authorizations = new StandardAuthorizationCollection(assetId)
+            await Promise.all([
+                assetWorkspace.pushAuthorizationJSON(),
+                assetWorkspace.pushAuthorizationWML()
+            ])
+        } else {
+            const emptyStandard = new StandardForm(assetId)
+            await assetWorkspace.setJSON(emptyStandard)
+            await Promise.all([
+                assetWorkspace.pushJSON(),
+                assetWorkspace.pushWML()
+            ])
+        }
+        
+        repairActions.push('Empty materialized view written to S3')
+        return
+    }
+}
+
+/**
  * Centralized self-repair function for handling missing manifest and materialized view files.
  * 
  * This function uses a linear flow through decision points rather than branching into
@@ -359,11 +448,14 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
     // Step 5: Decide manifest action
     const manifestAction = decideManifestAction(resolvedState, snapshotAction)
     
-    // TODO: Step 6: Execute materialized view action
-    // - use-existing: nothing to do (assetWorkspace already has it)
-    // - reconstruct: call reconstructFromManifest, write to S3 using assetWorkspace
-    // - synthesize-empty: create empty StandardForm/StandardAuthorizationCollection, write to S3 using assetWorkspace
-    // Note: assetWorkspace is available (created during assessment) for reuse
+    // Step 6: Execute materialized view action
+    await executeMaterializedViewAction({
+        assetId,
+        suffix,
+        viewAction,
+        assetWorkspace,
+        repairActions
+    })
     
     // TODO: Step 7: Execute snapshot action
     // - create: write snapshot from materialized view using assetWorkspace
@@ -371,16 +463,16 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
     
     // TODO: Step 8: Build and return manifest events
     // - initialize: create ZoneChange (fromZone: null) + optional Snapshot event
-    // - append-to-existing: create operation-specific events
+    // - append-to-existing: return empty array (no repair events needed)
     
-    repairActions.push(`View action: ${viewAction.type}`)
+    // Temporary: Log decisions for debugging
     repairActions.push(`Snapshot action: ${snapshotAction.type}`)
     repairActions.push(`Manifest action: ${manifestAction.type}`)
     
     return {
         success: false,
         repairActions,
-        error: 'Execution steps not yet implemented'
+        error: 'Steps 7-8 not yet implemented'
     }
 }
 
