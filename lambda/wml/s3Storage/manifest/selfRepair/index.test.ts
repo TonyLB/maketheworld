@@ -21,16 +21,19 @@ import {
 jest.mock('../operations')
 jest.mock('../../AssetWorkspace')
 jest.mock('../reconstruction')
+jest.mock('../snapshots')
 
 import { loadManifest } from '../operations'
 import AssetWorkspace from '../../AssetWorkspace'
 import { reconstructFromManifest } from '../reconstruction'
+import { writeSnapshot } from '../snapshots'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
 
 const mockLoadManifest = loadManifest as jest.MockedFunction<typeof loadManifest>
 const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
 const mockReconstructFromManifest = reconstructFromManifest as jest.MockedFunction<typeof reconstructFromManifest>
+const mockWriteSnapshot = writeSnapshot as jest.MockedFunction<typeof writeSnapshot>
 
 // Synthetic timestamp for testing
 const TEST_TIMESTAMP = 1234567890000
@@ -42,6 +45,12 @@ describe('selfRepair', () => {
         
         // Default mock implementations
         mockLoadManifest.mockResolvedValue([])  // Empty manifest by default
+        
+        // Mock writeSnapshot with default return value
+        mockWriteSnapshot.mockResolvedValue({
+            s3Key: 'test.wml/snapshots/1234567890000.wml',
+            snapshotSize: 1024
+        })
         
         // Mock AssetWorkspace with all necessary methods
         MockAssetWorkspace.mockImplementation((assetId, zone, player) => {
@@ -732,6 +741,166 @@ describe('selfRepair', () => {
                 
                 expect(result.repairActions).toContain('Synthesizing empty materialized view')
                 expect(result.repairActions).toContain('Empty materialized view written to S3')
+            })
+        })
+        
+        describe('snapshot execution', () => {
+            it('should create snapshot for lazy migration (manifest missing, view exists)', async () => {
+                const state: RepairState = {
+                    manifestMissing: true,
+                    materializedViewMissing: false
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'applyEdit',
+                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
+                }
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    state,
+                    operation
+                })
+                
+                // Should NOT call reconstructFromManifest (view exists, lazy migration)
+                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
+                
+                // Should call writeSnapshot exactly once with correct parameters
+                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
+                expect(mockWriteSnapshot).toHaveBeenCalledWith({
+                    prefix: 'test.wml/',
+                    timestamp: TEST_TIMESTAMP,
+                    zone: 'Library',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0
+                })
+                
+                // Should log snapshot creation
+                expect(result.repairActions).toContain('Creating snapshot from materialized view')
+                expect(result.repairActions).toContain('Snapshot written: test.wml/snapshots/1234567890000.wml')
+            })
+            
+            it('should NOT create snapshot when manifest exists (reconstruction case)', async () => {
+                const state: RepairState = {
+                    manifestMissing: false,
+                    materializedViewMissing: true
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'applyEdit',
+                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
+                }
+                
+                // Mock reconstruction
+                const mockStandard = new StandardForm('ASSET#test')
+                mockReconstructFromManifest.mockResolvedValue({
+                    type: 'content',
+                    standard: mockStandard,
+                    metadata: { snapshotUsed: false, chunksApplied: 0 }
+                })
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    state,
+                    operation
+                })
+                
+                // Should call reconstructFromManifest (view missing, manifest exists)
+                expect(mockReconstructFromManifest).toHaveBeenCalledTimes(1)
+                expect(mockReconstructFromManifest).toHaveBeenCalledWith('test.wml/')
+                
+                // Should NOT call writeSnapshot (manifest exists, skip snapshot)
+                expect(mockWriteSnapshot).not.toHaveBeenCalled()
+                
+                // Should log snapshot skip in decision
+                expect(result.repairActions).toContain('Snapshot action: skip')
+            })
+            
+            it('should create snapshot for zone move', async () => {
+                const state: RepairState = {
+                    manifestMissing: true,
+                    materializedViewMissing: true
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'moveZone',
+                    data: { fromZone: 'Library', toZone: 'Canon' }
+                }
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    state,
+                    operation
+                })
+                
+                // Should NOT call reconstructFromManifest (synthesizing empty)
+                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
+                
+                // Should call writeSnapshot exactly once with zone from operation
+                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
+                expect(mockWriteSnapshot).toHaveBeenCalledWith({
+                    prefix: 'test.wml/',
+                    timestamp: TEST_TIMESTAMP,
+                    zone: 'Library',  // Uses fromZone - snapshot represents origin state for lazy migration
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0
+                })
+            })
+            
+            it('should create snapshot for auth prefix', async () => {
+                const state: RepairState = {
+                    manifestMissing: true,
+                    materializedViewMissing: false
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'applyEdit',
+                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
+                }
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    suffix: 'auth.wml',
+                    state,
+                    operation
+                })
+                
+                // Should NOT call reconstructFromManifest (view exists, lazy migration)
+                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
+                
+                // Should call writeSnapshot with auth prefix
+                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
+                expect(mockWriteSnapshot).toHaveBeenCalledWith({
+                    prefix: 'test.auth.wml/',
+                    timestamp: TEST_TIMESTAMP,
+                    zone: 'Library',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0
+                })
+            })
+            
+            it('should NOT create snapshot when nothing is missing', async () => {
+                const state: RepairState = {
+                    manifestMissing: false,
+                    materializedViewMissing: false
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'applyEdit',
+                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
+                }
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    state,
+                    operation
+                })
+                
+                // Should NOT call reconstructFromManifest (nothing missing, early exit)
+                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
+                
+                // Should NOT call writeSnapshot (early exit, nothing missing)
+                expect(mockWriteSnapshot).not.toHaveBeenCalled()
             })
         })
     })

@@ -16,6 +16,7 @@ import AssetWorkspace from '../../AssetWorkspace'
 import { reconstructFromManifest } from '../reconstruction'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
+import { writeSnapshot, SnapshotReference } from '../snapshots'
 
 /**
  * Manifest suffix for content vs authorization files
@@ -238,13 +239,17 @@ function buildPrefix(assetId: AssetUUID, suffix: ManifestSuffix): string {
 
 /**
  * Extract zone from operation (all operations provide zone information)
+ * 
+ * For moveZone operations during lazy migration (manifest initialization):
+ * - Returns fromZone because the initial snapshot represents the asset's origin state
+ * - The manifest will then track the zone change as a subsequent event
  */
 function extractZoneFromOperation(operation: RepairOperation): Zone {
     if (isApplyEditOperation(operation)) {
         return operation.data.zone
     }
     if (isMoveZoneOperation(operation)) {
-        // For zone changes, use the source zone (fromZone)
+        // Use source zone (fromZone) for initial snapshot during lazy migration
         return operation.data.fromZone
     }
     if (isWriteSnapshotOperation(operation)) {
@@ -381,6 +386,44 @@ async function executeMaterializedViewAction(args: {
 }
 
 /**
+ * Execute snapshot action - create snapshot or skip
+ * 
+ * @param args - Execution arguments
+ * @returns SnapshotReference if created, null if skipped
+ */
+async function executeSnapshotAction(args: {
+    snapshotAction: SnapshotAction
+    prefix: string
+    timestamp: number
+    zone: Zone
+    assetWorkspace: AssetWorkspace | null
+    repairActions: string[]
+}): Promise<SnapshotReference | null> {
+    const { snapshotAction, prefix, timestamp, zone, repairActions } = args
+    
+    if (snapshotAction.type === 'skip') {
+        return null
+    }
+    
+    if (snapshotAction.type === 'create') {
+        repairActions.push('Creating snapshot from materialized view')
+        
+        const snapshotRef = await writeSnapshot({
+            prefix,
+            timestamp,
+            zone,
+            snapshotType: 'initializeManifest',  // Self-repair snapshots for lazy migration
+            chunksBeforeSnapshot: 0              // For lazy migration, no chunks yet
+        })
+        
+        repairActions.push(`Snapshot written: ${snapshotRef.s3Key}`)
+        return snapshotRef
+    }
+    
+    return null
+}
+
+/**
  * Centralized self-repair function for handling missing manifest and materialized view files.
  * 
  * This function uses a linear flow through decision points rather than branching into
@@ -457,9 +500,16 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
         repairActions
     })
     
-    // TODO: Step 7: Execute snapshot action
-    // - create: write snapshot from materialized view using assetWorkspace
-    // - skip: nothing to do
+    // Step 7: Execute snapshot action
+    const zone = extractZoneFromOperation(operation)
+    const snapshotRef = await executeSnapshotAction({
+        snapshotAction,
+        prefix,
+        timestamp,
+        zone,
+        assetWorkspace,
+        repairActions
+    })
     
     // TODO: Step 8: Build and return manifest events
     // - initialize: create ZoneChange (fromZone: null) + optional Snapshot event
@@ -472,7 +522,7 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
     return {
         success: false,
         repairActions,
-        error: 'Steps 7-8 not yet implemented'
+        error: 'Step 8 not yet implemented'
     }
 }
 
