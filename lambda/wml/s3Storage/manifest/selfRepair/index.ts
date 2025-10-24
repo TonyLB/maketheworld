@@ -9,7 +9,17 @@
  */
 
 import { Zone } from '@tonylb/mtw-asset-workspace/ts/readOnly'
+import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { ManifestEvent } from '../baseClasses'
+import { loadManifest } from '../operations'
+import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
+import AssetWorkspace from '../../AssetWorkspace'
+
+/**
+ * Manifest suffix for content vs authorization files
+ * Matches the file types used by AssetWorkspace.s3KeyFor()
+ */
+export type ManifestSuffix = 'wml' | 'auth.wml'
 
 /**
  * Assessment of which S3 files are present vs. missing
@@ -98,7 +108,8 @@ export const isWriteSnapshotOperation = (op: RepairOperation): op is Extract<Rep
  * Arguments for immediateSelfRepair function
  */
 export interface ImmediateSelfRepairArgs {
-    prefix: string
+    assetId: AssetUUID
+    suffix: ManifestSuffix
     state: RepairState
     operation: RepairOperation
     timestamp: number
@@ -207,31 +218,77 @@ function decideManifestAction(
 }
 
 /**
+ * Result of state assessment including resolved state and AssetWorkspace for reuse
+ */
+interface AssessmentResult {
+    state: RepairState
+    assetWorkspace: AssetWorkspace | null
+}
+
+/**
+ * Reconstruct prefix from assetId and suffix
+ * Converts suffix (e.g., 'wml' or 'auth.wml') to manifest prefix (e.g., 'uuid.wml/' or 'uuid.auth.wml/')
+ */
+function buildPrefix(assetId: AssetUUID, suffix: ManifestSuffix): string {
+    const baseId = assetId.replace('ASSET#', '')
+    return `${baseId}.${suffix}/`
+}
+
+/**
+ * Extract zone from operation (all operations provide zone information)
+ */
+function extractZoneFromOperation(operation: RepairOperation): Zone {
+    if (isApplyEditOperation(operation)) {
+        return operation.data.zone
+    }
+    if (isMoveZoneOperation(operation)) {
+        // For zone changes, use the source zone (fromZone)
+        return operation.data.fromZone
+    }
+    if (isWriteSnapshotOperation(operation)) {
+        return operation.data.zone
+    }
+    throw new Error('Unknown operation type - cannot extract zone')
+}
+
+/**
  * Assess what we need to know based on the operation, and check any unknowns.
  * 
- * Returns a complete RepairState with all unknowns resolved to known values.
- * 
- * TODO: This is a stub - actual implementation will check S3 for unknown states.
- * For now, we'll treat undefined as "needs checking" and error if we encounter it.
+ * Returns a complete RepairState with all unknowns resolved to known values,
+ * plus an AssetWorkspace instance that can be reused in execution steps.
  */
 async function assessAndCheckState(
-    prefix: string,
+    assetId: AssetUUID,
+    suffix: ManifestSuffix,
     state: RepairState,
     operation: RepairOperation
-): Promise<RepairState> {
+): Promise<AssessmentResult> {
     const resolvedState: RepairState = { ...state }
+    const prefix = buildPrefix(assetId, suffix)
     
-    // TODO: Implement actual S3 checking
-    // For now, error if we encounter undefined (caller should have checked)
+    // Check manifest existence if unknown
     if (resolvedState.manifestMissing === undefined) {
-        throw new Error('Manifest state unknown - caller should check before calling repair')
+        const manifest = await loadManifest(prefix)
+        resolvedState.manifestMissing = manifest.length === 0
     }
+    
+    // Check materialized view existence if unknown
+    // Create AssetWorkspace to check and potentially use later
+    const zone = extractZoneFromOperation(operation)
+    const assetWorkspace = new AssetWorkspace(assetId, zone)
     
     if (resolvedState.materializedViewMissing === undefined) {
-        throw new Error('Materialized view state unknown - caller should check before calling repair')
+        // Load to check if materialized view exists in S3
+        if (suffix === 'wml') {
+            await assetWorkspace.loadJSON()
+            resolvedState.materializedViewMissing = assetWorkspace.status.s3Missing === true
+        } else {
+            await assetWorkspace.loadAuthorizationJSON()
+            resolvedState.materializedViewMissing = assetWorkspace.authStatus.s3Missing === true
+        }
     }
     
-    return resolvedState
+    return { state: resolvedState, assetWorkspace }
 }
 
 /**
@@ -256,12 +313,13 @@ async function assessAndCheckState(
  * - Running within singleFlight (sequential mode) to prevent concurrent repairs
  * - Appending returned events to manifest
  * 
- * @param args - Repair arguments including prefix, state, operation, and timestamp
+ * @param args - Repair arguments including assetId, suffix, state, operation, and timestamp
  * @returns RepairResult with success status, actions taken, and events to append
  */
 export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promise<RepairResult> {
-    const { prefix, state, operation, timestamp } = args
+    const { assetId, suffix, state, operation, timestamp } = args
     const repairActions: string[] = []
+    const prefix = buildPrefix(assetId, suffix)
     
     // Step 1: Assess and check state (resolve unknowns)
     // NOTE: Currently we resolve ALL unknowns upfront because every decision path
@@ -271,7 +329,9 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
     // of view state"), we could optimize to lazily resolve only needed state.
     // The assessAndCheckState() function would then need operation-aware logic
     // to determine which checks are actually required.
-    const resolvedState = await assessAndCheckState(prefix, state, operation)
+    const assessment = await assessAndCheckState(assetId, suffix, state, operation)
+    const resolvedState = assessment.state
+    const assetWorkspace = assessment.assetWorkspace
     
     // Step 2: Early exit if nothing missing
     if (resolvedState.manifestMissing === false && resolvedState.materializedViewMissing === false) {
@@ -300,12 +360,13 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
     const manifestAction = decideManifestAction(resolvedState, snapshotAction)
     
     // TODO: Step 6: Execute materialized view action
-    // - use-existing: nothing to do
-    // - reconstruct: call reconstructFromManifest, write to S3
-    // - synthesize-empty: create empty StandardForm/StandardAuthorizationCollection, write to S3
+    // - use-existing: nothing to do (assetWorkspace already has it)
+    // - reconstruct: call reconstructFromManifest, write to S3 using assetWorkspace
+    // - synthesize-empty: create empty StandardForm/StandardAuthorizationCollection, write to S3 using assetWorkspace
+    // Note: assetWorkspace is available (created during assessment) for reuse
     
     // TODO: Step 7: Execute snapshot action
-    // - create: write snapshot from materialized view
+    // - create: write snapshot from materialized view using assetWorkspace
     // - skip: nothing to do
     
     // TODO: Step 8: Build and return manifest events

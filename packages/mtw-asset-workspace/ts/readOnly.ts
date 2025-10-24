@@ -17,6 +17,7 @@ type AssetWorkspaceStatusItem = 'Initial' | 'Clean' | 'Dirty' | 'Error'
 type AssetWorkspaceStatus = {
     json: AssetWorkspaceStatusItem;
     wml: AssetWorkspaceStatusItem;
+    s3Missing?: boolean;  // Track whether S3 object exists (undefined = not checked, true = missing, false = exists)
 }
 
 export type WorkspaceImageProperty = {
@@ -197,6 +198,7 @@ export class ReadOnlyAssetWorkspace {
         if (this.zone === 'Archive') {
             this.standard = new StandardForm('')
             this.status.json = 'Clean'
+            this.status.s3Missing = true  // Archive zone has no S3 objects
             return
         }
         const filePath = this.s3KeyFor('ndjson')
@@ -204,11 +206,13 @@ export class ReadOnlyAssetWorkspace {
         let contents = ''
         try {
             contents = await s3Client.get({ Key: filePath })
+            this.status.s3Missing = false  // File exists
         }
         catch(err: any) {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
                 this.standard = new StandardForm('')
                 this.status.json = 'Clean'
+                this.status.s3Missing = true  // File doesn't exist in S3
                 return
             }
             throw err
@@ -223,6 +227,7 @@ export class ReadOnlyAssetWorkspace {
         if (this.zone === 'Archive') {
             this.authorizations = new StandardAuthorizationCollection('')
             this.authStatus.json = 'Clean'
+            this.authStatus.s3Missing = true  // Archive zone has no S3 objects
             return
         }
         const filePath = this.s3KeyFor('auth.ndjson')
@@ -230,11 +235,13 @@ export class ReadOnlyAssetWorkspace {
         let contents = ''
         try {
             contents = await s3Client.get({ Key: filePath })
+            this.authStatus.s3Missing = false  // File exists
         }
         catch(err: any) {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
                 this.authorizations = new StandardAuthorizationCollection('')
                 this.authStatus.json = 'Clean'
+                this.authStatus.s3Missing = true  // File doesn't exist in S3
                 return
             }
             throw err

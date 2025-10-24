@@ -17,7 +17,38 @@ import {
     isWriteSnapshotOperation
 } from './index'
 
+// Mock external dependencies
+jest.mock('../operations')
+jest.mock('../../AssetWorkspace')
+
+import { loadManifest } from '../operations'
+import AssetWorkspace from '../../AssetWorkspace'
+
+const mockLoadManifest = loadManifest as jest.MockedFunction<typeof loadManifest>
+const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
+
 describe('selfRepair', () => {
+    beforeEach(() => {
+        // Reset all mocks before each test
+        jest.clearAllMocks()
+        
+        // Default mock implementations
+        mockLoadManifest.mockResolvedValue([])  // Empty manifest by default
+        
+        // Mock AssetWorkspace with status tracking
+        MockAssetWorkspace.mockImplementation((assetId, zone, player) => {
+            return {
+                assetId,
+                zone,
+                player,
+                status: { json: 'Initial', wml: 'Initial', s3Missing: false },  // File exists by default
+                authStatus: { json: 'Initial', wml: 'Initial', s3Missing: false },
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                loadAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
+                s3KeyFor: jest.fn((type) => `${assetId.replace('ASSET#', '')}.${type}`)
+            } as any
+        })
+    })
     describe('type guards', () => {
         describe('isApplyEditOperation', () => {
             it('should return true for applyEdit operations', () => {
@@ -155,7 +186,8 @@ describe('selfRepair', () => {
     
     describe('immediateSelfRepair', () => {
         const baseArgs = {
-            prefix: 'test.wml/',
+            assetId: 'ASSET#test' as any,  // Cast to satisfy AssetUUID type
+            suffix: 'wml' as const,
             timestamp: Date.now()
         }
         
@@ -354,10 +386,10 @@ describe('selfRepair', () => {
             })
         })
         
-        describe('unknown state handling', () => {
-            it('should error when manifest state is unknown', async () => {
+        describe('unknown state resolution', () => {
+            it('should check S3 when manifest state is unknown', async () => {
                 const state: RepairState = {
-                    manifestMissing: undefined,  // Unknown state
+                    manifestMissing: undefined,  // Unknown state - needs checking
                     materializedViewMissing: false
                 }
                 
@@ -366,17 +398,26 @@ describe('selfRepair', () => {
                     data: { editWML: '', zone: 'Library', createIfNeeded: false }
                 }
                 
-                await expect(immediateSelfRepair({
+                // Mock manifest as empty (missing)
+                mockLoadManifest.mockResolvedValue([])
+                
+                const result = await immediateSelfRepair({
                     ...baseArgs,
                     state,
                     operation
-                })).rejects.toThrow('Manifest state unknown')
+                })
+                
+                // Should have checked manifest and discovered it's missing
+                expect(mockLoadManifest).toHaveBeenCalledWith('test.wml/')
+                // Should proceed with lazy migration
+                expect(result.repairActions).toContain('View action: use-existing')
+                expect(result.repairActions).toContain('Manifest action: initialize')
             })
             
-            it('should error when materialized view state is unknown', async () => {
+            it('should load AssetWorkspace when materialized view state is unknown', async () => {
                 const state: RepairState = {
                     manifestMissing: false,
-                    materializedViewMissing: undefined  // Unknown state
+                    materializedViewMissing: undefined  // Unknown state - needs checking
                 }
                 
                 const operation: RepairOperation = {
@@ -384,11 +425,60 @@ describe('selfRepair', () => {
                     data: { editWML: '', zone: 'Library', createIfNeeded: false }
                 }
                 
-                await expect(immediateSelfRepair({
+                // Create a mock instance to verify loadJSON was called
+                const mockInstance = {
+                    assetId: 'ASSET#test',
+                    zone: 'Library',
+                    status: { json: 'Clean', wml: 'Initial', s3Missing: false },
+                    authStatus: { json: 'Initial', wml: 'Initial', s3Missing: false },
+                    loadJSON: jest.fn().mockResolvedValue(undefined),
+                    loadAuthorizationJSON: jest.fn().mockResolvedValue(undefined)
+                }
+                MockAssetWorkspace.mockReturnValue(mockInstance as any)
+                
+                const result = await immediateSelfRepair({
                     ...baseArgs,
                     state,
                     operation
-                })).rejects.toThrow('Materialized view state unknown')
+                })
+                
+                // Should have called loadJSON to check existence
+                expect(mockInstance.loadJSON).toHaveBeenCalled()
+                // Should discover view exists (s3Missing: false)
+                expect(result.success).toBe(true)
+                expect(result.repairActions).toEqual([])
+            })
+            
+            it('should detect missing materialized view through AssetWorkspace status', async () => {
+                const state: RepairState = {
+                    manifestMissing: false,
+                    materializedViewMissing: undefined  // Unknown - needs checking
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'applyEdit',
+                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
+                }
+                
+                // Mock AssetWorkspace with file missing
+                const mockInstance = {
+                    assetId: 'ASSET#test',
+                    zone: 'Library',
+                    status: { json: 'Clean', wml: 'Initial', s3Missing: true },  // File missing!
+                    authStatus: { json: 'Initial', wml: 'Initial', s3Missing: false },
+                    loadJSON: jest.fn().mockResolvedValue(undefined),
+                    loadAuthorizationJSON: jest.fn().mockResolvedValue(undefined)
+                }
+                MockAssetWorkspace.mockReturnValue(mockInstance as any)
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    state,
+                    operation
+                })
+                
+                // Should have detected missing view and triggered reconstruction
+                expect(result.repairActions).toContain('View action: reconstruct')
             })
         })
     })
