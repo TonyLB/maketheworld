@@ -858,15 +858,17 @@ This phase was based on an outdated architectural assumption that was refined du
 ~~- [ ] **Task 2.6.2**: Update `loadAuthorizationJSON()` for chunk-based assets~~
 
 **Phase 2.7: Self-Repair Infrastructure**
-- [ ] **Task 2.7.1**: Design and implement `immediateSelfRepair` core function
-  - Define types for self-repair state and operation metadata
-  - Implement repair logic for all scenarios:
-    - Scenario 1: Manifest missing, view exists (lazy migration)
-    - Scenario 2: View missing, manifest exists (reconstruction)
-    - Scenario 3: Both missing (empty placeholder creation)
-  - Handle operation-specific repair paths (`applyEdit`, `moveAsset`, `writeSnapshot`)
-  - Implement error cases (operations that can't repair "both missing")
-  - Unit tests for each scenario × operation type combination
+- [x] **Task 2.7.1**: Design and implement `immediateSelfRepair` core function ✅
+  - Define types for self-repair state and operation metadata ✅
+  - Implement repair logic for all scenarios: ✅
+    - Scenario 1: Manifest missing, view exists (lazy migration) ✅
+    - Scenario 2: View missing, manifest exists (reconstruction) ✅
+    - Scenario 3: Both missing (empty placeholder creation) ✅
+  - Handle operation-specific repair paths (`applyEdit`, `moveAsset`, `writeSnapshot`) ✅
+  - Implement error cases (operations that can't repair "both missing") ✅
+  - Unit tests for each scenario × operation type combination ✅
+  - **Completed**: 35 tests, linear decision flow, lazy state resolution, `initializeManifest` snapshot type
+  - **Location**: `lambda/wml/s3Storage/manifest/selfRepair/index.ts`
   
 - [ ] **Task 2.7.2**: Implement `withS3SelfRepair` wrapper
   - Create wrapper that encapsulates fetch-check-repair pattern

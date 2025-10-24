@@ -17,6 +17,7 @@ import { reconstructFromManifest } from '../reconstruction'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
 import { writeSnapshot, SnapshotReference } from '../snapshots'
+import { v4 as uuidv4 } from 'uuid'
 
 /**
  * Manifest suffix for content vs authorization files
@@ -424,6 +425,57 @@ async function executeSnapshotAction(args: {
 }
 
 /**
+ * Build manifest events based on manifest action
+ * 
+ * @param args - Event building arguments
+ * @returns Array of ManifestEvents to append to manifest
+ */
+function buildManifestEvents(args: {
+    manifestAction: ManifestAction
+    zone: Zone
+    timestamp: number
+    snapshotRef: SnapshotReference | null
+}): ManifestEvent[] {
+    const { manifestAction, zone, timestamp, snapshotRef } = args
+    
+    if (manifestAction.type === 'append-to-existing') {
+        // No repair-specific events needed when manifest exists
+        return []
+    }
+    
+    if (manifestAction.type === 'initialize') {
+        const events: ManifestEvent[] = []
+        const isoTimestamp = new Date(timestamp).toISOString()
+        
+        // Initial ZoneChange event (fromZone: null indicates zone establishment)
+        events.push({
+            type: 'zoneChange',
+            timestamp: isoTimestamp,
+            eventId: uuidv4(),
+            fromZone: null,
+            toZone: zone
+        })
+        
+        // Optional: Snapshot event if snapshot was created
+        if (manifestAction.includeSnapshot && snapshotRef) {
+            events.push({
+                type: 'snapshot',
+                timestamp: isoTimestamp,
+                eventId: uuidv4(),
+                s3Key: snapshotRef.s3Key,
+                snapshotType: 'initializeManifest',
+                chunksBeforeSnapshot: 0,
+                snapshotSize: snapshotRef.snapshotSize
+            })
+        }
+        
+        return events
+    }
+    
+    return []
+}
+
+/**
  * Centralized self-repair function for handling missing manifest and materialized view files.
  * 
  * This function uses a linear flow through decision points rather than branching into
@@ -511,18 +563,22 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
         repairActions
     })
     
-    // TODO: Step 8: Build and return manifest events
-    // - initialize: create ZoneChange (fromZone: null) + optional Snapshot event
-    // - append-to-existing: return empty array (no repair events needed)
+    // Step 8: Build manifest events
+    const eventsToAppend = buildManifestEvents({
+        manifestAction,
+        zone,
+        timestamp,
+        snapshotRef
+    })
     
-    // Temporary: Log decisions for debugging
+    // Log decisions for debugging
     repairActions.push(`Snapshot action: ${snapshotAction.type}`)
     repairActions.push(`Manifest action: ${manifestAction.type}`)
     
     return {
-        success: false,
+        success: true,
         repairActions,
-        error: 'Step 8 not yet implemented'
+        eventsToAppend
     }
 }
 

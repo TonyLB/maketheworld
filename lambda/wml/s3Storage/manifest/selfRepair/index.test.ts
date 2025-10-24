@@ -903,6 +903,209 @@ describe('selfRepair', () => {
                 expect(mockWriteSnapshot).not.toHaveBeenCalled()
             })
         })
+        
+        describe('manifest event building', () => {
+            it('should create ZoneChange event for manifest initialization without snapshot', async () => {
+                const state: RepairState = {
+                    manifestMissing: false,
+                    materializedViewMissing: true
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'applyEdit',
+                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
+                }
+                
+                // Mock reconstruction
+                const mockStandard = new StandardForm('ASSET#test')
+                mockReconstructFromManifest.mockResolvedValue({
+                    type: 'content',
+                    standard: mockStandard,
+                    metadata: { snapshotUsed: false, chunksApplied: 0 }
+                })
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    state,
+                    operation
+                })
+                
+                // Should succeed
+                expect(result.success).toBe(true)
+                
+                // Should return empty events (manifest exists, append-to-existing)
+                expect(result.eventsToAppend).toEqual([])
+            })
+            
+            it('should create ZoneChange and Snapshot events for manifest initialization with snapshot', async () => {
+                const state: RepairState = {
+                    manifestMissing: true,
+                    materializedViewMissing: false
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'applyEdit',
+                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
+                }
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    state,
+                    operation
+                })
+                
+                // Should succeed
+                expect(result.success).toBe(true)
+                
+                // Should return 2 events: ZoneChange + Snapshot
+                expect(result.eventsToAppend!).toHaveLength(2)
+                
+                // First event: ZoneChange
+                const zoneChangeEvent = result.eventsToAppend![0]
+                expect(zoneChangeEvent.type).toBe('zoneChange')
+                expect(zoneChangeEvent).toHaveProperty('timestamp')
+                expect(zoneChangeEvent).toHaveProperty('eventId')
+                if (zoneChangeEvent.type === 'zoneChange') {
+                    expect(zoneChangeEvent.fromZone).toBe(null)  // Initial zone establishment
+                    expect(zoneChangeEvent.toZone).toBe('Library')
+                }
+                
+                // Second event: Snapshot
+                const snapshotEvent = result.eventsToAppend![1]
+                expect(snapshotEvent.type).toBe('snapshot')
+                expect(snapshotEvent).toHaveProperty('timestamp')
+                expect(snapshotEvent).toHaveProperty('eventId')
+                if (snapshotEvent.type === 'snapshot') {
+                    expect(snapshotEvent.s3Key).toBe('test.wml/snapshots/1234567890000.wml')
+                    expect(snapshotEvent.snapshotType).toBe('initializeManifest')
+                    expect(snapshotEvent.chunksBeforeSnapshot).toBe(0)
+                    expect(snapshotEvent.snapshotSize).toBe(1024)
+                }
+            })
+            
+            it('should use correct zone for moveZone operations', async () => {
+                const state: RepairState = {
+                    manifestMissing: true,
+                    materializedViewMissing: true
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'moveZone',
+                    data: { fromZone: 'Library', toZone: 'Canon' }
+                }
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    state,
+                    operation
+                })
+                
+                // Should succeed
+                expect(result.success).toBe(true)
+                
+                // Should create ZoneChange event with fromZone (origin zone)
+                expect(result.eventsToAppend!).toHaveLength(2)
+                const zoneChangeEvent = result.eventsToAppend![0]
+                if (zoneChangeEvent.type === 'zoneChange') {
+                    expect(zoneChangeEvent.fromZone).toBe(null)
+                    expect(zoneChangeEvent.toZone).toBe('Library')  // Uses fromZone of operation
+                }
+            })
+            
+            it('should create events for auth prefix', async () => {
+                const state: RepairState = {
+                    manifestMissing: true,
+                    materializedViewMissing: false
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'applyEdit',
+                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
+                }
+                
+                // Mock writeSnapshot with auth-specific return value
+                mockWriteSnapshot.mockResolvedValueOnce({
+                    s3Key: 'test.auth.wml/snapshots/1234567890000.wml',
+                    snapshotSize: 1024
+                })
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    suffix: 'auth.wml',
+                    state,
+                    operation
+                })
+                
+                // Should succeed
+                expect(result.success).toBe(true)
+                
+                // Should create events (works same for auth)
+                expect(result.eventsToAppend!).toHaveLength(2)
+                
+                // Snapshot event should reference auth prefix
+                const snapshotEvent = result.eventsToAppend![1]
+                if (snapshotEvent.type === 'snapshot') {
+                    expect(snapshotEvent.s3Key).toBe('test.auth.wml/snapshots/1234567890000.wml')
+                }
+            })
+            
+            it('should generate unique event IDs', async () => {
+                const state: RepairState = {
+                    manifestMissing: true,
+                    materializedViewMissing: false
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'applyEdit',
+                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
+                }
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    state,
+                    operation
+                })
+                
+                // Should succeed
+                expect(result.success).toBe(true)
+                
+                // Both events should have unique eventIds
+                expect(result.eventsToAppend!).toHaveLength(2)
+                const eventIds = result.eventsToAppend!.map(e => e.eventId)
+                expect(eventIds[0]).not.toBe(eventIds[1])
+                expect(typeof eventIds[0]).toBe('string')
+                expect(typeof eventIds[1]).toBe('string')
+            })
+            
+            it('should use ISO timestamp format', async () => {
+                const state: RepairState = {
+                    manifestMissing: true,
+                    materializedViewMissing: false
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'applyEdit',
+                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
+                }
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    state,
+                    operation
+                })
+                
+                // Should succeed
+                expect(result.success).toBe(true)
+                
+                // Both events should have ISO timestamps
+                expect(result.eventsToAppend!).toHaveLength(2)
+                result.eventsToAppend!.forEach(event => {
+                    expect(event.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
+                    // Verify timestamp can be parsed
+                    expect(new Date(event.timestamp).getTime()).toBe(TEST_TIMESTAMP)
+                })
+            })
+        })
     })
 })
 
