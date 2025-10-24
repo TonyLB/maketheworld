@@ -196,7 +196,7 @@ export class ReadOnlyAssetWorkspace {
 
     async loadJSON() {
         if (this.zone === 'Archive') {
-            this.standard = new StandardForm('')
+            this.standard = new StandardForm(this.assetId)
             this.status.json = 'Clean'
             this.status.s3Missing = true  // Archive zone has no S3 objects
             return
@@ -210,7 +210,7 @@ export class ReadOnlyAssetWorkspace {
         }
         catch(err: any) {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
-                this.standard = new StandardForm('')
+                this.standard = new StandardForm(this.assetId)
                 this.status.json = 'Clean'
                 this.status.s3Missing = true  // File doesn't exist in S3
                 return
@@ -225,7 +225,7 @@ export class ReadOnlyAssetWorkspace {
 
     async loadAuthorizationJSON() {
         if (this.zone === 'Archive') {
-            this.authorizations = new StandardAuthorizationCollection('')
+            this.authorizations = new StandardAuthorizationCollection(this.assetId)
             this.authStatus.json = 'Clean'
             this.authStatus.s3Missing = true  // Archive zone has no S3 objects
             return
@@ -239,7 +239,7 @@ export class ReadOnlyAssetWorkspace {
         }
         catch(err: any) {
             if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
-                this.authorizations = new StandardAuthorizationCollection('')
+                this.authorizations = new StandardAuthorizationCollection(this.assetId)
                 this.authStatus.json = 'Clean'
                 this.authStatus.s3Missing = true  // File doesn't exist in S3
                 return
