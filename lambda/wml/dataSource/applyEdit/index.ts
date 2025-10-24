@@ -94,8 +94,7 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResu
     if (!existingStandard || existingStandard._components.length === 0) {
         if (args.createIfNeeded) {
             // Start with empty StandardForm - edit will become initial content
-            const assetKey = args.AssetId.replace('ASSET#', '')
-            existingStandard = new StandardForm(assetKey)
+            existingStandard = new StandardForm(args.AssetId)
         } else {
             return {
                 success: false,
