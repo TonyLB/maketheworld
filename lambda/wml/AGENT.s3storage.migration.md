@@ -373,12 +373,45 @@ The migration aims to address these limitations by:
 
 **Status**: 🚧 **IN PROGRESS** (Started October 18, 2025)
 
-**Progress**: 7/28 tasks complete (25.0%)
+**Progress**: 12/31 tasks complete (38.7%)
 - ✅ Phase 2.0: Prerequisites (1/1 complete)
 - ✅ Phase 2.1: Foundation - Manifest Infrastructure (3/3 complete)
 - ✅ Phase 2.2: Foundation - Reconstruction (3/3 complete)
+- ✅ Phase 2.3: Content Write Path Integration (3/3 complete)
+- ✅ Phase 2.4: Zone Change Integration (1/2 complete - Task 2.4.2 deferred to 2.7)
+- ✅ Phase 2.5: Authorization History - Infrastructure (1/1 complete)
+- ❌ Phase 2.6: Read Path Updates (0/2 tasks - **CANCELLED**, see below)
+- 📋 Phase 2.7: Self-Repair Infrastructure (0/6 tasks - **NEW**)
+- 📋 Phase 2.8: Archive Zone (0/1 task)
+- 📋 Phase 2.9: Testing (0/4 tasks)
+- 📋 Phase 2.10: Documentation (1/3 tasks complete)
 
 **Recent Completions**:
+- **October 24, 2025**: Self-Repair Design Complete 📋 **DESIGNED**
+  - Created `s3Storage/manifest/AGENT.selfRepair.md` design document
+  - Defined centralized `immediateSelfRepair()` function for all repair scenarios
+  - Defined `withS3SelfRepair()` wrapper for fetch-check-repair pattern
+  - Documented 3 on-the-spot repair scenarios (manifest missing, view missing, both missing)
+  - Established empty placeholder pattern for operations with initialization data
+  - Phase 2.7 tasks defined (6 new tasks)
+- **October 23, 2025**: Phase 2.3 - Content Write Path Integration ✅ **COMPLETE**
+  - Task 2.3.1-2.3.3: All content write operations now use chunk-based storage
+  - `applyEdit` writes chunks, updates manifests, maintains materialized views
+  - Lazy migration creates initial snapshot for legacy assets on first edit
+  - WebSocket event handling fixed (Task 2.3.1.1)
+  - Authorization Player metadata extraction implemented
+  - All 3 tasks complete, chunk-based content editing fully operational
+- **October 23, 2025**: Task 2.4.1 - Zone change integration ✅ **COMPLETE**
+  - `moveAsset` appends ZoneChangeEvent to both content and auth manifests
+  - Initial ZoneChange events (fromZone: null) establish foundational metadata
+  - Lazy migration helper handles all cases including empty assets
+  - Task 2.4.2 deferred (edge case for empty auth files, low priority)
+- **October 23, 2025**: Task 2.5.1 - Authorization infrastructure verification ✅ **COMPLETE**
+  - Verified all chunk/manifest/snapshot operations are already generic (accept prefix parameter)
+  - Confirmed `reconstructFromManifest()` is type-aware (returns StandardForm or StandardAuthorizationCollection)
+  - Verified `moveAsset` and `createManualSnapshot` handle both content and auth prefixes
+  - Authorization edit integration deferred to Phase 3 (no incoming edit flow exists yet)
+  - Infrastructure is ready: when authorization edits are implemented, they can use existing chunk operations
 - **October 21, 2025**: Task 2.2.3 - Manual snapshot creation capability
   - Implemented `createManualSnapshot(prefix, zone)` orchestration function
   - Coordinates manifest loading, snapshot writing, and manifest updating
@@ -503,7 +536,8 @@ The migration aims to address these limitations by:
 - ✅ **Authorization History**: Parallel structure under `{uuid}.auth.wml/` prefix (no special-case code)
 - ✅ **Snapshot Frequency**: Manual capability in Phase 2, automatic triggers in Phase 3
 - ✅ **Manifest Format**: NDJSON event log (not JSON array) for extensibility
-- ✅ **Reconstruction Strategy**: Rebuild materialized view on every write
+- ✅ **Reconstruction Strategy**: ~~Rebuild materialized view on every write~~ **REFINED** (October 23): Write path maintains materialized views directly; reconstruction only for recovery
+- ✅ **Read Path Strategy**: (**Added October 23**): Load from materialized views (no reconstruction on normal reads). Phase 2.6 cancelled as unnecessary.
 - ✅ **Concurrency**: Use `atomicLock` for manifest updates (no elaborate merge conflict resolution)
 - ✅ **Archive Zone**: Freezes asset in place (simpler than Phase 1 backup complexity)
 - ✅ **Manifest Loss Recovery**: Phase 3 feature (pattern supports it, not implementing yet)
@@ -550,12 +584,12 @@ The migration aims to address these limitations by:
 - Maintain materialized views on every write
 - Update `moveAsset` to handle chunk-based assets (add zone change events to manifest)
 - **Reintroduce Archive zone** as frozen state (Zone=Archive tag)
-- S3 lifecycle policies transition archived content to cold storage
 - Support point-in-time recovery by replaying chunks from snapshots (read-only initially)
+- **Note**: S3 lifecycle policies deferred to Phase 3 (premature optimization during active development)
 
 #### Implementation Plan Overview:
 
-The Phase 2 migration consists of **28 discrete tasks** organized into **10 phases**:
+The Phase 2 migration consists of **31 discrete tasks** organized into **11 phases**:
 
 | Phase | Task Count | Focus Area |
 |-------|-----------|------------|
@@ -563,25 +597,32 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
 | 2.1 | 3 | Manifest Infrastructure |
 | 2.2 | 3 | Reconstruction Logic |
 | 2.3 | 3 | Content Write Path Integration |
-| 2.4 | 1 | Zone Change Integration |
-| 2.5 | 2 | Authorization History |
-| 2.6 | 2 | Read Path Updates |
-| 2.7 | 2 | Archive Zone |
-| 2.8 | 4 | Testing |
-| 2.9 | 3 | Documentation |
+| 2.4 | 2 | Zone Change Integration (Task 2.4.2 deferred to 2.7) |
+| 2.5 | 1 | Authorization History - Infrastructure (edit integration → Phase 3) |
+| 2.6 | ~~2~~ | ~~Read Path Updates~~ **CANCELLED** |
+| 2.7 | 6 | Self-Repair Infrastructure (**NEW**) |
+| 2.8 | 1 | Archive Zone (lifecycle policies → Phase 3) |
+| 2.9 | 4 | Testing |
+| 2.10 | 3 | Documentation |
 
 **Estimated Complexity**: Medium-High
-- Foundation phases (2.1-2.2): ~5-7 days
-- Integration phases (2.3-2.7): ~7-10 days  
-- Testing & Documentation (2.8-2.9): ~3-5 days
-- **Total**: ~15-22 working days
+- Foundation phases (2.1-2.2, 2.5): ~5-7 days ✅
+- Integration phases (2.3-2.4): ~5-8 days ✅
+- Self-Repair (2.7): ~4-6 days (new comprehensive repair infrastructure)
+- Archive & Testing (2.8-2.9): ~3-5 days
+- Documentation (2.10): ~1-2 days
+- **Total**: ~18-28 working days (updated for self-repair scope)
 
 **Dependencies**:
 - All tasks depend on Phase 1 completion ✅
-- Phase 2.1-2.2 (Foundation) must complete before integration phases
-- Phase 2.3-2.7 (Integration) can partially overlap after foundation is stable
-- Phase 2.8 (Testing) should run in parallel with integration phases
-- Phase 2.9 (Documentation) can start early, complete at end
+- Phase 2.1-2.2, 2.5 (Foundation) must complete before integration phases ✅
+- Phase 2.3-2.4 (Integration) can partially overlap after foundation is stable ✅
+- Phase 2.7 (Self-Repair) depends on 2.1-2.5 completion (needs manifest infrastructure)
+- Phase 2.5.2 (Authorization Edit Integration) - **DEFERRED** to Phase 3 (infrastructure complete, awaiting edit flow)
+- Phase 2.6 (Read Path) - **CANCELLED** (no work needed)
+- Phase 2.8 (Archive Zone) can proceed after 2.7 (uses self-repair for zone changes)
+- Phase 2.9 (Testing) should run in parallel with phases 2.7-2.8
+- Phase 2.10 (Documentation) can start early, complete at end
 
 #### Detailed Task Breakdown:
 
@@ -720,7 +761,7 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - **Design**: Works for both content (`{uuid}.wml/`) and auth (`{uuid}.auth.wml/`) prefixes
 
 **Phase 2.3: Integration - Content Write Path**
-- [~] **Task 2.3.1**: Update `applyEdit` to write chunks ⚠️ **PARTIALLY COMPLETE** (October 21, 2025)
+- [x] **Task 2.3.1**: Update `applyEdit` to write chunks ✅ **COMPLETE** (October 21, 2025)
   - ✅ Add chunk-based history tracking alongside existing materialized view writes
   - ✅ Write delta as chunk: `writeChunk('{uuid}.wml/', timestamp, editStandard.schema)`
   - ✅ Append chunk event to manifest at `{uuid}.wml/manifest-latest.ndjson`
@@ -766,86 +807,137 @@ The Phase 2 migration consists of **28 discrete tasks** organized into **10 phas
   - **Note**: Edge case for empty auth files deferred to Task 2.4.2
 
 - [ ] **Task 2.4.2**: Handle manifest initialization for missing materialized views
-  - Add `initializeManifest` snapshot type for lazy migration edge cases
-  - Update `writeSnapshot` to handle missing source files for `initializeManifest` type
-  - Create synthetic empty snapshot when materialized view doesn't exist (e.g., `.auth.wml`)
-  - Write empty WML with proper Asset wrapper: `<Asset uuid=(assetId) />`
-  - Add tests for empty file initialization
-  - **Context**: Some assets may have content but no authorization file yet
-  - **Current Workaround**: `writeSnapshot` will fail on missing source - acceptable for now
+  - **Status**: ⏭️ **DEFERRED** - Superseded by Phase 2.7 (Self-Repair Infrastructure)
+  - **Original Scope**: Add `initializeManifest` snapshot type for edge cases
+  - **New Approach**: Comprehensive self-repair via `withS3SelfRepair()` wrapper
+  - **See**: Phase 2.7 tasks and `s3Storage/manifest/AGENT.selfRepair.md`
 
-**Phase 2.5: Authorization History**
-- [ ] **Task 2.5.1**: Refactor chunk/manifest operations to accept prefix parameter
-  - Modify manifest operations to work with any prefix (e.g., `{uuid}.wml/` or `{uuid}.auth.wml/`)
-  - Modify chunk operations to accept prefix parameter
-  - Modify snapshot operations to accept prefix parameter
-  - Modify reconstruction logic to accept prefix parameter
-  - **Benefit**: No auth-specific code needed - same operations, different prefix
+**Phase 2.5: Authorization History - Infrastructure**
+- [x] **Task 2.5.1**: Verify chunk/manifest operations are generic ✅ **COMPLETE** (October 23, 2025)
+  - ✅ All manifest operations already work with any prefix (`{uuid}.wml/` or `{uuid}.auth.wml/`)
+  - ✅ All chunk operations already accept prefix parameter
+  - ✅ All snapshot operations already accept prefix parameter
+  - ✅ Reconstruction logic already type-aware (detects prefix, returns correct type)
+  - ✅ `moveAsset` and `createManualSnapshot` already handle both content and auth
+  - **Result**: Infrastructure complete - no auth-specific code needed
   
-- [ ] **Task 2.5.2**: Update authorization write operations
-  - Modify `pushAuthorizationWML()` to use chunk-based pattern with `{uuid}.auth.wml/` prefix
-  - Reuse generic chunk/manifest operations (just pass different prefix)
-  - Rebuild materialized `{uuid}.auth.wml` from manifest using generic reconstruction
-  - Maintain backward compatibility with Phase 1 auth files
+**Task 2.5.2 Deferred to Phase 3** (Authorization Edit Integration):
+- Authorization edit flow doesn't exist yet (WML with Grant tags not parsed by `applyEdit`)
+- When implemented, will integrate authorization edits into `applyEdit`:
+  - Parse Grant tags from incoming WML
+  - Write authorization chunks to `{uuid}.auth.wml/chunks/`
+  - Update authorization manifests
+  - Write materialized auth views
+- All infrastructure ready and waiting (generic operations complete)
 
-**Phase 2.6: Read Path Updates**
-- [ ] **Task 2.6.1**: Update `loadJSON()` for chunk-based assets
-  - Check for manifest existence at `{uuid}.wml/manifest-latest.ndjson`
-  - If present: Use `reconstructFromManifest('{uuid}.wml/')` instead of loading flat file
-  - If absent: Fall back to Phase 1 pattern (lazy migration on next write)
-  - Cache reconstructed state in memory (already done)
+**Phase 2.6: Read Path Updates** ❌ **CANCELLED** (October 23, 2025)
+
+**Cancellation Rationale:**
+
+This phase was based on an outdated architectural assumption that was refined during Phase 2.3 implementation. The original plan assumed we would reconstruct from manifest on every read operation, but the implemented architecture takes a more efficient approach:
+
+**Actual Implementation (Task 2.3.2 - Completed):**
+- Write path maintains materialized views by writing merged results directly to `.wml` and `.ndjson` files
+- Read path continues to load from materialized views (no changes needed)
+- Reconstruction is only used for diagnostic/recovery scenarios
+
+**Why This Is Better:**
+- Reconstructing on every read would be expensive and unnecessary
+- Materialized views exist specifically to provide fast read access
+- The write path can maintain materialized views efficiently during edits
+- `reconstructFromManifest()` becomes a recovery tool, not a read path component
+
+**Evidence of Design Evolution:**
+- Task 2.3.2 explicitly states: "Materialized view is kept up-to-date by direct write (not reconstruction)"
+- Evaluation log Session 3 noted this as a design refinement during implementation
+- Session 3: "Correctly identified that snapshots should copy materialized views (not reconstruct)"
+
+**Impact:** No work needed - read operations already work correctly with chunk-based storage.
+
+~~- [ ] **Task 2.6.1**: Update `loadJSON()` for chunk-based assets~~
+~~- [ ] **Task 2.6.2**: Update `loadAuthorizationJSON()` for chunk-based assets~~
+
+**Phase 2.7: Self-Repair Infrastructure**
+- [ ] **Task 2.7.1**: Design and implement `immediateSelfRepair` core function
+  - Define types for self-repair state and operation metadata
+  - Implement repair logic for all scenarios:
+    - Scenario 1: Manifest missing, view exists (lazy migration)
+    - Scenario 2: View missing, manifest exists (reconstruction)
+    - Scenario 3: Both missing (empty placeholder creation)
+  - Handle operation-specific repair paths (`applyEdit`, `moveAsset`, `writeSnapshot`)
+  - Implement error cases (operations that can't repair "both missing")
+  - Unit tests for each scenario × operation type combination
   
-- [ ] **Task 2.6.2**: Update `loadAuthorizationJSON()` for chunk-based assets
-  - Check for manifest existence at `{uuid}.auth.wml/manifest-latest.ndjson`
-  - If present: Use `reconstructFromManifest('{uuid}.auth.wml/')` (reusing same generic function)
-  - If absent: Fall back to flat auth files if no manifest
-
-**Phase 2.7: Archive Zone Reintroduction**
-- [ ] **Task 2.7.1**: Remove Archive zone restrictions
+- [ ] **Task 2.7.2**: Implement `withS3SelfRepair` wrapper
+  - Create wrapper that encapsulates fetch-check-repair pattern
+  - Handle routing between action (normal path) and repair path
+  - Provide consistent error handling and logging
+  - Unit tests for wrapper logic (routing, state assessment)
+  
+- [ ] **Task 2.7.3**: Refactor operations to use self-repair
+  - Refactor `applyEdit` to use `withS3SelfRepair()`
+  - Refactor `moveAsset` to use `withS3SelfRepair()`
+  - Refactor `writeSnapshot` to use `withS3SelfRepair()`
+  - Integration tests for all refactored operations
+  
+- [ ] **Task 2.7.4**: Resolve empty authorization file handling
+  - Decision: Skip auth repair when no auth file exists (Option B from design doc)
+  - Update `moveAsset` to handle missing auth files gracefully
+  - Tests for assets with content but no auth
+  
+- [ ] **Task 2.7.5**: Evaluate deprecation of `appendManifestEventsWithLazyMigration`
+  - Assess if functionality is fully subsumed by self-repair
+  - Remove if redundant, or keep if still useful for specific cases
+  - Update any remaining callers
+  
+- [ ] **Task 2.7.6**: Self-repair documentation
+  - Update `s3Storage/manifest/AGENT.md` to reference self-repair
+  - Link to `AGENT.selfRepair.md` from operation documentation
+  - Document self-repair patterns in AssetWorkspace docs
+  
+**Phase 2.8: Archive Zone Reintroduction**
+- [ ] **Task 2.8.1**: Remove Archive zone restrictions
   - Remove "Archive not supported" error from `AssetWorkspace` constructor
   - Allow `moveAsset` to Archive zone (adds ZoneChangeEvent to manifest)
   - Archive = frozen state (no further edits allowed)
-  
-- [ ] **Task 2.7.2**: Add S3 lifecycle policies for archived content
-  - Transition `Zone=Archive` objects to Glacier after N days
-  - Apply to chunks, snapshots, manifests, materialized views
-  - Document lifecycle policy configuration
+  - **Note**: S3 lifecycle policies deferred to Phase 3 (premature optimization during active development)
 
-**Phase 2.8: Testing**
-- [ ] **Task 2.8.1**: Unit tests for manifest operations
+**Phase 2.9: Testing**
+- [ ] **Task 2.9.1**: Unit tests for manifest operations
   - Test manifest NDJSON parsing and writing
   - Test `appendManifestEvent` with `atomicLock`
   - Test event schema validation
   
-- [ ] **Task 2.8.2**: Unit tests for chunk/snapshot operations
+- [ ] **Task 2.9.2**: Unit tests for chunk/snapshot operations
   - Test chunk writing with metadata
   - Test snapshot creation
   - Test reconstruction from manifest (snapshot + chunks)
   
-- [ ] **Task 2.8.3**: Integration tests for edit flow
+- [ ] **Task 2.9.3**: Integration tests for edit flow
   - Test full cycle: edit → chunk → manifest → reconstruct → materialized view
   - Test lazy migration from Phase 1 flat files
   - Test concurrent edit handling with `atomicLock`
   - Test zone changes with chunk-based assets
   
-- [ ] **Task 2.8.4**: Integration tests for authorization history
+- [ ] **Task 2.9.4**: Integration tests for authorization history
   - Test auth chunk writing and manifest management
   - Test auth reconstruction from manifest
   - Test auth zone changes
 
-**Phase 2.9: Documentation**
-- [x] **Task 2.9.1**: Document manifest event schema
+**Phase 2.10: Documentation**
+- [x] **Task 2.10.1**: Document manifest event schema
   - ✅ Update `s3Storage/manifest/AGENT.md` with initial ZoneChange event pattern
   - ✅ Include examples showing initial ZoneChange event
   - ✅ Document zone recovery algorithm using ZoneChange events
   - ✅ Document initial ZoneChange event pattern for foundational metadata
   
-- [ ] **Task 2.9.2**: Update AssetWorkspace documentation
+- [ ] **Task 2.10.2**: Update AssetWorkspace documentation
   - Document new chunk/snapshot/manifest operations
   - Update usage examples for Phase 2 pattern
   - Document lazy migration behavior
+  - Document self-repair patterns and `withS3SelfRepair()` usage
   
-- [ ] **Task 2.9.3**: Update migration document
+- [ ] **Task 2.10.3**: Update migration document
   - Mark Phase 2 tasks as complete
   - Document any deviations from plan
   - Add lessons learned section
@@ -883,17 +975,28 @@ Each task above should be created as a GitHub issue with the following template:
 
 **Suggested Issue Grouping**:
 
-1. **Milestone: Phase 2 Foundation** (Tasks 2.0.1, 2.1.1-2.1.3, 2.2.1-2.2.3)
-   - Core infrastructure that must complete first
+1. **Milestone: Phase 2 Foundation** (Tasks 2.0.1, 2.1.1-2.1.3, 2.2.1-2.2.3, 2.5.1)
+   - Core infrastructure that must complete first ✅ **COMPLETE**
    
-2. **Milestone: Phase 2 Integration** (Tasks 2.3.1-2.3.3, 2.4.1, 2.5.1-2.5.2, 2.6.1-2.6.2)
-   - Integration with existing write/read paths
+2. **Milestone: Phase 2 Integration** (Tasks 2.3.1-2.3.3, 2.4.1)
+   - Integration with existing write paths ✅ **COMPLETE**
+   - Task 2.4.2 deferred to self-repair phase
    
-3. **Milestone: Phase 2 Completion** (Tasks 2.7.1-2.7.2, 2.8.1-2.8.4, 2.9.1-2.9.3)
+3. **Milestone: Phase 2 Self-Repair** (Tasks 2.7.1-2.7.6)
+   - Comprehensive self-repair infrastructure
+   - Refactor operations to use centralized repair
+   
+4. **Milestone: Phase 2 Completion** (Tasks 2.8.1, 2.9.1-2.9.4, 2.10.1-2.10.3)
    - Archive zone, testing, documentation
 
 ### Phase 3: Advanced Features
 *Future enhancements to be planned:*
+- **Authorization Edit Integration**: Integrate authorization edits into `applyEdit` flow (deferred from Phase 2.5.2)
+  - Parse Grant tags from incoming WML
+  - Write authorization chunks using existing generic operations
+  - Update authorization manifests
+  - All infrastructure already in place and tested
+- **S3 Lifecycle Policies**: Transition archived chunks/snapshots/manifests to Glacier for cost optimization (deferred from Phase 2.7.2 - premature during active development)
 - Automatic snapshot triggers (time/count/size-based)
 - Manifest archival and pagination for long-lived assets
 - Manifest loss recovery from chunk metadata
@@ -938,6 +1041,8 @@ Each task above should be created as a GitHub issue with the following template:
 
 - **[Asset Zones](AGENT.zones.md)**: Zone system concepts and access patterns
 - **[Current S3 Storage](AGENT.s3Storage.md)**: Documentation of current storage patterns
+- **[Manifest System](s3Storage/manifest/AGENT.md)**: Manifest event log format and operations
+- **[Self-Repair Infrastructure](s3Storage/manifest/AGENT.selfRepair.md)**: On-the-spot repair strategies and `withS3SelfRepair()` pattern
 - **[Publishing Strategy](AGENT.s3storage.publishing.plan.md)**: Draft management and publishing workflow using Phase 1 architecture
 - **[Event Architecture](../../AGENT.architecture.events.md)**: Event-driven patterns and coordination
 - **[WML DataSource](dataSource/)**: DataSource pattern and event handling
