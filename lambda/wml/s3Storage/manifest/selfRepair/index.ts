@@ -12,8 +12,12 @@ import { Zone } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { ManifestEvent } from '../baseClasses'
 import { loadManifest } from '../operations'
-import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 import AssetWorkspace from '../../AssetWorkspace'
+import { reconstructFromManifest } from '../reconstruction'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
+import { writeSnapshot, SnapshotReference } from '../snapshots'
+import { v4 as uuidv4 } from 'uuid'
 
 /**
  * Manifest suffix for content vs authorization files
@@ -70,12 +74,6 @@ export interface RepairResult {
      * Whether repair succeeded
      */
     success: boolean
-    
-    /**
-     * Human-readable list of actions taken during repair
-     * (for logging and observability)
-     */
-    repairActions: string[]
     
     /**
      * Manifest events that should be appended by the caller
@@ -236,13 +234,17 @@ function buildPrefix(assetId: AssetUUID, suffix: ManifestSuffix): string {
 
 /**
  * Extract zone from operation (all operations provide zone information)
+ * 
+ * For moveZone operations during lazy migration (manifest initialization):
+ * - Returns fromZone because the initial snapshot represents the asset's origin state
+ * - The manifest will then track the zone change as a subsequent event
  */
 function extractZoneFromOperation(operation: RepairOperation): Zone {
     if (isApplyEditOperation(operation)) {
         return operation.data.zone
     }
     if (isMoveZoneOperation(operation)) {
-        // For zone changes, use the source zone (fromZone)
+        // Use source zone (fromZone) for initial snapshot during lazy migration
         return operation.data.fromZone
     }
     if (isWriteSnapshotOperation(operation)) {
@@ -292,6 +294,169 @@ async function assessAndCheckState(
 }
 
 /**
+ * Execute the materialized view action (reconstruct, synthesize empty, or use existing)
+ */
+async function executeMaterializedViewAction(args: {
+    assetId: AssetUUID
+    suffix: ManifestSuffix
+    viewAction: MaterializedViewAction
+    assetWorkspace: AssetWorkspace | null
+}): Promise<void> {
+    const { assetId, suffix, viewAction, assetWorkspace } = args
+    
+    if (viewAction.type === 'use-existing') {
+        // Nothing to do - AssetWorkspace already has the content loaded
+        return
+    }
+    
+    const prefix = buildPrefix(assetId, suffix)
+    const isAuth = suffix === 'auth.wml'
+    
+    if (viewAction.type === 'reconstruct') {
+        const result = await reconstructFromManifest(prefix)
+        
+        // Ensure we have an AssetWorkspace to write with
+        if (!assetWorkspace) {
+            throw new Error('AssetWorkspace should exist for reconstruction')
+        }
+        
+        // Load the reconstructed content into AssetWorkspace
+        if (result.type === 'content') {
+            await assetWorkspace.setJSON(result.standard)
+        } else {
+            // TODO: Add setAuthorizationJSON() method to AssetWorkspace for consistency
+            // For now, set directly (same as setAuthorizationWML does)
+            assetWorkspace.authorizations = result.authorization
+        }
+        
+        // Write to S3
+        if (isAuth) {
+            await Promise.all([
+                assetWorkspace.pushAuthorizationJSON(),
+                assetWorkspace.pushAuthorizationWML()
+            ])
+        } else {
+            await Promise.all([
+                assetWorkspace.pushJSON(),
+                assetWorkspace.pushWML()
+            ])
+        }
+        
+        return
+    }
+    
+    if (viewAction.type === 'synthesize-empty') {
+        // Ensure we have an AssetWorkspace to write with
+        if (!assetWorkspace) {
+            throw new Error('AssetWorkspace should exist for synthesis')
+        }
+        
+        // Create empty content and write to S3
+        if (isAuth) {
+            assetWorkspace.authorizations = new StandardAuthorizationCollection(assetId)
+            await Promise.all([
+                assetWorkspace.pushAuthorizationJSON(),
+                assetWorkspace.pushAuthorizationWML()
+            ])
+        } else {
+            const emptyStandard = new StandardForm(assetId)
+            await assetWorkspace.setJSON(emptyStandard)
+            await Promise.all([
+                assetWorkspace.pushJSON(),
+                assetWorkspace.pushWML()
+            ])
+        }
+        
+        return
+    }
+}
+
+/**
+ * Execute snapshot action - create snapshot or skip
+ * 
+ * @param args - Execution arguments
+ * @returns SnapshotReference if created, null if skipped
+ */
+async function executeSnapshotAction(args: {
+    snapshotAction: SnapshotAction
+    prefix: string
+    timestamp: number
+    zone: Zone
+    assetWorkspace: AssetWorkspace | null
+}): Promise<SnapshotReference | null> {
+    const { snapshotAction, prefix, timestamp, zone } = args
+    
+    if (snapshotAction.type === 'skip') {
+        return null
+    }
+    
+    if (snapshotAction.type === 'create') {
+        const snapshotRef = await writeSnapshot({
+            prefix,
+            timestamp,
+            zone,
+            snapshotType: 'initializeManifest',  // Self-repair snapshots for lazy migration
+            chunksBeforeSnapshot: 0              // For lazy migration, no chunks yet
+        })
+        
+        return snapshotRef
+    }
+    
+    return null
+}
+
+/**
+ * Build manifest events based on manifest action
+ * 
+ * @param args - Event building arguments
+ * @returns Array of ManifestEvents to append to manifest
+ */
+function buildManifestEvents(args: {
+    manifestAction: ManifestAction
+    zone: Zone
+    timestamp: number
+    snapshotRef: SnapshotReference | null
+}): ManifestEvent[] {
+    const { manifestAction, zone, timestamp, snapshotRef } = args
+    
+    if (manifestAction.type === 'append-to-existing') {
+        // No repair-specific events needed when manifest exists
+        return []
+    }
+    
+    if (manifestAction.type === 'initialize') {
+        const events: ManifestEvent[] = []
+        const isoTimestamp = new Date(timestamp).toISOString()
+        
+        // Initial ZoneChange event (fromZone: null indicates zone establishment)
+        events.push({
+            type: 'zoneChange',
+            timestamp: isoTimestamp,
+            eventId: uuidv4(),
+            fromZone: null,
+            toZone: zone
+        })
+        
+        // Optional: Snapshot event if snapshot was created
+        if (manifestAction.includeSnapshot && snapshotRef) {
+            events.push({
+                type: 'snapshot',
+                timestamp: isoTimestamp,
+                eventId: uuidv4(),
+                s3Key: snapshotRef.s3Key,
+                snapshotType: 'initializeManifest',
+                chunksBeforeSnapshot: 0,
+                snapshotSize: snapshotRef.snapshotSize
+            })
+        }
+        
+        return events
+    }
+    
+    return []
+}
+
+/**
  * Centralized self-repair function for handling missing manifest and materialized view files.
  * 
  * This function uses a linear flow through decision points rather than branching into
@@ -318,7 +483,6 @@ async function assessAndCheckState(
  */
 export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promise<RepairResult> {
     const { assetId, suffix, state, operation, timestamp } = args
-    const repairActions: string[] = []
     const prefix = buildPrefix(assetId, suffix)
     
     // Step 1: Assess and check state (resolve unknowns)
@@ -337,7 +501,6 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
     if (resolvedState.manifestMissing === false && resolvedState.materializedViewMissing === false) {
         return {
             success: true,
-            repairActions: [],
             eventsToAppend: []
         }
     }
@@ -348,7 +511,6 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
     if (viewAction.type === 'error') {
         return {
             success: false,
-            repairActions,
             error: viewAction.message
         }
     }
@@ -359,28 +521,35 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
     // Step 5: Decide manifest action
     const manifestAction = decideManifestAction(resolvedState, snapshotAction)
     
-    // TODO: Step 6: Execute materialized view action
-    // - use-existing: nothing to do (assetWorkspace already has it)
-    // - reconstruct: call reconstructFromManifest, write to S3 using assetWorkspace
-    // - synthesize-empty: create empty StandardForm/StandardAuthorizationCollection, write to S3 using assetWorkspace
-    // Note: assetWorkspace is available (created during assessment) for reuse
+    // Step 6: Execute materialized view action
+    await executeMaterializedViewAction({
+        assetId,
+        suffix,
+        viewAction,
+        assetWorkspace
+    })
     
-    // TODO: Step 7: Execute snapshot action
-    // - create: write snapshot from materialized view using assetWorkspace
-    // - skip: nothing to do
+    // Step 7: Execute snapshot action
+    const zone = extractZoneFromOperation(operation)
+    const snapshotRef = await executeSnapshotAction({
+        snapshotAction,
+        prefix,
+        timestamp,
+        zone,
+        assetWorkspace
+    })
     
-    // TODO: Step 8: Build and return manifest events
-    // - initialize: create ZoneChange (fromZone: null) + optional Snapshot event
-    // - append-to-existing: create operation-specific events
-    
-    repairActions.push(`View action: ${viewAction.type}`)
-    repairActions.push(`Snapshot action: ${snapshotAction.type}`)
-    repairActions.push(`Manifest action: ${manifestAction.type}`)
+    // Step 8: Build manifest events
+    const eventsToAppend = buildManifestEvents({
+        manifestAction,
+        zone,
+        timestamp,
+        snapshotRef
+    })
     
     return {
-        success: false,
-        repairActions,
-        error: 'Execution steps not yet implemented'
+        success: true,
+        eventsToAppend
     }
 }
 

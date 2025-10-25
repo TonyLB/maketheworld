@@ -96,11 +96,10 @@ export const reconstructFromManifest = async (prefix: string): Promise<Reconstru
     
     // If no manifest exists, return empty content
     if (events.length === 0) {
-        const assetKey = assetUUID.replace('ASSET#', '')
         if (isAuth) {
             return {
                 type: 'auth',
-                authorization: new StandardAuthorizationCollection(assetKey),
+                authorization: new StandardAuthorizationCollection(assetUUID),
                 metadata: {
                     snapshotUsed: false,
                     chunksApplied: 0
@@ -109,7 +108,7 @@ export const reconstructFromManifest = async (prefix: string): Promise<Reconstru
         } else {
             return {
                 type: 'content',
-                standard: new StandardForm(assetKey),
+                standard: new StandardForm(assetUUID),
                 metadata: {
                     snapshotUsed: false,
                     chunksApplied: 0
@@ -139,17 +138,15 @@ export const reconstructFromManifest = async (prefix: string): Promise<Reconstru
         } catch (err: any) {
             // If snapshot is missing, fall back to empty content and log warning
             console.warn(`Snapshot ${latestSnapshot.s3Key} not found, starting from empty content:`, err)
-            const assetKey = assetUUID.replace('ASSET#', '')
             current = isAuth
-                ? new StandardAuthorizationCollection(assetKey)
-                : new StandardForm(assetKey)
+                ? new StandardAuthorizationCollection(assetUUID)
+                : new StandardForm(assetUUID)
         }
     } else {
         // Start with empty content
-        const assetKey = assetUUID.replace('ASSET#', '')
         current = isAuth
-            ? new StandardAuthorizationCollection(assetKey)
-            : new StandardForm(assetKey)
+            ? new StandardAuthorizationCollection(assetUUID)
+            : new StandardForm(assetUUID)
     }
     
     // Get chunks to apply (all chunks after snapshot timestamp, or all if no snapshot)

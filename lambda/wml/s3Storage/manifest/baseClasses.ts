@@ -49,7 +49,7 @@ export interface ManifestChunkEvent extends ManifestEventBase {
 export interface ManifestSnapshotEvent extends ManifestEventBase {
     type: 'snapshot';
     s3Key: string;          // Full S3 key to snapshot file (e.g., "{uuid}.wml/snapshots/{timestamp}.wml")
-    snapshotType: 'manual' | 'automatic';  // How was this snapshot created
+    snapshotType: 'manual' | 'automatic' | 'initializeManifest';  // How was this snapshot created
     chunksBeforeSnapshot: number;          // Number of chunks this snapshot replaces
     snapshotSize?: number;                 // Size in bytes (optional, for metrics)
 }
@@ -127,7 +127,7 @@ export const isManifestSnapshotEvent = (event: any): event is ManifestSnapshotEv
         typeof event.eventId === 'string' &&
         typeof event.s3Key === 'string' &&
         typeof event.snapshotType === 'string' &&
-        ['manual', 'automatic'].includes(event.snapshotType) &&
+        ['manual', 'automatic', 'initializeManifest'].includes(event.snapshotType) &&
         typeof event.chunksBeforeSnapshot === 'number'
     )
 }

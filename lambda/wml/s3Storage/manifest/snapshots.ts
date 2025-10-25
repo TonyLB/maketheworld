@@ -31,7 +31,7 @@ export interface WriteSnapshotOptions {
     prefix: string;                        // S3 prefix without ASSET# (e.g., "uuid.wml/" or "uuid.auth.wml/")
     timestamp: number;                     // Milliseconds since epoch (for chronological ordering)
     zone: Zone;                            // Zone for S3 tags (enables lifecycle policies)
-    snapshotType: 'manual' | 'automatic';  // How was this snapshot created
+    snapshotType: 'manual' | 'automatic' | 'initializeManifest';  // How was this snapshot created
     chunksBeforeSnapshot: number;          // Number of chunks this snapshot replaces
     authoringPlayer?: string;              // Player who created this snapshot (if applicable)
 }
