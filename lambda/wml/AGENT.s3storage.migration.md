@@ -89,8 +89,8 @@ All tests should pass before beginning new work (currently 124 tests).
 
 ## Temporary Documents (For Cleanup)
 
-**Active - Need Cleanup After Phase 1B**:
-- None - all temporary documents cleaned up
+**Active - Need Cleanup After Phase 2.7**:
+- `lambda/wml/s3Storage/manifest/selfRepair/AGENT.planning.md` - Self-repair refactoring design and implementation planning (created October 25, 2025)
 
 **Completed - Already Deleted**:
 - ~~`lambda/wml/AGENT.refactoring.md`~~ - moveAsset analysis (deleted after Phase 1A)
