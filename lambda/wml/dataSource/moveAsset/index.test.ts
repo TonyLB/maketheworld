@@ -5,8 +5,8 @@ jest.mock('@tonylb/mtw-asset-workspace/ts/clients')
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 
 // Mock manifest operations
-jest.mock('../../s3Storage/manifest/operations')
-import { loadManifest } from '../../s3Storage/manifest/operations'
+jest.mock('../../s3Storage/manifest')
+import { loadManifest } from '../../s3Storage/manifest'
 
 // Mock helper function
 jest.mock('../utilities/appendManifestEventsWithLazyMigration')

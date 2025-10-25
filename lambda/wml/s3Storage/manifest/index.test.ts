@@ -1,4 +1,4 @@
-import { loadManifest, appendManifestEvents } from './operations'
+import { loadManifest, appendManifestEvents } from '.'
 import { ManifestEvent, ManifestChunkEvent, ManifestSnapshotEvent, ManifestZoneChangeEvent } from './baseClasses'
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 

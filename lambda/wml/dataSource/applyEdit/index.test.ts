@@ -31,9 +31,9 @@ jest.mock('../../utilities/mockableTime', () => ({
 const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
 
-import { writeChunk } from '../../s3Storage/manifest/chunks'
-import { writeSnapshot } from '../../s3Storage/manifest/snapshots'
-import { loadManifest, appendManifestEvents } from '../../s3Storage/manifest/operations'
+import { writeChunk } from '../../s3Storage/chunks'
+import { writeSnapshot } from '../../s3Storage/snapshots'
+import { loadManifest, appendManifestEvents } from '../../s3Storage/manifest'
 import { appendManifestEventsWithLazyMigration } from '../utilities/appendManifestEventsWithLazyMigration'
 import { v4 as uuidv4 } from 'uuid'
 import { now } from '../../utilities/mockableTime'

@@ -18,15 +18,15 @@ import {
 } from './index'
 
 // Mock external dependencies
-jest.mock('../operations')
-jest.mock('../../AssetWorkspace')
-jest.mock('../reconstruction')
+jest.mock('../manifest')
+jest.mock('../AssetWorkspace')
+jest.mock('../materializedView/reconstruction')
 jest.mock('../snapshots')
 jest.mock('uuid')
 
-import { loadManifest } from '../operations'
-import AssetWorkspace from '../../AssetWorkspace'
-import { reconstructFromManifest } from '../reconstruction'
+import { loadManifest } from '../manifest'
+import AssetWorkspace from '../AssetWorkspace'
+import { reconstructFromManifest } from '../materializedView/reconstruction'
 import { writeSnapshot } from '../snapshots'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'

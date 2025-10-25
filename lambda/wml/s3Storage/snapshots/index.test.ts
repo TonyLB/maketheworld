@@ -1,4 +1,4 @@
-import { writeSnapshot, WriteSnapshotOptions, SnapshotReference } from './snapshots'
+import { writeSnapshot, WriteSnapshotOptions, SnapshotReference } from '.'
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 
 // Mock dependencies

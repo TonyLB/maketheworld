@@ -13,14 +13,14 @@
 
 import { withS3SelfRepair, FetchFunction, ActionFunction } from './wrapper'
 import { RepairOperation, RepairState, immediateSelfRepair } from './index'
-import { appendManifestEvents } from '../operations'
+import { appendManifestEvents } from '../manifest'
 
 // Mock dependencies
 jest.mock('./index', () => ({
     ...jest.requireActual('./index'),
     immediateSelfRepair: jest.fn()
 }))
-jest.mock('../operations')
+jest.mock('../manifest')
 
 const mockImmediateSelfRepair = immediateSelfRepair as jest.MockedFunction<typeof immediateSelfRepair>
 const mockAppendManifestEvents = appendManifestEvents as jest.MockedFunction<typeof appendManifestEvents>

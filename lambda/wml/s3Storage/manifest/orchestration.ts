@@ -12,9 +12,9 @@
  */
 
 import { Zone } from '@tonylb/mtw-asset-workspace/ts/readOnly'
-import { loadManifest } from './operations'
-import { appendManifestEvents } from './operations'
-import { writeSnapshot, SnapshotReference } from './snapshots'
+import { loadManifest } from '.'
+import { appendManifestEvents } from '.'
+import { writeSnapshot, SnapshotReference } from '../snapshots'
 import { isManifestChunkEvent, isManifestSnapshotEvent } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 

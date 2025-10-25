@@ -12,7 +12,7 @@
 
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { ManifestSuffix, RepairState, RepairOperation, immediateSelfRepair } from './index'
-import { appendManifestEvents } from '../operations'
+import { appendManifestEvents } from '../manifest'
 
 /**
  * Function that attempts to load required data and assess state.
