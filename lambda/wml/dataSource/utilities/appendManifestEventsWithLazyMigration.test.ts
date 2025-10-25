@@ -4,12 +4,12 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { ManifestChunkEvent, ManifestZoneChangeEvent } from '../../s3Storage/manifest/baseClasses'
 
 // Mock manifest operations
-jest.mock('../../s3Storage/manifest/operations')
-jest.mock('../../s3Storage/manifest/snapshots')
+jest.mock('../../s3Storage/manifest')
+jest.mock('../../s3Storage/snapshots')
 jest.mock('../../s3Storage/AssetWorkspace')
 
-import { loadManifest, appendManifestEvents } from '../../s3Storage/manifest/operations'
-import { writeSnapshot } from '../../s3Storage/manifest/snapshots'
+import { loadManifest, appendManifestEvents } from '../../s3Storage/manifest'
+import { writeSnapshot } from '../../s3Storage/snapshots'
 
 const mockLoadManifest = loadManifest as jest.MockedFunction<typeof loadManifest>
 const mockAppendManifestEvents = appendManifestEvents as jest.MockedFunction<typeof appendManifestEvents>

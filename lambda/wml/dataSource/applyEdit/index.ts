@@ -2,7 +2,7 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import AssetWorkspace, { Zone } from "../../s3Storage/AssetWorkspace";
 import internalCache from "../../internalCache";
 import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
-import { writeChunk } from "../../s3Storage/manifest/chunks";
+import { writeChunk } from "../../s3Storage/chunks";
 import { ManifestChunkEvent } from "../../s3Storage/manifest/baseClasses";
 import { v4 as uuidv4 } from 'uuid';
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema";

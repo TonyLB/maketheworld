@@ -1,12 +1,12 @@
 import { createManualSnapshot, CreateManualSnapshotOptions } from './orchestration'
-import { loadManifest } from './operations'
-import { appendManifestEvents } from './operations'
-import { writeSnapshot } from './snapshots'
+import { loadManifest } from '.'
+import { appendManifestEvents } from '.'
+import { writeSnapshot } from '../snapshots'
 import { ManifestEvent } from './baseClasses'
 
 // Mock dependencies
-jest.mock('./operations')
-jest.mock('./snapshots')
+jest.mock('.')
+jest.mock('../snapshots')
 
 const mockLoadManifest = loadManifest as jest.MockedFunction<typeof loadManifest>
 const mockAppendManifestEvents = appendManifestEvents as jest.MockedFunction<typeof appendManifestEvents>

@@ -21,8 +21,8 @@
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
-import { loadManifest } from './operations'
-import { isManifestSnapshotEvent, isManifestChunkEvent, ManifestEvent } from './baseClasses'
+import { loadManifest } from '../manifest'
+import { isManifestSnapshotEvent, isManifestChunkEvent, ManifestEvent } from '../manifest/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 /**

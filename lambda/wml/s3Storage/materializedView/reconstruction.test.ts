@@ -8,7 +8,7 @@
 
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 import { reconstructFromManifest } from './reconstruction'
-import { ManifestChunkEvent, ManifestSnapshotEvent } from './baseClasses'
+import { ManifestChunkEvent, ManifestSnapshotEvent } from '../manifest/baseClasses'
 
 // Mock s3Client
 jest.mock('@tonylb/mtw-asset-workspace/ts/clients', () => ({

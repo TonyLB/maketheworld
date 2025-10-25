@@ -15,8 +15,8 @@
  * - Future operations that need manifest history
  */
 
-import { loadManifest, appendManifestEvents } from '../../s3Storage/manifest/operations'
-import { writeSnapshot } from '../../s3Storage/manifest/snapshots'
+import { loadManifest, appendManifestEvents } from '../../s3Storage/manifest'
+import { writeSnapshot } from '../../s3Storage/snapshots'
 import { ManifestEvent, ManifestSnapshotEvent, ManifestZoneChangeEvent } from '../../s3Storage/manifest/baseClasses'
 import AssetWorkspace from '../../s3Storage/AssetWorkspace'
 import { v4 as uuidv4 } from 'uuid'

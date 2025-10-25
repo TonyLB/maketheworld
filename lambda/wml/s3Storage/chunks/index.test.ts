@@ -1,4 +1,4 @@
-import { writeChunk, WriteChunkOptions, ChunkReference } from './chunks'
+import { writeChunk, WriteChunkOptions, ChunkReference } from '.'
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 import { v4 as uuidv4 } from 'uuid'
 
