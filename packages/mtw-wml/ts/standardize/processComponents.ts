@@ -10,7 +10,7 @@ import StandardRoom from "./components/room"
 
 export type ComponentProcessingTemplate = {
     key: ComponentTag;
-    legalParents?: ComponentTag[];
+    legalParents?: (ComponentTag | 'Asset')[];
 }
 
 //
