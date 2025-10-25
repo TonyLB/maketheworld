@@ -366,6 +366,40 @@ const assetWithEdits = new StandardForm({
 - **Validation**: Enhanced asset validation
 - **Extensions**: Support for additional asset operations
 
+#### **Explicit Parent Control for Sub-Components**
+**Context**: Currently, when merging assets, sub-components (like Examples) are positioned based on their least-common-context. This means that a top-level Example in an edit asset will be promoted to the top level in the merged result, even if it was originally nested within a Room/Feature/Knowledge.
+
+**Current Behavior** (as of Oct 2025):
+- Examples can exist at top level (Asset parent) or nested (Room/Feature/Knowledge parent)
+- When an Example appears at top level in an edit merge, it gets promoted to top level in result
+- This is consistent with least-common-context logic but can be surprising for users
+
+**Proposed Enhancement**: Add optional `<Parent>` tag to explicitly control component positioning:
+
+```wml
+<Asset uuid=(Test)>
+    <Example uuid=(room-example)>
+        <Parent>ROOM#testRoom</Parent>
+        <Replace><Name>Old</Name></Replace>
+        <With><Name>New</Name></With>
+    </Example>
+</Asset>
+```
+
+**Benefits**:
+1. Explicit parent specification allows edit-mode convenience (top-level Examples) without affecting positioning
+2. Users can choose whether to preserve or change parent context in edits
+3. Backward compatible: absence of `<Parent>` tag maintains current behavior
+4. Would enable more precise control over component organization during merges
+
+**Implementation Considerations**:
+- Add `<Parent>` as optional tag in Example, Feature, and other sub-component schemas
+- Modify merge logic to respect explicit parent when present
+- Update `withLeastCommonContext` to honor explicit parent specification
+- Ensure validation that parent UUID references valid components
+
+**Related Files**: `processComponents.ts`, `example.ts`, component merge logic
+
 ### Technical Debt
 
 #### **DIFF SYSTEM: Reference Changes in Nested Components** 🔴

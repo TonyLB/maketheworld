@@ -3214,4 +3214,40 @@ describe('StandardForm', () => {
         ])
     })
 
+    it('should allow top-level Example tags in edit mode', () => {
+        const baseForm = new StandardForm(`<Asset uuid=(Test)>
+            <Room key=(testRoom)>
+                <Example uuid=(room-example)>
+                    <Name>Lobby</Name>
+                    <Description>A sterile corporate lobby.</Description>
+                </Example>
+            </Room>
+        </Asset>`)
+
+        const editForm = new StandardForm(`<Asset uuid=(Test)>
+            <Example uuid=(room-example)>
+                <Replace><Name>Lobby</Name></Replace><With><Name>Grand Foyer</Name></With>
+            </Example>
+        </Asset>`)
+
+        const mergedForm = baseForm.merge(editForm)
+        
+        // The top-level Example in edit mode successfully merges with the nested Example
+        // The merged Example retains its association with the Room via reference
+        expect(schemaToWML([mergedForm.schema])).toEqual(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Example uuid=(room-example)>
+                    <Name>Grand Foyer</Name>
+                    <Description>A sterile corporate lobby.</Description>
+                </Example>
+                <Room key=(testRoom)><Example uuid=(room-example) /></Room>
+            </Asset>
+        `))
+        
+        // Verify the merge actually happened correctly
+        const example = mergedForm._lookup('EXAMPLE#room-example') as StandardExample
+        expect(example.name?.toJSON()).toEqual(['Grand Foyer'])
+        expect(example.description?.toJSON()).toEqual(['A sterile corporate lobby.'])
+    })
+
 })

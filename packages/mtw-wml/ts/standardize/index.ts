@@ -184,7 +184,7 @@ export class StandardForm {
                     { key: 'Moment' },
                     {
                         key: 'Example',
-                        legalParents: ['Room', 'Feature', 'Knowledge']
+                        legalParents: ['Room', 'Feature', 'Knowledge', 'Asset']
                     }
                 ]
 
