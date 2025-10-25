@@ -76,12 +76,6 @@ export interface RepairResult {
     success: boolean
     
     /**
-     * Human-readable list of actions taken during repair
-     * (for logging and observability)
-     */
-    repairActions: string[]
-    
-    /**
      * Manifest events that should be appended by the caller
      * (repair creates these but doesn't append them - caller holds atomicLock)
      */
@@ -307,9 +301,8 @@ async function executeMaterializedViewAction(args: {
     suffix: ManifestSuffix
     viewAction: MaterializedViewAction
     assetWorkspace: AssetWorkspace | null
-    repairActions: string[]
 }): Promise<void> {
-    const { assetId, suffix, viewAction, assetWorkspace, repairActions } = args
+    const { assetId, suffix, viewAction, assetWorkspace } = args
     
     if (viewAction.type === 'use-existing') {
         // Nothing to do - AssetWorkspace already has the content loaded
@@ -320,9 +313,6 @@ async function executeMaterializedViewAction(args: {
     const isAuth = suffix === 'auth.wml'
     
     if (viewAction.type === 'reconstruct') {
-        // Reconstruct from manifest and write to S3
-        repairActions.push('Reconstructing materialized view from manifest')
-        
         const result = await reconstructFromManifest(prefix)
         
         // Ensure we have an AssetWorkspace to write with
@@ -352,20 +342,16 @@ async function executeMaterializedViewAction(args: {
             ])
         }
         
-        repairActions.push('Materialized view reconstructed and written to S3')
         return
     }
     
     if (viewAction.type === 'synthesize-empty') {
-        // Create empty content and write to S3
-        repairActions.push('Synthesizing empty materialized view')
-        
         // Ensure we have an AssetWorkspace to write with
         if (!assetWorkspace) {
             throw new Error('AssetWorkspace should exist for synthesis')
         }
         
-        // Create empty content
+        // Create empty content and write to S3
         if (isAuth) {
             assetWorkspace.authorizations = new StandardAuthorizationCollection(assetId)
             await Promise.all([
@@ -381,7 +367,6 @@ async function executeMaterializedViewAction(args: {
             ])
         }
         
-        repairActions.push('Empty materialized view written to S3')
         return
     }
 }
@@ -398,17 +383,14 @@ async function executeSnapshotAction(args: {
     timestamp: number
     zone: Zone
     assetWorkspace: AssetWorkspace | null
-    repairActions: string[]
 }): Promise<SnapshotReference | null> {
-    const { snapshotAction, prefix, timestamp, zone, repairActions } = args
+    const { snapshotAction, prefix, timestamp, zone } = args
     
     if (snapshotAction.type === 'skip') {
         return null
     }
     
     if (snapshotAction.type === 'create') {
-        repairActions.push('Creating snapshot from materialized view')
-        
         const snapshotRef = await writeSnapshot({
             prefix,
             timestamp,
@@ -417,7 +399,6 @@ async function executeSnapshotAction(args: {
             chunksBeforeSnapshot: 0              // For lazy migration, no chunks yet
         })
         
-        repairActions.push(`Snapshot written: ${snapshotRef.s3Key}`)
         return snapshotRef
     }
     
@@ -502,7 +483,6 @@ function buildManifestEvents(args: {
  */
 export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promise<RepairResult> {
     const { assetId, suffix, state, operation, timestamp } = args
-    const repairActions: string[] = []
     const prefix = buildPrefix(assetId, suffix)
     
     // Step 1: Assess and check state (resolve unknowns)
@@ -521,7 +501,6 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
     if (resolvedState.manifestMissing === false && resolvedState.materializedViewMissing === false) {
         return {
             success: true,
-            repairActions: [],
             eventsToAppend: []
         }
     }
@@ -532,7 +511,6 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
     if (viewAction.type === 'error') {
         return {
             success: false,
-            repairActions,
             error: viewAction.message
         }
     }
@@ -548,8 +526,7 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
         assetId,
         suffix,
         viewAction,
-        assetWorkspace,
-        repairActions
+        assetWorkspace
     })
     
     // Step 7: Execute snapshot action
@@ -559,8 +536,7 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
         prefix,
         timestamp,
         zone,
-        assetWorkspace,
-        repairActions
+        assetWorkspace
     })
     
     // Step 8: Build manifest events
@@ -571,13 +547,8 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
         snapshotRef
     })
     
-    // Log decisions for debugging
-    repairActions.push(`Snapshot action: ${snapshotAction.type}`)
-    repairActions.push(`Manifest action: ${manifestAction.type}`)
-    
     return {
         success: true,
-        repairActions,
         eventsToAppend
     }
 }

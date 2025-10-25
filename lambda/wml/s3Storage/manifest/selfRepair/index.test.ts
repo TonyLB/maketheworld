@@ -22,6 +22,7 @@ jest.mock('../operations')
 jest.mock('../../AssetWorkspace')
 jest.mock('../reconstruction')
 jest.mock('../snapshots')
+jest.mock('uuid')
 
 import { loadManifest } from '../operations'
 import AssetWorkspace from '../../AssetWorkspace'
@@ -29,26 +30,33 @@ import { reconstructFromManifest } from '../reconstruction'
 import { writeSnapshot } from '../snapshots'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
+import { v4 as uuidv4 } from 'uuid'
 
 const mockLoadManifest = loadManifest as jest.MockedFunction<typeof loadManifest>
 const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
 const mockReconstructFromManifest = reconstructFromManifest as jest.MockedFunction<typeof reconstructFromManifest>
 const mockWriteSnapshot = writeSnapshot as jest.MockedFunction<typeof writeSnapshot>
+const mockUuidv4 = uuidv4 as jest.MockedFunction<typeof uuidv4>
 
 // Synthetic timestamp for testing
 const TEST_TIMESTAMP = 1234567890000
+const TEST_ISO_TIMESTAMP = new Date(TEST_TIMESTAMP).toISOString()  // "2009-02-13T23:31:30.000Z"
 
 describe('selfRepair', () => {
     beforeEach(() => {
         // Reset all mocks before each test
         jest.clearAllMocks()
         
+        // Mock uuidv4 to return sequential predictable IDs
+        let uuidCounter = 0
+        mockUuidv4.mockImplementation(() => `event-id-${++uuidCounter}`)
+        
         // Default mock implementations
         mockLoadManifest.mockResolvedValue([])  // Empty manifest by default
         
         // Mock writeSnapshot with default return value
         mockWriteSnapshot.mockResolvedValue({
-            s3Key: 'test.wml/snapshots/1234567890000.wml',
+            s3Key: `test.wml/snapshots/${TEST_TIMESTAMP}.wml`,
             snapshotSize: 1024
         })
         
@@ -234,8 +242,10 @@ describe('selfRepair', () => {
                 // Should NOT call reconstructFromManifest (nothing is missing)
                 expect(mockReconstructFromManifest).not.toHaveBeenCalled()
                 
+                // Should NOT call writeSnapshot (nothing is missing, early exit)
+                expect(mockWriteSnapshot).not.toHaveBeenCalled()
+                
                 expect(result.success).toBe(true)
-                expect(result.repairActions).toEqual([])
                 expect(result.eventsToAppend).toEqual([])
             })
         })
@@ -261,10 +271,36 @@ describe('selfRepair', () => {
                 // Should NOT call reconstructFromManifest (view already exists)
                 expect(mockReconstructFromManifest).not.toHaveBeenCalled()
                 
-                // Decision flow: use-existing (no logging) → create snapshot → initialize manifest
-                // No repair action for use-existing since view already exists
-                expect(result.repairActions).toContain('Snapshot action: create')
-                expect(result.repairActions).toContain('Manifest action: initialize')
+                // Should create snapshot for lazy migration
+                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
+                expect(mockWriteSnapshot).toHaveBeenCalledWith({
+                    prefix: 'test.wml/',
+                    timestamp: TEST_TIMESTAMP,
+                    zone: 'Library',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0
+                })
+                
+                // Should return manifest initialization events (ZoneChange + Snapshot)
+                expect(result.success).toBe(true)
+                expect(result.eventsToAppend).toEqual([
+                    {
+                        type: 'zoneChange',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-1',
+                        fromZone: null,
+                        toZone: 'Library'
+                    },
+                    {
+                        type: 'snapshot',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-2',
+                        s3Key: `test.wml/snapshots/${TEST_TIMESTAMP}.wml`,
+                        snapshotType: 'initializeManifest',
+                        chunksBeforeSnapshot: 0,
+                        snapshotSize: 1024
+                    }
+                ])
             })
         })
         
@@ -288,6 +324,19 @@ describe('selfRepair', () => {
                     metadata: { snapshotUsed: false, chunksApplied: 0 }
                 })
                 
+                // Mock AssetWorkspace with write methods
+                const mockInstance = {
+                    assetId: 'ASSET#test',
+                    zone: 'Library',
+                    status: { json: 'Clean', wml: 'Initial', s3Missing: true },
+                    authStatus: { json: 'Initial', wml: 'Initial', s3Missing: false },
+                    loadJSON: jest.fn().mockResolvedValue(undefined),
+                    setJSON: jest.fn().mockResolvedValue(undefined),
+                    pushJSON: jest.fn().mockResolvedValue(undefined),
+                    pushWML: jest.fn().mockResolvedValue(undefined)
+                }
+                MockAssetWorkspace.mockReturnValue(mockInstance as any)
+                
                 const result = await immediateSelfRepair({
                     ...baseArgs,
                     state,
@@ -298,10 +347,18 @@ describe('selfRepair', () => {
                 expect(mockReconstructFromManifest).toHaveBeenCalledTimes(1)
                 expect(mockReconstructFromManifest).toHaveBeenCalledWith('test.wml/')
                 
-                // Decision flow: reconstruct (logs repair action) → skip snapshot → append to existing
-                expect(result.repairActions).toContain('Reconstructing materialized view from manifest')
-                expect(result.repairActions).toContain('Snapshot action: skip')
-                expect(result.repairActions).toContain('Manifest action: append-to-existing')
+                // Should have written the reconstructed content to AssetWorkspace
+                expect(mockInstance.setJSON).toHaveBeenCalledTimes(1)
+                expect(mockInstance.setJSON).toHaveBeenCalledWith(mockStandard)
+                expect(mockInstance.pushJSON).toHaveBeenCalledTimes(1)
+                expect(mockInstance.pushWML).toHaveBeenCalledTimes(1)
+                
+                // Should NOT create snapshot (manifest exists, skip snapshot)
+                expect(mockWriteSnapshot).not.toHaveBeenCalled()
+                
+                // Should return empty events (append-to-existing, no repair events)
+                expect(result.success).toBe(true)
+                expect(result.eventsToAppend).toEqual([])
             })
         })
         
@@ -317,6 +374,19 @@ describe('selfRepair', () => {
                     data: { editWML: '', zone: 'Library', createIfNeeded: true }
                 }
                 
+                // Mock AssetWorkspace with write methods
+                const mockInstance = {
+                    assetId: 'ASSET#test',
+                    zone: 'Library',
+                    status: { json: 'Clean', wml: 'Initial', s3Missing: true },
+                    authStatus: { json: 'Initial', wml: 'Initial', s3Missing: true },
+                    loadJSON: jest.fn().mockResolvedValue(undefined),
+                    setJSON: jest.fn().mockResolvedValue(undefined),
+                    pushJSON: jest.fn().mockResolvedValue(undefined),
+                    pushWML: jest.fn().mockResolvedValue(undefined)
+                }
+                MockAssetWorkspace.mockReturnValue(mockInstance as any)
+                
                 const result = await immediateSelfRepair({
                     ...baseArgs,
                     state,
@@ -326,10 +396,41 @@ describe('selfRepair', () => {
                 // Should NOT call reconstructFromManifest (synthesizing empty)
                 expect(mockReconstructFromManifest).not.toHaveBeenCalled()
                 
-                // Decision flow: synthesize-empty (logs repair) → create snapshot → initialize manifest
-                expect(result.repairActions).toContain('Synthesizing empty materialized view')
-                expect(result.repairActions).toContain('Snapshot action: create')
-                expect(result.repairActions).toContain('Manifest action: initialize')
+                // Should have created empty StandardForm and written both files
+                expect(mockInstance.setJSON).toHaveBeenCalledTimes(1)
+                expect(mockInstance.pushJSON).toHaveBeenCalledTimes(1)
+                expect(mockInstance.pushWML).toHaveBeenCalledTimes(1)
+                
+                // Should create snapshot for manifest initialization
+                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
+                expect(mockWriteSnapshot).toHaveBeenCalledWith({
+                    prefix: 'test.wml/',
+                    timestamp: TEST_TIMESTAMP,
+                    zone: 'Library',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0
+                })
+                
+                // Should return manifest initialization events (ZoneChange + Snapshot)
+                expect(result.success).toBe(true)
+                expect(result.eventsToAppend).toEqual([
+                    {
+                        type: 'zoneChange',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-1',
+                        fromZone: null,
+                        toZone: 'Library'
+                    },
+                    {
+                        type: 'snapshot',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-2',
+                        s3Key: `test.wml/snapshots/${TEST_TIMESTAMP}.wml`,
+                        snapshotType: 'initializeManifest',
+                        chunksBeforeSnapshot: 0,
+                        snapshotSize: 1024
+                    }
+                ])
             })
         })
         
@@ -354,10 +455,230 @@ describe('selfRepair', () => {
                 // Should NOT call reconstructFromManifest (synthesizing empty)
                 expect(mockReconstructFromManifest).not.toHaveBeenCalled()
                 
-                // Decision flow: synthesize-empty (logs repair) → create snapshot → initialize manifest
-                expect(result.repairActions).toContain('Synthesizing empty materialized view')
-                expect(result.repairActions).toContain('Snapshot action: create')
-                expect(result.repairActions).toContain('Manifest action: initialize')
+                // Should create snapshot using fromZone (origin zone)
+                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
+                expect(mockWriteSnapshot).toHaveBeenCalledWith({
+                    prefix: 'test.wml/',
+                    timestamp: TEST_TIMESTAMP,
+                    zone: 'Library',  // Uses fromZone for origin state snapshot
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0
+                })
+                
+                // Should return manifest initialization events (ZoneChange + Snapshot)
+                expect(result.success).toBe(true)
+                expect(result.eventsToAppend).toEqual([
+                    {
+                        type: 'zoneChange',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-1',
+                        fromZone: null,
+                        toZone: 'Library'  // Initial zone is fromZone
+                    },
+                    {
+                        type: 'snapshot',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-2',
+                        s3Key: `test.wml/snapshots/${TEST_TIMESTAMP}.wml`,
+                        snapshotType: 'initializeManifest',
+                        chunksBeforeSnapshot: 0,
+                        snapshotSize: 1024
+                    }
+                ])
+            })
+        })
+        
+        describe('decision flow - lazy migration with auth', () => {
+            it('should use existing auth view and create snapshot with auth prefix', async () => {
+                const state: RepairState = {
+                    manifestMissing: true,
+                    materializedViewMissing: false
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'applyEdit',
+                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
+                }
+                
+                // Mock writeSnapshot with auth-specific return value
+                mockWriteSnapshot.mockResolvedValueOnce({
+                    s3Key: `test.auth.wml/snapshots/${TEST_TIMESTAMP}.wml`,
+                    snapshotSize: 1024
+                })
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    suffix: 'auth.wml',
+                    state,
+                    operation
+                })
+                
+                // Should NOT call reconstructFromManifest (view exists, lazy migration)
+                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
+                
+                // Should call writeSnapshot with auth prefix
+                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
+                expect(mockWriteSnapshot).toHaveBeenCalledWith({
+                    prefix: 'test.auth.wml/',
+                    timestamp: TEST_TIMESTAMP,
+                    zone: 'Library',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0
+                })
+                
+                // Should return manifest initialization events with auth prefix
+                expect(result.success).toBe(true)
+                expect(result.eventsToAppend).toEqual([
+                    {
+                        type: 'zoneChange',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-1',
+                        fromZone: null,
+                        toZone: 'Library'
+                    },
+                    {
+                        type: 'snapshot',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-2',
+                        s3Key: `test.auth.wml/snapshots/${TEST_TIMESTAMP}.wml`,
+                        snapshotType: 'initializeManifest',
+                        chunksBeforeSnapshot: 0,
+                        snapshotSize: 1024
+                    }
+                ])
+            })
+        })
+        
+        describe('decision flow - view missing, manifest exists, auth', () => {
+            it('should reconstruct auth view from manifest', async () => {
+                const state: RepairState = {
+                    manifestMissing: false,
+                    materializedViewMissing: true
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'moveZone',
+                    data: { fromZone: 'Library', toZone: 'Canon' }
+                }
+                
+                // Mock reconstruction result for auth
+                const mockAuth = new StandardAuthorizationCollection('ASSET#test')
+                mockReconstructFromManifest.mockResolvedValue({
+                    type: 'auth',
+                    authorization: mockAuth,
+                    metadata: { snapshotUsed: false, chunksApplied: 0 }
+                })
+                
+                // Mock AssetWorkspace with auth write methods
+                const mockInstance = {
+                    assetId: 'ASSET#test',
+                    zone: 'Library',
+                    status: { json: 'Initial', wml: 'Initial', s3Missing: false },
+                    authStatus: { json: 'Clean', wml: 'Initial', s3Missing: true },
+                    loadAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
+                    pushAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
+                    pushAuthorizationWML: jest.fn().mockResolvedValue(undefined)
+                }
+                MockAssetWorkspace.mockReturnValue(mockInstance as any)
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    suffix: 'auth.wml',
+                    state,
+                    operation
+                })
+                
+                // Should call reconstructFromManifest exactly once with correct auth prefix
+                expect(mockReconstructFromManifest).toHaveBeenCalledTimes(1)
+                expect(mockReconstructFromManifest).toHaveBeenCalledWith('test.auth.wml/')
+                
+                // Should have written both auth files
+                expect(mockInstance.pushAuthorizationJSON).toHaveBeenCalledTimes(1)
+                expect(mockInstance.pushAuthorizationWML).toHaveBeenCalledTimes(1)
+                
+                // Should NOT create snapshot (manifest exists, reconstruction case)
+                expect(mockWriteSnapshot).not.toHaveBeenCalled()
+                
+                // Should return empty events (append-to-existing)
+                expect(result.success).toBe(true)
+                expect(result.eventsToAppend).toEqual([])
+            })
+        })
+        
+        describe('decision flow - both missing, moveZone, auth', () => {
+            it('should synthesize empty auth view for zone changes', async () => {
+                const state: RepairState = {
+                    manifestMissing: true,
+                    materializedViewMissing: true
+                }
+                
+                const operation: RepairOperation = {
+                    type: 'moveZone',
+                    data: { fromZone: 'Library', toZone: 'Canon' }
+                }
+                
+                // Mock writeSnapshot with auth-specific return value
+                mockWriteSnapshot.mockResolvedValueOnce({
+                    s3Key: `test.auth.wml/snapshots/${TEST_TIMESTAMP}.wml`,
+                    snapshotSize: 1024
+                })
+                
+                // Mock AssetWorkspace
+                const mockInstance = {
+                    assetId: 'ASSET#test',
+                    zone: 'Library',
+                    status: { json: 'Initial', wml: 'Initial', s3Missing: true },
+                    authStatus: { json: 'Clean', wml: 'Initial', s3Missing: true },
+                    loadAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
+                    pushAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
+                    pushAuthorizationWML: jest.fn().mockResolvedValue(undefined)
+                }
+                MockAssetWorkspace.mockReturnValue(mockInstance as any)
+                
+                const result = await immediateSelfRepair({
+                    ...baseArgs,
+                    suffix: 'auth.wml',
+                    state,
+                    operation
+                })
+                
+                // Should NOT call reconstructFromManifest (synthesizing, not reconstructing)
+                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
+                
+                // Should have created empty auth and written both files
+                expect(mockInstance.pushAuthorizationJSON).toHaveBeenCalledTimes(1)
+                expect(mockInstance.pushAuthorizationWML).toHaveBeenCalledTimes(1)
+                
+                // Should create snapshot for manifest initialization with auth prefix
+                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
+                expect(mockWriteSnapshot).toHaveBeenCalledWith({
+                    prefix: 'test.auth.wml/',
+                    timestamp: TEST_TIMESTAMP,
+                    zone: 'Library',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0
+                })
+                
+                // Should return manifest initialization events with auth prefix  
+                expect(result.success).toBe(true)
+                expect(result.eventsToAppend).toEqual([
+                    {
+                        type: 'zoneChange',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-1',
+                        fromZone: null,
+                        toZone: 'Library'
+                    },
+                    {
+                        type: 'snapshot',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-2',
+                        s3Key: `test.auth.wml/snapshots/${TEST_TIMESTAMP}.wml`,
+                        snapshotType: 'initializeManifest',
+                        chunksBeforeSnapshot: 0,
+                        snapshotSize: 1024
+                    }
+                ])
             })
         })
         
@@ -432,12 +753,15 @@ describe('selfRepair', () => {
                 // Should NOT call reconstructFromManifest (nothing is missing, early exit)
                 expect(mockReconstructFromManifest).not.toHaveBeenCalled()
                 
+                // Should NOT call writeSnapshot (early exit, nothing missing)
+                expect(mockWriteSnapshot).not.toHaveBeenCalled()
+                
                 // Even though nothing missing, snapshot operation triggers snapshot
                 // But we early-exit, so this test shows a design issue...
                 // Actually wait - if nothing is missing, we return early. So this wouldn't work.
                 // This test reveals that manual snapshot needs different handling!
                 expect(result.success).toBe(true)
-                expect(result.repairActions).toEqual([])
+                expect(result.eventsToAppend).toEqual([])
             })
         })
         
@@ -467,8 +791,37 @@ describe('selfRepair', () => {
                 
                 // Should have checked manifest and discovered it's missing
                 expect(mockLoadManifest).toHaveBeenCalledWith('test.wml/')
-                // Should proceed with lazy migration (use existing, no logging for that)
-                expect(result.repairActions).toContain('Manifest action: initialize')
+                
+                // Should create snapshot for lazy migration
+                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
+                expect(mockWriteSnapshot).toHaveBeenCalledWith({
+                    prefix: 'test.wml/',
+                    timestamp: TEST_TIMESTAMP,
+                    zone: 'Library',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0
+                })
+                
+                // Should return manifest initialization events
+                expect(result.success).toBe(true)
+                expect(result.eventsToAppend).toEqual([
+                    {
+                        type: 'zoneChange',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-1',
+                        fromZone: null,
+                        toZone: 'Library'
+                    },
+                    {
+                        type: 'snapshot',
+                        timestamp: TEST_ISO_TIMESTAMP,
+                        eventId: 'event-id-2',
+                        s3Key: `test.wml/snapshots/${TEST_TIMESTAMP}.wml`,
+                        snapshotType: 'initializeManifest',
+                        chunksBeforeSnapshot: 0,
+                        snapshotSize: 1024
+                    }
+                ])
             })
             
             it('should load AssetWorkspace when materialized view state is unknown', async () => {
@@ -504,9 +857,13 @@ describe('selfRepair', () => {
                 
                 // Should have called loadJSON to check existence
                 expect(mockInstance.loadJSON).toHaveBeenCalled()
-                // Should discover view exists (s3Missing: false)
+                
+                // Should NOT create snapshot (nothing missing after resolution)
+                expect(mockWriteSnapshot).not.toHaveBeenCalled()
+                
+                // Should discover view exists and return no events (nothing missing)
                 expect(result.success).toBe(true)
-                expect(result.repairActions).toEqual([])
+                expect(result.eventsToAppend).toEqual([])
             })
             
             it('should detect missing materialized view through AssetWorkspace status', async () => {
@@ -552,558 +909,12 @@ describe('selfRepair', () => {
                 expect(mockReconstructFromManifest).toHaveBeenCalledTimes(1)
                 expect(mockReconstructFromManifest).toHaveBeenCalledWith('test.wml/')
                 
-                // Should have detected missing view and triggered reconstruction
-                expect(result.repairActions).toContain('Reconstructing materialized view from manifest')
-            })
-        })
-        
-        describe('materialized view execution', () => {
-            it('should reconstruct view from manifest for content', async () => {
-                const state: RepairState = {
-                    manifestMissing: false,
-                    materializedViewMissing: true
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'applyEdit',
-                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
-                }
-                
-                // Mock reconstruction result
-                const mockStandard = new StandardForm('ASSET#test')
-                mockReconstructFromManifest.mockResolvedValue({
-                    type: 'content',
-                    standard: mockStandard,
-                    metadata: { snapshotUsed: true, chunksApplied: 2 }
-                })
-                
-                // Mock AssetWorkspace with write methods
-                const mockInstance = {
-                    assetId: 'ASSET#test',
-                    zone: 'Library',
-                    status: { json: 'Clean', wml: 'Initial', s3Missing: true },
-                    authStatus: { json: 'Initial', wml: 'Initial', s3Missing: false },
-                    loadJSON: jest.fn().mockResolvedValue(undefined),
-                    setJSON: jest.fn().mockResolvedValue(undefined),
-                    pushJSON: jest.fn().mockResolvedValue(undefined),
-                    pushWML: jest.fn().mockResolvedValue(undefined)
-                }
-                MockAssetWorkspace.mockReturnValue(mockInstance as any)
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    state,
-                    operation
-                })
-                
-                // Should call reconstructFromManifest exactly once with correct prefix
-                expect(mockReconstructFromManifest).toHaveBeenCalledTimes(1)
-                expect(mockReconstructFromManifest).toHaveBeenCalledWith('test.wml/')
-                
-                // Should have loaded and written the reconstructed content
-                expect(mockInstance.setJSON).toHaveBeenCalledTimes(1)
-                expect(mockInstance.setJSON).toHaveBeenCalledWith(mockStandard)
-                expect(mockInstance.pushJSON).toHaveBeenCalledTimes(1)
-                expect(mockInstance.pushWML).toHaveBeenCalledTimes(1)
-                
-                // Should log the reconstruction
-                expect(result.repairActions).toContain('Reconstructing materialized view from manifest')
-                expect(result.repairActions).toContain('Materialized view reconstructed and written to S3')
-            })
-            
-            it('should reconstruct auth view from manifest', async () => {
-                const state: RepairState = {
-                    manifestMissing: false,
-                    materializedViewMissing: true
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'moveZone',
-                    data: { fromZone: 'Library', toZone: 'Canon' }
-                }
-                
-                // Mock reconstruction result for auth
-                const mockAuth = new StandardAuthorizationCollection('ASSET#test')
-                mockReconstructFromManifest.mockResolvedValue({
-                    type: 'auth',
-                    authorization: mockAuth,
-                    metadata: { snapshotUsed: false, chunksApplied: 0 }
-                })
-                
-                // Mock AssetWorkspace with auth write methods
-                const mockInstance = {
-                    assetId: 'ASSET#test',
-                    zone: 'Library',
-                    status: { json: 'Initial', wml: 'Initial', s3Missing: false },
-                    authStatus: { json: 'Clean', wml: 'Initial', s3Missing: true },
-                    loadAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
-                    pushAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
-                    pushAuthorizationWML: jest.fn().mockResolvedValue(undefined)
-                }
-                MockAssetWorkspace.mockReturnValue(mockInstance as any)
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    suffix: 'auth.wml',
-                    state,
-                    operation
-                })
-                
-                // Should call reconstructFromManifest exactly once with correct auth prefix
-                expect(mockReconstructFromManifest).toHaveBeenCalledTimes(1)
-                expect(mockReconstructFromManifest).toHaveBeenCalledWith('test.auth.wml/')
-                
-                // Should have written both auth files
-                expect(mockInstance.pushAuthorizationJSON).toHaveBeenCalledTimes(1)
-                expect(mockInstance.pushAuthorizationWML).toHaveBeenCalledTimes(1)
-                
-                expect(result.repairActions).toContain('Reconstructing materialized view from manifest')
-            })
-            
-            it('should synthesize empty view for content', async () => {
-                const state: RepairState = {
-                    manifestMissing: true,
-                    materializedViewMissing: true
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'applyEdit',
-                    data: { editWML: '', zone: 'Library', createIfNeeded: true }
-                }
-                
-                // Mock AssetWorkspace
-                const mockInstance = {
-                    assetId: 'ASSET#test',
-                    zone: 'Library',
-                    status: { json: 'Clean', wml: 'Initial', s3Missing: true },
-                    authStatus: { json: 'Initial', wml: 'Initial', s3Missing: true },
-                    loadJSON: jest.fn().mockResolvedValue(undefined),
-                    setJSON: jest.fn().mockResolvedValue(undefined),
-                    pushJSON: jest.fn().mockResolvedValue(undefined),
-                    pushWML: jest.fn().mockResolvedValue(undefined)
-                }
-                MockAssetWorkspace.mockReturnValue(mockInstance as any)
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    state,
-                    operation
-                })
-                
-                // Should NOT call reconstructFromManifest (synthesizing, not reconstructing)
-                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
-                
-                // Should have created empty StandardForm and written both files
-                expect(mockInstance.setJSON).toHaveBeenCalledTimes(1)
-                expect(mockInstance.pushJSON).toHaveBeenCalledTimes(1)
-                expect(mockInstance.pushWML).toHaveBeenCalledTimes(1)
-                
-                expect(result.repairActions).toContain('Synthesizing empty materialized view')
-                expect(result.repairActions).toContain('Empty materialized view written to S3')
-            })
-            
-            it('should synthesize empty auth view', async () => {
-                const state: RepairState = {
-                    manifestMissing: true,
-                    materializedViewMissing: true
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'moveZone',
-                    data: { fromZone: 'Library', toZone: 'Canon' }
-                }
-                
-                // Mock AssetWorkspace
-                const mockInstance = {
-                    assetId: 'ASSET#test',
-                    zone: 'Library',
-                    status: { json: 'Initial', wml: 'Initial', s3Missing: true },
-                    authStatus: { json: 'Clean', wml: 'Initial', s3Missing: true },
-                    loadAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
-                    pushAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
-                    pushAuthorizationWML: jest.fn().mockResolvedValue(undefined)
-                }
-                MockAssetWorkspace.mockReturnValue(mockInstance as any)
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    suffix: 'auth.wml',
-                    state,
-                    operation
-                })
-                
-                // Should NOT call reconstructFromManifest (synthesizing, not reconstructing)
-                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
-                
-                // Should have created empty auth and written both files
-                expect(mockInstance.pushAuthorizationJSON).toHaveBeenCalledTimes(1)
-                expect(mockInstance.pushAuthorizationWML).toHaveBeenCalledTimes(1)
-                
-                expect(result.repairActions).toContain('Synthesizing empty materialized view')
-                expect(result.repairActions).toContain('Empty materialized view written to S3')
-            })
-        })
-        
-        describe('snapshot execution', () => {
-            it('should create snapshot for lazy migration (manifest missing, view exists)', async () => {
-                const state: RepairState = {
-                    manifestMissing: true,
-                    materializedViewMissing: false
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'applyEdit',
-                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
-                }
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    state,
-                    operation
-                })
-                
-                // Should NOT call reconstructFromManifest (view exists, lazy migration)
-                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
-                
-                // Should call writeSnapshot exactly once with correct parameters
-                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
-                expect(mockWriteSnapshot).toHaveBeenCalledWith({
-                    prefix: 'test.wml/',
-                    timestamp: TEST_TIMESTAMP,
-                    zone: 'Library',
-                    snapshotType: 'initializeManifest',
-                    chunksBeforeSnapshot: 0
-                })
-                
-                // Should log snapshot creation
-                expect(result.repairActions).toContain('Creating snapshot from materialized view')
-                expect(result.repairActions).toContain('Snapshot written: test.wml/snapshots/1234567890000.wml')
-            })
-            
-            it('should NOT create snapshot when manifest exists (reconstruction case)', async () => {
-                const state: RepairState = {
-                    manifestMissing: false,
-                    materializedViewMissing: true
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'applyEdit',
-                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
-                }
-                
-                // Mock reconstruction
-                const mockStandard = new StandardForm('ASSET#test')
-                mockReconstructFromManifest.mockResolvedValue({
-                    type: 'content',
-                    standard: mockStandard,
-                    metadata: { snapshotUsed: false, chunksApplied: 0 }
-                })
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    state,
-                    operation
-                })
-                
-                // Should call reconstructFromManifest (view missing, manifest exists)
-                expect(mockReconstructFromManifest).toHaveBeenCalledTimes(1)
-                expect(mockReconstructFromManifest).toHaveBeenCalledWith('test.wml/')
-                
-                // Should NOT call writeSnapshot (manifest exists, skip snapshot)
+                // Should NOT create snapshot (manifest exists, reconstruction case)
                 expect(mockWriteSnapshot).not.toHaveBeenCalled()
                 
-                // Should log snapshot skip in decision
-                expect(result.repairActions).toContain('Snapshot action: skip')
-            })
-            
-            it('should create snapshot for zone move', async () => {
-                const state: RepairState = {
-                    manifestMissing: true,
-                    materializedViewMissing: true
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'moveZone',
-                    data: { fromZone: 'Library', toZone: 'Canon' }
-                }
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    state,
-                    operation
-                })
-                
-                // Should NOT call reconstructFromManifest (synthesizing empty)
-                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
-                
-                // Should call writeSnapshot exactly once with zone from operation
-                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
-                expect(mockWriteSnapshot).toHaveBeenCalledWith({
-                    prefix: 'test.wml/',
-                    timestamp: TEST_TIMESTAMP,
-                    zone: 'Library',  // Uses fromZone - snapshot represents origin state for lazy migration
-                    snapshotType: 'initializeManifest',
-                    chunksBeforeSnapshot: 0
-                })
-            })
-            
-            it('should create snapshot for auth prefix', async () => {
-                const state: RepairState = {
-                    manifestMissing: true,
-                    materializedViewMissing: false
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'applyEdit',
-                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
-                }
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    suffix: 'auth.wml',
-                    state,
-                    operation
-                })
-                
-                // Should NOT call reconstructFromManifest (view exists, lazy migration)
-                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
-                
-                // Should call writeSnapshot with auth prefix
-                expect(mockWriteSnapshot).toHaveBeenCalledTimes(1)
-                expect(mockWriteSnapshot).toHaveBeenCalledWith({
-                    prefix: 'test.auth.wml/',
-                    timestamp: TEST_TIMESTAMP,
-                    zone: 'Library',
-                    snapshotType: 'initializeManifest',
-                    chunksBeforeSnapshot: 0
-                })
-            })
-            
-            it('should NOT create snapshot when nothing is missing', async () => {
-                const state: RepairState = {
-                    manifestMissing: false,
-                    materializedViewMissing: false
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'applyEdit',
-                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
-                }
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    state,
-                    operation
-                })
-                
-                // Should NOT call reconstructFromManifest (nothing missing, early exit)
-                expect(mockReconstructFromManifest).not.toHaveBeenCalled()
-                
-                // Should NOT call writeSnapshot (early exit, nothing missing)
-                expect(mockWriteSnapshot).not.toHaveBeenCalled()
-            })
-        })
-        
-        describe('manifest event building', () => {
-            it('should create ZoneChange event for manifest initialization without snapshot', async () => {
-                const state: RepairState = {
-                    manifestMissing: false,
-                    materializedViewMissing: true
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'applyEdit',
-                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
-                }
-                
-                // Mock reconstruction
-                const mockStandard = new StandardForm('ASSET#test')
-                mockReconstructFromManifest.mockResolvedValue({
-                    type: 'content',
-                    standard: mockStandard,
-                    metadata: { snapshotUsed: false, chunksApplied: 0 }
-                })
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    state,
-                    operation
-                })
-                
-                // Should succeed
+                // Should return empty events (append-to-existing)
                 expect(result.success).toBe(true)
-                
-                // Should return empty events (manifest exists, append-to-existing)
                 expect(result.eventsToAppend).toEqual([])
-            })
-            
-            it('should create ZoneChange and Snapshot events for manifest initialization with snapshot', async () => {
-                const state: RepairState = {
-                    manifestMissing: true,
-                    materializedViewMissing: false
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'applyEdit',
-                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
-                }
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    state,
-                    operation
-                })
-                
-                // Should succeed
-                expect(result.success).toBe(true)
-                
-                // Should return 2 events: ZoneChange + Snapshot
-                expect(result.eventsToAppend!).toHaveLength(2)
-                
-                // First event: ZoneChange
-                const zoneChangeEvent = result.eventsToAppend![0]
-                expect(zoneChangeEvent.type).toBe('zoneChange')
-                expect(zoneChangeEvent).toHaveProperty('timestamp')
-                expect(zoneChangeEvent).toHaveProperty('eventId')
-                if (zoneChangeEvent.type === 'zoneChange') {
-                    expect(zoneChangeEvent.fromZone).toBe(null)  // Initial zone establishment
-                    expect(zoneChangeEvent.toZone).toBe('Library')
-                }
-                
-                // Second event: Snapshot
-                const snapshotEvent = result.eventsToAppend![1]
-                expect(snapshotEvent.type).toBe('snapshot')
-                expect(snapshotEvent).toHaveProperty('timestamp')
-                expect(snapshotEvent).toHaveProperty('eventId')
-                if (snapshotEvent.type === 'snapshot') {
-                    expect(snapshotEvent.s3Key).toBe('test.wml/snapshots/1234567890000.wml')
-                    expect(snapshotEvent.snapshotType).toBe('initializeManifest')
-                    expect(snapshotEvent.chunksBeforeSnapshot).toBe(0)
-                    expect(snapshotEvent.snapshotSize).toBe(1024)
-                }
-            })
-            
-            it('should use correct zone for moveZone operations', async () => {
-                const state: RepairState = {
-                    manifestMissing: true,
-                    materializedViewMissing: true
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'moveZone',
-                    data: { fromZone: 'Library', toZone: 'Canon' }
-                }
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    state,
-                    operation
-                })
-                
-                // Should succeed
-                expect(result.success).toBe(true)
-                
-                // Should create ZoneChange event with fromZone (origin zone)
-                expect(result.eventsToAppend!).toHaveLength(2)
-                const zoneChangeEvent = result.eventsToAppend![0]
-                if (zoneChangeEvent.type === 'zoneChange') {
-                    expect(zoneChangeEvent.fromZone).toBe(null)
-                    expect(zoneChangeEvent.toZone).toBe('Library')  // Uses fromZone of operation
-                }
-            })
-            
-            it('should create events for auth prefix', async () => {
-                const state: RepairState = {
-                    manifestMissing: true,
-                    materializedViewMissing: false
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'applyEdit',
-                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
-                }
-                
-                // Mock writeSnapshot with auth-specific return value
-                mockWriteSnapshot.mockResolvedValueOnce({
-                    s3Key: 'test.auth.wml/snapshots/1234567890000.wml',
-                    snapshotSize: 1024
-                })
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    suffix: 'auth.wml',
-                    state,
-                    operation
-                })
-                
-                // Should succeed
-                expect(result.success).toBe(true)
-                
-                // Should create events (works same for auth)
-                expect(result.eventsToAppend!).toHaveLength(2)
-                
-                // Snapshot event should reference auth prefix
-                const snapshotEvent = result.eventsToAppend![1]
-                if (snapshotEvent.type === 'snapshot') {
-                    expect(snapshotEvent.s3Key).toBe('test.auth.wml/snapshots/1234567890000.wml')
-                }
-            })
-            
-            it('should generate unique event IDs', async () => {
-                const state: RepairState = {
-                    manifestMissing: true,
-                    materializedViewMissing: false
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'applyEdit',
-                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
-                }
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    state,
-                    operation
-                })
-                
-                // Should succeed
-                expect(result.success).toBe(true)
-                
-                // Both events should have unique eventIds
-                expect(result.eventsToAppend!).toHaveLength(2)
-                const eventIds = result.eventsToAppend!.map(e => e.eventId)
-                expect(eventIds[0]).not.toBe(eventIds[1])
-                expect(typeof eventIds[0]).toBe('string')
-                expect(typeof eventIds[1]).toBe('string')
-            })
-            
-            it('should use ISO timestamp format', async () => {
-                const state: RepairState = {
-                    manifestMissing: true,
-                    materializedViewMissing: false
-                }
-                
-                const operation: RepairOperation = {
-                    type: 'applyEdit',
-                    data: { editWML: '', zone: 'Library', createIfNeeded: false }
-                }
-                
-                const result = await immediateSelfRepair({
-                    ...baseArgs,
-                    state,
-                    operation
-                })
-                
-                // Should succeed
-                expect(result.success).toBe(true)
-                
-                // Both events should have ISO timestamps
-                expect(result.eventsToAppend!).toHaveLength(2)
-                result.eventsToAppend!.forEach(event => {
-                    expect(event.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
-                    // Verify timestamp can be parsed
-                    expect(new Date(event.timestamp).getTime()).toBe(TEST_TIMESTAMP)
-                })
             })
         })
     })
