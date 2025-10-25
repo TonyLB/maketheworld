@@ -478,6 +478,8 @@ function buildManifestEvents(args: {
  * - Running within singleFlight (sequential mode) to prevent concurrent repairs
  * - Appending returned events to manifest
  * 
+ * Note: Most operations should use `withS3SelfRepair()` wrapper instead of calling this directly.
+ * 
  * @param args - Repair arguments including assetId, suffix, state, operation, and timestamp
  * @returns RepairResult with success status, actions taken, and events to append
  */
@@ -552,4 +554,8 @@ export async function immediateSelfRepair(args: ImmediateSelfRepairArgs): Promis
         eventsToAppend
     }
 }
+
+// Re-export wrapper functions for convenient import
+export { withS3SelfRepair } from './wrapper'
+export type { FetchFunction, ActionFunction, WithS3SelfRepairArgs } from './wrapper'
 
