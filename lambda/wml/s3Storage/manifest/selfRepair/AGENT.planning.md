@@ -499,11 +499,468 @@ await storage
 
 ## 📋 Implementation Tracking
 
-_(Empty until design is finalized)_
+### Implementation Phases
 
-### Implementation Tasks
+**Phase 1**: Foundation utilities (Decisions 1 & 2)
+**Phase 2**: Refactor repair system (Decision 3)
+**Phase 3**: Integration and testing
 
-_(Will be populated once we agree on design approach)_
+---
+
+### Phase 1: Foundation Utilities
+
+#### Task 1.0: Reorganize `s3Storage/` Directory Structure
+
+**Purpose**: Align directory structure with conceptual architecture (subsystems + orchestration)
+
+**Current Structure** (grown by accretion):
+```
+s3Storage/
+├── AssetWorkspace.ts
+├── manifest/
+│   ├── baseClasses.ts
+│   ├── chunks.ts              ❌ Not manifest-specific
+│   ├── operations.ts
+│   ├── orchestration.ts
+│   ├── reconstruction.ts
+│   ├── snapshots.ts           ❌ Not manifest-specific
+│   ├── selfRepair/
+│   │   ├── index.ts
+│   │   ├── wrapper.ts
+│   │   └── ...
+│   └── AGENT.selfRepair.md    ❌ Should be in selfRepair/
+```
+
+**Proposed Structure** (organized by subsystem):
+```
+s3Storage/
+├── AssetWorkspace.ts          # Workspace/path utilities
+├── index.ts                   # NEW: Top-level operations (appendChunk, etc.)
+├── S3StorageAction.ts         # FUTURE: Builder/transaction class
+│
+├── manifest/                  # Manifest subsystem
+│   ├── baseClasses.ts        # Manifest types/classes
+│   ├── index.ts              # RENAMED from operations.ts - core manifest operations
+│   ├── orchestration.ts      # Manifest coordination (appendManifestEvents, etc.)
+│   └── AGENT.md              # Manifest documentation
+│
+├── chunks/                    # Chunks subsystem (NEW directory)
+│   ├── index.ts              # MOVED from manifest/chunks.ts
+│   └── index.test.ts         # MOVED from manifest/chunks.test.ts
+│
+├── snapshots/                 # Snapshots subsystem (NEW directory)
+│   ├── index.ts              # MOVED from manifest/snapshots.ts
+│   └── index.test.ts         # MOVED from manifest/snapshots.test.ts
+│
+├── materializedView/          # Materialized view subsystem (NEW directory)
+│   ├── index.ts              # NEW: updateContentByChunk, etc. (Task 1.1)
+│   └── reconstruction.ts     # MOVED from manifest/reconstruction.ts
+│
+└── selfRepair/                # Self-repair coordination (MOVED from manifest/)
+    ├── index.ts              # MOVED from manifest/selfRepair/index.ts
+    ├── wrapper.ts            # MOVED from manifest/selfRepair/wrapper.ts
+    ├── AGENT.md              # MOVED from manifest/AGENT.selfRepair.md
+    ├── AGENT.planning.md     # MOVED from manifest/selfRepair/AGENT.planning.md
+    └── ...tests...
+```
+
+**Subtasks**:
+
+1. **Create new directories**:
+   - [ ] Create `s3Storage/chunks/`
+   - [ ] Create `s3Storage/snapshots/`
+   - [ ] Create `s3Storage/materializedView/`
+
+2. **Move chunks subsystem**:
+   - [ ] Move `manifest/chunks.ts` → `chunks/index.ts`
+   - [ ] Move `manifest/chunks.test.ts` → `chunks/index.test.ts`
+   - [ ] Update imports in moved files
+   - [ ] Update imports in files that reference chunks (now just `'./chunks'` instead of `'./chunks/operations'`)
+
+3. **Move snapshots subsystem**:
+   - [ ] Move `manifest/snapshots.ts` → `snapshots/index.ts`
+   - [ ] Move `manifest/snapshots.test.ts` → `snapshots/index.test.ts`
+   - [ ] Update imports in moved files
+   - [ ] Update imports in files that reference snapshots (now just `'./snapshots'`)
+
+3b. **Move reconstruction to materializedView**:
+   - [ ] Move `manifest/reconstruction.ts` → `materializedView/reconstruction.ts`
+   - [ ] Move `manifest/reconstruction.test.ts` → `materializedView/reconstruction.test.ts`
+   - [ ] Update imports in moved files
+   - [ ] Update imports in files that reference reconstruction
+
+4. **Move selfRepair subsystem**:
+   - [ ] Move `manifest/selfRepair/` → `selfRepair/` (entire directory up one level)
+   - [ ] Move `manifest/AGENT.selfRepair.md` → `selfRepair/AGENT.md`
+   - [ ] Update imports in selfRepair files (one less `../`)
+   - [ ] Update imports in files that reference selfRepair
+
+5. **Rename and update remaining manifest/ files**:
+   - [ ] Rename `manifest/operations.ts` → `manifest/index.ts`
+   - [ ] Update imports in `manifest/index.ts` (was operations.ts)
+   - [ ] Update imports in `manifest/orchestration.ts`
+   - [ ] Update imports in `manifest/baseClasses.ts`
+   - [ ] Update files that imported from `manifest/operations` to import from `manifest` (index.ts)
+
+6. **Update top-level files**:
+   - [ ] Update imports in `AssetWorkspace.ts`
+   - [ ] Update imports in any other top-level s3Storage files
+
+7. **Update external references**:
+   - [ ] Find all imports of s3Storage files outside of s3Storage/
+   - [ ] Update paths to match new structure
+   - [ ] Check `dataSource/` files especially (likely import chunks, snapshots, etc.)
+
+8. **Testing**:
+   - [ ] Run all s3Storage tests: `npm test -- s3Storage`
+   - [ ] Verify all tests still pass
+   - [ ] Check for any missed import updates (look for test failures)
+
+9. **Documentation**:
+   - [ ] Update `s3Storage/manifest/AGENT.md` to reflect new structure
+   - [ ] Update this planning doc's file paths to match new structure
+   - [ ] Update any diagrams showing directory structure
+
+**Dependencies**: None - this is foundational
+
+**Success Criteria**:
+- All files moved to new locations
+- All imports updated correctly
+- All tests pass
+- Directory structure matches conceptual architecture
+- Clear separation: orchestration (top) vs subsystems (directories)
+
+**Risk Mitigation**:
+- Do this in a clean git state so rollback is easy
+- Move one subsystem at a time, test after each
+- Use IDE refactoring tools if available (rename/move with import updates)
+
+**Notes**:
+- This sets foundation for Task 1.1 (create `materializedView/index.ts`)
+- This clarifies where Task 2.2's `appendChunk()` lives (top-level `s3Storage/index.ts`)
+- Future: `S3StorageAction` class also lives at top level
+- Using `index.ts` convention enables cleaner imports: `from './chunks'` instead of `from './chunks/operations'`
+- `reconstruction.ts` correctly lives in `materializedView/` since it reconstructs materialized views
+
+---
+
+#### Task 1.1: Create `materializedView/index.ts` (Content Reducer)
+
+**Purpose**: Centralize materialized view content management
+
+**Subtasks**:
+- [ ] Create new file `s3Storage/materializedView/index.ts` (after Task 1.0 creates directory)
+- [ ] Implement `updateContentByChunk()` content reducer:
+  ```typescript
+  export function updateContentByChunk(
+      baseline: StandardForm,
+      chunkWML: string
+  ): StandardForm {
+      const chunkStandard = new StandardForm(chunkWML)
+      const merged = baseline.merge(chunkStandard)
+      if (!merged.success) {
+          throw new Error('Merge conflict during chunk application')
+      }
+      return merged.value
+  }
+  ```
+- [ ] Add unit tests for `updateContentByChunk()`:
+  - Test successful merge
+  - Test merge conflict (should throw)
+  - Test with empty baseline
+  - Test with empty chunk
+  - Test with complex nested structures
+- [ ] Add JSDoc documentation with examples
+
+**Dependencies**: Task 1.0 (directory structure must be in place)
+
+**Success Criteria**: 
+- All tests pass
+- Function is pure (no side effects)
+- Clear error messages on failure
+
+---
+
+#### Task 1.2: Extend `writeSnapshot()` Function
+
+**Purpose**: Enable direct content writing to snapshots (avoid copy-then-overwrite pattern)
+
+**Subtasks**:
+- [ ] Locate current `writeSnapshot()` implementation (will be in `snapshots/index.ts` after Task 1.0)
+- [ ] Add optional `content?: string` parameter to function signature
+- [ ] Update implementation logic:
+  ```typescript
+  if (content !== undefined) {
+      // NEW: Direct write of provided content
+      await s3Client.send(new PutObjectCommand({
+          Bucket: workspace.bucket,
+          Key: snapshotKey,
+          Body: content,
+          ContentType: 'text/plain',
+          Tagging: buildTagString({ zone, /* ... */ })
+      }))
+  } else {
+      // EXISTING: Copy from materialized view
+      await s3Client.send(new CopyObjectCommand({ /* ... */ }))
+  }
+  ```
+- [ ] Update function JSDoc to document new parameter
+- [ ] Add unit tests for new behavior:
+  - Test with content provided (direct write)
+  - Test without content (copy behavior, existing)
+  - Test that tags are applied correctly in both cases
+  - Test error handling for both paths
+- [ ] Verify backward compatibility (existing callers still work)
+
+**Dependencies**: Task 1.0 (snapshots moved to snapshots/index.ts)
+
+**Success Criteria**:
+- Backward compatible (no breaking changes)
+- Both code paths tested and working
+- Tags correctly applied in both scenarios
+
+---
+
+### Phase 2: Refactor Repair System (Decision 3)
+
+#### Task 2.1: Design `appendChunk()` Operation Interface
+
+**Purpose**: Define the encapsulated operation signature for appending chunks
+
+**Subtasks**:
+- [ ] Define interface/type for `appendChunk()` parameters:
+  ```typescript
+  interface AppendChunkArgs {
+      assetId: AssetUUID
+      chunkWML: string
+      timestamp: number
+      zone?: Zone  // For initial zone assignment if repairing
+      // ... other necessary fields
+  }
+  ```
+- [ ] Define return type (what does operation return?)
+  - Success/failure status?
+  - Metadata about what was written?
+  - Updated content for caller to use?
+- [ ] Document the operation contract:
+  - What it does (append chunk + all necessary coordination)
+  - What it guarantees (consistency, repair handling)
+  - What errors it can throw
+- [ ] Review with existing `dataSource/applyEdit` to ensure it covers all use cases
+
+**Dependencies**: Task 1.0, Task 1.1, Task 1.2
+
+**Success Criteria**:
+- Clear, well-documented interface
+- Covers all current use cases
+- Aligns with encapsulation philosophy
+
+---
+
+#### Task 2.2: Implement `appendChunk()` Core Logic
+
+**Purpose**: Create the unified operation that handles repair + chunk application
+
+**Subtasks**:
+- [ ] Create new function `appendChunk()` in `s3Storage/index.ts` (top-level orchestration)
+- [ ] Implement orchestration logic:
+  ```typescript
+  export async function appendChunk(args: AppendChunkArgs): Promise<...> {
+      const workspace = new AssetWorkspace(args.assetId)
+      
+      // 1. Fetch current state (manifest + materialized view)
+      const state = await fetchCurrentState(workspace)
+      
+      // 2. Determine repair needs
+      const repairNeeded = detectRepairNeeds(state)
+      
+      // 3. Build baseline content (with repair if needed)
+      const baseline = await buildBaseline(state, repairNeeded, args.zone)
+      
+      // 4. Apply chunk to baseline
+      const updatedContent = updateContentByChunk(baseline, args.chunkWML)
+      
+      // 5. Prepare all events (repair + chunk)
+      const events = buildEvents(repairNeeded, args)
+      
+      // 6. Execute all writes
+      await Promise.all([
+          writeChunkFile(workspace, args.chunkWML, args.timestamp),
+          writeMaterializedView(workspace, updatedContent),
+          // If repair needed snapshot, write it with baseline content
+          ...(repairNeeded.snapshot ? [writeSnapshot({ content: baseline.serialize(), ... })] : [])
+      ])
+      
+      // 7. Update manifest (batched: repair events + chunk event)
+      await appendManifestEvents(workspace, events)
+      
+      return { success: true, /* ... */ }
+  }
+  ```
+- [ ] Implement helper functions:
+  - `fetchCurrentState()` - Get manifest + view
+  - `detectRepairNeeds()` - Check what's missing
+  - `buildBaseline()` - Reconstruct or synthesize empty
+  - `buildEvents()` - Create manifest event array
+- [ ] Add error handling at each step
+- [ ] Add logging for repair actions taken
+
+**Dependencies**: Task 2.1
+
+**Success Criteria**:
+- Single entry point for chunk append operations
+- Handles all repair scenarios correctly
+- All writes coordinated and batched optimally
+
+---
+
+#### Task 2.3: Add Comprehensive Tests for `appendChunk()`
+
+**Purpose**: Ensure operation works correctly in all scenarios
+
+**Subtasks**:
+- [ ] Test normal operation (no repair needed):
+  - Manifest and view exist
+  - Chunk applied successfully
+  - All files written correctly
+- [ ] Test manifest missing (lazy migration):
+  - Synthesize initial snapshot from existing view
+  - Add ZoneChange + Snapshot + Chunk events
+  - All batched in single manifest append
+- [ ] Test view missing (reconstruction):
+  - Reconstruct from manifest
+  - Apply new chunk
+  - Write reconstructed + edited view once
+- [ ] Test both missing (synthesize empty):
+  - Create empty baseline
+  - Write snapshot with empty content (Decision 2)
+  - Apply chunk to empty
+  - Write view with edited content
+  - Manifest has ZoneChange + Snapshot + Chunk (batched)
+- [ ] Test error scenarios:
+  - Chunk merge conflict
+  - S3 write failures
+  - Malformed manifest
+- [ ] Test authorization prefix handling
+- [ ] Performance test: Verify single writes (not duplicate)
+
+**Dependencies**: Task 2.2
+
+**Success Criteria**:
+- All scenarios covered
+- Tests verify optimal write patterns (no duplicates)
+- Clear test names document behavior
+
+---
+
+#### Task 2.4: Deprecate/Refactor `withS3SelfRepair()` Wrapper
+
+**Purpose**: Align wrapper with new architecture or deprecate in favor of `appendChunk()`
+
+**Decision Point**: 
+- Option A: Keep `withS3SelfRepair()` but simplify it (now just calls `appendChunk()`)
+- Option B: Deprecate it entirely, callers use `appendChunk()` directly
+
+**Subtasks** (if keeping):
+- [ ] Refactor `withS3SelfRepair()` to delegate to `appendChunk()`
+- [ ] Update tests to reflect new behavior
+- [ ] Mark as legacy/transitional in documentation
+
+**Subtasks** (if deprecating):
+- [ ] Mark `withS3SelfRepair()` as deprecated with JSDoc `@deprecated`
+- [ ] Add migration guide in comments
+- [ ] Plan removal in future version
+
+**Dependencies**: Task 2.2
+
+**Success Criteria**:
+- Clear path forward documented
+- No confusion about which API to use
+
+---
+
+### Phase 3: Integration and Refactoring
+
+#### Task 3.1: Refactor `dataSource/applyEdit` to Use `appendChunk()`
+
+**Purpose**: Demonstrate new pattern, simplify business logic
+
+**Subtasks**:
+- [ ] Review current `dataSource/applyEdit` implementation
+- [ ] Identify what can be delegated to `appendChunk()`
+- [ ] Refactor to use new API:
+  ```typescript
+  // Before: ~100 lines of storage orchestration
+  // After:
+  export async function applyEdit(...) {
+      // Business logic validation
+      await validateEdit(...)
+      
+      // Delegate to storage system
+      const result = await appendChunk({
+          assetId,
+          chunkWML,
+          timestamp,
+          zone: playerZone
+      })
+      
+      return result
+  }
+  ```
+- [ ] Update tests for `applyEdit`
+- [ ] Verify all existing callers still work
+
+**Dependencies**: Task 2.2, Task 2.3
+
+**Success Criteria**:
+- `applyEdit` is dramatically simplified
+- All existing tests still pass
+- Clear separation: business logic vs storage orchestration
+
+---
+
+#### Task 3.2: Integration Testing
+
+**Purpose**: Verify end-to-end workflows
+
+**Subtasks**:
+- [ ] Test complete edit flow: API → `applyEdit` → `appendChunk` → S3
+- [ ] Test repair scenarios trigger correctly in real workflow
+- [ ] Verify manifest batching in real operations
+- [ ] Performance testing: Compare old vs new approach
+  - Measure S3 operation count
+  - Measure latency
+  - Verify optimizations are realized
+- [ ] Test with real WML assets (not just mocks)
+
+**Dependencies**: Task 3.1
+
+**Success Criteria**:
+- End-to-end workflows work correctly
+- Performance improvements measurable
+- No regressions in functionality
+
+---
+
+### Implementation Notes
+
+**Order of Execution**:
+1. **Task 1.0 FIRST** - Directory reorganization is foundational
+2. Tasks 1.1 and 1.2 can be done in parallel (both depend on 1.0)
+3. Task 2.1 should be reviewed before implementing 2.2
+4. Task 2.2 and 2.3 should be done together (test-driven development)
+5. Phase 3 only after Phase 2 is complete and tested
+
+**Open Questions**:
+- [x] ~~Where should `appendChunk()` live?~~ **ANSWERED**: Top-level `s3Storage/index.ts` (Task 1.0 establishes this structure)
+- [x] ~~How do we handle `singleFlight` with new architecture?~~ **ANSWERED**: External handlers (e.g. `dataSource/applyEdit`) remain responsible for acquiring `singleFlight` lock before calling s3Storage operations. Future consideration: fold `singleFlight` into s3Storage once we implement queued operations (transaction/builder pattern).
+- [ ] What should `appendChunk()` return? Just success status, or also content/metadata?
+- [ ] Should we implement other operations (`changeZone()`, `createSnapshot()`) now or later?
+
+**Risk Areas**:
+- Breaking existing callers during refactoring
+- Missing edge cases in repair scenarios
+- Performance regression if batching doesn't work as expected
 
 ---
 
@@ -519,15 +976,16 @@ Track temporary artifacts and final cleanup:
 
 ### Documentation Reorganization
 
-- [ ] **Move** `manifest/AGENT.selfRepair.md` → `manifest/selfRepair/AGENT.md`
+- [ ] **Move** `manifest/AGENT.selfRepair.md` → `selfRepair/AGENT.md`
+  - Note: This will happen as part of Task 1.0 (directory reorganization)
   - Rationale: Co-locate documentation with implementation code
-  - New location matches directory structure (`selfRepair/` subdirectory)
+  - New location matches directory structure (`selfRepair/` at s3Storage top level)
   
-- [ ] **Update** `manifest/selfRepair/AGENT.md` with:
+- [ ] **Update** `selfRepair/AGENT.md` with:
   - Design decisions from this planning document
   - Implementation details from completed work
   - Future evolution patterns (SAGA, transaction/builder)
-  - Updated architecture diagrams reflecting encapsulated operations
+  - Updated architecture diagrams reflecting encapsulated operations and new directory structure
   - New API surface (`appendChunk`, `changeZone`, `createSnapshot`)
   - Any still-valuable content from `USAGE_EXAMPLE.md` (before/after examples, usage patterns)
 
@@ -555,11 +1013,13 @@ Track temporary artifacts and final cleanup:
 
 ## Related Documentation
 
-- **[Self-Repair Design](AGENT.selfRepair.md)**: Original design document
-- **[Migration Planning](../../AGENT.s3storage.migration.md)**: Phase 2.7 tasks
-- **[Manifest System](../AGENT.md)**: Manifest operations and format
+- **[Self-Repair Design](AGENT.md)**: Design document (will be AGENT.selfRepair.md until Task 1.0 completes)
+- **[Migration Planning](../AGENT.s3storage.migration.md)**: Phase 2.7 tasks (path after Task 1.0)
+- **[Manifest System](../manifest/AGENT.md)**: Manifest operations and format (path after Task 1.0)
 - **[Current Implementation](./index.ts)**: `immediateSelfRepair()` function
 - **[Wrapper Implementation](./wrapper.ts)**: `withS3SelfRepair()` wrapper
+
+**Note**: File paths above assume Task 1.0 (directory reorganization) is complete. Current paths may differ.
 
 ---
 
