@@ -415,6 +415,15 @@ const executeAppendChunkStrategy: ExecutionStrategy<AppendChunkArgs, AppendChunk
 export async function appendChunk(args: AppendChunkArgs): Promise<AppendChunkResult> {
     const { assetId, zone, createIfNeeded = false, suffix = 'wml' } = args
     
+    // Archive zone is frozen - no new chunks allowed
+    if (zone === 'Archive') {
+        return {
+            success: false,
+            error: 'Cannot append chunks to Archive zone (frozen state)',
+            errorType: 'validation'
+        }
+    }
+    
     // Use generic pipeline with appendChunk execution strategy
     const result = await applyStorageOperation(
         {

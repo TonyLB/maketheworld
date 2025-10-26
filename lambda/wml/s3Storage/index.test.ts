@@ -122,6 +122,26 @@ describe('appendChunk (unit tests with mocked pipeline)', () => {
         mockApplyStorageOperationHelper({ baseline: new StandardForm(TEST_ASSET_ID), repairDecision: {} })
     })
 
+    describe('Archive zone validation', () => {
+        it('should reject chunks to Archive zone (frozen state)', async () => {
+            const result = await appendChunk({
+                assetId: TEST_ASSET_ID,
+                chunkWML: CHUNK_WML,
+                timestamp: TEST_TIMESTAMP,
+                zone: 'Archive',
+                authoringPlayer: TEST_PLAYER
+            })
+
+            expect(result.success).toBe(false)
+            if (!result.success) {
+                expect(result.error).toContain('Cannot append chunks to Archive zone')
+                expect(result.errorType).toBe('validation')
+            }
+            // Pipeline should not be called
+            expect(mockApplyStorageOperation).not.toHaveBeenCalled()
+        })
+    })
+
     describe('normal operation - no repair needed', () => {
         it('should append chunk to existing content without repair', async () => {
             const existingContent = new StandardForm(TEST_ASSET_ID)

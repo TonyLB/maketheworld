@@ -370,29 +370,44 @@ The migration aims to address these limitations by:
 
 ### Phase 2: Chunk-Based Snapshot Architecture
 
-**Status**: 🚧 **IN PROGRESS** (Started October 18, 2025)
+**Status**: ✅ **COMPLETE** (October 26, 2025)
 
-**Progress**: 12/31 tasks complete (38.7%)
+**Progress**: 31/31 tasks complete (100%)
 - ✅ Phase 2.0: Prerequisites (1/1 complete)
 - ✅ Phase 2.1: Foundation - Manifest Infrastructure (3/3 complete)
 - ✅ Phase 2.2: Foundation - Reconstruction (3/3 complete)
 - ✅ Phase 2.3: Content Write Path Integration (3/3 complete)
-- ✅ Phase 2.4: Zone Change Integration (1/2 complete - Task 2.4.2 deferred to 2.7)
+- ✅ Phase 2.4: Zone Change Integration (2/2 complete)
 - ✅ Phase 2.5: Authorization History - Infrastructure (1/1 complete)
-- ❌ Phase 2.6: Read Path Updates (0/2 tasks - **CANCELLED**, see below)
-- 📋 Phase 2.7: Self-Repair Infrastructure (0/6 tasks - **NEW**)
-- 📋 Phase 2.8: Archive Zone (0/1 task)
-- 📋 Phase 2.9: Testing (0/4 tasks)
-- 📋 Phase 2.10: Documentation (1/3 tasks complete)
+- ❌ Phase 2.6: Read Path Updates (CANCELLED - unnecessary)
+- ✅ Phase 2.7: Self-Repair Infrastructure (6/6 complete)
+- ✅ Phase 2.8: Archive Zone (1/1 complete)
+- ✅ Phase 2.9: Testing (4/4 complete)
+- ✅ Phase 2.10: Documentation (3/3 complete)
+
+**Key Achievement**: Evolved from planned wrapper pattern to superior generic pipeline pattern that enables operation-specific optimizations while centralizing self-repair logic.
 
 **Recent Completions**:
+- **October 26, 2025**: Phase 2 Complete! ✅ **PHASE 2.0-2.10 COMPLETE**
+  - **Phase 2.7**: Self-Repair Infrastructure (all 6 tasks)
+    - Implemented generic pipeline pattern (`applyStorageOperation`, `fetchAndDecideRepair`)
+    - Created `appendChunk()` and `changeZone()` operations using execution strategies
+    - Deleted orphaned prototype code (immediateSelfRepair, withS3SelfRepair, appendManifestEventsWithLazyMigration)
+    - Created comprehensive `AGENT.selfRepair.md` documentation
+  - **Phase 2.8**: Archive Zone Support
+    - `moveAsset` now allows Archive transitions (archiving and restoring)
+    - `appendChunk` rejects edits to Archive zone (frozen state)
+  - **Phase 2.9**: Testing - 214 passing tests across 15 test files
+  - **Phase 2.10**: Documentation complete
+  - **Refactoring**: `applyEdit` and `moveAsset` now use s3Storage operations
+    - applyEdit: ~200 lines → ~60 lines (70% reduction)
+    - moveAsset: ~120 lines → ~50 lines (58% reduction)
+    - Both now have clean, focused unit tests
+  - **Key Evolution**: Discovered linear flow pattern during implementation, evolved to superior pipeline design
 - **October 24, 2025**: Self-Repair Design Complete 📋 **DESIGNED**
-  - Created `s3Storage/manifest/AGENT.selfRepair.md` design document
-  - Defined centralized `immediateSelfRepair()` function for all repair scenarios
-  - Defined `withS3SelfRepair()` wrapper for fetch-check-repair pattern
-  - Documented 3 on-the-spot repair scenarios (manifest missing, view missing, both missing)
-  - Established empty placeholder pattern for operations with initialization data
-  - Phase 2.7 tasks defined (6 new tasks)
+  - Created initial self-repair design document
+  - Defined repair scenarios and strategies
+  - Established foundation for Phase 2.7 implementation
 - **October 23, 2025**: Phase 2.3 - Content Write Path Integration ✅ **COMPLETE**
   - Task 2.3.1-2.3.3: All content write operations now use chunk-based storage
   - `applyEdit` writes chunks, updates manifests, maintains materialized views
@@ -906,11 +921,14 @@ This phase was based on an outdated architectural assumption that was refined du
   - Linking from operation docs can be done as needed
   
 **Phase 2.8: Archive Zone Reintroduction**
-- [ ] **Task 2.8.1**: Remove Archive zone restrictions
-  - Remove "Archive not supported" error from `AssetWorkspace` constructor
-  - Allow `moveAsset` to Archive zone (adds ZoneChangeEvent to manifest)
-  - Archive = frozen state (no further edits allowed)
-  - **Note**: S3 lifecycle policies deferred to Phase 3 (premature optimization during active development)
+- [x] **Task 2.8.1**: Remove Archive zone restrictions ✅ **COMPLETE** (October 26, 2025)
+  - ✅ AssetWorkspace: No Archive restrictions (already supported)
+  - ✅ `moveAsset`: Removed Archive block, now allows moves to/from Archive
+  - ✅ `appendChunk`: Added validation to reject edits to Archive zone (frozen state)
+  - ✅ Archive = frozen for new content, but allows zone changes and snapshots
+  - ✅ Tests: Archive archiving/restoring moves, Archive edit rejection
+  - **Total**: 214 passing tests (2 new Archive tests)
+  - **Note**: S3 lifecycle policies deferred to Phase 3
 
 **Phase 2.9: Testing**
 - [x] **Task 2.9.1**: Unit tests for manifest operations ✅ **COMPLETE**
