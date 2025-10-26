@@ -642,6 +642,20 @@ s3Storage/
 - Using `index.ts` convention enables cleaner imports: `from './chunks'` instead of `from './chunks/operations'`
 - `reconstruction.ts` correctly lives in `materializedView/` since it reconstructs materialized views
 
+**Status**: ✅ **COMPLETED**
+
+**Implementation Summary**:
+- Created directories: `chunks/`, `snapshots/`, `materializedView/`
+- Moved chunks: `manifest/chunks.ts` → `chunks/index.ts`
+- Moved snapshots: `manifest/snapshots.ts` → `snapshots/index.ts`
+- Moved reconstruction: `manifest/reconstruction.ts` → `materializedView/reconstruction.ts`
+- Moved selfRepair: `manifest/selfRepair/` → `selfRepair/` (up one level)
+- Moved documentation: `manifest/AGENT.selfRepair.md` → `selfRepair/AGENT.md`
+- Renamed manifest core: `manifest/operations.ts` → `manifest/index.ts`
+- Updated all imports across codebase (internal and external)
+- Verified with tests: All s3Storage tests pass (136 tests)
+- **Result**: Clean, scalable directory structure aligned with conceptual architecture
+
 ---
 
 #### Task 1.1: Create `materializedView/index.ts` (Content Reducer)
@@ -678,6 +692,30 @@ s3Storage/
 - All tests pass
 - Function is pure (no side effects)
 - Clear error messages on failure
+
+**Status**: ✅ **COMPLETED**
+
+**Implementation Summary**:
+- Created `s3Storage/materializedView/index.ts` with `updateContentByChunk()` function
+- **Key insight**: Function is a thin wrapper around `StandardForm.merge()` - no need for complex logic
+- **Final implementation** (14 lines):
+  ```typescript
+  export function updateContentByChunk(
+      baseline: StandardForm,
+      chunkWML: string
+  ): StandardForm {
+      const chunkStandard = new StandardForm(chunkWML)
+      const merged = baseline.merge(chunkStandard)
+      return merged
+  }
+  ```
+- Created `s3Storage/materializedView/index.test.ts` with **6 focused tests**:
+  - Basic functionality: merge into baseline, empty baseline, Replace/With pattern
+  - Error propagation: invalid WML, empty WML
+  - Immutability: baseline not mutated
+- **Design decision**: Keep tests focused on wrapper functionality, not re-testing StandardForm.merge()
+- All tests pass (6/6)
+- **Result**: Simple, reusable content reducer ready for use in repair and orchestration
 
 ---
 
@@ -718,6 +756,18 @@ s3Storage/
 - Backward compatible (no breaking changes)
 - Both code paths tested and working
 - Tags correctly applied in both scenarios
+
+**Status**: ✅ **COMPLETED**
+
+**Implementation Summary**:
+- Extended `WriteSnapshotOptions` interface with optional `content?: string` parameter
+- Updated `writeSnapshot()` function to support two modes:
+  - **Copy mode** (existing, when `content` not provided): Uses S3 CopyObject from materialized view
+  - **Direct write mode** (new, when `content` provided): Uses S3 PutObject with provided content
+- Added 5 new tests for direct write mode + 1 backward compatibility test
+- All tests pass (21/21 total, including 15 existing + 6 new)
+- **Key optimization enabled**: Can now write snapshot with baseline content, then write materialized view with different content (avoids copy-then-overwrite pattern)
+- **Result**: Fully backward compatible extension ready for use in repair orchestration
 
 ---
 
