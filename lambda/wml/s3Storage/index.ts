@@ -29,6 +29,7 @@ import { writeChunk, ChunkReference } from './chunks'
 import { writeSnapshot, SnapshotReference } from './snapshots'
 import { reconstructFromManifest } from './materializedView/reconstruction'
 import { updateContentByChunk } from './materializedView'
+import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 import { v4 as uuidv4 } from 'uuid'
 
 /**
@@ -153,6 +154,81 @@ export interface AppendChunkFailure {
  */
 export type AppendChunkResult = AppendChunkSuccess | AppendChunkFailure
 
+/**
+ * Arguments for changeZone operation
+ */
+export interface ChangeZoneArgs {
+    /**
+     * Asset UUID to change zone for
+     */
+    assetId: AssetUUID
+    
+    /**
+     * Source zone (current zone)
+     * Used for validation and initial snapshot during lazy migration
+     */
+    fromZone: Zone
+    
+    /**
+     * Destination zone (new zone)
+     */
+    toZone: Zone
+    
+    /**
+     * Timestamp for the zone change (milliseconds since epoch)
+     * Used for event ordering and potential snapshot naming
+     */
+    timestamp: number
+}
+
+/**
+ * Successful result from changeZone operation
+ */
+export interface ChangeZoneSuccess {
+    success: true
+    
+    /**
+     * Metadata about what was done
+     */
+    metadata: {
+        /**
+         * Whether repair was performed during this operation
+         */
+        repairPerformed: boolean
+        
+        /**
+         * If repair was performed, what was repaired
+         */
+        repairActions?: {
+            createdSnapshot: boolean
+            reconstructedView: boolean
+            synthesizedEmpty: boolean
+        }
+    }
+}
+
+/**
+ * Failed result from changeZone operation
+ */
+export interface ChangeZoneFailure {
+    success: false
+    
+    /**
+     * Human-readable error message
+     */
+    error: string
+    
+    /**
+     * Error category for structured error handling
+     */
+    errorType: 'validation' | 'not-found' | 's3-error' | 'repair-failed'
+}
+
+/**
+ * Result from changeZone operation
+ */
+export type ChangeZoneResult = ChangeZoneSuccess | ChangeZoneFailure
+
 //
 // Internal helper types and utilities
 //
@@ -168,6 +244,15 @@ interface RepairActions {
     createdSnapshot: boolean
     reconstructedView: boolean
     synthesizedEmpty: boolean
+}
+
+/**
+ * Generic operation failure (subset of error types common to all operations)
+ */
+interface BaseOperationFailure {
+    success: false
+    error: string
+    errorType: 'validation' | 'not-found' | 's3-error' | 'repair-failed'
 }
 
 /**
@@ -187,7 +272,7 @@ async function fetchCurrentState(args: {
     zone: Zone
 }): Promise<
     | { success: true; workspace: AssetWorkspace; manifest: ManifestEvent[]; state: RepairState }
-    | AppendChunkFailure
+    | BaseOperationFailure
 > {
     const { assetId, suffix, zone } = args
     const prefix = buildPrefix(assetId, suffix)
@@ -236,7 +321,7 @@ async function buildBaseline(args: {
         repairActions?: RepairActions
         snapshotToCreate?: { content: string }  // If we need to create snapshot during lazy migration
     }
-    | AppendChunkFailure
+    | BaseOperationFailure
 > {
     const { workspace, manifest, state, suffix, createIfNeeded, assetId } = args
     const isAuth = suffix === 'auth.wml'
@@ -644,6 +729,256 @@ export async function appendChunk(args: AppendChunkArgs): Promise<AppendChunkRes
                 createdSnapshot: repairActions.createdSnapshot,
                 reconstructedView: repairActions.reconstructedView,
                 synthesizedEmpty: repairActions.synthesizedEmpty
+            } : undefined
+        }
+    }
+}
+
+/**
+ * Change zone for a single prefix (content or auth)
+ * Internal helper for changeZone operation
+ */
+async function changeZoneForPrefix(args: {
+    assetId: AssetUUID
+    fromZone: Zone
+    toZone: Zone
+    timestamp: number
+    suffix: ManifestSuffix
+}): Promise<{
+    success: true
+    repairPerformed: boolean
+    repairActions?: RepairActions
+} | ChangeZoneFailure> {
+    const { assetId, fromZone, toZone, timestamp, suffix } = args
+    
+    // Step 1: Fetch current state  
+    const fetchResult = await fetchCurrentState({ assetId, suffix, zone: fromZone })
+    
+    if (!fetchResult.success) {
+        return fetchResult
+    }
+    
+    const { workspace, manifest, state } = fetchResult
+    
+    // Step 2: Build baseline (with repair if needed)
+    // Note: We use fromZone for baseline because that's the current state
+    const baselineResult = await buildBaseline({
+        workspace,
+        manifest,
+        state,
+        suffix,
+        createIfNeeded: true,  // Zone changes can create empty assets
+        zone: fromZone,
+        assetId
+    })
+    
+    if (!baselineResult.success) {
+        return baselineResult
+    }
+    
+    const { baseline, repairActions, snapshotToCreate } = baselineResult
+    
+    // Step 3: NO content transformation needed - zone changes don't modify content
+    // Just use baseline as-is
+    
+    // Step 4: Prepare writes for zone change
+    const prefix = buildPrefix(assetId, suffix)
+    const isAuth = suffix === 'auth.wml'
+    
+    // Write snapshot if needed for repair
+    let snapshotRef: SnapshotReference | undefined
+    if (snapshotToCreate) {
+        snapshotRef = await writeSnapshot({
+            prefix,
+            timestamp,
+            zone: fromZone,  // Snapshot captures state before zone change
+            snapshotType: 'initializeManifest',
+            chunksBeforeSnapshot: 0,
+            content: snapshotToCreate.content
+        })
+    }
+    
+    // Build manifest events
+    const events: ManifestEvent[] = []
+    
+    // Add repair events ONLY if snapshot was created (manifest initialization)
+    if (snapshotRef) {
+        events.push({
+            type: 'zoneChange',
+            timestamp: new Date(timestamp).toISOString(),
+            eventId: uuidv4(),
+            fromZone: null,  // Initial zone establishment
+            toZone: fromZone
+        })
+        
+        events.push({
+            type: 'snapshot',
+            timestamp: new Date(timestamp).toISOString(),
+            eventId: uuidv4(),
+            s3Key: snapshotRef.s3Key,
+            snapshotType: 'initializeManifest',
+            chunksBeforeSnapshot: 0,
+            snapshotSize: snapshotRef.snapshotSize
+        })
+    }
+    
+    // Add zone change event
+    events.push({
+        type: 'zoneChange',
+        timestamp: new Date(timestamp).toISOString(),
+        eventId: uuidv4(),
+        fromZone,
+        toZone
+    })
+    
+    // Step 5: Execute writes
+    try {
+        // Optimization: If no repair was needed, just update tags (don't rewrite content)
+        // This preserves the tag-switching speedup from Phase 1 flat-UUID storage
+        if (!repairActions) {
+            // Fast path: Update S3 tags without rewriting objects
+            const jsonKey = isAuth ? workspace.s3KeyFor('auth.ndjson') : workspace.s3KeyFor('json')
+            const wmlKey = isAuth ? workspace.s3KeyFor('auth.wml') : workspace.s3KeyFor('wml')
+            
+            await Promise.all([
+                s3Client.updateTags({ 
+                    Key: jsonKey, 
+                    Tags: { Zone: toZone } 
+                }),
+                s3Client.updateTags({ 
+                    Key: wmlKey, 
+                    Tags: { Zone: toZone } 
+                })
+            ])
+        } else {
+            // Repair path: Need to write content anyway (reconstruction or synthesis)
+            // Update workspace zone (affects S3 tags when we push)
+            workspace.zone = toZone
+            
+            // Update workspace with current content
+            if (isAuth && baseline instanceof StandardAuthorizationCollection) {
+                workspace.authorizations = baseline
+            } else if (baseline instanceof StandardForm) {
+                await workspace.setJSON(baseline)
+            }
+            
+            // Write materialized views with NEW zone tags
+            if (isAuth) {
+                await Promise.all([
+                    workspace.pushAuthorizationJSON(),
+                    workspace.pushAuthorizationWML()
+                ])
+            } else {
+                await Promise.all([
+                    workspace.pushJSON(),
+                    workspace.pushWML()
+                ])
+            }
+        }
+        
+        // Append manifest events (zone change)
+        await appendManifestEvents(prefix, events)
+        
+    } catch (err) {
+        return {
+            success: false,
+            error: err instanceof Error ? err.message : 'Unknown S3 write error',
+            errorType: 's3-error'
+        }
+    }
+    
+    // Step 6: Return success
+    return {
+        success: true,
+        repairPerformed: repairActions !== undefined,
+        repairActions: repairActions ? {
+            createdSnapshot: repairActions.createdSnapshot,
+            reconstructedView: repairActions.reconstructedView,
+            synthesizedEmpty: repairActions.synthesizedEmpty
+        } : undefined
+    }
+}
+
+/**
+ * Change the zone of an asset
+ * 
+ * This operation:
+ * 1. Fetches current state for both content and authorization files
+ * 2. Performs self-repair if needed (missing manifest or views)
+ * 3. Updates zone tags on all materialized view files
+ * 4. Appends ZoneChangeEvent to both content and auth manifests
+ * 5. Returns success with repair metadata
+ * 
+ * Unlike appendChunk, this operation doesn't transform content - it only
+ * updates metadata. Both content and authorization files are processed
+ * in parallel to ensure consistent zone information.
+ * 
+ * Self-Repair Scenarios:
+ * - Manifest missing, view exists: Create initial snapshot from view (lazy migration)
+ * - View missing, manifest exists: Reconstruct view from manifest
+ * - Both missing: Synthesize empty content/auth
+ * 
+ * Optimization:
+ * - Single write per file (no duplicate writes during repair)
+ * - Batched manifest updates (repair events + zone change in one append)
+ * - Parallel processing of content and auth files
+ * 
+ * Concurrency:
+ * - Caller must hold singleFlight/atomicLock for this assetId
+ * - This function assumes sequential execution (no concurrent zone changes)
+ * 
+ * @param args - Operation arguments
+ * @returns ChangeZoneResult with success status and metadata
+ * 
+ * @example
+ * ```typescript
+ * const result = await changeZone({
+ *     assetId: 'ASSET#my-room',
+ *     fromZone: 'Draft',
+ *     toZone: 'Library',
+ *     timestamp: Date.now()
+ * })
+ * 
+ * if (result.success) {
+ *     console.log('Zone changed successfully')
+ * } else {
+ *     console.error('Failed:', result.error)
+ * }
+ * ```
+ */
+export async function changeZone(args: ChangeZoneArgs): Promise<ChangeZoneResult> {
+    const { assetId, fromZone, toZone, timestamp } = args
+    
+    // Process both content and auth files in parallel
+    const results = await Promise.all([
+        changeZoneForPrefix({ assetId, fromZone, toZone, timestamp, suffix: 'wml' }),
+        changeZoneForPrefix({ assetId, fromZone, toZone, timestamp, suffix: 'auth.wml' })
+    ])
+    
+    // Check if either failed
+    const contentResult = results[0]
+    const authResult = results[1]
+    
+    if (!contentResult.success) {
+        return contentResult
+    }
+    
+    if (!authResult.success) {
+        return authResult
+    }
+    
+    // Both succeeded - combine repair metadata
+    const repairPerformed = contentResult.repairPerformed || authResult.repairPerformed
+    
+    return {
+        success: true,
+        metadata: {
+            repairPerformed,
+            repairActions: repairPerformed ? {
+                // Report if EITHER content or auth needed these repairs
+                createdSnapshot: contentResult.repairActions?.createdSnapshot || authResult.repairActions?.createdSnapshot || false,
+                reconstructedView: contentResult.repairActions?.reconstructedView || authResult.repairActions?.reconstructedView || false,
+                synthesizedEmpty: contentResult.repairActions?.synthesizedEmpty || authResult.repairActions?.synthesizedEmpty || false
             } : undefined
         }
     }
