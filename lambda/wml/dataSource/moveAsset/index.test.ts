@@ -118,7 +118,14 @@ describe('moveAsset', () => {
     })
 
     describe('Archive zone handling', () => {
-        it('should reject Archive transitions (deferred to Phase 2)', async () => {
+        it('should allow moves to Archive zone (archiving)', async () => {
+            mockChangeZone.mockResolvedValue({
+                success: true,
+                metadata: {
+                    repairPerformed: false
+                }
+            })
+
             const request: MoveAssetRequest = {
                 type: 'Move Asset',
                 fromZone: 'Library',
@@ -127,9 +134,40 @@ describe('moveAsset', () => {
             
             const result = await moveAsset(assetId, request)
             
-            expect(result.success).toBe(false)
-            expect(result.message).toContain('Archive functionality deferred to Phase 2')
-            expect(mockChangeZone).not.toHaveBeenCalled()
+            expect(mockChangeZone).toHaveBeenCalledWith({
+                assetId: 'ASSET#test-asset',
+                fromZone: 'Library',
+                toZone: 'Archive',
+                timestamp: 1234567890000
+            })
+            expect(result.success).toBe(true)
+            expect(result.message).toContain('zone changed from Library to Archive')
+        })
+
+        it('should allow moves from Archive zone (restoring)', async () => {
+            mockChangeZone.mockResolvedValue({
+                success: true,
+                metadata: {
+                    repairPerformed: false
+                }
+            })
+
+            const request: MoveAssetRequest = {
+                type: 'Move Asset',
+                fromZone: 'Archive',
+                toZone: 'Library'
+            }
+            
+            const result = await moveAsset(assetId, request)
+            
+            expect(mockChangeZone).toHaveBeenCalledWith({
+                assetId: 'ASSET#test-asset',
+                fromZone: 'Archive',
+                toZone: 'Library',
+                timestamp: 1234567890000
+            })
+            expect(result.success).toBe(true)
+            expect(result.message).toContain('zone changed from Archive to Library')
         })
     })
 

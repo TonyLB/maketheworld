@@ -20,9 +20,9 @@ export interface MoveAssetResponse {
  * Move an asset from one zone to another
  * 
  * Business logic responsibilities:
- * - Validate zone transition rules
- * - Handle Archive zone special case
+ * - Validate zone transition rules (player metadata requirements)
  * - Map storage result to domain response
+ * - Note: Archive zone is now supported (adds ZoneChangeEvent to manifest)
  * 
  * Storage operations delegated to changeZone():
  * - S3 tag updates
@@ -51,14 +51,6 @@ export async function moveAsset(assetId: AssetUUID, request: MoveAssetRequest): 
         return {
             success: false,
             message: `Cannot move from ${fromZone} to ${toZone}: Target zone requires player metadata that doesn't exist on source asset. Use copy operation instead.`
-        }
-    }
-    
-    // Handle Archive zone as special case (deferred to Phase 2)
-    if (toZone === 'Archive') {
-        return {
-            success: false,
-            message: 'Archive functionality deferred to Phase 2'
         }
     }
     
