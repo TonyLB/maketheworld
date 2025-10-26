@@ -1,18 +1,13 @@
 /**
  * Move Asset functionality for WML DataSource
  * 
- * Phase 1: This module handles asset zone transitions by updating S3 object tags.
- * With flat UUID-based storage, zone transitions are simple tag updates rather than
- * file copy+delete operations.
+ * This module handles asset zone transitions by delegating to the s3Storage
+ * changeZone operation, which manages S3 tags, manifests, and self-repair.
  */
 
-import { s3Client } from "@tonylb/mtw-asset-workspace/ts/clients"
 import { MoveAssetRequest } from "../coordinationSerializer"
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
-import { appendManifestEventsWithLazyMigration } from "../utilities/appendManifestEventsWithLazyMigration"
-import { ManifestZoneChangeEvent } from "../../s3Storage/manifest/baseClasses"
-import AssetWorkspace from "../../s3Storage/AssetWorkspace"
-import { v4 as uuidv4 } from 'uuid'
+import { changeZone } from "../../s3Storage"
 import { now } from "../../utilities/mockableTime"
 
 export interface MoveAssetResponse {
@@ -24,8 +19,15 @@ export interface MoveAssetResponse {
 /**
  * Move an asset from one zone to another
  * 
- * Phase 1: With flat UUID-based storage, this function simply updates the Zone tag
- * on S3 objects. No file copying or path changes are needed.
+ * Business logic responsibilities:
+ * - Validate zone transition rules
+ * - Handle Archive zone special case
+ * - Map storage result to domain response
+ * 
+ * Storage operations delegated to changeZone():
+ * - S3 tag updates
+ * - Manifest zone change events
+ * - Self-repair if needed
  * 
  * IMPORTANT LIMITATION: This function can only move assets that already have appropriate
  * S3 metadata for the target zone. Since Player metadata is immutable (set at object creation):
@@ -42,7 +44,7 @@ export interface MoveAssetResponse {
 export async function moveAsset(assetId: AssetUUID, request: MoveAssetRequest): Promise<MoveAssetResponse> {
     const { fromZone, toZone } = request
     
-    // Phase 1: Validate that we're not trying to move TO Personal/Draft from Canon/Library
+    // Validate that we're not trying to move TO Personal/Draft from Canon/Library
     // (would require player metadata that doesn't exist on Canon/Library assets)
     if ((toZone === 'Personal' || toZone === 'Draft') && 
         (fromZone === 'Canon' || fromZone === 'Library')) {
@@ -52,67 +54,35 @@ export async function moveAsset(assetId: AssetUUID, request: MoveAssetRequest): 
         }
     }
     
-    try {
+    // Handle Archive zone as special case (deferred to Phase 2)
+    if (toZone === 'Archive') {
+        return {
+            success: false,
+            message: 'Archive functionality deferred to Phase 2'
+        }
+    }
+    
+    // Delegate to storage system
+    const result = await changeZone({
+        assetId,
+        fromZone,
+        toZone,
+        timestamp: now()
+    })
+    
+    // Map storage result to domain response
+    if (result.success) {
         const fileName = assetId.replace('ASSET#', '')
-        
-        // Handle Archive zone as deletion (Phase 1 defers proper archiving to Phase 2)
-        if (toZone === 'Archive') {
-            // TODO Phase 2: Replace deletion with Zone='Archive' tag when implementing chunk-based storage
-            return {
-                success: false,
-                message: 'Archive functionality deferred to Phase 2'
-            }
-        }
-        
-        // Always use lazy migration helper - it handles all cases
-        const timestamp = now()
-        const contentPrefix = `${fileName}.wml/`
-        const authPrefix = `${fileName}.auth.wml/`
-        
-        const zoneChangeEvent: ManifestZoneChangeEvent = {
-            type: 'zoneChange',
-            timestamp: new Date(timestamp).toISOString(),
-            eventId: uuidv4(),
-            fromZone,
-            toZone
-        }
-        
-        // Load asset content and authorization for the helper function
-        const assetWorkspace = new AssetWorkspace(assetId, fromZone)
-        
-        await Promise.all([
-            assetWorkspace.loadJSON(),
-            assetWorkspace.loadAuthorizationJSON()
-        ])
-        
-        // Always call the helper function - it handles all cases including empty assets
-        const manifestUpdates = [
-            appendManifestEventsWithLazyMigration(contentPrefix, assetWorkspace, timestamp, [zoneChangeEvent]),
-            appendManifestEventsWithLazyMigration(authPrefix, assetWorkspace, timestamp, [zoneChangeEvent])
-        ]
-            
-        // Update Zone tags on materialized views
-        const tagUpdates = [
-            s3Client.updateTags({ Key: `${fileName}.wml`, Tags: { Zone: toZone } }),
-            s3Client.updateTags({ Key: `${fileName}.ndjson`, Tags: { Zone: toZone } }),
-            s3Client.updateTags({ Key: `${fileName}.auth.wml`, Tags: { Zone: toZone } }),
-            s3Client.updateTags({ Key: `${fileName}.auth.ndjson`, Tags: { Zone: toZone } })
-        ]
-            
-        // Execute all updates in parallel
-        await Promise.all([...manifestUpdates, ...tagUpdates])
-        
         return {
             success: true,
             message: `Asset ${assetId} zone changed from ${fromZone} to ${toZone}`,
             newLocation: fileName
         }
-        
-    } catch (error) {
-        console.error(`Error moving asset ${assetId}:`, error)
+    } else {
+        console.log(`Move failed: ${result.error}`)
         return {
             success: false,
-            message: `Failed to update zone tags: ${error instanceof Error ? error.message : String(error)}`
+            message: result.error
         }
     }
 }
