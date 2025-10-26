@@ -34,24 +34,28 @@ export interface WriteSnapshotOptions {
     snapshotType: 'manual' | 'automatic' | 'initializeManifest';  // How was this snapshot created
     chunksBeforeSnapshot: number;          // Number of chunks this snapshot replaces
     authoringPlayer?: string;              // Player who created this snapshot (if applicable)
+    content?: string;                      // Optional: Direct content to write (if provided, uses PutObject instead of CopyObject)
 }
 
 /**
  * Write an immutable snapshot to S3
  * 
  * Snapshots are never modified after writing - they represent a complete materialized
- * state at a specific point in time. The snapshot is created by copying the current
- * materialized view with new metadata/tags.
+ * state at a specific point in time.
  * 
- * Uses S3 CopyObject for efficiency (no data transfer through Lambda).
- * Parallel HeadObject on source to get size without sequential latency.
+ * Two modes of operation:
+ * 1. **Copy mode** (default, when content not provided):
+ *    - Uses S3 CopyObject to copy from materialized view
+ *    - Efficient: no data transfer through Lambda
+ *    - Parallel HeadObject on source to get size without sequential latency
+ * 
+ * 2. **Direct write mode** (when content is provided):
+ *    - Uses S3 PutObject to write content directly
+ *    - Enables optimization: compose content in-memory, write snapshot, then write different content to view
+ *    - Example: Synthesize empty baseline → write as snapshot → apply edits → write to view (avoids copy-then-overwrite)
  */
 export const writeSnapshot = async (options: WriteSnapshotOptions): Promise<SnapshotReference> => {
-    const { prefix, timestamp, zone, snapshotType, chunksBeforeSnapshot, authoringPlayer } = options
-    
-    // Source: materialized view (e.g., "test.wml")
-    // Remove trailing slash from prefix: "test.wml/" -> "test.wml"
-    const sourceKey = prefix.slice(0, -1)
+    const { prefix, timestamp, zone, snapshotType, chunksBeforeSnapshot, authoringPlayer, content } = options
     
     // Destination: snapshot location
     const s3Key = `${prefix}snapshots/${timestamp}.wml`
@@ -63,20 +67,46 @@ export const writeSnapshot = async (options: WriteSnapshotOptions): Promise<Snap
         chunksBeforeSnapshot: chunksBeforeSnapshot.toString()
     }
     
+    if (authoringPlayer) {
+        metadata.authoringPlayer = authoringPlayer
+    }
+    
     // Prepare tags for lifecycle management
     const tags = { Zone: zone }
     
-    // Parallel: Copy object + Get size from source
-    // Size is reliable because snapshot has identical content to source
-    const [, snapshotSize] = await Promise.all([
-        s3Client.copyWithTags({
-            CopySource: sourceKey,
+    let snapshotSize: number
+    
+    if (content !== undefined) {
+        // Direct write mode: Write provided content to snapshot location
+        await s3Client.putWithTags({
             Key: s3Key,
-            Metadata: metadata,
-            Tags: tags
-        }),
-        s3Client.getSize({ Key: sourceKey })
-    ])
+            Body: content,
+            Tags: tags,
+            Metadata: metadata
+        })
+        
+        // Calculate size from content
+        snapshotSize = Buffer.byteLength(content, 'utf8')
+    } else {
+        // Copy mode: Copy from materialized view
+        // Source: materialized view (e.g., "test.wml")
+        // Remove trailing slash from prefix: "test.wml/" -> "test.wml"
+        const sourceKey = prefix.slice(0, -1)
+        
+        // Parallel: Copy object + Get size from source
+        // Size is reliable because snapshot has identical content to source
+        const [, size] = await Promise.all([
+            s3Client.copyWithTags({
+                CopySource: sourceKey,
+                Key: s3Key,
+                Metadata: metadata,
+                Tags: tags
+            }),
+            s3Client.getSize({ Key: sourceKey })
+        ])
+        
+        snapshotSize = size
+    }
     
     return {
         s3Key,

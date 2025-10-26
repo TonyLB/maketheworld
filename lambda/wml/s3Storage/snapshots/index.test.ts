@@ -5,7 +5,8 @@ import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 jest.mock('@tonylb/mtw-asset-workspace/ts/clients', () => ({
     s3Client: {
         copyWithTags: jest.fn(),
-        getSize: jest.fn()
+        getSize: jest.fn(),
+        putWithTags: jest.fn()
     }
 }))
 
@@ -314,6 +315,134 @@ describe('Snapshot Operations', () => {
             })
 
             expect(result.snapshotSize).toBe(5_000_000)
+        })
+        
+        describe('direct write mode (with content parameter)', () => {
+            it('should use putWithTags when content is provided', async () => {
+                mockS3Client.putWithTags.mockResolvedValue(undefined)
+                
+                const testContent = '<Asset uuid=(test)><Room uuid=(room1)><ShortName>Test</ShortName></Room></Asset>'
+                
+                await writeSnapshot({
+                    prefix: 'test.wml/',
+                    timestamp: 1729252800000,
+                    zone: 'Library',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0,
+                    content: testContent
+                })
+                
+                // Should use putWithTags, not copyWithTags
+                expect(mockS3Client.putWithTags).toHaveBeenCalledTimes(1)
+                expect(mockS3Client.copyWithTags).not.toHaveBeenCalled()
+                expect(mockS3Client.getSize).not.toHaveBeenCalled()
+            })
+            
+            it('should write content with correct parameters', async () => {
+                mockS3Client.putWithTags.mockResolvedValue(undefined)
+                
+                const testContent = '<Asset uuid=(test)><Room uuid=(room1)><ShortName>Test Content</ShortName></Room></Asset>'
+                
+                await writeSnapshot({
+                    prefix: 'test.wml/',
+                    timestamp: 1729252800000,
+                    zone: 'Canon',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0,
+                    content: testContent
+                })
+                
+                expect(mockS3Client.putWithTags).toHaveBeenCalledWith({
+                    Key: 'test.wml/snapshots/1729252800000.wml',
+                    Body: testContent,
+                    Tags: { Zone: 'Canon' },
+                    Metadata: {
+                        timestamp: '1729252800000',
+                        snapshotType: 'initializeManifest',
+                        chunksBeforeSnapshot: '0'
+                    }
+                })
+            })
+            
+            it('should calculate size from content', async () => {
+                mockS3Client.putWithTags.mockResolvedValue(undefined)
+                
+                const testContent = '<Asset uuid=(test)><Room uuid=(testRoom)><ShortName>Simple</ShortName></Room></Asset>'
+                const expectedSize = Buffer.byteLength(testContent, 'utf8')
+                
+                const result = await writeSnapshot({
+                    prefix: 'test.wml/',
+                    timestamp: Date.now(),
+                    zone: 'Library',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0,
+                    content: testContent
+                })
+                
+                expect(result.snapshotSize).toBe(expectedSize)
+            })
+            
+            it('should handle empty content', async () => {
+                mockS3Client.putWithTags.mockResolvedValue(undefined)
+                
+                const result = await writeSnapshot({
+                    prefix: 'test.wml/',
+                    timestamp: Date.now(),
+                    zone: 'Library',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0,
+                    content: ''
+                })
+                
+                expect(result.snapshotSize).toBe(0)
+                expect(mockS3Client.putWithTags).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        Body: ''
+                    })
+                )
+            })
+            
+            it('should include authoringPlayer in metadata when provided', async () => {
+                mockS3Client.putWithTags.mockResolvedValue(undefined)
+                
+                await writeSnapshot({
+                    prefix: 'test.wml/',
+                    timestamp: Date.now(),
+                    zone: 'Library',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: 0,
+                    content: '<Asset uuid=(test)><Room uuid=(r1)><ShortName>R1</ShortName></Room></Asset>',
+                    authoringPlayer: 'PLAYER#123'
+                })
+                
+                expect(mockS3Client.putWithTags).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        Metadata: expect.objectContaining({
+                            authoringPlayer: 'PLAYER#123'
+                        })
+                    })
+                )
+            })
+        })
+        
+        describe('backward compatibility', () => {
+            it('should use copy mode when content not provided', async () => {
+                mockS3Client.copyWithTags.mockResolvedValue(undefined)
+                mockS3Client.getSize.mockResolvedValue(5000)
+                
+                await writeSnapshot({
+                    prefix: 'test.wml/',
+                    timestamp: 1729252800000,
+                    zone: 'Library',
+                    snapshotType: 'manual',
+                    chunksBeforeSnapshot: 10
+                    // No content parameter
+                })
+                
+                // Should use copyWithTags, not putWithTags
+                expect(mockS3Client.copyWithTags).toHaveBeenCalledTimes(1)
+                expect(mockS3Client.putWithTags).not.toHaveBeenCalled()
+            })
         })
     })
 })
