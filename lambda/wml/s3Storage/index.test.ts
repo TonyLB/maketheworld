@@ -17,6 +17,7 @@ jest.mock('./snapshots')
 jest.mock('./materializedView/reconstruction')
 jest.mock('./materializedView')
 jest.mock('./AssetWorkspace')
+jest.mock('@tonylb/mtw-asset-workspace/ts/clients')
 jest.mock('uuid')
 
 import { loadManifest, appendManifestEvents } from './manifest'
@@ -25,6 +26,7 @@ import { writeSnapshot } from './snapshots'
 import { reconstructFromManifest } from './materializedView/reconstruction'
 import { updateContentByChunk } from './materializedView'
 import AssetWorkspace from './AssetWorkspace'
+import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -35,6 +37,7 @@ const mockWriteSnapshot = writeSnapshot as jest.MockedFunction<typeof writeSnaps
 const mockReconstructFromManifest = reconstructFromManifest as jest.MockedFunction<typeof reconstructFromManifest>
 const mockUpdateContentByChunk = updateContentByChunk as jest.MockedFunction<typeof updateContentByChunk>
 const MockAssetWorkspace = AssetWorkspace as jest.MockedClass<typeof AssetWorkspace>
+const mockS3Client = s3Client as jest.Mocked<typeof s3Client>
 const mockUuidv4 = uuidv4 as jest.MockedFunction<typeof uuidv4>
 
 // Test constants
@@ -574,6 +577,355 @@ describe('appendChunk', () => {
             
             expect(result.errorType).toBe('validation')
             expect(result.error).toContain('Authorization chunk')
+        })
+    })
+})
+
+describe('changeZone', () => {
+    const { changeZone } = require('./index')
+    
+    beforeEach(() => {
+        jest.clearAllMocks()
+        
+        // Mock uuidv4 to return sequential predictable IDs
+        let uuidCounter = 0
+        mockUuidv4.mockImplementation(() => `event-id-${++uuidCounter}`)
+        
+        // Default mock: manifest exists
+        mockLoadManifest.mockResolvedValue([
+            { type: 'zoneChange', timestamp: TEST_ISO_TIMESTAMP, eventId: 'event-0', fromZone: null, toZone: 'Draft' }
+        ])
+        
+        // Default mock: snapshot write succeeds
+        mockWriteSnapshot.mockResolvedValue({
+            s3Key: `test-room.wml/snapshots/${TEST_TIMESTAMP}.wml`,
+            snapshotSize: 1024
+        })
+        
+        // Default mock: manifest append succeeds
+        mockAppendManifestEvents.mockResolvedValue(undefined)
+        
+        // Default mock: s3Client.updateTags succeeds
+        mockS3Client.updateTags = jest.fn().mockResolvedValue(undefined)
+        
+        // Mock AssetWorkspace
+        MockAssetWorkspace.mockImplementation((assetId, zone, player) => {
+            const existingContent = new StandardForm(assetId)
+            const { StandardAuthorizationCollection } = require('@tonylb/mtw-wml/ts/standardize/authorization')
+            const existingAuth = new StandardAuthorizationCollection(assetId)
+            
+            return {
+                assetId,
+                zone,
+                player,
+                status: { json: 'Clean', wml: 'Clean', s3Missing: false },
+                authStatus: { json: 'Clean', wml: 'Clean', s3Missing: false },
+                standard: existingContent,
+                authorizations: existingAuth,
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                loadAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
+                setJSON: jest.fn().mockResolvedValue(undefined),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined),
+                pushAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
+                pushAuthorizationWML: jest.fn().mockResolvedValue(undefined),
+                s3KeyFor: jest.fn((type) => `${assetId.replace('ASSET#', '')}.${type}`)
+            } as any
+        })
+    })
+    
+    describe('normal operation - no repair needed', () => {
+        it('should change zone for both content and auth files', async () => {
+            const result = await changeZone({
+                assetId: TEST_ASSET_ID,
+                fromZone: 'Draft',
+                toZone: 'Library',
+                timestamp: TEST_TIMESTAMP
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            // Should call loadManifest for both content and auth
+            expect(mockLoadManifest).toHaveBeenCalledTimes(2)
+            expect(mockLoadManifest).toHaveBeenCalledWith('test-room.wml/')
+            expect(mockLoadManifest).toHaveBeenCalledWith('test-room.auth.wml/')
+            
+            // Should NOT create snapshots (manifests exist, no lazy migration)
+            expect(mockWriteSnapshot).not.toHaveBeenCalled()
+            
+            // Should append zone change events to both manifests
+            expect(mockAppendManifestEvents).toHaveBeenCalledTimes(2)
+            expect(mockAppendManifestEvents).toHaveBeenCalledWith('test-room.wml/', [
+                {
+                    type: 'zoneChange',
+                    timestamp: TEST_ISO_TIMESTAMP,
+                    eventId: expect.any(String),
+                    fromZone: 'Draft',
+                    toZone: 'Library'
+                }
+            ])
+            expect(mockAppendManifestEvents).toHaveBeenCalledWith('test-room.auth.wml/', [
+                {
+                    type: 'zoneChange',
+                    timestamp: TEST_ISO_TIMESTAMP,
+                    eventId: expect.any(String),
+                    fromZone: 'Draft',
+                    toZone: 'Library'
+                }
+            ])
+            
+            // Should NOT report repair
+            expect(result.metadata.repairPerformed).toBe(false)
+        })
+        
+        it('should use fast tag-update path when no repair needed', async () => {
+            const result = await changeZone({
+                assetId: TEST_ASSET_ID,
+                fromZone: 'Draft',
+                toZone: 'Library',
+                timestamp: TEST_TIMESTAMP
+            })
+            
+            expect(result.success).toBe(true)
+            
+            // KEY TEST: Should use s3Client.updateTags (fast path), not push methods
+            expect(mockS3Client.updateTags).toHaveBeenCalledTimes(4)  // 2 files × 2 prefixes (content + auth)
+            
+            // Should update both content files
+            expect(mockS3Client.updateTags).toHaveBeenCalledWith({
+                Key: 'test-room.json',
+                Tags: { Zone: 'Library' }
+            })
+            expect(mockS3Client.updateTags).toHaveBeenCalledWith({
+                Key: 'test-room.wml',
+                Tags: { Zone: 'Library' }
+            })
+            
+            // Should update both auth files
+            expect(mockS3Client.updateTags).toHaveBeenCalledWith({
+                Key: 'test-room.auth.ndjson',
+                Tags: { Zone: 'Library' }
+            })
+            expect(mockS3Client.updateTags).toHaveBeenCalledWith({
+                Key: 'test-room.auth.wml',
+                Tags: { Zone: 'Library' }
+            })
+            
+            // Should NOT rewrite content (pushJSON/pushWML not called in fast path)
+            // Note: We can't easily verify this with the current mock structure,
+            // but the updateTags calls prove we're using the optimized path
+        })
+    })
+    
+    describe('lazy migration - manifest missing', () => {
+        it('should create snapshots and initialize manifests for both files', async () => {
+            // Empty manifests (missing)
+            mockLoadManifest.mockResolvedValue([])
+            
+            // Mock snapshots for content and auth
+            mockWriteSnapshot
+                .mockResolvedValueOnce({
+                    s3Key: `test-room.wml/snapshots/${TEST_TIMESTAMP}.wml`,
+                    snapshotSize: 1024
+                })
+                .mockResolvedValueOnce({
+                    s3Key: `test-room.auth.wml/snapshots/${TEST_TIMESTAMP}.wml`,
+                    snapshotSize: 512
+                })
+            
+            const result = await changeZone({
+                assetId: TEST_ASSET_ID,
+                fromZone: 'Draft',
+                toZone: 'Library',
+                timestamp: TEST_TIMESTAMP
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            // Should create snapshots for both content and auth
+            expect(mockWriteSnapshot).toHaveBeenCalledTimes(2)
+            expect(mockWriteSnapshot).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    prefix: 'test-room.wml/',
+                    zone: 'Draft',  // Snapshot captures state BEFORE zone change
+                    snapshotType: 'initializeManifest',
+                    content: expect.any(String)
+                })
+            )
+            expect(mockWriteSnapshot).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    prefix: 'test-room.auth.wml/',
+                    zone: 'Draft',
+                    snapshotType: 'initializeManifest',
+                    content: expect.any(String)
+                })
+            )
+            
+            // Should append batched events (initial ZoneChange + Snapshot + actual ZoneChange)
+            expect(mockAppendManifestEvents).toHaveBeenCalledTimes(2)
+            expect(mockAppendManifestEvents).toHaveBeenCalledWith('test-room.wml/', [
+                expect.objectContaining({ type: 'zoneChange', fromZone: null, toZone: 'Draft' }),
+                expect.objectContaining({ type: 'snapshot' }),
+                expect.objectContaining({ type: 'zoneChange', fromZone: 'Draft', toZone: 'Library' })
+            ])
+            
+            // Should report repair
+            expect(result.metadata.repairPerformed).toBe(true)
+            expect(result.metadata.repairActions).toEqual({
+                createdSnapshot: true,
+                reconstructedView: false,
+                synthesizedEmpty: false
+            })
+        })
+    })
+    
+    describe('reconstruction - view missing', () => {
+        it('should reconstruct views from manifests', async () => {
+            // Manifests exist
+            mockLoadManifest.mockResolvedValue([
+                { type: 'zoneChange', timestamp: TEST_ISO_TIMESTAMP, eventId: 'event-0', fromZone: null, toZone: 'Draft' }
+            ])
+            
+            // Mock workspaces with missing views
+            MockAssetWorkspace.mockImplementation((assetId, zone) => ({
+                assetId,
+                zone,
+                status: { json: 'Error', wml: 'Error', s3Missing: true },  // Content missing
+                authStatus: { json: 'Error', wml: 'Error', s3Missing: true },  // Auth missing
+                standard: undefined,
+                authorizations: undefined,
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                loadAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
+                setJSON: jest.fn().mockResolvedValue(undefined),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined),
+                pushAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
+                pushAuthorizationWML: jest.fn().mockResolvedValue(undefined)
+            } as any))
+            
+            // Mock reconstruction
+            const { StandardAuthorizationCollection } = require('@tonylb/mtw-wml/ts/standardize/authorization')
+            mockReconstructFromManifest
+                .mockResolvedValueOnce({
+                    type: 'content',
+                    standard: new StandardForm(TEST_ASSET_ID),
+                    metadata: { snapshotUsed: false, chunksApplied: 0 }
+                })
+                .mockResolvedValueOnce({
+                    type: 'auth',
+                    authorization: new StandardAuthorizationCollection(TEST_ASSET_ID),
+                    metadata: { snapshotUsed: false, chunksApplied: 0 }
+                })
+            
+            const result = await changeZone({
+                assetId: TEST_ASSET_ID,
+                fromZone: 'Draft',
+                toZone: 'Library',
+                timestamp: TEST_TIMESTAMP
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            // Should reconstruct both content and auth
+            expect(mockReconstructFromManifest).toHaveBeenCalledTimes(2)
+            expect(mockReconstructFromManifest).toHaveBeenCalledWith('test-room.wml/')
+            expect(mockReconstructFromManifest).toHaveBeenCalledWith('test-room.auth.wml/')
+            
+            // Should NOT create snapshots (manifests exist)
+            expect(mockWriteSnapshot).not.toHaveBeenCalled()
+            
+            // Should append ONLY zone change events (no repair events)
+            expect(mockAppendManifestEvents).toHaveBeenCalledWith('test-room.wml/', [
+                expect.objectContaining({ type: 'zoneChange', fromZone: 'Draft', toZone: 'Library' })
+            ])
+            
+            // Should report repair
+            expect(result.metadata.repairPerformed).toBe(true)
+            expect(result.metadata.repairActions).toEqual({
+                createdSnapshot: false,
+                reconstructedView: true,
+                synthesizedEmpty: false
+            })
+        })
+    })
+    
+    describe('empty synthesis - both missing', () => {
+        it('should synthesize empty content and auth', async () => {
+            // Empty manifests
+            mockLoadManifest.mockResolvedValue([])
+            
+            // Mock workspaces with everything missing
+            MockAssetWorkspace.mockImplementation((assetId, zone) => ({
+                assetId,
+                zone,
+                status: { json: 'Error', wml: 'Error', s3Missing: true },
+                authStatus: { json: 'Error', wml: 'Error', s3Missing: true },
+                standard: undefined,
+                authorizations: undefined,
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                loadAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
+                setJSON: jest.fn().mockResolvedValue(undefined),
+                pushJSON: jest.fn().mockResolvedValue(undefined),
+                pushWML: jest.fn().mockResolvedValue(undefined),
+                pushAuthorizationJSON: jest.fn().mockResolvedValue(undefined),
+                pushAuthorizationWML: jest.fn().mockResolvedValue(undefined)
+            } as any))
+            
+            const result = await changeZone({
+                assetId: TEST_ASSET_ID,
+                fromZone: 'Draft',
+                toZone: 'Library',
+                timestamp: TEST_TIMESTAMP
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            // Should NOT reconstruct (synthesizing empty)
+            expect(mockReconstructFromManifest).not.toHaveBeenCalled()
+            
+            // Should create snapshots for both
+            expect(mockWriteSnapshot).toHaveBeenCalledTimes(2)
+            
+            // Should report synthesis
+            expect(result.metadata.repairPerformed).toBe(true)
+            expect(result.metadata.repairActions).toEqual({
+                createdSnapshot: true,
+                reconstructedView: false,
+                synthesizedEmpty: true
+            })
+        })
+    })
+    
+    describe('parallel processing', () => {
+        it('should process content and auth in parallel', async () => {
+            const startTimes: number[] = []
+            const endTimes: number[] = []
+            
+            // Track when each loadManifest call starts and ends
+            mockLoadManifest.mockImplementation(async (prefix: string) => {
+                startTimes.push(Date.now())
+                await new Promise(resolve => setTimeout(resolve, 10))  // Simulate async work
+                endTimes.push(Date.now())
+                return [{  type: 'zoneChange', timestamp: TEST_ISO_TIMESTAMP, eventId: 'event-0', fromZone: null, toZone: 'Draft' }]
+            })
+            
+            await changeZone({
+                assetId: TEST_ASSET_ID,
+                fromZone: 'Draft',
+                toZone: 'Library',
+                timestamp: TEST_TIMESTAMP
+            })
+            
+            // If parallel, both should start before either ends
+            expect(startTimes.length).toBe(2)
+            expect(endTimes.length).toBe(2)
+            
+            // Both should start before the first one ends (parallel execution)
+            expect(startTimes[1]).toBeLessThan(endTimes[0])
         })
     })
 })
