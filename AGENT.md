@@ -206,7 +206,90 @@ For complex migrations or multi-step tasks, temporary analysis documents help tr
 - Maintains clear audit trail of temporary vs permanent docs
 - Ensures systematic cleanup at task boundaries
 
-**See Example**: `lambda/wml/AGENT.s3storage.migration.md` for a working implementation
+**See Example**: The pattern was validated during the WML S3 Storage Migration (October 2025) with 4 consecutive 5-star sessions
+
+#### **"Getting Started" Pattern for Complex Tasks**
+
+For complex migrations, refactorings, or multi-phase projects, include a structured "Getting Started" section that guides AI agents (and human collaborators) through context gathering.
+
+**When to Use**:
+- Complex architectural changes spanning multiple subsystems
+- Multi-phase migrations with significant context requirements
+- Refactorings where understanding existing patterns is critical
+- Any task where "just jumping in" would likely miss important context
+
+**Pattern Structure** (7-step template):
+
+1. **Understand Project Foundations**
+   - Link to root AGENT.md and related foundational docs
+   - Explain WHY each doc matters (not just "read this")
+   - Focus on concepts, not just file listings
+
+2. **Read Current Document**
+   - Orient within the planning/migration document itself
+   - Point to specific sections in recommended order
+   - Explain the document's structure and purpose
+
+3. **Understand Core Integration Points**
+   - Identify the primary code being modified
+   - Explain current vs. future state
+   - Show usage patterns and examples
+
+4. **Review Implemented Code**
+   - Point to concrete implementations to learn from
+   - Show established patterns in the codebase
+   - Make abstract concepts concrete
+
+5. **Check Testing Patterns**
+   - Link to relevant test files
+   - Show conventions through examples
+   - Demonstrate quality expectations
+
+6. **Identify Next Task**
+   - Explain how to find current task
+   - Show progress tracking mechanism
+   - Guide to task prioritization
+
+7. **Run Tests Before Starting**
+   - Exact commands to run
+   - Expected baseline (test count, pass rate)
+   - Verification before making changes
+
+**Key Innovation**: Make reasoning explicit
+
+Instead of:
+```markdown
+### Getting Started
+1. Read AGENT.md
+2. Read the code
+3. Run tests
+```
+
+Do this:
+```markdown
+### Getting Started
+1. **Read AGENT.md**
+   - **Why**: Understanding the existing pattern is essential
+   - **Focus**: How the current system handles X and Y
+   - **Key Insight**: Pay attention to Z pattern
+```
+
+**Proven Results** (from WML S3 Storage Migration evaluation):
+- ✅ 4/4 sessions with 5-star effectiveness
+- ✅ Enabled not just implementation, but design critique and architectural discovery
+- ✅ AI agents could identify inconsistencies, propose improvements, discover production issues
+- ✅ Progressive sophistication: basic implementation → design refinement → system-wide analysis
+
+**Benefits**:
+1. **Reduces orientation time** - Clear path through complex context
+2. **Improves quality** - Deep understanding leads to better implementations
+3. **Enables critical thinking** - Agents can question assumptions, not just follow orders
+4. **Discovers issues** - System-wide understanding reveals cross-cutting problems
+5. **Self-documenting** - Forces articulation of WHY each context piece matters
+
+**Template**: See `lambda/wml/s3Storage/AGENT.md` for comprehensive documentation following this pattern
+
+**Recommendation**: Use this pattern for any task with 3+ phases or requiring understanding of multiple subsystems.
 
 #### **AI Assistant Guidelines**
 1. **Start Here**: Begin with this root `AGENT.md` for context
@@ -214,6 +297,7 @@ For complex migrations or multi-step tasks, temporary analysis documents help tr
 3. **Check Integration**: Understand how systems work together
 4. **Read Examples**: Study code examples to understand patterns
 5. **Ask Questions**: When documentation is unclear, ask for clarification
+6. **Look for "Getting Started"**: Complex tasks will have structured onboarding - follow it!
 
 ## How to Use This Documentation
 

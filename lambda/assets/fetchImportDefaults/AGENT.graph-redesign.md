@@ -234,5 +234,5 @@ ROOM#myTavern → imports → FEATURE#medievalDecor
 
 - `lambda/assets/fetchImportDefaults/index.ts` - Current (broken) implementation
 - `lambda/assets/dataSource/caching/cacheAsset.ts` - Where components are cached
-- `lambda/wml/AGENT.s3storage.migration.md` - Migration tracking and context
+- `lambda/wml/s3Storage/AGENT.md` - Current S3 storage architecture with chunk-based snapshots
 

@@ -252,6 +252,6 @@ The zone system provides a clean abstraction for content access control that can
 
 - **[WML Lambda](README.md)**: WML lambda overview and primary zone authority
 - **[MoveAsset](dataSource/moveAsset/AGENT.md)**: Zone transition implementation
-- **[S3 Storage Migration](AGENT.s3storage.migration.md)**: How zones moved from folders to tags
+- **[S3 Storage Architecture](s3Storage/AGENT.md)**: How zones are stored as S3 tags (Phase 1 migration complete)
 - **[Publishing Strategy](AGENT.s3storage.publishing.plan.md)**: Draft → Library/Canon workflows
 

@@ -291,7 +291,8 @@ const result = await createManualSnapshot({
 
 ## Related Documentation
 
-- **[S3 Storage Migration](../../AGENT.s3storage.migration.md)**: Overall Phase 2 migration plan
+- **[S3 Storage Architecture](../AGENT.md)**: Overall architecture and design decisions
+- **[Development Roadmap](../AGENT.development.md)**: Future enhancements and Phase 3 planning
 - **[Asset Workspace Package](../../../../packages/mtw-asset-workspace/)**: Read-only utilities
 - **[Apply Edit](../../dataSource/applyEdit/)**: Primary chunk writer
 - **[S3 Storage Subsystem](../AssetWorkspace.ts)**: Local writable AssetWorkspace
