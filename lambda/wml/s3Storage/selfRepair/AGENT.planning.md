@@ -905,6 +905,30 @@ Created `s3Storage/index.ts` with complete `appendChunk()` implementation:
 
 ---
 
+#### ✅ Implemented `changeZone()` Operation (October 26, 2025)
+
+**Purpose**: Validate the pattern with a second concrete operation before abstracting
+
+**What We Built**:
+- Created `changeZone()` operation at `s3Storage/index.ts`
+- Processes both content and auth files in parallel
+- **Key optimization**: Tag-only updates when no repair needed (preserves Phase 1 speedup!)
+- Full content write only when repair is needed (reconstruction/synthesis)
+- 6 comprehensive tests covering all scenarios
+
+**Critical Discovery**:
+Built `changeZone()` with operation-specific optimization (tag-only updates for non-repair case), which revealed that:
+- Different operations have different optimization opportunities
+- Linear flow pattern can support this via decision/execution separation
+- Generic pipeline is possible WITHOUT losing operation-specific optimizations
+- See "Critical Design Insight" section above for full analysis
+
+**Test Results**: All 162 tests passing (14 tests for index.ts: 8 appendChunk + 6 changeZone)
+
+**Key Test**: "should use fast tag-update path when no repair needed" verifies the optimization works
+
+---
+
 #### Task 2.3: Add Comprehensive Tests for `appendChunk()`
 
 **Purpose**: Ensure operation works correctly in all scenarios
@@ -954,29 +978,213 @@ Created `s3Storage/index.ts` with complete `appendChunk()` implementation:
 
 ---
 
-#### Task 2.4: Deprecate/Refactor `withS3SelfRepair()` Wrapper
+## 💡 Critical Design Insight: Linear Flow Enables Generic Pipeline (October 26, 2025)
 
-**Purpose**: Align wrapper with new architecture or deprecate in favor of `appendChunk()`
+### The Discovery
 
-**Decision Point**: 
-- Option A: Keep `withS3SelfRepair()` but simplify it (now just calls `appendChunk()`)
-- Option B: Deprecate it entirely, callers use `appendChunk()` directly
+After implementing both `appendChunk()` and `changeZone()`, we discovered a powerful abstraction opportunity using the linear flow pattern from `immediateSelfRepair`.
 
-**Subtasks** (if keeping):
-- [ ] Refactor `withS3SelfRepair()` to delegate to `appendChunk()`
-- [ ] Update tests to reflect new behavior
-- [ ] Mark as legacy/transitional in documentation
+### Initial Assumption (WRONG)
 
-**Subtasks** (if deprecating):
-- [ ] Mark `withS3SelfRepair()` as deprecated with JSDoc `@deprecated`
-- [ ] Add migration guide in comments
-- [ ] Plan removal in future version
+"A generic `applyOperation` abstraction would lose operation-specific optimizations like `changeZone`'s tag-only update path."
 
-**Dependencies**: Task 2.2
+**Why this seemed true**: `changeZone` can skip content writes when no repair is needed (fast tag updates), while `appendChunk` must always write (new content). A shared abstraction seemed like it would force both through the same path.
+
+### The Insight (CORRECT)
+
+The **linear flow pattern separates decisions from executions**:
+
+```typescript
+// From immediateSelfRepair:
+
+// Step 3: DECIDE what to do (pure logic, no I/O)
+const viewAction = decideMaterializedViewAction(state, operation)
+
+// Step 6: EXECUTE the decision (I/O based on decision)
+await executeMaterializedViewAction({ viewAction, ... })
+```
+
+This separation means we can build a **generic pipeline** where:
+- **Decision logic is shared** (what repair is needed?)
+- **Execution strategy is operation-specific** (how to execute given the repair decision?)
+
+### Proposed Pattern
+
+```typescript
+type ExecutionStrategy<TArgs, TResult> = (
+    baseline: StandardForm | StandardAuthorizationCollection,
+    repairDecision: {
+        repairActions?: RepairActions,
+        snapshotToCreate?: { content: string }
+    },
+    args: TArgs
+) => Promise<TResult>
+
+async function applyStorageOperation<TArgs, TResult>(
+    fetchArgs: { assetId, suffix, zone },
+    operationArgs: TArgs,
+    strategy: ExecutionStrategy<TArgs, TResult>
+): Promise<TResult> {
+    // Shared: Fetch and decide repair
+    const { baseline, repairDecision } = await fetchAndDecideRepair(fetchArgs)
+    
+    // Operation-specific: Execute with knowledge of repair decision
+    return await strategy(baseline, repairDecision, operationArgs)
+}
+```
+
+### How This Enables Both Optimizations
+
+**`changeZone` execution strategy:**
+```typescript
+async function executeChangeZone(baseline, repairDecision, args) {
+    if (!repairDecision.repairActions) {
+        // FAST PATH: No repair - just update tags!
+        await s3Client.updateTags({ Key: jsonKey, Tags: { Zone: args.toZone } })
+        await s3Client.updateTags({ Key: wmlKey, Tags: { Zone: args.toZone } })
+    } else {
+        // REPAIR PATH: Need to write content anyway
+        workspace.zone = args.toZone
+        await workspace.setJSON(baseline)
+        await workspace.pushJSON()
+        await workspace.pushWML()
+    }
+    await appendZoneChangeEvent(...)
+}
+```
+
+**`appendChunk` execution strategy:**
+```typescript
+async function executeAppendChunk(baseline, repairDecision, args) {
+    // ALWAYS writes (that's the point!)
+    const merged = updateContentByChunk(baseline, args.chunkWML)
+    
+    // Write chunk file
+    await writeChunk(...)
+    
+    // Write merged content
+    await workspace.setJSON(merged)
+    await workspace.pushJSON()
+    await workspace.pushWML()
+    
+    // Append events (repair events already prepared in repairDecision)
+    await appendManifestEvents(...)
+}
+```
+
+### Key Advantages
+
+1. **Shared decision logic** - "What repair is needed?" answered once, used by all operations
+2. **Operation-specific optimizations** - Each operation can branch on `repairDecision` however it wants
+3. **Explicit contracts** - Repair decision is a **value** passed to execution, not hidden in control flow
+4. **Easier testing** - Can test decision logic separately from execution logic
+5. **Preserves Phase 1 optimizations** - `changeZone` keeps tag-only updates for common case
+
+### What Gets Abstracted
+
+**Generic pipeline handles:**
+- Fetching current state (manifest + view)
+- Assessing what's missing (repair state)
+- Deciding repair strategy (reconstruct vs synthesize vs use-existing)
+- Preparing repair data (snapshots to create, events to append)
+- Returning structured repair decision to operation
+
+**Operation-specific execution handles:**
+- Content transformation (if any)
+- Write optimization choices (tags-only vs full-write)
+- File-specific logic (chunk files, zone tag updates, etc.)
+- Building operation-specific manifest events
+
+### Next Steps
+
+**Task 2.4**: Refactor toward this pattern
+1. Extract `fetchAndDecideRepair()` from current implementations
+2. Refactor `changeZone` to use execution strategy pattern
+3. Refactor `appendChunk` to use execution strategy pattern
+4. Validate that both optimizations are preserved (tests verify tag-only updates still happen)
+
+**Benefits of refactoring now:**
+- Third operation (`createSnapshot`) will be trivial to add
+- Pattern is proven (two working implementations)
+- Tests already validate the optimizations
+
+**Status**: Design insight captured, ready for implementation in Task 2.4+
+
+---
+
+#### Task 2.4: Extract Generic Pipeline (Linear Flow Pattern)
+
+**Purpose**: Refactor operations to use shared fetch-and-decide logic with operation-specific execution strategies
+
+**UPDATED** based on design insight above - this is now about extracting the generic pipeline, not deprecating `withS3SelfRepair()`.
+
+**Subtasks**:
+- [x] Extract `fetchAndDecideRepair()` function from current implementations
+- [x] Define `ExecutionStrategy<TArgs, TResult>` type
+- [x] Create generic `applyStorageOperation()` pipeline
+- [x] Refactor `changeZone` to use pipeline pattern
+- [x] Refactor `appendChunk` to use pipeline pattern
+- [x] Organize into clean file structure (tools.ts, pipeline.ts, index.ts)
+
+**Dependencies**: Tasks 2.1-2.3 (both operations implemented)
 
 **Success Criteria**:
-- Clear path forward documented
-- No confusion about which API to use
+- ✅ Both operations use generic pipeline
+- ✅ All existing tests pass (162 tests)
+- ✅ `changeZone` tag-only optimization preserved
+- ✅ `appendChunk` in-memory repair preserved
+- ✅ Code is simpler and more maintainable
+- ✅ Third operation (`createSnapshot`) will be easier to add
+
+**Status**: ✅ **COMPLETED**
+
+**Implementation Summary**:
+
+Created clean three-file structure:
+
+**1. `s3Storage/tools.ts`** - Shared utilities
+- `buildPrefix()` - S3 prefix construction
+- `ManifestSuffix` type export
+- Low-level helpers with no operation opinions
+
+**2. `s3Storage/pipeline.ts`** - Generic orchestration framework
+- `fetchAndDecideRepair()` - Core fetch-assess-decide logic
+  - Loads manifest + view
+  - Assesses repair state
+  - Builds baseline in-memory (reconstruct/synthesize/use-existing)
+  - Returns `RepairDecision` as explicit value
+- `ExecutionStrategy<TArgs, TResult>` type
+  - Receives: baseline, repairDecision, fetchResult, args
+  - Can optimize based on `repairDecision.repairActions`
+- `applyStorageOperation()` - Generic pipeline
+  - Phase 1: Fetch and decide (shared)
+  - Phase 2: Execute strategy (operation-specific)
+- Exported types: `RepairState`, `RepairActions`, `RepairDecision`, `OperationFailure`
+
+**3. `s3Storage/index.ts`** - Public API operations
+- `appendChunk()` - Now just 12 lines (calls pipeline with strategy)
+- `executeAppendChunkStrategy` - Execution logic (~115 lines)
+  - Always writes chunk + merged content (that's the point!)
+  - Uses repair decision to batch manifest events
+- `changeZone()` - Unchanged public interface
+- `executeChangeZoneForPrefixStrategy` - Execution logic (~105 lines)
+  - **Optimization**: Branches on `repairDecision.repairActions`
+  - No repair → fast tag-only updates (4 updateTags calls)
+  - Repair needed → full content write
+- `changeZoneForPrefix()` - Helper using pipeline
+
+**Key Achievement**: Linear flow pattern successfully extracted!
+- **Decision logic**: Centralized in `pipeline.ts` (used by all operations)
+- **Execution logic**: Operation-specific strategies in `index.ts`
+- **Optimization preserved**: Tests verify tag-only updates still work
+
+**Code Metrics**:
+- `appendChunk()` public function: ~170 lines → 12 lines (93% reduction!)
+- `changeZoneForPrefix()`: ~140 lines → 12 lines (91% reduction!)
+- Shared pipeline code: ~200 lines in `pipeline.ts` (used by all operations)
+- No duplication between operations
+
+**Test Results**: All 162 tests passing, no changes needed (validates refactoring correctness)
 
 ---
 
