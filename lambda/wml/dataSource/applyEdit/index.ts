@@ -2,11 +2,7 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import AssetWorkspace, { Zone } from "../../s3Storage/AssetWorkspace";
 import internalCache from "../../internalCache";
 import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
-import { writeChunk } from "../../s3Storage/chunks";
-import { ManifestChunkEvent } from "../../s3Storage/manifest/baseClasses";
-import { v4 as uuidv4 } from 'uuid';
-import { schemaToWML } from "@tonylb/mtw-wml/ts/schema";
-import { appendManifestEventsWithLazyMigration } from "../utilities/appendManifestEventsWithLazyMigration";
+import { appendChunk } from "../../s3Storage";
 import { now } from "../../utilities/mockableTime";
 
 export type ApplyEditArguments = {
@@ -40,17 +36,23 @@ export type ApplyEditResult = ApplyEditSuccess | ApplyEditConflict
 /**
  * Apply an edit to an asset's content
  * 
- * This function:
- * 1. Loads the current asset content from S3 (NDJSON)
- * 2. Parses the incoming edit schema (WML with Replace/Remove tags)
- * 3. Merges the edit with the current content
- * 4. Writes back both WML and NDJSON formats to S3
- * 5. Returns success or conflict result
+ * This function validates the edit request and delegates to the storage
+ * system's appendChunk operation, which handles:
+ * - Loading current content (with self-repair if needed)
+ * - Merging the edit
+ * - Writing chunk, manifest, and materialized views
+ * 
+ * Business logic responsibilities:
+ * - Validate AssetId format
+ * - Determine zone (from existing asset or args)
+ * - Extract authoringPlayer from connection
+ * - Map errors to domain-appropriate messages
  * 
  * The caller (DataSource) is responsible for:
  * - Publishing Content Update or Merge Conflict events via streamEvent
  */
 export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResult> => {
+    // Validate AssetId format
     if (!isSchemaAssetUUID(args.AssetId)) {
         return {
             success: false,
@@ -58,15 +60,17 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResu
         }
     }
 
-    // Try to load existing asset
-    let assetWorkspace = await AssetWorkspace.fromUUID(args.AssetId)
+    // Determine zone for the edit
+    let zone: Zone
     
-    // Handle asset not found
-    if (!assetWorkspace) {
-        if (args.createIfNeeded && args.zone) {
-            // Create new asset workspace in specified zone
-            assetWorkspace = new AssetWorkspace(args.AssetId, args.zone)
-        } else {
+    if (args.zone) {
+        // Zone explicitly provided (for new assets)
+        zone = args.zone
+    } else {
+        // Look up existing asset to get zone
+        const assetWorkspace = await AssetWorkspace.fromUUID(args.AssetId)
+        
+        if (!assetWorkspace) {
             return {
                 success: false,
                 error: args.createIfNeeded 
@@ -74,91 +78,35 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResu
                     : 'Asset not found'
             }
         }
+        
+        zone = assetWorkspace.zone
     }
     
-    const loadPromise = assetWorkspace.loadJSON()
+    // Extract authoringPlayer metadata for chunk provenance
+    const authoringPlayer = await internalCache.Connection.get('player')
     
-    //
-    // While waiting on incoming ndjson, create an editStandardizer to be merged with it.
-    //
-    const editStandard = new StandardForm(args.schema)
-
-    //
-    // Merge incoming changes with ndjson
-    //
-    await loadPromise
+    // Delegate to storage system
+    const result = await appendChunk({
+        assetId: args.AssetId,
+        chunkWML: args.schema,  // Edit WML with Replace/Remove tags
+        timestamp: now(),
+        zone,
+        authoringPlayer,
+        createIfNeeded: args.createIfNeeded || false
+    })
     
-    // Get existing content or create empty StandardForm if createIfNeeded is true
-    let existingStandard = assetWorkspace.standard
-    
-    if (!existingStandard || existingStandard._components.length === 0) {
-        if (args.createIfNeeded) {
-            // Start with empty StandardForm - edit will become initial content
-            existingStandard = new StandardForm(args.AssetId)
-        } else {
-            return {
-                success: false,
-                error: 'Asset content not found'
-            }
-        }
-    }
-
-    try {
-        const mergedStandard = existingStandard.merge(editStandard)
-
-        //
-        // Write chunk and update manifest
-        //
-        const assetUuid = args.AssetId.replace('ASSET#', '')
-        const prefix = `${assetUuid}.wml/`
-        const timestamp = now()
-        
-        // Write chunk with the edit delta (not the merged result)
-        const chunkWml = schemaToWML([editStandard.schema])
-        
-        // Extract authoringPlayer metadata for chunk provenance
-        const authoringPlayer = await internalCache.Connection.get('player')
-        
-        const chunkRef = await writeChunk({
-            prefix,
-            timestamp,
-            content: chunkWml,
-            zone: assetWorkspace.zone,
-            authoringPlayer: authoringPlayer
-        })
-        
-        const chunkEvent: ManifestChunkEvent = {
-            type: 'chunk',
-            timestamp: new Date(timestamp).toISOString(),
-            eventId: uuidv4(),
-            s3Key: chunkRef.s3Key,
-            chunkSize: chunkRef.chunkSize,
-            authoringPlayer: authoringPlayer
-        }
-        
-        // Use helper function to handle lazy migration and manifest updates
-        await appendManifestEventsWithLazyMigration(prefix, assetWorkspace, timestamp, [chunkEvent])
-
-        //
-        // Write ndjson and wml (materialized views)
-        //
-    
-        assetWorkspace.setJSON(mergedStandard)
-        await Promise.all([
-            assetWorkspace.pushJSON(),
-            assetWorkspace.pushWML()
-        ])
-        
+    // Map storage result to applyEdit result
+    if (result.success) {
         return {
             success: true,
-            schema: mergedStandard
+            schema: result.mergedContent
         }
-    }
-    catch (err) {
-        console.log(`Merge Conflict: ${err instanceof Error ? err.message : String(err)}`)
+    } else {
+        // Map error types to appropriate messages
+        console.log(`Edit failed: ${result.error}`)
         return {
             success: false,
-            error: err instanceof Error ? err.message : 'Unknown merge conflict'
+            error: result.error
         }
     }
 }
