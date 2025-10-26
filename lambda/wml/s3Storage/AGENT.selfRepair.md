@@ -430,7 +430,8 @@ On-the-spot repair only fixes immediate blockers:
 - **[Pipeline Architecture](./pipeline.ts)**: Generic pipeline implementation
 - **[Operation Implementations](./index.ts)**: `appendChunk`, `changeZone` implementations
 - **[Manifest System](./manifest/AGENT.md)**: Manifest format and operations
-- **[S3 Storage Migration](../AGENT.s3storage.migration.md)**: Overall migration plan (see Phase 2.7 for evolution)
+- **[S3 Storage Architecture](AGENT.md)**: Current architecture and core concepts
+- **[Development Roadmap](AGENT.development.md)**: Future enhancements including SAGA and transaction patterns
 
 ---
 

@@ -55,7 +55,8 @@ with the current state of the asset
 ## Related Documentation
 
 - **[Asset Zones](AGENT.zones.md)**: Zone system concepts and access patterns (WML lambda is zone authority)
-- **[S3 Storage Migration](AGENT.s3storage.migration.md)**: Phase 1 flat storage migration (complete)
+- **[S3 Storage Architecture](s3Storage/AGENT.md)**: Current architecture with chunk-based snapshots (Phase 1 & 2 complete)
+- **[S3 Storage Development](s3Storage/AGENT.development.md)**: Future enhancements and Phase 3 planning
 - **[Publishing Strategy](AGENT.s3storage.publishing.plan.md)**: Draft management and publishing workflow
 - **[Event Flow Documentation](AGENT.event.md)**: Event processing patterns and content flow analysis
 - **[WML Language System](../../packages/mtw-wml/ts/AGENT.md)**: Core WML language documentation and parsing
