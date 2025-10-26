@@ -15,7 +15,7 @@
  * 4. Pass decision + baseline to operation-specific execution strategy
  * 5. Strategy can optimize based on repair decision
  * 
- * See: selfRepair/AGENT.planning.md "Critical Design Insight" section
+ * See: AGENT.selfRepair.md for design rationale and repair scenarios
  */
 
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
