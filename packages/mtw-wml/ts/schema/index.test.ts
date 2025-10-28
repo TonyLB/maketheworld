@@ -13,6 +13,15 @@ describe('schemaFromParse', () => {
         jest.resetAllMocks()
     })
 
+    it('should reject Asset key property', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Asset uuid=(Test) key=(invalidKey)>
+                <Room uuid=(test) />
+            </Asset>
+        `)))
+        expect(() => schemaFromParse(testParse)).toThrow("Property 'key' is not allowed in 'Asset' items.")
+    })
+
     it('should make a schema from parse elements correctly', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset uuid=(Test)>
