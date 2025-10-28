@@ -13,37 +13,37 @@ describe('StandardAuthorizationResource class', () => {
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
         ]
-        const resource = new StandardAuthorizationResource({ referenceStack: [reference], grants })
-        expect(resource.referenceStack.map((reference) => (reference.toJSON()))).toEqual([reference.toJSON()])
+        const resource = new StandardAuthorizationResource({ component: reference, grants })
+        expect(resource.component?.toJSON()).toEqual(reference.toJSON())
         expect(resource.grants).toEqual(grants)
         expect(resource.toJSON()).toEqual({
-            referenceStack: [reference.toJSON()],
+            component: reference.toJSON(),
             grants: grants.map(grant => grant.toJSON())
         })
     })
 
     it('should construct StandardAuthorizationResource from NDJSON', () => {
         const resource = new StandardAuthorizationResource([{
-            referenceStack: [{ key: 'Room1', tag: 'Room' }],
+            component: { key: 'Room1', tag: 'Room' },
             grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
         }, {
-            referenceStack: [{ key: 'Room1', tag: 'Room' }],
+            component: { key: 'Room1', tag: 'Room' },
             grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
         }])
-        expect(resource.referenceStack.map((reference) => (reference.toJSON()))).toEqual([{ key: 'Room1', tag: 'Room' }])
+        expect(resource.component?.toJSON()).toEqual({ key: 'Room1', tag: 'Room' })
         expect(resource.grants).toEqual([
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
         ])
     })
 
-    it('should throw error on NDJSON with differing referenceStacks', () => {
+    it('should throw error on NDJSON with differing components', () => {
         expect(() => {
             new StandardAuthorizationResource([{
-                referenceStack: [{ key: 'Room1', tag: 'Room' }],
+                component: { key: 'Room1', tag: 'Room' },
                 grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
             }, {
-                referenceStack: [{ key: 'Room2', tag: 'Room' }],
+                component: { key: 'Room2', tag: 'Room' },
                 grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
             }])
         }).toThrow()
@@ -70,23 +70,14 @@ describe('StandardAuthorizationResource class', () => {
         const resource = new StandardAuthorizationResource(wml)
         expect(resource.toNDJSON()).toEqual([
             {
-                referenceStack: [{ key: 'Room1', tag: 'Room' }],
+                component: { key: 'Room1', tag: 'Room' },
                 grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
             },
             {
-                referenceStack: [{ key: 'Room1', tag: 'Room' }],
+                component: { key: 'Room1', tag: 'Room' },
                 grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
             }
         ])
-    })
-
-    it('should construct global grants from WML', () => {
-        const wml = deIndentWML(`
-            <Grant player=(player1) actions="action1" />
-            <Grant player=(player2) actions="action2" />
-        `)
-        const resource = new StandardAuthorizationResource(wml)
-        expect(schemaToWML(resource.schema)).toEqual(wml)
     })
 
     it('should correctly handle remove edits', () => {
@@ -108,45 +99,6 @@ describe('StandardAuthorizationResource class', () => {
         `
         const resource = new StandardAuthorizationResource(testWML)
         expect(schemaToWML(resource.schema)).toEqual(deIndentWML(testWML))
-    })
-
-    it('should correctly render nestedSchema', () => {
-        const room = new StandardAuthorizationResource(`
-            <Room key=(Room1)>
-                <Grant player=(player1) actions="action1" />
-            </Room>
-        `)
-        const featureOne = new StandardAuthorizationResource(`
-            <Room key=(Room1)>
-                <Feature key=(Feature1)>
-                    <Grant player=(player1) actions="action2" />
-                </Feature>
-            </Room>
-        `)
-        const featureTwo = new StandardAuthorizationResource(`
-            <Room key=(Room1)>
-                <Feature key=(Feature2)>
-                    <Grant player=(player1) actions="action3" />
-                </Feature>
-            </Room>
-        `)
-        const byId = {
-            'Room1': room,
-            'Feature1': featureOne,
-            'Feature2': featureTwo
-        }
-        const schema = room.nestedSchema({ authorizationsById: byId, sortOrder: (a, b) => (a.key.localeCompare(b.key)) })
-        expect(schemaToWML(schema)).toEqual(deIndentWML(`
-            <Room key=(Room1)>
-                <Grant player=(player1) actions="action1" />
-                <Feature key=(Feature1)>
-                    <Grant player=(player1) actions="action2" />
-                </Feature>
-                <Feature key=(Feature2)>
-                    <Grant player=(player1) actions="action3" />
-                </Feature>
-            </Room>
-        `))
     })
 
     it('should merge StandardAuthorizationResource correctly', () => {
@@ -243,7 +195,7 @@ describe('StandardAuthorizationResource class', () => {
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
         ]
-        const resource = new StandardAuthorizationResource({ referenceStack: [reference], grants })
+        const resource = new StandardAuthorizationResource({ component: reference, grants })
         expect(schemaToWML(resource.schema)).toEqual(deIndentWML(`
             <Room key=(Room1)>
                 <Grant player=(player1) actions="action1" />
@@ -252,12 +204,16 @@ describe('StandardAuthorizationResource class', () => {
         `))
     })
 
-    it('should render schema for resource without reference', () => {
+    it('should render schema for global grants (no component)', () => {
         const grants: StandardAuthorizationItem[] = [
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
         ]
-        const resource = new StandardAuthorizationResource({ referenceStack: [], grants })
+        const resource = new StandardAuthorizationResource({ component: undefined, grants })
+        // Global grants have no component
+        expect(resource.component).toBeUndefined()
+        expect(resource.grants).toEqual(grants)
+        // Schema renders grants directly without component wrapper
         expect(schemaToWML(resource.schema)).toEqual(deIndentWML(`
             <Grant player=(player1) actions="action1" />
             <Grant player=(player2) actions="action2" />

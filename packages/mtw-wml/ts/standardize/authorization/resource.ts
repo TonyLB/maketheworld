@@ -10,62 +10,63 @@ import { excludeUndefined } from "../../lib/lists";
 import { diffSignedStringSets, SignedStringSet } from "./components/utils";
 import { unique } from "../../list";
 import { StandardReferenceData, isStandardReferencePayloadData } from "../components/dataTypes/reference";
-import { deepEqual } from "../../lib/objects";
 import { isSchemaTreeNode, treeFromWML } from "../../schema";
 
 export type StandardAuthorizationResourceNDJSON = {
-    referenceStack: StandardReferenceData[];
+    component?: StandardReferenceData;  // Undefined for global (Asset-level) grants
     grant: StandardAuthorizationData;
 }
 
 export const isStandardAuthorizationResourceNDJSON = (value: any): value is StandardAuthorizationResourceNDJSON => {
     return typeof value === 'object' &&
-        Array.isArray(value.referenceStack) && value.referenceStack.every(isStandardReferencePayloadData) &&
+        (!('component' in value) || value.component === undefined || isStandardReferencePayloadData(value.component)) &&
         'grant' in value && isStandardAuthorizationData(value.grant)
 }
 
 export class StandardAuthorizationResource {
-    referenceStack: StandardReference[];
+    component?: StandardReference;  // Undefined for global (Asset-level) grants
     grants: StandardAuthorizationItem[] = [];
 
-    constructor(props: { referenceStack: StandardReference[]; grants: StandardAuthorizationItem[] } | StandardAuthorizationResourceData | GenericTree<SchemaTag> | string | StandardAuthorizationResourceNDJSON[]) {
+    constructor(props: { component?: StandardReference; grants: StandardAuthorizationItem[] } | StandardAuthorizationResourceData | GenericTree<SchemaTag> | string | StandardAuthorizationResourceNDJSON[]) {
         const isSchemaTree = (value: any): value is GenericTree<SchemaTag> => {
             return Array.isArray(value) && value.every(isSchemaTreeNode)
         }
         if (isStandardAuthorizationResourceData(props)) {
-            const { referenceStack = [], grants } = props
-            this.referenceStack = referenceStack ? referenceStack.map((reference) => (new StandardReference(reference))) : []
+            const { component, grants } = props
+            this.component = component ? new StandardReference(component) : undefined
             this.grants = grants.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
             return
         }
         else if ((typeof props === 'string') || isSchemaTree(props)) {
             const schema = typeof props === 'string' ? treeFromWML(props) : props
-            const extractGrants = (schema: GenericTree<SchemaTag>): { referenceStack: StandardReference[], grants: StandardAuthorizationItem[] } => {
-                if (schema.length === 0) {
-                    return { referenceStack: [], grants: [] }
-                }
-                if (schema.length === 1 && treeNodeTypeguard(isSchemaComponent)(schema[0])) {
-                    const { referenceStack, grants } = extractGrants(schema[0].children)
-                    return { referenceStack: [new StandardReference(schema), ...referenceStack], grants }
-                }
-                else {
-                    return { referenceStack: [], grants: schema.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined) }
-                }
+            // Expect flat structure: <Component><Grant /></Component>
+            if (schema.length === 1 && treeNodeTypeguard(isSchemaComponent)(schema[0])) {
+                this.component = new StandardReference([schema[0]])
+                this.grants = schema[0].children.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
+                return
             }
-            const { referenceStack, grants } = extractGrants(schema)
-            this.referenceStack = referenceStack
-            this.grants = grants
-            return
+            throw new Error('StandardAuthorizationResource WML must be a single component with grants')
         }
         else if (Array.isArray(props) && props.every(isStandardAuthorizationResourceNDJSON)) {
-            const { referenceStack, grants } = props.reduce<{ referenceStack?: StandardReference[]; grants: StandardAuthorizationItem[] }>((previous, { referenceStack, grant }) => {
-                const tempReferenceStack = referenceStack.map(reference => new StandardReference(reference))
-                if (previous.referenceStack && !deepEqual(previous.referenceStack.map((reference) => (reference.toJSON())), tempReferenceStack.map((reference) => (reference.toJSON())))) {
-                    throw new Error('StandardAuthorizationResource NDJSON must all be from same reference')
+            const { component, grants } = props.reduce<{ component?: StandardReference; grants: StandardAuthorizationItem[] }>((previous, { component, grant }) => {
+                const tempComponent = component ? new StandardReference(component) : undefined
+                
+                // Only check consistency if we've already seen items (previous.grants.length > 0)
+                if (previous.grants.length > 0) {
+                    if ((previous.component === undefined) !== (tempComponent === undefined)) {
+                        throw new Error('StandardAuthorizationResource NDJSON must all be from same component')
+                    }
+                    if (previous.component && tempComponent && !previous.component.equal(tempComponent)) {
+                        throw new Error('StandardAuthorizationResource NDJSON must all be from same component')
+                    }
                 }
-                return { referenceStack: tempReferenceStack, grants: [...previous.grants, standardAuthorizationFactory(grant)].filter(excludeUndefined) }
+                
+                return { 
+                    component: tempComponent,
+                    grants: [...previous.grants, standardAuthorizationFactory(grant)].filter(excludeUndefined) 
+                }
             }, { grants: [] })
-            this.referenceStack = referenceStack ?? []
+            this.component = component
             this.grants = grants
             return
         }
@@ -75,67 +76,53 @@ export class StandardAuthorizationResource {
             }
             if (!(
                 props.grants.every(grant => (grant instanceof StandardGrant || grant instanceof StandardAuthRemove || grant instanceof StandardAuthReplace)) &&
-                props.referenceStack.every(reference => reference instanceof StandardReference)
+                (!props.component || props.component instanceof StandardReference)
             )) {
                 throw new Error('Invalid StandardAuthorizationResource props')
             }
-            this.referenceStack = props.referenceStack
+            this.component = props.component
             this.grants = props.grants
             return
         }
-        this.referenceStack = []
-        this.grants = []
+        throw new Error('Invalid StandardAuthorizationResource constructor arguments')
     }
 
     toJSON(): StandardAuthorizationResourceData {
         return {
-            referenceStack: this.referenceStack.map(reference => reference.toJSON() as StandardReferenceData),
+            component: this.component?.toJSON() as StandardReferenceData | undefined,
             grants: this.grants.map(grant => grant.toJSON())
         }
     }
 
     toNDJSON(): StandardAuthorizationResourceNDJSON[] {
         return this.grants.map(grant => ({
-            referenceStack: this.referenceStack.map(reference => reference.toJSON() as StandardReferenceData),
+            component: this.component?.toJSON() as StandardReferenceData | undefined,
             grant: grant.toJSON()
         }))
     }
 
     clone(): StandardAuthorizationResource {
         return new StandardAuthorizationResource({
-            referenceStack: this.referenceStack.map(reference => reference.clone()),
+            component: this.component?.clone(),
             grants: this.grants.map(grant => grant.clone())
         })
     }
 
     get schema(): GenericTree<SchemaTag> {
         const grants = this.grants.map(grant => grant.schema)
-        return this.referenceStack.reduceRight<GenericTree<SchemaTag>>((previous, reference) => {
-            return [{ data: reference.schema[0].data, children: previous }]
-        }, grants)
+        // Simple flat structure: <Component>...grants...</Component>
+        // For global grants (no component), return grants directly
+        if (!this.component) {
+            return grants.flat()
+        }
+        return [{ data: this.component.schema[0].data, children: grants }]
     }
     
-    get key(): string {
-        return this.referenceStack.map(reference => reference.key).join('.')
+    get sortKey(): string {
+        // String identifier for sorting: local key > universalKey > empty (for global)
+        return this.component?.key ?? this.component?.universalKey ?? ''
     }
 
-    nestedSchema(props: { authorizationsById: Record<string, StandardAuthorizationResource>, sortOrder: (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => number }): GenericTree<SchemaTag> {
-        const { authorizationsById, sortOrder } = props
-        const grants = this.grants.map(grant => grant.schema)
-        const children = Object.values(authorizationsById)
-            .filter((value) => value.referenceStack.length === this.referenceStack.length + 1 && value.referenceStack.slice(0, -1).every((reference, index) => reference.key === this.referenceStack[index].key))
-            .sort(sortOrder)
-            .map((value) => value.nestedSchema({ authorizationsById, sortOrder }))
-            .flat(1)
-
-        const finalReference = this.referenceStack.slice(-1)[0]
-        if (finalReference) {
-            return [{ data: finalReference.schema[0].data, children: [...grants, ...children] }]
-        }
-        else {
-            return [...grants, ...children]
-        }
-    }
 
     merge(incoming: StandardAuthorizationResource): StandardAuthorizationResource {
         const newGrants = incoming.grants.reduce((previous, grant) => {
@@ -154,7 +141,7 @@ export class StandardAuthorizationResource {
                 return [...previous, grant]
             }
         }, this.grants)
-        return new StandardAuthorizationResource({ referenceStack: this.referenceStack, grants: newGrants })
+        return new StandardAuthorizationResource({ component: this.component, grants: newGrants })
     }
 
     diff(incoming: StandardAuthorizationResource): StandardAuthorizationResource | undefined {
@@ -200,7 +187,7 @@ export class StandardAuthorizationResource {
             }
         }, [] as StandardAuthorizationItem[])
         if (newGrants.length > 0) {
-            return new StandardAuthorizationResource({ referenceStack: this.referenceStack, grants: newGrants })
+            return new StandardAuthorizationResource({ component: this.component, grants: newGrants })
         }
         else {
             return undefined

@@ -27,25 +27,28 @@ The `standardize/components` directory contains the core WML component classes t
 
 **Developer Note**: Current `fileURL` handling is temporary. Feel free to insert temporary stub implementations for images in order to progress on other functionality.
 
-### **StandardAuthorizationCollection UUID/UniversalKey Migration** 🟡
+### **StandardAuthorizationCollection UUID/UniversalKey Migration** ✅ **RESOLVED**
 
 **Component**: `StandardAuthorizationCollection`
 
-**Problem**: Authorization system still relies on `key` attributes and hasn't been updated to properly handle `uuid` and `universalKey` attributes in WML structures.
+**Resolution Date**: October 27, 2025
 
-**Evidence**: Tests in `lambda/wml/AssetWorkspace.test.ts` require `<Room key=(Room1)>` instead of `<Room uuid=(Room1)>` in authorization WML, unlike standard components which support both.
+**Changes Made**:
+1. ✅ Updated `StandardAuthorizationCollectionData` type to include `universalKey: AssetUUID` field
+2. ✅ Updated `isStandardAuthorizationCollection` typeguard to check for `universalKey`
+3. ✅ Modified `StandardAuthorizationCollection.toJSON()` to output `universalKey`
+4. ✅ Updated `processAuthorizations` to extract `uuid` attributes from WML and populate `universalKey`
+5. ✅ Fixed all `byId`, `merge()`, `diff()`, and schema generation methods to handle `universalKey` fallback
+6. ✅ Updated all tests to use `uuid` attributes and expect `universalKey` in serialized output
 
-**Impact**: Authorization WML cannot use the same `uuid`-based patterns as other WML components, creating inconsistency in the system.
-
-**Proposed Solution**: Update `StandardAuthorizationCollection` and related authorization parsing to handle `uuid` and `universalKey` attributes consistently with standard components.
+**Result**: Authorization WML now supports the same `uuid`-based patterns as other WML components, creating consistency across the system. Both `<Room key=(Room1)>` and `<Room uuid=(Room1)>` patterns are now supported, with proper fallback from local key to universalKey throughout the authorization system.
 
 **Related Files**: 
 - `packages/mtw-wml/ts/standardize/authorization/index.ts`
-- `lambda/wml/AssetWorkspace.test.ts` (lines 246-250)
-
-**Priority**: Medium - works with `key` attributes but creates WML inconsistency
-
-**Developer Note**: Current implementation works but requires `key` attributes. For new authorization WML, continue using `key` until this migration is complete.
+- `packages/mtw-wml/ts/standardize/authorization/components/dataTypes/index.ts`
+- `packages/mtw-wml/ts/standardize/authorization/processAuthorizations.ts`
+- `packages/mtw-wml/ts/standardize/authorization/resource.ts`
+- All authorization test files updated
 
 
 

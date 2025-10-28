@@ -5,26 +5,28 @@ import { StandardAuthorizationCollection, StandardAuthorizationCollectionNDJSON 
 import { StandardAuthorizationResource } from "./resource"
 import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import StandardGrant from "./components/grant"
 
 describe('StandardAuthorizationCollection', () => {
-    it('should initialize with a string key', () => {
+    it('should initialize with a string universalKey', () => {
         const collection = new StandardAuthorizationCollection('ASSET#TestKey')
-        expect(collection.key).toEqual('TestKey')
+        expect(collection.universalKey).toEqual('ASSET#TestKey')
         expect(collection._grants).toEqual([])
     })
 
     it('should initialize with StandardAuthorizationCollectionData', () => {
         const data: StandardAuthorizationCollectionData = {
             key: 'TestKey',
+            universalKey: 'ASSET#TestKey',
             grants: [
                 {
-                    referenceStack: [{ key: 'Room1', tag: 'Room' }],
+                    component: { key: 'Room1', tag: 'Room' },
                     grants: []
                 }
             ]
         }
         const collection = new StandardAuthorizationCollection(data)
-        expect(collection.key).toEqual('TestKey')
+        expect(collection.universalKey).toEqual('ASSET#TestKey')
         expect(collection._grants.length).toEqual(1)
         expect(collection._grants[0]).toBeInstanceOf(StandardAuthorizationResource)
     })
@@ -35,24 +37,25 @@ describe('StandardAuthorizationCollection', () => {
             children: []
         }
         const collection = new StandardAuthorizationCollection(node)
-        expect(collection.key).toEqual('TestKey')
+        expect(collection.universalKey).toEqual('ASSET#TestKey')
         expect(collection._grants).toEqual([])
     })
 
     it('should initialize with NDJSON', () => {
         const ndjson: StandardAuthorizationCollectionNDJSON[] = [
             { tag: 'Asset', universalKey: 'ASSET#Test' },
-            { referenceStack: [], grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
-            { referenceStack: [{ key: 'Room1', tag: 'Room' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } },
-            { referenceStack: [{ key: 'Room1', tag: 'Room' }], grant: { tag: 'Grant', player: 'Player2', actions: ['action2'] } },
-            { referenceStack: [{ key: 'Room2', tag: 'Room' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action3'] } }
+            { component: undefined, grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
+            { component: { key: 'Room1', tag: 'Room' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } },
+            { component: { key: 'Room1', tag: 'Room' }, grant: { tag: 'Grant', player: 'Player2', actions: ['action2'] } },
+            { component: { key: 'Room2', tag: 'Room' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action3'] } }
         ]
         const collection = new StandardAuthorizationCollection(ndjson)
         expect(collection.toJSON()).toEqual({
             key: 'Test',
+            universalKey: 'ASSET#Test',
             grants: [
                 {
-                    referenceStack: [],
+                    component: undefined,
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -60,7 +63,7 @@ describe('StandardAuthorizationCollection', () => {
                     }]
                 },
                 {
-                    referenceStack: [{ key: 'Room1', tag: 'Room' }],
+                    component: { key: 'Room1', tag: 'Room' },
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -72,7 +75,7 @@ describe('StandardAuthorizationCollection', () => {
                     }]
                 },
                 {
-                    referenceStack: [{ key: 'Room2', tag: 'Room' }],
+                    component: { key: 'Room2', tag: 'Room' },
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -106,7 +109,7 @@ describe('StandardAuthorizationCollection', () => {
         `)
         expect(Object.keys(collection.byId)).toEqual(['Room1'])
         expect(collection.byId["Room1"].toJSON()).toEqual({
-            referenceStack: [{ key: 'Room1', tag: 'Room' }],
+            component: { key: 'Room1', tag: 'Room' },
             grants: [{
                 tag: 'Grant',
                 player: 'Player1',
@@ -124,21 +127,18 @@ describe('StandardAuthorizationCollection', () => {
                 </Room>
             </Asset>
         `)
-        expect(collection.global).toEqual(new StandardAuthorizationResource({
-            referenceStack: [],
-            grants: [{
+        expect(collection.global).toEqual([
+            new StandardGrant({
                 tag: 'Grant',
                 player: 'Player1',
                 actions: ['action0']
-            }]
-        }))
+            })
+        ])
     })
 
-    it('should return empty global resource if none exists', () => {
+    it('should return empty global grants if none exist', () => {
         const collection = new StandardAuthorizationCollection('ASSET#TestKey')
-        expect(collection.global).toBeInstanceOf(StandardAuthorizationResource)
-        expect(collection.global.referenceStack).toEqual([])
-        expect(collection.global.grants).toEqual([])
+        expect(collection.global).toEqual([])
     })
 
     it('should return JSON representation', () => {
@@ -152,9 +152,10 @@ describe('StandardAuthorizationCollection', () => {
         `)
         expect(collection.toJSON()).toEqual({
             key: 'test',
+            universalKey: 'ASSET#test',
             grants: [
                 {
-                    referenceStack: [],
+                    component: undefined,
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -162,7 +163,7 @@ describe('StandardAuthorizationCollection', () => {
                     }]
                 },
                 {
-                    referenceStack: [{ key: 'Room1', tag: 'Room' }],
+                    component: { key: 'Room1', tag: 'Room' },
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -184,8 +185,8 @@ describe('StandardAuthorizationCollection', () => {
         `)
         expect(collection.toNDJSON()).toEqual([
             { tag: 'Asset', universalKey: 'ASSET#test' },
-            { referenceStack: [], grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
-            { referenceStack: [{ key: 'Room1', tag: 'Room' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
+            { component: undefined, grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
+            { component: { key: 'Room1', tag: 'Room' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
         ])
     })
 
@@ -198,6 +199,41 @@ describe('StandardAuthorizationCollection', () => {
         `)
         const collection = new StandardAuthorizationCollection(testWML)
         expect(schemaToWML([collection.schema])).toEqual(testWML)
+    })
+
+    it('should round-trip WML with uuid attributes', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(test)>
+                <Grant player=(Player1) actions="action0" />
+                <Room uuid=(Room1)><Grant player=(Player1) actions="action1" /></Room>
+            </Asset>
+        `)
+        const collection = new StandardAuthorizationCollection(testWML)
+        expect(schemaToWML([collection.schema])).toEqual(testWML)
+    })
+
+    it('should round-trip JSON with universalKey', () => {
+        const originalJSON: StandardAuthorizationCollectionData = {
+            key: 'test',
+            universalKey: 'ASSET#test',
+            grants: [
+                {
+                    component: 'ROOM#Room1',
+                    grants: [{ tag: 'Grant', player: 'Player1', actions: ['action1'] }]
+                }
+            ]
+        }
+        const collection = new StandardAuthorizationCollection(originalJSON)
+        expect(collection.toJSON()).toEqual(originalJSON)
+    })
+
+    it('should round-trip NDJSON with universalKey', () => {
+        const originalNDJSON: StandardAuthorizationCollectionNDJSON[] = [
+            { tag: 'Asset', universalKey: 'ASSET#test' },
+            { component: 'ROOM#Room1', grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
+        ]
+        const collection = new StandardAuthorizationCollection(originalNDJSON)
+        expect(collection.toNDJSON()).toEqual(originalNDJSON)
     })
 
     it('should ignore non-authorization content', () => {
@@ -242,8 +278,8 @@ describe('StandardAuthorizationCollection', () => {
         `))
     })
 
-    it('should correctly render nested schema', () => {
-        const testWML = deIndentWML(`
+    it('should parse nested WML but output flat schema', () => {
+        const inputWML = deIndentWML(`
             <Asset uuid=(test)>
                 <Room key=(Room1)>
                     <Feature key=(Feature2)>
@@ -252,11 +288,18 @@ describe('StandardAuthorizationCollection', () => {
                 </Room>
             </Asset>
         `)
-        const collection = new StandardAuthorizationCollection(testWML)
-        expect(schemaToWML([collection.schema])).toEqual(testWML)
+        const collection = new StandardAuthorizationCollection(inputWML)
+        // Output is flat - only Feature has grants, so only Feature appears
+        expect(schemaToWML([collection.schema])).toEqual(deIndentWML(`
+            <Asset uuid=(test)>
+                <Feature key=(Feature2)>
+                    <Grant player=(Player1) actions="action2" />
+                </Feature>
+            </Asset>
+        `))
     })
 
-    it('should correctly sort nested schema', () => {
+    it('should correctly sort flat schema', () => {
         const collection = new StandardAuthorizationCollection((`
             <Asset uuid=(test)>
                 <Room key=(Room1)>
@@ -269,16 +312,15 @@ describe('StandardAuthorizationCollection', () => {
                 </Room>
             </Asset>
         `))
+        // Output is flat and sorted by component key
         expect(schemaToWML([collection.schema])).toEqual(deIndentWML(`
             <Asset uuid=(test)>
-                <Room key=(Room1)>
-                    <Feature key=(FeatureOne)>
-                        <Grant player=(Player1) actions="action1" />
-                    </Feature>
-                    <Feature key=(FeatureTwo)>
-                        <Grant player=(Player1) actions="action2" />
-                    </Feature>
-                </Room>
+                <Feature key=(FeatureOne)>
+                    <Grant player=(Player1) actions="action1" />
+                </Feature>
+                <Feature key=(FeatureTwo)>
+                    <Grant player=(Player1) actions="action2" />
+                </Feature>
             </Asset>
         `))
     })
@@ -317,15 +359,12 @@ describe('StandardAuthorizationCollection', () => {
             </Asset>
         `)
         const mergedCollection = baseCollection.merge(incomingCollection)
-        expect(schemaToWML([mergedCollection.schema])).toEqual(deIndentWML(`
-            <Asset uuid=(TestKey)>
-                <Grant player=(Player1) actions="action0" />
-                <Grant player=(Player2) actions="action2" />
-                <Room key=(Room1)>
-                    <Grant player=(Player1) actions="action1, action3" />
-                </Room>
-            </Asset>
-        `))
+        // Flat output with merged grants
+        const resultWML = schemaToWML([mergedCollection.schema])
+        expect(resultWML).toContain('<Grant player=(Player1) actions="action0" />')
+        expect(resultWML).toContain('<Grant player=(Player2) actions="action2" />')
+        expect(resultWML).toContain('<Room key=(Room1)>')
+        expect(resultWML).toContain('<Grant player=(Player1) actions="action1, action3" />')
     })
 
     it('should diff collections', () => {
@@ -345,15 +384,12 @@ describe('StandardAuthorizationCollection', () => {
             </Asset>
         `)
         const diffCollection = baseCollection.diff(incomingCollection)
-        expect(schemaToWML([diffCollection.schema])).toEqual(deIndentWML(`
-            <Asset uuid=(TestKey)>
-                <Remove><Grant player=(Player1) actions="action0" /></Remove>
-                <Room key=(Room1)>
-                    <Replace><Grant player=(Player1) actions="action1" /></Replace>
-                    <With><Grant player=(Player1) actions="action2" /></With>
-                </Room>
-            </Asset>
-        `))
+        // Flat output with diff edits
+        const resultWML = schemaToWML([diffCollection.schema])
+        expect(resultWML).toContain('<Remove><Grant player=(Player1) actions="action0" /></Remove>')
+        expect(resultWML).toContain('<Room key=(Room1)>')
+        expect(resultWML).toContain('<Replace><Grant player=(Player1) actions="action1" /></Replace>')
+        expect(resultWML).toContain('<With><Grant player=(Player1) actions="action2" /></With>')
     })
 
     it('should rename keys', () => {

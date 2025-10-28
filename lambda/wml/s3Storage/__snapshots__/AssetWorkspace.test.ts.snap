@@ -24,6 +24,7 @@ exports[`AssetWorkspace (WML Lambda) loadAuthorizationJSON should correctly pars
     },
   ],
   "key": "Test",
+  "universalKey": "ASSET#Test",
 }
 `;
 

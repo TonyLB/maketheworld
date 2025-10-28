@@ -2,18 +2,13 @@ import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericT
 import { AssetUUID, isSchemaAsset, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardAuthorizationItem } from "./components/baseClasses"
 import { isStandardAuthorizationCollection, StandardAuthorizationCollectionData } from "./components/dataTypes"
-import { isLegalKey } from "../utils"
 import StandardReference from "../components/reference"
 import { isSchemaTreeNode, nodeFromWML } from "../../schema"
-import { ComponentProcessingTemplate } from "../processComponents"
 import { excludeUndefined } from "../../lib/lists"
 import processAuthorizations from "./processAuthorizations"
 import { isStandardAuthorizationResourceNDJSON, StandardAuthorizationResource, StandardAuthorizationResourceNDJSON } from "./resource"
-import { StandardBaseData } from "../components/dataTypes/abstract"
-import { StandardComponent, StandardToJSONOptions } from "../components/baseClasses"
+import { StandardToJSONOptions } from "../components/baseClasses"
 import { unique } from "../../list"
-import { standardComponentByTag } from "../nonEditFactory"
-import { deepEqual } from "../../lib/objects"
 import { standardComponentSortOrder } from "../sortOrder"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
@@ -41,6 +36,17 @@ export const isStandardAuthorizationCollectionNDJSON = (value: any): value is St
     return isStandardAuthorizationResourceNDJSON(value) || Boolean(typeof value === 'object' && value.tag === 'Asset' && isSchemaAssetUUID(value.universalKey))
 }
 
+// Helper to check if two component references are equal (handles undefined for global grants)
+const componentEqual = (a?: StandardReference, b?: StandardReference): boolean => {
+    if (a === undefined && b === undefined) {
+        return true  // Both global
+    }
+    if (a === undefined || b === undefined) {
+        return false  // One global, one not
+    }
+    return a.equal(b)
+}
+
 export class StandardAuthorizationCollection {
     _universalKey: AssetUUID;
     _grants: StandardAuthorizationResource[];
@@ -52,16 +58,9 @@ export class StandardAuthorizationCollection {
             return
         }
         if (isStandardAuthorizationCollection(args)) {
-            this._universalKey = args.key.startsWith('ASSET#') ? args.key as AssetUUID : `ASSET#${args.key}`
-
-            const grantsByReference = args.grants.reduce<Record<string, StandardAuthorizationResource>>((previous, standardResource) => {
-                const { referenceStack } = standardResource
-                return {
-                    ...previous,
-                    [referenceStack.map((reference) => ((typeof reference === 'object' && 'key' in reference) ? reference.key : undefined)).filter(excludeUndefined).join('.')]: new StandardAuthorizationResource(standardResource)
-                }
-            }, {})
-            this._grants = Object.values(grantsByReference)
+            // universalKey is required in StandardAuthorizationCollectionData
+            this._universalKey = args.universalKey
+            this._grants = args.grants.map((standardResource) => new StandardAuthorizationResource(standardResource))
             return
         }
         if (Array.isArray(args) && args.every(isStandardAuthorizationCollectionNDJSON)) {
@@ -73,7 +72,11 @@ export class StandardAuthorizationCollection {
             this._grants = args
                 .filter(isStandardAuthorizationResourceNDJSON)
                 .reduce<StandardAuthorizationResourceNDJSON[][]>((previous, row) => {
-                    const matchingIndex = previous.findIndex(([referenceRow]) => (deepEqual(referenceRow.referenceStack, row.referenceStack)))
+                    const rowComponent = row.component ? new StandardReference(row.component) : undefined
+                    const matchingIndex = previous.findIndex(([referenceRow]) => {
+                        const refComponent = referenceRow.component ? new StandardReference(referenceRow.component) : undefined
+                        return componentEqual(refComponent, rowComponent)
+                    })
                     if (matchingIndex === -1) {
                         return [...previous, [row]]
                     }
@@ -87,46 +90,14 @@ export class StandardAuthorizationCollection {
                 ? nodeFromWML(args)
                 : args
 
-            this._grants = []
-            this._universalKey = 'ASSET#'
-
             if (treeNodeTypeguard(isSchemaAsset)(node)) {
                 if (!node.data.uuid) {
                     throw new Error('StandardAuthorizationCollection constructor requires a uuid')
                 }
                 this._universalKey = node.data.uuid
+                this._grants = []
 
-                //
-                // Templates for the following component tags: 'Character', 'Image', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Variable', 'Computed', 'Action'
-                //
-                const componentTemplates: ComponentProcessingTemplate[] = [
-                    { 
-                        key: 'Character',
-                        legalParents: ['Room']
-                    },
-                    { key: 'Image' },
-                    {
-                        key: 'Room',
-                        legalParents: ['Map', 'Message']
-                    },
-                    {
-                        key: 'Feature',
-                        legalParents: ['Room']
-                    },
-                    { key: 'Knowledge' },
-                    { key: 'Map' },
-                    {
-                        key: 'Message',
-                        legalParents: ['Moment']
-                    },
-                    { key: 'Moment' },
-                    {
-                        key: 'Example',
-                        legalParents: ['Room', 'Feature', 'Knowledge']
-                    }
-                ]
-        
-                this._grants = Object.values(processAuthorizations({ componentTemplates, schema: node.children }))
+                this._grants = processAuthorizations({ schema: node.children })
                 return
             }
         }
@@ -142,7 +113,7 @@ export class StandardAuthorizationCollection {
 
     get byId(): Record<string, StandardAuthorizationResource> {
         return this._grants.reduce<Record<string, StandardAuthorizationResource>>((previous, resource) => {
-            const key = resource.referenceStack.map(({ key }) => (key)).join('.')
+            const key = resource.component?.key
             if (!key) {
                 return previous
             }
@@ -152,26 +123,36 @@ export class StandardAuthorizationCollection {
             }
         }, {})
     }
-    get global(): StandardAuthorizationResource {
-        const globalResource = this._grants.find((resource) => (resource.referenceStack.length === 0))
-        if (globalResource) {
-            return globalResource
-        }
-        return new StandardAuthorizationResource({ referenceStack: [], grants: [] })
+
+    get byUniversalId(): Record<string, StandardAuthorizationResource> {
+        return this._grants.reduce<Record<string, StandardAuthorizationResource>>((previous, resource) => {
+            const universalKey = resource.component?.universalKey
+            if (!universalKey) {
+                return previous
+            }
+            return {
+                ...previous,
+                [universalKey]: resource
+            }
+        }, {})
     }
-    /**
-     * @deprecated Legacy property. With UUID-based storage, stripping the ASSET# prefix provides
-     * no value over using universalKey directly. This property exists only for backward compatibility
-     * with code that expects a human-readable key. New code should use universalKey instead.
-     */
-    get key(): string { return this._universalKey.replace('ASSET#', '') }
+
+    _lookup(reference?: StandardReference): StandardAuthorizationResource | undefined {
+        // Find resource by matching component reference
+        return this._grants.find((resource) => componentEqual(resource.component, reference))
+    }
+    
+    get global(): StandardAuthorizationItem[] {
+        // Global grants are those with undefined component
+        const globalResource = this._grants.find((resource) => (resource.component === undefined))
+        return globalResource?.grants ?? []
+    }
     get universalKey(): AssetUUID { return this._universalKey }
 
     toJSON(options?: StandardToJSONOptions): StandardAuthorizationCollectionData {
-        // TODO: This should also output universalKey like StandardForm.toJSON() does,
-        // but StandardAuthorizationCollectionData type doesn't include that field yet.
         return {
-            key: this.key,
+            key: this._universalKey.replace('ASSET#', ''),  // Computed inline for backward compatibility
+            universalKey: this._universalKey,
             grants: this._grants.map((resource) => (resource.toJSON()))
         }
     }
@@ -190,79 +171,36 @@ export class StandardAuthorizationCollection {
     }
 
     _sortOrderFactory(): (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => number {
-        const sortOrderById = Object.values(this.byId)
-            .reduce<Record<string, StandardComponent>>((previous, resource) => {
-                const referenceStack = resource.referenceStack
-                const key = referenceStack.map(({ key }) => (key)).join('.')
-                const lastItem = referenceStack.slice(-1)[0]
-                if (!(key && lastItem)) { return previous }
-                const defaultComponent = standardComponentByTag(lastItem.tag, key)
-                if (!defaultComponent) { return previous }
-                return {
-                    ...previous,
-                    [key]: defaultComponent
-                }
-            }, {})
         return (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => {
-            const aComponent = sortOrderById[a.referenceStack.map(({ key }) => (key)).join('.')]
-            const bComponent = sortOrderById[b.referenceStack.map(({ key }) => (key)).join('.')]
-            return standardComponentSortOrder(aComponent._key, bComponent._key)
+            // Global grants (no component) come first
+            if (!a.component && !b.component) return 0
+            if (!a.component) return -1
+            if (!b.component) return 1
+            
+            // Use the underlying StandardKey from each component for sorting
+            return standardComponentSortOrder(a.component.plain(), b.component.plain())
         }
     }
 
     get schema(): GenericTreeNode<SchemaTag> {
+        const sortOrder = this._sortOrderFactory()
+        
         //
-        // Calculate all keys in the tree of all authorizations that are not global, so that
-        // we can create resource references to cover them in later calculation
+        // Separate global grants (undefined component) from component grants
         //
-        const allAuthorizationByIdReferenceStacks = unique(Object.values(this.byId)
-            .filter((resource) => (resource.referenceStack.length > 0))
-            .map((resource) => (
-                resource.referenceStack.map((_, index) => (resource.referenceStack.slice(0, index + 1)))
-            )))
-            .flat(1)
-        //
-        // Calculate all keys in the tree of all authorizations that are not global, so that
-        // nestedSchema can correctly reference them as it works its way toward the leaves
-        // of the tree
-        //
-        const authorizationsById = allAuthorizationByIdReferenceStacks
-            .reduce<Record<string, StandardAuthorizationResource>>((previous, referenceStack) => {
-                const key = referenceStack.map(({ key }) => (key)).join('.')
-                if (!this.byId[key]) {
-                    return {
-                        ...previous,
-                        [key]: new StandardAuthorizationResource({ referenceStack, grants: [] })
-                    }
-                }
-                return {
-                    ...previous,
-                    [key]: this.byId[key]
-                }
-            }, {})
-        //
-        // Calculate the schema for all global authorizations
-        //
-        const globalChildren = Object.values(this._grants)
-            .filter((resource) => (resource.referenceStack.length === 0))
+        const globalGrants = this._grants
+            .filter((resource) => (resource.component === undefined))
+            .flatMap((resource) => (resource.grants.map(grant => grant.schema).flat()))
+        
+        const componentChildren = this._grants
+            .filter((resource) => (resource.component !== undefined))
+            .sort(sortOrder)
             .map((resource) => (resource.schema))
             .flat(1)
-        //
-        // Recursively calculate the schema for all authorizations that are not global
-        //
-        const sortOrder = this._sortOrderFactory()
-        const byIdChildren = Object.values(authorizationsById)
-            .filter((resource) => (resource.referenceStack.length === 1))
-            .sort(sortOrder)
-            //
-            // TODO: Pass sortOrderFactory into nestedSchema so that nested entries
-            // can also be sorted correctly in schema output
-            //
-            .map((resource) => (resource.nestedSchema({ authorizationsById, sortOrder })))
-            .flat(1)
+        
         return {
             data: { tag: 'Asset', uuid: this._universalKey, Story: undefined },
-            children: [...globalChildren, ...byIdChildren]
+            children: [...globalGrants, ...componentChildren]
         }
     }
 
@@ -271,68 +209,62 @@ export class StandardAuthorizationCollection {
     // entries
     //
     merge(incoming: StandardAuthorizationCollection): StandardAuthorizationCollection {
-        const allKeys = unique(
-            this._grants.map(({ referenceStack }) => (referenceStack.map(({ key }) => (key))).join('.')),
-            incoming._grants.map(({ referenceStack }) => (referenceStack.map(({ key }) => (key))).join('.'))
+        // Merge by component reference
+        const allComponents = unique(
+            this._grants.map((resource) => (resource.component)),
+            incoming._grants.map((resource) => (resource.component))
         )
-        const newGrants = allKeys
-            .reduce<StandardAuthorizationResource[]>((previous, key) => {
-                const baseResource = this._grants.find((resource) => (resource.referenceStack.map(({ key }) => (key)).join('.') === key))
-                const incomingResource = incoming._grants.find((resource) => (resource.referenceStack.map(({ key }) => (key)).join('.') === key))
+        const newGrants = allComponents
+            .map((component) => {
+                const baseResource = this._grants.find((resource) => componentEqual(resource.component, component))
+                const incomingResource = incoming._grants.find((resource) => componentEqual(resource.component, component))
                 if (baseResource && incomingResource) {
-                    return [...previous, baseResource.merge(incomingResource)].filter(excludeUndefined)
+                    return baseResource.merge(incomingResource)
                 }
-                else {
-                    return [...previous, baseResource ?? incomingResource].filter(excludeUndefined)
-                }
-            }, [])
-        return new StandardAuthorizationCollection({ key: this.key, grants: newGrants.map((resource) => (resource.toJSON())) })
+                return baseResource ?? incomingResource
+            })
+            .filter(excludeUndefined)
+        return new StandardAuthorizationCollection({ universalKey: this.universalKey, grants: newGrants.map((resource) => (resource.toJSON())) })
     }
 
     diff(incoming: StandardAuthorizationCollection): StandardAuthorizationCollection {
-        const allKeys = unique(
-            this._grants.map(({ referenceStack }) => (referenceStack.map(({ key }) => (key))).join('.')),
-            incoming._grants.map(({ referenceStack }) => (referenceStack.map(({ key }) => (key))).join('.'))
+        // Diff by component reference
+        const allComponents = unique(
+            this._grants.map((resource) => (resource.component)),
+            incoming._grants.map((resource) => (resource.component))
         )
-        const newGrants = allKeys
-            .reduce<StandardAuthorizationResource[]>((previous, key) => {
-                const baseResource = this._grants.find((resource) => (resource.referenceStack.map(({ key }) => (key)).join('.') === key))
-                const incomingResource = incoming._grants.find((resource) => (resource.referenceStack.map(({ key }) => (key)).join('.') === key))
+        const newGrants = allComponents
+            .map((component) => {
+                const baseResource = this._grants.find((resource) => componentEqual(resource.component, component))
+                const incomingResource = incoming._grants.find((resource) => componentEqual(resource.component, component))
                 if (baseResource && incomingResource) {
-                    return [...previous, baseResource.diff(incomingResource)].filter(excludeUndefined)
+                    return baseResource.diff(incomingResource)
                 }
                 else if (incomingResource) {
-                    return [...previous, incomingResource].filter(excludeUndefined)
+                    return incomingResource
                 }
                 else if (baseResource) {
-                    return [...previous, baseResource.diff(new StandardAuthorizationResource({ referenceStack: baseResource?.referenceStack, grants: [] }))].filter(excludeUndefined)
+                    return baseResource.diff(new StandardAuthorizationResource({ component: baseResource.component, grants: [] }))
                 }
-                return previous
-            }, [])
-        return new StandardAuthorizationCollection({ key: this.key, grants: newGrants.map((resource) => (resource.toJSON())) })
+                return undefined
+            })
+            .filter(excludeUndefined)
+        return new StandardAuthorizationCollection({ universalKey: this.universalKey, grants: newGrants.map((resource) => (resource.toJSON())) })
     }
 
     renameKey(props: { fromKey: string; toKey: string; }[]): StandardAuthorizationCollection {
         const returnValue = this._clone()
-        returnValue._grants = props.reduce<StandardAuthorizationResource[]>((previous, { fromKey, toKey }) => {
-            const fromStack: string[] = fromKey.split('.')
-            const toStack: string[] = toKey.split('.')
-            if (fromStack.length !== toStack.length) {
-                throw new Error('Key mismatch in StandardAuthorizationCollection renameKey')
-            }
-            return previous.map((resource) => {
-                const { referenceStack, grants } = resource
-                if (referenceStack.slice(0, fromStack.length).every(({ key }, index) => (key === fromStack[index]))) {
+        returnValue._grants = returnValue._grants.map((resource) => {
+            for (const { fromKey, toKey } of props) {
+                if (resource.component?.key === fromKey) {
                     return new StandardAuthorizationResource({
-                        referenceStack: referenceStack.map((reference, index) => (index < fromStack.length ? reference.withKey(toStack[index]) : reference)),
-                        grants
+                        component: resource.component.withKey(toKey),
+                        grants: resource.grants
                     })
                 }
-                else {
-                    return resource
-                }
-            })
-        }, returnValue._grants)
+            }
+            return resource
+        })
         return returnValue
     }
 
