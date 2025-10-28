@@ -97,7 +97,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
     
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.loadAuthorizationJSON()
-            expect(testWorkspace.authorizations?.toJSON()).toEqual({ key: 'Test', universalKey: 'ASSET#Test', grants: [] })
+            expect(testWorkspace.authorizations?.toJSON()).toEqual({ universalKey: 'ASSET#Test', grants: [] })
         })
 
     })
@@ -116,7 +116,6 @@ describe('AssetWorkspace (WML Lambda)', () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.loadAuthorizationWML()
             expect(testWorkspace.authorizations?.toJSON()).toEqual({
-                key: 'Test',
                 universalKey: 'ASSET#Test',
                 grants: [
                     {

@@ -80,11 +80,6 @@ export const isStandardAuthorizationResourceData = (arg: any): arg is StandardAu
 }
 
 export type StandardAuthorizationCollectionData = {
-    /**
-     * @deprecated Legacy field. With UUID-based storage, this is just the universalKey with
-     * the ASSET# prefix stripped, providing no additional value. Kept for backward compatibility.
-     */
-    key?: string;
     universalKey: AssetUUID;
     grants: StandardAuthorizationResourceData[];
 }
