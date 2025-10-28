@@ -61,7 +61,7 @@ describe('mapTreeMemo', () => {
             const result = mapTreeMemo(standardForm, 'MAP#testMap')
             
             expect(result).toBeInstanceOf(StandardForm)
-            expect(result.key).toBe('mapTree')
+            expect(result.universalKey).toBe('ASSET#testAsset')
             
             // Should contain the map component
             const mapComponent = result.byUniversalId['MAP#testMap']

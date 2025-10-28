@@ -135,7 +135,7 @@ describe('fetchImportsMessage', () => {
             return Promise.resolve(undefined)
         })
         jest.spyOn(FetchImportsJSONHelper.prototype, 'get').mockImplementation(async (assetId: `ASSET#${string}`) => {
-            let standard: StandardForm = new StandardForm('test')
+            let standard: StandardForm = new StandardForm('ASSET#test')
             switch(assetId) {
                 case 'ASSET#testFinal':
                     standard = testFinal

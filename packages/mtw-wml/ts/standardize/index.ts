@@ -316,18 +316,11 @@ export class StandardForm {
         return returnProxy as unknown as Record<ComponentUUID, StandardComponent>
     }
 
-    /**
-     * @deprecated Legacy property. With UUID-based storage, stripping the ASSET# prefix provides
-     * no value over using universalKey directly. This property exists only for backward compatibility
-     * with code that expects a human-readable key. New code should use universalKey instead.
-     */
-    get key(): string { return this._universalKey.replace('ASSET#', '') }
     get universalKey(): AssetUUID { return this._universalKey }
 
     toJSON(options?: StandardToJSONOptions): StandardFormData {
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
         return {
-            key: this._universalKey.replace('ASSET#', ''),
             universalKey: this._universalKey,
             metaData: this.metaData,
             components: this._components.map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON(options) as StandardComponentData))

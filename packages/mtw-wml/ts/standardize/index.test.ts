@@ -27,7 +27,6 @@ describe('StandardForm', () => {
 
     it('should accept edit tags in JSON form', () => {
         const test = new StandardForm({
-            key: 'test',
             universalKey: 'ASSET#test',
             metaData: [],
             components: [
@@ -111,7 +110,6 @@ describe('StandardForm', () => {
 
         const standard = new StandardForm(test)
         expect(standard.toJSON()).toEqual({
-            key: 'Test',
             universalKey: 'ASSET#Test',
             metaData: [],
             components: [
@@ -196,7 +194,6 @@ describe('StandardForm', () => {
         </Asset>`)
 
         expect(test.toJSON()).toEqual({
-            key: 'Test',
             universalKey: 'ASSET#Test',
             metaData: [{ data: { tag: 'Meta', key: 'ABC', time: 1234 }, children: [] }],
             components: [
@@ -415,7 +412,6 @@ describe('StandardForm', () => {
             <Room uuid=(testTwo) key=(testTwo) />
         </Asset>`)
         expect(test.toJSON()).toEqual({
-            key: 'Test',
             universalKey: 'ASSET#Test',
             metaData: [],
             components: [{
@@ -478,7 +474,6 @@ describe('StandardForm', () => {
             <Room uuid=(testTwo) key=(testTwo) />
         </Asset>`)
         expect(test.toJSON()).toEqual({
-            key: 'Test',
             universalKey: 'ASSET#Test',
             metaData: [],
             components: [{
@@ -510,7 +505,6 @@ describe('StandardForm', () => {
             </Knowledge>
         </Asset>`)
         expect(test.toJSON()).toEqual({
-            key: 'Test',
             universalKey: 'ASSET#Test',
             metaData: [],
             components: [{
@@ -540,7 +534,6 @@ describe('StandardForm', () => {
             <Room uuid=(testTwo) key=(testTwo) />
         </Asset>`)
         expect(test.toJSON()).toEqual({
-            key: 'Test',
             universalKey: 'ASSET#Test',
             metaData: [],
             components: [{
@@ -1729,7 +1722,6 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const testStandard = new StandardForm({
-            key: 'Test',
             universalKey: 'ASSET#Test',
             components: [
                 {
@@ -1766,7 +1758,6 @@ describe('StandardForm', () => {
     it('should merge with an empty value', () => {
         const inherited = new StandardForm(`<Asset uuid=(Test) />`)
         const testStandard = new StandardForm({
-            key: 'Test',
             universalKey: 'ASSET#Test',
             components: [
                 {
@@ -1855,7 +1846,6 @@ describe('StandardForm', () => {
 
     it('should deserialize empty NDJSON correctly', () => {
         expect((new StandardForm([{ tag: 'Asset', key: 'Test', universalKey: 'ASSET#Test' }])).toJSON()).toEqual({
-            key: 'Test',
             universalKey: 'ASSET#Test',
             components: [],
             metaData: []
