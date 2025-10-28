@@ -151,7 +151,6 @@ export class StandardAuthorizationCollection {
 
     toJSON(options?: StandardToJSONOptions): StandardAuthorizationCollectionData {
         return {
-            key: this._universalKey.replace('ASSET#', ''),  // Computed inline for backward compatibility
             universalKey: this._universalKey,
             grants: this._grants.map((resource) => (resource.toJSON()))
         }

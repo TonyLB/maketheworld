@@ -16,7 +16,6 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should initialize with StandardAuthorizationCollectionData', () => {
         const data: StandardAuthorizationCollectionData = {
-            key: 'TestKey',
             universalKey: 'ASSET#TestKey',
             grants: [
                 {
@@ -51,7 +50,6 @@ describe('StandardAuthorizationCollection', () => {
         ]
         const collection = new StandardAuthorizationCollection(ndjson)
         expect(collection.toJSON()).toEqual({
-            key: 'Test',
             universalKey: 'ASSET#Test',
             grants: [
                 {
@@ -151,7 +149,6 @@ describe('StandardAuthorizationCollection', () => {
             </Asset>
         `)
         expect(collection.toJSON()).toEqual({
-            key: 'test',
             universalKey: 'ASSET#test',
             grants: [
                 {
@@ -214,7 +211,6 @@ describe('StandardAuthorizationCollection', () => {
 
     it('should round-trip JSON with universalKey', () => {
         const originalJSON: StandardAuthorizationCollectionData = {
-            key: 'test',
             universalKey: 'ASSET#test',
             grants: [
                 {
