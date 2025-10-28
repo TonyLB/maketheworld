@@ -1,146 +1,178 @@
-import { objectMerge } from "../../lib/objects"
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { StandardAuthRemove } from "./components/edits"
+import { StandardAuthRemove, StandardAuthReplace } from "./components/edits"
 import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
-import { ComponentProcessingTemplate } from "../processComponents"
 import { isSchemaGrant } from "@tonylb/mtw-base/ts/schema/authorization"
 import StandardGrant from "./components/grant"
 import { StandardAuthorizationResource } from "./resource"
-import StandardReference, { StandardReferenceSimple, StandardKey } from "../components/reference"
+import StandardReference, { StandardReferenceSimple } from "../components/reference"
+import { StandardAuthorizationItem } from "./components/baseClasses"
 
 //
-// mergeAuthByIds takes two objects keyed by resource ID and merges them together, using the merge method of the StandardAuthorizationItem class.
+// Helper to check if two component references are equal (handles undefined for global grants)
 //
-
-//
-// TODO: Create StandardAuthorizationCollection class, and use that to handle merge processes in this function
-//
-const mergeAuthByIds = (byId: Record<string, StandardAuthorizationResource>, newById: Record<string, StandardAuthorizationResource>): Record<string, StandardAuthorizationResource> => {
-    return Object.entries(newById).reduce((previous, [key, value]) => {
-        const base = previous[key]
-        if (base) {
-            const merged = base.merge(value)
-            if (merged) {
-                return { ...previous, [key]: merged }
-            }
-            else {
-                const { [key]: _, ...rest } = previous
-                return rest
-            }
-        }
-        else {
-            return { ...previous, [key]: value }
-        }
-    }, byId)
+const componentEqual = (a?: StandardReference, b?: StandardReference): boolean => {
+    if (a === undefined && b === undefined) {
+        return true  // Both global
+    }
+    if (a === undefined || b === undefined) {
+        return false  // One global, one not
+    }
+    return a.equal(b)
 }
 
 //
-// processAuthorizations takes a list of component templates and a tag tree, and extracts the authorization objects
-// embedded in that structure.
+// Merge authorization resources with the same component
+//
+const mergeAuthResources = (resources: StandardAuthorizationResource[]): StandardAuthorizationResource[] => {
+    return resources.reduce<StandardAuthorizationResource[]>((previous, resource) => {
+        const existing = previous.find((r) => componentEqual(r.component, resource.component))
+        if (existing) {
+            const merged = existing.merge(resource)
+            return [...previous.filter((r) => r !== existing), merged]
+        }
+        return [...previous, resource]
+    }, [])
+}
+
+//
+// processAuthorizations takes a tag tree and extracts the authorization objects
+// embedded in that structure. Returns a flat array of resources (one per component with grants).
 //
 export const processAuthorizations = (props: {
-    componentTemplates: ComponentProcessingTemplate[];
     schema: GenericTree<SchemaTag>;
-    componentContext?: StandardKey[];
     inContextOfRemove?: boolean;
-}): Record<string, StandardAuthorizationResource> => {
+}): StandardAuthorizationResource[] => {
     //
     // Loop through each tag in standard order
     //
     const {
-        componentTemplates,
         schema,
-        componentContext = [],
         inContextOfRemove = false
     } = props
 
-    const recursiveById = schema.reduce<Record<string, StandardAuthorizationResource>>((previous, item) => {
+    const resources = schema.reduce<StandardAuthorizationResource[]>((previous, item) => {
+
+        //
+        // Handle global grants (grants directly on Asset, not in any component)
+        //
+        if (treeNodeTypeguard(isSchemaGrant)(item)) {
+            const grant = inContextOfRemove 
+                ? new StandardAuthRemove(new StandardGrant(item))
+                : new StandardGrant(item)
+            // Global grants have no component (undefined)
+            const globalResource = new StandardAuthorizationResource({
+                component: undefined,
+                grants: [grant]
+            })
+            return mergeAuthResources([...previous, globalResource])
+        }
 
         //
         // If the item is a remove, set inContextOfRemove to true
         //
         if (treeNodeTypeguard(isSchemaRemove)(item)) {
-            return mergeAuthByIds(previous, processAuthorizations({ ...props, schema: item.children, inContextOfRemove: true }))
+            return mergeAuthResources([...previous, ...processAuthorizations({ ...props, schema: item.children, inContextOfRemove: true })])
         }
 
         //
-        // If the item is a replace, manually create byId entries for the ReplaceMatch and ReplacePayload entries,
-        // then use objectMerge to generate a key-by-key comparison of the two, using the diff method of the
-        // StandardAuthorizationResource class to generate the final result.
+        // If the item is a replace, process match and payload separately, then create diff resources
         //
         if (treeNodeTypeguard(isSchemaReplace)(item)) {
             const replaceMatch = item.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
             const replacePayload = item.children.find(treeNodeTypeguard(isSchemaReplacePayload))
             if (replaceMatch && replacePayload) {
-                const matchById = processAuthorizations({ ...props, schema: replaceMatch.children })
-                const payloadById = processAuthorizations({ ...props, schema: replacePayload.children })
-                const mergedById = objectMerge(matchById, payloadById)
-                const replaceById = Object.entries(mergedById).reduce<Record<string, StandardAuthorizationResource>>((previous, [key, { itemA: matchResource, itemB: payloadResource }]) => {
+                const matchResources = processAuthorizations({ ...props, schema: replaceMatch.children })
+                const payloadResources = processAuthorizations({ ...props, schema: replacePayload.children })
+                
+                // Group by component and create diffs
+                const allComponents = [...matchResources, ...payloadResources]
+                    .map(r => r.component)
+                    .filter((comp, index, self) => 
+                        self.findIndex(c => componentEqual(c, comp)) === index
+                    )
+                
+                const diffResources = allComponents.map((component) => {
+                    const matchResource = matchResources.find(r => componentEqual(r.component, component))
+                    const payloadResource = payloadResources.find(r => componentEqual(r.component, component))
+                    
                     if (matchResource && payloadResource) {
-                        const diff = matchResource.diff(payloadResource)
-                        return diff ? { ...previous, [key]: diff } : previous
+                        return matchResource.diff(payloadResource)
                     }
                     if (matchResource) {
-                        const diff = new StandardAuthorizationResource({ referenceStack: matchResource.referenceStack, grants: [] }).diff(matchResource)
-                        return diff ? { ...previous, [key]: diff } : previous
+                        return new StandardAuthorizationResource({ component: matchResource.component, grants: [] }).diff(matchResource)
                     }
                     if (payloadResource) {
-                        return { ...previous, [key]: payloadResource }
+                        return payloadResource
                     }
-                    return previous
-                }, {})
-                return mergeAuthByIds(previous, replaceById)
+                    return undefined
+                }).filter((r): r is StandardAuthorizationResource => r !== undefined)
+                
+                return mergeAuthResources([...previous, ...diffResources])
             }
             throw new Error('Replace must have both a ReplaceMatch and a ReplacePayload')
         }
 
         if (treeNodeTypeguard(isSchemaComponent)(item)) {
-            const template = componentTemplates.find(({ key }) => (key === item.data.tag))
-            if (template) {
-                //
-                // If the template has legalParents, extract the nearest legal parent tags from the componentContext
-                //
-                const legalParentTags = template.legalParents ?? []
-                const ancestorTags = componentContext.filter(({ tag }) => (legalParentTags.includes(tag)))
-                const parentTag = ancestorTags.slice(-1)[0]
-
-                //
-                // Localize the key for the component if it is not global, and has a parent tag
-                //
-                const newComponent = new StandardReference(item.data)
-                if (!(newComponent._payload instanceof StandardReferenceSimple)) {
-                    throw new Error(`Component ${item.data.tag} does not have a valid reference payload`)
-                }
-
-                return mergeAuthByIds(
-                    previous,
-                    processAuthorizations({ ...props, schema: item.children, componentContext: [...componentContext, newComponent._payload.payload] })
-                )
+            //
+            // Pass [item] as a GenericTree so payloadFactory can extract uuid and convert to universalKey
+            // Flat structure: Component with grants directly inside, no nesting
+            //
+            const componentRef = new StandardReference([item])
+            if (!(componentRef._payload instanceof StandardReferenceSimple)) {
+                throw new Error(`Component ${item.data.tag} does not have a valid reference payload`)
             }
+
+                // Extract authorization items (grants, removes, replaces) from this component's children
+                const authItems: StandardAuthorizationItem[] = []
+                const nonAuthChildren: GenericTree<SchemaTag> = []
+                
+                item.children.forEach((child) => {
+                    if (treeNodeTypeguard(isSchemaGrant)(child)) {
+                        authItems.push(inContextOfRemove 
+                            ? new StandardAuthRemove(new StandardGrant(child))
+                            : new StandardGrant(child))
+                    } else if (treeNodeTypeguard(isSchemaRemove)(child)) {
+                        // Process grants inside Remove
+                        child.children.filter(treeNodeTypeguard(isSchemaGrant)).forEach((grantItem) => {
+                            authItems.push(new StandardAuthRemove(new StandardGrant(grantItem)))
+                        })
+                    } else if (treeNodeTypeguard(isSchemaReplace)(child)) {
+                        // Process Replace for grants
+                        const match = child.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
+                        const payload = child.children.find(treeNodeTypeguard(isSchemaReplacePayload))
+                        if (match && payload) {
+                            const matchGrants = match.children.filter(treeNodeTypeguard(isSchemaGrant))
+                            const payloadGrants = payload.children.filter(treeNodeTypeguard(isSchemaGrant))
+                            // For now, assume single grant replacement
+                            if (matchGrants.length > 0 && payloadGrants.length > 0) {
+                                authItems.push(new StandardAuthReplace(
+                                    new StandardGrant(matchGrants[0]),
+                                    new StandardGrant(payloadGrants[0])
+                                ))
+                            }
+                        }
+                    } else {
+                        // Not an auth item, keep for recursive processing
+                        nonAuthChildren.push(child)
+                    }
+                })
+
+                // If this component has auth items, create a resource for it
+                const componentResource = authItems.length > 0
+                    ? [new StandardAuthorizationResource({ component: componentRef, grants: authItems })]
+                    : []
+
+                // Recursively process child components (nested components, not grants)
+                const childResources = processAuthorizations({ ...props, schema: nonAuthChildren })
+
+            return mergeAuthResources([...previous, ...componentResource, ...childResources])
         }
 
-        if (treeNodeTypeguard(isSchemaGrant)(item)) {
-            //
-            // Create a reference to the nearest parent in the componentContext, and use
-            // that to create a new StandardAuthorizationResource object to merge.
-            //
-            const referenceStack = componentContext.map((reference) => (new StandardReference(reference)))
-            const key = referenceStack.map(({ key }) => key).join('.')
-            const itemResource = new StandardAuthorizationResource({
-                referenceStack,
-                grants: [
-                    inContextOfRemove
-                        ? new StandardAuthRemove(new StandardGrant(item))
-                        : new StandardGrant(item)
-                ]
-            })
-            return mergeAuthByIds(previous, { [key]: itemResource })
-        }
-        return mergeAuthByIds(previous, processAuthorizations({ ...props, schema: item.children }))
-    }, {})
+        return mergeAuthResources([...previous, ...processAuthorizations({ ...props, schema: item.children })])
+    }, [])
 
-    return recursiveById
+    return resources
 }
 
 export default processAuthorizations

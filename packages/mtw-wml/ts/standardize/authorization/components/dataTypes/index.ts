@@ -1,6 +1,7 @@
 import { isStandardReferencePayloadData, StandardReferenceData } from "../../../components/dataTypes/reference";
 import { checkAll } from "../../../components/dataTypes/typeguards";
 import { isStandardGrant, StandardGrantData } from './grant'
+import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema";
 
 export { StandardGrantData, isStandardGrant }
 
@@ -64,7 +65,7 @@ export type StandardAuthorizationData = StandardAuthNonEditData | StandardAuthRe
 export const isStandardAuthorizationData = (arg: any): arg is StandardAuthorizationData => (isStandardAuthNonEditData(arg) || isStandardAuthRemove(arg) || isStandardAuthReplace(arg))
 
 export type StandardAuthorizationResourceData = {
-    referenceStack: StandardReferenceData[];
+    component?: StandardReferenceData;  // Undefined for global (Asset-level) grants
     grants: StandardAuthorizationData[];
 }
 
@@ -73,24 +74,18 @@ export const isStandardAuthorizationResourceData = (arg: any): arg is StandardAu
         return false
     }
     return checkAll(
-        ('referenceStack' in arg && Array.isArray(arg.referenceStack) && arg.referenceStack.every(isStandardReferencePayloadData)),
+        (!('component' in arg) || arg.component === undefined || isStandardReferencePayloadData(arg.component)),
         ('grants' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationData))
     )
 }
 
-/**
- * @todo FUNCTIONALITY GAP: Unlike StandardFormData, this type does not include a universalKey field.
- * This means authorization data cannot properly serialize/deserialize the AssetUUID, making
- * authorizations less capable than StandardForm. This should be fixed by adding:
- *   universalKey: AssetUUID;
- * and updating toJSON() to include it, similar to StandardForm.toJSON().
- */
 export type StandardAuthorizationCollectionData = {
     /**
      * @deprecated Legacy field. With UUID-based storage, this is just the universalKey with
      * the ASSET# prefix stripped, providing no additional value. Kept for backward compatibility.
      */
-    key: string;
+    key?: string;
+    universalKey: AssetUUID;
     grants: StandardAuthorizationResourceData[];
 }
 
@@ -99,7 +94,7 @@ export const isStandardAuthorizationCollection = (arg: any): arg is StandardAuth
         return false
     }
     return checkAll(
-        ('key' in arg && typeof arg.key === 'string'),
+        ('universalKey' in arg && typeof arg.universalKey === 'string' && isSchemaAssetUUID(arg.universalKey)),
         ('grants' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationResourceData))
     )
 }

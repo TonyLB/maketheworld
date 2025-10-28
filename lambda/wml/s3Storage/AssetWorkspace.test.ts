@@ -73,7 +73,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
         it('should correctly parse and assign JSON properties', async () => {
             const json: StandardAuthorizationCollectionNDJSON[] = [
                 { tag: 'Asset', universalKey: 'ASSET#Test' },
-                { referenceStack: [{ tag: 'Room', key: 'Room1' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
+                { component: { tag: 'Room', key: 'Room1' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
             ]
             s3ClientMock.get.mockResolvedValue(json.map((line) => (JSON.stringify(line))).join('\n'))
     
@@ -97,7 +97,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
     
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.loadAuthorizationJSON()
-            expect(testWorkspace.authorizations?.toJSON()).toEqual({ key: 'Test', grants: [] })
+            expect(testWorkspace.authorizations?.toJSON()).toEqual({ key: 'Test', universalKey: 'ASSET#Test', grants: [] })
         })
 
     })
@@ -106,7 +106,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
         it('should correctly parse and assign WML authorizations', async () => {
             const wml = `
                 <Asset uuid=(Test)>
-                    <Room key=(Room1)>
+                    <Room uuid=(Room1)>
                         <Grant player=(Player1) actions="action1" />
                     </Room>
                 </Asset>
@@ -117,9 +117,10 @@ describe('AssetWorkspace (WML Lambda)', () => {
             await testWorkspace.loadAuthorizationWML()
             expect(testWorkspace.authorizations?.toJSON()).toEqual({
                 key: 'Test',
+                universalKey: 'ASSET#Test',
                 grants: [
                     {
-                        referenceStack: [{ tag: 'Room', key: 'Room1' }],
+                        component: 'ROOM#Room1',
                         grants: [{ tag: 'Grant', player: 'Player1', actions: ['action1'] }]
                     }
                 ]
@@ -209,7 +210,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
             testWorkspace.assetId = 'ASSET#Test'
             testWorkspace.authorizations = new StandardAuthorizationCollection(`
                 <Asset uuid=(test)>
-                    <Room key=(Room1)>
+                    <Room uuid=(Room1)>
                         <Grant player=(Player1) actions="action1" />
                     </Room>
                 </Asset>
@@ -219,7 +220,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
             expect(testWorkspace.authStatus.json).toEqual('Clean')
             expect(s3ClientMock.putWithTags).toHaveBeenCalledWith({
                 Key: 'Test.auth.ndjson',
-                Body: `{"tag":"Asset","universalKey":"ASSET#test"}\n{"referenceStack":[{"key":"Room1","tag":"Room"}],"grant":{"tag":"Grant","player":"Player1","actions":["action1"]}}`,
+                Body: `{"tag":"Asset","universalKey":"ASSET#test"}\n{"component":"ROOM#Room1","grant":{"tag":"Grant","player":"Player1","actions":["action1"]}}`,
                 Tags: { Zone: 'Personal' },
                 Metadata: { player: 'Test' }
             })
@@ -254,12 +255,9 @@ describe('AssetWorkspace (WML Lambda)', () => {
     describe('pushAuthorizationWML', () => {
         it('should correctly push WML content', async () => {
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Library')
-            // Note: Using 'key' instead of 'uuid' for Room because StandardAuthorizationCollection
-            // hasn't been updated for uuid/universalKey migration yet.
-            // See Technical Debt in packages/mtw-wml/ts/standardize/components/AGENT.md
             const testWML = `
                 <Asset uuid=(test)>
-                    <Room key=(Room1)><Grant player=(Player1) actions="action1" /></Room>
+                    <Room uuid=(Room1)><Grant player=(Player1) actions="action1" /></Room>
                 </Asset>
             `
             testWorkspace.authorizations = new StandardAuthorizationCollection(testWML)

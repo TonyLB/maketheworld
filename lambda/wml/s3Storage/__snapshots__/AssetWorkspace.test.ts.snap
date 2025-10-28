@@ -4,6 +4,12 @@ exports[`AssetWorkspace (WML Lambda) loadAuthorizationJSON should correctly pars
 {
   "grants": [
     {
+      "component": {
+        "context": undefined,
+        "key": "Room1",
+        "tag": "Room",
+        "universalKey": undefined,
+      },
       "grants": [
         {
           "actions": [
@@ -13,17 +19,10 @@ exports[`AssetWorkspace (WML Lambda) loadAuthorizationJSON should correctly pars
           "tag": "Grant",
         },
       ],
-      "referenceStack": [
-        {
-          "context": undefined,
-          "key": "Room1",
-          "tag": "Room",
-          "universalKey": undefined,
-        },
-      ],
     },
   ],
   "key": "Test",
+  "universalKey": "ASSET#Test",
 }
 `;
 
