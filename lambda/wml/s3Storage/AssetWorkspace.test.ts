@@ -73,7 +73,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
         it('should correctly parse and assign JSON properties', async () => {
             const json: StandardAuthorizationCollectionNDJSON[] = [
                 { tag: 'Asset', universalKey: 'ASSET#Test' },
-                { referenceStack: [{ tag: 'Room', key: 'Room1' }], grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
+                { component: { tag: 'Room', key: 'Room1' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
             ]
             s3ClientMock.get.mockResolvedValue(json.map((line) => (JSON.stringify(line))).join('\n'))
     

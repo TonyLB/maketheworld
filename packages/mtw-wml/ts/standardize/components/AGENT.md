@@ -27,27 +27,36 @@ The `standardize/components` directory contains the core WML component classes t
 
 **Developer Note**: Current `fileURL` handling is temporary. Feel free to insert temporary stub implementations for images in order to progress on other functionality.
 
-### **StandardAuthorizationCollection UUID/UniversalKey Migration** ✅ **RESOLVED**
+### **StandardAuthorizationCollection UUID/UniversalKey Migration & Architectural Simplification** ✅ **RESOLVED**
 
 **Component**: `StandardAuthorizationCollection`
 
-**Resolution Date**: October 27, 2025
+**Resolution Date**: October 28, 2025
 
 **Changes Made**:
-1. ✅ Updated `StandardAuthorizationCollectionData` type to include `universalKey: AssetUUID` field
-2. ✅ Updated `isStandardAuthorizationCollection` typeguard to check for `universalKey`
-3. ✅ Modified `StandardAuthorizationCollection.toJSON()` to output `universalKey`
-4. ✅ Updated `processAuthorizations` to extract `uuid` attributes from WML and populate `universalKey`
-5. ✅ Fixed all `byId`, `merge()`, `diff()`, and schema generation methods to handle `universalKey` fallback
-6. ✅ Updated all tests to use `uuid` attributes and expect `universalKey` in serialized output
+1. ✅ **UUID Support**: Added `universalKey: AssetUUID` to `StandardAuthorizationCollectionData` and all related typeguards
+2. ✅ **Flat Structure**: Replaced `referenceStack: StandardReference[]` with single `component?: StandardReference` in `StandardAuthorizationResource`
+3. ✅ **Global Grants**: Introduced `component: undefined` pattern for Asset-level grants (no component wrapper needed)
+4. ✅ **Aligned with StandardForm**: Implemented `byId`, `byUniversalId`, and `_lookup()` methods matching StandardForm patterns
+5. ✅ **Array-based processAuthorizations**: Changed from `Record<string, StandardAuthorizationResource>` to `StandardAuthorizationResource[]`, aligning with `processComponents` pattern
+6. ✅ **Removed componentTemplates**: Simplified `processAuthorizations` to use `isSchemaComponent` directly (no redundant templates)
+7. ✅ **Semantic equality**: Replaced `deepEqual` with `StandardReference.equal()` and `componentEqual()` helper throughout
+8. ✅ **Simplified sorting**: Removed complex sort order factory, now uses `standardComponentSortOrder` with `.plain()` directly
+9. ✅ **Updated all tests**: 59 authorization tests + 14 lambda integration tests passing
 
-**Result**: Authorization WML now supports the same `uuid`-based patterns as other WML components, creating consistency across the system. Both `<Room key=(Room1)>` and `<Room uuid=(Room1)>` patterns are now supported, with proper fallback from local key to universalKey throughout the authorization system.
+**Architectural Decisions**:
+- **Flat schema output only**: Removed `nestedSchema()` method. Authorization WML outputs flat `<Component><Grant /></Component>` structure
+- **Deferred nesting**: Hierarchical authorization reconstruction deferred until `<Parent>` tag implementation provides explicit parent control
+- **Optional `key` field**: Maintained in `toJSON()` for backward compatibility with existing serialized data
+
+**Result**: Authorization system now has full UUID support with dramatically simplified architecture. Flat structure eliminates complex ancestry tracking, semantic equality replaces string-keyed lookups, and all patterns align with StandardForm conventions. System is ready for future `<Parent>` tag integration.
 
 **Related Files**: 
 - `packages/mtw-wml/ts/standardize/authorization/index.ts`
-- `packages/mtw-wml/ts/standardize/authorization/components/dataTypes/index.ts`
-- `packages/mtw-wml/ts/standardize/authorization/processAuthorizations.ts`
 - `packages/mtw-wml/ts/standardize/authorization/resource.ts`
+- `packages/mtw-wml/ts/standardize/authorization/processAuthorizations.ts`
+- `packages/mtw-wml/ts/standardize/authorization/components/dataTypes/index.ts`
+- `lambda/wml/s3Storage/AssetWorkspace.test.ts`
 - All authorization test files updated
 
 
