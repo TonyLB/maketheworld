@@ -318,7 +318,7 @@ can edit components at their top level):
 ```typescript
 // Asset with edit components
 const assetWithEdits = new StandardForm({
-    key: 'Test',
+    universalKey: 'ASSET#Test',
     components: [
         {
             tag: 'Replace',

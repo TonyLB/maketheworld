@@ -19,6 +19,8 @@ const validationTemplates = {
     Asset: {
         uuid: { required: true, type: ParsePropertyTypes.Key },
         update: { type: ParsePropertyTypes.Boolean }
+        // NOTE: 'key' property is intentionally excluded - Asset uses only universalKey (uuid)
+        // since there is no context for an Asset-level key to be "local" to
     }
 } as const
 

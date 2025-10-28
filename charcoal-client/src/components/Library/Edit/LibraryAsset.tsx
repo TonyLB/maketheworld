@@ -59,12 +59,12 @@ type LibraryAssetContextType = {
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     assetKey: '',
-    AssetId: 'ASSET#',
+    AssetId: 'ASSET#default',
     currentWML: '',
     draftWML: '',
-    standardForm: new StandardForm({ key: '', components: [], metaData: [] }),
-    localStandardForm: new StandardForm({ key: '', components: [], metaData: [] }),
-    inheritedStandardForm: { key: '', components: [], metaData: [] },
+    standardForm: new StandardForm({ universalKey: 'ASSET#default', components: [], metaData: [] }),
+    localStandardForm: new StandardForm({ universalKey: 'ASSET#default', components: [], metaData: [] }),
+    inheritedStandardForm: { universalKey: 'ASSET#default', components: [], metaData: [] },
     inheritedByAssetId: [],
     updateStandard: () => {},
     properties: {},

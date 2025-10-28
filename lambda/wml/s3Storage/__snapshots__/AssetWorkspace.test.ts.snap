@@ -37,7 +37,6 @@ exports[`AssetWorkspace (WML Lambda) loadJSON should correctly parse and assign 
       "universalKey": "ROOM#001",
     },
   ],
-  "key": "Test",
   "metaData": [],
   "universalKey": "ASSET#Test",
 }
@@ -73,7 +72,6 @@ exports[`AssetWorkspace (WML Lambda) setWML should correctly parse WML input 1`]
       "universalKey": "ROOM#room2",
     },
   ],
-  "key": "Test",
   "metaData": [],
   "universalKey": "ASSET#Test",
 }

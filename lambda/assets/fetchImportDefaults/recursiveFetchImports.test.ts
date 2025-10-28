@@ -7,7 +7,7 @@ import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 const jsonHelperMock = (assets: StandardForm[]): jest.Mocked<InstanceType<typeof FetchImportsJSONHelper>> => ({
     get: jest.fn().mockImplementation(async (assetId: string): Promise<StandardForm> => {
-        const assetById = assets.find((asset) => (asset.key === assetId.split('#').slice(1)[0]))
+        const assetById = assets.find((asset) => (asset.universalKey === assetId))
         if (!assetById) {
             throw new Error('jsonHelperMock failure')
         }

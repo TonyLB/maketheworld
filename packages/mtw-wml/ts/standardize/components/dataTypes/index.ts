@@ -1,7 +1,7 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import type { SerializeNDJSONMixin, StandardComponentData, StandardComponentTag } from "../../baseClasses"
 import { isSchemaTreeNode } from "../../../schema"
-import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 import { isStandardCharacter, StandardCharacterData } from "./character"
 
@@ -100,11 +100,6 @@ export const unwrapStandardComponent = (component: StandardComponentData): Stand
 }
 
 export type StandardFormData = {
-    /**
-     * @deprecated Legacy field. With UUID-based storage, this is just the universalKey with
-     * the ASSET# prefix stripped, providing no additional value. Kept for backward compatibility.
-     */
-    key?: string;
     universalKey: AssetUUID;
     components: StandardComponentData[];
     metaData: GenericTree<SchemaTag>;
@@ -117,7 +112,7 @@ export const isStandardForm = (arg: any): arg is StandardFormData => {
         return false
     }
     return checkAll(
-        ('key' in arg && typeof arg.key === 'string'),
+        ('universalKey' in arg && typeof arg.universalKey === 'string' && isSchemaAssetUUID(arg.universalKey)),
         ('metaData' in arg && Array.isArray(arg.metaData) && arg.metaData.every(isSchemaTreeNode)),
         ('components' in arg && Array.isArray(arg.components) && arg.components.every(isStandardComponentData))
     )

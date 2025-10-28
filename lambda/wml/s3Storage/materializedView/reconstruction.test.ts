@@ -57,10 +57,10 @@ describe('reconstructFromManifest', () => {
             // Verify
             expect(result.type).toBe('auth')
             if (result.type === 'auth') {
-                expect(result.authorization.key).toBe('test')
+                expect(result.authorization.universalKey).toBe('ASSET#test')
                 const authJSON = result.authorization.toJSON()
-                // toJSON returns { key: string, grants: Array }
-                expect(authJSON.key).toBe('test')
+                // toJSON returns { universalKey: string, grants: Array }
+                expect(authJSON.universalKey).toBe('ASSET#test')
                 expect(authJSON.grants).toEqual([])
                 expect(result.metadata.snapshotUsed).toBe(false)
                 expect(result.metadata.chunksApplied).toBe(0)
@@ -386,7 +386,7 @@ describe('reconstructFromManifest', () => {
             // Verify
             expect(result.type).toBe('auth')
             if (result.type === 'auth') {
-                expect(result.authorization.key).toBe('test')
+                expect(result.authorization.universalKey).toBe('ASSET#test')
                 expect(result.metadata.snapshotUsed).toBe(false)
                 expect(result.metadata.chunksApplied).toBe(1)
             }

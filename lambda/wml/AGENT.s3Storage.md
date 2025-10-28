@@ -223,7 +223,7 @@ const workspace = new AssetWorkspace({
     fileName: 'my-adventure',
     subFolder: 'adventures'
 })
-await workspace.setWML('<Asset key="my-adventure">...</Asset>')
+await workspace.setWML('<Asset uuid=(my-adventure)>...</Asset>')
 await workspace.pushWML()
 await workspace.pushJSON()
 ```

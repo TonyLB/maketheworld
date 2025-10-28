@@ -64,7 +64,7 @@ describe('AssetWorkspace (WML Lambda)', () => {
     
             const testWorkspace = new AssetWorkspace('ASSET#Test', 'Personal', 'Test')
             await testWorkspace.loadJSON()
-            expect(testWorkspace.standard?.toJSON()).toEqual({ key: 'Test', universalKey: 'ASSET#Test', metaData: [], components: [] })
+            expect(testWorkspace.standard?.toJSON()).toEqual({ universalKey: 'ASSET#Test', metaData: [], components: [] })
         })
 
     })

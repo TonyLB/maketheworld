@@ -44,7 +44,7 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
     // in the local keys, as they are not relevant to the import process.
     //
     const newStandard = subsetStandard
-    const originAsset = AssetKey(newStandard.key)
+    const originAsset = AssetKey(newStandard.universalKey)
     newStandard._components = newStandard._components.map((component) => {
         const returnValue = component.withOrigin([originAsset])
         return returnValue
