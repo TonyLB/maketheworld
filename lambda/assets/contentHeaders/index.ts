@@ -291,14 +291,9 @@ function createAggregatedContentHeadersUpdate(
             return null
         }
         
-        // Create or extend a StandardForm with asset metadata and all header components
-        const standardForm = metadataAsset ? metadataAsset._clone() : new StandardForm([
-            { tag: 'Asset', key: assetKey, universalKey: assetId }
-        ])
-        standardForm._components = [
-            ...standardForm._components,
-            ...headerComponents.map(component => component.toJSON())
-        ]
+        // Build a StandardForm from header metadata, then assign component instances
+        const standardForm = metadataAsset ? metadataAsset._clone() : new StandardForm(assetId)
+        standardForm._components = headerComponents
         
         return {
             type: 'Headers Updated',
