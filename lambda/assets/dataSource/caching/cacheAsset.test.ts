@@ -375,4 +375,190 @@ describe('Cache Asset (Data Source)', () => {
             `))
         })
     })
+
+    describe('Asset-level metadata storage', () => {
+        it('should store Asset-level ShortName in Meta::Asset record', async () => {
+            // Mock empty dbAsset
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#nakatomiPlaza',
+                standardForm: new StandardForm('<Asset uuid=(nakatomiPlaza) />')
+            }])
+
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
+                AssetId: 'ASSET#nakatomiPlaza',
+                zone: 'Personal',
+                player: 'testPlayer'
+            }])
+
+            // Mock fileAsset with Asset-level ShortName
+            standardFormMock = new StandardForm(deIndentWML(`
+                <Asset uuid=(nakatomiPlaza)>
+                    <ShortName>Nakatomi Plaza</ShortName>
+                    <Room uuid=(lobby) key=(lobby)>
+                        <ShortName>Main Lobby</ShortName>
+                    </Room>
+                </Asset>
+            `))
+
+            await cacheAsset({ assetId: 'nakatomiPlaza', streamEvent: mockStreamEvent })
+
+            // Verify Meta::Asset record includes shortName
+            const metaAssetCall = assetDBMock.putItem.mock.calls.find(
+                call => call[0].DataCategory === 'Meta::Asset'
+            )
+            expect(metaAssetCall).toBeDefined()
+            expect(metaAssetCall![0]).toEqual({
+                AssetId: 'ASSET#nakatomiPlaza',
+                DataCategory: 'Meta::Asset',
+                zone: 'Personal',
+                player: 'testPlayer',
+                shortName: 'Nakatomi Plaza'
+            })
+        })
+
+        it('should store Asset-level Summary in Meta::Asset record', async () => {
+            // Mock empty dbAsset
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#testAsset',
+                standardForm: new StandardForm('<Asset uuid=(testAsset) />')
+            }])
+
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
+                AssetId: 'ASSET#testAsset',
+                zone: 'Canon'
+            }])
+
+            // Mock fileAsset with Asset-level Summary
+            standardFormMock = new StandardForm(deIndentWML(`
+                <Asset uuid=(testAsset)>
+                    <Summary>A test summary for the asset</Summary>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `))
+
+            await cacheAsset({ assetId: 'testAsset', streamEvent: mockStreamEvent })
+
+            // Verify Meta::Asset record includes summary
+            const metaAssetCall = assetDBMock.putItem.mock.calls.find(
+                call => call[0].DataCategory === 'Meta::Asset'
+            )
+            expect(metaAssetCall).toBeDefined()
+            expect(metaAssetCall![0]).toEqual({
+                AssetId: 'ASSET#testAsset',
+                DataCategory: 'Meta::Asset',
+                zone: 'Canon',
+                summary: ['A test summary for the asset']
+            })
+        })
+
+        it('should store both Asset-level ShortName and Summary in Meta::Asset record', async () => {
+            // Mock empty dbAsset
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#fullMetadata',
+                standardForm: new StandardForm('<Asset uuid=(fullMetadata) />')
+            }])
+
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
+                AssetId: 'ASSET#fullMetadata',
+                zone: 'Library'
+            }])
+
+            // Mock fileAsset with both Asset-level metadata fields
+            standardFormMock = new StandardForm(deIndentWML(`
+                <Asset uuid=(fullMetadata)>
+                    <ShortName>Complete Asset</ShortName>
+                    <Summary>An asset with all metadata fields populated</Summary>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `))
+
+            await cacheAsset({ assetId: 'fullMetadata', streamEvent: mockStreamEvent })
+
+            // Verify Meta::Asset record includes both fields
+            const metaAssetCall = assetDBMock.putItem.mock.calls.find(
+                call => call[0].DataCategory === 'Meta::Asset'
+            )
+            expect(metaAssetCall).toBeDefined()
+            expect(metaAssetCall![0]).toEqual({
+                AssetId: 'ASSET#fullMetadata',
+                DataCategory: 'Meta::Asset',
+                zone: 'Library',
+                shortName: 'Complete Asset',
+                summary: ['An asset with all metadata fields populated']
+            })
+        })
+
+        it('should not include shortName or summary when Asset has no metadata', async () => {
+            // Mock empty dbAsset
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#noMetadata',
+                standardForm: new StandardForm('<Asset uuid=(noMetadata) />')
+            }])
+
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
+                AssetId: 'ASSET#noMetadata',
+                zone: 'Canon'
+            }])
+
+            // Mock fileAsset without Asset-level metadata
+            standardFormMock = new StandardForm(deIndentWML(`
+                <Asset uuid=(noMetadata)>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `))
+
+            await cacheAsset({ assetId: 'noMetadata', streamEvent: mockStreamEvent })
+
+            // Verify Meta::Asset record does NOT include shortName or summary (omission-over-empty)
+            const metaAssetCall = assetDBMock.putItem.mock.calls.find(
+                call => call[0].DataCategory === 'Meta::Asset'
+            )
+            expect(metaAssetCall).toBeDefined()
+            expect(metaAssetCall![0]).toEqual({
+                AssetId: 'ASSET#noMetadata',
+                DataCategory: 'Meta::Asset',
+                zone: 'Canon'
+            })
+            // Explicitly verify shortName and summary are NOT present
+            expect(metaAssetCall![0]).not.toHaveProperty('shortName')
+            expect(metaAssetCall![0]).not.toHaveProperty('summary')
+        })
+
+        it('should store Asset-level Summary with complex content in Meta::Asset record', async () => {
+            // Mock empty dbAsset
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#complexSummary',
+                standardForm: new StandardForm('<Asset uuid=(complexSummary) />')
+            }])
+
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{
+                AssetId: 'ASSET#complexSummary',
+                zone: 'Personal',
+                player: 'testPlayer'
+            }])
+
+            // Mock fileAsset with complex Summary containing links
+            standardFormMock = new StandardForm(deIndentWML(`
+                <Asset uuid=(complexSummary)>
+                    <Summary>
+                        A mysterious <Link to=(portal)>portal</Link> appears
+                    </Summary>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `))
+
+            await cacheAsset({ assetId: 'complexSummary', streamEvent: mockStreamEvent })
+
+            // Verify Meta::Asset record includes complex summary as RenderTree
+            const metaAssetCall = assetDBMock.putItem.mock.calls.find(
+                call => call[0].DataCategory === 'Meta::Asset'
+            )
+            expect(metaAssetCall).toBeDefined()
+            expect(metaAssetCall![0].summary).toEqual([
+                'A mysterious ',
+                { data: { tag: 'Link', to: 'portal', text: 'portal' }, children: ['portal'] },
+                ' appears'
+            ])
+        })
+    })
 })

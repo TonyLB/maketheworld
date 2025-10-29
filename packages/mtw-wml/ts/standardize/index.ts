@@ -1,6 +1,8 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetCascadeCondition, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { isStandardComponentData, isStandardForm, StandardFormData } from "./components/dataTypes"
+import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import SchemaTagTree from "../tagTree/schema"
 import applyEdits from "../schema/treeManipulation/applyEdits"
 import StandardRoom, { StandardRoomPayload } from "./components/room"
@@ -140,6 +142,11 @@ export class StandardForm {
                 throw new Error('Asset universalKey is required in NDJSON')
             }
             this._universalKey = assetLine.universalKey
+            
+            // Extract Asset-level metadata from NDJSON header
+            this._shortName = (assetLine as any).shortName ? new StandardLiteral((assetLine as any).shortName) : undefined
+            this._summary = (assetLine as any).summary ? new StandardRender((assetLine as any).summary) : undefined
+            
             this._components = args.filter(isStandardComponentData).reduce<StandardComponent[]>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
                 const standardItem = standardComponentFactory(standardData)
                 if (standardItem) {
@@ -264,11 +271,19 @@ export class StandardForm {
         return this._summary
     }
 
-    get header(): { tag: 'Asset' } & StandardBaseData & SerializeNDJSONMixin {
-        return {
+    get header(): { tag: 'Asset'; shortName?: StandardEditableData<string>; summary?: StandardEditableData<RenderTree> } & StandardBaseData & SerializeNDJSONMixin {
+        const header: { tag: 'Asset'; shortName?: StandardEditableData<string>; summary?: StandardEditableData<RenderTree> } & StandardBaseData & SerializeNDJSONMixin = {
             tag: 'Asset',
             universalKey: this._universalKey
         }
+        // Include Asset-level metadata in NDJSON header (following omission-over-empty principle)
+        if (this._shortName) {
+            header.shortName = this._shortName.toJSON()
+        }
+        if (this._summary) {
+            header.summary = this._summary.toJSON()
+        }
+        return header
     }
 
     get byId(): Record<string, StandardComponent> {

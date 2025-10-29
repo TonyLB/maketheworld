@@ -3698,6 +3698,136 @@ describe('StandardForm', () => {
             expect(diffWML).toEqual('<Asset uuid=(test)><Remove><ShortName>Old Name</ShortName></Remove></Asset>')
         })
 
+        it('should round-trip Asset-level ShortName through NDJSON', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Test Asset Name</ShortName>
+                    <Room key=(room1)><ShortName>Test Room</ShortName></Room>
+                </Asset>
+            `)
+            const original = new StandardForm(testWML)
+            const ndjson = original.toNDJSON()
+            
+            // Verify NDJSON header includes shortName
+            expect(ndjson[0]).toEqual({
+                tag: 'Asset',
+                universalKey: 'ASSET#test',
+                shortName: 'Test Asset Name'
+            })
+            
+            // Round-trip through NDJSON
+            const roundTripped = new StandardForm(ndjson)
+            expect(roundTripped.shortName?.toJSON()).toEqual('Test Asset Name')
+            expect((roundTripped.byId.room1 as StandardRoom).shortName?.toJSON()).toEqual('Test Room')
+            expect(schemaToWML([roundTripped.schema])).toEqual(testWML)
+        })
+
+        it('should round-trip Asset-level Summary through NDJSON', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>This is a test summary</Summary>
+                    <Room key=(room1)><ShortName>Test Room</ShortName></Room>
+                </Asset>
+            `)
+            const original = new StandardForm(testWML)
+            const ndjson = original.toNDJSON()
+            
+            // Verify NDJSON header includes summary
+            expect(ndjson[0]).toEqual({
+                tag: 'Asset',
+                universalKey: 'ASSET#test',
+                summary: ['This is a test summary']
+            })
+            
+            // Round-trip through NDJSON
+            const roundTripped = new StandardForm(ndjson)
+            expect(roundTripped.summary?.toJSON()).toEqual(['This is a test summary'])
+            expect((roundTripped.byId.room1 as StandardRoom).shortName?.toJSON()).toEqual('Test Room')
+            expect(schemaToWML([roundTripped.schema])).toEqual(testWML)
+        })
+
+        it('should round-trip both Asset-level ShortName and Summary through NDJSON', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(nakatomiPlaza)>
+                    <ShortName>Nakatomi Plaza</ShortName>
+                    <Summary>A high-rise office building in downtown Los Angeles</Summary>
+                    <Room key=(lobby)>
+                        <ShortName>Main Lobby</ShortName>
+                        <Example uuid=(example1)>
+                            <Description>A gleaming marble lobby</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const original = new StandardForm(testWML)
+            const ndjson = original.toNDJSON()
+            
+            // Verify NDJSON header includes both fields
+            expect(ndjson[0]).toEqual({
+                tag: 'Asset',
+                universalKey: 'ASSET#nakatomiPlaza',
+                shortName: 'Nakatomi Plaza',
+                summary: ['A high-rise office building in downtown Los Angeles']
+            })
+            
+            // Round-trip through NDJSON
+            const roundTripped = new StandardForm(ndjson)
+            expect(roundTripped.shortName?.toJSON()).toEqual('Nakatomi Plaza')
+            expect(roundTripped.summary?.toJSON()).toEqual(['A high-rise office building in downtown Los Angeles'])
+            expect(schemaToWML([roundTripped.schema])).toEqual(testWML)
+        })
+
+        it('should round-trip Asset without ShortName or Summary through NDJSON', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room key=(room1)><ShortName>Test Room</ShortName></Room>
+                </Asset>
+            `)
+            const original = new StandardForm(testWML)
+            const ndjson = original.toNDJSON()
+            
+            // Verify NDJSON header has no shortName or summary
+            expect(ndjson[0]).toEqual({
+                tag: 'Asset',
+                universalKey: 'ASSET#test'
+            })
+            
+            // Round-trip through NDJSON
+            const roundTripped = new StandardForm(ndjson)
+            expect(roundTripped.shortName).toBeUndefined()
+            expect(roundTripped.summary).toBeUndefined()
+            expect((roundTripped.byId.room1 as StandardRoom).shortName?.toJSON()).toEqual('Test Room')
+            expect(schemaToWML([roundTripped.schema])).toEqual(testWML)
+        })
+
+        it('should round-trip Asset-level Summary with complex content through NDJSON', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>
+                        A mysterious <Link to=(portal)>portal</Link> appears in the
+                        <Link to=(room)>room</Link>
+                    </Summary>
+                    <Room key=(room)><ShortName>Test Room</ShortName></Room>
+                </Asset>
+            `)
+            const original = new StandardForm(testWML)
+            const ndjson = original.toNDJSON()
+            
+            // Verify NDJSON header includes complex summary
+            expect((ndjson[0] as any).summary).toBeDefined()
+            
+            // Round-trip through NDJSON
+            const roundTripped = new StandardForm(ndjson)
+            expect(roundTripped.summary?.toJSON()).toEqual([
+                'A mysterious ',
+                { data: { tag: 'Link', to: 'portal', text: 'portal' }, children: ['portal'] },
+                ' appears in the ',
+                { data: { tag: 'Link', to: 'room', text: 'room' }, children: ['room'] }
+            ])
+            expect((roundTripped.byId.room as StandardRoom).shortName?.toJSON()).toEqual('Test Room')
+            expect(schemaToWML([roundTripped.schema])).toEqual(testWML)
+        })
+
     })
 
 })
