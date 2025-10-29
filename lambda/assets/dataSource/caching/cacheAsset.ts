@@ -4,7 +4,7 @@ import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly";
 import { StandardRemove } from "@tonylb/mtw-wml/ts/standardize/components/edits";
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
-import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets';
+import { AssetsEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets';
 
 /**
  * Cache asset content to DynamoDB storage
@@ -20,7 +20,7 @@ import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfa
 export const cacheAsset = async ({ assetId, streamEvent }: {
     assetId: string;
     streamEvent: (params: {
-        update: ComponentEventUpdate;
+        update: AssetsEventUpdate;
         streamKey: string;
     }) => Promise<void>;
 }): Promise<void> => {
@@ -38,6 +38,15 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
         })()
     ])
 
+    // Debug: Log incoming StandardForms' asset-level metadata prior to diff
+    console.log('cacheAsset: dbAsset header', {
+        shortName: dbAsset.shortName?.toJSON?.(),
+        summary: dbAsset.summary?.toJSON?.()
+    })
+    console.log('cacheAsset: fileAsset header', {
+        shortName: fileAsset.shortName?.toJSON?.(),
+        summary: fileAsset.summary?.toJSON?.()
+    })
     const diff = dbAsset.diff(fileAsset)
     
     // Phase 1B: Parallelize Meta::Asset write with component updates for efficiency
@@ -133,6 +142,35 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
                 })
             ))
         )
+
+        // Emit Asset Updated event for Asset-level metadata changes (ShortName/Summary)
+        const diffShortName = (diff as any).shortName
+        const diffSummary = (diff as any).summary
+        // Debug: Log metadata diff shape for investigation
+        console.log('cacheAsset: metadata diff', {
+            hasShortName: Boolean(diffShortName),
+            shortNameJSON: diffShortName?.toJSON?.(),
+            hasSummary: Boolean(diffSummary),
+            summaryJSON: diffSummary?.toJSON?.()
+        })
+        const hasDiffMetadata = Boolean(diffShortName || diffSummary)
+        const hasAdditions = Boolean((!dbAsset.shortName && fileAsset.shortName) || (!dbAsset.summary && fileAsset.summary))
+        const hasMetadataChanges = hasDiffMetadata || hasAdditions
+        if (hasMetadataChanges) {
+            const metadataDiffNDJSON = [
+                {
+                    tag: 'Asset' as const,
+                    universalKey: assetUUID,
+                    ...(((diff as any).shortName || (!dbAsset.shortName && fileAsset.shortName)) ? { shortName: (((diff as any).shortName) || fileAsset.shortName)!.toJSON() } : {}),
+                    ...(((diff as any).summary || (!dbAsset.summary && fileAsset.summary)) ? { summary: (((diff as any).summary) || fileAsset.summary)!.toJSON() } : {})
+                }
+            ]
+            const metadataDiff = new StandardForm(metadataDiffNDJSON)
+            await streamEvent({
+                update: { type: 'Asset Updated', standardForm: metadataDiff },
+                streamKey: assetId
+            })
+        }
     } else {
         // Even with no diff, write Meta::Asset record
         await metaAssetWrite

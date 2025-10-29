@@ -748,6 +748,84 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 expect(mockStreamEvent).toHaveBeenCalledTimes(2)
             })
         })
+
+        describe('Asset Updated Events', () => {
+            it('should process Asset Updated event and include asset metadata in headers update', async () => {
+                // Zone lookup
+                internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#assetMeta', zone: 'Canon' }])
+
+                const assetUpdatedEvent: SubscribedAssetsEvent = {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#assetMeta',
+                    event: {
+                        type: 'Asset Updated',
+                        standardForm: new StandardForm(deIndentWML(`
+                            <Asset uuid=(assetMeta)><ShortName>Meta Name</ShortName></Asset>
+                        `))
+                    },
+                    timestamp: Date.now()
+                }
+
+                await contentHeadersDataSource.receiveEvents?.({
+                    events: [assetUpdatedEvent],
+                    streamEvent: mockStreamEvent
+                })
+
+                expect(mockStreamEvent).toHaveBeenCalledWith({
+                    update: expect.objectContaining({
+                        type: 'Headers Updated',
+                        assetId: 'ASSET#assetMeta',
+                        zone: 'Canon',
+                        standardForm: expect.any(Object)
+                    }),
+                    streamKey: 'global'
+                })
+
+                const call = mockStreamEvent.mock.calls[0][0]
+                const wml = schemaToWML([call.update.standardForm.schema])
+                expect(wml).toBe(deIndentWML(`
+                    <Asset uuid=(assetMeta)><ShortName>Meta Name</ShortName></Asset>
+                `))
+            })
+
+            it('should merge Asset Updated metadata with component header updates', async () => {
+                internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#mix', zone: 'Library' }])
+                // extractHeader returns a header component
+                extractHeaderMock.mockReturnValue(new StandardRoom({ tag: 'Room', shortName: 'Hdr', universalKey: 'ROOM#r1' }))
+
+                const events: SubscribedEvent[] = [
+                    {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#mix',
+                        event: {
+                            type: 'Asset Updated',
+                            standardForm: new StandardForm(deIndentWML(`<Asset uuid=(mix)><ShortName>Asset Hdr</ShortName></Asset>`))
+                        },
+                        timestamp: Date.now()
+                    },
+                    {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#mix',
+                        event: {
+                            type: 'Component Updated',
+                            component: new StandardRoom({ tag: 'Room', shortName: 'Hdr', universalKey: 'ROOM#r1' })
+                        },
+                        timestamp: Date.now()
+                    }
+                ]
+
+                await contentHeadersDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+
+                const call = mockStreamEvent.mock.calls[0][0]
+                const wml = schemaToWML([call.update.standardForm.schema])
+                expect(wml).toBe(deIndentWML(`
+                    <Asset uuid=(mix)>
+                        <ShortName>Asset Hdr</ShortName>
+                        <Room uuid=(r1)><ShortName>Hdr</ShortName></Room>
+                    </Asset>
+                `))
+            })
+        })
     })
 
 })

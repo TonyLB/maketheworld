@@ -561,4 +561,62 @@ describe('Cache Asset (Data Source)', () => {
             ])
         })
     })
+
+    describe('Asset Updated event emission', () => {
+        it('emits Asset Updated when ShortName is added', async () => {
+            // db without metadata
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#test',
+                standardForm: new StandardForm('<Asset uuid=(test) />')
+            }])
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#test', zone: 'Canon' }])
+            // file with ShortName
+            standardFormMock = new StandardForm(`
+                <Asset uuid=(test)>
+                    <ShortName>New Name</ShortName>
+                </Asset>
+            `)
+
+            await cacheAsset({ assetId: 'test', streamEvent: mockStreamEvent })
+
+            const assetUpdatedCall = mockStreamEvent.mock.calls.find(([arg]) => arg.update?.type === 'Asset Updated')?.[0]
+            expect(assetUpdatedCall).toBeTruthy()
+            expect(assetUpdatedCall.update.type).toBe('Asset Updated')
+            // Validate WML from provided StandardForm
+            const wml = schemaToWML([assetUpdatedCall.update.standardForm.schema])
+            expect(wml).toEqual(deIndentWML(`
+                <Asset uuid=(test)><ShortName>New Name</ShortName></Asset>
+            `))
+        })
+
+        it('emits Asset Updated when Summary is changed', async () => {
+            // db with old summary
+            internalCacheMock.AssetData.get.mockResolvedValue([{
+                AssetId: 'ASSET#test2',
+                standardForm: new StandardForm(`
+                    <Asset uuid=(test2)>
+                        <Summary>Old</Summary>
+                    </Asset>
+                `)
+            }])
+            internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#test2', zone: 'Canon' }])
+            // file with new summary
+            standardFormMock = new StandardForm(`
+                <Asset uuid=(test2)>
+                    <Summary>New</Summary>
+                </Asset>
+            `)
+
+            await cacheAsset({ assetId: 'test2', streamEvent: mockStreamEvent })
+
+            const assetUpdatedCall = mockStreamEvent.mock.calls.find(([arg]) => arg.update?.type === 'Asset Updated')?.[0]
+            expect(assetUpdatedCall).toBeTruthy()
+            const wml = schemaToWML([assetUpdatedCall.update.standardForm.schema])
+            expect(wml).toEqual(deIndentWML(`
+                <Asset uuid=(test2)>
+                    <Replace><Summary>Old</Summary></Replace><With><Summary>New</Summary></With>
+                </Asset>
+            `))
+        })
+    })
 })

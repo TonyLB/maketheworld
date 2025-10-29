@@ -10,7 +10,7 @@ import {
     ContentHeadersExternal,
     ContentHeadersSnapshotExternal
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
-import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+import { ComponentEventUpdate, ComponentUpdatedEvent, AssetUpdatedEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -37,7 +37,7 @@ import { WMLZoneEvent, isWMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBri
 export type SubscribedAssetsEvent = {
     dataSourceKey: 'mtw.assets';
     streamKey: string;
-    event: ComponentEventUpdate;
+    event: ComponentEventUpdate | AssetUpdatedEventUpdate;
     timestamp: number;
 }
 
@@ -50,7 +50,7 @@ const isSubscribedAssetsEvent = (event: StreamingEventPayload): event is Subscri
         event.event !== null &&
         'type' in event.event &&
         event.event.type &&
-        event.event.type === 'Component Updated'
+        (event.event.type === 'Component Updated' || event.event.type === 'Asset Updated')
     )
 }
 
@@ -152,7 +152,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
         // Group content events by asset to enable aggregation
         
         const { eventsByAsset, zoneEvents } = events.reduce<{ eventsByAsset: Record<AssetUUID, SubscribedEvent[]>, zoneEvents: SubscribedWMLEvent[] }>((previous, event) => {
-            if (event.event.type === 'Component Updated') {
+            if (event.event.type === 'Component Updated' || event.event.type === 'Asset Updated') {
                 const assetId = event.streamKey as AssetUUID
                 return {
                     ...previous,
@@ -261,6 +261,7 @@ function createAggregatedContentHeadersUpdate(
     try {
         const assetKey = assetId.split('#')[1]
         const headerComponents: any[] = []
+        let metadataAsset: StandardForm | null = null
         
         // Process all events for this asset
         for (const event of events) {
@@ -278,19 +279,26 @@ function createAggregatedContentHeadersUpdate(
                 if (headerComponent) {
                     headerComponents.push(headerComponent)
                 }
+            } else if (event.event.type === 'Asset Updated') {
+                const assetUpdated = event.event as AssetUpdatedEventUpdate
+                // Consume the provided StandardForm directly
+                metadataAsset = assetUpdated.standardForm
             }
         }
         
         // If no header components were found, return null
-        if (headerComponents.length === 0) {
+        if (headerComponents.length === 0 && !metadataAsset) {
             return null
         }
         
-        // Create a StandardForm with all the header components
-        const standardForm = new StandardForm([
-            { tag: 'Asset', key: assetKey, universalKey: assetId },
-            ...headerComponents.map(component => component.toJSON())
+        // Create or extend a StandardForm with asset metadata and all header components
+        const standardForm = metadataAsset ? metadataAsset._clone() : new StandardForm([
+            { tag: 'Asset', key: assetKey, universalKey: assetId }
         ])
+        standardForm._components = [
+            ...standardForm._components,
+            ...headerComponents.map(component => component.toJSON())
+        ]
         
         return {
             type: 'Headers Updated',
