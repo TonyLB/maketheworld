@@ -3240,4 +3240,464 @@ describe('StandardForm', () => {
         expect(example.description?.toJSON()).toEqual(['A sterile corporate lobby.'])
     })
 
+    describe('Asset-level ShortName and Summary', () => {
+        
+        it('should parse Asset-level ShortName from WML', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(nakatomiPlaza)>
+                    <ShortName>Nakatomi Plaza</ShortName>
+                    <Room key=(lobby)>
+                        <Example uuid=(example1)>
+                            <Description>A gleaming marble lobby with towering windows</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(testWML)
+            expect(form.shortName).toBeDefined()
+            expect(form.shortName?.toJSON()).toEqual('Nakatomi Plaza')
+        })
+
+        it('should parse Asset-level Summary from WML', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(nakatomiPlaza)>
+                    <Summary>A high-rise office building in downtown Los Angeles</Summary>
+                    <Room key=(lobby)>
+                        <Example uuid=(example1)>
+                            <Description>A gleaming marble lobby with towering windows</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(testWML)
+            expect(form.summary).toBeDefined()
+            expect(form.summary?.toJSON()).toEqual(['A high-rise office building in downtown Los Angeles'])
+        })
+
+        it('should parse both Asset-level ShortName and Summary from WML', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(nakatomiPlaza)>
+                    <ShortName>Nakatomi Plaza</ShortName>
+                    <Summary>A high-rise office building in downtown Los Angeles</Summary>
+                    <Room uuid=(lobby) key=(lobby)>
+                        <ShortName>Main Lobby</ShortName>
+                        <Example uuid=(example1)>
+                            <Description>A gleaming marble lobby with towering windows</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(testWML)
+            expect(form.shortName?.toJSON()).toEqual('Nakatomi Plaza')
+            expect(form.summary?.toJSON()).toEqual(['A high-rise office building in downtown Los Angeles'])
+            
+            // Verify Room's ShortName is separate
+            const room = form._lookup('ROOM#lobby') as StandardRoom
+            expect(room).toBeDefined()
+            expect(room.shortName?.toJSON()).toEqual('Main Lobby')
+        })
+
+        it('should serialize Asset-level ShortName back to WML', () => {
+            const originalWML = deIndentWML(`
+                <Asset uuid=(hauntedMansion)>
+                    <ShortName>Ravencrest Manor</ShortName>
+                    <Room key=(foyer)>
+                        <Example uuid=(example1)>
+                            <Description>A dust-covered entrance hall</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(originalWML)
+            const serializedWML = schemaToWML([form.schema])
+            
+            expect(serializedWML).toContain('<ShortName>Ravencrest Manor</ShortName>')
+        })
+
+        it('should serialize Asset-level Summary back to WML', () => {
+            const originalWML = deIndentWML(`
+                <Asset uuid=(hauntedMansion)>
+                    <Summary>Victorian mansion with a dark history</Summary>
+                    <Room key=(foyer)>
+                        <Example uuid=(example1)>
+                            <Description>A dust-covered entrance hall</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(originalWML)
+            const serializedWML = schemaToWML([form.schema])
+            
+            expect(serializedWML).toContain('<Summary>Victorian mansion with a dark history</Summary>')
+        })
+
+        it('should perform complete round-trip with Asset-level metadata', () => {
+            const originalWML = deIndentWML(`
+                <Asset uuid=(underworldCaverns)>
+                    <ShortName>The Sunless Depths</ShortName>
+                    <Summary>Ancient cavern system beneath the mountain</Summary>
+                    <Room uuid=(entrance) key=(entrance)>
+                        <ShortName>Crystal Grotto</ShortName>
+                        <Example uuid=(example1)>
+                            <Description>Luminescent crystals cast an eerie blue glow across the cavern walls</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(originalWML)
+            const serializedWML = schemaToWML([form.schema])
+            
+            // Parse the serialized WML again
+            const roundTripForm = new StandardForm(serializedWML)
+            
+            // Verify Asset-level metadata preserved
+            expect(roundTripForm.shortName?.toJSON()).toEqual('The Sunless Depths')
+            expect(roundTripForm.summary?.toJSON()).toEqual(['Ancient cavern system beneath the mountain'])
+            
+            // Verify component data also preserved
+            const room = roundTripForm._lookup('ROOM#entrance') as StandardRoom
+            expect(room.shortName?.toJSON()).toEqual('Crystal Grotto')
+        })
+
+        it('should handle Assets without ShortName or Summary', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(regularAsset)>
+                    <Room key=(room1)>
+                        <Example uuid=(example1)>
+                            <Description>A room</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(testWML)
+            expect(form.shortName).toBeUndefined()
+            expect(form.summary).toBeUndefined()
+        })
+
+        it('should clone Asset with ShortName and Summary', () => {
+            const originalWML = deIndentWML(`
+                <Asset uuid=(skyshipDock)>
+                    <ShortName>Aetherdock Seven</ShortName>
+                    <Summary>Floating docking station for airships</Summary>
+                    <Room key=(platform)>
+                        <Example uuid=(example1)>
+                            <Description>A wooden platform swaying gently in the wind</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(originalWML)
+            const cloned = form._clone()
+            
+            expect(cloned.shortName?.toJSON()).toEqual('Aetherdock Seven')
+            expect(cloned.summary?.toJSON()).toEqual(['Floating docking station for airships'])
+        })
+
+        it('should merge Asset-level ShortName from incoming form', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Original Name</ShortName>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Updated Name</ShortName>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const merged = baseForm.merge(incomingForm)
+            
+            // Merging two ShortNames concatenates them (standard merge behavior)
+            expect(merged.shortName?.toJSON()).toEqual('Original NameUpdated Name')
+        })
+
+        it('should merge Asset-level ShortName with Replace tag', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Test</ShortName>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Replace><ShortName>Test</ShortName></Replace>
+                    <With><ShortName>Different test</ShortName></With>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const merged = baseForm.merge(incomingForm)
+            
+            expect(merged.shortName?.toJSON()).toEqual('Different test')
+        })
+
+        it('should merge Asset-level ShortName with Remove tag', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Test Name</ShortName>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Remove><ShortName>Test Name</ShortName></Remove>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const merged = baseForm.merge(incomingForm)
+            
+            expect(merged.shortName).toBeUndefined()
+        })
+
+        it('should merge Asset-level Summary from incoming form', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>Original summary</Summary>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>Updated summary</Summary>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const merged = baseForm.merge(incomingForm)
+            
+            // Merging two Summaries concatenates them (standard merge behavior)
+            expect(merged.summary?.toJSON()).toEqual(['Original summaryUpdated summary'])
+        })
+
+        it('should merge Asset-level Summary with Replace tag', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>A mysterious <Link to=(somewhere)>portal</Link> appears</Summary>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Replace><Summary>A mysterious <Link to=(somewhere)>portal</Link> appears</Summary></Replace>
+                    <With><Summary>The <Link to=(somewhere)>portal</Link> has closed</Summary></With>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const merged = baseForm.merge(incomingForm)
+            
+            expect(merged.summary?.toJSON()).toEqual(['The ', { data: { tag: 'Link', to: 'somewhere', text: 'portal' }, children: ['portal'] }, ' has closed'])
+        })
+
+        it('should merge Asset-level Summary with Remove tag', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>Test summary</Summary>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Remove><Summary>Test summary</Summary></Remove>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const merged = baseForm.merge(incomingForm)
+            
+            expect(merged.summary).toBeUndefined()
+        })
+
+        it('should keep base Asset-level metadata when incoming has none', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Base Name</ShortName>
+                    <Summary>Base summary</Summary>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room key=(room1)>
+                        <Example uuid=(example1)>
+                            <Description>A room</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const merged = baseForm.merge(incomingForm)
+            
+            expect(merged.shortName?.toJSON()).toEqual('Base Name')
+            expect(merged.summary?.toJSON()).toEqual(['Base summary'])
+        })
+
+        it('should use incoming Asset-level metadata when base has none', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room key=(room1)>
+                        <Example uuid=(example1)>
+                            <Description>A room</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Incoming Name</ShortName>
+                    <Summary>Incoming summary</Summary>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const merged = baseForm.merge(incomingForm)
+            
+            expect(merged.shortName?.toJSON()).toEqual('Incoming Name')
+            expect(merged.summary?.toJSON()).toEqual(['Incoming summary'])
+        })
+
+        it('should diff Asset-level ShortName when changed', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Original Name</ShortName>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Changed Name</ShortName>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const diffed = baseForm.diff(incomingForm)
+            
+            // Verify the diff produces the expected WML structure
+            const diffWML = schemaToWML([diffed.schema])
+            expect(diffWML).toEqual(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Replace><ShortName>Original Name</ShortName></Replace>
+                    <With><ShortName>Changed Name</ShortName></With>
+                </Asset>
+            `))
+        })
+
+        it('should not include Asset-level ShortName in diff when unchanged', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Same Name</ShortName>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Same Name</ShortName>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const diffed = baseForm.diff(incomingForm)
+            
+            expect(diffed.shortName).toBeUndefined()
+        })
+
+        it('should diff Asset-level Summary when changed', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>Original summary</Summary>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>Changed summary</Summary>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const diffed = baseForm.diff(incomingForm)
+            
+            // Verify the diff produces the expected WML structure
+            const diffWML = schemaToWML([diffed.schema])
+            expect(diffWML).toEqual(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Replace><Summary>Original summary</Summary></Replace>
+                    <With><Summary>Changed summary</Summary></With>
+                </Asset>
+            `))
+        })
+
+        it('should not include Asset-level Summary in diff when unchanged', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>Same summary</Summary>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>Same summary</Summary>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const diffed = baseForm.diff(incomingForm)
+            
+            expect(diffed.summary).toBeUndefined()
+        })
+
+        it('should diff when Asset-level ShortName is added', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>New Name</ShortName>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const diffed = baseForm.diff(incomingForm)
+            
+            // When base has no ShortName, diff returns undefined (no diff needed)
+            expect(diffed.shortName).toBeUndefined()
+        })
+
+        it('should diff when Asset-level ShortName is removed', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>Old Name</ShortName>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const diffed = baseForm.diff(incomingForm)
+            
+            // Verify the diff shows the removal
+            const diffWML = schemaToWML([diffed.schema])
+            expect(diffWML).toEqual('<Asset uuid=(test)><Remove><ShortName>Old Name</ShortName></Remove></Asset>')
+        })
+
+    })
+
 })
