@@ -373,11 +373,18 @@ Ensure that:
 - Updated `merge()` method to properly merge Asset-level metadata (delegates to `StandardLiteral.merge()` and `StandardRender.merge()`)
 - Updated `diff()` method to track changes in Asset-level metadata (delegates to `StandardLiteral.diff()` and `StandardRender.diff()`)
 
+**NDJSON Serialization Changes:**
+- Updated `StandardForm.header` getter to include `shortName` and `summary` in NDJSON header (following omission-over-empty principle)
+- Updated StandardForm constructor NDJSON parsing to extract Asset-level metadata from header
+- Updated `isStandardNDJSONLine()` validator to accept `shortName: 'string'` and `summary: 'renderTree'` as optional Asset header fields
+- Asset metadata now preserved through complete S3 storage round-trip (`.ndjson` files)
+
 **Comprehensive Test Coverage:**
 - **8 StandardForm parsing tests** covering parsing, serialization, round-trips, and edge cases
 - **16 StandardForm merge/diff tests** covering Replace/Remove tags, concatenation, and edge cases
+- **5 StandardForm NDJSON round-trip tests** covering ShortName, Summary, both, neither, and complex content
 - **6 Schema parsing tests** covering WML → schema → WML round-trips
-- **All 72 test suites pass** (769 total tests, 0 regressions)
+- **All 72 test suites pass** (774 total tests, 0 regressions)
 
 **Example Usage:**
 ```xml
@@ -398,7 +405,7 @@ Ensure that:
 1. ✅ **Investigate Current Schema**: Determine if Asset already permits ShortName/Summary as nested tags
 2. ✅ **Design Verification**: Confirm design approach with project stakeholders  
 3. ✅ **Resolve Open Questions**: Make decisions on inheritance, required/optional, defaults
-4. ✅ **Implementation**: Follow checklist above
+4. ✅ **Implementation**: Follow checklist above (Phases 1-3.5 complete, including NDJSON serialization)
 5. **Update Parent Document**: Note in `AGENT.drafts.planning.md` that Asset metadata is available
 6. **Phase 4**: Integration testing with real draft assets in development environment
 

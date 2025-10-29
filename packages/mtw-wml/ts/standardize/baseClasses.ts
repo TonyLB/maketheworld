@@ -140,7 +140,10 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] 
                 {
                     universalKey: 'string'
                 },
-                {}
+                {
+                    shortName: 'string',
+                    summary: 'renderTree'
+                }
             ),
             isSchemaAssetUUID(line.universalKey)
         )
