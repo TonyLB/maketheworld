@@ -388,9 +388,12 @@ Ensure that:
 
 **DynamoDB Storage (October 29, 2025):**
 - Extended `Meta::Asset` record to include `shortName` and `summary` fields
-- Updated `cacheAsset` to extract and store Asset-level metadata from StandardForm
-- Updated `AssetData.get()` to fetch metadata from Meta::Asset and reconstruct Asset header
-- Added 3 comprehensive tests for DynamoDB round-trip scenarios
+- Updated `dataSource/caching/cacheAsset.ts` to extract and store Asset-level metadata from StandardForm
+- Updated `internalCache/assetMeta.ts` to fetch `shortName` and `summary` fields in projection
+- Updated `internalCache/assetData.ts` to reconstruct Asset header with metadata from Meta::Asset
+- Added 5 tests in `cacheAsset.test.ts` for Meta::Asset metadata storage (ShortName, Summary, both, neither, complex content)
+- Added 3 tests in `assetData.test.ts` for DynamoDB reconstruction round-trip scenarios
+- **Cleanup**: Removed orphaned `lambda/assets/cacheAsset/` directory (legacy code not in use)
 
 **Example Usage:**
 ```xml

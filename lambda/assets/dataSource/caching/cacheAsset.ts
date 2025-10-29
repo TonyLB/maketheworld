@@ -29,12 +29,12 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
     const [dbAsset, fileAsset] = await Promise.all([
         internalCache.AssetData.get([assetUUID]).then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset uuid=(${assetId}) />`))),
         (async () => {
-            const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(assetId)
+            const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(assetUUID)
             if (!assetWorkspace) {
-                return new StandardForm(`<Asset uuid=(${assetId}) />`)
+                return new StandardForm(assetUUID)
             }
             await assetWorkspace.loadJSON()
-            return assetWorkspace.standard ?? new StandardForm(`<Asset uuid=(${assetId}) />`)
+            return assetWorkspace.standard ?? new StandardForm(assetUUID)
         })()
     ])
 
@@ -51,7 +51,10 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
                 AssetId: assetUUID,
                 DataCategory: 'Meta::Asset',
                 zone,
-                ...(zone === 'Personal' && player ? { player } : {})
+                ...(zone === 'Personal' && player ? { player } : {}),
+                // Include Asset-level metadata (shortName and summary)
+                ...(fileAsset.shortName ? { shortName: fileAsset.shortName.toJSON() } : {}),
+                ...(fileAsset.summary ? { summary: fileAsset.summary.toJSON() } : {})
                 // Note: Stores zone/player directly (no AssetWorkspaceAddress)
                 // Note: No import graph maintenance (deferred to component-level redesign)
             })
