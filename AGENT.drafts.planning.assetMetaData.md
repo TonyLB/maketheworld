@@ -276,6 +276,13 @@ Ensure that:
 - [x] Verify StandardForm → JSON preserves Asset metadata
 - [x] Test import/inheritance behavior (does ShortName inherit from imported assets?)
 
+### Phase 3.5: Merge & Diff Operations ✅ **COMPLETE**
+- [x] Update `StandardForm.merge()` to handle Asset-level metadata
+- [x] Update `StandardForm.diff()` to handle Asset-level metadata
+- [x] Add unit tests for merging Asset-level ShortName and Summary
+- [x] Add unit tests for diffing Asset-level ShortName and Summary
+- [x] Verify Replace/Remove tags work correctly with Asset-level metadata
+
 ### Phase 4: Integration Testing
 - [ ] Test with real draft assets in development environment
 - [ ] Verify S3 storage round-trip preserves metadata
@@ -363,11 +370,14 @@ Ensure that:
 - Added getter methods `shortName` and `summary`
 - Updated `schema` getter to serialize Asset metadata back to WML
 - Updated `_clone()` method to preserve metadata
+- Updated `merge()` method to properly merge Asset-level metadata (delegates to `StandardLiteral.merge()` and `StandardRender.merge()`)
+- Updated `diff()` method to track changes in Asset-level metadata (delegates to `StandardLiteral.diff()` and `StandardRender.diff()`)
 
 **Comprehensive Test Coverage:**
-- **8 StandardForm tests** covering parsing, serialization, round-trips, and edge cases
+- **8 StandardForm parsing tests** covering parsing, serialization, round-trips, and edge cases
+- **16 StandardForm merge/diff tests** covering Replace/Remove tags, concatenation, and edge cases
 - **6 Schema parsing tests** covering WML → schema → WML round-trips
-- **All 72 test suites pass** (755 total tests, 0 regressions)
+- **All 72 test suites pass** (769 total tests, 0 regressions)
 
 **Example Usage:**
 ```xml

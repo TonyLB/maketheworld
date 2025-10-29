@@ -412,10 +412,27 @@ export class StandardForm {
     merge(incoming: StandardForm): StandardForm {
         const mergedUniversalKeyMappings = mergeUniversalKeyMappings([...this._keys, ...incoming._keys])
         const returnValue = this._clone()
-        returnValue._components = [...this._clone()._components, ...incoming._clone()._components].reduce(mergeToComponentList(mergedUniversalKeyMappings), [])
+        returnValue._components = [...returnValue._components, ...incoming._clone()._components].reduce(mergeToComponentList(mergedUniversalKeyMappings), [])
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         returnValue._metaData = applyEdits(combinedMetaData.tree)
+
+        // Merge Asset-level metadata
+        if (this._shortName && incoming._shortName) {
+            returnValue._shortName = this._shortName.merge(incoming._shortName)
+        } else if (incoming._shortName) {
+            returnValue._shortName = incoming._shortName
+        }
+        // Note: if this._shortName exists but incoming._shortName is undefined, 
+        // we keep this._shortName (already set by _clone())
+
+        if (this._summary && incoming._summary) {
+            returnValue._summary = this._summary.merge(incoming._summary)
+        } else if (incoming._summary) {
+            returnValue._summary = incoming._summary
+        }
+        // Note: if this._summary exists but incoming._summary is undefined,
+        // we keep this._summary (already set by _clone())
 
         return returnValue
     }
@@ -901,6 +918,10 @@ export class StandardForm {
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         diffedValue._metaData = applyEdits(combinedMetaData.tree)
+
+        // Diff Asset-level metadata
+        diffedValue._shortName = this._shortName?.diff(incoming._shortName)
+        diffedValue._summary = this._summary?.diff(incoming._summary)
 
         return diffedValue.finalize()
     }
