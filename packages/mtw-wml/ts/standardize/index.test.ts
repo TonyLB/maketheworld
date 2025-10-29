@@ -3659,6 +3659,34 @@ describe('StandardForm', () => {
             expect(diffed.summary).toBeUndefined()
         })
 
+        it('should diff when Asset-level Summary is added', () => {
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                </Asset>
+            `)
+            const incomingWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>New summary</Summary>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const incomingForm = new StandardForm(incomingWML)
+            const diffed = baseForm.diff(incomingForm)
+            
+            // When base has no Summary and incoming has one, diff should include the incoming Summary
+            expect(diffed.summary).toBeDefined()
+            expect(diffed.summary?.toJSON()).toEqual(['New summary'])
+            
+            // Verify the diff produces the expected WML structure
+            const diffWML = schemaToWML([diffed.schema])
+            expect(diffWML).toEqual(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Summary>New summary</Summary>
+                </Asset>
+            `))
+        })
+
         it('should diff when Asset-level ShortName is added', () => {
             const baseWML = deIndentWML(`
                 <Asset uuid=(test)>
@@ -3674,8 +3702,17 @@ describe('StandardForm', () => {
             const incomingForm = new StandardForm(incomingWML)
             const diffed = baseForm.diff(incomingForm)
             
-            // When base has no ShortName, diff returns undefined (no diff needed)
-            expect(diffed.shortName).toBeUndefined()
+            // When base has no ShortName and incoming has one, diff should include the incoming ShortName
+            expect(diffed.shortName).toBeDefined()
+            expect(diffed.shortName?.toJSON()).toEqual('New Name')
+            
+            // Verify the diff produces the expected WML structure
+            const diffWML = schemaToWML([diffed.schema])
+            expect(diffWML).toEqual(deIndentWML(`
+                <Asset uuid=(test)>
+                    <ShortName>New Name</ShortName>
+                </Asset>
+            `))
         })
 
         it('should diff when Asset-level ShortName is removed', () => {
