@@ -397,6 +397,126 @@ describe('schemaFromParse', () => {
 
     })
 
+    it('should correctly parse Asset-level ShortName', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Asset uuid=(nakatomiPlaza)>
+                <ShortName>Nakatomi Plaza</ShortName>
+                <Room key=(lobby)>
+                    <Example uuid=(123-lobby-example)>
+                        <Description>A gleaming marble lobby</Description>
+                    </Example>
+                </Room>
+            </Asset>
+        `)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            data: {
+                tag: "Asset",
+                uuid: "ASSET#nakatomiPlaza",
+                Story: undefined
+            },
+            children: [
+                {
+                    data: { tag: 'ShortName' },
+                    children: [{ data: { tag: 'String', value: 'Nakatomi Plaza' }, children: [] }]
+                },
+                {
+                    data: { tag: 'Room', key: 'lobby' },
+                    children: [{
+                        data: { tag: 'Example', uuid: 'EXAMPLE#123-lobby-example' },
+                        children: [{
+                            data: { tag: 'Description' },
+                            children: [{ data: { tag: 'String', value: 'A gleaming marble lobby' }, children: [] }]
+                        }]
+                    }]
+                }
+            ]
+        }])
+    })
+
+    it('should correctly parse Asset-level Summary', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Asset uuid=(nakatomiPlaza)>
+                <Summary>A high-rise office building in downtown Los Angeles</Summary>
+                <Room key=(lobby)>
+                    <Example uuid=(123-lobby-example)>
+                        <Description>A gleaming marble lobby</Description>
+                    </Example>
+                </Room>
+            </Asset>
+        `)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            data: {
+                tag: "Asset",
+                uuid: "ASSET#nakatomiPlaza",
+                Story: undefined
+            },
+            children: [
+                {
+                    data: { tag: 'Summary' },
+                    children: [{ data: { tag: 'String', value: 'A high-rise office building in downtown Los Angeles' }, children: [] }]
+                },
+                {
+                    data: { tag: 'Room', key: 'lobby' },
+                    children: [{
+                        data: { tag: 'Example', uuid: 'EXAMPLE#123-lobby-example' },
+                        children: [{
+                            data: { tag: 'Description' },
+                            children: [{ data: { tag: 'String', value: 'A gleaming marble lobby' }, children: [] }]
+                        }]
+                    }]
+                }
+            ]
+        }])
+    })
+
+    it('should correctly parse both Asset-level ShortName and Summary', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Asset uuid=(underworldCaverns)>
+                <ShortName>The Sunless Depths</ShortName>
+                <Summary>Ancient cavern system beneath the mountain</Summary>
+                <Room key=(entrance)>
+                    <ShortName>Crystal Grotto</ShortName>
+                    <Example uuid=(123-entrance-example)>
+                        <Description>Luminescent crystals cast an eerie blue glow</Description>
+                    </Example>
+                </Room>
+            </Asset>
+        `)))
+        expect(schemaFromParse(testParse)).toEqual([{
+            data: {
+                tag: "Asset",
+                uuid: "ASSET#underworldCaverns",
+                Story: undefined
+            },
+            children: [
+                {
+                    data: { tag: 'ShortName' },
+                    children: [{ data: { tag: 'String', value: 'The Sunless Depths' }, children: [] }]
+                },
+                {
+                    data: { tag: 'Summary' },
+                    children: [{ data: { tag: 'String', value: 'Ancient cavern system beneath the mountain' }, children: [] }]
+                },
+                {
+                    data: { tag: 'Room', key: 'entrance' },
+                    children: [
+                        {
+                            data: { tag: 'ShortName' },
+                            children: [{ data: { tag: 'String', value: 'Crystal Grotto' }, children: [] }]
+                        },
+                        {
+                            data: { tag: 'Example', uuid: 'EXAMPLE#123-entrance-example' },
+                            children: [{
+                                data: { tag: 'Description' },
+                                children: [{ data: { tag: 'String', value: 'Luminescent crystals cast an eerie blue glow' }, children: [] }]
+                            }]
+                        }
+                    ]
+                }
+            ]
+        }])
+    })
+
 })
 
 //
@@ -671,6 +791,50 @@ describe('schemaToWML', () => {
         `)
         const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
         expect(schemaToWML(schema)).toEqual(testWML)
+    })
+
+    it('should correctly round-trip Asset-level ShortName', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(hauntedMansion)>
+                <ShortName>Ravencrest Manor</ShortName>
+                <Room key=(foyer)>
+                    <Example uuid=(123-foyer-example)>
+                        <Description>A dust-covered entrance hall</Description>
+                    </Example>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly round-trip Asset-level Summary', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(hauntedMansion)>
+                <Summary>Victorian mansion with a dark history</Summary>
+                <Room key=(foyer)>
+                    <Example uuid=(123-foyer-example)>
+                        <Description>A dust-covered entrance hall</Description>
+                    </Example>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly round-trip Asset-level ShortName and Summary together', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(skyshipDock)>
+                <ShortName>Aetherdock Seven</ShortName>
+                <Summary>Floating docking station for airships</Summary>
+                <Room key=(platform)>
+                    <ShortName>Main Platform</ShortName>
+                    <Example uuid=(123-platform-example)>
+                        <Description>A wooden platform swaying in the wind</Description>
+                    </Example>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
 })

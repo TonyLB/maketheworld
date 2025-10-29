@@ -16,10 +16,11 @@ import processComponents, { ComponentProcessingTemplate } from "./processCompone
 import { StandardRemove, StandardReplace } from "./components/edits"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardToJSONOptions } from "./components/baseClasses"
-import { AssetUUID, ComponentUUID, isSchemaAsset, isSchemaAssetUUID, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, isSchemaAsset, isSchemaAssetUUID, isSchemaOutputTag, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaImport, isSchemaMeta } from "@tonylb/mtw-base/ts/schema/metaData"
-import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit, isSchemaShortName } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaSummary } from "@tonylb/mtw-base/ts/schema/example"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
@@ -31,6 +32,10 @@ import StandardImage from "./components/image"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
 import StandardExample from "./components/example"
+import { StandardLiteral } from "./literal"
+import { StandardRender } from "./render"
+import { excludeUndefined } from "../lib/lists"
+import { rebuildSchemaFromStandardRender } from "./components/utils/extractStandardRender"
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
     return (value instanceof StandardRemove) ||
@@ -92,6 +97,8 @@ export class StandardForm {
     _universalKey: AssetUUID;
     _components: StandardComponent[];
     _metaData: GenericTree<SchemaTag>;
+    _shortName?: StandardLiteral;
+    _summary?: StandardRender;
     /**
      * Optional semantic mode indicating how this StandardForm should be interpreted and used.
      * 
@@ -157,6 +164,22 @@ export class StandardForm {
                 this._universalKey = node.data.uuid
 
                 this._metaData = node.children.filter(wrappedNodeTypeGuard(isSchemaMeta))
+
+                //
+                // Extract ShortName and Summary from Asset children
+                //
+                const tagTree = new SchemaTagTree(node.children)
+                const shortNameItem = tagTree
+                    .filter({ and: [{ match: 'ShortName' }, { not: { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Character' }, { match: 'Knowledge' }] } }] })
+                    .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
+                    .tree
+                const summaryItem = tagTree
+                    .filter({ and: [{ match: 'Summary' }, { not: { match: 'Example' } }] })
+                    .prune({ match: 'Summary' })
+                    .tree
+                    .filter(wrappedNodeTypeGuard(isSchemaOutputTag))
+                this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
+                this._summary = summaryItem.length ? new StandardRender(summaryItem) : undefined
 
                 //
                 // Templates for the following component tags: 'Character', 'Image', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Example'
@@ -231,6 +254,14 @@ export class StandardForm {
 
     get metaData(): GenericTree<SchemaTag> {
         return [...this._metaData]
+    }
+
+    get shortName(): StandardLiteral | undefined {
+        return this._shortName
+    }
+
+    get summary(): StandardRender | undefined {
+        return this._summary
     }
 
     get header(): { tag: 'Asset' } & StandardBaseData & SerializeNDJSONMixin {
@@ -349,6 +380,8 @@ export class StandardForm {
             data: { tag: 'Asset', uuid: this._universalKey, Story: undefined },
             children: [
                 ...metaData.filter(treeNodeTypeguard(isSchemaMeta)),
+                ...[this._shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...[rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' })].filter(excludeUndefined),
                 ...children
             ]
         }
@@ -357,6 +390,8 @@ export class StandardForm {
     _clone(): StandardForm {
         const returnValue = new StandardForm(this.universalKey)
         returnValue._metaData = [...this._metaData]
+        returnValue._shortName = this._shortName
+        returnValue._summary = this._summary
         returnValue._components = this._components.map((component) => (component.clone()))
         return returnValue
     }

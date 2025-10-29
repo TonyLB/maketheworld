@@ -1,7 +1,7 @@
 # Asset Metadata Tags (ShortName & Summary) - Planning Document
 
 **Date**: October 29, 2025  
-**Status**: Planning / Design Phase  
+**Status**: Phase 1 Complete ✅  
 **Parent Task**: Multi-Draft Asset System (see [`AGENT.drafts.planning.md`](AGENT.drafts.planning.md))  
 **Scope**: WML schema extension to support Asset-level ShortName and Summary tags
 
@@ -171,15 +171,15 @@ Make `ShortName` and `Summary` legal content tags at the Asset level, following 
 </Asset>
 ```
 
-**Proposed Extension** (ShortName/Summary as direct children of Asset):
+**Implemented Extension** (ShortName/Summary as direct children of Asset):
 ```xml
-<Asset uuid=(marketingProposal)>
-    <ShortName>Marketing Proposal Draft</ShortName>
-    <Summary>Ideas for Q2 promotional content</Summary>
+<Asset uuid=(nakatomiPlaza)>
+    <ShortName>Nakatomi Plaza</ShortName>
+    <Summary>A high-rise office building in downtown Los Angeles</Summary>
     <Room key=(lobby)>
-        <ShortName>Corporate Lobby</ShortName>
+        <ShortName>Main Lobby</ShortName>
         <Example uuid=(example1)>
-            <Description>A sterile corporate lobby...</Description>
+            <Description>A gleaming marble lobby with towering windows</Description>
         </Example>
     </Room>
 </Asset>
@@ -259,22 +259,22 @@ Ensure that:
 
 ## Implementation Checklist
 
-### Phase 1: Schema & Parsing
-- [ ] Verify current Asset schema allows nested ShortName/Summary tags
-- [ ] If not, update Asset converter to permit these tags
-- [ ] Add unit tests for parsing Asset-level ShortName/Summary from WML
-- [ ] Verify round-trip: WML → StandardForm → WML preserves tags
+### Phase 1: Schema & Parsing ✅ **COMPLETE**
+- [x] Verify current Asset schema allows nested ShortName/Summary tags
+- [x] If not, update Asset converter to permit these tags
+- [x] Add unit tests for parsing Asset-level ShortName/Summary from WML
+- [x] Verify round-trip: WML → StandardForm → WML preserves tags
 
-### Phase 2: StandardForm Support
-- [ ] Update StandardAsset class to implement `HasShortName`
-- [ ] Add `shortName` and `summary` properties to StandardAsset
-- [ ] Update StandardAsset constructor/factory methods
-- [ ] Add unit tests for StandardAsset with metadata
+### Phase 2: StandardForm Support ✅ **COMPLETE**
+- [x] Update StandardAsset class to implement `HasShortName`
+- [x] Add `shortName` and `summary` properties to StandardAsset
+- [x] Update StandardAsset constructor/factory methods
+- [x] Add unit tests for StandardAsset with metadata
 
-### Phase 3: Serialization
-- [ ] Verify StandardForm → WML writes Asset ShortName/Summary correctly
-- [ ] Verify StandardForm → JSON preserves Asset metadata
-- [ ] Test import/inheritance behavior (does ShortName inherit from imported assets?)
+### Phase 3: Serialization ✅ **COMPLETE**
+- [x] Verify StandardForm → WML writes Asset ShortName/Summary correctly
+- [x] Verify StandardForm → JSON preserves Asset metadata
+- [x] Test import/inheritance behavior (does ShortName inherit from imported assets?)
 
 ### Phase 4: Integration Testing
 - [ ] Test with real draft assets in development environment
@@ -349,13 +349,48 @@ Ensure that:
 
 ---
 
+## Implementation Summary
+
+### ✅ **Phase 1 Complete** (October 29, 2025)
+
+**Schema Layer Changes:**
+- Updated `SchemaAssetLegalContents` type to include `SchemaShortNameTag` and `SchemaSummaryTag`
+- Updated `isSchemaAssetContents()` function to allow ShortName and Summary as valid Asset children
+
+**StandardForm Layer Changes:**
+- Added `_shortName?: StandardLiteral` and `_summary?: StandardRender` properties to StandardForm class
+- Implemented parsing logic in constructor to extract Asset-level ShortName and Summary from WML
+- Added getter methods `shortName` and `summary`
+- Updated `schema` getter to serialize Asset metadata back to WML
+- Updated `_clone()` method to preserve metadata
+
+**Comprehensive Test Coverage:**
+- **8 StandardForm tests** covering parsing, serialization, round-trips, and edge cases
+- **6 Schema parsing tests** covering WML → schema → WML round-trips
+- **All 72 test suites pass** (755 total tests, 0 regressions)
+
+**Example Usage:**
+```xml
+<Asset uuid=(nakatomiPlaza)>
+    <ShortName>Nakatomi Plaza</ShortName>
+    <Summary>A high-rise office building in downtown Los Angeles</Summary>
+    <Room key=(lobby)>
+        <ShortName>Main Lobby</ShortName>
+        <Example uuid=(example1)>
+            <Description>A gleaming marble lobby with towering windows</Description>
+        </Example>
+    </Room>
+</Asset>
+```
+
 ## Next Steps
 
-1. **Investigate Current Schema**: Determine if Asset already permits ShortName/Summary as nested tags
-2. **Design Verification**: Confirm design approach with project stakeholders
-3. **Resolve Open Questions**: Make decisions on inheritance, required/optional, defaults
-4. **Implementation**: Follow checklist above
-5. **Update Parent Document**: Once complete, note in `AGENT.drafts.planning.md` that Asset metadata is available
+1. ✅ **Investigate Current Schema**: Determine if Asset already permits ShortName/Summary as nested tags
+2. ✅ **Design Verification**: Confirm design approach with project stakeholders  
+3. ✅ **Resolve Open Questions**: Make decisions on inheritance, required/optional, defaults
+4. ✅ **Implementation**: Follow checklist above
+5. **Update Parent Document**: Note in `AGENT.drafts.planning.md` that Asset metadata is available
+6. **Phase 4**: Integration testing with real draft assets in development environment
 
 ---
 

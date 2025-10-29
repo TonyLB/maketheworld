@@ -3240,4 +3240,167 @@ describe('StandardForm', () => {
         expect(example.description?.toJSON()).toEqual(['A sterile corporate lobby.'])
     })
 
+    describe('Asset-level ShortName and Summary', () => {
+        
+        it('should parse Asset-level ShortName from WML', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(nakatomiPlaza)>
+                    <ShortName>Nakatomi Plaza</ShortName>
+                    <Room key=(lobby)>
+                        <Example uuid=(example1)>
+                            <Description>A gleaming marble lobby with towering windows</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(testWML)
+            expect(form.shortName).toBeDefined()
+            expect(form.shortName?.toJSON()).toEqual('Nakatomi Plaza')
+        })
+
+        it('should parse Asset-level Summary from WML', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(nakatomiPlaza)>
+                    <Summary>A high-rise office building in downtown Los Angeles</Summary>
+                    <Room key=(lobby)>
+                        <Example uuid=(example1)>
+                            <Description>A gleaming marble lobby with towering windows</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(testWML)
+            expect(form.summary).toBeDefined()
+            expect(form.summary?.toJSON()).toEqual(['A high-rise office building in downtown Los Angeles'])
+        })
+
+        it('should parse both Asset-level ShortName and Summary from WML', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(nakatomiPlaza)>
+                    <ShortName>Nakatomi Plaza</ShortName>
+                    <Summary>A high-rise office building in downtown Los Angeles</Summary>
+                    <Room uuid=(lobby) key=(lobby)>
+                        <ShortName>Main Lobby</ShortName>
+                        <Example uuid=(example1)>
+                            <Description>A gleaming marble lobby with towering windows</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(testWML)
+            expect(form.shortName?.toJSON()).toEqual('Nakatomi Plaza')
+            expect(form.summary?.toJSON()).toEqual(['A high-rise office building in downtown Los Angeles'])
+            
+            // Verify Room's ShortName is separate
+            const room = form._lookup('ROOM#lobby') as StandardRoom
+            expect(room).toBeDefined()
+            expect(room.shortName?.toJSON()).toEqual('Main Lobby')
+        })
+
+        it('should serialize Asset-level ShortName back to WML', () => {
+            const originalWML = deIndentWML(`
+                <Asset uuid=(hauntedMansion)>
+                    <ShortName>Ravencrest Manor</ShortName>
+                    <Room key=(foyer)>
+                        <Example uuid=(example1)>
+                            <Description>A dust-covered entrance hall</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(originalWML)
+            const serializedWML = schemaToWML([form.schema])
+            
+            expect(serializedWML).toContain('<ShortName>Ravencrest Manor</ShortName>')
+        })
+
+        it('should serialize Asset-level Summary back to WML', () => {
+            const originalWML = deIndentWML(`
+                <Asset uuid=(hauntedMansion)>
+                    <Summary>Victorian mansion with a dark history</Summary>
+                    <Room key=(foyer)>
+                        <Example uuid=(example1)>
+                            <Description>A dust-covered entrance hall</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(originalWML)
+            const serializedWML = schemaToWML([form.schema])
+            
+            expect(serializedWML).toContain('<Summary>Victorian mansion with a dark history</Summary>')
+        })
+
+        it('should perform complete round-trip with Asset-level metadata', () => {
+            const originalWML = deIndentWML(`
+                <Asset uuid=(underworldCaverns)>
+                    <ShortName>The Sunless Depths</ShortName>
+                    <Summary>Ancient cavern system beneath the mountain</Summary>
+                    <Room uuid=(entrance) key=(entrance)>
+                        <ShortName>Crystal Grotto</ShortName>
+                        <Example uuid=(example1)>
+                            <Description>Luminescent crystals cast an eerie blue glow across the cavern walls</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(originalWML)
+            const serializedWML = schemaToWML([form.schema])
+            
+            // Parse the serialized WML again
+            const roundTripForm = new StandardForm(serializedWML)
+            
+            // Verify Asset-level metadata preserved
+            expect(roundTripForm.shortName?.toJSON()).toEqual('The Sunless Depths')
+            expect(roundTripForm.summary?.toJSON()).toEqual(['Ancient cavern system beneath the mountain'])
+            
+            // Verify component data also preserved
+            const room = roundTripForm._lookup('ROOM#entrance') as StandardRoom
+            expect(room.shortName?.toJSON()).toEqual('Crystal Grotto')
+        })
+
+        it('should handle Assets without ShortName or Summary', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(regularAsset)>
+                    <Room key=(room1)>
+                        <Example uuid=(example1)>
+                            <Description>A room</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(testWML)
+            expect(form.shortName).toBeUndefined()
+            expect(form.summary).toBeUndefined()
+        })
+
+        it('should clone Asset with ShortName and Summary', () => {
+            const originalWML = deIndentWML(`
+                <Asset uuid=(skyshipDock)>
+                    <ShortName>Aetherdock Seven</ShortName>
+                    <Summary>Floating docking station for airships</Summary>
+                    <Room key=(platform)>
+                        <Example uuid=(example1)>
+                            <Description>A wooden platform swaying gently in the wind</Description>
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+            
+            const form = new StandardForm(originalWML)
+            const cloned = form._clone()
+            
+            expect(cloned.shortName?.toJSON()).toEqual('Aetherdock Seven')
+            expect(cloned.summary?.toJSON()).toEqual(['Floating docking station for airships'])
+        })
+
+    })
+
 })
