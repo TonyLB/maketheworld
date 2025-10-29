@@ -376,6 +376,19 @@ Zone is a **first-class attribute** of player-owned assets, not a derived or imp
    - Auto-generated names?
    - Creation and modification timestamps?
    - Brief description or tags?
+   - **See Subordinate Document**: [`AGENT.drafts.planning.assetMetaData.md`](AGENT.drafts.planning.assetMetaData.md) - Detailed planning for Asset-level ShortName/Summary tags
+
+---
+
+## Subordinate Planning Documents
+
+The following subordinate documents track sub-tasks that are architecturally independent but support the multi-draft system:
+
+- **[`AGENT.drafts.planning.assetMetaData.md`](AGENT.drafts.planning.assetMetaData.md)** - Asset-level ShortName/Summary tags
+  - **Purpose**: Enable user-facing names for draft assets
+  - **Scope**: WML schema extension
+  - **Status**: Planning phase
+  - **Independence**: Can be implemented and tested separately from multi-draft UI/backend work
 
 ---
 
