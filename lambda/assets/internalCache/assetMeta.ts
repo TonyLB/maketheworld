@@ -7,6 +7,8 @@ type MetaCache = {
     zone?: 'Canon' | 'Library' | 'Personal';
     player?: string;  // Only present for Personal zone
     cached?: boolean;
+    shortName?: string;  // Asset-level shortName metadata
+    summary?: any[];     // Asset-level summary metadata (RenderTree format)
 }
 
 export class AssetMetaData {
@@ -36,7 +38,7 @@ export class AssetMetaData {
                 AssetId,
                 DataCategory: 'Meta::Asset'
             })),
-            ProjectionFields: ['AssetId', 'zone', 'player', 'cached']
+            ProjectionFields: ['AssetId', 'zone', 'player', 'cached', 'shortName', 'summary']
         })) || []
         // Phase 1B: Only return items that have a zone (i.e., exist in DB)
         return metaItems.filter(({ zone }) => Boolean(zone))
@@ -54,7 +56,9 @@ export class AssetMetaData {
                             AssetId: fetch.AssetId,
                             zone: fetch.zone,
                             player: fetch.player,
-                            cached: fetch.cached
+                            cached: fetch.cached,
+                            shortName: fetch.shortName,
+                            summary: fetch.summary
                         }
                     })))
                 )

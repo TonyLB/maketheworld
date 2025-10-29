@@ -17,6 +17,7 @@ describe('AssetData cache class', () => {
 
     it('should return the default value when no data is found', async () => {
         assetDBMock.query.mockResolvedValue([])
+        assetDBMock.getItem.mockResolvedValue({})
         const assetId = 'ASSET#12345'
         const result = await assetData.get([assetId])
         expect(result).toEqual([
@@ -34,6 +35,7 @@ describe('AssetData cache class', () => {
             { tag: 'Example', AssetId: 'EXAMPLE#GHIJKL', DataCategory: 'ASSET#Test', context: ['ROOM#ABCDEF'], name: ['Plain lobby'], description: ['A featureless lobby'], summary: [] }
         ]
         assetDBMock.query.mockResolvedValue(mockData)
+        assetDBMock.getItem.mockResolvedValue({})
         const result = await assetData.get([assetId])
         expect(result).toEqual([
             {
@@ -52,6 +54,78 @@ describe('AssetData cache class', () => {
                 </Room>
             </Asset>
         `))
+    })
+
+    it('should return asset with ShortName and Summary from Meta::Asset record', async () => {
+        const assetId = 'ASSET#TestWithMetadata'
+        const mockComponentData = [
+            { tag: 'Room', key: 'lobby', AssetId: `ROOM#ABC123`, DataCategory: 'ASSET#TestWithMetadata', shortName: 'Main Lobby', exits: [], examples: [] }
+        ]
+        const mockMetaData = {
+            shortName: 'Nakatomi Plaza',
+            summary: ['A high-rise office building in downtown Los Angeles']
+        }
+        
+        assetDBMock.query.mockResolvedValue(mockComponentData)
+        assetDBMock.getItem.mockResolvedValue(mockMetaData)
+        
+        const result = await assetData.get([assetId])
+        
+        expect(result).toEqual([
+            {
+                AssetId: assetId,
+                standardForm: expect.any(Object)
+            }
+        ])
+        
+        // Verify Asset-level metadata is present
+        expect(result[0].standardForm.shortName?.toJSON()).toEqual('Nakatomi Plaza')
+        expect(result[0].standardForm.summary?.toJSON()).toEqual(['A high-rise office building in downtown Los Angeles'])
+        
+        // Verify the WML includes Asset metadata
+        expect(schemaToWML([result[0].standardForm.schema])).toEqual(deIndentWML(`
+            <Asset uuid=(TestWithMetadata)>
+                <ShortName>Nakatomi Plaza</ShortName>
+                <Summary>A high-rise office building in downtown Los Angeles</Summary>
+                <Room uuid=(ABC123) key=(lobby)><ShortName>Main Lobby</ShortName></Room>
+            </Asset>
+        `))
+    })
+
+    it('should return asset without ShortName/Summary when Meta::Asset has no metadata', async () => {
+        const assetId = 'ASSET#TestNoMetadata'
+        const mockComponentData = [
+            { tag: 'Room', key: 'room1', AssetId: `ROOM#DEF456`, DataCategory: 'ASSET#TestNoMetadata', exits: [], examples: [] }
+        ]
+        const mockMetaData = {}  // No shortName or summary
+        
+        assetDBMock.query.mockResolvedValue(mockComponentData)
+        assetDBMock.getItem.mockResolvedValue(mockMetaData)
+        
+        const result = await assetData.get([assetId])
+        
+        expect(result[0].standardForm.shortName).toBeUndefined()
+        expect(result[0].standardForm.summary).toBeUndefined()
+        
+        // Verify the WML doesn't include Asset metadata
+        expect(schemaToWML([result[0].standardForm.schema])).toEqual('<Asset uuid=(TestNoMetadata)><Room uuid=(DEF456) key=(room1) /></Asset>')
+    })
+
+    it('should return asset with only ShortName when Summary is not present', async () => {
+        const assetId = 'ASSET#TestShortNameOnly'
+        const mockComponentData = []
+        const mockMetaData = {
+            shortName: 'Quick Name'
+            // No summary
+        }
+        
+        assetDBMock.query.mockResolvedValue(mockComponentData)
+        assetDBMock.getItem.mockResolvedValue(mockMetaData)
+        
+        const result = await assetData.get([assetId])
+        
+        expect(result[0].standardForm.shortName?.toJSON()).toEqual('Quick Name')
+        expect(result[0].standardForm.summary).toBeUndefined()
     })
 
 })

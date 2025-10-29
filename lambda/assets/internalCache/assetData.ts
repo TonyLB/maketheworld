@@ -34,13 +34,37 @@ export class AssetData {
     async _getPromiseFactory(AssetIds: (`ASSET#${string}`)[]): Promise<AssetDataCache[]> {
         const queryResults = await Promise.all(
             AssetIds.map(async (AssetId) => {
-                const ndjsonLines = (await assetDB.query<StandardComponentData & { AssetId: string; DataCategory: string }>({
-                    Key: { DataCategory: AssetId },
-                    IndexName: 'DataCategoryIndex',
-                    allFields: true
-                })) || []
+                const [ndjsonLines, assetMeta] = await Promise.all([
+                    assetDB.query<StandardComponentData & { AssetId: string; DataCategory: string }>({
+                        Key: { DataCategory: AssetId },
+                        IndexName: 'DataCategoryIndex',
+                        allFields: true
+                    }).then((lines) => lines || []),
+                    assetDB.getItem<{ shortName?: string; summary?: any[] }>({
+                        Key: {
+                            AssetId,
+                            DataCategory: 'Meta::Asset'
+                        },
+                        ProjectionFields: ['shortName', 'summary']
+                    })
+                ])
+                
+                // Build Asset header with metadata from Meta::Asset record
+                const assetHeader: any = {
+                    tag: 'Asset',
+                    key: AssetId.split('#').slice(1)[0],
+                    universalKey: AssetId
+                }
+                // Include Asset-level metadata if present (following omission-over-empty principle)
+                if (assetMeta?.shortName) {
+                    assetHeader.shortName = assetMeta.shortName
+                }
+                if (assetMeta?.summary) {
+                    assetHeader.summary = assetMeta.summary
+                }
+                
                 const standardForm = new StandardForm([
-                    { tag: 'Asset', key: AssetId.split('#').slice(1)[0], universalKey: AssetId },
+                    assetHeader,
                     ...ndjsonLines
                         .map(({ DataCategory, AssetId, ...line }) => (isSchemaComponentUUID(AssetId) ?
                             {

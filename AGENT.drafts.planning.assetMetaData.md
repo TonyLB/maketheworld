@@ -386,6 +386,12 @@ Ensure that:
 - **6 Schema parsing tests** covering WML → schema → WML round-trips
 - **All 72 test suites pass** (774 total tests, 0 regressions)
 
+**DynamoDB Storage (October 29, 2025):**
+- Extended `Meta::Asset` record to include `shortName` and `summary` fields
+- Updated `cacheAsset` to extract and store Asset-level metadata from StandardForm
+- Updated `AssetData.get()` to fetch metadata from Meta::Asset and reconstruct Asset header
+- Added 3 comprehensive tests for DynamoDB round-trip scenarios
+
 **Example Usage:**
 ```xml
 <Asset uuid=(nakatomiPlaza)>
@@ -400,14 +406,28 @@ Ensure that:
 </Asset>
 ```
 
+**DynamoDB Storage:**
+```javascript
+// Meta::Asset record
+{
+    AssetId: 'ASSET#nakatomiPlaza',
+    DataCategory: 'Meta::Asset',
+    zone: 'Personal',
+    shortName: 'Nakatomi Plaza',
+    summary: ['A high-rise office building in downtown Los Angeles']
+}
+```
+
 ## Next Steps
 
 1. ✅ **Investigate Current Schema**: Determine if Asset already permits ShortName/Summary as nested tags
 2. ✅ **Design Verification**: Confirm design approach with project stakeholders  
 3. ✅ **Resolve Open Questions**: Make decisions on inheritance, required/optional, defaults
 4. ✅ **Implementation**: Follow checklist above (Phases 1-3.5 complete, including NDJSON serialization)
-5. **Update Parent Document**: Note in `AGENT.drafts.planning.md` that Asset metadata is available
-6. **Phase 4**: Integration testing with real draft assets in development environment
+5. ✅ **DynamoDB Storage**: Asset metadata stored and retrieved from Meta::Asset records
+6. **Update Parent Document**: Note in `AGENT.drafts.planning.md` that Asset metadata is available
+7. **Phase 4**: Integration testing with real draft assets in development environment
+8. **Asset Update Events**: Design and implement asset-level change notification system (deferred)
 
 ---
 

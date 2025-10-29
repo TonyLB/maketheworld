@@ -1,7 +1,11 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import internalCache from "../internalCache";
-import { CacheAssetMessage, MessageBus } from "../messageBus/baseClasses";
+import { MessageBus } from "../messageBus/baseClasses";
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly";
+
+type CacheAssetMessage = {
+    assetId: string;  // Plain asset ID without 'ASSET#' prefix
+}
 import { StandardRemove, StandardReplace } from "@tonylb/mtw-wml/ts/standardize/components/edits";
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import StandardCharacter from "@tonylb/mtw-wml/ts/standardize/components/character";
@@ -40,7 +44,10 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                         AssetId: assetUUID,
                         DataCategory: 'Meta::Asset',
                         zone,
-                        ...(zone === 'Personal' && player ? { player } : {})
+                        ...(zone === 'Personal' && player ? { player } : {}),
+                        // Include Asset-level metadata (shortName and summary)
+                        ...(fileAsset.shortName ? { shortName: fileAsset.shortName.toJSON() } : {}),
+                        ...(fileAsset.summary ? { summary: fileAsset.summary.toJSON() } : {})
                         // Note: No import graph maintenance (deferred to component-level redesign)
                     })
                 }
