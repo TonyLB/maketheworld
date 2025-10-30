@@ -15,7 +15,6 @@ import {
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
 import {
-    setCurrentWML as setCurrentWMLReducer,
     setDraftWML as setDraftWMLReducer,
     revertDraftWML as revertDraftWMLReducer,
     setLoadedImage as setLoadedImageReducer,
@@ -24,7 +23,7 @@ import {
     saveEdit as saveEditReducer,
     UpdateStandardPayload
 } from './reducers'
-import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { addAsset, getPlayer } from '../player'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
@@ -75,7 +74,6 @@ export const {
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
     publicReducers: {
-        setCurrentWML: setCurrentWMLReducer,
         setDraftWML: setDraftWMLReducer,
         revertDraftWML: revertDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
@@ -204,7 +202,6 @@ export const {
 
 export const { addItem, setIntent, clear } = personalAssetsSlice.actions
 export const {
-    setCurrentWML,
     setDraftWML,
     revertDraftWML,
     setLoadedImage,
@@ -264,8 +261,12 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
     }
     const state = getState()
     const edit = selectors.getEdit(key)(state)
-    if (edit.components.filter(excludeUndefined).length && isEphemeraAssetId(key)) {
-        const standardForm = new StandardForm(key as AssetUUID).merge(new StandardForm(edit))
+    if (edit.components.filter(excludeUndefined).length) {
+        const standardForm = new StandardForm(edit)
+        if (standardForm.universalKey !== key) {
+            // Defensive: ensure edits target the current asset key
+            console.warn(`personalAssets.saveEdit: universalKey mismatch (have ${standardForm.universalKey}, expected ${key})`)
+        }
         const schema = schemaToWML([standardForm.schema])
         const requestId = uuidv4()
         await dispatch(socketDispatchPromise({
