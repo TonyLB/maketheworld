@@ -523,13 +523,56 @@ Sign-off checks
 - Player listing returns `zone` for all assets; Draft and Personal correctly differentiated.
 - Draft edits with real IDs save and confirm via subscription with pendingEdits cleared.
 
-### Phase 2: Backend API
-*Detailed planning deferred*
+### Phase 2: Backend API (Reassessed)
+**Goal**: Provide a minimal, additive API surface for multi-draft workflows, leveraging Phase 1 changes (zone surfaced; storage/event flow already generic for `ASSET#${uuid}`). Avoid reintroducing magic IDs or special-casing.
 
-- Implement draft CRUD operations
-- Add authorization/permissions
-- Create draft listing endpoint
-- Provide zone information to client
+- What Phase 1 already enabled
+  - Player-asset listing includes `zone`, `ShortName`, `Summary` for client-side filtering and labeling.
+  - Storage and subscriptions already work for any asset ID; no S3 structural changes required.
+  - Implication: A dedicated “List Drafts” endpoint is optional; the client can filter `zone === 'Draft'` from the general listing.
+
+- API surface (minimal, additive)
+  - Create Draft
+    - Auth: owner (authenticated player).
+    - Request: new `AssetId` (v4 UUID) or server-generated; optional seed WML; optional `ShortName`, `Summary`.
+    - Response: `AssetId`, `zone: 'Draft'`, `ShortName?`, `Summary?`, timestamps.
+    - Behavior: Use existing `applyEdit` with `createIfNeeded: true` and `zone: 'Draft'` to create the asset and write initial content/metadata; emit standard Asset Updated events.
+  - Metadata updates via WML edits (no separate endpoint)
+    - Use existing `applyEdit` to modify ShortName/Summary tags in the Asset’s StandardForm.
+    - Phase 1 ensures `cacheAsset` persists these and listings include them.
+  - Delete Draft (archive)
+    - Auth: owner; only for `zone='Draft'` assets.
+    - Request: path `AssetId`.
+    - Response: archived asset summary with `zone: 'Archive'`.
+    - Behavior: Use `moveAsset`/`changeZone` to move Draft → Archive (soft delete); emit events so clients update listings.
+  - Publish Draft (changeZone)
+    - Auth: owner for `targetZone='Personal'`; elevated roles as per existing rules for `Library`/`Canon`.
+    - Request: `targetZone` in {`Personal`,`Library`,`Canon`}; optional `retainDraft=true|false` (copy vs move).
+    - Response: target asset summary (same or new `AssetId` depending on retain policy) with `zone`/metadata.
+    - Behavior: Use existing WML lambda `moveAsset`/storage `changeZone`; emit events for source and/or target as applicable.
+  - Optional filtered listing
+    - If desired for ergonomics/perf: `GET /player/assets?zone=Draft` returning the same shape as general listing, server-side filtered.
+
+- Contracts and compatibility
+  - Asset summary shape should include: `AssetId`, `zone`, `ShortName?`, `Summary?`, `Story?`, `instance?`, timestamps.
+  - Backward compatibility: only additive fields; no breaking changes to existing consumers.
+
+- Idempotency and errors
+  - Create/Publish: support idempotency keys to avoid duplicates on retries.
+  - 400 invalid `targetZone` or wrong zone for draft-only ops; 403 non-owner; 404 not found/not owned; 409 publish conflicts when applicable.
+
+- Events and subscriptions
+  - Reuse existing Asset Updated/Delete events so client optimistic/subscription flows remain unchanged.
+  - For publish with copy, emit for both assets to keep caches consistent.
+
+- Permissions (Phase 2 scope)
+  - Drafts are private to the owner.
+  - Publishing to Personal: owner allowed. Library/Canon: existing admin/editor roles.
+  - No draft sharing yet (future phase).
+
+- Observability
+  - Structured logs: create/delete/publish with `playerId`, `AssetId`, `zone`, `targetZone`.
+  - Counters: Draft vs Personal per player, consistent with Phase 1 metrics.
 
 ### Phase 3: Client UI
 *Detailed planning deferred*
