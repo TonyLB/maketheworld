@@ -3,7 +3,6 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/ts/library'
 import { CacheConstructor } from './baseClasses'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import ReadOnlyAssetWorkspace from '@tonylb/mtw-asset-workspace/ts/readOnly'
 
 type PlayerLibrary = {
     Assets: Record<string, LibraryAsset>;
@@ -12,67 +11,57 @@ type PlayerLibrary = {
 }
 
 export class CachePlayerLibraryData {
-    CharacterLibraries: Record<string, PlayerLibrary> = {}
+    PlayerLibraries: Record<string, PlayerLibrary> = {}
     clear() {
-        this.CharacterLibraries = {}
+        this.PlayerLibraries = {}
     }
     async set(player: string, override: { Assets: Record<string, LibraryAsset | undefined>; Characters: Record<string, LibraryCharacter | undefined>}) {
-        if (!(player in this.CharacterLibraries)) {
+        if (!(player in this.PlayerLibraries)) {
             await this.get(player)
         }
         Object.keys(override.Assets).forEach((key) => {
             const asset = override.Assets[key]
             if (asset) {
-                this.CharacterLibraries[player].Assets[key] = asset
+                this.PlayerLibraries[player].Assets[key] = asset
             }
-            else if (key in this.CharacterLibraries[player].Assets) {
-                delete this.CharacterLibraries[player].Assets[key]
+            else if (key in this.PlayerLibraries[player].Assets) {
+                delete this.PlayerLibraries[player].Assets[key]
             }
         })
         Object.keys(override.Characters).forEach((key) => {
             const character = override.Characters[key]
             if (character) {
-                this.CharacterLibraries[player].Characters[key] = character
+                this.PlayerLibraries[player].Characters[key] = character
             }
-            else if (key in this.CharacterLibraries[player].Characters) {
-                delete this.CharacterLibraries[player].Characters[key]
+            else if (key in this.PlayerLibraries[player].Characters) {
+                delete this.PlayerLibraries[player].Characters[key]
             }
         })
     }
     async get(player: string): Promise<PlayerLibrary> {
-        if (!(player in this.CharacterLibraries)) {
-            const assetWorkspace = new ReadOnlyAssetWorkspace({
-                zone: 'Draft',
-                player
+        if (!(player in this.PlayerLibraries)) {
+            const Items = await assetDB.query({
+                IndexName: 'PlayerIndex',
+                Key: {
+                    player
+                },
+                KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+                ExpressionAttributeValues: {
+                    ':dcPrefix': 'Meta::'
+                },
+                ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'fileURL', 'Pronouns', 'zone', 'shortName', 'summary']
             })
-            const [Items, draftURL] = await Promise.all([
-                assetDB.query({
-                    IndexName: 'PlayerIndex',
-                    Key: {
-                        player
-                    },
-                    KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-                    ExpressionAttributeValues: {
-                        ':dcPrefix': 'Meta::'
-                    },
-                    ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', 'Name', 'fileURL', 'Pronouns', 'scopedId']
-                }),
-                assetWorkspace.forceDefault().then(() => (assetWorkspace.presignedURL()))
-            ])
-            const Characters = Items
-                .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
-                .map(({ AssetId, Name, scopedId, fileName, fileURL, Pronouns }) => ({ CharacterId: AssetId as EphemeraCharacterId, Name, scopedId, fileName, fileURL, Pronouns }))
-                .reduce((previous, item) => ({ ...previous, [item.CharacterId]: item }), {} as Record<string, LibraryCharacter>)
+            const Characters = {} as Record<string, LibraryCharacter>
             const Assets = Items
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
-                .map(({ AssetId, scopedId, Story, instance }) => ({ AssetId: splitType(AssetId)[1], scopedId, Story, instance }))
+                .map(({ AssetId, Story, instance, zone, shortName, summary }) => ({ AssetId: splitType(AssetId)[1], Story, instance, zone, ShortName: shortName, Summary: summary }))
                 .reduce((previous, item) => ({ ...previous, [item.AssetId]: item }), {} as Record<string, LibraryAsset>)
-            this.CharacterLibraries[player] = {
+            this.PlayerLibraries[player] = {
                 Characters,
                 Assets,
-                draftURL
+                draftURL: ''
             }
         }
-        return this.CharacterLibraries[player] || { Characters: {}, Assets: {} }
+        return this.PlayerLibraries[player] || { Characters: {}, Assets: {}, draftURL: '' }
     }
 }

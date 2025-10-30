@@ -376,7 +376,11 @@ Zone is a **first-class attribute** of player-owned assets, not a derived or imp
    - Auto-generated names?
    - Creation and modification timestamps?
    - Brief description or tags?
-   - **See Subordinate Document**: [`AGENT.drafts.planning.assetMetaData.md`](AGENT.drafts.planning.assetMetaData.md) - Detailed planning for Asset-level ShortName/Summary tags
+   - **ShortName and Summary as Standard Metadata**: ShortName and Summary are implemented as standard fields for all assets and are canonical for asset naming and description. See:
+      - `packages/mtw-wml/ts/standardize/AGENT.md`
+      - `lambda/assets/dataSource/caching/AGENT.md`
+      - `lambda/assets/contentHeaders/AGENT.md`
+     Going forward, asset discovery, listing, and reporting endpoints should, whenever practical, include these fields as top-level properties for each asset (to enable best-UX labeling and description). For most user-facing and administrative endpoints, their inclusion is strongly encouraged; exceptions may be justified for minimal/caching endpoints where metadata can be elided for performance or payload reasons. Backends and clients should collaborate to preserve and pass through ShortName/Summary wherever practical.
 
 ---
 
@@ -457,10 +461,11 @@ Backend
 - Update player-asset listing to include `zone`:
   - Target: `lambda/assets/internalCache/playerLibrary.ts`
   - Actions:
-    - Add `zone` to projection/returned shape.
-    - Ensure mapping maintains existing fields: `AssetId`, `scopedId`, `Story`, `instance`.
-    - Add unit tests for Draft vs Personal zones.
-  - Acceptance: Client receives `zone` for all player-owned assets.
+    - Add `zone`, `ShortName`, and `Summary` to player asset query projection and returned asset shape.
+    - Ensure mapping maintains all fields: `AssetId`, `Story`, `instance`, `zone`, `ShortName`, `Summary`.
+    - Add unit tests for Draft vs Personal zones and for presence of ShortName/Summary when present.
+  - Acceptance: Each asset in returned list includes `zone, AssetId, Story, instance, ShortName, Summary` (with ShortName/Summary present if defined in asset metadata). Client receives these for all player-owned assets.
+  - Status: Completed (October 30, 2025)
 
 - Event handling path sanity checks: Assessed; requestId correlation and zone/metadata propagation already correct. No code changes required.
 
@@ -589,4 +594,13 @@ Sign-off checks
 - **Initial Motivation**: Moving from hard-coded single draft to flexible multi-draft system
 - **Core Benefit**: Allows players to organize thoughts and proposals into independent blocks
 - **Key Complexity**: Cross-cutting change affecting client, backend, and data model
+
+---
+
+## Ongoing Development Issues
+
+- scopedId Removed from General Assets:
+    - scopedId is no longer present in the LibraryAsset type or general asset APIs.
+    - It is reserved for Character-related flows (e.g., friendly URL routing for characters in the client) until all migration is complete.
+    - TODO: Plan and execute full removal from codebase and database (including indexes and projection fields) after all dependencies are migrated off scopedId.
 
