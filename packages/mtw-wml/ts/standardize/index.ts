@@ -935,8 +935,12 @@ export class StandardForm {
         diffedValue._metaData = applyEdits(combinedMetaData.tree)
 
         // Diff Asset-level metadata
-        diffedValue._shortName = this._shortName?.diff(incoming._shortName)
-        diffedValue._summary = this._summary?.diff(incoming._summary)
+        diffedValue._shortName = this._shortName
+            ? this._shortName.diff(incoming._shortName)
+            : incoming._shortName
+        diffedValue._summary = this._summary
+            ? this._summary.diff(incoming._summary)
+            : incoming._summary
 
         return diffedValue.finalize()
     }

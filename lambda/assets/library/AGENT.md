@@ -246,6 +246,14 @@ The Library data source provides **only asset IDs**. To display rich metadata, c
 - Still keep payloads small compared to full metadata
 - Balance between network efficiency and UI responsiveness
 
+**Asset Metadata Integration (mtw.assets.contentHeaders coordination):**
+- Subscribe to `Asset Updated` (from `mtw.assets`) when Library UI needs to display asset-level names/summaries inline
+- Preferred pattern: Keep `mtw.assets.library` publishing IDs only; compose in UI by also subscribing to `mtw.assets.contentHeaders`
+- Alternative (opt-in later): Enrich Library snapshot with minimal metadata (ShortName) when UX requires single-stream consumption
+- Contracts to reference:
+  - `packages/mtw-interfaces/ts/eventBridge/assets/index.ts` (`Asset Updated` external WML payload)
+  - `lambda/assets/contentHeaders/index.ts` (how metadata is merged into a `StandardForm` for headers)
+
 ### Known Limitations
 
 **No Authorization Filtering**: All subscribers receive same data

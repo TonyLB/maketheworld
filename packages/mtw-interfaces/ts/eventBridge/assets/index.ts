@@ -38,7 +38,7 @@ export const isAssetsComponentEvent = (event: any): event is ComponentEventUpdat
 }
 
 export const isAssetsLevelEvent = (event: AssetsEventUpdate): event is AssetLevelEventUpdate => {
-    return 'type' in event && ['Asset Added', 'Asset Cached', 'Asset Decached', 'Asset Removed', 'Canon Updated', 'Zone Updated'].includes(event.type)
+    return 'type' in event && ['Asset Added', 'Asset Cached', 'Asset Decached', 'Asset Removed', 'Canon Updated', 'Zone Updated', 'Asset Updated'].includes(event.type)
 }
 
 // Specific type guards for each asset-level event type
@@ -66,6 +66,10 @@ export const isZoneUpdatedEvent = (event: any): event is ZoneUpdatedEventUpdate 
     return event?.type === 'Zone Updated' && 
            typeof event.fromZone === 'string' && 
            typeof event.toZone === 'string'
+}
+
+export const isAssetUpdatedEvent = (event: any): event is AssetUpdatedEventUpdate => {
+    return event?.type === 'Asset Updated' && event.standardForm instanceof StandardForm
 }
 
 export type ComponentEventExternal = ComponentUpdatedEventExternal
@@ -111,6 +115,11 @@ export type ZoneUpdatedEventUpdate = {
     toZone: string
 }
 
+export type AssetUpdatedEventUpdate = {
+    type: 'Asset Updated'
+    standardForm: StandardForm
+}
+
 // Union type for all asset-level event updates
 export type AssetLevelEventUpdate = 
     | AssetAddedEventUpdate
@@ -119,6 +128,7 @@ export type AssetLevelEventUpdate =
     | AssetRemovedEventUpdate 
     | CanonUpdatedEventUpdate 
     | ZoneUpdatedEventUpdate
+    | AssetUpdatedEventUpdate
 
 // Union type for all external event payloads
 export type AssetsEventExternal = ComponentEventExternal | AssetLevelEventExternal
@@ -155,6 +165,11 @@ export type ZoneUpdatedEventExternal = {
     toZone: string
 }
 
+export type AssetUpdatedEventExternal = {
+    type: 'Asset Updated'
+    wml: string
+}
+
 // Union type for all external asset-level events
 export type AssetLevelEventExternal = 
     | AssetAddedEventExternal
@@ -163,6 +178,7 @@ export type AssetLevelEventExternal =
     | AssetRemovedEventExternal 
     | CanonUpdatedEventExternal 
     | ZoneUpdatedEventExternal
+    | AssetUpdatedEventExternal
 
 /**
  * Unified event serializer for the mtw.assets data source.
@@ -189,6 +205,13 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
             }
         } else if (isAssetsLevelEvent(update)) {
             // This is an asset-level event - pass through as-is since internal and external types are now identical
+            if ((update as any).type === 'Asset Updated') {
+                const internal = update as AssetUpdatedEventUpdate
+                return {
+                    type: 'Asset Updated',
+                    wml: schemaToWML([internal.standardForm.schema])
+                }
+            }
             return update as AssetLevelEventExternal
         } else {
             throw new Error(`Unknown event type in AssetsEventUpdate: ${JSON.stringify(update)}`)
@@ -212,6 +235,13 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
             }
         } else {
             // This is an asset-level event - pass through as-is since internal and external types are now identical
+            if ((externalUpdate as any).type === 'Asset Updated') {
+                const external = externalUpdate as AssetUpdatedEventExternal
+                return {
+                    type: 'Asset Updated',
+                    standardForm: new StandardForm(external.wml)
+                }
+            }
             return externalUpdate as AssetLevelEventUpdate
         }
     }
