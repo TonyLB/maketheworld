@@ -575,12 +575,138 @@ Sign-off checks
   - Counters: Draft vs Personal per player, consistent with Phase 1 metrics.
 
 ### Phase 3: Client UI
-*Detailed planning deferred*
+**Goal**: Provide a tabbed interface for managing multiple drafts and published assets, with card-based navigation and metadata editing. This establishes the foundation for multi-draft workflows without requiring new backend endpoints.
 
-- Draft management interface
-- Draft selection/switching
-- Integration with existing editor
-- State management updates
+- **Personal Assets Table of Contents - Tabbed Interface**
+  - Two tabs: **Drafts** (filter `zone === 'Draft'`) and **Assets** (filter `zone === 'Personal'`)
+  - Card-based layout for each tab:
+    - Each card prominently displays **ShortName** (or fallback label if absent)
+    - **Summary** displayed below ShortName (if present)
+    - Cards navigate to:
+      - **Drafts tab**: Edit mode (existing draft editor)
+      - **Assets tab**: View mode (existing asset viewer)
+  - Uses `getMyDraftAssets` and `getMyPersonalAssets` selectors from Phase 1
+
+- **Create New Draft**
+  - Card placeholder in the Drafts tab (preferred UI pattern: visual consistency with other draft cards)
+  - Clicking the placeholder generates new `ASSET#${uuid}` and calls `applyEdit` with:
+    - `createIfNeeded: true`
+    - `zone: 'Draft'`
+    - Optional initial seed WML (minimal empty Asset structure)
+    - Optional initial `ShortName`/`Summary` if provided via dialog/form
+  - Navigates to edit mode for the newly created draft
+  - **Rationale**: Essential for testing; enables practical use of multi-draft system
+
+- **Draft Edit Mode - Metadata Section**
+  - Add editable **ShortName** and **Summary** section at top of draft asset editor
+  - Updates flow through existing `applyEdit` mechanism (WML tag edits on Asset StandardForm)
+  - Relatively lightweight: leverages existing edit/save infrastructure
+
+- **Deferred to later sub-phases** (not required for initial Phase 3):
+  - Delete/archive draft action (cards may need delete buttons)
+  - Publish draft action (promote Draft → Personal/Library/Canon)
+
+**Foundation Value**: This design provides:
+- Clear discovery and organization of multiple drafts
+- Standard metadata editing workflow
+- Separation of draft editing vs published asset viewing
+- Minimal changes to existing editor/viewer components
+
+### Implementation Checklist (Phase 3)
+
+**Personal Assets Table of Contents - Tabbed Interface**
+
+- Convert Personal section to tabbed layout:
+  - Target: `charcoal-client/src/components/Library/index.tsx`
+  - Actions:
+    - Replace single "Personal" section with two tabs: "Drafts" and "Assets"
+    - Filter assets using `getMyDraftAssets` selector for Drafts tab
+    - Filter assets using `getMyPersonalAssets` selector for Assets tab
+    - Use Material-UI `Tabs` component for tab navigation
+  - Acceptance: Personal section displays two tabs; Drafts tab shows only Draft zone assets; Assets tab shows only Personal zone assets
+
+- Replace list-based layout with card-based layout:
+  - Target: `charcoal-client/src/components/Library/index.tsx` (TableOfContents component or new CardGrid component)
+  - Actions:
+    - Create `AssetCard` component (or refactor existing list items)
+    - Display `ShortName` prominently (primary text/label)
+    - Display `Summary` as secondary text below ShortName
+    - Fallback: If ShortName missing, use generated label (e.g., "Untitled Draft" or asset UUID segment)
+    - Use Material-UI `Card` components for consistent styling
+    - Implement click handlers that navigate based on zone:
+      - Draft cards → Edit mode (existing `EditAsset` route with real AssetUUID)
+      - Asset cards → View mode (existing asset viewer route)
+  - Acceptance: All assets displayed as cards with ShortName/Summary; clicking navigates to appropriate mode
+
+- Card placeholder for creating new drafts:
+  - Target: Drafts tab card grid
+  - Actions:
+    - Add special placeholder card (e.g., "+ New Draft" or empty card with plus icon)
+    - On click, generate new `ASSET#${uuid}` using `uuidv4()` from uuid package [[memory:8840445]]
+    - Call `applyEdit` with:
+      - `AssetId`: new UUID
+      - `createIfNeeded: true`
+      - `zone: 'Draft'`
+      - Optional seed WML: minimal empty Asset structure (e.g., `<Asset uuid=(${uuid}) />`)
+    - Navigate to edit mode for newly created draft
+    - Update `personalAssets` slice to subscribe to new asset
+  - Acceptance: Clicking placeholder creates new draft and navigates to edit mode; draft appears in Drafts tab after creation
+
+**Draft Edit Mode - Metadata Section**
+
+- Add editable ShortName/Summary section to draft editor:
+  - Target: `charcoal-client/src/components/Library/Edit/EditAsset.tsx` or component it renders (likely `AssetEditForm`)
+  - Actions:
+    - Add form section at top of draft editor (above existing content)
+    - Two input fields: ShortName (text) and Summary (multiline text)
+    - Load current values from asset's StandardForm metadata (ShortName/Summary tags on Asset component)
+    - Save mechanism:
+      - On field changes, construct WML edit to update Asset tag's ShortName/Summary attributes
+      - Use existing `applyEdit` flow (same as content edits)
+      - Leverage existing autosave debounce (5 second debounce from `updateStandard`)
+    - Only show for drafts (`zone === 'Draft'`); hide for published assets in view mode
+  - Acceptance: Draft editor displays ShortName/Summary fields at top; edits save via applyEdit and persist through cache/events
+
+**Integration Points**
+
+- Update routing for draft navigation:
+  - Target: Routes and navigation that currently assume `'ASSET#draft'` magic key
+  - Actions:
+    - Update `EditAsset` component to accept real AssetUUID (not just 'draft')
+    - Update breadcrumbs/navigation to use real AssetUUID where applicable
+    - Ensure routing supports `/Library/Edit/Asset/${uuid}` for any draft UUID
+  - Acceptance: Draft cards navigate correctly to edit mode using real UUIDs; breadcrumbs display correctly
+
+- Update selectors usage:
+  - Target: Components that currently reference personal assets
+  - Actions:
+    - Verify `getMyDraftAssets` and `getMyPersonalAssets` selectors work correctly
+    - Update any components that hard-code asset filtering to use these selectors
+  - Acceptance: Tab filtering works correctly; assets appear in appropriate tabs
+
+**Testing**
+
+- Component tests:
+  - `charcoal-client/src/components/Library/__tests__/`:
+    - Test tab filtering (Drafts vs Assets tabs show correct assets)
+    - Test card display (ShortName/Summary rendering, fallbacks)
+    - Test card navigation (draft cards → edit, asset cards → view)
+    - Test placeholder card creation flow
+  - `charcoal-client/src/components/Library/Edit/__tests__/`:
+    - Test metadata editing section renders for drafts
+    - Test ShortName/Summary edits flow through applyEdit
+    - Test metadata section hidden for non-draft assets
+
+- Integration tests:
+  - Create draft → appears in Drafts tab → navigate to edit → edit metadata → verify save → verify update in listing
+  - Multiple drafts: Create several drafts → verify all appear in Drafts tab → verify navigation to each works
+
+**Sign-off checks**
+- Personal section displays tabs with correct filtering
+- Cards show ShortName/Summary with appropriate fallbacks
+- Draft creation via placeholder works and navigates correctly
+- Metadata editing in draft editor saves and persists
+- Navigation uses real AssetUUIDs (no reliance on `'ASSET#draft'` in new code paths)
 
 ### Phase 3.5: Remove Legacy Draft Key Special-Casing
 *Detailed planning deferred*
