@@ -395,12 +395,126 @@ The following subordinate documents track sub-tasks that are architecturally ind
 ## Implementation Planning
 
 ### Phase 1: Foundation & Data Model
-*Detailed planning deferred*
+**Goal**: Establish a multi-draft-capable foundation without changing user-facing UI flows. Focus on data model, discovery, and removal of single-draft special cases. Leverage existing ShortName and Summary metadata already implemented.
 
-- Define draft asset storage pattern
-- Design draft metadata schema
-- Remove hard-coded `'ASSET#draft'` special cases
-- Design draft listing/discovery mechanism
+- **Data model and storage (no structural S3 changes)**
+  - Use existing `ASSET#${uuid}` keys for all drafts (no magic IDs).
+  - Keep current flat S3 paths (`{uuid}.wml`) and zone as S3 tags; no bucket/key change.
+  - Continue using zone values: **Draft** (drafts), **Personal** (published personal), and existing others (Library/Canon) unchanged.
+  - Ensure `cacheAsset` persists `zone` to DynamoDB Meta::Asset and preserves ShortName/Summary.
+
+- **Zone surfaced to client (discovery enablement)**
+  - Update backend player-asset listing to include `zone` in results returned to the client.
+  - Maintain existing fields (`AssetId`, `scopedId`, `Story`, `instance`) and add `zone` without breaking shape of other consumers.
+  - Pagination/limits unchanged; zone is purely additive to enable client filtering.
+
+- **Draft metadata schema (Phase 1 scope)**
+  - Rely on existing Asset metadata: **ShortName** (display name), **Summary** (brief description).
+  - Do not add new metadata fields in Phase 1; defer templates/tags to later phases.
+  - UX label: For drafts, display ShortName prominently; fallback to generated label if absent (client responsibility in Phase 3).
+
+- **Client: remove hard-coded `'ASSET#draft'` special cases**
+  - Replace all usages of the magic `'ASSET#draft'` key with real `ASSET#${uuid}` handling.
+  - In `personalAssets` save loop, delete the conversion of `ASSET#draft` to `ASSET#draft[${player}]`.
+  - Ensure subscriptions use actual asset IDs for each draft; multiple concurrent draft edits are supported by existing infra.
+  - Keep state model unchanged (entries keyed by asset ID already supported multiple items).
+
+- **Discovery/listing mechanism (client-facing data contract)**
+  - Client will filter player-owned assets by `zone === 'Draft'` to build the draft list.
+  - Published personal items identified by `zone === 'Personal'`.
+  - No client routing changes in Phase 1; only data availability to enable later UI work.
+
+- **Backward-compatibility and transition**
+  - If legacy clients reference `'ASSET#draft'`, continue to tolerate reads server-side by resolving to the player’s last-used draft if present; log warnings. This shim is temporary and can be removed after client rollout (Phase 4).
+  - No data migration required; drafts are already first-class in storage; we are exposing zone and removing client special-casing.
+
+- **Observability**
+  - Add structured logs around: player-asset listing with `zone`, `cacheAsset` writes that include zone and metadata, and any legacy-draft alias resolutions.
+  - Dashboard counters for number of Draft vs Personal assets per player (cardinality-safe sampling acceptable in Phase 1).
+
+Deliverables
+- Backend: player-asset listing includes `zone` for each asset owned by the player.
+- Backend: `cacheAsset` guarantees zone and metadata (ShortName/Summary) correctness in Dynamo.
+- Client (foundational refactor): removal of `'ASSET#draft'` special-casing in save/subscription paths while maintaining current UX.
+
+Acceptance criteria
+- Listing endpoint returns assets with accurate `zone` values for Draft and Personal items.
+- Editing a draft identified by a real `ASSET#${uuid}` round-trips edits through the existing save → event → subscription flow without regressions.
+- No reliance on `'ASSET#draft'` remains in the client save loop or subscription keys.
+- ShortName/Summary for drafts are preserved from storage through to emitted events and cached records.
+
+Risks and mitigations
+- Risk: Client still references `'ASSET#draft'` in hidden paths.
+  - Mitigation: Grep-based audit and runtime warning logs when aliasing is triggered; add test coverage.
+- Risk: Zone not included in some cached projections.
+  - Mitigation: Expand `cacheAsset` and player-asset projection tests; add canary assertions in listing code.
+- Risk: Subscription mismatch if any code derives asset IDs from legacy patterns.
+  - Mitigation: Centralize asset ID handling in client selectors/utilities and add unit tests.
+
+### Implementation Checklist (Phase 1)
+
+Backend
+- Update player-asset listing to include `zone`:
+  - Target: `lambda/assets/internalCache/playerLibrary.ts`
+  - Actions:
+    - Add `zone` to projection/returned shape.
+    - Ensure mapping maintains existing fields: `AssetId`, `scopedId`, `Story`, `instance`.
+    - Add unit tests for Draft vs Personal zones.
+  - Acceptance: Client receives `zone` for all player-owned assets.
+
+- Event handling path sanity checks: Assessed; requestId correlation and zone/metadata propagation already correct. No code changes required.
+
+Client
+- Remove `'ASSET#draft'` special cases in save/subscription loop:
+  - Target: `charcoal-client/src/slices/personalAssets/index.ts`
+  - Actions:
+    - Delete conversion logic for `key === 'ASSET#draft'` → `ASSET#draft[${player}]`.
+    - Ensure autosave and subscription use real `ASSET#${uuid}`.
+    - Add unit tests covering multiple concurrent drafts.
+  - Acceptance: Edits to drafts identified by real IDs save and confirm normally.
+
+- Add zone awareness to client state where assets are stored:
+  - Targets: `charcoal-client/src/slices/personalAssets/` (state and selectors)
+  - Actions:
+    - Store `zone` per asset in slice state.
+    - Provide selector(s) for `Draft` vs `Personal` filtering (used later by UI).
+    - Tests for selectors and state hydration from listing response.
+  - Acceptance: State contains accurate `zone`; selectors return correct subsets.
+
+- Audit and remove any residual `'ASSET#draft'` references:
+  - Command guidance: `grep -r "ASSET#draft" charcoal-client/src/`
+  - Targets: Routing, initialization, UI components if any.
+  - Actions: Replace with real ID pathways or zone-aware logic.
+  - Acceptance: No code paths rely on the magic draft key.
+
+Observability
+- Structured logs and counters:
+  - Targets: Listing code, `cacheAsset`, and any alias path.
+  - Actions:
+    - Log asset counts by zone for player listings.
+    - Emit warnings when aliasing legacy draft ID.
+    - Add minimal metrics (if available) for Draft vs Personal counts.
+  - Acceptance: Logs/metrics confirm zone flow without excessive noise.
+
+Testing
+- Backend tests:
+  - `lambda/assets/internalCache/__tests__/playerLibrary.test.ts` (or nearest):
+    - Asserts `zone` presence and correctness for mixed assets.
+  - `lambda/assets/dataSource/caching/__tests__/cacheAsset.test.ts`:
+    - Asserts zone and ShortName/Summary persistence.
+  - Event flow tests in `lambda/assets/dataSource/__tests__/`:
+    - Asserts Draft edits round-trip and update cache entries.
+
+- Client tests:
+  - `charcoal-client/src/slices/personalAssets/__tests__/index.test.ts`:
+    - Removes reliance on `'ASSET#draft'` and verifies multi-draft save/subscription.
+  - `charcoal-client/src/slices/personalAssets/__tests__/selectors.test.ts`:
+    - Verifies zone-based selectors return correct asset lists.
+
+Sign-off checks
+- Grep shows no remaining `'ASSET#draft'` usages in client code.
+- Player listing returns `zone` for all assets; Draft and Personal correctly differentiated.
+- Draft edits with real IDs save and confirm via subscription with pendingEdits cleared.
 
 ### Phase 2: Backend API
 *Detailed planning deferred*
