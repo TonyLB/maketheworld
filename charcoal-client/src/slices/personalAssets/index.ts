@@ -43,7 +43,7 @@ import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { deepEqual } from '../../lib/objects'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
-import { AssetUUID, ComponentUUID, isSchemaComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { AssetUUID, ComponentUUID, isSchemaComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 const autoSaveDebounce = new Debounce()
 
@@ -67,10 +67,10 @@ export const {
             importData: {},
             properties: {},
             loadedImages: {},
-            base: { key: '', components: [], metaData: [] },
+            base: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
             pendingEdits: [],
-            edit: { key: '', components: [], metaData: [] },
-            inherited: { key: '', components: [], metaData: [] }
+            edit: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
+            inherited: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -94,10 +94,10 @@ export const {
                 importData: {},
                 properties: {},
                 loadedImages: {},
-                base: { key: '', components: [], metaData: [] },
+                base: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
                 pendingEdits: [],
-                edit: { key: '', components: [], metaData: [] },
-                inherited: { key: '', components: [], metaData: [] }
+                edit: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
+                inherited: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
             }
         },
         states: {
@@ -240,6 +240,9 @@ export const receiveWMLEvent = (key: string) => (args: { event: SubscriptionClie
 }
 
 export const updateStandard = (key: string) => (payload: UpdateStandardPayload) => async (dispatch: any, getState: any) => {
+    if (!isSchemaAssetUUID(key)) {
+        return
+    }
     const previousImports = selectors.getLocalStandardForm(key)(getState()).metaData.filter(treeNodeTypeguard(isSchemaImport))
     dispatch(publicActions.updateStandard(key)(payload))
     const newImports = selectors.getLocalStandardForm(key)(getState()).metaData.filter(treeNodeTypeguard(isSchemaImport))
@@ -256,19 +259,19 @@ export const updateStandard = (key: string) => (payload: UpdateStandardPayload) 
 }
 
 export const saveEdit = (key: string) => async (dispatch: any, getState: any) => {
+    if (!isSchemaAssetUUID(key)) {
+        return
+    }
     const state = getState()
     const edit = selectors.getEdit(key)(state)
     if (edit.components.filter(excludeUndefined).length && isEphemeraAssetId(key)) {
-        const player = getPlayer(state).PlayerName
-        const adjustedKey: EphemeraAssetId = key === 'ASSET#draft' ? `ASSET#draft[${player}]` : key
-        const internalKey = key === 'ASSET#draft' ? 'draft' : key.split('#').slice(1).join('#')
-        const standardForm = new StandardForm({ ...edit, key: internalKey })
+        const standardForm = new StandardForm(key as AssetUUID).merge(new StandardForm(edit))
         const schema = schemaToWML([standardForm.schema])
         const requestId = uuidv4()
         await dispatch(socketDispatchPromise({
             message: 'applyEdit',
             RequestId: requestId,
-            AssetId: adjustedKey,
+            AssetId: key,
             schema
         }, { service: 'wml' }))
         dispatch(publicActions.saveEdit(key)({ requestId }))

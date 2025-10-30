@@ -18,7 +18,7 @@ export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAc
     schema.loadWML(newCurrent.payload.value)
     const standardized = new StandardForm(schema.schema[0])
     state.base = standardized.toJSON()
-    const baseKey = standardized.key
+    const baseKey = standardized.universalKey
     const importsStandardized = Object.values(state.importData)
         .map((tree) => (
             tree.length === 1 && isSchemaAsset(tree[0].data)
