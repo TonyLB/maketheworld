@@ -11,36 +11,11 @@ import { ComponentUUID, isSchemaAsset, SchemaTag } from '@tonylb/mtw-base/ts/sch
 import { ComponentTag } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
 import StandardReference, { StandardKey } from '@tonylb/mtw-wml/ts/standardize/components/reference'
 
-export const setCurrentWML = (state: PersonalAssetsPublic, newCurrent: PayloadAction<{ value: string }>) => {
-    state.currentWML = newCurrent.payload.value
-    state.draftWML = undefined
-    const schema = new Schema()
-    schema.loadWML(newCurrent.payload.value)
-    const standardized = new StandardForm(schema.schema[0])
-    state.base = standardized.toJSON()
-    const baseKey = standardized.key
-    const importsStandardized = Object.values(state.importData)
-        .map((tree) => (
-            tree.length === 1 && isSchemaAsset(tree[0].data)
-                ? [{ ...tree[0], data: { ...tree[0].data, key: baseKey }}]
-                : []
-        ))
-        .filter((tree) => (tree.length))
-        .reduce<StandardForm | undefined>((previous, incoming) => {
-            const standardForm = new StandardForm(incoming[0])
-            return previous ? previous.merge(standardForm) : standardForm
-        }, undefined)
-    if (importsStandardized) {
-        importsStandardized._metaData = standardized.metaData
-        state.inherited = importsStandardized.toJSON()
-    }
-}
-
 export const setDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction<{ value: string }>) => {
     state.draftWML = newDraft.payload.value
 }
 
-export const revertDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction<{}>) => {
+export const revertDraftWML = (state: PersonalAssetsPublic, _action: PayloadAction<{}>) => {
     state.draftWML = undefined
 }
 

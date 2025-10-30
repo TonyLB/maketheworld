@@ -259,6 +259,18 @@ export class StandardForm {
         throw new Error('Invalid arguments in StandardForm constructor')
     }
 
+    /**
+     * Returns true when the StandardForm contains no meaningful content.
+     * Meaningful content includes any components, or Asset-level ShortName/Summary.
+     * Imports and empty metadata do not count as content.
+     */
+    isEmpty(): boolean {
+        const hasComponents = this._components.length > 0
+        const hasShortName = Boolean(this._shortName)
+        const hasSummary = Boolean(this._summary)
+        return !(hasComponents || hasShortName || hasSummary)
+    }
+
     get metaData(): GenericTree<SchemaTag> {
         return [...this._metaData]
     }
