@@ -23,6 +23,16 @@ export const getMyAssets = (player: PlayerPublic): PlayerPublic['Assets'] => {
     return Assets
 }
 
+export const getMyDraftAssets = (player: PlayerPublic): PlayerPublic['Assets'] => {
+    const { Assets = [] } = player || {}
+    return Assets.filter((asset: any) => (asset?.zone === 'Draft'))
+}
+
+export const getMyPersonalAssets = (player: PlayerPublic): PlayerPublic['Assets'] => {
+    const { Assets = [] } = player || {}
+    return Assets.filter((asset: any) => (asset?.zone === 'Personal'))
+}
+
 export const getMySettings = (player: PlayerPublic): PlayerPublic['Settings'] => {
     const { Settings = { onboardCompleteTags: [] } } = player || {}
     return Settings
@@ -65,5 +75,7 @@ export type PlayerSelectors = {
     getPlayer: (player: PlayerPublic) => PlayerPublic;
     getMyCharacters: (player: PlayerPublic) => PlayerPublic['Characters'];
     getMyAssets: (player: PlayerPublic) => PlayerPublic['Assets'];
+    getMyDraftAssets: (player: PlayerPublic) => PlayerPublic['Assets'];
+    getMyPersonalAssets: (player: PlayerPublic) => PlayerPublic['Assets'];
     getMySettings: (player: PlayerPublic) => PlayerPublic['Settings'];
 }
