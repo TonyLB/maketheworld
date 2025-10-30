@@ -486,12 +486,13 @@ Client
     - Provide selector(s) for `Draft` vs `Personal` filtering (used later by UI).
     - Tests for selectors and state hydration from listing response.
   - Acceptance: State contains accurate `zone`; selectors return correct subsets.
+  - Status: Completed (October 30, 2025). Zone hydrated via Player slice; selectors `getMyDraftAssets`/`getMyPersonalAssets` and tests added.
 
-- Audit and remove any residual `'ASSET#draft'` references:
+- Audit residual `'ASSET#draft'` references (defer removal to Phase 3.5):
   - Command guidance: `grep -r "ASSET#draft" charcoal-client/src/`
-  - Targets: Routing, initialization, UI components if any.
-  - Actions: Replace with real ID pathways or zone-aware logic.
-  - Acceptance: No code paths rely on the magic draft key.
+  - Targets: Routing, initialization, UI components identified.
+  - Actions: Document location for future cleanup; defer removal until Phase 3 provides replacement UI.
+  - Acceptance: All Phase 1 paths use real AssetUUID; legacy key usage documented for Phase 3.5 removal.
 
 Observability
 - Structured logs and counters:
@@ -518,7 +519,7 @@ Testing
     - Verifies zone-based selectors return correct asset lists.
 
 Sign-off checks
-- Grep shows no remaining `'ASSET#draft'` usages in client code.
+- Grep shows remaining `'ASSET#draft'` usages documented (to be removed in Phase 3.5).
 - Player listing returns `zone` for all assets; Draft and Personal correctly differentiated.
 - Draft edits with real IDs save and confirm via subscription with pendingEdits cleared.
 
@@ -537,6 +538,19 @@ Sign-off checks
 - Draft selection/switching
 - Integration with existing editor
 - State management updates
+
+### Phase 3.5: Remove Legacy Draft Key Special-Casing
+*Detailed planning deferred*
+
+After Phases 2 and 3 provide working multi-draft functionality, remove remaining references to the legacy `'ASSET#draft'` magic key throughout the codebase:
+
+- Remove `fetchDraftAsset` auto-subscription to magic draft key (player/index.api.ts)
+- Update map import flow to use real draft AssetUUID instead of `ASSET#draft`
+- Update navigation/routing that assumes single draft
+- Remove any UI that assumes `assetKey === 'draft'` pattern
+- Clean up backend shims that provide backward compatibility for legacy draft ID
+
+**Prerequisite**: Phase 3 must be complete (UI for creating/selecting drafts must exist)
 
 ### Phase 4: Testing & Polish
 *Detailed planning deferred*
