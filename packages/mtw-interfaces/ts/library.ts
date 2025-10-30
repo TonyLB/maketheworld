@@ -2,9 +2,13 @@ import { EphemeraCharacterId } from "./baseClasses";
 
 export type LibraryAsset = {
     AssetId: string;
-    scopedId?: string;
     Story?: boolean;
     instance?: boolean;
+    // Optional during transition; will be required once all callers provide zone
+    zone?: 'Canon' | 'Library' | 'Personal' | 'Draft' | 'Archive';
+    ShortName?: string;
+    Summary?: string[];
+    // scopedId is reserved for Character flows and should not be present on generic assets. TODO: Full removal after legacy code migration.
 }
 
 export type LibraryCharacter = {
