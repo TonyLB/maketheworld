@@ -575,12 +575,42 @@ Sign-off checks
   - Counters: Draft vs Personal per player, consistent with Phase 1 metrics.
 
 ### Phase 3: Client UI
-*Detailed planning deferred*
+**Goal**: Provide a tabbed interface for managing multiple drafts and published assets, with card-based navigation and metadata editing. This establishes the foundation for multi-draft workflows without requiring new backend endpoints.
 
-- Draft management interface
-- Draft selection/switching
-- Integration with existing editor
-- State management updates
+- **Personal Assets Table of Contents - Tabbed Interface**
+  - Two tabs: **Drafts** (filter `zone === 'Draft'`) and **Assets** (filter `zone === 'Personal'`)
+  - Card-based layout for each tab:
+    - Each card prominently displays **ShortName** (or fallback label if absent)
+    - **Summary** displayed below ShortName (if present)
+    - Cards navigate to:
+      - **Drafts tab**: Edit mode (existing draft editor)
+      - **Assets tab**: View mode (existing asset viewer)
+  - Uses `getMyDraftAssets` and `getMyPersonalAssets` selectors from Phase 1
+
+- **Create New Draft**
+  - Card placeholder in the Drafts tab (preferred UI pattern: visual consistency with other draft cards)
+  - Clicking the placeholder generates new `ASSET#${uuid}` and calls `applyEdit` with:
+    - `createIfNeeded: true`
+    - `zone: 'Draft'`
+    - Optional initial seed WML (minimal empty Asset structure)
+    - Optional initial `ShortName`/`Summary` if provided via dialog/form
+  - Navigates to edit mode for the newly created draft
+  - **Rationale**: Essential for testing; enables practical use of multi-draft system
+
+- **Draft Edit Mode - Metadata Section**
+  - Add editable **ShortName** and **Summary** section at top of draft asset editor
+  - Updates flow through existing `applyEdit` mechanism (WML tag edits on Asset StandardForm)
+  - Relatively lightweight: leverages existing edit/save infrastructure
+
+- **Deferred to later sub-phases** (not required for initial Phase 3):
+  - Delete/archive draft action (cards may need delete buttons)
+  - Publish draft action (promote Draft → Personal/Library/Canon)
+
+**Foundation Value**: This design provides:
+- Clear discovery and organization of multiple drafts
+- Standard metadata editing workflow
+- Separation of draft editing vs published asset viewing
+- Minimal changes to existing editor/viewer components
 
 ### Phase 3.5: Remove Legacy Draft Key Special-Casing
 *Detailed planning deferred*
