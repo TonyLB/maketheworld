@@ -261,8 +261,8 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
     }
     const state = getState()
     const edit = selectors.getEdit(key)(state)
-    if (edit.components.filter(excludeUndefined).length) {
-        const standardForm = new StandardForm(edit)
+    const standardForm = new StandardForm(edit)
+    if (!standardForm.isEmpty()) {
         if (standardForm.universalKey !== key) {
             // Defensive: ensure edits target the current asset key
             console.warn(`personalAssets.saveEdit: universalKey mismatch (have ${standardForm.universalKey}, expected ${key})`)

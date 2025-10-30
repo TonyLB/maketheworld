@@ -18,6 +18,33 @@ jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
 
 
 describe('StandardForm', () => {
+    describe('isEmpty()', () => {
+        it('returns true for empty asset with only universalKey', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            expect(sf.isEmpty()).toBe(true)
+        })
+
+        it('returns false when components are present', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(MAIN) />
+            </Asset>`)
+            expect(sf.isEmpty()).toBe(false)
+        })
+
+        it('returns false when ShortName is present without components', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <ShortName>My Draft</ShortName>
+            </Asset>`)
+            expect(sf.isEmpty()).toBe(false)
+        })
+
+        it('returns false when Summary is present without components', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Summary>Some description</Summary>
+            </Asset>`)
+            expect(sf.isEmpty()).toBe(false)
+        })
+    })
 
     it('should return an empty wrapper unchanged', () => {
         const test = new StandardForm(`<Asset uuid=(Test) />`)
@@ -3661,13 +3688,10 @@ describe('StandardForm', () => {
 
         it('should diff when Asset-level Summary is added', () => {
             const baseWML = deIndentWML(`
-                <Asset uuid=(test)>
-                </Asset>
+                <Asset uuid=(test) />
             `)
             const incomingWML = deIndentWML(`
-                <Asset uuid=(test)>
-                    <Summary>New summary</Summary>
-                </Asset>
+                <Asset uuid=(test)><Summary>New summary</Summary></Asset>
             `)
             
             const baseForm = new StandardForm(baseWML)
@@ -3681,9 +3705,7 @@ describe('StandardForm', () => {
             // Verify the diff produces the expected WML structure
             const diffWML = schemaToWML([diffed.schema])
             expect(diffWML).toEqual(deIndentWML(`
-                <Asset uuid=(test)>
-                    <Summary>New summary</Summary>
-                </Asset>
+                <Asset uuid=(test)><Summary>New summary</Summary></Asset>
             `))
         })
 
@@ -3709,9 +3731,7 @@ describe('StandardForm', () => {
             // Verify the diff produces the expected WML structure
             const diffWML = schemaToWML([diffed.schema])
             expect(diffWML).toEqual(deIndentWML(`
-                <Asset uuid=(test)>
-                    <ShortName>New Name</ShortName>
-                </Asset>
+                <Asset uuid=(test)><ShortName>New Name</ShortName></Asset>
             `))
         })
 

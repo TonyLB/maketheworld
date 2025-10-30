@@ -477,6 +477,7 @@ Client
     - Ensure autosave and subscription use real `ASSET#${uuid}`.
     - Add unit tests covering multiple concurrent drafts.
   - Acceptance: Edits to drafts identified by real IDs save and confirm normally.
+  - Status: Completed (October 30, 2025). Unit tests for multi-draft behavior to be added in upcoming client test pass.
 
 - Add zone awareness to client state where assets are stored:
   - Targets: `charcoal-client/src/slices/personalAssets/` (state and selectors)
