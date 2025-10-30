@@ -384,11 +384,11 @@ Zone is a **first-class attribute** of player-owned assets, not a derived or imp
 
 The following subordinate documents track sub-tasks that are architecturally independent but support the multi-draft system:
 
-- **[`AGENT.drafts.planning.assetMetaData.md`](AGENT.drafts.planning.assetMetaData.md)** - Asset-level ShortName/Summary tags
-  - **Purpose**: Enable user-facing names for draft assets
-  - **Scope**: WML schema extension
-  - **Status**: Planning phase
-  - **Independence**: Can be implemented and tested separately from multi-draft UI/backend work
+- Asset-level ShortName/Summary tags: Implemented (Phase 1–5 complete). See implementation notes in:
+  - `packages/mtw-wml/ts/standardize/AGENT.md` (StandardForm metadata and diff behavior)
+  - `packages/mtw-interfaces/ts/eventBridge/assets/index.ts` (Asset Updated contracts/serializer)
+  - `lambda/assets/dataSource/caching/AGENT.md` (metadata emission)
+  - `lambda/assets/contentHeaders/AGENT.md` (Asset Updated handling)
 
 ---
 
