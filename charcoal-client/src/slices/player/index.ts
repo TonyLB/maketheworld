@@ -11,6 +11,8 @@ import {
     getPlayer as getPlayerSelector,
     getMyCharacters as getMyCharactersSelector,
     getMyAssets as getMyAssetsSelector,
+    getMyDraftAssets as getMyDraftAssetsSelector,
+    getMyPersonalAssets as getMyPersonalAssetsSelector,
     getMyCharacterById as getMyCharacterByIdSelector,
     getMyCharacterByKey as getMyCharacterByKeySelector,
     getMySettings as getMySettingsSelector,
@@ -56,6 +58,8 @@ export const {
         getPlayer: getPlayerSelector,
         getMyCharacters: getMyCharactersSelector,
         getMyAssets: getMyAssetsSelector,
+        getMyDraftAssets: getMyDraftAssetsSelector,
+        getMyPersonalAssets: getMyPersonalAssetsSelector,
         getMySettings: getMySettingsSelector
     },
     template: {
@@ -125,6 +129,8 @@ export const {
     getPlayer,
     getMyCharacters,
     getMyAssets,
+    getMyDraftAssets,
+    getMyPersonalAssets,
     getMySettings,
     getStatus
 } = selectors

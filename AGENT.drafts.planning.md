@@ -617,13 +617,14 @@ Sign-off checks
 **Personal Assets Table of Contents - Tabbed Interface**
 
 - Convert Personal section to tabbed layout:
-  - Target: `charcoal-client/src/components/Library/index.tsx`
+  - Target: `charcoal-client/src/components/Library/index.tsx` (Personal section only; Public/Library section unchanged)
   - Actions:
-    - Replace single "Personal" section with two tabs: "Drafts" and "Assets"
+    - Replace single "Personal" section (lines ~132-164) with two tabs: "Drafts" and "Assets"
     - Filter assets using `getMyDraftAssets` selector for Drafts tab
     - Filter assets using `getMyPersonalAssets` selector for Assets tab
     - Use Material-UI `Tabs` component for tab navigation
-  - Acceptance: Personal section displays two tabs; Drafts tab shows only Draft zone assets; Assets tab shows only Personal zone assets
+    - Note: "Public" section (Library zone assets) remains unchanged
+  - Acceptance: Personal section displays two tabs; Drafts tab shows only Draft zone assets; Assets tab shows only Personal zone assets; Public section unaffected
 
 - Replace list-based layout with card-based layout:
   - Target: `charcoal-client/src/components/Library/index.tsx` (TableOfContents component or new CardGrid component)

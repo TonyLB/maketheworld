@@ -11,13 +11,15 @@ import {
     ListItemButton,
     ListItemIcon,
     ListItemText,
-    ListSubheader
+    ListSubheader,
+    Tabs,
+    Tab
 } from '@mui/material'
 
 import AssetIcon from '@mui/icons-material/Landscape'
 
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
-import { getMyCharacters, getMyAssets } from '../../slices/player'
+import { getMyCharacters, getMyDraftAssets, getMyPersonalAssets } from '../../slices/player'
 import { subscribeToLibrary, unsubscribeFromLibrary, getIsLibrarySubscribed, getLibraryAssetIds } from '../../slices/libraryDataSource'
 
 import { CharacterAvatarDirect } from '../CharacterAvatar'
@@ -123,10 +125,22 @@ export const Library: FunctionComponent<LibraryProps> = () => {
     useAutoPin({ href: `/Library/`, label: `Library`, iconName: 'Library', type: 'Library' })
     const navigate = useNavigate()
     const Characters = useSelector(getMyCharacters)
-    const Assets = useSelector(getMyAssets)
+    const DraftAssets = useSelector(getMyDraftAssets)
+    const PersonalAssets = useSelector(getMyPersonalAssets)
     // Get asset IDs from new libraryDataSource slice
     const libraryAssetIds = useSelector(getLibraryAssetIds)
     const libraryAssets = libraryAssetIds.map(id => ({ AssetId: id }))
+    
+    const [personalTabValue, setPersonalTabValue] = React.useState(0)
+    const handlePersonalTabChange = (event: React.SyntheticEvent, newValue: number) => {
+        setPersonalTabValue(newValue)
+        // Clear selection when switching tabs
+        setSelectedPersonalIndex(undefined)
+        setPersonalPreviewItem(undefined)
+    }
+
+    // Determine which assets to show based on selected tab
+    const currentPersonalAssets = personalTabValue === 0 ? DraftAssets : PersonalAssets
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <div style={{ textAlign: "center" }}>
@@ -134,6 +148,12 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             <h2>Personal</h2>
             <Divider />
         </div>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', marginBottom: 2 }}>
+            <Tabs value={personalTabValue} onChange={handlePersonalTabChange} aria-label="personal assets tabs">
+                <Tab label="Drafts" />
+                <Tab label="Assets" />
+            </Tabs>
+        </Box>
         <Grid
             sx={{ width: "100%", padding: "10px" }}
             container
@@ -145,7 +165,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             <Grid item xs={6}>
                 <TableOfContents
                     Characters={Characters}
-                    Assets={Assets}
+                    Assets={currentPersonalAssets}
                     selectItem={setSelectedPersonalIndex}
                     selectedIndex={selectedPersonalIndex}
                     setPreviewItem={setPersonalPreviewItem}
