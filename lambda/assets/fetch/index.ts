@@ -1,22 +1,11 @@
-import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
-import { splitType } from '@tonylb/mtw-utilities/ts/types'
 import { FetchAssetMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import { MessageBus } from "../messageBus/baseClasses"
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
+import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 
-const createFetchLink = async ({ PlayerName, fileName, AssetId }: { PlayerName: string; fileName?: string; AssetId?: string }) => {
+const createFetchLink = async ({ PlayerName, fileName, AssetId }: { PlayerName: string; fileName?: string; AssetId?: AssetUUID }) => {
     if (AssetId) {
-        if (AssetId === 'ASSET#draft') {
-            // Special case: Draft zone workspace for player (no specific asset)
-            const assetWorkspace = new ReadOnlyAssetWorkspace({
-                zone: 'Draft',
-                player: PlayerName
-            })
-            return await assetWorkspace.presignedURL()
-        }
-        
-        // Phase 1B: Use fromUUID for regular asset lookups
         const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(AssetId)
         if (assetWorkspace) {
             return await assetWorkspace.forceDefault().then(() => (assetWorkspace.presignedURL()))
@@ -34,7 +23,7 @@ export const fetchAssetMessage = async ({ payloads, messageBus }: { payloads: Fe
                 createFetchLink({
                     PlayerName: player,
                     fileName: payload.fileName,
-                    AssetId: payload.AssetId
+                    AssetId: (typeof payload.AssetId === 'string' && isSchemaAssetUUID(payload.AssetId)) ? payload.AssetId : undefined
                 })
             ])
             messageBus.send({

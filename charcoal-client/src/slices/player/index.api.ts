@@ -51,23 +51,7 @@ export const syncAction: PlayerAction = () => async (dispatch) => {
     return {}
 }
 
-export const fetchDraftAsset: PlayerAction = () => async (dispatch, getState) => {
-    await dispatch(addItem({ key: 'ASSET#draft' }))
-    const state = getState().player.publicData
-    const player = getPlayer(state)
-    // Subscribe to mtw.wml events using new API format (single call, array of stream keys, no type parameter)
-    await dispatch(socketDispatchPromise({ 
-        message: 'subscribe', 
-        dataSourceKey: 'mtw.wml', 
-        streamKeys: [`ASSET#draft[${player.PlayerName}]`]
-    }, { service: 'subscriptions' }))
-    LifeLinePubSub.subscribe(({ payload }) => {
-        if (payload.messageType === 'Subscription' && payload.dataSourceKey === 'mtw.wml' && payload.streamKey === `ASSET#draft[${player.PlayerName}]`) {
-            dispatch(receiveWMLEvent('ASSET#draft')({ event: payload }))
-        }
-    })
-    return {}
-}
+// Removed legacy fetchDraftAsset (single-draft bootstrap). Multi-draft flow will drive subscriptions explicitly.
 
 export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }}) => async () => {
     if (subscription) {
