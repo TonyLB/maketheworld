@@ -4,8 +4,6 @@ import { CssBaseline } from '@mui/material'
 import { Theme } from '@mui/material/styles';
 import { ThemeProvider, StyledEngineProvider, createTheme } from '@mui/material/styles'
 
-import '@mui/styles'
-
 import { store } from './store/index'
 import AppController from './components/AppController'
 import './App.css';
@@ -13,10 +11,6 @@ import { getConfiguration, getConfigurationError, loadConfiguration, receiveRefr
 import Spinner from './components/Spinner'
 import { SignInOrUp } from './components/SignIn'
 import useStateSeekingMachines from './components/useSSM';
-
-declare module '@mui/styles' {
-  interface DefaultTheme extends Theme {}
-}
 
 const theme = createTheme();
 

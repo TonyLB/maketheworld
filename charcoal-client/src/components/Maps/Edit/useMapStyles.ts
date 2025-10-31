@@ -1,89 +1,120 @@
 import { blue } from "@mui/material/colors"
-import makeStyles from '@mui/styles/makeStyles'
-import { Theme } from '@mui/material/styles'
+import { useTheme } from '@mui/material/styles'
+import { styled } from '@mui/material/styles'
+import { Box } from '@mui/material'
 
-export const useMapStyles = makeStyles((theme: Theme) => ({
-    green: {
-        fill: 'lightgreen',
-        stroke: 'darkgreen',
-        strokeWidth: '10 px'
-    },
-    blue: {
-        fill: 'lightblue',
-        stroke: 'darkblue',
-        strokeWidth: '10 px'
-    },
-    red: {
-        fill: 'pink',
-        stroke: 'darkred',
-        strokeWidth: '10 px'
-    },
-    grid: {
-        backgroundColor: theme.palette.background.paper,
-        height: '100%',
-        display: 'grid',
-        justifyContent: "stretch",
-        gridTemplateAreas: `
-            "content sidebar"
-        `,
-        gridTemplateColumns: "1fr 400px",
-        gridTemplateRows: "1fr"
-    },
-    tabs: {
-        gridArea: "tabs",
-        overflow: "hidden"
-    },
-    tabRootHorizontal: {
-        width: "100%"
-    },
-    content: {
-        gridArea: "content",
-        position: "relative",
-        width: "100%",
-        height: "100%"
-    },
-    sidebar: {
-        gridArea: "sidebar",
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        // backgroundColor: theme.palette.primary,
-        overflowY: "auto",
-        overflowX: "visible",
-    },
-    highlighted: {
-        position: "relative",
-        width: "320px",
-        height: "30px",
-        borderRadius: "5px",
-        color: "black",
-        lineHeight: "30px",
-        paddingLeft: "32px",
-        fontSize: "14.5px",
-        background: "lightblue",
-        touchAction: "none",
-    },
-    svgLightBlue: {
-        fill: blue[50]
-    },
-    svgLightBlueContrast: {
-        fill: theme.palette.getContrastText(blue[50])
-    },
-    roomNode: {
-        mixBlendMode: 'difference',
-        touchAction: "none"
-    },
-    renderWrapper: {
-        width: "100%",
-        height: "100%",
-        display: 'grid',
-        gridTemplateAreas: `"content"`,
-        gridTemplateColumns: "1fr"
-    },
-    renderContent: {
-        gridArea: 'content',
-        paddingLeft: "5px"
+export const useMapStyles = () => {
+    const theme = useTheme()
+    return {
+        green: {
+            fill: 'lightgreen',
+            stroke: 'darkgreen',
+            strokeWidth: '10 px'
+        },
+        blue: {
+            fill: 'lightblue',
+            stroke: 'darkblue',
+            strokeWidth: '10 px'
+        },
+        red: {
+            fill: 'pink',
+            stroke: 'darkred',
+            strokeWidth: '10 px'
+        },
+        grid: {
+            backgroundColor: theme.palette.background.paper,
+            height: '100%',
+            display: 'grid',
+            justifyContent: "stretch",
+            gridTemplateAreas: `
+                "content sidebar"
+            `,
+            gridTemplateColumns: "1fr 400px",
+            gridTemplateRows: "1fr"
+        },
+        tabs: {
+            gridArea: "tabs",
+            overflow: "hidden"
+        },
+        tabRootHorizontal: {
+            width: "100%"
+        },
+        content: {
+            gridArea: "content",
+            position: "relative",
+            width: "100%",
+            height: "100%"
+        },
+        sidebar: {
+            gridArea: "sidebar",
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            overflowY: "auto",
+            overflowX: "visible",
+        },
+        highlighted: {
+            position: "relative",
+            width: "320px",
+            height: "30px",
+            borderRadius: "5px",
+            color: "black",
+            lineHeight: "30px",
+            paddingLeft: "32px",
+            fontSize: "14.5px",
+            background: "lightblue",
+            touchAction: "none",
+        },
+        svgLightBlue: {
+            fill: blue[50]
+        },
+        svgLightBlueContrast: {
+            fill: theme.palette.getContrastText(blue[50])
+        },
+        roomNode: {
+            mixBlendMode: 'difference',
+            touchAction: "none"
+        },
+        renderWrapper: {
+            width: "100%",
+            height: "100%",
+            display: 'grid',
+            gridTemplateAreas: `"content"`,
+            gridTemplateColumns: "1fr"
+        },
+        renderContent: {
+            gridArea: 'content',
+            paddingLeft: "5px"
+        }
     }
+}
+
+export const MapGridContainer = styled(Box)(({ theme }) => ({
+    backgroundColor: theme.palette.background.paper,
+    height: '100%',
+    display: 'grid',
+    justifyContent: "stretch",
+    gridTemplateAreas: `
+        "content sidebar"
+    `,
+    gridTemplateColumns: "1fr 400px",
+    gridTemplateRows: "1fr"
 }))
+
+export const MapContentArea = styled(Box)({
+    gridArea: "content",
+    position: "relative",
+    width: "100%",
+    height: "100%"
+})
+
+export const MapSidebarArea = styled(Box)({
+    gridArea: "sidebar",
+    position: "relative",
+    width: "100%",
+    height: "100%",
+    overflowY: "auto",
+    overflowX: "visible",
+})
 
 export default useMapStyles

@@ -6,7 +6,7 @@ import { blue } from '@mui/material/colors'
 import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
 import Divider from '@mui/material/Divider'
-import Grid from '@mui/material/Grid'
+import { Grid } from '@mui/material'
 import Stack from '@mui/material/Stack'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import AddIcon from '@mui/icons-material/Add'
@@ -65,7 +65,7 @@ export const Home: FunctionComponent<HomeProps> = ({
             justifyContent="center"
             spacing={3}
         >
-            <Grid item xs={12} sx={{ textAlign: "center" }}>
+            <Grid size={{ xs: 12 }} sx={{ textAlign: "center" }}>
                 <Divider />
                     <Typography variant="h4" sx={{ margin: "0.5em" }}>
                         Play
@@ -75,8 +75,7 @@ export const Home: FunctionComponent<HomeProps> = ({
             {
                 !charactersUnlocked && <Grid
                     container
-                    item
-                    sm={3}
+                    size={{ sm: 3 }}
                     sx={{
                         justifyContent: 'center',
                         alignContent: 'center',
@@ -102,8 +101,7 @@ export const Home: FunctionComponent<HomeProps> = ({
             { charactersUnlocked && guestId && myCharacters.filter(({ scopedId }) => (scopedId)).length === 0 &&
                 <Grid
                     container
-                    item
-                    sm={3}
+                    size={{ sm: 3 }}
                     sx={{
                         justifyContent: 'center',
                         alignContent: 'center',
@@ -136,8 +134,7 @@ export const Home: FunctionComponent<HomeProps> = ({
                 <Grid
                     key={`${Name}:${scopedId}`}
                     container
-                    item
-                    sm={3}
+                    size={{ sm: 3 }}
                     sx={{
                         justifyContent: 'center',
                         alignContent: 'center',
@@ -166,8 +163,8 @@ export const Home: FunctionComponent<HomeProps> = ({
                     </Stack>
                 </Grid>))
             }
-            <Grid item xs={12} />
-            <Grid item xs={12} md={6} lg={4} sx={{ alignItems: "start" }}>
+            <Grid size={{ xs: 12 }} />
+            <Grid size={{ xs: 12, md: 6, lg: 4 }} sx={{ alignItems: "start" }}>
                 <Divider />
                     <Typography variant="h4" sx={{ marginTop: "0.5em", marginBottom: "0.5em", textAlign: "center" }}>
                         Explore
@@ -175,8 +172,7 @@ export const Home: FunctionComponent<HomeProps> = ({
                 <Divider />
                 <Grid container justifyContent="center">
                     <Grid
-                        item
-                        sm={3}
+                        size={{ sm: 3 }}
                         sx={{
                             marginTop: "1em",
                             cursor: 'pointer',
@@ -213,7 +209,7 @@ export const Home: FunctionComponent<HomeProps> = ({
                 </Grid>
 
             </Grid>
-            <Grid item xs={12} md={6} lg={4}>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <Divider />
                 <Typography variant="h4" sx={{ marginTop: "0.5em", marginBottom: "0.5em", textAlign: "center" }}>
                     Create
@@ -221,8 +217,7 @@ export const Home: FunctionComponent<HomeProps> = ({
                 <Divider />
                 <Grid container justifyContent="center">
                     <Grid
-                        item
-                        sm={3}
+                        size={{ sm: 3 }}
                         sx={{
                             marginTop: "1em",
                             cursor: 'pointer',
@@ -259,7 +254,7 @@ export const Home: FunctionComponent<HomeProps> = ({
                 </Grid>
 
             </Grid>
-            <Grid item xs={12} md={6} lg={4}>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <Divider />
                 <Typography variant="h4" sx={{ marginTop: "0.5em", marginBottom: "0.5em", textAlign: "center" }}>
                     Share
@@ -267,8 +262,7 @@ export const Home: FunctionComponent<HomeProps> = ({
                 <Divider />
                 <Grid container justifyContent="center">
                     <Grid
-                        item
-                        sm={3}
+                        size={{ sm: 3 }}
                         sx={{
                             marginTop: "1em",
                             cursor: 'pointer',

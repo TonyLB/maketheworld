@@ -1,7 +1,7 @@
 import { grey } from "@mui/material/colors"
 import MuiPopper from "@mui/material/Popper"
 import React, { FunctionComponent, useState } from "react"
-import { styled } from "@mui/styles"
+import { styled } from "@mui/material/styles"
 import { keyframes, Paper } from "@mui/material"
 import { useNextOnboarding } from "./useOnboarding"
 import { useSelector } from "react-redux"
