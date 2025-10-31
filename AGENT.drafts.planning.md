@@ -623,8 +623,10 @@ Sign-off checks
     - Filter assets using `getMyDraftAssets` selector for Drafts tab
     - Filter assets using `getMyPersonalAssets` selector for Assets tab
     - Use Material-UI `Tabs` component for tab navigation
+    - Register `getMyDraftAssets` and `getMyPersonalAssets` in player slice `publicSelectors`
     - Note: "Public" section (Library zone assets) remains unchanged
   - Acceptance: Personal section displays two tabs; Drafts tab shows only Draft zone assets; Assets tab shows only Personal zone assets; Public section unaffected
+  - Status: Completed (November 1, 2025)
 
 - Replace list-based layout with card-based layout:
   - Target: `charcoal-client/src/components/Library/index.tsx` (TableOfContents component or new CardGrid component)
