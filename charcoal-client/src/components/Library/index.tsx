@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom'
 import {
     Avatar,
     Box,
+    Card,
+    CardActionArea,
+    CardContent,
     Divider,
     Grid,
     List,
@@ -13,10 +16,12 @@ import {
     ListItemText,
     ListSubheader,
     Tabs,
-    Tab
+    Tab,
+    Typography
 } from '@mui/material'
 
 import AssetIcon from '@mui/icons-material/Landscape'
+import AddIcon from '@mui/icons-material/Add'
 
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { getMyCharacters, getMyDraftAssets, getMyPersonalAssets } from '../../slices/player'
@@ -25,8 +30,76 @@ import { subscribeToLibrary, unsubscribeFromLibrary, getIsLibrarySubscribed, get
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import PreviewPane, { PreviewPaneContents } from './PreviewPane'
 import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
+import AssetCard, { AssetWithMetadata } from './AssetCard'
 import AddAsset from './Edit/AddAsset'
 import useOnboarding, { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
+
+interface PersonalAssetCardsProps {
+    Assets: AssetWithMetadata[];
+    selectedAssetId?: string;
+    onAssetClick: (asset: AssetWithMetadata) => void;
+    isDraftsTab: boolean;
+}
+
+interface CreateDraftPlaceholderProps {
+    onClick: () => void;
+}
+
+const CreateDraftPlaceholder: FunctionComponent<CreateDraftPlaceholderProps> = ({ onClick }) => {
+    return (
+        <Card 
+            sx={{ 
+                height: '100%',
+                border: 2,
+                borderStyle: 'dashed',
+                borderColor: 'divider',
+                cursor: 'pointer'
+            }}
+        >
+            <CardActionArea onClick={onClick} sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 150 }}>
+                <CardContent sx={{ textAlign: 'center' }}>
+                    <AddIcon sx={{ fontSize: 48, color: 'text.secondary', marginBottom: 1 }} />
+                    <Typography variant="h6" color="text.secondary">
+                        New Draft
+                    </Typography>
+                </CardContent>
+            </CardActionArea>
+        </Card>
+    )
+}
+
+const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({ 
+    Assets, 
+    selectedAssetId,
+    onAssetClick,
+    isDraftsTab 
+}) => {
+    return (
+        <Grid container spacing={2}>
+            {/* Show placeholder only in Drafts tab */}
+            {isDraftsTab && (
+                <Grid item xs={12} sm={6} md={4}>
+                    <CreateDraftPlaceholder onClick={() => {
+                        // Placeholder - will be implemented next
+                        console.log('Create new draft clicked')
+                    }} />
+                </Grid>
+            )}
+            {Assets.map((asset) => {
+                const assetUuid = asset.AssetId.replace('ASSET#', '')
+                return (
+                    <Grid item xs={12} sm={6} md={4} key={asset.AssetId}>
+                        <AssetCard
+                            asset={asset}
+                            onClick={() => onAssetClick(asset)}
+                            isSelected={selectedAssetId === asset.AssetId}
+                        />
+                    </Grid>
+                )
+            })}
+        </Grid>
+    )
+}
 
 interface TableOfContentsProps {
     Characters: AssetClientPlayerCharacter[];
@@ -141,6 +214,28 @@ export const Library: FunctionComponent<LibraryProps> = () => {
 
     // Determine which assets to show based on selected tab
     const currentPersonalAssets = personalTabValue === 0 ? DraftAssets : PersonalAssets
+    const isDraftsTab = personalTabValue === 0
+
+    // Handle asset card click - navigate based on zone
+    const handleAssetClick = (asset: AssetWithMetadata) => {
+        const assetUuid = asset.AssetId.replace('ASSET#', '')
+        const zone = asset.zone || (isDraftsTab ? 'Draft' : 'Personal')
+        
+        // Set preview for preview pane
+        setPersonalPreviewItem({
+            type: 'Asset',
+            ...asset
+        })
+        
+        // Navigate based on zone: Drafts → Edit mode, Personal → View mode (via preview pane for now)
+        if (zone === 'Draft') {
+            navigate(`/Library/Edit/Asset/${assetUuid}/`)
+        }
+        // For Personal assets, we show the preview pane (view mode)
+        // Navigation to full edit could be added via preview pane button if needed
+    }
+
+    const selectedPersonalAssetId = personalPreviewItem?.type === 'Asset' ? personalPreviewItem.AssetId : undefined
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <div style={{ textAlign: "center" }}>
@@ -159,17 +254,15 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             container
             direction="row"
             justifyContent="center"
-            alignItems="center"
+            alignItems="flex-start"
             spacing={3}
         >
             <Grid item xs={6}>
-                <TableOfContents
-                    Characters={Characters}
-                    Assets={currentPersonalAssets}
-                    selectItem={setSelectedPersonalIndex}
-                    selectedIndex={selectedPersonalIndex}
-                    setPreviewItem={setPersonalPreviewItem}
-                    showAddButtons={true}
+                <PersonalAssetCards
+                    Assets={currentPersonalAssets as AssetWithMetadata[]}
+                    selectedAssetId={selectedPersonalAssetId}
+                    onAssetClick={handleAssetClick}
+                    isDraftsTab={isDraftsTab}
                 />
             </Grid>
             <Grid item xs={6}>
