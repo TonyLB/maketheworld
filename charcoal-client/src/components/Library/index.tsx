@@ -78,7 +78,7 @@ const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({
         <Grid container spacing={2}>
             {/* Show placeholder only in Drafts tab */}
             {isDraftsTab && (
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <CreateDraftPlaceholder onClick={() => {
                         // Placeholder - will be implemented next
                         console.log('Create new draft clicked')
@@ -88,7 +88,7 @@ const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({
             {Assets.map((asset) => {
                 const assetUuid = asset.AssetId.replace('ASSET#', '')
                 return (
-                    <Grid item xs={12} sm={6} md={4} key={asset.AssetId}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }} key={asset.AssetId}>
                         <AssetCard
                             asset={asset}
                             onClick={() => onAssetClick(asset)}
@@ -257,7 +257,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             alignItems="flex-start"
             spacing={3}
         >
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
                 <PersonalAssetCards
                     Assets={currentPersonalAssets as AssetWithMetadata[]}
                     selectedAssetId={selectedPersonalAssetId}
@@ -265,7 +265,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
                     isDraftsTab={isDraftsTab}
                 />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
                 { personalPreviewItem &&
                     <PreviewPane
                         clearPreview={clearPersonalPreview}
@@ -288,7 +288,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             alignItems="center"
             spacing={3}
         >
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
                 <TableOfContents
                     Characters={[]}
                     Assets={libraryAssets}
@@ -298,7 +298,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
                     showAddButtons={false}
                 />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
             { libraryPreviewItem &&
                     <PreviewPane
                         clearPreview={clearLibraryPreview}

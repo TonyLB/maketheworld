@@ -1,7 +1,10 @@
-import makeStyles from '@mui/styles/makeStyles';
+import { useTheme } from '@mui/material/styles';
+
 // import Dash from './Dash.svg'
 
-export const useTreeStyles = makeStyles((theme) => ({
+export const useTreeStyles = () => {
+    const theme = useTheme()
+    return {
     VerticalLine: {
         position: "absolute",
         width: "0px",
@@ -106,6 +109,7 @@ export const useTreeStyles = makeStyles((theme) => ({
             border: "1px solid lightblue"
         }
     }
-}))
+    }
+}
 
 export default useTreeStyles

@@ -4,7 +4,7 @@ import {
     useParams
 } from "react-router-dom"
 
-import useMapStyles from './useMapStyles'
+import { MapGridContainer, MapContentArea, MapSidebarArea } from './useMapStyles'
 import MapArea from './Area'
 import MapLayers from './MapLayers'
 import ToolSelect from './Area/ToolSelect'
@@ -20,7 +20,6 @@ type MapEditProps = {
 }
 
 export const MapEdit: FunctionComponent<MapEditProps>= () => {
-    const localClasses = useMapStyles()
     const { standardForm } = useLibraryAsset()
     const { AssetId: assetKey, MapId: mapId } = useParams<{ AssetId: string; MapId: string }>()
     useAutoPin({
@@ -47,8 +46,8 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const mapAreaRef = useRef<HTMLDivElement>(null)
 
     return <MapController mapId={mapId ?? ''} >
-        <div className={localClasses.grid}>
-            <div className={localClasses.content} ref={mapAreaRef} >
+        <MapGridContainer>
+            <MapContentArea ref={mapAreaRef} >
                 <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
                     <ToolSelect />
                 </div>
@@ -56,11 +55,11 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                     fileURL={mapImages.length ? mapImages[0] : undefined}
                     editMode
                 />
-            </div>
-            <div className={localClasses.sidebar} >
+            </MapContentArea>
+            <MapSidebarArea>
                 <MapLayers mapId={mapId ?? ''} />
-            </div>
-        </div>
+            </MapSidebarArea>
+        </MapGridContainer>
         <TutorialPopover
             anchorEl={mapAreaRef as any}
             placement='right'

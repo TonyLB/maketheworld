@@ -2,8 +2,7 @@
   "name": "mtw-packages",
   "workspaces": [
     "packages/*",
-    "charcoal-client",
-    "lambda/ephemera"
+    "charcoal-client"
   ],
   "scripts": {
     "clean": "tsc --build --clean",
@@ -12,5 +11,9 @@
   },
   "devDependencies": {
     "typescript": "^4.7.4"
+  },
+  "overrides": {
+    "@mui/material": "^7.3.4",
+    "@mui/system": "^7.3.3"
   }
 }

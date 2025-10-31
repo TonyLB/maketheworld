@@ -1,8 +1,7 @@
 import React, { FunctionComponent, ReactElement, useRef } from 'react'
 import IconButton from '@mui/material/IconButton'
 import ButtonGroup from '@mui/material/ButtonGroup'
-import makeStyles from '@mui/styles/makeStyles'
-import { Theme } from '@mui/material/styles'
+import { useTheme } from '@mui/material/styles'
 
 import SelectionIcon from '@mui/icons-material/NearMe'
 import OneWayExitIcon from '@mui/icons-material/TrendingFlat'
@@ -14,23 +13,6 @@ import { ToolSelected } from '../../Controller/baseClasses'
 import useOnboarding, { useNextOnboarding } from '../../../Onboarding/useOnboarding'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 
-export const localStyles = makeStyles((theme: Theme) => ({
-    normal: {
-        borderColor: theme.palette.primary.light,
-        borderWidth: "1px",
-        borderStyle: "solid",
-        backgroundColor: "white"
-    },
-    'normal.selected': {
-        '&:hover': {
-            backgroundColor: theme.palette.primary.light
-        },
-        backgroundColor: theme.palette.primary.light
-    },
-    buttonGroup: {
-    }
-}))
-
 type ToolSelectIconProps = {
     toolKey: ToolSelected;
     icon: ReactElement<any, any>;
@@ -39,19 +21,25 @@ type ToolSelectIconProps = {
 
 const ToolSelectIcon: FunctionComponent<ToolSelectIconProps> = ({ toolKey, icon, checkPoints = [] }) => {
     const { UI: { toolSelected }, mapDispatch } = useMapContext()
-    const classes = localStyles()
+    const theme = useTheme()
     const nextOnboarding = useNextOnboarding()
     const [_, addOnboarding] = useOnboarding('selectExitToolbar')
     const ref = useRef<HTMLButtonElement>(null)
+    const isSelected = toolSelected === toolKey
 
     return <React.Fragment>
         <IconButton
             key={toolKey}
             ref={ref}
-            color={ toolSelected === toolKey ? 'primary' : 'default' }
-            classes={{
-                root: classes.normal,
-                colorPrimary: classes['normal.selected']
+            color={ isSelected ? 'primary' : 'default' }
+            sx={{
+                borderColor: theme.palette.primary.light,
+                borderWidth: "1px",
+                borderStyle: "solid",
+                backgroundColor: isSelected ? theme.palette.primary.light : "white",
+                '&:hover': {
+                    backgroundColor: isSelected ? theme.palette.primary.light : theme.palette.primary.light
+                }
             }}
             onClick={() => {
                 if (nextOnboarding === 'selectExitToolbar' && toolKey === 'TwoWayExit') {

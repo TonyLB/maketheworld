@@ -1,25 +1,14 @@
 import React, { ReactChild, ReactChildren } from 'react'
-import makeStyles from '@mui/styles/makeStyles';
+import { keyframes } from '@mui/material/styles'
 
-const useLocalStyles = makeStyles(theme => ({
-    spinner: {
-        borderRadius: "50%",
-        // position: "relative",
-        borderTop: "1.1em solid rgba(0, 0, 0, 0.2)",
-        borderRight: "1.1em solid rgba(0, 0, 0, 0.2)",
-        borderBottom: "1.1em solid rgba(0, 0, 0, 0.2)",
-        borderLeft: "1.1em solid #000000",
-        animation: "$load8 1.1s infinite linear"
-    },
-    "@keyframes load8": {
-        from: {
-            transform: "rotate(0deg)"
-        },
-        to: {
-            transform: "rotate(360deg)"
-        }
+const load8 = keyframes`
+    from {
+        transform: rotate(0deg);
     }
-}))
+    to {
+        transform: rotate(360deg);
+    }
+`
 
 interface SpinnerProps {
     size: number;
@@ -32,13 +21,16 @@ export const Spinner = ({
     border = 2,
     children
 }: SpinnerProps) => {
-    const styles = useLocalStyles()
     return <div
-        className={styles.spinner}
         style={{
+            borderRadius: "50%",
+            borderTop: `${border}px solid rgba(0, 0, 0, 0.2)`,
+            borderRight: `${border}px solid rgba(0, 0, 0, 0.2)`,
+            borderBottom: `${border}px solid rgba(0, 0, 0, 0.2)`,
+            borderLeft: `${border}px solid #000000`,
+            animation: `${load8} 1.1s infinite linear`,
             width: size,
-            height: size,
-            borderWidth: border
+            height: size
         }}
     >
         { children }
