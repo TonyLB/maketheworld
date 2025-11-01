@@ -626,7 +626,7 @@ Sign-off checks
     - Register `getMyDraftAssets` and `getMyPersonalAssets` in player slice `publicSelectors`
     - Note: "Public" section (Library zone assets) remains unchanged
   - Acceptance: Personal section displays two tabs; Drafts tab shows only Draft zone assets; Assets tab shows only Personal zone assets; Public section unaffected
-  - Status: Completed (November 1, 2025)
+  - Status: Completed (October 31, 2025)
 
 - Replace list-based layout with card-based layout:
   - Target: `charcoal-client/src/components/Library/index.tsx` (TableOfContents component or new CardGrid component)
@@ -654,6 +654,7 @@ Sign-off checks
     - Navigate to edit mode for newly created draft
     - Update `personalAssets` slice to subscribe to new asset
   - Acceptance: Clicking placeholder creates new draft and navigates to edit mode; draft appears in Drafts tab after creation
+  - Status: Completed (October 31, 2025). Placeholder card implemented in `Library/index.tsx` with `CreateDraftPlaceholder` component. Draft creation via `handleCreateDraft` function that generates UUID, creates minimal Asset WML, calls `applyEdit` with `createIfNeeded: true` and `zone: 'Draft'`, subscribes to asset, and navigates to edit mode. Updated `ApplyEditAPIMessage` type definition to include `createIfNeeded` and `zone` optional fields.
 
 **Draft Edit Mode - Metadata Section**
 
