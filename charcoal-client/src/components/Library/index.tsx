@@ -1,6 +1,7 @@
 import React, { FunctionComponent, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { v4 as uuidv4 } from 'uuid'
 
 import {
     Avatar,
@@ -24,8 +25,12 @@ import AssetIcon from '@mui/icons-material/Landscape'
 import AddIcon from '@mui/icons-material/Add'
 
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
-import { getMyCharacters, getMyDraftAssets, getMyPersonalAssets } from '../../slices/player'
+import { getMyCharacters, getMyDraftAssets, getMyPersonalAssets, addAsset } from '../../slices/player'
 import { subscribeToLibrary, unsubscribeFromLibrary, getIsLibrarySubscribed, getLibraryAssetIds } from '../../slices/libraryDataSource'
+import { socketDispatchPromise } from '../../slices/lifeLine'
+import { addItem } from '../../slices/personalAssets'
+import { Schema, schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { ApplyEditAPIMessage } from '@tonylb/mtw-interfaces/ts/wml'
 
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import PreviewPane, { PreviewPaneContents } from './PreviewPane'
@@ -38,11 +43,12 @@ interface PersonalAssetCardsProps {
     Assets: AssetWithMetadata[];
     selectedAssetId?: string;
     onAssetClick: (asset: AssetWithMetadata) => void;
+    onCreateDraft?: () => Promise<void>;
     isDraftsTab: boolean;
 }
 
 interface CreateDraftPlaceholderProps {
-    onClick: () => void;
+    onClick: () => void | Promise<void>;
 }
 
 const CreateDraftPlaceholder: FunctionComponent<CreateDraftPlaceholderProps> = ({ onClick }) => {
@@ -72,17 +78,15 @@ const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({
     Assets, 
     selectedAssetId,
     onAssetClick,
+    onCreateDraft,
     isDraftsTab 
 }) => {
     return (
         <Grid container spacing={2}>
             {/* Show placeholder only in Drafts tab */}
-            {isDraftsTab && (
+            {isDraftsTab && onCreateDraft && (
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <CreateDraftPlaceholder onClick={() => {
-                        // Placeholder - will be implemented next
-                        console.log('Create new draft clicked')
-                    }} />
+                    <CreateDraftPlaceholder onClick={onCreateDraft} />
                 </Grid>
             )}
             {Assets.map((asset) => {
@@ -235,6 +239,53 @@ export const Library: FunctionComponent<LibraryProps> = () => {
         // Navigation to full edit could be added via preview pane button if needed
     }
 
+    // Handle creating a new draft
+    const handleCreateDraft = async () => {
+        // Generate new UUID for the draft
+        const draftUuid = uuidv4()
+        const assetId = `ASSET#${draftUuid}` as const
+        
+        // Create minimal empty Asset WML structure
+        const schema = new Schema()
+        schema._schema = [{
+            data: {
+                tag: 'Asset',
+                uuid: assetId,
+                Story: undefined
+            },
+            children: []
+        }]
+        const seedWML = schemaToWML(schema.schema)
+        
+        // Generate request ID for the applyEdit call
+        const requestId = uuidv4()
+        
+        try {
+            // Create the draft via applyEdit with createIfNeeded and zone
+            const applyEditMessage: ApplyEditAPIMessage & { RequestId: string } = {
+                message: 'applyEdit',
+                RequestId: requestId,
+                AssetId: assetId,
+                schema: seedWML,
+                createIfNeeded: true,
+                zone: 'Draft'
+            }
+            await dispatch(socketDispatchPromise(applyEditMessage, { service: 'wml' }))
+            
+            // Subscribe to the new asset in personalAssets slice
+            dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
+            
+            // Add asset to player slice tracking
+            dispatch(addAsset(assetId))
+            
+            // Navigate to edit mode for the newly created draft
+            navigate(`/Library/Edit/Asset/${draftUuid}/`)
+        } catch (error) {
+            console.error('Failed to create draft:', error)
+            // TODO: Show error feedback to user
+        }
+    }
+
     const selectedPersonalAssetId = personalPreviewItem?.type === 'Asset' ? personalPreviewItem.AssetId : undefined
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
@@ -262,6 +313,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
                     Assets={currentPersonalAssets as AssetWithMetadata[]}
                     selectedAssetId={selectedPersonalAssetId}
                     onAssetClick={handleAssetClick}
+                    onCreateDraft={handleCreateDraft}
                     isDraftsTab={isDraftsTab}
                 />
             </Grid>
