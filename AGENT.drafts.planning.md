@@ -675,6 +675,7 @@ Sign-off checks
     - Only show for drafts (`zone === 'Draft'`); hide for published assets in view mode
     - Reference implementation: `ExampleEditor/index.tsx` demonstrates the pattern for editing component-level StandardRender/StandardLiteral fields using `updateStandard`
   - Acceptance: Draft editor displays ShortName/Summary fields at top using StandardLiteralEditor and StandardRenderEditor; edits flow through `updateStandard` → auto-debounce → `saveEdit` automatically; edits persist through cache/events
+  - Status: Completed (November 1, 2025). Metadata section implemented in `AssetEditForm` component with `StandardLiteralEditor` and `StandardRenderEditor`. Values loaded from `standardForm.shortName` and `standardForm.summary` (memoized to avoid unnecessary object creation). Editors handle internal debouncing (1000ms) and call `updateStandard` via onChange handlers. Section only displays when `!readonly` (drafts). The `personalAssets` slice automatically handles 5-second debounce and save via `saveEdit`. Display name in banner updated to use ShortName when available.
 
 **Integration Points**
 
