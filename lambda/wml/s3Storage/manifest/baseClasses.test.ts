@@ -121,6 +121,18 @@ describe('Manifest Event Types', () => {
                 expect(isManifestZoneChangeEvent(validEvent)).toBe(true)
             })
 
+            it('should validate initial zone establishment with fromZone null', () => {
+                const initialEvent: ManifestZoneChangeEvent = {
+                    type: 'zoneChange',
+                    timestamp: '2025-10-18T12:00:00.000Z',
+                    eventId: 'event-initial',
+                    fromZone: null,  // null indicates initial zone establishment
+                    toZone: 'Canon'
+                }
+
+                expect(isManifestZoneChangeEvent(initialEvent)).toBe(true)
+            })
+
             it('should validate all zone transitions', () => {
                 const zones: Zone[] = ['Canon', 'Library', 'Personal', 'Draft', 'Archive']
                 
