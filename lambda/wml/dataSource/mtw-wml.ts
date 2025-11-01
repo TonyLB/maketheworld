@@ -55,39 +55,20 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
         // Subscribe to:
         // 1. Internal coordination events (direct API calls)
         // 2. mtw.diagnostics events (system health findings)
-        const isInternal = event.dataSourceKey === 'internal' &&
-            event.event &&
-            typeof event.event === 'object' &&
-            isCoordinationEventUpdate(event.event)
-        const isDiagnostics = event.dataSourceKey === 'mtw.diagnostics' &&
-            event.event &&
-            typeof event.event === 'object'
-        const matches = Boolean(isInternal || isDiagnostics)
-        
-        if (event.dataSourceKey === 'mtw.diagnostics') {
-            console.log(`[WML DataSource] Type guard check for diagnostics event:`, {
-                dataSourceKey: event.dataSourceKey,
-                hasEvent: !!event.event,
-                eventType: typeof event.event,
-                eventValue: event.event,
-                matches
-            })
-        }
-        
-        return matches
+        return Boolean(
+            (event.dataSourceKey === 'internal' &&
+                event.event &&
+                typeof event.event === 'object' &&
+                isCoordinationEventUpdate(event.event)) ||
+            (event.dataSourceKey === 'mtw.diagnostics' &&
+                event.event &&
+                typeof event.event === 'object')
+        )
     },
     receiveEvents: async ({ events, streamEvent }) => {
         // Process internal coordination events from direct API calls and EventBridge
-        console.log(`[WML DataSource] receiveEvents called with ${events.length} event(s)`)
         await Promise.all(events.map(async (event) => {
             const payload = event.event as any
-            console.log(`[WML DataSource] Processing event:`, {
-                dataSourceKey: event.dataSourceKey,
-                streamKey: event.streamKey,
-                payload,
-                payloadType: typeof payload,
-                payloadKeys: payload ? Object.keys(payload) : 'null'
-            })
             
             // Handle Apply Edit events
             if (isApplyEditRequest(payload)) {
@@ -282,19 +263,9 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
             }
             
             // Handle mtw.diagnostics S3 Structure Finding events
-            console.log(`[WML DataSource] Checking isS3StructureFindingEvent:`, {
-                payload,
-                isS3StructureFinding: isS3StructureFindingEvent(payload)
-            })
             if (isS3StructureFindingEvent(payload)) {
-                console.log(`[WML DataSource] S3 Structure Finding event matched, checking conditions:`, {
-                    source: payload.source,
-                    status: payload.status,
-                    shouldInitialize: payload.source === 'primitives.wml' && payload.status === 'missing'
-                })
                 // Respond to missing primitives.wml
                 if (payload.source === 'primitives.wml' && payload.status === 'missing') {
-                    console.log(`[WML DataSource] Calling initializePrimitives()...`)
                     try {
                         const result = await initializePrimitives()
                     } catch (error) {

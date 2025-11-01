@@ -9,8 +9,6 @@ export const wmlDataSource = wmlDataSourceInstance
 
 // Subscribe the DataSource to the messageBus for event processing
 // Note: messageBus is already configured in the constructor, so subscribe() uses this.messageBus
-console.log(`[WML DataSource] Subscribing wmlDataSource to messageBus...`)
 wmlDataSource.subscribe()
-console.log(`[WML DataSource] Subscription complete`)
 
 export default wmlDataSource
