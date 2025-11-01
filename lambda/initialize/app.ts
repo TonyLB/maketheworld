@@ -3,6 +3,8 @@ import { S3Client, ListObjectsCommand, DeleteObjectsCommand, PutObjectCommand } 
 import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { readdir, stat, readFile } from 'node:fs/promises'
 import { v4 as uuidv4 } from 'uuid'
+import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { toEventBridgeFormat, CoreExternalFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 // Note: primitivesData import removed - WML lambda now handles primitives content
 
 const params = { region: process.env.AWS_REGION }
@@ -64,18 +66,40 @@ const initializePrimitivesData = async (): Promise<void> => {
     // Emit S3 Structure Finding event for primitives.wml
     // The WML lambda will respond by checking and initializing if needed
     const diagnosticRunId = uuidv4()
+    const now = Date.now()
+    const nowISO = new Date(now).toISOString()
     
+    // Create internal event format
+    const internalEvent: DiagnosticsEventUpdate = {
+        type: 'S3 Structure Finding',
+        source: 'primitives.wml',
+        status: 'missing',
+        diagnosticRunId,
+        timestamp: nowISO
+    }
+    
+    // Serialize to external format using the serializer
+    const serializer = new DiagnosticsEventSerializer()
+    const externalUpdate = serializer.serialize({ update: internalEvent })
+    
+    // Create CoreExternalFormat matching what DataSource.streamEvent produces
+    const coreFormat: CoreExternalFormat = {
+        dataSourceKey: 'mtw.diagnostics',
+        streamKey: 'global', // Diagnostics events use 'global' streamKey
+        timestamp: now, // Epoch milliseconds
+        update: externalUpdate
+    }
+    
+    // Transform to EventBridge format
+    const eventBridgeFormat = toEventBridgeFormat(coreFormat)
+    
+    // Send to EventBridge (PutEventsCommand expects capitalized Source/DetailType)
     await eventBridgeClient.send(new PutEventsCommand({
         Entries: [{
-            Source: 'mtw.diagnostics',
-            DetailType: 'S3 Structure Finding',
+            Source: eventBridgeFormat.Source,
+            DetailType: eventBridgeFormat.DetailType,
             EventBusName: process.env.EVENT_BUS_NAME,
-            Detail: JSON.stringify({
-                source: 'primitives.wml',
-                status: 'missing',
-                diagnosticRunId,
-                timestamp: new Date().toISOString()
-            })
+            Detail: JSON.stringify(eventBridgeFormat.Detail)
         }]
     }))
     

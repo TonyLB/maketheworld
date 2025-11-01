@@ -1229,19 +1229,11 @@ Resources:
                 Trigger: PreSignUp
   InitializeFunction:
       Type: AWS::Serverless::Function
-      Metadata:
-        BuildMethod: esbuild
-        BuildProperties:
-          Minify: true
-          Target: "es2020"
-          Sourcemap: true
-          EntryPoints: 
-            - app.ts
       Properties:
           Tracing: Active
-          CodeUri: lambda/initialize/
+          CodeUri: lambda/initialize/build/
           Runtime: nodejs18.x
-          Handler: app.handler
+          Handler: lambda.handler
           Timeout: 600
           Layers:
               - !Ref DeployClientSource
