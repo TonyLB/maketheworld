@@ -19,9 +19,10 @@
  */
 
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
-import AssetWorkspace, { Zone } from './AssetWorkspace'
+import { Zone } from './AssetWorkspace'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
+import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { ManifestEvent, ManifestChunkEvent, ManifestZoneChangeEvent } from './manifest/baseClasses'
 import { appendManifestEvents } from './manifest'
 import { writeChunk, ChunkReference } from './chunks'
@@ -114,14 +115,14 @@ export interface AppendChunkSuccess {
      */
     metadata: {
         /**
-         * S3 key where chunk was written
+         * S3 key where chunk was written (undefined if chunk not written, e.g., when synthesizing empty with initial content)
          */
-        chunkKey: string
+        chunkKey?: string
         
         /**
-         * Size of chunk file in bytes
+         * Size of chunk file in bytes (undefined if chunk not written, e.g., when synthesizing empty with initial content)
          */
-        chunkSize: number
+        chunkSize?: number
         
         /**
          * Whether repair was performed during this operation
@@ -280,25 +281,40 @@ const executeAppendChunkStrategy: ExecutionStrategy<AppendChunkArgs, AppendChunk
     // Step 2: Prepare writes
     const prefix = buildPrefix(args.assetId, suffix)
     
-    // Write chunk file
-    const chunkRef = await writeChunk({
-        prefix,
-        timestamp,
-        content: chunkWML,
-        zone,
-        authoringPlayer
-    })
+    // Check if we're in the optimized path: synthesizing empty + initializing with content
+    const isSynthesizeEmptyInitialization = Boolean(
+        repairDecision.repairActions?.synthesizedEmpty && 
+        repairDecision.snapshotToCreate
+    )
+    
+    // Write chunk file (only if NOT synthesizing empty - in that case snapshot captures initial state)
+    let chunkRef: ChunkReference | undefined
+    if (!isSynthesizeEmptyInitialization) {
+        chunkRef = await writeChunk({
+            prefix,
+            timestamp,
+            content: chunkWML,
+            zone,
+            authoringPlayer
+        })
+    }
     
     // Write snapshot if needed for repair
     let snapshotRef: SnapshotReference | undefined
     if (repairDecision.snapshotToCreate) {
+        // Optimization: If synthesizing empty, use merged content for snapshot instead of empty baseline
+        // This avoids redundant "empty snapshot + chunk" when initializing with content
+        const snapshotContent = isSynthesizeEmptyInitialization
+            ? schemaToWML([mergedContent.schema])!
+            : repairDecision.snapshotToCreate.content
+        
         snapshotRef = await writeSnapshot({
             prefix,
             timestamp,
             zone,
             snapshotType: 'initializeManifest',
             chunksBeforeSnapshot: 0,
-            content: repairDecision.snapshotToCreate.content
+            content: snapshotContent
         })
     }
     
@@ -326,15 +342,18 @@ const executeAppendChunkStrategy: ExecutionStrategy<AppendChunkArgs, AppendChunk
         })
     }
     
-    // Add chunk event
-    events.push({
-        type: 'chunk',
-        timestamp: new Date(timestamp).toISOString(),
-        eventId: uuidv4(),
-        s3Key: chunkRef.s3Key,
-        chunkSize: chunkRef.chunkSize,
-        authoringPlayer
-    })
+    // Add chunk event (only if chunk was written)
+    // When synthesizing empty with content, the snapshot already captures the initial state
+    if (chunkRef) {
+        events.push({
+            type: 'chunk',
+            timestamp: new Date(timestamp).toISOString(),
+            eventId: uuidv4(),
+            s3Key: chunkRef.s3Key,
+            chunkSize: chunkRef.chunkSize,
+            authoringPlayer
+        })
+    }
     
     // Step 4: Write materialized views
     await workspace.setJSON(mergedContent)
@@ -351,8 +370,8 @@ const executeAppendChunkStrategy: ExecutionStrategy<AppendChunkArgs, AppendChunk
         success: true,
         mergedContent,
         metadata: {
-            chunkKey: chunkRef.s3Key,
-            chunkSize: chunkRef.chunkSize,
+            chunkKey: chunkRef?.s3Key,
+            chunkSize: chunkRef?.chunkSize,
             repairPerformed: repairDecision.repairActions !== undefined,
             repairActions: repairDecision.repairActions ? {
                 createdSnapshot: repairDecision.repairActions.createdSnapshot,
@@ -379,7 +398,7 @@ const executeAppendChunkStrategy: ExecutionStrategy<AppendChunkArgs, AppendChunk
  * Self-Repair Scenarios:
  * - Manifest missing, view exists: Create initial snapshot from view (lazy migration)
  * - View missing, manifest exists: Reconstruct view from manifest
- * - Both missing, createIfNeeded=true: Synthesize empty asset, apply chunk
+ * - Both missing, createIfNeeded=true: Synthesize empty asset, apply chunk (optimized: snapshot captures merged content, no chunk written)
  * - Both missing, createIfNeeded=false: Return not-found error
  * 
  * Optimization:
