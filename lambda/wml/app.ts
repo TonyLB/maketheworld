@@ -48,6 +48,13 @@ export const handler = async (event: any) => {
                 externalUpdate: coreFormat.update as any
             })
             
+            console.log(`[WML Handler] Deserialized event:`, {
+                dataSourceKey: coreFormat.dataSourceKey,
+                streamKey: coreFormat.streamKey,
+                internalEvent,
+                coreFormatUpdate: coreFormat.update
+            })
+            
             // If deserialization failed, log error and skip this event
             if (!internalEvent) {
                 messageBus.send({
@@ -58,13 +65,15 @@ export const handler = async (event: any) => {
                 })
             } else {
                 // Publish deserialized event to messageBus for DataSource processing
-                messageBus.send({
-                    type: 'StreamingEvent',
+                const messageBusEvent = {
+                    type: 'StreamingEvent' as const,
                     dataSourceKey: coreFormat.dataSourceKey as any,
                     streamKey: coreFormat.streamKey,
                     event: internalEvent as any,
                     timestamp: event.time ? new Date(event.time).getTime() : Date.now()
-                })
+                }
+                console.log(`[WML Handler] Publishing to messageBus:`, messageBusEvent)
+                messageBus.send(messageBusEvent)
             }
         } else {
             // No deserializer available - this is an error condition

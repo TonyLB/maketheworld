@@ -218,6 +218,35 @@ s3://bucket/
 - **Zone Transitions**: Tag-only updates (no content changes)
 - **Self-Repair**: On-demand reconstruction when needed
 
+## Permissions Needed
+
+The `wml` lambda requires the following S3 permissions on the assets bucket:
+
+### Required S3 Actions
+
+- **`s3:ListBucket`**: Required for listing bucket contents (used by AWS SDK for some operations)
+- **`s3:GetObject`**: Read asset files (`.wml`, `.ndjson`, `.auth.wml`, `.auth.ndjson`), manifest files, chunks, and snapshots
+- **`s3:PutObject`**: Write asset files, manifest files, chunks, and snapshots
+- **`s3:HeadObject`**: Check object existence and retrieve metadata (used by `s3Client.check()` and `s3Client.getMetadata()`)
+- **`s3:CopyObject`**: Copy materialized views to snapshot locations (efficient S3-to-S3 operations)
+- **`s3:GetObjectTagging`**: Read zone tags and other object tags (used by `ReadOnlyAssetWorkspace.fromUUID()` S3 fallback and zone detection)
+- **`s3:PutObjectTagging`**: Update zone tags during zone transitions (used by `changeZone()` operations)
+
+### S3 Resources
+
+All permissions should be granted for:
+- **Bucket**: `arn:aws:s3:::${TablePrefix}-assets` (or the configured `S3_BUCKET` environment variable)
+- **Objects**: `arn:aws:s3:::${TablePrefix}-assets/*` (all objects in the bucket)
+
+### Context
+
+These permissions support:
+- **Asset Content Management**: Reading/writing asset files, chunks, manifests, and snapshots
+- **Zone Detection**: Reading S3 tags to determine asset zones when DynamoDB lookup fails
+- **Zone Transitions**: Updating S3 tags during `moveAsset` operations
+- **Snapshot Operations**: Copying materialized views to snapshot locations
+- **Self-Repair**: Reconstructing missing materialized views from manifests
+
 ## Related Documentation
 
 - **[Self-Repair Design](AGENT.selfRepair.md)**: Detailed self-repair patterns and scenarios
