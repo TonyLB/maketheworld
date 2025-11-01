@@ -57,14 +57,15 @@ export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridge
     const { dataSourceKey, streamKey, timestamp, RequestId, update } = coreFormat;
     
     // Extract the type and update data from the update object
-    const { type, update: updateData, ...rest } = update;
+    // Exclude 'timestamp' from rest - we only use the system-assigned epoch timestamp, never EventBridge/client timestamps
+    const { type, update: updateData, timestamp: _, ...rest } = update;
     
     return {
         Source: dataSourceKey,
         DetailType: type,
         Detail: {
             streamKey,
-            timestamp,
+            timestamp, // Always use epoch milliseconds from CoreExternalFormat (system-assigned, authoritative)
             RequestId,
             ...rest,
             update: updateData
@@ -74,9 +75,18 @@ export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridge
 
 /**
  * Transform EventBridge event structure back to CoreExternalFormat
+ * 
+ * Handles both:
+ * - Actual EventBridge delivery format (lowercase: source, detail-type, detail) - what AWS delivers to Lambda
+ * - Serialized EventBridgeFormat (capitalized: Source, DetailType, Detail) - for internal use
  */
-export function fromEventBridgeFormat(eventBridgeEvent: EventBridgeFormat): CoreExternalFormat {
-    const { Source: dataSourceKey, DetailType: type, Detail } = eventBridgeEvent;
+export function fromEventBridgeFormat(eventBridgeEvent: EventBridgeFormat | any): CoreExternalFormat {
+    // Normalize event format - handle both lowercase (actual EventBridge) and capitalized (serialized) formats
+    const dataSourceKey = eventBridgeEvent.Source || eventBridgeEvent.source;
+    const type = eventBridgeEvent.DetailType || eventBridgeEvent['detail-type'];
+    const Detail = eventBridgeEvent.Detail || eventBridgeEvent.detail;
+    
+    // Extract required fields from Detail
     const { streamKey, timestamp, RequestId, ...rest } = Detail;
     
     return {

@@ -98,11 +98,8 @@ export const handler = async (event: any) => {
     }
     else if (event?.source) {
         console.log(`Subscription event: ${JSON.stringify(event, null, 4)}`)
-        const coreFormat = fromEventBridgeFormat({
-            Source: event.source,
-            DetailType: event["detail-type"],
-            Detail: event.detail
-        })
+        // fromEventBridgeFormat now handles both lowercase (EventBridge delivery) and capitalized formats
+        const coreFormat = fromEventBridgeFormat(event)
         const match = subscriptionLibrary.matchEvent(coreFormat)
         if (match) {
             await match.publish(coreFormat)
