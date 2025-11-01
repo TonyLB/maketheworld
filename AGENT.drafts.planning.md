@@ -686,6 +686,7 @@ Sign-off checks
     - Update breadcrumbs/navigation to use real AssetUUID where applicable
     - Ensure routing supports `/Library/Edit/Asset/${uuid}` for any draft UUID
   - Acceptance: Draft cards navigate correctly to edit mode using real UUIDs; breadcrumbs display correctly
+  - Status: Completed (November 1, 2025). Routing infrastructure complete: `/Library/Edit/Asset/:AssetId/*` handles real AssetUUIDs; draft cards navigate using `/Library/Edit/Asset/${draftUuid}/`; legacy `/Draft/*` route maintained for backward compatibility. Navigation from card-based UI uses real UUIDs throughout. All new multi-draft code paths use real AssetUUIDs with no reliance on `'ASSET#draft'` magic key. Legacy draft references remaining in breadcrumbs, `useAutoPin`, onboarding checks, and map import flow are deferred to Phase 3.5 per intentional design.
 
 - Update selectors usage:
   - Target: Components that currently reference personal assets
@@ -693,6 +694,7 @@ Sign-off checks
     - Verify `getMyDraftAssets` and `getMyPersonalAssets` selectors work correctly
     - Update any components that hard-code asset filtering to use these selectors
   - Acceptance: Tab filtering works correctly; assets appear in appropriate tabs
+  - Status: Completed (November 1, 2025). Selectors implemented and tested; Library component uses `getMyDraftAssets` and `getMyPersonalAssets` for tab filtering; zone-based filtering works correctly; all assets appear in appropriate tabs.
 
 **Testing**
 
@@ -719,17 +721,36 @@ Sign-off checks
 - Navigation uses real AssetUUIDs (no reliance on `'ASSET#draft'` in new code paths)
 
 ### Phase 3.5: Remove Legacy Draft Key Special-Casing
-*Detailed planning deferred*
+*Detailed planning deferred - can begin after Phase 3 completion*
 
-After Phases 2 and 3 provide working multi-draft functionality, remove remaining references to the legacy `'ASSET#draft'` magic key throughout the codebase:
+After Phases 2 and 3 provide working multi-draft functionality, remove remaining references to the legacy `'ASSET#draft'` magic key throughout the codebase.
 
-- Remove `fetchDraftAsset` auto-subscription to magic draft key (player/index.api.ts)
-- Update map import flow to use real draft AssetUUID instead of `ASSET#draft`
-- Update navigation/routing that assumes single draft
-- Remove any UI that assumes `assetKey === 'draft'` pattern
+**Remaining Legacy References Identified** (as of November 1, 2025):
+
+- ✅ Remove `fetchDraftAsset` auto-subscription to magic draft key (player/index.api.ts) - **COMPLETED**: Code removed in Phase 1
+- Update map import flow to use real draft AssetUUID instead of `ASSET#draft`:
+  - Target: `charcoal-client/src/components/Maps/View/index.tsx` (lines 66-84)
+  - Context: Import dialog still assumes single `ASSET#draft[${player}]` asset
+  - Action: Update to support multi-draft selection or use default/selected draft UUID
+- Update navigation/routing that assumes single draft:
+  - Target: `charcoal-client/src/components/Library/Edit/WMLEdit.tsx` (lines 126-127) - breadcrumbs for `ASSET#draft`
+  - Target: `charcoal-client/src/components/Library/Edit/EditAsset.tsx` (lines 77, 290) - onboarding check and `useAutoPin` href
+  - Target: `charcoal-client/src/components/Library/Edit/WMLComponentDetail.tsx` (line 125) - `useAutoPin` href
+  - Target: `charcoal-client/src/components/Maps/Edit/index.tsx` (line 26) - `useAutoPin` href
+  - Target: `charcoal-client/src/components/AppLayout/index.tsx` (line 287) - legacy `/Draft/*` route
+  - Action: Remove `assetKey === 'draft'` conditional logic; consolidate to real AssetUUID handling
+- Remove any UI that assumes `assetKey === 'draft'` pattern:
+  - Target: `charcoal-client/src/components/Library/Edit/LibraryAsset.tsx` (line 119) - `readonly: !(assetKey === 'draft')`
+  - Target: `charcoal-client/src/components/Message/RoomDescription.tsx` (line 95) - `getStatus('ASSET#draft')`
+  - Action: Replace with zone-based or UUID-based logic where appropriate
+- Update test files:
+  - Target: `charcoal-client/src/components/Message/RoomDescription.test.tsx` (line 52) - mock state still uses `'ASSET#draft'`
+  - Action: Update test mocks to use real AssetUUID or zone-based patterns
 - Clean up backend shims that provide backward compatibility for legacy draft ID
+  - Verify if any backend code still handles `ASSET#draft` specially and document/remove
 
-**Prerequisite**: Phase 3 must be complete (UI for creating/selecting drafts must exist)
+**Prerequisite**: Phase 3 complete (UI for creating/selecting drafts exists)
+**Status**: Not started - deferred until Phase 3 is fully tested and validated
 
 ### Phase 4: Testing & Polish
 *Detailed planning deferred*
