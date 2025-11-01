@@ -8,6 +8,7 @@ export { WMLEventSerializer, WMLContentEvent, WMLZoneEvent, WMLEventUpdate } fro
 export const wmlDataSource = wmlDataSourceInstance
 
 // Subscribe the DataSource to the messageBus for event processing
-wmlDataSource.subscribe(messageBus)
+// Note: messageBus is already configured in the constructor, so subscribe() uses this.messageBus
+wmlDataSource.subscribe()
 
 export default wmlDataSource

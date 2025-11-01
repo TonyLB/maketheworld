@@ -2,6 +2,7 @@ import { DataSource, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/d
 import { EventPayload, StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
+import messageBus from '../messageBus'
 
 /**
  * WML-specific DataSource base class that pre-configures common parameters
@@ -34,10 +35,7 @@ export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePay
                     await snsClient.send(command);
                 }
             },
-            messageBus: {
-                send: () => {}, // TODO: Import actual messageBus when available
-                subscribe: () => {}
-            },
+            messageBus: messageBus,
             primaryKeyName: 'AssetId',
             feedbackTopicArn: process.env.FEEDBACK_TOPIC!,
             replayable: params.replayable ?? true, // Default to replayable for backward compatibility
