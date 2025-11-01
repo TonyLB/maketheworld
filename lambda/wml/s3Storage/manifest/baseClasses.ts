@@ -139,7 +139,7 @@ export const isManifestZoneChangeEvent = (event: any): event is ManifestZoneChan
         event.type === 'zoneChange' &&
         typeof event.timestamp === 'string' &&
         typeof event.eventId === 'string' &&
-        typeof event.fromZone === 'string' &&
+        (event.fromZone === null || typeof event.fromZone === 'string') &&
         typeof event.toZone === 'string'
     )
 }
