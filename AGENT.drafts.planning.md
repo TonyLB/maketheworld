@@ -662,14 +662,20 @@ Sign-off checks
   - Target: `charcoal-client/src/components/Library/Edit/EditAsset.tsx` or component it renders (likely `AssetEditForm`)
   - Actions:
     - Add form section at top of draft editor (above existing content)
-    - Two input fields: ShortName (text) and Summary (multiline text)
-    - Load current values from asset's StandardForm metadata (ShortName/Summary tags on Asset component)
-    - Save mechanism:
-      - On field changes, construct WML edit to update Asset tag's ShortName/Summary attributes
-      - Use existing `applyEdit` flow (same as content edits)
-      - Leverage existing autosave debounce (5 second debounce from `updateStandard`)
+    - Use `StandardLiteralEditor` component for ShortName field (follows pattern from `StandardLiteralEditor/index.tsx`)
+    - Use `StandardRenderEditor` component for Summary field (follows pattern from `StandardRenderEditor/index.tsx`)
+    - Use `useLibraryAsset()` hook to access `standardForm` and `updateStandard` function
+    - Load current values from `standardForm.shortName` (StandardLiteral) and `standardForm.summary` (StandardRender)
+    - Save mechanism (following ExampleEditor pattern):
+      - Use local state for immediate UI feedback (useState)
+      - Use `useDebouncedOnChange` hook with 1000ms delay for component-level debouncing
+      - Call `updateStandard({ type: 'update', update: (draft: StandardForm) => { draft._shortName = newValue; return draft } })` for ShortName
+      - Call `updateStandard({ type: 'update', update: (draft: StandardForm) => { draft._summary = newValue; return draft } })` for Summary
+      - The `personalAssets` slice handles 5-second debounce and automatic save via `saveEdit` (no need to call `applyEdit` directly)
     - Only show for drafts (`zone === 'Draft'`); hide for published assets in view mode
-  - Acceptance: Draft editor displays ShortName/Summary fields at top; edits save via applyEdit and persist through cache/events
+    - Reference implementation: `ExampleEditor/index.tsx` demonstrates the pattern for editing component-level StandardRender/StandardLiteral fields using `updateStandard`
+  - Acceptance: Draft editor displays ShortName/Summary fields at top using StandardLiteralEditor and StandardRenderEditor; edits flow through `updateStandard` → auto-debounce → `saveEdit` automatically; edits persist through cache/events
+  - Status: Completed (November 1, 2025). Metadata section implemented in `AssetEditForm` component with `StandardLiteralEditor` and `StandardRenderEditor`. Values loaded from `standardForm.shortName` and `standardForm.summary` (memoized to avoid unnecessary object creation). Editors handle internal debouncing (1000ms) and call `updateStandard` via onChange handlers. Section only displays when `!readonly` (drafts). The `personalAssets` slice automatically handles 5-second debounce and save via `saveEdit`. Display name in banner updated to use ShortName when available.
 
 **Integration Points**
 

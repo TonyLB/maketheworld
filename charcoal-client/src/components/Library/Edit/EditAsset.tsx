@@ -6,10 +6,9 @@ import {
     Button,
     IconButton,
     List,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText,
-    ListSubheader
+    ListSubheader,
+    Typography,
+    Divider
 } from '@mui/material'
 
 import FeatureIcon from '@mui/icons-material/Search'
@@ -54,6 +53,11 @@ import { RecentlyVisited } from './RecentlyVisited'
 import { LabelledIndentBox } from './LabelledIndentBox'
 import { blue } from '@mui/material/colors'
 import EditCharacter from './EditCharacter'
+import StandardLiteralEditor from './StandardLiteralEditor'
+import StandardRenderEditor from './StandardRenderEditor'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 type AssetEditFormProps = {}
 
@@ -72,6 +76,47 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const { updateStandard, standardForm, readonly, assetKey } = useLibraryAsset()
     useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true, condition: assetKey === 'draft' })
     const navigate = useNavigate()
+
+    // Asset-level metadata editing (ShortName and Summary) - only for drafts
+    // Memoize to avoid creating new objects on every render when values are undefined
+    const shortName = useMemo(() => 
+        standardForm.shortName ?? new StandardLiteral(''), 
+        [standardForm.shortName]
+    )
+    const summary = useMemo(() => 
+        standardForm.summary ?? new StandardRender([]), 
+        [standardForm.summary]
+    )
+    
+    // Extract display name for banner: use ShortName if available, otherwise extract UUID from universalKey
+    const displayName = useMemo(() => 
+        shortName._payload?.plain?.toJSON() || 
+        standardForm.universalKey.replace('ASSET#', '').slice(0, 8) || 
+        'Untitled',
+        [shortName, standardForm.universalKey]
+    )
+
+    // Handle ShortName changes - StandardLiteralEditor handles its own debouncing
+    const handleShortNameChange = useCallback((value: StandardLiteral) => {
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                draft._shortName = value._payload?.plain?.toJSON() ? value : undefined
+                return draft
+            }
+        })
+    }, [updateStandard])
+
+    // Handle Summary changes - StandardRenderEditor handles its own debouncing
+    const handleSummaryChange = useCallback((value: StandardRender) => {
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                draft._summary = value
+                return draft
+            }
+        })
+    }, [updateStandard])
 
     //
     // TODO: Refactor below into a single reduce statement that updates a record of lists.
@@ -109,7 +154,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     }, [updateStandard, dispatch])
     return <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
         <LibraryBanner
-            primary={standardForm.key || 'Untitled'}
+            primary={displayName}
             secondary={'Asset'}
             commands={
                 <React.Fragment>
@@ -123,9 +168,44 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     label: 'Library'
                 },
                 {
-                    label: standardForm.key || 'Untitled'
+                    label: displayName
             }]}
         />
+        { !readonly && (
+            <Box sx={{ marginLeft: "20px", marginRight: "20px", marginTop: "1em", marginBottom: "1em" }}>
+                <Typography variant="h6" sx={{ marginBottom: "0.5em" }}>Metadata</Typography>
+                <Divider sx={{ marginBottom: "1em" }} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box>
+                        <Typography variant="subtitle2" sx={{ marginBottom: "0.5em" }}>Short Name</Typography>
+                        <StandardLiteralEditor
+                            value={shortName}
+                            onChange={handleShortNameChange}
+                            placeholder="Enter a short name for this draft"
+                            readonly={readonly}
+                        />
+                    </Box>
+                    <Box>
+                        <Typography variant="subtitle2" sx={{ marginBottom: "0.5em" }}>Summary</Typography>
+                        <Box sx={{
+                            backgroundColor: 'background.paper',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: '4px',
+                            padding: '0.5em'
+                        }}>
+                            <StandardRenderEditor
+                                value={summary}
+                                onChange={handleSummaryChange}
+                                validLinkTags={[]}
+                                toolbar={false}
+                            />
+                        </Box>
+                    </Box>
+                </Box>
+                <Divider sx={{ marginTop: "1em" }} />
+            </Box>
+        )}
         <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
             <Box sx={{ marginLeft: "20px", width: "calc(100% - 20px)" }}>
                 <RecentlyVisited />
