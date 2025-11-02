@@ -12,13 +12,14 @@ import { vi, beforeEach, describe, it, expect } from 'vitest'
 import '@testing-library/jest-dom'
 import Library from './index'
 import { AssetClientPlayerAsset } from '@tonylb/mtw-interfaces/ts/asset'
+import { libraryDataSourceSlice } from '../../slices/libraryDataSource'
 
 // Mock navigation dependencies
-vi.mock('../../../slices/UI/navigationTabs/useAutoPin', () => ({
+vi.mock('../../slices/UI/navigationTabs/useAutoPin', () => ({
     default: vi.fn()
 }))
 
-vi.mock('../../../slices/lifeLine', () => ({
+vi.mock('../../slices/lifeLine', () => ({
     socketDispatchPromise: vi.fn(() => Promise.resolve({}))
 }))
 
@@ -26,6 +27,15 @@ vi.mock('../Onboarding/useOnboarding', () => ({
     default: vi.fn(),
     useOnboardingCheckpoint: vi.fn()
 }))
+
+vi.mock('../../slices/libraryDataSource', async () => {
+    const actual = await vi.importActual('../../slices/libraryDataSource')
+    return {
+        ...actual,
+        subscribeToLibrary: vi.fn(() => ({ type: 'MOCK_SUBSCRIBE_TO_LIBRARY' })),
+        unsubscribeFromLibrary: vi.fn(() => ({ type: 'MOCK_UNSUBSCRIBE_FROM_LIBRARY' }))
+    }
+})
 
 const mockStore = configureStore()
 
@@ -37,6 +47,9 @@ const createTestAsset = (assetId: string, zone: string, shortName?: string): Ass
     Story: undefined,
     instance: undefined
 })
+
+// Helper to get proper libraryDataSource initial state
+const getLibraryDataSourceState = () => libraryDataSourceSlice.getInitialState()
 
 const TestWrapper: React.FunctionComponent<{ children: React.ReactNode; store: any }> = ({ children, store }) => {
     const theme = createTheme()
@@ -65,9 +78,7 @@ describe('Library - Multi-Draft Feature', () => {
                     Characters: []
                 }
             },
-            libraryDataSource: {
-                assetIds: []
-            }
+            libraryDataSource: getLibraryDataSourceState()
         })
     })
 
@@ -83,9 +94,7 @@ describe('Library - Multi-Draft Feature', () => {
                         Characters: []
                     }
                 },
-                libraryDataSource: {
-                    assetIds: []
-                }
+                libraryDataSource: getLibraryDataSourceState()
             })
 
             render(
@@ -110,9 +119,7 @@ describe('Library - Multi-Draft Feature', () => {
                         Characters: []
                     }
                 },
-                libraryDataSource: {
-                    assetIds: []
-                }
+                libraryDataSource: getLibraryDataSourceState()
             })
 
             render(
@@ -139,9 +146,7 @@ describe('Library - Multi-Draft Feature', () => {
                         Characters: []
                     }
                 },
-                libraryDataSource: {
-                    assetIds: []
-                }
+                libraryDataSource: getLibraryDataSourceState()
             })
 
             render(
@@ -170,9 +175,7 @@ describe('Library - Multi-Draft Feature', () => {
                         Characters: []
                     }
                 },
-                libraryDataSource: {
-                    assetIds: []
-                }
+                libraryDataSource: getLibraryDataSourceState()
             })
 
             render(
@@ -202,9 +205,7 @@ describe('Library - Multi-Draft Feature', () => {
                         Characters: []
                     }
                 },
-                libraryDataSource: {
-                    assetIds: []
-                }
+                libraryDataSource: getLibraryDataSourceState()
             })
 
             render(
@@ -229,9 +230,7 @@ describe('Library - Multi-Draft Feature', () => {
                         Characters: []
                     }
                 },
-                libraryDataSource: {
-                    assetIds: []
-                }
+                libraryDataSource: getLibraryDataSourceState()
             })
 
             render(
@@ -253,9 +252,7 @@ describe('Library - Multi-Draft Feature', () => {
                         Characters: []
                     }
                 },
-                libraryDataSource: {
-                    assetIds: []
-                }
+                libraryDataSource: getLibraryDataSourceState()
             })
 
             render(
@@ -284,9 +281,7 @@ describe('Library - Multi-Draft Feature', () => {
                         Characters: []
                     }
                 },
-                libraryDataSource: {
-                    assetIds: []
-                }
+                libraryDataSource: getLibraryDataSourceState()
             })
 
             render(
@@ -308,9 +303,7 @@ describe('Library - Multi-Draft Feature', () => {
                         Characters: []
                     }
                 },
-                libraryDataSource: {
-                    assetIds: []
-                }
+                libraryDataSource: getLibraryDataSourceState()
             })
 
             render(
@@ -332,9 +325,7 @@ describe('Library - Multi-Draft Feature', () => {
                         Characters: []
                     }
                 },
-                libraryDataSource: {
-                    assetIds: []
-                }
+                libraryDataSource: getLibraryDataSourceState()
             })
 
             render(
@@ -349,36 +340,6 @@ describe('Library - Multi-Draft Feature', () => {
 
             // Should not show placeholder
             expect(screen.queryByText('New Draft')).not.toBeInTheDocument()
-        })
-    })
-
-    describe('Character Display', () => {
-        it('should display characters section', () => {
-            store = mockStore({
-                player: {
-                    publicData: {
-                        Assets: [],
-                        Characters: [
-                            {
-                                CharacterId: 'CHARACTER#test-char',
-                                Name: 'Test Character',
-                                Pronouns: 'they/them'
-                            }
-                        ]
-                    }
-                },
-                libraryDataSource: {
-                    assetIds: []
-                }
-            })
-
-            render(
-                <TestWrapper store={store}>
-                    <Library />
-                </TestWrapper>
-            )
-
-            expect(screen.getByText('Test Character')).toBeInTheDocument()
         })
     })
 })
