@@ -14,6 +14,8 @@
   },
   "overrides": {
     "@mui/material": "^7.3.4",
-    "@mui/system": "^7.3.3"
+    "@mui/system": "^7.3.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }
