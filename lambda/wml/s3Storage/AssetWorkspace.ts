@@ -140,7 +140,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         
         // Phase 1: Add Zone tag to S3 objects
         const tags = { Zone: this.zone }
-        const metadata = this.zone === 'Personal' && this.player
+        const metadata = (this.zone === 'Personal' || this.zone === 'Draft') && this.player
             ? { player: this.player }
             : undefined
         
@@ -166,7 +166,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         const contents = this.authorizations?.toNDJSON().map((line) => (JSON.stringify(line))).join('\n') || ''
         if (contents) {
             const tags = { Zone: this.zone }
-            const metadata = this.zone === 'Personal' && this.player
+            const metadata = (this.zone === 'Personal' || this.zone === 'Draft') && this.player
                 ? { player: this.player }
                 : undefined
             
@@ -185,7 +185,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         
         // Phase 1: Add Zone tag to S3 objects
         const tags = { Zone: this.zone }
-        const metadata = this.zone === 'Personal' && this.player
+        const metadata = (this.zone === 'Personal' || this.zone === 'Draft') && this.player
             ? { player: this.player }
             : undefined
         
@@ -204,7 +204,7 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
             const filePath = this.s3KeyFor('auth.wml')
             
             const tags = { Zone: this.zone }
-            const metadata = this.zone === 'Personal' && this.player
+            const metadata = (this.zone === 'Personal' || this.zone === 'Draft') && this.player
                 ? { player: this.player }
                 : undefined
             
