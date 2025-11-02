@@ -4,8 +4,8 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 type MetaCache = {
     AssetId: AssetUUID;
-    zone?: 'Canon' | 'Library' | 'Personal';
-    player?: string;  // Only present for Personal zone
+    zone?: 'Canon' | 'Library' | 'Personal' | 'Draft';
+    player?: string;  // Present for Personal and Draft zones
     cached?: boolean;
     shortName?: string;  // Asset-level shortName metadata
     summary?: any[];     // Asset-level summary metadata (RenderTree format)
