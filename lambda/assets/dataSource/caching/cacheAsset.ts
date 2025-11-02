@@ -26,15 +26,15 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
 }): Promise<void> => {
     const assetUUID = AssetKey(assetId)
 
-    const [dbAsset, fileAsset] = await Promise.all([
+    const [dbAsset, { assetWorkspace, standardForm: fileAsset }] = await Promise.all([
         internalCache.AssetData.get([assetUUID]).then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset uuid=(${assetId}) />`))),
         (async () => {
-            const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(assetUUID)
+            const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(assetUUID, { allowS3Fallback: true })
             if (!assetWorkspace) {
-                return new StandardForm(assetUUID)
+                return { assetWorkspace: undefined, standardForm: new StandardForm(assetUUID) }
             }
             await assetWorkspace.loadJSON()
-            return assetWorkspace.standard ?? new StandardForm(assetUUID)
+            return { assetWorkspace, standardForm: assetWorkspace.standard ?? new StandardForm(assetUUID) }
         })()
     ])
 
@@ -43,15 +43,17 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
     // Phase 1B: Parallelize Meta::Asset write with component updates for efficiency
     // Replaces old dbRegister function with minimal, focused metadata write
     const metaAssetWrite = (async () => {
+        // Get zone/player from DynamoDB (if exists) or fall back to workspace (for new assets)
         const assetMeta = (await internalCache.AssetMetaData.get([assetUUID]))[0]
-        const { zone, player } = assetMeta ?? {}
+        const zone = assetMeta?.zone ?? assetWorkspace?.zone
+        const player = assetMeta?.player ?? assetWorkspace?.player
         
         if (zone) {
             await assetDB.putItem({
                 AssetId: assetUUID,
                 DataCategory: 'Meta::Asset',
                 zone,
-                ...(zone === 'Personal' && player ? { player } : {}),
+                ...((zone === 'Personal' || zone === 'Draft') && player ? { player } : {}),
                 // Include Asset-level metadata (shortName and summary)
                 ...(fileAsset.shortName ? { shortName: fileAsset.shortName.toJSON() } : {}),
                 ...(fileAsset.summary ? { summary: fileAsset.summary.toJSON() } : {})
