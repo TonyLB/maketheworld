@@ -698,20 +698,35 @@ Sign-off checks
 
 **Testing**
 
-- Component tests:
+- **Status**: Test infrastructure created but **blocked by environment issue** as of November 1, 2025
+  - React module resolution failure in npm workspaces prevents all MUI component tests from running
+  - Existing tests (StandardLiteralEditor, StandardRenderEditor, LibraryAsset, etc.) all fail with same error
+  - New tests follow correct patterns but cannot execute until environment fixed
+  - Workaround: Replicate test file created at `charcoal-client/src/components/Library/__tests__/index.test.tsx` but defer execution
+
+- Component tests (designed, infrastructure ready):
   - `charcoal-client/src/components/Library/__tests__/`:
     - Test tab filtering (Drafts vs Assets tabs show correct assets)
     - Test card display (ShortName/Summary rendering, fallbacks)
     - Test card navigation (draft cards → edit, asset cards → view)
-    - Test placeholder card creation flow
-  - `charcoal-client/src/components/Library/Edit/__tests__/`:
-    - Test metadata editing section renders for drafts
-    - Test ShortName/Summary edits flow through applyEdit
-    - Test metadata section hidden for non-draft assets
+    - Test placeholder card creation flow (mock `handleCreateDraft` function)
+    - **Approach**: Mock Redux store with test player data, verify tab state, card rendering, and click handlers
+  - `charcoal-client/src/components/Library/Edit/__tests__/AssetEditForm.test.tsx`:
+    - Test metadata editing section renders for drafts (`!readonly`)
+    - Test metadata section hidden for non-draft assets (`readonly`)
+    - Test `handleShortNameChange` and `handleSummaryChange` callbacks invoke `updateStandard`
+    - Test ShortName/Summary values loaded from `standardForm` and displayed correctly
+    - **Critical constraint**: **DO NOT attempt direct Slate input testing** - StandardRenderEditor tests demonstrate this is impractical
+    - **Approach**: Mock `useLibraryAsset` hook, verify component rendering, verify `onChange` callbacks receive correct parameters, verify `readonly` prop controls metadata section visibility
+    - Test that ShortName fallback uses asset UUID segment when ShortName is missing
+    - Reference: Follow pattern from `StandardLiteralEditor/index.test.tsx` (mock `useLibraryAsset`, test rendering and callbacks) and `StandardRenderEditor/index.test.tsx` (mock context, avoid direct Slate input testing)
 
 - Integration tests:
-  - Create draft → appears in Drafts tab → navigate to edit → edit metadata → verify save → verify update in listing
-  - Multiple drafts: Create several drafts → verify all appear in Drafts tab → verify navigation to each works
+  - **Deferred to manual testing** - Test drafts end-to-end in real app
+  - Rationale: Integration tests requiring create → navigate → edit → save flow are complex and error-prone; manual testing more practical for Phase 3
+  - Manual test scenarios:
+    - Create draft → appears in Drafts tab → navigate to edit → edit metadata → verify save → verify update in listing
+    - Multiple drafts: Create several drafts → verify all appear in Drafts tab → verify navigation to each works
 
 **Sign-off checks**
 - Personal section displays tabs with correct filtering
