@@ -403,6 +403,14 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref AssetsFunction
       Principal: apigateway.amazonaws.com
+  WMLPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      WMLFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WMLFunction
+      Principal: apigateway.amazonaws.com
   EphemeraFunction:
     Type: AWS::Serverless::Function
     # Metadata:
@@ -1190,19 +1198,11 @@ Resources:
               FilterPolicyScope: MessageAttributes
   CognitoHandlerFunction:
       Type: AWS::Serverless::Function
-      Metadata:
-        BuildMethod: esbuild
-        BuildProperties:
-          Minify: true
-          Target: "es2020"
-          Sourcemap: true
-          EntryPoints: 
-            - app.ts
       Properties:
           Tracing: Active
-          CodeUri: lambda/cognitoEvent/
+          CodeUri: lambda/cognitoEvent/build/
           Runtime: nodejs18.x
-          Handler: app.handler
+          Handler: lambda.handler
           MemorySize: 128
           Timeout: 20
           Environment:
