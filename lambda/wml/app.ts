@@ -92,7 +92,9 @@ export const handler = async (event: any) => {
             event: {
                 type: 'Apply Edit',
                 RequestId: request.RequestId ?? '',
-                schema: request.schema
+                schema: request.schema,
+                createIfNeeded: request.createIfNeeded,
+                zone: request.zone
             },
             timestamp: Date.now()
         })
@@ -120,7 +122,9 @@ export const handler = async (event: any) => {
                     event: {
                         type: 'Apply Edit',
                         RequestId: event.RequestId ?? '',
-                        schema: event.schema
+                        schema: event.schema,
+                        createIfNeeded: event.createIfNeeded,
+                        zone: event.zone
                     },
                     timestamp: Date.now()
                 })

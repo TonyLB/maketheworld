@@ -87,7 +87,9 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                             return await applyEdit({
                                 AssetId,
                                 RequestId: payload.RequestId,
-                                schema: payload.schema
+                                schema: payload.schema,
+                                createIfNeeded: payload.createIfNeeded,
+                                zone: payload.zone
                             })
                         }
                     }) as ApplyEditResult

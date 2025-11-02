@@ -22,6 +22,8 @@ export type ApplyEditRequest = {
     type: 'Apply Edit';
     RequestId: string;
     schema: string;
+    createIfNeeded?: boolean;
+    zone?: Zone;
 }
 
 export type CreateSnapshotRequest = {
@@ -52,6 +54,8 @@ export type ApplyEditRequestExternal = {
     type: 'Apply Edit';
     RequestId: string;
     schema: string;
+    createIfNeeded?: boolean;
+    zone?: Zone;
 }
 
 export type CreateSnapshotRequestExternal = {
@@ -136,7 +140,9 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
             return {
                 type: update.type,
                 RequestId: update.RequestId,
-                schema: update.schema
+                schema: update.schema,
+                createIfNeeded: update.createIfNeeded,
+                zone: update.zone
             }
         } else if (update.type === 'Create Snapshot') {
             return {
@@ -176,7 +182,9 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
             return {
                 type: 'Apply Edit',
                 RequestId: externalUpdate.RequestId,
-                schema: externalUpdate.schema
+                schema: externalUpdate.schema,
+                createIfNeeded: externalUpdate.createIfNeeded,
+                zone: externalUpdate.zone
             }
         } else if (externalUpdate.type === 'Create Snapshot') {
             return {
