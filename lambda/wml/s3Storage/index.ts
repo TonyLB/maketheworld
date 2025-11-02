@@ -432,7 +432,7 @@ const executeAppendChunkStrategy: ExecutionStrategy<AppendChunkArgs, AppendChunk
  * ```
  */
 export async function appendChunk(args: AppendChunkArgs): Promise<AppendChunkResult> {
-    const { assetId, zone, createIfNeeded = false, suffix = 'wml' } = args
+    const { assetId, zone, createIfNeeded = false, suffix = 'wml', authoringPlayer } = args
     
     // Archive zone is frozen - no new chunks allowed
     if (zone === 'Archive') {
@@ -449,7 +449,8 @@ export async function appendChunk(args: AppendChunkArgs): Promise<AppendChunkRes
             assetId,
             suffix,
             zone,
-            createIfNeeded
+            createIfNeeded,
+            player: authoringPlayer
         },
         args,
         executeAppendChunkStrategy

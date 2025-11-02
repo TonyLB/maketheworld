@@ -1506,6 +1506,8 @@ Resources:
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_assets'
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_connections'
           - SNSPublishMessagePolicy:
               TopicName: !GetAtt MTWFeedbackTopic.TopicName
           - StepFunctionsExecutionPolicy:
