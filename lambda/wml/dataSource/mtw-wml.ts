@@ -16,8 +16,9 @@ import { ApplyEditResult } from './applyEdit'
 // Single-flight factory for WML edits - ensures sequential processing per asset
 const wmlEditSingleFlight = singleFlightFactory({
     primaryKey: 'AssetId',
-    optimisticUpdateFunction: assetDB.optimisticUpdate,
-    getItemFunction: assetDB.getItem,
+    // Bind methods to preserve 'this' context when extracted
+    optimisticUpdateFunction: assetDB.optimisticUpdate.bind(assetDB),
+    getItemFunction: assetDB.getItem.bind(assetDB),
     mode: 'sequential', // Process edits sequentially, not concurrently
     timeoutMs: 10000 // 10 second timeout for WML edits
 })

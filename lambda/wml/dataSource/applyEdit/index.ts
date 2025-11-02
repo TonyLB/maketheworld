@@ -85,6 +85,14 @@ export const applyEdit = async (args: ApplyEditArguments): Promise<ApplyEditResu
     // Extract authoringPlayer metadata for chunk provenance
     const authoringPlayer = await internalCache.Connection.get('player')
     
+    // Validate player is available for Draft/Personal zones (required for AssetWorkspace)
+    if ((zone === 'Draft' || zone === 'Personal') && !authoringPlayer) {
+        return {
+            success: false,
+            error: `Player is required for ${zone} zone operations. Connection not authenticated.`
+        }
+    }
+    
     // Delegate to storage system
     const result = await appendChunk({
         assetId: args.AssetId,

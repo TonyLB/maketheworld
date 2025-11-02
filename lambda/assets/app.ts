@@ -27,6 +27,7 @@ import { createBackupEntry } from "./backups"
 import { isEphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { extractReturnValue } from './returnValue'
 import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
+import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { StreamingEventMessage } from "./messageBus/baseClasses"
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
@@ -140,11 +141,14 @@ export const handler = async (event, context) => {
             const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]
             
             if (deserializer) {
-                // Deserialize the external EventBridge event to internal format
+                // Convert EventBridge event to CoreExternalFormat using format transformer
+                const coreFormat = fromEventBridgeFormat(event)
+                
+                // Deserialize the external event to internal format using the serializer
                 const internalEvent = deserializer.deserialize({
-                    dataSourceKey: event.source,
-                    streamKey: event.detail.streamKey || '', // Extract streamKey from detail
-                    externalUpdate: event.detail
+                    dataSourceKey: coreFormat.dataSourceKey,
+                    streamKey: coreFormat.streamKey,
+                    externalUpdate: coreFormat.update as any
                 })
                 
                 // If deserialization failed, log error and skip this event

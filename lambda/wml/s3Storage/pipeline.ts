@@ -118,8 +118,9 @@ export async function fetchAndDecideRepair(args: {
     suffix: ManifestSuffix
     zone: Zone
     createIfNeeded: boolean
+    player?: string
 }): Promise<FetchAndDecideResult | OperationFailure> {
-    const { assetId, suffix, zone, createIfNeeded } = args
+    const { assetId, suffix, zone, createIfNeeded, player } = args
     const prefix = buildPrefix(assetId, suffix)
     
     // Step 1: Load manifest
@@ -127,7 +128,7 @@ export async function fetchAndDecideRepair(args: {
     const manifestMissing = manifest.length === 0
     
     // Step 2: Create workspace and load materialized view
-    const workspace = new AssetWorkspace(assetId, zone)
+    const workspace = new AssetWorkspace(assetId, zone, player)
     const isAuth = suffix === 'auth.wml'
     
     if (isAuth) {
@@ -340,6 +341,7 @@ export async function applyStorageOperation<TArgs, TResult>(
         suffix: ManifestSuffix
         zone: Zone
         createIfNeeded: boolean
+        player?: string
     },
     operationArgs: TArgs,
     strategy: ExecutionStrategy<TArgs, TResult>

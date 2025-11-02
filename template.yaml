@@ -1320,6 +1320,7 @@ Resources:
                   - s3:PutObject
                   - s3:GetObject
                   - s3:DeleteObject
+                  - s3:GetObjectTagging
                 Resource:
                   Fn::Sub:
                       - "arn:aws:s3:::${AssetBucket}/*"
@@ -1506,6 +1507,8 @@ Resources:
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_assets'
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_connections'
           - SNSPublishMessagePolicy:
               TopicName: !GetAtt MTWFeedbackTopic.TopicName
           - StepFunctionsExecutionPolicy:
