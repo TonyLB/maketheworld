@@ -50,10 +50,10 @@ describe('LinkDialog', () => {
     
     const mockStandardForm = new StandardForm(`
         <Asset uuid=(testAsset)>
-            <Feature key=(feature1) />
-            <Feature key=(feature2) />
-            <Knowledge key=(knowledge1) />
-            <Knowledge key=(knowledge2) />
+            <Feature uuid=(feature1) key=(feature1) />
+            <Feature uuid=(feature2) key=(feature2) />
+            <Knowledge uuid=(knowledge1) key=(knowledge1) />
+            <Knowledge uuid=(knowledge2) key=(knowledge2) />
         </Asset>
     `)
 

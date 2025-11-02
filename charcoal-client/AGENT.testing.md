@@ -79,6 +79,36 @@ beforeEach(() => {
 - Create mock variables for better control and resetting
 - Reset mocks in `beforeEach` to ensure clean state
 
+### **Mocking useAutoPin Hook**
+
+The `useAutoPin` hook manages navigation tabs and is commonly used across Library components. It should be mocked in component tests since it has Redux selector dependencies that require complex state setup.
+
+**Standard Pattern**:
+```typescript
+// At the top of your test file, before imports
+vi.mock('../../slices/UI/navigationTabs/useAutoPin', () => ({
+    default: vi.fn()
+}))
+```
+
+**Key Insights**:
+- Mock at the module level before any imports (Vitest hoists `vi.mock` calls)
+- Use `default` export since `useAutoPin` is a default export
+- No need to provide return values - the hook has no return value
+- Mocking prevents Redux selector errors from `navigationTabs` slice
+- **Critical**: The mock path must match the import path in the component being tested
+
+**When to Use This Pattern**:
+- Testing any component that imports `useAutoPin`
+- Avoiding Redux state setup for navigation tabs slice
+- Component tests that don't need to verify tab navigation behavior
+
+**Verifying Mock Works**:
+If the mock isn't working, you'll see errors like `Cannot read properties of undefined (reading 'navigationTabs')`. Verify:
+1. The mock path exactly matches the component's import path
+2. The export name (`default`) matches what the component imports
+3. The mock is defined before the component import (though hoisting should handle this)
+
 ## Material-UI Testing Setup
 
 ### **Theme Provider Wrapper**
