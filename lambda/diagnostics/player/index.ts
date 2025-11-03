@@ -5,7 +5,7 @@ import { splitType } from '@tonylb/mtw-utilities/ts/types'
 import { newGuestName } from "./guestNames"
 
 import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider"
-import { AssetClientPlayerSettings  } from "@tonylb/mtw-interfaces/dist/asset"
+import { AssetClientPlayerSettings  } from "@tonylb/mtw-interfaces/ts/asset"
 
 const { COGNITO_POOL_ID } = process.env
 
