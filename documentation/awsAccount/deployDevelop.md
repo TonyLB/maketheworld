@@ -6,13 +6,32 @@ respository locally (whatever that looks like in your development environment), 
 Install the [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) and use it to package,
 deploy, and describe your application.  These are the commands you'll need to use:
 
-Because of a problem with the SAM CLI and symlinks ([see here](./README.symlinks.md)), you will need to take the following steps to
-generate your code (do each of these steps once when you start out, in this order):
-    - At the top level directory: `npm run build` to create bundled distributions of all the shared packages
-    - In each of the Lambda directories **except** cognitoEvent and initialize: `npm run build:dev` to generate a bundled lambda (including
-    the bundles for the packages) that SAM can use to deploy.
-    - In the `charcoal-client` directory, run `npm run build` to create the bundled version of the web-client that your Cloudformation deploy (below)
-    will use to instantiate your site
+To generate the build artifacts needed for deployment, run the following steps (do each once when you start out, in this order):
+
+1. **Build all Lambda functions**: In each of the 17 Lambda directories, run `npm run build:dev` to generate bundled lambda code with sourcemaps. All lambdas use ESBuild to bundle directly from TypeScript source, including references to the shared packages in `packages/`.
+
+   Lambda directories to build:
+   - `lambda/assets/`
+   - `lambda/authentication/`
+   - `lambda/availableCharacters/`
+   - `lambda/chaos/`
+   - `lambda/cognitoEvent/`
+   - `lambda/connections/`
+   - `lambda/dbStream/`
+   - `lambda/deliverMessageSync/`
+   - `lambda/diagnostics/`
+   - `lambda/ephemera/`
+   - `lambda/feedback/`
+   - `lambda/imageProcessor/`
+   - `lambda/initialize/`
+   - `lambda/llm/`
+   - `lambda/subscriptions/`
+   - `lambda/updateEphemera/`
+   - `lambda/wml/`
+
+2. **Build the frontend client**: In the `charcoal-client` directory, run `npm run build` to create the production build of the React client. This build becomes a Lambda Layer used by the `initialize` function to deploy the client to S3.
+
+**Note**: You do NOT need to build the shared packages in `packages/` separately. ESBuild bundles everything directly from TypeScript source when building each lambda.
 
 Now deploy the running application stack.  Because of the nature of SAM, that's going to involve making yourself an S3 bucket to store code and
 templates (so CloudFormation can get to them easily).  Make that S3 bucket in the console, then, in the top level of your cloned code-base, use
@@ -23,10 +42,12 @@ sam build
 
 sam deploy \
     --template-file packaged.yaml \
-    --stack-name (your desired stack name) \
-    --s3-bucket <Your bucket name here> \
-    --capabilities CAPABILITY_IAM
+    --stack-name <your desired stack name> \
+    --s3-bucket <your bucket name here> \
+    --parameter-overrides TablePrefix=<your table prefix here>
 ```
+
+**Note**: The `samconfig.toml` file already configures the necessary IAM capabilities, so you don't need to specify `--capabilities` on the command line. The `TablePrefix` parameter is required and will be used as the prefix for all DynamoDB tables and S3 buckets (e.g., `mtw` creates `mtw_assets`, `mtw_ephemera`, etc.).
 
 #### Deploying the local front end
 
