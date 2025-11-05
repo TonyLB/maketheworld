@@ -99,7 +99,7 @@ describe('appendChunk (unit tests with mocked pipeline)', () => {
         
         // Mock uuidv4
         let uuidCounter = 0
-        mockUuidv4.mockImplementation(() => `event-id-${++uuidCounter}`)
+        mockUuidv4.mockImplementation(() => `event-id-${++uuidCounter}` as any)
         
         // Mock strategy dependencies
         mockWriteChunk.mockResolvedValue({
@@ -417,15 +417,23 @@ describe('appendChunk (unit tests with mocked pipeline)', () => {
             expect(mockWorkspaceInstance.pushJSON).toHaveBeenCalledTimes(1)
             expect(mockWorkspaceInstance.pushWML).toHaveBeenCalledTimes(1)
             
-            // Should batch all events (ZoneChange + Snapshot + Chunk)
+            // KEY OPTIMIZATION TEST: Should NOT write chunk file
+            // When synthesizing empty with initial content, the snapshot captures the merged content
+            // This avoids redundant "empty snapshot + chunk" pattern
+            expect(mockWriteChunk).not.toHaveBeenCalled()
+            
+            // Should batch repair events only (ZoneChange + Snapshot, NO Chunk)
+            // The snapshot already contains the merged content, so no chunk event needed
             expect(mockAppendManifestEvents).toHaveBeenCalledWith('test-room.wml/', [
                 expect.objectContaining({ type: 'zoneChange' }),
-                expect.objectContaining({ type: 'snapshot' }),
-                expect.objectContaining({ type: 'chunk' })
+                expect.objectContaining({ type: 'snapshot' })
+                // NO chunk event - optimization for empty synthesis with initial content
             ])
             
-            // Should report repair performed
+            // Should report repair performed but chunk metadata is undefined (no chunk written)
             expect(result.metadata.repairPerformed).toBe(true)
+            expect(result.metadata.chunkKey).toBeUndefined()
+            expect(result.metadata.chunkSize).toBeUndefined()
             expect(result.metadata.repairActions).toEqual({
                 createdSnapshot: true,
                 reconstructedView: false,
@@ -1210,11 +1218,18 @@ describe('purgeAsset (unit tests)', () => {
         
         it('should handle asset with UUID containing special characters', async () => {
             const specialAssetId = 'ASSET#test-room-v2.0' as any
-            mockWorkspaceInstance.assetId = specialAssetId
-            mockWorkspaceInstance.s3Key = 'test-room-v2.0'
-            mockWorkspaceInstance.s3KeyFor = jest.fn((type) => `test-room-v2.0.${type}`)
-            mockWorkspaceInstance.listObjects = jest.fn().mockResolvedValue([])
-            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(4)
+            
+            // Create a new mock workspace with the special asset ID
+            const specialWorkspace = {
+                assetId: specialAssetId,
+                zone: 'Archive',
+                get s3Key() { return 'test-room-v2.0' },
+                s3KeyFor: jest.fn((type) => `test-room-v2.0.${type}`),
+                listObjects: jest.fn().mockResolvedValue([]),
+                deleteObjects: jest.fn().mockResolvedValue(4)
+            } as any
+            
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(specialWorkspace)
             
             const result = await purgeAsset({
                 assetId: specialAssetId,
@@ -1225,8 +1240,8 @@ describe('purgeAsset (unit tests)', () => {
             if (!result.success) return
             
             // Should use workspace.s3Key correctly
-            expect(mockWorkspaceInstance.listObjects).toHaveBeenCalledWith('test-room-v2.0.wml/')
-            expect(mockWorkspaceInstance.listObjects).toHaveBeenCalledWith('test-room-v2.0.auth.wml/')
+            expect(specialWorkspace.listObjects).toHaveBeenCalledWith('test-room-v2.0.wml/')
+            expect(specialWorkspace.listObjects).toHaveBeenCalledWith('test-room-v2.0.auth.wml/')
         })
         
         it('should handle deletion count mismatch (some files already missing)', async () => {
