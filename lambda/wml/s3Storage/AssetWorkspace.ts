@@ -5,6 +5,7 @@ import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 import { deepEqual } from '@tonylb/mtw-asset-workspace/ts/objects'
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { ListObjectsV2Command, DeleteObjectsCommand } from "@aws-sdk/client-s3"
 
 export { Zone } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 
@@ -217,6 +218,76 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
             this.authStatus.wml = 'Clean'
             this.authStatus.json = 'Dirty'
         }
+    }
+
+    /**
+     * List all S3 objects with a given prefix
+     * 
+     * Used for finding all files associated with this asset (manifests, chunks, snapshots).
+     * Handles pagination automatically.
+     * 
+     * @param prefix - S3 prefix to search under
+     * @returns Array of S3 keys
+     */
+    async listObjects(prefix: string): Promise<string[]> {
+        const keys: string[] = []
+        let continuationToken: string | undefined
+        
+        const { S3_BUCKET = 'Test' } = process.env
+        
+        do {
+            const response = await s3Client.internalClient.send(new ListObjectsV2Command({
+                Bucket: S3_BUCKET,
+                Prefix: prefix,
+                ContinuationToken: continuationToken
+            }))
+            
+            if (response.Contents) {
+                keys.push(...response.Contents.map(obj => obj.Key).filter((key): key is string => key !== undefined))
+            }
+            
+            continuationToken = response.NextContinuationToken
+        } while (continuationToken)
+        
+        return keys
+    }
+
+    /**
+     * Delete multiple S3 objects in batch
+     * 
+     * Used for purging assets. Handles batching automatically (S3 limit is 1000 objects per request).
+     * Multiple batches are executed in parallel for efficiency.
+     * 
+     * @param keys - Array of S3 keys to delete
+     * @returns Number of objects successfully deleted
+     */
+    async deleteObjects(keys: string[]): Promise<number> {
+        if (keys.length === 0) {
+            return 0
+        }
+        
+        const { S3_BUCKET = 'Test' } = process.env
+        
+        // S3 DeleteObjects supports up to 1000 keys per request
+        // Create batches and execute in parallel
+        const batches: string[][] = []
+        for (let i = 0; i < keys.length; i += 1000) {
+            batches.push(keys.slice(i, i + 1000))
+        }
+        
+        const responses = await Promise.all(
+            batches.map(batch => 
+                s3Client.internalClient.send(new DeleteObjectsCommand({
+                    Bucket: S3_BUCKET,
+                    Delete: {
+                        Objects: batch.map(Key => ({ Key }))
+                    }
+                }))
+            )
+        )
+        
+        // Sum up deleted counts from all batches
+        return responses.reduce((total, response) => total + (response.Deleted?.length ?? 0), 0)
     }
 
 }

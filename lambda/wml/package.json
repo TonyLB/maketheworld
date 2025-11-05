@@ -22,6 +22,7 @@
     "@tonylb/mtw-interfaces": "file:../../packages/mtw-interfaces",
     "@tonylb/mtw-lambda-patterns": "file:../../packages/mtw-lambda-patterns",
     "@tonylb/mtw-utilities": "file:../../packages/mtw-utilities",
+    "@tonylb/mtw-wml": "file:../../packages/mtw-wml",
     "jimp": "^0.22.10",
     "tar-stream": "^3.1.7"
   },
