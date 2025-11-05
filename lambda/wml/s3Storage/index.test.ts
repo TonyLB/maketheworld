@@ -1,14 +1,15 @@
 /**
  * Storage Operations Tests
  * 
- * Tests for appendChunk and changeZone operations using mocked pipeline.
- * The pipeline's decision logic is tested separately in pipeline.test.ts.
+ * Tests for appendChunk, changeZone, and purgeAsset operations.
+ * appendChunk and changeZone use mocked pipeline.
+ * purgeAsset is tested directly without pipeline (simpler operation).
  * 
  * Test focus: Verify that execution strategies behave correctly given
- * different repair decisions from the pipeline.
+ * different repair decisions from the pipeline (or direct logic for purgeAsset).
  */
 
-import { appendChunk, changeZone } from './index'
+import { appendChunk, changeZone, purgeAsset } from './index'
 
 // Mock the pipeline and dependencies that strategies call
 jest.mock('./pipeline')
@@ -98,7 +99,7 @@ describe('appendChunk (unit tests with mocked pipeline)', () => {
         
         // Mock uuidv4
         let uuidCounter = 0
-        mockUuidv4.mockImplementation(() => `event-id-${++uuidCounter}`)
+        mockUuidv4.mockImplementation(() => `event-id-${++uuidCounter}` as any)
         
         // Mock strategy dependencies
         mockWriteChunk.mockResolvedValue({
@@ -416,15 +417,23 @@ describe('appendChunk (unit tests with mocked pipeline)', () => {
             expect(mockWorkspaceInstance.pushJSON).toHaveBeenCalledTimes(1)
             expect(mockWorkspaceInstance.pushWML).toHaveBeenCalledTimes(1)
             
-            // Should batch all events (ZoneChange + Snapshot + Chunk)
+            // KEY OPTIMIZATION TEST: Should NOT write chunk file
+            // When synthesizing empty with initial content, the snapshot captures the merged content
+            // This avoids redundant "empty snapshot + chunk" pattern
+            expect(mockWriteChunk).not.toHaveBeenCalled()
+            
+            // Should batch repair events only (ZoneChange + Snapshot, NO Chunk)
+            // The snapshot already contains the merged content, so no chunk event needed
             expect(mockAppendManifestEvents).toHaveBeenCalledWith('test-room.wml/', [
                 expect.objectContaining({ type: 'zoneChange' }),
-                expect.objectContaining({ type: 'snapshot' }),
-                expect.objectContaining({ type: 'chunk' })
+                expect.objectContaining({ type: 'snapshot' })
+                // NO chunk event - optimization for empty synthesis with initial content
             ])
             
-            // Should report repair performed
+            // Should report repair performed but chunk metadata is undefined (no chunk written)
             expect(result.metadata.repairPerformed).toBe(true)
+            expect(result.metadata.chunkKey).toBeUndefined()
+            expect(result.metadata.chunkSize).toBeUndefined()
             expect(result.metadata.repairActions).toEqual({
                 createdSnapshot: true,
                 reconstructedView: false,
@@ -554,7 +563,7 @@ describe('changeZone (unit tests with mocked pipeline)', () => {
         jest.clearAllMocks()
         
         let uuidCounter = 0
-        mockUuidv4.mockImplementation(() => `event-id-${++uuidCounter}`)
+        mockUuidv4.mockImplementation(() => `event-id-${++uuidCounter}` as any)
         
         mockS3Client.updateTags = jest.fn().mockResolvedValue(undefined)
         mockWriteSnapshot.mockResolvedValue({
@@ -824,6 +833,433 @@ describe('changeZone (unit tests with mocked pipeline)', () => {
             expect(startTimes.length).toBe(2)
             expect(endTimes.length).toBe(2)
             expect(startTimes[1]).toBeLessThan(endTimes[0])
+        })
+    })
+})
+
+describe('purgeAsset (unit tests)', () => {
+    let mockWorkspaceInstance: AssetWorkspace
+    
+    beforeEach(() => {
+        jest.clearAllMocks()
+        
+        // Create mock workspace instance
+        mockWorkspaceInstance = {
+            assetId: TEST_ASSET_ID,
+            zone: 'Draft',
+            s3Key: 'test-room',
+            s3KeyFor: jest.fn((type) => `test-room.${type}`),
+            listObjects: jest.fn(),
+            deleteObjects: jest.fn()
+        } as any
+        
+        // Mock AssetWorkspace.fromUUID
+        MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(mockWorkspaceInstance)
+    })
+    
+    describe('successful deletion', () => {
+        it('should delete asset from Draft zone', async () => {
+            mockWorkspaceInstance.zone = 'Draft'
+            mockWorkspaceInstance.listObjects = jest.fn()
+                .mockResolvedValueOnce(['test-room.wml/manifest-latest.ndjson', 'test-room.wml/chunks/123.wml'])  // Content prefix
+                .mockResolvedValueOnce(['test-room.auth.wml/manifest-latest.ndjson'])  // Auth prefix
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(7)  // 4 materialized views + 3 from prefixes
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Draft'
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            // Should fetch workspace
+            expect(MockAssetWorkspace.fromUUID).toHaveBeenCalledWith(TEST_ASSET_ID)
+            
+            // Should list objects under both prefixes
+            expect(mockWorkspaceInstance.listObjects).toHaveBeenCalledTimes(2)
+            expect(mockWorkspaceInstance.listObjects).toHaveBeenCalledWith('test-room.wml/')
+            expect(mockWorkspaceInstance.listObjects).toHaveBeenCalledWith('test-room.auth.wml/')
+            
+            // Should delete all files
+            expect(mockWorkspaceInstance.deleteObjects).toHaveBeenCalledWith([
+                'test-room.wml',
+                'test-room.ndjson',
+                'test-room.auth.wml',
+                'test-room.auth.ndjson',
+                'test-room.wml/manifest-latest.ndjson',
+                'test-room.wml/chunks/123.wml',
+                'test-room.auth.wml/manifest-latest.ndjson'
+            ])
+            
+            // Should return correct metadata
+            expect(result.metadata.objectsDeleted).toBe(7)
+            expect(result.metadata.deletedKeys).toHaveLength(7)
+            expect(result.metadata.zone).toBe('Draft')
+        })
+        
+        it('should delete asset from Archive zone', async () => {
+            mockWorkspaceInstance.zone = 'Archive'
+            mockWorkspaceInstance.listObjects = jest.fn().mockResolvedValue([])
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(4)
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Archive'
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            expect(result.metadata.zone).toBe('Archive')
+            expect(result.metadata.objectsDeleted).toBe(4)
+        })
+        
+        it('should include all materialized views in deletion', async () => {
+            mockWorkspaceInstance.zone = 'Draft'
+            mockWorkspaceInstance.listObjects = jest.fn().mockResolvedValue([])
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(4)
+            
+            await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Draft'
+            })
+            
+            // Should use s3KeyFor for materialized views
+            expect(mockWorkspaceInstance.s3KeyFor).toHaveBeenCalledWith('wml')
+            expect(mockWorkspaceInstance.s3KeyFor).toHaveBeenCalledWith('ndjson')
+            expect(mockWorkspaceInstance.s3KeyFor).toHaveBeenCalledWith('auth.wml')
+            expect(mockWorkspaceInstance.s3KeyFor).toHaveBeenCalledWith('auth.ndjson')
+        })
+        
+        it('should handle large number of files in prefixes', async () => {
+            mockWorkspaceInstance.zone = 'Archive'
+            
+            // Simulate many chunks and snapshots
+            const manyChunks = Array.from({ length: 100 }, (_, i) => `test-room.wml/chunks/${i}.wml`)
+            const manySnapshots = Array.from({ length: 50 }, (_, i) => `test-room.wml/snapshots/${i}.wml`)
+            
+            mockWorkspaceInstance.listObjects = jest.fn()
+                .mockResolvedValueOnce([...manyChunks, ...manySnapshots])
+                .mockResolvedValueOnce([])
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(154)  // 4 + 150
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Archive'
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            expect(result.metadata.objectsDeleted).toBe(154)
+            expect(result.metadata.deletedKeys).toHaveLength(154)
+        })
+    })
+    
+    describe('zone restrictions', () => {
+        it('should reject purge from Canon zone', async () => {
+            mockWorkspaceInstance.zone = 'Canon'
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Canon' as any  // Cast to bypass type check
+            })
+            
+            expect(result.success).toBe(false)
+            if (result.success) return
+            
+            expect(result.errorType).toBe('zone-not-purgeable')
+            expect(result.error).toContain('Canon')
+            expect(result.error).toContain('Draft and Archive')
+            
+            // Should NOT delete anything
+            expect(mockWorkspaceInstance.listObjects).not.toHaveBeenCalled()
+            expect(mockWorkspaceInstance.deleteObjects).not.toHaveBeenCalled()
+        })
+        
+        it('should reject purge from Library zone', async () => {
+            mockWorkspaceInstance.zone = 'Library'
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Library' as any
+            })
+            
+            expect(result.success).toBe(false)
+            if (result.success) return
+            
+            expect(result.errorType).toBe('zone-not-purgeable')
+            expect(result.error).toContain('Library')
+        })
+        
+        it('should reject purge from Personal zone', async () => {
+            mockWorkspaceInstance.zone = 'Personal'
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Personal' as any
+            })
+            
+            expect(result.success).toBe(false)
+            if (result.success) return
+            
+            expect(result.errorType).toBe('zone-not-purgeable')
+            expect(result.error).toContain('Personal')
+        })
+    })
+    
+    describe('zone mismatch', () => {
+        it('should reject when asset is in different zone than expected', async () => {
+            mockWorkspaceInstance.zone = 'Draft'
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Archive'  // Expecting Archive but it's in Draft
+            })
+            
+            expect(result.success).toBe(false)
+            if (result.success) return
+            
+            expect(result.errorType).toBe('zone-mismatch')
+            expect(result.error).toContain('Draft')
+            expect(result.error).toContain('Archive')
+            
+            // Should NOT delete anything
+            expect(mockWorkspaceInstance.deleteObjects).not.toHaveBeenCalled()
+        })
+        
+        it('should check zone restriction before zone match', async () => {
+            // Asset is in Library (not purgeable)
+            mockWorkspaceInstance.zone = 'Library'
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Draft'  // Even with mismatch, purgeable check should come first
+            })
+            
+            expect(result.success).toBe(false)
+            if (result.success) return
+            
+            // Should fail on zone-not-purgeable, not zone-mismatch
+            expect(result.errorType).toBe('zone-not-purgeable')
+        })
+    })
+    
+    describe('asset not found', () => {
+        it('should fail when asset does not exist and requireExists is true', async () => {
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(undefined)
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Draft',
+                requireExists: true
+            })
+            
+            expect(result.success).toBe(false)
+            if (result.success) return
+            
+            expect(result.errorType).toBe('not-found')
+            expect(result.error).toContain('not found')
+        })
+        
+        it('should succeed when asset does not exist and requireExists is false (idempotent)', async () => {
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(undefined)
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Archive',
+                requireExists: false
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            expect(result.metadata.objectsDeleted).toBe(0)
+            expect(result.metadata.deletedKeys).toEqual([])
+            expect(result.metadata.zone).toBe('Archive')  // Returns expected zone
+        })
+        
+        it('should default requireExists to true', async () => {
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(undefined)
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Draft'
+                // requireExists not specified
+            })
+            
+            expect(result.success).toBe(false)
+            if (result.success) return
+            
+            expect(result.errorType).toBe('not-found')
+        })
+        
+        it('should handle lookup errors with requireExists false', async () => {
+            MockAssetWorkspace.fromUUID = jest.fn().mockRejectedValue(new Error('DynamoDB error'))
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Archive',
+                requireExists: false
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            // Should treat as "already deleted"
+            expect(result.metadata.objectsDeleted).toBe(0)
+        })
+        
+        it('should fail on lookup errors with requireExists true', async () => {
+            MockAssetWorkspace.fromUUID = jest.fn().mockRejectedValue(new Error('DynamoDB connection failed'))
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Draft',
+                requireExists: true
+            })
+            
+            expect(result.success).toBe(false)
+            if (result.success) return
+            
+            expect(result.errorType).toBe('s3-error')
+            expect(result.error).toContain('DynamoDB')
+        })
+    })
+    
+    describe('error handling', () => {
+        beforeEach(() => {
+            mockWorkspaceInstance.zone = 'Draft'
+        })
+        
+        it('should handle S3 list errors', async () => {
+            mockWorkspaceInstance.listObjects = jest.fn().mockRejectedValue(new Error('S3 ListObjects failed'))
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Draft'
+            })
+            
+            expect(result.success).toBe(false)
+            if (result.success) return
+            
+            expect(result.errorType).toBe('s3-error')
+            expect(result.error).toContain('S3 ListObjects failed')
+            
+            // Should NOT attempt deletion
+            expect(mockWorkspaceInstance.deleteObjects).not.toHaveBeenCalled()
+        })
+        
+        it('should handle S3 delete errors', async () => {
+            mockWorkspaceInstance.listObjects = jest.fn().mockResolvedValue([])
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockRejectedValue(new Error('S3 DeleteObjects access denied'))
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Draft'
+            })
+            
+            expect(result.success).toBe(false)
+            if (result.success) return
+            
+            expect(result.errorType).toBe('s3-error')
+            expect(result.error).toContain('S3 DeleteObjects access denied')
+        })
+        
+        it('should handle partial listing failure', async () => {
+            // First listObjects succeeds, second fails
+            mockWorkspaceInstance.listObjects = jest.fn()
+                .mockResolvedValueOnce(['test-room.wml/manifest.ndjson'])
+                .mockRejectedValueOnce(new Error('S3 error on second prefix'))
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Draft'
+            })
+            
+            expect(result.success).toBe(false)
+            if (result.success) return
+            
+            expect(result.errorType).toBe('s3-error')
+            
+            // Should NOT attempt deletion if listing failed
+            expect(mockWorkspaceInstance.deleteObjects).not.toHaveBeenCalled()
+        })
+    })
+    
+    describe('edge cases', () => {
+        beforeEach(() => {
+            mockWorkspaceInstance.zone = 'Archive'
+        })
+        
+        it('should handle empty prefixes (no chunks/snapshots)', async () => {
+            mockWorkspaceInstance.listObjects = jest.fn().mockResolvedValue([])
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(4)
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Archive'
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            // Should still delete materialized views
+            expect(mockWorkspaceInstance.deleteObjects).toHaveBeenCalledWith([
+                'test-room.wml',
+                'test-room.ndjson',
+                'test-room.auth.wml',
+                'test-room.auth.ndjson'
+            ])
+            
+            expect(result.metadata.objectsDeleted).toBe(4)
+        })
+        
+        it('should handle asset with UUID containing special characters', async () => {
+            const specialAssetId = 'ASSET#test-room-v2.0' as any
+            
+            // Create a new mock workspace with the special asset ID
+            const specialWorkspace = {
+                assetId: specialAssetId,
+                zone: 'Archive',
+                get s3Key() { return 'test-room-v2.0' },
+                s3KeyFor: jest.fn((type) => `test-room-v2.0.${type}`),
+                listObjects: jest.fn().mockResolvedValue([]),
+                deleteObjects: jest.fn().mockResolvedValue(4)
+            } as any
+            
+            MockAssetWorkspace.fromUUID = jest.fn().mockResolvedValue(specialWorkspace)
+            
+            const result = await purgeAsset({
+                assetId: specialAssetId,
+                expectedZone: 'Archive'
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            // Should use workspace.s3Key correctly
+            expect(specialWorkspace.listObjects).toHaveBeenCalledWith('test-room-v2.0.wml/')
+            expect(specialWorkspace.listObjects).toHaveBeenCalledWith('test-room-v2.0.auth.wml/')
+        })
+        
+        it('should handle deletion count mismatch (some files already missing)', async () => {
+            mockWorkspaceInstance.listObjects = jest.fn().mockResolvedValue([])
+            // Tried to delete 4 files but only 3 existed
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(3)
+            
+            const result = await purgeAsset({
+                assetId: TEST_ASSET_ID,
+                expectedZone: 'Archive'
+            })
+            
+            expect(result.success).toBe(true)
+            if (!result.success) return
+            
+            // Should report actual deleted count
+            expect(result.metadata.objectsDeleted).toBe(3)
+            expect(result.metadata.deletedKeys).toHaveLength(4)  // Keys we tried to delete
         })
     })
 })

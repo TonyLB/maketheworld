@@ -115,6 +115,15 @@ s3://bucket/
 - Optimized for tag-only updates (no content changes)
 - Supports all zone transitions including Archive
 
+#### `purgeAsset(args: PurgeAssetArgs)`
+- Permanently deletes an asset and all associated files
+- **Zone Restriction**: Only allows purging from Draft or Archive zones
+- Validates asset zone matches expected zone (safety check)
+- Deletes materialized views, manifests, chunks, and snapshots
+- **IRREVERSIBLE**: No recovery mechanism after deletion
+- Supports idempotent mode (succeeds if asset already deleted)
+- **Protected Zones**: Canon, Library, and Personal assets must be moved to Archive before purging
+
 ### Self-Repair Infrastructure
 
 #### Generic Pipeline Pattern
@@ -231,6 +240,7 @@ The `wml` lambda requires the following S3 permissions on the assets bucket:
 - **`s3:CopyObject`**: Copy materialized views to snapshot locations (efficient S3-to-S3 operations)
 - **`s3:GetObjectTagging`**: Read zone tags and other object tags (used by `ReadOnlyAssetWorkspace.fromUUID()` S3 fallback and zone detection)
 - **`s3:PutObjectTagging`**: Update zone tags during zone transitions (used by `changeZone()` operations)
+- **`s3:DeleteObject`**: Delete individual objects (used by `purgeAsset()` for permanent asset deletion)
 
 ### S3 Resources
 
@@ -246,6 +256,7 @@ These permissions support:
 - **Zone Transitions**: Updating S3 tags during `moveAsset` operations
 - **Snapshot Operations**: Copying materialized views to snapshot locations
 - **Self-Repair**: Reconstructing missing materialized views from manifests
+- **Asset Deletion**: Permanently removing assets and all associated files via `purgeAsset`
 
 ## Related Documentation
 

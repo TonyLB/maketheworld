@@ -9,7 +9,8 @@
  * 
  * Operations provided:
  * - appendChunk: Apply a WML edit as a new chunk
- * - (Future: changeZone, createSnapshot, etc.)
+ * - changeZone: Update asset zone by modifying S3 tags
+ * - purgeAsset: Permanently delete an asset and all its files
  * 
  * Design Philosophy:
  * - Operations are named descriptively (appendChunk, not "applyOperation")
@@ -19,7 +20,7 @@
  */
 
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { Zone } from './AssetWorkspace'
+import { Zone, AssetWorkspace } from './AssetWorkspace'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
@@ -34,10 +35,7 @@ import { buildPrefix, ManifestSuffix } from './tools'
 import { 
     applyStorageOperation, 
     ExecutionStrategy,
-    FetchAndDecideResult,
-    RepairDecision,
-    RepairActions,
-    OperationFailure 
+    RepairActions
 } from './pipeline'
 
 /**
@@ -236,6 +234,86 @@ export interface ChangeZoneFailure {
  * Result from changeZone operation
  */
 export type ChangeZoneResult = ChangeZoneSuccess | ChangeZoneFailure
+
+/**
+ * Arguments for purgeAsset operation
+ */
+export interface PurgeAssetArgs {
+    /**
+     * Asset UUID to permanently delete
+     */
+    assetId: AssetUUID
+    
+    /**
+     * Expected zone for validation
+     * Operation will fail if asset is not in this zone
+     * This is a safety check to prevent accidental deletion
+     * 
+     * **Only Draft and Archive zones are allowed for purging**
+     * - To delete from Canon/Library/Personal: first move to Archive, then purge
+     */
+    expectedZone: 'Draft' | 'Archive'
+    
+    /**
+     * Whether to require the asset to exist
+     * 
+     * When true (default):
+     * - Returns error if asset doesn't exist
+     * 
+     * When false:
+     * - Returns success if asset already gone (idempotent)
+     */
+    requireExists?: boolean
+}
+
+/**
+ * Successful result from purgeAsset operation
+ */
+export interface PurgeAssetSuccess {
+    success: true
+    
+    /**
+     * Metadata about what was deleted
+     */
+    metadata: {
+        /**
+         * Number of objects deleted from S3
+         */
+        objectsDeleted: number
+        
+        /**
+         * Keys of deleted objects (for audit/logging)
+         */
+        deletedKeys: string[]
+        
+        /**
+         * Zone the asset was in when deleted
+         */
+        zone: Zone
+    }
+}
+
+/**
+ * Failed result from purgeAsset operation
+ */
+export interface PurgeAssetFailure {
+    success: false
+    
+    /**
+     * Human-readable error message
+     */
+    error: string
+    
+    /**
+     * Error category for structured error handling
+     */
+    errorType: 'validation' | 'not-found' | 'zone-mismatch' | 'zone-not-purgeable' | 's3-error'
+}
+
+/**
+ * Result from purgeAsset operation
+ */
+export type PurgeAssetResult = PurgeAssetSuccess | PurgeAssetFailure
 
 //
 // Internal helper types specific to index.ts operations
@@ -681,6 +759,197 @@ export async function changeZone(args: ChangeZoneArgs): Promise<ChangeZoneResult
                 reconstructedView: contentResult.repairActions?.reconstructedView || authResult.repairActions?.reconstructedView || false,
                 synthesizedEmpty: contentResult.repairActions?.synthesizedEmpty || authResult.repairActions?.synthesizedEmpty || false
             } : undefined
+        }
+    }
+}
+
+/**
+ * Permanently delete an asset and all its associated files
+ * 
+ * This operation:
+ * 1. Validates the asset exists and is in a purgeable zone (Draft or Archive)
+ * 2. Validates the asset zone matches the expected zone
+ * 3. Lists all S3 objects for the asset (materialized views, manifests, chunks, snapshots)
+ * 4. Deletes all objects in batches
+ * 5. Returns metadata about deleted objects
+ * 
+ * Files deleted:
+ * - Materialized views: {uuid}.wml, {uuid}.ndjson, {uuid}.auth.wml, {uuid}.auth.ndjson
+ * - Manifests: {uuid}.wml/manifest-latest.ndjson, {uuid}.auth.wml/manifest-latest.ndjson
+ * - All chunks: {uuid}.wml/chunks/*, {uuid}.auth.wml/chunks/*
+ * - All snapshots: {uuid}.wml/snapshots/*, {uuid}.auth.wml/snapshots/*
+ * 
+ * Zone Restrictions:
+ * - **Only Draft and Archive zones can be purged**
+ * - Canon, Library, and Personal zones are protected from purging
+ * - To delete from other zones: first move to Archive, then purge
+ * 
+ * Safety Features:
+ * - Zone restriction prevents accidental deletion of published/shared content
+ * - Requires expectedZone parameter for validation (prevents accidental deletion)
+ * - Returns zone-mismatch error if asset is not in expected zone
+ * - Optional requireExists flag for idempotent behavior
+ * 
+ * IMPORTANT:
+ * - This is a PERMANENT, IRREVERSIBLE operation
+ * - No recovery mechanism exists once files are deleted
+ * - Caller must hold singleFlight/atomicLock for this assetId
+ * - Consider moving to Archive zone first for soft-delete semantics
+ * 
+ * Concurrency:
+ * - Caller must hold singleFlight/atomicLock for this assetId
+ * - This function assumes sequential execution (no concurrent operations)
+ * 
+ * @param args - Operation arguments
+ * @returns PurgeAssetResult with success status and deletion metadata
+ * 
+ * @example
+ * ```typescript
+ * // Delete from Draft zone
+ * const result = await purgeAsset({
+ *     assetId: 'ASSET#old-draft',
+ *     expectedZone: 'Draft'
+ * })
+ * 
+ * if (result.success) {
+ *     console.log(`Deleted ${result.metadata.objectsDeleted} objects`)
+ * } else {
+ *     console.error('Failed:', result.error)
+ * }
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // Two-step deletion from Library: move to Archive, then purge
+ * await changeZone({
+ *     assetId: 'ASSET#old-library-asset',
+ *     fromZone: 'Library',
+ *     toZone: 'Archive',
+ *     timestamp: Date.now()
+ * })
+ * 
+ * const result = await purgeAsset({
+ *     assetId: 'ASSET#old-library-asset',
+ *     expectedZone: 'Archive'
+ * })
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // Idempotent deletion (doesn't fail if already gone)
+ * const result = await purgeAsset({
+ *     assetId: 'ASSET#maybe-deleted',
+ *     expectedZone: 'Archive',
+ *     requireExists: false
+ * })
+ * ```
+ */
+export async function purgeAsset(args: PurgeAssetArgs): Promise<PurgeAssetResult> {
+    const { assetId, expectedZone, requireExists = true } = args
+    
+    // Step 1: Check if asset exists and get its current zone
+    // Use AssetWorkspace (not ReadOnlyAssetWorkspace) to get access to delete methods
+    let workspace: AssetWorkspace | undefined
+    try {
+        workspace = await AssetWorkspace.fromUUID(assetId)
+    } catch (err) {
+        // Error during lookup
+        if (requireExists) {
+            return {
+                success: false,
+                error: err instanceof Error ? err.message : 'Failed to lookup asset',
+                errorType: 's3-error'
+            }
+        }
+        workspace = undefined
+    }
+    
+    // Asset doesn't exist
+    if (!workspace) {
+        if (requireExists) {
+            return {
+                success: false,
+                error: `Asset ${assetId} not found`,
+                errorType: 'not-found'
+            }
+        } else {
+            // Idempotent mode: already deleted is success
+            return {
+                success: true,
+                metadata: {
+                    objectsDeleted: 0,
+                    deletedKeys: [],
+                    zone: expectedZone
+                }
+            }
+        }
+    }
+    
+    // Step 2: Validate zone is purgeable (safety check)
+    // Only allow purging from Draft or Archive zones to prevent accidental deletion of published content
+    if (workspace.zone !== 'Draft' && workspace.zone !== 'Archive') {
+        return {
+            success: false,
+            error: `Cannot purge asset from ${workspace.zone} zone. Only Draft and Archive zones can be purged. Move to Archive first if you need to delete from other zones.`,
+            errorType: 'zone-not-purgeable'
+        }
+    }
+    
+    // Step 3: Validate zone matches expected zone (additional safety check)
+    if (workspace.zone !== expectedZone) {
+        return {
+            success: false,
+            error: `Asset is in ${workspace.zone} zone, expected ${expectedZone}. Aborting for safety.`,
+            errorType: 'zone-mismatch'
+        }
+    }
+    
+    // Step 4: Build list of all keys to delete
+    const keysToDelete: string[] = []
+    
+    // Materialized views (use workspace methods for key construction)
+    keysToDelete.push(
+        workspace.s3KeyFor('wml'),
+        workspace.s3KeyFor('ndjson'),
+        workspace.s3KeyFor('auth.wml'),
+        workspace.s3KeyFor('auth.ndjson')
+    )
+    
+    // Step 5: List all objects under prefixes (manifests, chunks, snapshots)
+    try {
+        const [contentPrefixKeys, authPrefixKeys] = await Promise.all([
+            workspace.listObjects(`${workspace.s3Key}.wml/`),
+            workspace.listObjects(`${workspace.s3Key}.auth.wml/`)
+        ])
+        
+        keysToDelete.push(...contentPrefixKeys, ...authPrefixKeys)
+    } catch (err) {
+        return {
+            success: false,
+            error: err instanceof Error ? err.message : 'Failed to list objects',
+            errorType: 's3-error'
+        }
+    }
+    
+    // Step 6: Delete all objects in batch
+    let objectsDeleted: number
+    try {
+        objectsDeleted = await workspace.deleteObjects(keysToDelete)
+    } catch (err) {
+        return {
+            success: false,
+            error: err instanceof Error ? err.message : 'Failed to delete objects',
+            errorType: 's3-error'
+        }
+    }
+    
+    // Step 7: Return success with metadata
+    return {
+        success: true,
+        metadata: {
+            objectsDeleted,
+            deletedKeys: keysToDelete,
+            zone: workspace.zone
         }
     }
 }
