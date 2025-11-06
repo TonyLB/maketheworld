@@ -37,8 +37,14 @@ export type WMLSnapshotEvent = {
     snapshotSize: number
 }
 
+export type WMLPurgeEvent = {
+    type: 'Asset Purged'
+    zone: 'Draft' | 'Archive'
+    objectsDeleted: number
+}
+
 // Union type for all internal WML events
-export type WMLEventUpdate = WMLContentEvent | WMLZoneEvent | WMLSnapshotEvent
+export type WMLEventUpdate = WMLContentEvent | WMLZoneEvent | WMLSnapshotEvent | WMLPurgeEvent
 
 // External types for WML events
 export type WMLContentEventExternal = 
@@ -68,8 +74,14 @@ export type WMLSnapshotEventExternal = {
     snapshotSize: number
 }
 
+export type WMLPurgeEventExternal = {
+    type: 'Asset Purged'
+    zone: 'Draft' | 'Archive'
+    objectsDeleted: number
+}
+
 // Union type for all external WML events
-export type WMLEventExternal = WMLContentEventExternal | WMLZoneEventExternal | WMLSnapshotEventExternal
+export type WMLEventExternal = WMLContentEventExternal | WMLZoneEventExternal | WMLSnapshotEventExternal | WMLPurgeEventExternal
 
 // Type guards
 export const isWMLContentEvent = (event: any): event is WMLContentEvent => {
@@ -150,6 +162,18 @@ export const isWMLSnapshotEvent = (event: any): event is WMLSnapshotEvent => {
     )
 }
 
+export const isWMLPurgeEvent = (event: any): event is WMLPurgeEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        'type' in event &&
+        event.type === 'Asset Purged' &&
+        typeof event.zone === 'string' &&
+        (event.zone === 'Draft' || event.zone === 'Archive') &&
+        typeof event.objectsDeleted === 'number'
+    )
+}
+
 /**
  * Serializer/Deserializer for WML format events
  * 
@@ -189,6 +213,13 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
             return {
                 type: 'Merge Conflict',
                 error: update.error
+            }
+        } else if (isWMLPurgeEvent(update)) {
+            // Purge events pass through as-is
+            return {
+                type: 'Asset Purged',
+                zone: update.zone,
+                objectsDeleted: update.objectsDeleted
             }
         } else {
             throw new Error(`Unknown WML event type: ${JSON.stringify(update)}`)
@@ -234,6 +265,9 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
                 type: 'Merge Conflict',
                 error: externalUpdate.error
             }
+        } else if (externalUpdate.type === 'Asset Purged') {
+            // Purge events pass through as-is
+            return externalUpdate as WMLPurgeEvent
         } else {
             throw new Error(`Unknown external WML event type: ${JSON.stringify(externalUpdate)}`)
         }

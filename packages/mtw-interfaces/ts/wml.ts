@@ -25,10 +25,27 @@ export type MoveAssetAPIMessage = {
     subFolder?: string;
 }
 
+export type PurgeAssetAPIMessage = {
+    message: 'purgeAsset';
+    AssetId: EphemeraAssetId;
+    expectedZone: 'Draft' | 'Archive';
+    requireExists?: boolean;
+}
+
+export type BackupWMLAPIMessage = {
+    message: 'backupWML';
+    assetId: EphemeraAssetId;
+    to: string;
+}
+
 export type WMLAPIMessage = { RequestId?: string; connectionId?: string } & (
     ApplyEditAPIMessage |
-    MoveAssetAPIMessage
+    MoveAssetAPIMessage |
+    PurgeAssetAPIMessage |
+    BackupWMLAPIMessage
 )
 
 export const isApplyEditAPIMessage = (message: WMLAPIMessage): message is ApplyEditAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'applyEdit')
 export const isMoveAssetAPIMessage = (message: WMLAPIMessage): message is MoveAssetAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'moveAsset')
+export const isPurgeAssetAPIMessage = (message: WMLAPIMessage): message is PurgeAssetAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'purgeAsset')
+export const isBackupWMLAPIMessage = (message: WMLAPIMessage): message is BackupWMLAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'backupWML')

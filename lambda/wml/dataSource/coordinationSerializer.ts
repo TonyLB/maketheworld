@@ -30,8 +30,14 @@ export type CreateSnapshotRequest = {
     type: 'Create Snapshot';
 }
 
+export type PurgeAssetRequest = {
+    type: 'Purge Asset';
+    expectedZone: 'Draft' | 'Archive';
+    requireExists?: boolean;
+}
+
 // Union type for all internal coordination events
-export type CoordinationEventUpdate = CoordinationCanonizeEvent | CoordinationDecanonizeEvent | MoveAssetRequest | ApplyEditRequest | CreateSnapshotRequest
+export type CoordinationEventUpdate = CoordinationCanonizeEvent | CoordinationDecanonizeEvent | MoveAssetRequest | ApplyEditRequest | CreateSnapshotRequest | PurgeAssetRequest
 
 // External types for coordination events (same as internal since they're hand-created)
 export type CoordinationCanonizeEventExternal = {
@@ -62,12 +68,19 @@ export type CreateSnapshotRequestExternal = {
     type: 'Create Snapshot';
 }
 
+export type PurgeAssetRequestExternal = {
+    type: 'Purge Asset';
+    expectedZone: 'Draft' | 'Archive';
+    requireExists?: boolean;
+}
+
 export type CoordinationEventExternal = 
     | CoordinationCanonizeEventExternal 
     | CoordinationDecanonizeEventExternal 
     | MoveAssetRequestExternal
     | ApplyEditRequestExternal
     | CreateSnapshotRequestExternal
+    | PurgeAssetRequestExternal
 
 // Type guards
 export const isMoveAssetRequest = (event: any): event is MoveAssetRequest => {
@@ -105,12 +118,21 @@ export const isCreateSnapshotRequest = (event: any): event is CreateSnapshotRequ
         event.type === 'Create Snapshot'
 }
 
+export const isPurgeAssetRequest = (event: any): event is PurgeAssetRequest => {
+    return event && 
+        typeof event === 'object' && 
+        event.type === 'Purge Asset' &&
+        typeof event.expectedZone === 'string' &&
+        (event.expectedZone === 'Draft' || event.expectedZone === 'Archive')
+}
+
 export const isCoordinationEventUpdate = (event: unknown): event is CoordinationEventUpdate => {
     return isCoordinationCanonizeEvent(event) || 
            isCoordinationDecanonizeEvent(event) || 
            isMoveAssetRequest(event) ||
            isApplyEditRequest(event) ||
-           isCreateSnapshotRequest(event)
+           isCreateSnapshotRequest(event) ||
+           isPurgeAssetRequest(event)
 }
 
 /**
@@ -147,6 +169,12 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
         } else if (update.type === 'Create Snapshot') {
             return {
                 type: update.type
+            }
+        } else if (update.type === 'Purge Asset') {
+            return {
+                type: update.type,
+                expectedZone: update.expectedZone,
+                requireExists: update.requireExists
             }
         } else {
             return {
@@ -189,6 +217,12 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
         } else if (externalUpdate.type === 'Create Snapshot') {
             return {
                 type: 'Create Snapshot'
+            }
+        } else if (externalUpdate.type === 'Purge Asset') {
+            return {
+                type: 'Purge Asset',
+                expectedZone: externalUpdate.expectedZone,
+                requireExists: externalUpdate.requireExists
             }
         } else {
             return null

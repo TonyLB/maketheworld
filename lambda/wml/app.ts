@@ -6,7 +6,7 @@ import { extractReturnValue } from "./returnValue/index";
 import { CoordinationEventExternal, CoordinationEventSerializer, CoordinationEventUpdate } from './dataSource/coordinationSerializer';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics';
-import { WMLAPIMessage, isApplyEditAPIMessage, isMoveAssetAPIMessage } from '@tonylb/mtw-interfaces/ts/wml';
+import { WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml';
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.wml DataSource
@@ -21,11 +21,20 @@ const eventDeserializers = {
     // Add other data source deserializers here as needed
 }
 
-export const handler = async (event: any) => {
+// Type guard for WML API messages
+const isWMLAPIMessage = (msg: unknown): msg is WMLAPIMessage => {
+    return msg !== null && 
+           typeof msg === 'object' && 
+           'message' in msg && 
+           typeof (msg as any).message === 'string' &&
+           ['backupWML', 'applyEdit', 'moveAsset', 'purgeAsset'].includes((msg as any).message)
+}
 
-    // Parse WebSocket API Gateway events (similar to assets lambda pattern)
-    const request = (event.body && JSON.parse(event.body) || undefined) as WMLAPIMessage | undefined
-    const { connectionId } = request?.connectionId || event.requestContext || {}
+export const handler = async (event: any, context: any) => {
+
+    // Parse WebSocket API Gateway events
+    const parsedRequest = event.body ? JSON.parse(event.body) : undefined
+    const { connectionId } = parsedRequest || event.requestContext || {}
 
     internalCache.clear()
     internalCache.Connection.set({ key: 'connectionId', value: connectionId })
@@ -80,73 +89,81 @@ export const handler = async (event: any) => {
         return
     }
 
+    // Type-guard: Validate incoming message is a recognized WML API message
+    if (!isWMLAPIMessage(parsedRequest)) {
+        context.fail(JSON.stringify(`Error: Unknown WML message format ${JSON.stringify(event, null, 4)}`))
+        return
+    }
+    
+    // After type guard, TypeScript knows parsedRequest is WMLAPIMessage
+    const request = parsedRequest
+
     // Handle WebSocket API Gateway calls (similar to assets lambda pattern)
-    if (request && isApplyEditAPIMessage(request)) {
-        if (request.RequestId) {
-            internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
-        }
-        messageBus.send({
-            type: 'StreamingEvent',
-            dataSourceKey: 'internal',
-            streamKey: request.AssetId,
-            event: {
-                type: 'Apply Edit',
-                RequestId: request.RequestId ?? '',
-                schema: request.schema,
-                createIfNeeded: request.createIfNeeded,
-                zone: request.zone
-            },
-            timestamp: Date.now()
-        })
-    } else {
-        switch(event.message) {
-            case 'backupWML':
-                return await backupWML(event)
-            
-            // =============================================================================
-            // WML EDIT HANDLING - USING SINGLEFLIGHT PATTERN
-            // =============================================================================
-            // This handler routes to the mtw-wml data source which uses singleFlight
-            // sequential mode for proper concurrency control.
-            //
-            // The actual coordination now happens in:
-            // - lambda/wml/dataSource/mtw-wml.ts (singleFlight wrapper)
-            // - packages/mtw-lambda-patterns/ts/singleFlight/ (coordination logic)
-            // =============================================================================
-            case 'applyEdit':
-                // Handle direct Lambda calls (from event)
-                messageBus.send({
-                    type: 'StreamingEvent',
-                    dataSourceKey: 'internal',
-                    streamKey: event.AssetId,
-                    event: {
-                        type: 'Apply Edit',
-                        RequestId: event.RequestId ?? '',
-                        schema: event.schema,
-                        createIfNeeded: event.createIfNeeded,
-                        zone: event.zone
-                    },
-                    timestamp: Date.now()
-                })
-                await messageBus.flush()
-                return await extractReturnValue(messageBus)
-            case 'moveAsset':
-                messageBus.send({
-                    type: 'StreamingEvent',
-                    dataSourceKey: 'internal',
-                    streamKey: event.AssetId,
-                    event: {
-                        type: 'Move Asset',
-                        fromZone: event.fromZone,
-                        toZone: event.toZone,
-                        player: event.player,
-                        subFolder: event.subFolder
-                    },
-                    timestamp: Date.now()
-                })
-                await messageBus.flush()
-                return await extractReturnValue(messageBus)
-        }
+    switch(request.message) {
+        case 'backupWML':
+            return await backupWML(request)
+        
+        // =============================================================================
+        // WML EDIT HANDLING - USING SINGLEFLIGHT PATTERN
+        // =============================================================================
+        // This handler routes to the mtw-wml data source which uses singleFlight
+        // sequential mode for proper concurrency control.
+        //
+        // The actual coordination now happens in:
+        // - lambda/wml/dataSource/mtw-wml.ts (singleFlight wrapper)
+        // - packages/mtw-lambda-patterns/ts/singleFlight/ (coordination logic)
+        // =============================================================================
+        case 'applyEdit':
+            // Handle WebSocket API calls and direct Lambda calls
+            // Cache RequestId for connection-based tracking
+            if (request.RequestId) {
+                internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
+            }
+            messageBus.send({
+                type: 'StreamingEvent',
+                dataSourceKey: 'internal',
+                streamKey: request.AssetId,
+                event: {
+                    type: 'Apply Edit',
+                    RequestId: request.RequestId ?? '',
+                    schema: request.schema,
+                    createIfNeeded: request.createIfNeeded,
+                    zone: request.zone
+                },
+                timestamp: Date.now()
+            })
+            await messageBus.flush()
+            return await extractReturnValue(messageBus)
+        case 'moveAsset':
+            messageBus.send({
+                type: 'StreamingEvent',
+                dataSourceKey: 'internal',
+                streamKey: request.AssetId,
+                event: {
+                    type: 'Move Asset',
+                    fromZone: request.fromZone,
+                    toZone: request.toZone,
+                    player: request.player,
+                    subFolder: request.subFolder
+                },
+                timestamp: Date.now()
+            })
+            await messageBus.flush()
+            return await extractReturnValue(messageBus)
+        case 'purgeAsset':
+            messageBus.send({
+                type: 'StreamingEvent',
+                dataSourceKey: 'internal',
+                streamKey: request.AssetId,
+                event: {
+                    type: 'Purge Asset',
+                    expectedZone: request.expectedZone,
+                    requireExists: request.requireExists
+                },
+                timestamp: Date.now()
+            })
+            await messageBus.flush()
+            return await extractReturnValue(messageBus)
     }
 
     // Flush messageBus and return after handling either WebSocket or direct Lambda calls
