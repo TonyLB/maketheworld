@@ -3,7 +3,8 @@ import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource
 import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { moveAsset } from './moveAsset'
 import { applyEdit } from './applyEdit'
-import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, isCreateSnapshotRequest, MoveAssetRequest } from './coordinationSerializer'
+import { purgeAsset } from './purgeAsset'
+import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, isCreateSnapshotRequest, isPurgeAssetRequest, MoveAssetRequest } from './coordinationSerializer'
 import { DiagnosticsEventUpdate, isS3StructureFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSchemaAssetUUID, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { initializePrimitives } from './initializePrimitives'
@@ -262,6 +263,43 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                     }
                 } catch (error) {
                     console.error(`Error creating snapshot for ${AssetId}:`, error)
+                }
+            }
+            
+            // Handle Purge Asset events
+            if (isPurgeAssetRequest(payload)) {
+                // Validate AssetId for asset-specific operations
+                const AssetId = event.streamKey
+                if (!isSchemaAssetUUID(AssetId)) {
+                    console.error(`Invalid AssetId format: ${AssetId}`)
+                    return
+                }
+                try {
+                    const result = await purgeAsset(AssetId, {
+                        expectedZone: payload.expectedZone,
+                        requireExists: payload.requireExists
+                    })
+                    
+                    // Stream Asset Purged event if purge was successful
+                    if (result.success) {
+                        try {
+                            await streamEvent({
+                                update: {
+                                    type: 'Asset Purged',
+                                    zone: payload.expectedZone,
+                                    objectsDeleted: result.objectsDeleted ?? 0
+                                },
+                                streamKey: AssetId
+                            })
+                        } catch (streamError) {
+                            console.error(`Error streaming Asset Purged event for ${AssetId}:`, streamError)
+                            // Don't fail the purge operation if streaming fails
+                        }
+                    } else {
+                        console.log(`Purge failed for ${AssetId}: ${result.message}`)
+                    }
+                } catch (error) {
+                    console.error(`Error purging asset ${AssetId}:`, error)
                 }
             }
             
