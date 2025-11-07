@@ -190,7 +190,8 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      * Serialize an internal event to external format
      * for EventBridge transmission
      */
-    serialize({ update }: { update: WMLEventUpdate }): WMLEventExternal {
+    serialize(params: { dataSourceKey: string; streamKey: string; update: WMLEventUpdate }): WMLEventExternal {
+        const { update } = params
         if (isWMLZoneEvent(update)) {
             // Zone events pass through as-is (they're already structured data)
             return update as WMLZoneEventExternal

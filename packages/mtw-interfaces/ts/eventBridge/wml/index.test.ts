@@ -25,7 +25,7 @@ describe('WMLEventSerializer', () => {
                 schema: standardForm
             }
 
-            const externalEvent = serializer.serialize({ update: contentEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: contentEvent })
             expect(externalEvent.type).toBe('Content Update')
             if (externalEvent.type === 'Content Update') {
                 expect(typeof externalEvent.wml).toBe('string')
@@ -39,7 +39,7 @@ describe('WMLEventSerializer', () => {
                 type: 'Content Removed'
             }
 
-            const externalEvent = serializer.serialize({ update: contentEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: contentEvent })
             expect(externalEvent.type).toBe('Content Removed')
             // Content Removed events don't have a wml property
             expect('wml' in externalEvent).toBe(false)
@@ -90,7 +90,7 @@ describe('WMLEventSerializer', () => {
             }
 
             // Serialize to external format
-            const externalEvent = serializer.serialize({ update: contentEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: contentEvent })
             
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
@@ -118,7 +118,7 @@ describe('WMLEventSerializer', () => {
                 player: 'alice'
             }
 
-            const externalEvent = serializer.serialize({ update: zoneEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: zoneEvent })
             expect(externalEvent).toEqual(zoneEvent)
         })
 
@@ -149,7 +149,7 @@ describe('WMLEventSerializer', () => {
             }
 
             // Serialize to external format
-            const externalEvent = serializer.serialize({ update: originalEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: originalEvent })
             
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
@@ -168,7 +168,7 @@ describe('WMLEventSerializer', () => {
             const unknownEvent = { type: 'Unknown', AssetId: 'ASSET#test' } as any
 
             expect(() => {
-                serializer.serialize({ update: unknownEvent })
+                serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', update: unknownEvent })
             }).toThrow('Unknown WML event type')
         })
 
@@ -210,7 +210,7 @@ describe('WMLEventSerializer', () => {
                 error: 'Merge conflict occurred during edit application'
             }
 
-            const externalEvent = serializer.serialize({ update: mergeConflictEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: mergeConflictEvent })
             expect(externalEvent.type).toBe('Merge Conflict')
             if (externalEvent.type === 'Merge Conflict') {
                 expect(externalEvent.error).toBe('Merge conflict occurred during edit application')
@@ -242,7 +242,7 @@ describe('WMLEventSerializer', () => {
             }
 
             // Serialize to external format
-            const externalEvent = serializer.serialize({ update: originalEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: originalEvent })
             expect(externalEvent.type).toBe('Merge Conflict')
 
             // Deserialize back to internal format
@@ -258,6 +258,68 @@ describe('WMLEventSerializer', () => {
             }
         })
 
+    })
+
+    describe('Purge Events', () => {
+        it('should serialize Asset Purged event to external format', () => {
+            const purgeEvent: WMLEventUpdate = {
+                type: 'Asset Purged',
+                zone: 'Draft',
+                objectsDeleted: 42
+            }
+
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: purgeEvent })
+            expect(externalEvent.type).toBe('Asset Purged')
+            if (externalEvent.type === 'Asset Purged') {
+                expect(externalEvent.zone).toBe('Draft')
+                expect(externalEvent.objectsDeleted).toBe(42)
+            }
+        })
+
+        it('should deserialize Asset Purged event from external format', () => {
+            const externalEvent: WMLEventExternal = {
+                type: 'Asset Purged',
+                zone: 'Archive',
+                objectsDeleted: 15
+            }
+
+            const internalEvent = serializer.deserialize({
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+
+            expect(internalEvent).not.toBeNull()
+            if (internalEvent && internalEvent.type === 'Asset Purged') {
+                expect(internalEvent.zone).toBe('Archive')
+                expect(internalEvent.objectsDeleted).toBe(15)
+            }
+        })
+
+        it('should handle Asset Purged round-trip correctly', () => {
+            const originalEvent: WMLEventUpdate = {
+                type: 'Asset Purged',
+                zone: 'Draft',
+                objectsDeleted: 100
+            }
+
+            // Serialize to external format
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: originalEvent })
+            expect(externalEvent.type).toBe('Asset Purged')
+
+            // Deserialize back to internal format
+            const roundTripEvent = serializer.deserialize({
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+
+            expect(roundTripEvent).toBeDefined()
+            if (roundTripEvent && roundTripEvent.type === 'Asset Purged') {
+                expect(roundTripEvent.zone).toBe(originalEvent.zone)
+                expect(roundTripEvent.objectsDeleted).toBe(originalEvent.objectsDeleted)
+            }
+        })
     })
 
 })
