@@ -64,7 +64,7 @@ describe('Decache Asset (Data Source)', () => {
 
         // Should emit Component Updated events with StandardRemove payloads for each component
         const calls = mockStreamEvent.mock.calls.map(([arg]) => arg)
-        const updatedCalls = calls.filter((arg) => arg.detailType === 'Component Updated' && arg.update.type === 'Component Updated')
+        const updatedCalls = calls.filter((arg) => arg.update.type === 'Component Updated')
         expect(updatedCalls.length).toBe(2)
         const keys = updatedCalls.map((arg) => arg.update.component.universalKey)
         expect(keys).toEqual(expect.arrayContaining(['ROOM#VORTEX', 'KNOWLEDGE#knowledgeRoot']))

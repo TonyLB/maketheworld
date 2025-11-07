@@ -21,7 +21,6 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
     streamEvent: (params: {
         update: ComponentEventUpdate;
         streamKey: string;
-        detailType: string;
     }) => Promise<void>;
 }): Promise<void> => {
     const assetUUID = AssetKey(assetId)
@@ -66,8 +65,7 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
         }
         await streamEvent({
             update: componentUpdatedEvent,
-            streamKey: assetId,
-            detailType: 'Component Updated'
+            streamKey: assetId
         })
     }))
 }
