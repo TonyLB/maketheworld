@@ -230,6 +230,39 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                     // This requires cache management logic to handle zone transitions
                 }
             }
+            
+            // Handle mtw.wml Asset Purged events
+            if (isWMLSubscribedEvent(event) && event.event.type === 'Asset Purged') {
+                const assetId = event.streamKey as AssetUUID
+                if (assetId) {
+                    try {
+                        // Decache the asset before removing it (clean up DynamoDB cache)
+                        await decacheAsset({ assetId, streamEvent })
+                    } catch (error) {
+                        console.error(`Error decaching asset ${assetId} during purge:`, error)
+                        // Continue with removal even if decaching fails
+                    }
+                    
+                    // Stream the removal as an asset-level event
+                    // This indicates the asset has been permanently deleted
+                    await streamEvent({
+                        update: { 
+                            type: 'Asset Removed'
+                        },
+                        streamKey: assetId
+                    })
+                    return
+                } else {
+                    messageBus.send({
+                        type: 'Error',
+                        body: { 
+                            error: 'Invalid AssetId in Asset Purged event',
+                            statusCode: 400
+                        }
+                    })
+                    return
+                }
+            }
 
             // Handle mtw.diagnostics events
             if (event.dataSourceKey === 'mtw.diagnostics' && event.event.type === 'Heal Global Values') {

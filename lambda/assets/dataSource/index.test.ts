@@ -8,6 +8,7 @@ import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { decacheAsset } from './caching'
 
 // Mock external dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -46,10 +47,12 @@ jest.mock('./caching')
 
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 const eventBridgeSendMock = jest.mocked(eventBridgeClient.send, { shallow: false })
+const decacheAssetMock = jest.mocked(decacheAsset)
 
 describe('AssetsDataSource (mtw.assets)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        decacheAssetMock.mockResolvedValue(undefined)
         // Mock assetDB.query for diagnostic tests
         assetDBMock.query.mockResolvedValue([])
     })
@@ -72,7 +75,6 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             const update: AssetsEventUpdate = {
                 type: 'Component Updated',
-                assetId: 'ASSET#asset123',
                 component
             }
 
@@ -110,7 +112,6 @@ describe('AssetsDataSource (mtw.assets)', () => {
             })
             const update: AssetsEventUpdate = {
                 type: 'Component Updated',
-                assetId: 'ASSET#asset456',
                 component: new StandardRemove(component)
             }
 
@@ -138,7 +139,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
         it('should serialize Asset-level events to EventBridge', async () => {
             const update: AssetsEventUpdate = {
                 type: 'Canon Updated',
-                AssetId: 'ASSET#asset789'
+                assetIds: ['ASSET#asset789']
             }
 
             await assetsDataSource.streamEvent({
@@ -154,7 +155,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         DetailType: 'Canon Updated',
                         Detail: expect.objectContaining({
                             streamKey: 'ASSET#asset789',
-                            AssetId: 'ASSET#asset789'
+                            assetIds: ['ASSET#asset789']
                         })
                     })
                 ])
@@ -172,7 +173,6 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             const update: AssetsEventUpdate = {
                 type: 'Component Updated',
-                assetId: 'ASSET#complex-asset',
                 component
             }
 
@@ -201,7 +201,6 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             const update: AssetsEventUpdate = {
                 type: 'Component Updated',
-                assetId: 'ASSET#metadata-asset',
                 component
             }
 
@@ -469,6 +468,38 @@ describe('AssetsDataSource (mtw.assets)', () => {
             // Verify that decacheAsset was called (mocked via the caching module)
             // The actual decaching logic is tested in the decacheAsset module
             expect(receiveEventsSpy).toHaveBeenCalled()
+        })
+
+        it('should handle WML asset purged events', async () => {
+            const assetPurgedEvent = {
+                dataSourceKey: 'mtw.wml' as const,
+                streamKey: 'ASSET#purged123',
+                event: {
+                    type: 'Asset Purged' as const,
+                    zone: 'Draft' as const,
+                    objectsDeleted: 42
+                },
+                timestamp: Date.now()
+            }
+
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            await assetsDataSource.receiveEvents?.({
+                events: [assetPurgedEvent],
+                streamEvent: mockStreamEvent
+            })
+
+            expect(decacheAssetMock).toHaveBeenCalledWith({
+                assetId: 'ASSET#purged123',
+                streamEvent: mockStreamEvent
+            })
+
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Asset Removed'
+                },
+                streamKey: 'ASSET#purged123'
+            })
         })
 
         it('should handle diagnostic events', async () => {
