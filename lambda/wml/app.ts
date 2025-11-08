@@ -34,10 +34,12 @@ export const handler = async (event: any, context: any) => {
 
     // Parse WebSocket API Gateway events
     const parsedRequest = event.body ? JSON.parse(event.body) : undefined
-    const { connectionId } = parsedRequest || event.requestContext || {}
+    const connectionId = event?.requestContext?.connectionId ?? parsedRequest?.connectionId
 
     internalCache.clear()
-    internalCache.Connection.set({ key: 'connectionId', value: connectionId })
+    if (connectionId) {
+        internalCache.Connection.set({ key: 'connectionId', value: connectionId })
+    }
     internalCache.Connection.set({ key: 's3Client', value: s3Client })
     messageBus.clear()
 
