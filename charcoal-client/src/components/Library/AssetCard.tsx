@@ -4,10 +4,13 @@ import {
     Box,
     Card,
     CardActionArea,
+    CardActions,
     CardContent,
+    Button,
     Typography
 } from '@mui/material'
 import AssetIcon from '@mui/icons-material/Landscape'
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
 import { AssetClientPlayerAsset } from '@tonylb/mtw-interfaces/ts/asset'
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
@@ -26,9 +29,10 @@ export interface AssetCardProps {
     asset: AssetWithMetadata;
     onClick: () => void;
     isSelected?: boolean;
+    onPurge?: () => void;
 }
 
-const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelected }) => {
+const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelected, onPurge }) => {
     const { AssetId, ShortName, Summary } = asset
     
     // Extract UUID from AssetId (remove ASSET# prefix)
@@ -62,11 +66,13 @@ const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelect
         <Card 
             sx={{ 
                 height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
                 border: isSelected ? 2 : 1,
                 borderColor: isSelected ? 'primary.main' : 'divider'
             }}
         >
-            <CardActionArea onClick={onClick} sx={{ height: '100%' }}>
+            <CardActionArea onClick={onClick} sx={{ flexGrow: 1, alignSelf: 'stretch' }}>
                 <CardContent>
                     <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: 1 }}>
                         <Avatar variant="rounded" sx={{ marginRight: 1 }}>
@@ -83,6 +89,22 @@ const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelect
                     )}
                 </CardContent>
             </CardActionArea>
+            {onPurge && (
+                <CardActions sx={{ justifyContent: 'flex-end', paddingTop: 0 }}>
+                    <Button
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        startIcon={<DeleteForeverIcon />}
+                        onClick={(event) => {
+                            event.stopPropagation()
+                            onPurge()
+                        }}
+                    >
+                        Discard
+                    </Button>
+                </CardActions>
+            )}
         </Card>
     )
 }
