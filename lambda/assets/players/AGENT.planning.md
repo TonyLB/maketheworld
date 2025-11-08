@@ -40,12 +40,14 @@
 - Define EventBridge contracts and serializers for the forthcoming `mtw.assets.players` replayable data source in `@tonylb/mtw-interfaces`.
 - Implement a replayable player data source that subscribes to `mtw.assets` events, derives per-player updates, and exposes snapshots via the generic pattern.
 - Transition the client player slice to rely on the new data source (replacing the `whoAmI` life-line dependency) once backend streaming is ready.
+- Treat the player name as the per-stream identifier: the EventBridge `streamKey` for `mtw.assets.players` will be `PlayerName`. Payloads no longer need to echo the name.
+- Keep connection-scoped fields (e.g. `SessionId`) out of the data source payloads. The subscriptions lambda already knows the target session and can enrich outgoing websocket messages with the current session ID as a special case.
 
 ---
 
 ## Implementation Checklist
 
-- [ ] Author `mtw.assets.players` event types, external payloads, and serializer in `packages/mtw-interfaces/ts/eventBridge/`.
+- [x] Author `mtw.assets.players` event types, external payloads, and serializer in `packages/mtw-interfaces/ts/eventBridge/`.
 - [ ] Add snapshot generation utilities (reuse or refactor `CachePlayerLibraryData`) to support replayable subscriptions.
 - [ ] Implement the `mtw.assets.players` data source (constructor, subscriptions to `mtw.assets`, streamEvent logic, and tests).
 - [ ] Register the new data source with the subscriptions lambda (`lambda/subscriptions/handlerFramework`) and add integration tests as needed.

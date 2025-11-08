@@ -8,6 +8,7 @@
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { LibraryAsset, LibraryCharacter } from '../../../library'
 import { Zone, isZone } from '../../../baseClasses'
+import { AssetClientPlayerSettings } from '../../../asset'
 
 //
 // Player snapshot and streaming event payloads
@@ -17,14 +18,14 @@ export type PlayerSnapshot = {
     type: 'Snapshot'
     assets: LibraryAsset[]
     characters: LibraryCharacter[]
-    draftURL: string
+    settings: AssetClientPlayerSettings
 }
 
 export type PlayerLibraryUpdated = {
     type: 'Player Library Updated'
     assets: LibraryAsset[]
     characters: LibraryCharacter[]
-    draftURL: string
+    settings: AssetClientPlayerSettings
 }
 
 export type PlayerEventUpdate = PlayerLibraryUpdated
@@ -68,26 +69,35 @@ const isLibraryCharacter = (value: any): value is LibraryCharacter => (
     (value.fileName === undefined || typeof value.fileName === 'string')
 )
 
+const isPlayerSettings = (value: any): value is AssetClientPlayerSettings => (
+    value &&
+    typeof value === 'object' &&
+    Array.isArray(value.onboardCompleteTags) &&
+    value.onboardCompleteTags.every((entry: any) => typeof entry === 'string') &&
+    (value.guestName === undefined || typeof value.guestName === 'string') &&
+    (value.guestId === undefined || typeof value.guestId === 'string')
+)
+
 export const isPlayerSnapshot = (value: any): value is PlayerSnapshot => (
     value &&
     typeof value === 'object' &&
     value.type === 'Snapshot' &&
-    typeof value.draftURL === 'string' &&
     Array.isArray(value.assets) &&
     value.assets.every(isLibraryAsset) &&
     Array.isArray(value.characters) &&
-    value.characters.every(isLibraryCharacter)
+    value.characters.every(isLibraryCharacter) &&
+    isPlayerSettings(value.settings)
 )
 
 export const isPlayerLibraryUpdated = (value: any): value is PlayerLibraryUpdated => (
     value &&
     typeof value === 'object' &&
     value.type === 'Player Library Updated' &&
-    typeof value.draftURL === 'string' &&
     Array.isArray(value.assets) &&
     value.assets.every(isLibraryAsset) &&
     Array.isArray(value.characters) &&
-    value.characters.every(isLibraryCharacter)
+    value.characters.every(isLibraryCharacter) &&
+    isPlayerSettings(value.settings)
 )
 
 export const isPlayerExternal = (value: any): value is PlayerExternal => (
@@ -117,7 +127,7 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
             type: 'Player Library Updated',
             assets: update.assets.map((asset) => ({ ...asset })),
             characters: update.characters.map((character) => ({ ...character })),
-            draftURL: update.draftURL
+            settings: { ...update.settings }
         }
     }
 
@@ -135,7 +145,7 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
             type: 'Player Library Updated',
             assets: externalUpdate.assets.map((asset) => ({ ...asset })),
             characters: externalUpdate.characters.map((character) => ({ ...character })),
-            draftURL: externalUpdate.draftURL
+            settings: { ...externalUpdate.settings }
         }
     }
 
@@ -147,7 +157,7 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
             type: 'Snapshot',
             assets: snapshot.assets.map((asset) => ({ ...asset })),
             characters: snapshot.characters.map((character) => ({ ...character })),
-            draftURL: snapshot.draftURL
+            settings: { ...snapshot.settings }
         }
     }
 
@@ -160,7 +170,7 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
             type: 'Snapshot',
             assets: externalSnapshot.assets.map((asset) => ({ ...asset })),
             characters: externalSnapshot.characters.map((character) => ({ ...character })),
-            draftURL: externalSnapshot.draftURL
+            settings: { ...externalSnapshot.settings }
         }
     }
 }
