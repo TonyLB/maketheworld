@@ -1,7 +1,6 @@
 import { AssetsDataSource } from './abstract'
 import messageBus from '../messageBus'
 import { healGlobalValues } from '../selfHealing/globalValues'
-import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import internalCache from '../internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'

@@ -31,41 +31,46 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
     const emptyAsset = new StandardForm(`<Asset uuid=(${assetId}) />`)
 
     const diff = dbAsset.diff(emptyAsset)
-    if (!diff) {
-        return
+
+    if (diff) {
+        // For each removal in the diff, delete DB record, update metadata, and emit as Component Updated with StandardRemove
+        await Promise.all(diff._components.map(async (component) => {
+            if (!(component instanceof StandardRemove) || !component.universalKey) {
+                return
+            }
+            const universalKey = component.universalKey
+            await Promise.all([
+                assetDB.deleteItem({ AssetId: universalKey, DataCategory: assetUUID }),
+                assetDB.optimisticUpdate({
+                    Key: {
+                        AssetId: universalKey,
+                        DataCategory: `Meta::${universalKey[0]}${universalKey.slice(1).split('#')[0].toLocaleLowerCase()}`,
+                    },
+                    updateKeys: ['cached'],
+                    updateReducer: (draft) => {
+                        if (!('cached' in draft)) {
+                            draft.cached = []
+                        }
+                        draft.cached = draft.cached.filter((id) => (id !== assetId))
+                    },
+                    deleteCondition: (draft) => (draft.cached.length === 0)
+                })
+            ])
+
+            const componentUpdatedEvent: ComponentUpdatedEvent = {
+                type: 'Component Updated',
+                component
+            }
+            await streamEvent({
+                update: componentUpdatedEvent,
+                streamKey: assetId
+            })
+        }))
     }
 
-    // For each removal in the diff, delete DB record, update metadata, and emit as Component Updated with StandardRemove
-    await Promise.all(diff._components.map(async (component) => {
-        if (!(component instanceof StandardRemove) || !component.universalKey) {
-            return
-        }
-        const universalKey = component.universalKey
-        await Promise.all([
-            assetDB.deleteItem({ AssetId: universalKey, DataCategory: assetUUID }),
-            assetDB.optimisticUpdate({
-                Key: {
-                    AssetId: universalKey,
-                    DataCategory: `Meta::${universalKey[0]}${universalKey.slice(1).split('#')[0].toLocaleLowerCase()}`,
-                },
-                updateKeys: ['cached'],
-                updateReducer: (draft) => {
-                    if (!('cached' in draft)) {
-                        draft.cached = []
-                    }
-                    draft.cached = draft.cached.filter((id) => (id !== assetId))
-                },
-                deleteCondition: (draft) => (draft.cached.length === 0)
-            })
-        ])
-
-        const componentUpdatedEvent: ComponentUpdatedEvent = {
-            type: 'Component Updated',
-            component
-        }
-        await streamEvent({
-            update: componentUpdatedEvent,
-            streamKey: assetId
-        })
-    }))
+    await assetDB.deleteItem({
+        AssetId: assetUUID,
+        DataCategory: 'Meta::Asset'
+    })
+    internalCache.AssetMetaData.invalidate(assetUUID)
 }
