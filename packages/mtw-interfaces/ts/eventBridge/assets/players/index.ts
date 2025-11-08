@@ -9,6 +9,7 @@ import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSo
 import { LibraryAsset, LibraryCharacter } from '../../../library'
 import { Zone, isZone } from '../../../baseClasses'
 import { AssetClientPlayerSettings } from '../../../asset'
+import { isRenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 //
 // Player snapshot and streaming event payloads
@@ -49,10 +50,7 @@ const isLibraryAsset = (value: any): value is LibraryAsset => (
     typeof value.AssetId === 'string' &&
     (value.zone === undefined || (typeof value.zone === 'string' && isZone(value.zone))) &&
     (value.ShortName === undefined || typeof value.ShortName === 'string') &&
-    (value.Summary === undefined || (
-        Array.isArray(value.Summary) &&
-        value.Summary.every((entry: any) => typeof entry === 'string')
-    ))
+    (value.Summary === undefined || isRenderTree(value.Summary))
 )
 
 // NOTE: LibraryCharacter (and this guard) reflects the legacy pattern in which
