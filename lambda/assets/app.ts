@@ -287,6 +287,23 @@ export const handler = async (event, context) => {
         if (isAssetPlayerSettingsAPIMessage(request)) {
             const player = await internalCache.Connection.get('player')
             if (player) {
+                // NOTE: This is part of the legacy pattern where API calls enqueue custom messageBus
+                // payloads (here: PlayerSettings). We will eventually migrate these to the unified
+                // data-source streaming events (matching the applyEdit/moveAsset pattern in the WML
+                // lambda) once the mtw.assets.players data source subsumes the old flow. For now, we
+                // emit both the legacy message and a streaming event so the new player data source can
+                // subscribe without breaking existing flows.
+                messageBus.send({
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'internal',
+                    streamKey: player,
+                    event: {
+                        type: 'Player Settings Updated',
+                        actions: request.actions,
+                        ...(request.RequestId ? { RequestId: request.RequestId } : {})
+                    },
+                    timestamp: Date.now()
+                })
                 messageBus.send({
                     type: 'PlayerSettings',
                     player,

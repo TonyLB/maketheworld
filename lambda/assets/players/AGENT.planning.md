@@ -42,6 +42,7 @@
 - Transition the client player slice to rely on the new data source (replacing the `whoAmI` life-line dependency) once backend streaming is ready.
 - Treat the player name as the per-stream identifier: the EventBridge `streamKey` for `mtw.assets.players` will be `PlayerName`. Payloads no longer need to echo the name.
 - Keep connection-scoped fields (e.g. `SessionId`) out of the data source payloads. The subscriptions lambda already knows the target session and can enrich outgoing websocket messages with the current session ID as a special case.
+- **Legacy API Messages**: `updatePlayerSettings` currently flows through the assets lambda as an ad-hoc messageBus type (`PlayerSettings`). We’ll subscribe to that legacy message for now so the new data source stays in sync, but note that the longer-term goal is to fold these direct API hooks into the unified data-source handler pattern (mirroring how other services route incoming API traffic through data sources).
 
 ---
 
