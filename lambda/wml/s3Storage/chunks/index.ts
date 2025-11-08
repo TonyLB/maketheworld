@@ -15,6 +15,8 @@ import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 import { Zone } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 import { v4 as uuidv4 } from 'uuid'
 
+const CHUNK_CONTENT_TYPE = 'text/plain; charset=utf-8'
+
 /**
  * Reference to a written chunk for manifest tracking
  */
@@ -68,7 +70,8 @@ export const writeChunk = async (options: WriteChunkOptions): Promise<ChunkRefer
         Key: s3Key,
         Body: content,
         Tags: tags,
-        Metadata: metadata
+        Metadata: metadata,
+        ContentType: CHUNK_CONTENT_TYPE
     })
     
     // Calculate size for manifest tracking

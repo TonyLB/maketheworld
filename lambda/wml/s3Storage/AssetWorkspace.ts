@@ -6,6 +6,11 @@ import { deepEqual } from '@tonylb/mtw-asset-workspace/ts/objects'
 import { StandardAuthorizationCollection } from '@tonylb/mtw-wml/ts/standardize/authorization'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { ListObjectsV2Command, DeleteObjectsCommand } from "@aws-sdk/client-s3"
+import type { ListObjectsV2CommandOutput, DeleteObjectsCommandOutput } from "@aws-sdk/client-s3"
+
+const JSON_CONTENT_TYPE = 'application/json; charset=utf-8'
+const NDJSON_CONTENT_TYPE = 'application/x-ndjson; charset=utf-8'
+const WML_CONTENT_TYPE = 'text/plain; charset=utf-8'
 
 export { Zone } from '@tonylb/mtw-asset-workspace/ts/readOnly'
 
@@ -150,13 +155,15 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                 Key: filePath,
                 Body: contents,
                 Tags: tags,
-                Metadata: metadata
+                Metadata: metadata,
+                ContentType: JSON_CONTENT_TYPE
             }),
             s3Client.putWithTags({
                 Key: this.s3KeyFor('ndjson'),
                 Body: standardForm.toNDJSON().map((line) => (JSON.stringify(line))).join('\n'),
                 Tags: tags,
-                Metadata: metadata
+                Metadata: metadata,
+                ContentType: NDJSON_CONTENT_TYPE
             })
         ])
         this.status.json = 'Clean'
@@ -175,7 +182,8 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                 Key: filePath,
                 Body: contents,
                 Tags: tags,
-                Metadata: metadata
+                Metadata: metadata,
+                ContentType: NDJSON_CONTENT_TYPE
             })
             this.authStatus.json = 'Clean'
         }
@@ -194,7 +202,8 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
             Key: filePath,
             Body: this.wml || '',
             Tags: tags,
-            Metadata: metadata
+            Metadata: metadata,
+            ContentType: WML_CONTENT_TYPE
         })
         this.status.wml = 'Clean'
     }
@@ -213,7 +222,8 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
                 Key: filePath,
                 Body: wml,
                 Tags: tags,
-                Metadata: metadata
+                Metadata: metadata,
+                ContentType: WML_CONTENT_TYPE
             })
             this.authStatus.wml = 'Clean'
             this.authStatus.json = 'Dirty'
@@ -236,11 +246,12 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         const { S3_BUCKET = 'Test' } = process.env
         
         do {
-            const response = await s3Client.internalClient.send(new ListObjectsV2Command({
+            const listCommand = new ListObjectsV2Command({
                 Bucket: S3_BUCKET,
                 Prefix: prefix,
                 ContinuationToken: continuationToken
-            }))
+            })
+            const response = await (s3Client.internalClient as any).send(listCommand) as ListObjectsV2CommandOutput
             
             if (response.Contents) {
                 keys.push(...response.Contents.map(obj => obj.Key).filter((key): key is string => key !== undefined))
@@ -276,14 +287,15 @@ export class AssetWorkspace extends ReadOnlyAssetWorkspace {
         }
         
         const responses = await Promise.all(
-            batches.map(batch => 
-                s3Client.internalClient.send(new DeleteObjectsCommand({
+            batches.map(batch => {
+                const deleteCommand = new DeleteObjectsCommand({
                     Bucket: S3_BUCKET,
                     Delete: {
                         Objects: batch.map(Key => ({ Key }))
                     }
-                }))
-            )
+                })
+                return (s3Client.internalClient as any).send(deleteCommand) as Promise<DeleteObjectsCommandOutput>
+            })
         )
         
         // Sum up deleted counts from all batches

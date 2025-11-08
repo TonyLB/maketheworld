@@ -178,12 +178,17 @@ describe('AssetWorkspace (WML Lambda)', () => {
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
-            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith({
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith(expect.objectContaining({
                 Key: 'Test.ndjson',
                 Body: `{"tag":"Asset","universalKey":"ASSET#Test"}`,
                 Tags: { Zone: 'Personal' },
-                Metadata: { player: 'Test' }
-            })
+                Metadata: { player: 'Test' },
+                ContentType: 'application/x-ndjson; charset=utf-8'
+            }))
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith(expect.objectContaining({
+                Key: 'Test.json',
+                ContentType: 'application/json; charset=utf-8'
+            }))
         })
 
         it('should correctly push JSON content to library zone', async () => {
@@ -193,12 +198,17 @@ describe('AssetWorkspace (WML Lambda)', () => {
             testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
             expect(testWorkspace.status.json).toEqual('Clean')
-            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith({
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith(expect.objectContaining({
                 Key: 'Test.ndjson',
                 Body: `{"tag":"Asset","universalKey":"ASSET#Test"}`,
                 Tags: { Zone: 'Library' },
-                Metadata: undefined
-            })
+                Metadata: undefined,
+                ContentType: 'application/x-ndjson; charset=utf-8'
+            }))
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith(expect.objectContaining({
+                Key: 'Test.json',
+                ContentType: 'application/json; charset=utf-8'
+            }))
         })
 
     })
@@ -217,12 +227,13 @@ describe('AssetWorkspace (WML Lambda)', () => {
             testWorkspace.authStatus.json = 'Dirty'
             await testWorkspace.pushAuthorizationJSON()
             expect(testWorkspace.authStatus.json).toEqual('Clean')
-            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith({
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith(expect.objectContaining({
                 Key: 'Test.auth.ndjson',
                 Body: `{"tag":"Asset","universalKey":"ASSET#test"}\n{"component":"ROOM#Room1","grant":{"tag":"Grant","player":"Player1","actions":["action1"]}}`,
                 Tags: { Zone: 'Personal' },
-                Metadata: { player: 'Test' }
-            })
+                Metadata: { player: 'Test' },
+                ContentType: 'application/x-ndjson; charset=utf-8'
+            }))
         })
 
     })
@@ -241,12 +252,13 @@ describe('AssetWorkspace (WML Lambda)', () => {
             await testWorkspace.pushWML()
             expect(testWorkspace.status.wml).toEqual('Clean')
             expect(testWorkspace.status.json).toEqual('Dirty')
-            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith({
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith(expect.objectContaining({
                 Key: 'Test.wml',
                 Body: deIndentWML(testSource),
                 Tags: { Zone: 'Library' },
-                Metadata: undefined
-            })
+                Metadata: undefined,
+                ContentType: 'text/plain; charset=utf-8'
+            }))
         })
 
     })
@@ -264,12 +276,13 @@ describe('AssetWorkspace (WML Lambda)', () => {
             await testWorkspace.pushAuthorizationWML()
             expect(testWorkspace.authStatus.wml).toEqual('Clean')
             expect(testWorkspace.authStatus.json).toEqual('Dirty')
-            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith({
+            expect(s3ClientMock.putWithTags).toHaveBeenCalledWith(expect.objectContaining({
                 Key: 'Test.auth.wml',
                 Body: deIndentWML(testWML),
                 Tags: { Zone: 'Library' },
-                Metadata: undefined
-            })
+                Metadata: undefined,
+                ContentType: 'text/plain; charset=utf-8'
+            }))
         })
 
     })

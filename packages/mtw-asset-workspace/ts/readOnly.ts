@@ -12,6 +12,9 @@ import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 const { S3_BUCKET = 'Test' } = process.env;
 
+const DEFAULT_WML_CONTENT_TYPE = 'text/plain; charset=utf-8'
+const DEFAULT_NDJSON_CONTENT_TYPE = 'application/x-ndjson; charset=utf-8'
+
 type AssetWorkspaceStatusItem = 'Initial' | 'Clean' | 'Dirty' | 'Error'
 
 type AssetWorkspaceStatus = {
@@ -171,13 +174,15 @@ export class ReadOnlyAssetWorkspace {
                     Key,
                     Body: `<Asset uuid=(${uuid}) />`,
                     Tags: tags,
-                    Metadata: metadata
+                    Metadata: metadata,
+                    ContentType: DEFAULT_WML_CONTENT_TYPE
                 }),
                 s3Client.putWithTags({
                     Key: this.s3KeyFor('ndjson'),
                     Body: `{"tag":"Asset","universalKey":"${this.assetId}"}`,
                     Tags: tags,
-                    Metadata: metadata
+                    Metadata: metadata,
+                    ContentType: DEFAULT_NDJSON_CONTENT_TYPE
                 })
             ])
         }
