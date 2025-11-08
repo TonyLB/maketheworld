@@ -814,6 +814,7 @@ After Phases 2 and 3 provide working multi-draft functionality, remove remaining
 4. **Prototype UI Mockups**: Sketch the draft management interface
 5. **Plan Backend Changes**: Design the API surface for draft operations
 6. **Create Implementation Checklist**: Break down into concrete, actionable tasks
+7. **Unblock Player Synchronization**: Complete the `mtw.assets.players` data source work outlined in [`lambda/assets/players/AGENT.planning.md`](lambda/assets/players/AGENT.planning.md); until that data source streams up-to-date player asset listings, the multi-draft UI cannot stay synchronized in real time.
 
 ---
 
