@@ -48,7 +48,7 @@
 ## Implementation Checklist
 
 - [x] Author `mtw.assets.players` event types, external payloads, and serializer in `packages/mtw-interfaces/ts/eventBridge/`.
-- [ ] Add snapshot generation utilities (reuse or refactor `CachePlayerLibraryData`) to support replayable subscriptions.
+- [x] Add snapshot generation utilities (reuse or refactor `CachePlayerLibraryData`) to support replayable subscriptions.
 - [ ] Implement the `mtw.assets.players` data source (constructor, subscriptions to `mtw.assets`, streamEvent logic, and tests).
 - [ ] Register the new data source with the subscriptions lambda (`lambda/subscriptions/handlerFramework`) and add integration tests as needed.
 - [ ] Update the client (`charcoal-client/src/slices/player`) to subscribe to the new stream and retire the ad-hoc `whoAmI` refresh path.

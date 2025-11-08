@@ -35,6 +35,7 @@ import './dataSource'  // mtw.assets DataSource
 import './contentHeaders'  // mtw.assets.contentHeaders DataSource
 import './characters'  // mtw.assets.characters DataSource
 import './library'  // mtw.assets.library DataSource
+import './players'  // mtw.assets.players DataSource
 
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }
@@ -240,7 +241,12 @@ export const handler = async (event, context) => {
                 )))
             }
             else {
-                return addresses
+                return metaItems.map(({ AssetId, zone }) => (
+                    {
+                        AssetId,
+                        zone: zone || 'None'
+                    }
+                ))
             }
         }
         if (isFetchImportsAPIMessage(request)) {
