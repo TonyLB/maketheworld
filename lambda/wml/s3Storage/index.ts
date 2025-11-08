@@ -911,6 +911,7 @@ export async function purgeAsset(args: PurgeAssetArgs): Promise<PurgeAssetResult
     keysToDelete.push(
         workspace.s3KeyFor('wml'),
         workspace.s3KeyFor('ndjson'),
+        workspace.s3KeyFor('json'),
         workspace.s3KeyFor('auth.wml'),
         workspace.s3KeyFor('auth.ndjson')
     )

@@ -863,7 +863,7 @@ describe('purgeAsset (unit tests)', () => {
             mockWorkspaceInstance.listObjects = jest.fn()
                 .mockResolvedValueOnce(['test-room.wml/manifest-latest.ndjson', 'test-room.wml/chunks/123.wml'])  // Content prefix
                 .mockResolvedValueOnce(['test-room.auth.wml/manifest-latest.ndjson'])  // Auth prefix
-            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(7)  // 4 materialized views + 3 from prefixes
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(8)  // 5 materialized views + 3 from prefixes
             
             const result = await purgeAsset({
                 assetId: TEST_ASSET_ID,
@@ -885,6 +885,7 @@ describe('purgeAsset (unit tests)', () => {
             expect(mockWorkspaceInstance.deleteObjects).toHaveBeenCalledWith([
                 'test-room.wml',
                 'test-room.ndjson',
+                'test-room.json',
                 'test-room.auth.wml',
                 'test-room.auth.ndjson',
                 'test-room.wml/manifest-latest.ndjson',
@@ -893,15 +894,15 @@ describe('purgeAsset (unit tests)', () => {
             ])
             
             // Should return correct metadata
-            expect(result.metadata.objectsDeleted).toBe(7)
-            expect(result.metadata.deletedKeys).toHaveLength(7)
+            expect(result.metadata.objectsDeleted).toBe(8)
+            expect(result.metadata.deletedKeys).toHaveLength(8)
             expect(result.metadata.zone).toBe('Draft')
         })
         
         it('should delete asset from Archive zone', async () => {
             mockWorkspaceInstance.zone = 'Archive'
             mockWorkspaceInstance.listObjects = jest.fn().mockResolvedValue([])
-            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(4)
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(5)
             
             const result = await purgeAsset({
                 assetId: TEST_ASSET_ID,
@@ -912,13 +913,13 @@ describe('purgeAsset (unit tests)', () => {
             if (!result.success) return
             
             expect(result.metadata.zone).toBe('Archive')
-            expect(result.metadata.objectsDeleted).toBe(4)
+            expect(result.metadata.objectsDeleted).toBe(5)
         })
         
         it('should include all materialized views in deletion', async () => {
             mockWorkspaceInstance.zone = 'Draft'
             mockWorkspaceInstance.listObjects = jest.fn().mockResolvedValue([])
-            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(4)
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(5)
             
             await purgeAsset({
                 assetId: TEST_ASSET_ID,
@@ -928,6 +929,7 @@ describe('purgeAsset (unit tests)', () => {
             // Should use s3KeyFor for materialized views
             expect(mockWorkspaceInstance.s3KeyFor).toHaveBeenCalledWith('wml')
             expect(mockWorkspaceInstance.s3KeyFor).toHaveBeenCalledWith('ndjson')
+            expect(mockWorkspaceInstance.s3KeyFor).toHaveBeenCalledWith('json')
             expect(mockWorkspaceInstance.s3KeyFor).toHaveBeenCalledWith('auth.wml')
             expect(mockWorkspaceInstance.s3KeyFor).toHaveBeenCalledWith('auth.ndjson')
         })
@@ -942,7 +944,7 @@ describe('purgeAsset (unit tests)', () => {
             mockWorkspaceInstance.listObjects = jest.fn()
                 .mockResolvedValueOnce([...manyChunks, ...manySnapshots])
                 .mockResolvedValueOnce([])
-            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(154)  // 4 + 150
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(155)  // 5 + 150
             
             const result = await purgeAsset({
                 assetId: TEST_ASSET_ID,
@@ -952,8 +954,8 @@ describe('purgeAsset (unit tests)', () => {
             expect(result.success).toBe(true)
             if (!result.success) return
             
-            expect(result.metadata.objectsDeleted).toBe(154)
-            expect(result.metadata.deletedKeys).toHaveLength(154)
+            expect(result.metadata.objectsDeleted).toBe(155)
+            expect(result.metadata.deletedKeys).toHaveLength(155)
         })
     })
     
@@ -1195,7 +1197,7 @@ describe('purgeAsset (unit tests)', () => {
         
         it('should handle empty prefixes (no chunks/snapshots)', async () => {
             mockWorkspaceInstance.listObjects = jest.fn().mockResolvedValue([])
-            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(4)
+            mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(5)
             
             const result = await purgeAsset({
                 assetId: TEST_ASSET_ID,
@@ -1209,11 +1211,12 @@ describe('purgeAsset (unit tests)', () => {
             expect(mockWorkspaceInstance.deleteObjects).toHaveBeenCalledWith([
                 'test-room.wml',
                 'test-room.ndjson',
+                'test-room.json',
                 'test-room.auth.wml',
                 'test-room.auth.ndjson'
             ])
             
-            expect(result.metadata.objectsDeleted).toBe(4)
+            expect(result.metadata.objectsDeleted).toBe(5)
         })
         
         it('should handle asset with UUID containing special characters', async () => {
@@ -1246,7 +1249,7 @@ describe('purgeAsset (unit tests)', () => {
         
         it('should handle deletion count mismatch (some files already missing)', async () => {
             mockWorkspaceInstance.listObjects = jest.fn().mockResolvedValue([])
-            // Tried to delete 4 files but only 3 existed
+            // Tried to delete 5 files but only 3 existed
             mockWorkspaceInstance.deleteObjects = jest.fn().mockResolvedValue(3)
             
             const result = await purgeAsset({
@@ -1259,7 +1262,7 @@ describe('purgeAsset (unit tests)', () => {
             
             // Should report actual deleted count
             expect(result.metadata.objectsDeleted).toBe(3)
-            expect(result.metadata.deletedKeys).toHaveLength(4)  // Keys we tried to delete
+            expect(result.metadata.deletedKeys).toHaveLength(5)  // Keys we tried to delete
         })
     })
 })
