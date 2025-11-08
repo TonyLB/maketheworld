@@ -30,20 +30,24 @@ import { subscribeToLibrary, unsubscribeFromLibrary, getIsLibrarySubscribed, get
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { addItem } from '../../slices/personalAssets'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/ts/schema'
-import { ApplyEditAPIMessage } from '@tonylb/mtw-interfaces/ts/wml'
+import { ApplyEditAPIMessage, PurgeAssetAPIMessage } from '@tonylb/mtw-interfaces/ts/wml'
 
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import PreviewPane, { PreviewPaneContents } from './PreviewPane'
 import { AssetClientPlayerAsset, AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
 import AssetCard, { AssetWithMetadata } from './AssetCard'
-import AddAsset from './Edit/AddAsset'
 import useOnboarding, { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
+import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
+import { push } from '../../slices/UI/feedback'
+import AddAsset from './Edit/AddAsset'
 
 interface PersonalAssetCardsProps {
     Assets: AssetWithMetadata[];
     selectedAssetId?: string;
     onAssetClick: (asset: AssetWithMetadata) => void;
-    onCreateDraft?: () => Promise<void>;
+    onCreateDraft?: () => void;
+    onPurgeAsset?: (asset: AssetWithMetadata) => void;
     isDraftsTab: boolean;
 }
 
@@ -79,6 +83,7 @@ const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({
     selectedAssetId,
     onAssetClick,
     onCreateDraft,
+    onPurgeAsset,
     isDraftsTab 
 }) => {
     return (
@@ -97,6 +102,7 @@ const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({
                             asset={asset}
                             onClick={() => onAssetClick(asset)}
                             isSelected={selectedAssetId === asset.AssetId}
+                            onPurge={isDraftsTab && onPurgeAsset ? () => onPurgeAsset(asset) : undefined}
                         />
                     </Grid>
                 )
@@ -201,7 +207,6 @@ export const Library: FunctionComponent<LibraryProps> = () => {
     }
     useAutoPin({ href: `/Library/`, label: `Library`, iconName: 'Library', type: 'Library' })
     const navigate = useNavigate()
-    const Characters = useSelector(getMyCharacters)
     const DraftAssets = useSelector(getMyDraftAssets)
     const PersonalAssets = useSelector(getMyPersonalAssets)
     // Get asset IDs from new libraryDataSource slice
@@ -286,6 +291,39 @@ export const Library: FunctionComponent<LibraryProps> = () => {
         }
     }
 
+    const handlePurgeAsset = async (asset: AssetWithMetadata) => {
+        const { AssetId, zone } = asset
+        const normalizedAssetId = AssetKey(AssetId) as EphemeraAssetId
+        const inferredZone = zone ?? (isDraftsTab ? 'Draft' : undefined)
+        if (!inferredZone || (inferredZone !== 'Draft' && inferredZone !== 'Archive')) {
+            dispatch(push('Asset cannot be purged from this zone.'))
+            return
+        }
+
+        const confirm = window.confirm('Permanently delete this draft? This cannot be undone.')
+        if (!confirm) {
+            return
+        }
+
+        const purgeMessage: PurgeAssetAPIMessage = {
+            message: 'purgeAsset',
+            AssetId: normalizedAssetId,
+            expectedZone: inferredZone,
+            requireExists: true
+        }
+
+        try {
+            await dispatch(socketDispatchPromise(purgeMessage, { service: 'wml' }))
+            dispatch(push('Draft purge started.'))
+            if (selectedPersonalIndex !== undefined && currentPersonalAssets[selectedPersonalIndex]?.AssetId === AssetId) {
+                clearPersonalPreview()
+            }
+        } catch (error) {
+            dispatch(push('Failed to purge draft.'))
+            console.error('Failed to purge asset', error)
+        }
+    }
+
     const selectedPersonalAssetId = personalPreviewItem?.type === 'Asset' ? personalPreviewItem.AssetId : undefined
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
@@ -314,6 +352,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
                     selectedAssetId={selectedPersonalAssetId}
                     onAssetClick={handleAssetClick}
                     onCreateDraft={handleCreateDraft}
+                    onPurgeAsset={isDraftsTab ? handlePurgeAsset : undefined}
                     isDraftsTab={isDraftsTab}
                 />
             </Grid>
