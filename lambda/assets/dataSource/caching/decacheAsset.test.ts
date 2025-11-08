@@ -17,6 +17,9 @@ jest.mock('../../internalCache', () => ({
     default: {
         AssetData: {
             get: jest.fn()
+        },
+        AssetMetaData: {
+            invalidate: jest.fn()
         }
     }
 }))
@@ -48,8 +51,8 @@ describe('Decache Asset (Data Source)', () => {
 
         await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
 
-        // Should call deleteItem for each component
-        expect(assetDBMock.deleteItem).toHaveBeenCalledTimes(2)
+        // Should call deleteItem for each component plus the Meta::Asset record
+        expect(assetDBMock.deleteItem).toHaveBeenCalledTimes(3)
         expect(assetDBMock.deleteItem).toHaveBeenCalledWith({
             AssetId: 'ROOM#VORTEX',
             DataCategory: 'ASSET#Test'
@@ -58,6 +61,11 @@ describe('Decache Asset (Data Source)', () => {
             AssetId: 'KNOWLEDGE#knowledgeRoot',
             DataCategory: 'ASSET#Test'
         })
+        expect(assetDBMock.deleteItem).toHaveBeenCalledWith({
+            AssetId: 'ASSET#Test',
+            DataCategory: 'Meta::Asset'
+        })
+        expect(internalCacheMock.AssetMetaData.invalidate).toHaveBeenCalledWith('ASSET#Test')
 
         // Should call optimisticUpdate for each component to remove from cached lists
         expect(assetDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
@@ -82,8 +90,13 @@ describe('Decache Asset (Data Source)', () => {
 
         await decacheAsset({ assetId: 'Test', streamEvent: mockStreamEvent })
 
-        // Should not call any database operations
-        expect(assetDBMock.deleteItem).not.toHaveBeenCalled()
+        // Should only delete the Meta::Asset record (no component-level deletes or updates)
+        expect(assetDBMock.deleteItem).toHaveBeenCalledTimes(1)
+        expect(assetDBMock.deleteItem).toHaveBeenCalledWith({
+            AssetId: 'ASSET#Test',
+            DataCategory: 'Meta::Asset'
+        })
+        expect(internalCacheMock.AssetMetaData.invalidate).toHaveBeenCalledWith('ASSET#Test')
         expect(assetDBMock.optimisticUpdate).not.toHaveBeenCalled()
 
         // Should not emit any streaming events
