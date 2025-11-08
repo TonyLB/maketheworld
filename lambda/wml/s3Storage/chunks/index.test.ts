@@ -14,7 +14,7 @@ jest.mock('uuid', () => ({
 }))
 
 const mockS3Client = s3Client as jest.Mocked<typeof s3Client>
-const mockUuidv4 = uuidv4 as jest.MockedFunction<typeof uuidv4>
+const mockUuidv4 = uuidv4 as jest.MockedFunction<() => string>
 
 describe('Chunk Operations', () => {
     beforeEach(() => {
@@ -146,15 +146,16 @@ describe('Chunk Operations', () => {
                 authoringPlayer: 'charlie'
             })
 
-            expect(mockS3Client.putWithTags).toHaveBeenCalledWith({
+            expect(mockS3Client.putWithTags).toHaveBeenCalledWith(expect.objectContaining({
                 Key: 'test.wml/chunks/1729252800000-uuid-6.wml',
                 Body: content,
                 Tags: { Zone: 'Library' },
                 Metadata: {
                     timestamp: '1729252800000',
                     authoringPlayer: 'charlie'
-                }
-            })
+                },
+                ContentType: 'text/plain; charset=utf-8'
+            }))
         })
 
         it('should handle all zone types', async () => {

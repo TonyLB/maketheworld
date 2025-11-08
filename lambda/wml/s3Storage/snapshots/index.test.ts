@@ -68,7 +68,8 @@ describe('Snapshot Operations', () => {
 
             expect(mockS3Client.copyWithTags).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    Tags: { Zone: 'Canon' }
+                    Tags: { Zone: 'Canon' },
+                    ContentType: 'text/plain; charset=utf-8'
                 })
             )
         })
@@ -352,16 +353,17 @@ describe('Snapshot Operations', () => {
                     content: testContent
                 })
                 
-                expect(mockS3Client.putWithTags).toHaveBeenCalledWith({
-                    Key: 'test.wml/snapshots/1729252800000.wml',
-                    Body: testContent,
-                    Tags: { Zone: 'Canon' },
-                    Metadata: {
-                        timestamp: '1729252800000',
-                        snapshotType: 'initializeManifest',
-                        chunksBeforeSnapshot: '0'
-                    }
-                })
+            expect(mockS3Client.putWithTags).toHaveBeenCalledWith(expect.objectContaining({
+                Key: 'test.wml/snapshots/1729252800000.wml',
+                Body: testContent,
+                Tags: { Zone: 'Canon' },
+                Metadata: {
+                    timestamp: '1729252800000',
+                    snapshotType: 'initializeManifest',
+                    chunksBeforeSnapshot: '0'
+                },
+                ContentType: 'text/plain; charset=utf-8'
+            }))
             })
             
             it('should calculate size from content', async () => {

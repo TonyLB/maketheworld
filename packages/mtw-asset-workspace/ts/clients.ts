@@ -49,18 +49,20 @@ export const s3Client = {
         }))
     },
 
-    async putWithTags({ Key, Body, Tags, Metadata }: {
+    async putWithTags({ Key, Body, Tags, Metadata, ContentType }: {
         Key: string;
         Body: string;
         Tags?: Record<string, string>;
         Metadata?: Record<string, string>;
+        ContentType?: string;
     }): Promise<void> {
         await internalS3Client.send(new PutObjectCommand({
             Bucket: S3_BUCKET,
             Key,
             Body,
             Tagging: Tags ? Object.entries(Tags).map(([k, v]) => `${k}=${v}`).join('&') : undefined,
-            Metadata
+            Metadata,
+            ContentType
         }))
     },
 
@@ -129,11 +131,12 @@ export const s3Client = {
         return response.ContentLength ?? 0
     },
 
-    async copyWithTags({ CopySource, Key, Metadata, Tags }: {
+    async copyWithTags({ CopySource, Key, Metadata, Tags, ContentType }: {
         CopySource: string;
         Key: string;
         Metadata: Record<string, string>;
         Tags: Record<string, string>;
+        ContentType?: string;
     }): Promise<void> {
         await internalS3Client.send(new CopyObjectCommand({
             Bucket: S3_BUCKET,
@@ -142,7 +145,8 @@ export const s3Client = {
             Metadata,
             MetadataDirective: 'REPLACE',
             Tagging: Object.entries(Tags).map(([k, v]) => `${k}=${v}`).join('&'),
-            TaggingDirective: 'REPLACE'
+            TaggingDirective: 'REPLACE',
+            ContentType
         }))
     },
 

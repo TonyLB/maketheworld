@@ -132,13 +132,13 @@ describe('s3Client wrapper', () => {
                 Metadata: { timestamp: '1234567890' }
             })
 
-            expect(PutObjectCommand).toHaveBeenCalledWith({
+            expect(PutObjectCommand).toHaveBeenCalledWith(expect.objectContaining({
                 Bucket: S3_BUCKET,
                 Key: 'test.wml',
                 Body: '<Asset uuid=(test) />',
                 Tagging: 'Zone=Library&Version=1',
                 Metadata: { timestamp: '1234567890' }
-            })
+            }))
         })
 
         it('should handle tags without metadata', async () => {
@@ -150,13 +150,13 @@ describe('s3Client wrapper', () => {
                 Tags: { Zone: 'Canon' }
             })
 
-            expect(PutObjectCommand).toHaveBeenCalledWith({
+            expect(PutObjectCommand).toHaveBeenCalledWith(expect.objectContaining({
                 Bucket: S3_BUCKET,
                 Key: 'test.wml',
                 Body: 'content',
                 Tagging: 'Zone=Canon',
                 Metadata: undefined
-            })
+            }))
         })
 
         it('should handle undefined tags', async () => {
@@ -168,13 +168,13 @@ describe('s3Client wrapper', () => {
                 Metadata: { player: 'alice' }
             })
 
-            expect(PutObjectCommand).toHaveBeenCalledWith({
+            expect(PutObjectCommand).toHaveBeenCalledWith(expect.objectContaining({
                 Bucket: S3_BUCKET,
                 Key: 'test.wml',
                 Body: 'content',
                 Tagging: undefined,
                 Metadata: { player: 'alice' }
-            })
+            }))
         })
 
         it('should format tags with special characters correctly', async () => {
@@ -191,6 +191,21 @@ describe('s3Client wrapper', () => {
                     Tagging: 'Zone=Library&Owner=user@example.com'
                 })
             )
+        })
+
+        it('should pass ContentType when provided', async () => {
+            mockSend.mockResolvedValue({})
+
+            await s3Client.putWithTags({
+                Key: 'test.wml',
+                Body: 'content',
+                Tags: { Zone: 'Library' },
+                ContentType: 'text/plain'
+            })
+
+            expect(PutObjectCommand).toHaveBeenCalledWith(expect.objectContaining({
+                ContentType: 'text/plain'
+            }))
         })
     })
 
@@ -361,7 +376,7 @@ describe('s3Client wrapper', () => {
                 Tags: { Zone: 'Library' }
             })
 
-            expect(CopyObjectCommand).toHaveBeenCalledWith({
+            expect(CopyObjectCommand).toHaveBeenCalledWith(expect.objectContaining({
                 Bucket: S3_BUCKET,
                 CopySource: `${S3_BUCKET}/source.wml`,
                 Key: 'dest.wml',
@@ -372,7 +387,7 @@ describe('s3Client wrapper', () => {
                 MetadataDirective: 'REPLACE',
                 Tagging: 'Zone=Library',
                 TaggingDirective: 'REPLACE'
-            })
+            }))
         })
 
         it('should format CopySource with bucket name', async () => {
@@ -423,6 +438,24 @@ describe('s3Client wrapper', () => {
                 expect.objectContaining({
                     MetadataDirective: 'REPLACE',
                     TaggingDirective: 'REPLACE'
+                })
+            )
+        })
+
+        it('should include ContentType when provided', async () => {
+            mockSend.mockResolvedValue({})
+
+            await s3Client.copyWithTags({
+                CopySource: 'source.wml',
+                Key: 'dest.wml',
+                Metadata: {},
+                Tags: { Zone: 'Library' },
+                ContentType: 'text/plain'
+            })
+
+            expect(CopyObjectCommand).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    ContentType: 'text/plain'
                 })
             )
         })

@@ -15,6 +15,8 @@
 
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 import { Zone } from '@tonylb/mtw-asset-workspace/ts/readOnly'
+const SNAPSHOT_CONTENT_TYPE = 'text/plain; charset=utf-8'
+
 
 /**
  * Reference to a written snapshot for manifest tracking
@@ -82,7 +84,8 @@ export const writeSnapshot = async (options: WriteSnapshotOptions): Promise<Snap
             Key: s3Key,
             Body: content,
             Tags: tags,
-            Metadata: metadata
+            Metadata: metadata,
+            ContentType: SNAPSHOT_CONTENT_TYPE
         })
         
         // Calculate size from content
@@ -100,7 +103,8 @@ export const writeSnapshot = async (options: WriteSnapshotOptions): Promise<Snap
                 CopySource: sourceKey,
                 Key: s3Key,
                 Metadata: metadata,
-                Tags: tags
+                Tags: tags,
+                ContentType: SNAPSHOT_CONTENT_TYPE
             }),
             s3Client.getSize({ Key: sourceKey })
         ])
