@@ -1,6 +1,7 @@
 import { WMLContentEventExternal, isWMLContentEventExternal } from "./eventBridge/wml";
 import { ContentHeadersExternal, isContentHeadersExternal } from "./eventBridge/assets/contentHeaders";
 import { LibraryExternal, isLibraryExternal } from "./eventBridge/assets/library";
+import { PlayerExternal, isPlayerExternal } from "./eventBridge/assets/players";
 
 export type SubscribeAPIMessage = Record<string, any> & {
     message: 'subscribe';
@@ -63,11 +64,21 @@ export type LibrarySubscriptionClientMessage = {
     RequestId?: string;
 }
 
+export type PlayerSubscriptionClientMessage = {
+    messageType: 'StreamEvent';
+    dataSourceKey: 'mtw.assets.players';
+    streamKey: string;
+    timestamp: number;
+    update: PlayerExternal;
+    RequestId?: string;
+}
+
 // Union of all subscription client messages
 export type SubscriptionClientMessage =
     | WMLSubscriptionClientMessage
     | ContentHeadersSubscriptionClientMessage
     | LibrarySubscriptionClientMessage
+    | PlayerSubscriptionClientMessage
 
 // Type guard for subscription client messages (StreamEvent)
 export const isSubscriptionClientMessage = (message: Record<string, any>): message is SubscriptionClientMessage => {
@@ -91,6 +102,8 @@ export const isSubscriptionClientMessage = (message: Record<string, any>): messa
             return isContentHeadersExternal(message.update)
         case 'mtw.assets.library':
             return isLibraryExternal(message.update)
+        case 'mtw.assets.players':
+            return isPlayerExternal(message.update)
         default:
             return false
     }

@@ -90,5 +90,18 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
                 RequestId: event.RequestId
             }
         })
+    },
+    {
+        dataSourceKey: 'mtw.assets.players',
+        transform: (event) => ({
+            messageType: 'StreamEvent',
+            dataSourceKey: 'mtw.assets.players',
+            streamKey: event.streamKey,
+            timestamp: event.timestamp,
+            update: {
+                ...event.update,
+                ...(event.RequestId ? { RequestId: event.RequestId } : {})
+            }
+        })
     }
 ])
