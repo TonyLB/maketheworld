@@ -42,6 +42,7 @@
 - Transition the client player slice to rely on the new data source (replacing the `whoAmI` life-line dependency) once backend streaming is ready.
 - Treat the player name as the per-stream identifier: the EventBridge `streamKey` for `mtw.assets.players` will be `PlayerName`. Payloads no longer need to echo the name.
 - Keep connection-scoped fields (e.g. `SessionId`) out of the data source payloads. The subscriptions lambda already knows the target session and can enrich outgoing websocket messages with the current session ID as a special case.
+- Until subscription authorization grows richer context, the subscriptions lambda rewrites a sentinel stream key (`self`) to the authenticated `PlayerName` when clients subscribe to `mtw.assets.players`. Document this provisional shim and remove it when we implement proper context-aware routing.
 - **Legacy API Messages**: `updatePlayerSettings` currently flows through the assets lambda as an ad-hoc messageBus type (`PlayerSettings`). We’ll subscribe to that legacy message for now so the new data source stays in sync, but note that the longer-term goal is to fold these direct API hooks into the unified data-source handler pattern (mirroring how other services route incoming API traffic through data sources).
 
 ---
@@ -53,7 +54,7 @@
 - [ ] Implement the `mtw.assets.players` data source (constructor, subscriptions to `mtw.assets`, streamEvent logic, and tests).  
   ✅ Emit granular deltas (`Player Asset Assigned/Removed`, `Player Settings Updated`) derived directly from incoming `mtw.assets` events—no in-memory ownership cache.  
   🔄 Follow-up: Once client integration is complete, remove the now-unused legacy streaming paths and retire full-snapshot fallback (keep only for replay).
-- [ ] Register the new data source with the subscriptions lambda (`lambda/subscriptions/handlerFramework`) and add integration tests as needed.
+- [x] Register the new data source with the subscriptions lambda (`lambda/subscriptions/handlerFramework`) so clients receive the granular deltas.
 - [ ] Update the client (`charcoal-client/src/slices/player`) to subscribe to the new stream and retire the ad-hoc `whoAmI` refresh path.
 
 ---

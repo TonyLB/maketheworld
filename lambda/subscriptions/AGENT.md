@@ -178,6 +178,7 @@ type LibraryEntry = {
 - **Functional**: Successfully routes WML events to subscribed clients
 - **Configurable**: Library-based handler system supports easy event type addition
 - **Resilient**: Handles WebSocket failures and connection cleanup gracefully
+- **Provisional Player Stream Support**: When clients subscribe to `mtw.assets.players`, the lambda rewrites a sentinel stream key of `self` to the authenticated `PlayerName`. This shim lets the front-end adopt the new replayable player data source without first performing an explicit `whoAmI` call. Once subscription authorization gains richer context awareness, replace this rewrite with a generalized, policy-driven mechanism.
 
 ### Future Plans
 - **Asset Event Integration**: Add handlers for Assets Lambda events

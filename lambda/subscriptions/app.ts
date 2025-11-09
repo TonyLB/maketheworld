@@ -1,7 +1,7 @@
 // Copyright 2024 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { isSubscribeAPIMessage, isUnsubscribeAPIMessage } from "@tonylb/mtw-interfaces/ts/subscriptions"
+import { isSubscribeAPIMessage, isUnsubscribeAPIMessage, SubscribeAPIMessage } from "@tonylb/mtw-interfaces/ts/subscriptions"
 import { subscriptionLibrary } from "./handlerFramework"
 import { fromEventBridgeFormat } from "@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform"
 import internalCache from "./internalCache"
@@ -11,8 +11,9 @@ import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
 // Configuration for replayable DataSources that support snapshot initialization
 const REPLAYABLE_DATA_SOURCES = [
     'mtw.assets.contentHeaders',
-    'mtw.assets.library'
-    // Future: 'mtw.ephemera', 'mtw.players'
+    'mtw.assets.library',
+    'mtw.assets.players'
+    // Future: 'mtw.ephemera'
 ] as const
 
 /**
@@ -20,6 +21,36 @@ const REPLAYABLE_DATA_SOURCES = [
  */
 function isReplayableDataSource(dataSourceKey: string): boolean {
     return REPLAYABLE_DATA_SOURCES.includes(dataSourceKey as any)
+}
+
+const PLAYER_STREAM_SENTINEL = 'self'
+
+/**
+ * Temporarily resolve player-centric stream keys to the authenticated player.
+ * This is a stopgap until subscription authorization becomes context-aware.
+ * When the request targets `mtw.assets.players`, any sentinel stream key of
+ * `'self'` is rewritten to the resolved player name for the current connection.
+ */
+const resolveStreamKeys = async (request: SubscribeAPIMessage): Promise<SubscribeAPIMessage> => {
+    if (request.dataSourceKey !== 'mtw.assets.players') {
+        return request
+    }
+
+    const player = await internalCache.Global.get('player')
+    if (!player) {
+        console.warn('mtw.subscriptions: Unable to resolve player for mtw.assets.players subscription; falling back to original stream keys')
+        return request
+    }
+
+    const resolvedStreamKeys = request.streamKeys
+        .map((streamKey) => (streamKey === PLAYER_STREAM_SENTINEL ? player : streamKey))
+        .filter((streamKey): streamKey is string => Boolean(streamKey))
+
+    if (!resolvedStreamKeys.length) {
+        return { ...request, streamKeys: [player] }
+    }
+
+    return { ...request, streamKeys: [...new Set(resolvedStreamKeys)] }
 }
 
 export const handler = async (event: any) => {
@@ -34,36 +65,37 @@ export const handler = async (event: any) => {
     // Handle Websocket calls to update the subscriber lists
     //
     if (isSubscribeAPIMessage(request)) {
-        const match = subscriptionLibrary.match(request)
+        const resolvedRequest = await resolveStreamKeys(request)
+        const match = subscriptionLibrary.match(resolvedRequest)
         if (match) {
             const sessionId = await internalCache.Global.get("SessionId")
             
             // 1. Set up local subscription storage
-            await match.subscribe(request, `SESSION#${sessionId}`)
+            await match.subscribe(resolvedRequest, `SESSION#${sessionId}`)
             
             // 2. Trigger snapshot initialization for replayable DataSources
-            if (isReplayableDataSource(request.dataSourceKey)) {
-                console.log(`Triggering snapshot initialization for replayable DataSource: ${request.dataSourceKey}`)
+            if (isReplayableDataSource(resolvedRequest.dataSourceKey)) {
+                console.log(`Triggering snapshot initialization for replayable DataSource: ${resolvedRequest.dataSourceKey}`)
                 // Send initialization event for each stream key
                 await eventBridgeClient.send(
-                    request.streamKeys.map((streamKey) => ({
+                    resolvedRequest.streamKeys.map((streamKey) => ({
                         Source: 'mtw.subscriptions',
-                        DetailType: `Initialize Subscription - ${request.dataSourceKey}`,
+                        DetailType: `Initialize Subscription - ${resolvedRequest.dataSourceKey}`,
                         Detail: {
                             streamKey,
                             sessionId: `SESSION#${sessionId}`,
-                            requestId: request.RequestId
+                            requestId: resolvedRequest.RequestId
                         }
                     }))
                 )
             }
         }
         else {
-            console.log(`No match: ${JSON.stringify(request, null, 4)}`)
+            console.log(`No match: ${JSON.stringify(resolvedRequest, null, 4)}`)
         }
         return {
             statusCode: 200,
-            body: JSON.stringify({ messageType: 'Success', RequestId: request.RequestId })
+            body: JSON.stringify({ messageType: 'Success', RequestId: resolvedRequest.RequestId })
         }
     }
     if (isUnsubscribeAPIMessage(request)) {
