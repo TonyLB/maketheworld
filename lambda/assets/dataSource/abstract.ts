@@ -1,5 +1,6 @@
 import { DataSource, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { EventPayload, StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
 import messageBus from '../messageBus'
@@ -33,6 +34,7 @@ export class AssetsDataSource<
             streamEvent: (params: { update: UpdatePayload, streamKey: string }) => Promise<void>
         }) => Promise<void>;
         eventSerializer?: any; // Pass through to parent DataSource
+        aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>;
     }) {
         super({
             dynamo: assetDB,
@@ -47,6 +49,7 @@ export class AssetsDataSource<
             replayable: params.replayable ?? true, // Default to replayable for backward compatibility
             snapshotContentGenerator: params.snapshotContentGenerator,
             eventSerializer: params.eventSerializer,
+            aggregator: params.aggregator,
             ...params
         });
     }

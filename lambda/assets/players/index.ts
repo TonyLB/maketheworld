@@ -4,42 +4,32 @@ import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource
 import {
     PlayerEventSerializer,
     PlayerSnapshot,
-    PlayerEventUpdate
+    PlayerEventUpdate,
+    PlayerSettingsUpdated
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
+import { PlayerAggregator } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players/baseClasses'
 import {
     AssetLevelEventUpdate,
-    isAssetAddedEvent,
     isAssetCachedEvent,
     isAssetDecachedEvent,
     isAssetRemovedEvent,
     isAssetUpdatedEvent,
     isZoneUpdatedEvent
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+import { splitType } from '@tonylb/mtw-utilities/ts/types'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { isPlayerSettingsUpdatedEvent, PlayerSettingsUpdatedEvent } from './coordinationSerializer'
 
-const generatePlayerSnapshot = async (playerName: string): Promise<PlayerSnapshot> => {
-    const [library, settings] = await Promise.all([
-        internalCache.PlayerLibrary.get(playerName),
-        internalCache.PlayerSettings.get(playerName)
-    ])
+type PlayerLibraryView = {
+    Assets: Record<string, any>
+    Characters: Record<string, any>
+    draftURL: string
+}
 
-    const assets = Object.values(library.Assets ?? {})
-    const characters = Object.values(library.Characters ?? {})
-    const { onboardCompleteTags = [], guestName, guestId } = settings || {}
-
-    updateAssetOwnership(playerName, assets)
-
-    return {
-        type: 'Snapshot',
-        assets,
-        characters,
-        settings: {
-            onboardCompleteTags,
-            ...(guestName ? { guestName } : {}),
-            ...(guestId ? { guestId } : {})
-        }
-    }
+type LibraryWithSettings = {
+    assets: PlayerLibraryView['Assets']
+    characters: PlayerLibraryView['Characters']
+    settings: PlayerSettingsUpdated['settings']
 }
 
 type AssetsStreamEvent = StreamingEventPayload & {
@@ -65,7 +55,6 @@ const isAssetsStreamEvent = (event: StreamingEventPayload): event is AssetsStrea
         return false
     }
     return [
-        isAssetAddedEvent,
         isAssetCachedEvent,
         isAssetDecachedEvent,
         isAssetRemovedEvent,
@@ -82,82 +71,106 @@ const subscribedEventTypeGuard = (event: StreamingEventPayload): event is Player
     return isAssetsStreamEvent(event) || isInternalPlayerEvent(event)
 }
 
-// NOTE: This ownership map is a stopgap accelerator while we still emit full player snapshots.
-// It mirrors the current runtime's best knowledge of which player owns a given asset so we can
-// skip repeated Dynamo lookups during the transition period. Because lambdas scale horizontally,
-// it can go stale; we fall back to metadata queries when needed. Once we refactor the player data
-// source to stream granular delta events (and remove full-snapshot streaming), we should delete
-// this cache and rely solely on the delta contracts.
-const assetOwnershipCache = new Map<string, Set<string>>()
-
-function updateAssetOwnership(playerName: string, assets: { AssetId: string }[]) {
-    const assetIds = new Set(assets.map(({ AssetId }) => AssetId))
-    // Remove stale entries for this player
-    for (const [assetId, owners] of assetOwnershipCache.entries()) {
-        if (owners.has(playerName) && !assetIds.has(assetId)) {
-            owners.delete(playerName)
-            if (owners.size === 0) {
-                assetOwnershipCache.delete(assetId)
-            }
-        }
-    }
-    assetIds.forEach((assetId) => {
-        const owners = assetOwnershipCache.get(assetId) ?? new Set<string>()
-        owners.add(playerName)
-        assetOwnershipCache.set(assetId, owners)
-    })
+const stripAssetId = (assetId: AssetUUID): string => {
+    const [, uuid] = splitType(assetId)
+    return uuid
 }
 
-const playersForAsset = async (assetId: AssetUUID, event: AssetLevelEventUpdate): Promise<string[]> => {
-    const owners = new Set<string>()
+const playerZones = new Set(['Personal', 'Draft'])
+const isPlayerZone = (zone?: string) => typeof zone === 'string' && playerZones.has(zone)
 
-    const cachedOwners = assetOwnershipCache.get(assetId)
-    if (cachedOwners) {
-        cachedOwners.forEach((owner) => owners.add(owner))
+const resolvePlayerName = (event: AssetLevelEventUpdate, meta?: { player?: string }): string | undefined => {
+    const eventPlayer = (event as unknown as { player?: string }).player
+    if (typeof eventPlayer === 'string' && eventPlayer) {
+        return eventPlayer
     }
-
-    // Some Zone Updated events include a player hint
-    const potentialPlayer = (event as unknown as { player?: string }).player
-    if (typeof potentialPlayer === 'string') {
-        owners.add(potentialPlayer)
-    }
-
-    if (owners.size === 0) {
-        const [meta] = await internalCache.AssetMetaData.get([assetId])
-        if (meta?.player) {
-            owners.add(meta.player)
-        }
-    }
-
-    return [...owners]
+    const metaPlayer = meta?.player
+    return typeof metaPlayer === 'string' && metaPlayer ? metaPlayer : undefined
 }
 
-const emitPlayerUpdate = async (streamEvent: (params: { update: PlayerEventUpdate; streamKey: string }) => Promise<void>, playerName: string) => {
+const isRemovalEvent = (event: AssetLevelEventUpdate): boolean =>
+    isAssetDecachedEvent(event) || isAssetRemovedEvent(event)
+
+const invalidatePlayerLibrary = async (player: string) => {
+    internalCache.PlayerLibrary.invalidate(player)
+    return internalCache.PlayerLibrary.get(player)
+}
+
+const getLibraryAndSettings = async (player: string): Promise<LibraryWithSettings> => {
     const [library, settings] = await Promise.all([
-        internalCache.PlayerLibrary.get(playerName),
-        internalCache.PlayerSettings.get(playerName)
+        invalidatePlayerLibrary(player),
+        internalCache.PlayerSettings.get(player)
     ])
-
-    const assets = Object.values(library.Assets ?? {})
-    const characters = Object.values(library.Characters ?? {})
     const { onboardCompleteTags = [], guestName, guestId } = settings || {}
-
-    updateAssetOwnership(playerName, assets)
-
-    const update: PlayerEventUpdate = {
-        type: 'Player Library Updated',
-        assets,
-        characters,
+    return {
+        assets: library.Assets,
+        characters: library.Characters,
         settings: {
             onboardCompleteTags,
             ...(guestName ? { guestName } : {}),
             ...(guestId ? { guestId } : {})
         }
     }
+}
+
+const generatePlayerSnapshot = async (playerName: string): Promise<PlayerSnapshot> => {
+    const { assets, characters, settings } = await getLibraryAndSettings(playerName)
+    const assetArray = Object.values(assets ?? {})
+    return {
+        type: 'Snapshot',
+        assets: assetArray,
+        characters: Object.values(characters ?? {}),
+        settings
+    }
+}
+
+const emitSettingsUpdated = async (
+    streamEvent: (params: { update: PlayerEventUpdate; streamKey: string }) => Promise<void>,
+    player: string
+) => {
+    const { settings } = await getLibraryAndSettings(player)
+    await streamEvent({
+        streamKey: player,
+        update: {
+            type: 'Player Settings Updated',
+            settings
+        }
+    })
+}
+
+const emitAssetAssigned = async (
+    streamEvent: (params: { update: PlayerEventUpdate; streamKey: string }) => Promise<void>,
+    player: string,
+    assetId: AssetUUID,
+    library: PlayerLibraryView
+) => {
+    const assetKey = stripAssetId(assetId)
+    const asset = library.Assets[assetKey]
+    if (!asset) {
+        return
+    }
 
     await streamEvent({
-        streamKey: playerName,
-        update
+        streamKey: player,
+        update: {
+            type: 'Player Asset Assigned',
+            asset: { ...asset }
+        }
+    })
+}
+
+const emitAssetRemoved = async (
+    streamEvent: (params: { update: PlayerEventUpdate; streamKey: string }) => Promise<void>,
+    player: string,
+    assetId: AssetUUID
+) => {
+    const assetKey = stripAssetId(assetId)
+    await streamEvent({
+        streamKey: player,
+        update: {
+            type: 'Player Asset Removed',
+            assetId: assetKey
+        }
     })
 }
 
@@ -166,21 +179,54 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
     replayable: true,
     snapshotContentGenerator: generatePlayerSnapshot,
     eventSerializer: new PlayerEventSerializer(),
+    aggregator: new PlayerAggregator(),
     subscribedEventTypeGuard,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
             try {
                 if (isInternalPlayerEvent(event)) {
-                    await emitPlayerUpdate(streamEvent, event.streamKey)
+                    await emitSettingsUpdated(streamEvent, event.streamKey)
                     return
                 }
 
                 if (isAssetsStreamEvent(event)) {
-                    const affectedPlayers = await playersForAsset(event.streamKey, event.event)
-                    if (affectedPlayers.length === 0) {
+                    const assetId = event.streamKey
+                    const [meta] = await internalCache.AssetMetaData.get([assetId])
+                    const player = resolvePlayerName(event.event, meta)
+
+                    if (!player) {
                         return
                     }
-                    await Promise.all(affectedPlayers.map((player) => emitPlayerUpdate(streamEvent, player)))
+
+                    if (isRemovalEvent(event.event)) {
+                        await emitAssetRemoved(streamEvent, player, assetId)
+                        return
+                    }
+
+                    if (isZoneUpdatedEvent(event.event)) {
+                        const { fromZone, toZone } = event.event
+                        const wasPlayerZone = isPlayerZone(fromZone)
+                        const nowPlayerZone = isPlayerZone(toZone)
+
+                        if (!nowPlayerZone && wasPlayerZone) {
+                            await emitAssetRemoved(streamEvent, player, assetId)
+                            return
+                        }
+
+                        if (nowPlayerZone) {
+                            const library = await invalidatePlayerLibrary(player)
+                            await emitAssetAssigned(streamEvent, player, assetId, library)
+                        }
+                        return
+                    }
+
+                    if (isAssetCachedEvent(event.event) || isAssetUpdatedEvent(event.event)) {
+                        const currentZone = meta?.zone
+                        if (isPlayerZone(currentZone)) {
+                            const library = await invalidatePlayerLibrary(player)
+                            await emitAssetAssigned(streamEvent, player, assetId, library)
+                        }
+                    }
                 }
             } catch (error) {
                 console.error(`mtw.assets.players: failed to process event for stream ${event.streamKey}`, error)

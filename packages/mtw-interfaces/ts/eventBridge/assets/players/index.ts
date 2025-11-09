@@ -22,14 +22,38 @@ export type PlayerSnapshot = {
     settings: AssetClientPlayerSettings
 }
 
-export type PlayerLibraryUpdated = {
-    type: 'Player Library Updated'
-    assets: LibraryAsset[]
-    characters: LibraryCharacter[]
+export type PlayerSettingsUpdated = {
+    type: 'Player Settings Updated'
     settings: AssetClientPlayerSettings
 }
 
-export type PlayerEventUpdate = PlayerLibraryUpdated
+export type PlayerAssetAssigned = {
+    type: 'Player Asset Assigned'
+    asset: LibraryAsset
+}
+
+export type PlayerAssetRemoved = {
+    type: 'Player Asset Removed'
+    assetId: string
+}
+
+export type PlayerCharacterAssigned = {
+    type: 'Player Character Assigned'
+    character: LibraryCharacter
+}
+
+export type PlayerCharacterRemoved = {
+    type: 'Player Character Removed'
+    characterId: string
+}
+
+export type PlayerEventUpdate =
+    | PlayerSnapshot // Used when the entire snapshot is recomputed (e.g. cache miss)
+    | PlayerSettingsUpdated
+    | PlayerAssetAssigned
+    | PlayerAssetRemoved
+    | PlayerCharacterAssigned
+    | PlayerCharacterRemoved
 
 //
 // External (EventBridge / Replay storage) payloads
@@ -37,8 +61,15 @@ export type PlayerEventUpdate = PlayerLibraryUpdated
 //
 
 export type PlayerSnapshotExternal = PlayerSnapshot
-export type PlayerLibraryUpdatedExternal = PlayerLibraryUpdated
-export type PlayerExternal = PlayerLibraryUpdatedExternal
+export type PlayerExternal =
+    | PlayerSnapshot
+    | PlayerSettingsUpdated
+    | PlayerAssetAssigned
+    | PlayerAssetRemoved
+    | PlayerCharacterAssigned
+    | PlayerCharacterRemoved
+
+export { PlayerAggregator } from './baseClasses'
 
 //
 // Runtime typeguards
@@ -87,19 +118,48 @@ export const isPlayerSnapshot = (value: any): value is PlayerSnapshot => (
     isPlayerSettings(value.settings)
 )
 
-export const isPlayerLibraryUpdated = (value: any): value is PlayerLibraryUpdated => (
+export const isPlayerSettingsUpdated = (value: any): value is PlayerSettingsUpdated => (
     value &&
     typeof value === 'object' &&
-    value.type === 'Player Library Updated' &&
-    Array.isArray(value.assets) &&
-    value.assets.every(isLibraryAsset) &&
-    Array.isArray(value.characters) &&
-    value.characters.every(isLibraryCharacter) &&
+    value.type === 'Player Settings Updated' &&
     isPlayerSettings(value.settings)
 )
 
+export const isPlayerAssetAssigned = (value: any): value is PlayerAssetAssigned => (
+    value &&
+    typeof value === 'object' &&
+    value.type === 'Player Asset Assigned' &&
+    isLibraryAsset(value.asset)
+)
+
+export const isPlayerAssetRemoved = (value: any): value is PlayerAssetRemoved => (
+    value &&
+    typeof value === 'object' &&
+    value.type === 'Player Asset Removed' &&
+    typeof value.assetId === 'string'
+)
+
+export const isPlayerCharacterAssigned = (value: any): value is PlayerCharacterAssigned => (
+    value &&
+    typeof value === 'object' &&
+    value.type === 'Player Character Assigned' &&
+    isLibraryCharacter(value.character)
+)
+
+export const isPlayerCharacterRemoved = (value: any): value is PlayerCharacterRemoved => (
+    value &&
+    typeof value === 'object' &&
+    value.type === 'Player Character Removed' &&
+    typeof value.characterId === 'string'
+)
+
 export const isPlayerExternal = (value: any): value is PlayerExternal => (
-    isPlayerLibraryUpdated(value)
+    isPlayerSnapshot(value) ||
+    isPlayerSettingsUpdated(value) ||
+    isPlayerAssetAssigned(value) ||
+    isPlayerAssetRemoved(value) ||
+    isPlayerCharacterAssigned(value) ||
+    isPlayerCharacterRemoved(value)
 )
 
 //
@@ -118,15 +178,45 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
         update: PlayerEventUpdate
     }): PlayerExternal {
         const { update } = params
-        if (!isPlayerLibraryUpdated(update)) {
-            throw new Error(`Unknown player event update: ${JSON.stringify(update)}`)
+        if (isPlayerSnapshot(update)) {
+            return {
+                type: 'Snapshot',
+                assets: update.assets.map((asset) => ({ ...asset })),
+                characters: update.characters.map((character) => ({ ...character })),
+                settings: { ...update.settings }
+            }
         }
-        return {
-            type: 'Player Library Updated',
-            assets: update.assets.map((asset) => ({ ...asset })),
-            characters: update.characters.map((character) => ({ ...character })),
-            settings: { ...update.settings }
+        if (isPlayerSettingsUpdated(update)) {
+            return {
+                type: 'Player Settings Updated',
+                settings: { ...update.settings }
+            }
         }
+        if (isPlayerAssetAssigned(update)) {
+            return {
+                type: 'Player Asset Assigned',
+                asset: { ...update.asset }
+            }
+        }
+        if (isPlayerAssetRemoved(update)) {
+            return {
+                type: 'Player Asset Removed',
+                assetId: update.assetId
+            }
+        }
+        if (isPlayerCharacterAssigned(update)) {
+            return {
+                type: 'Player Character Assigned',
+                character: { ...update.character }
+            }
+        }
+        if (isPlayerCharacterRemoved(update)) {
+            return {
+                type: 'Player Character Removed',
+                characterId: update.characterId
+            }
+        }
+        throw new Error(`Unknown player event update: ${JSON.stringify(update)}`)
     }
 
     deserialize(params: {
@@ -135,16 +225,46 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
         externalUpdate: PlayerExternal
     }): PlayerEventUpdate | null {
         const { externalUpdate } = params
-        if (!isPlayerLibraryUpdated(externalUpdate)) {
-            console.error('Invalid player external update payload', externalUpdate)
-            return null
+        if (isPlayerSnapshot(externalUpdate)) {
+            return {
+                type: 'Snapshot',
+                assets: externalUpdate.assets.map((asset) => ({ ...asset })),
+                characters: externalUpdate.characters.map((character) => ({ ...character })),
+                settings: { ...externalUpdate.settings }
+            }
         }
-        return {
-            type: 'Player Library Updated',
-            assets: externalUpdate.assets.map((asset) => ({ ...asset })),
-            characters: externalUpdate.characters.map((character) => ({ ...character })),
-            settings: { ...externalUpdate.settings }
+        if (isPlayerSettingsUpdated(externalUpdate)) {
+            return {
+                type: 'Player Settings Updated',
+                settings: { ...externalUpdate.settings }
+            }
         }
+        if (isPlayerAssetAssigned(externalUpdate)) {
+            return {
+                type: 'Player Asset Assigned',
+                asset: { ...externalUpdate.asset }
+            }
+        }
+        if (isPlayerAssetRemoved(externalUpdate)) {
+            return {
+                type: 'Player Asset Removed',
+                assetId: externalUpdate.assetId
+            }
+        }
+        if (isPlayerCharacterAssigned(externalUpdate)) {
+            return {
+                type: 'Player Character Assigned',
+                character: { ...externalUpdate.character }
+            }
+        }
+        if (isPlayerCharacterRemoved(externalUpdate)) {
+            return {
+                type: 'Player Character Removed',
+                characterId: externalUpdate.characterId
+            }
+        }
+        console.error('Invalid player external update payload', externalUpdate)
+        return null
     }
 
     serializeSnapshot(snapshot: PlayerSnapshot): PlayerSnapshotExternal {

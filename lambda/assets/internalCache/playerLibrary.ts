@@ -15,6 +15,9 @@ export class CachePlayerLibraryData {
     clear() {
         this.PlayerLibraries = {}
     }
+    invalidate(player: string) {
+        delete this.PlayerLibraries[player]
+    }
     async set(player: string, override: { Assets: Record<string, LibraryAsset | undefined>; Characters: Record<string, LibraryCharacter | undefined>}) {
         if (!(player in this.PlayerLibraries)) {
             await this.get(player)

@@ -51,8 +51,8 @@
 - [x] Author `mtw.assets.players` event types, external payloads, and serializer in `packages/mtw-interfaces/ts/eventBridge/`.
 - [x] Add snapshot generation utilities (reuse or refactor `CachePlayerLibraryData`) to support replayable subscriptions.
 - [ ] Implement the `mtw.assets.players` data source (constructor, subscriptions to `mtw.assets`, streamEvent logic, and tests).  
-  _Stopgap_: The initial implementation streams full snapshots on each change and tracks ownership in-memory to find affected players.  
-  _Future refactor_: Introduce granular delta events (asset assigned/removed, settings updated, etc.) with a DataSource aggregator so both server and client rely on deltas rather than per-instance caches.
+  ✅ Emit granular deltas (`Player Asset Assigned/Removed`, `Player Settings Updated`) derived directly from incoming `mtw.assets` events—no in-memory ownership cache.  
+  🔄 Follow-up: Once client integration is complete, remove the now-unused legacy streaming paths and retire full-snapshot fallback (keep only for replay).
 - [ ] Register the new data source with the subscriptions lambda (`lambda/subscriptions/handlerFramework`) and add integration tests as needed.
 - [ ] Update the client (`charcoal-client/src/slices/player`) to subscribe to the new stream and retire the ad-hoc `whoAmI` refresh path.
 
