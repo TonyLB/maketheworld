@@ -342,14 +342,13 @@ export class DataSource<
         const eventBridgeEvent = toEventBridgeFormat(coreFormat)
 
         // Create the internal messageBus event
+        // Format matches StreamingEventMessage: { type: 'StreamingEvent', dataSourceKey, streamKey, timestamp, event }
         const messageBusEvent = {
             type: 'StreamingEvent' as const,
             dataSourceKey: this.dataSourceKey,
-            event: {
-                streamKey,
-                update
-            },
-            timestamp: now
+            streamKey,
+            timestamp: now,
+            event: update
         }
 
         // Execute all operations in parallel

@@ -151,6 +151,7 @@ const emitAssetRemoved = async (
     assetId: AssetUUID
 ) => {
     const assetKey = stripAssetId(assetId)
+    console.log(`[emitAssetRemoved] Emitting Player Asset Removed for player=${player}, assetId=${assetId}, assetKey=${assetKey}`)
     await streamEvent({
         streamKey: player,
         update: {
@@ -158,6 +159,7 @@ const emitAssetRemoved = async (
             assetId: assetKey
         }
     })
+    console.log(`[emitAssetRemoved] Player Asset Removed event streamed for player=${player}, assetId=${assetId}`)
 }
 
 export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEventUpdate, PlayersSubscribedEvent>({
@@ -181,10 +183,15 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
                     if (isAssetRemovedEvent(event.event)) {
                         // Use zone and player from event payload (forwarded from source event) to avoid cache timing issues
                         const { zone, player } = event.event
+                        console.log(`[mtw.assets.players] Asset Removed event for ${assetId}: zone=${zone}, player=${player || 'undefined'}`)
                         if (isPlayerZone(zone) && player) {
+                            console.log(`[mtw.assets.players] Processing Asset Removed for player zone: ${zone}, player=${player}`)
                             // Invalidate cache for consistency (even though we only need assetId for removal)
                             await invalidatePlayerLibrary(player)
                             await emitAssetRemoved(streamEvent, player, assetId)
+                            console.log(`[mtw.assets.players] Player Asset Removed event emitted for player=${player}, assetId=${assetId}`)
+                        } else {
+                            console.log(`[mtw.assets.players] Skipping Asset Removed: isPlayerZone=${isPlayerZone(zone)}, hasPlayer=${!!player}`)
                         }
                         return
                     }

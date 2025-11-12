@@ -238,10 +238,12 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             // Handle mtw.wml Asset Purged events
             if (isWMLSubscribedEvent(event) && event.event.type === 'Asset Purged') {
                 const assetId = event.streamKey as AssetUUID
+                console.log(`[mtw.assets] Asset Purged event received for asset: ${assetId}`)
                 if (assetId) {
                     try {
                         // Decache the asset before removing it (clean up DynamoDB cache)
                         await decacheAsset({ assetId, streamEvent })
+                        console.log(`[mtw.assets] Asset ${assetId} decached successfully`)
                     } catch (error) {
                         console.error(`Error decaching asset ${assetId} during purge:`, error)
                         // Continue with removal even if decaching fails
@@ -249,17 +251,21 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                     
                     // Use zone and player from event (forwarded from Asset Purged, which gets player from S3)
                     const { zone, player } = event.event
+                    console.log(`[mtw.assets] Asset Purged event for ${assetId}: zone=${zone}, player=${player || 'undefined'}`)
                     
                     // Stream the removal as an asset-level event
                     // This indicates the asset has been permanently deleted
+                    const assetRemovedEvent = {
+                        type: 'Asset Removed' as const,
+                        zone,
+                        ...(player ? { player } : {})
+                    }
+                    console.log(`[mtw.assets] Emitting Asset Removed event for ${assetId}:`, JSON.stringify(assetRemovedEvent))
                     await streamEvent({
-                        update: { 
-                            type: 'Asset Removed',
-                            zone,
-                            ...(player ? { player } : {})
-                        },
+                        update: assetRemovedEvent,
                         streamKey: assetId
                     })
+                    console.log(`[mtw.assets] Asset Removed event emitted for ${assetId}`)
                     return
                 } else {
                     messageBus.send({
@@ -286,10 +292,12 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             // Handle mtw.coordination events
             if (event.dataSourceKey === 'mtw.coordination' && event.event.type === 'Remove Asset') {
                 const { assetId } = event.event
+                console.log(`[mtw.assets] Remove Asset coordination event received for asset: ${assetId}`)
                 if (assetId) {
                     try {
                         // Decache the asset before removing it
                         await decacheAsset({ assetId: assetId as string, streamEvent })
+                        console.log(`[mtw.assets] Asset ${assetId} decached successfully`)
                     } catch (error) {
                         console.error(`Error decaching asset ${assetId}:`, error)
                         // Continue with removal even if decaching fails
@@ -299,6 +307,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                     const assetMeta = (await internalCache.AssetMetaData.get([assetId as AssetUUID]))[0]
                     const zone = assetMeta?.zone
                     const player = assetMeta?.player
+                    console.log(`[mtw.assets] Remove Asset event for ${assetId}: zone=${zone || 'undefined'}, player=${player || 'undefined'}`)
                     
                     if (!zone) {
                         console.error(`Cannot emit Asset Removed for ${assetId}: zone not found in metadata`)
@@ -306,14 +315,17 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                     }
                     
                     // Stream the removal as an asset-level event
+                    const assetRemovedEvent = {
+                        type: 'Asset Removed' as const,
+                        zone,
+                        ...(player ? { player } : {})
+                    }
+                    console.log(`[mtw.assets] Emitting Asset Removed event for ${assetId}:`, JSON.stringify(assetRemovedEvent))
                     await streamEvent({
-                        update: { 
-                            type: 'Asset Removed',
-                            zone,
-                            ...(player ? { player } : {})
-                        },
+                        update: assetRemovedEvent,
                         streamKey: assetId as string
                     })
+                    console.log(`[mtw.assets] Asset Removed event emitted for ${assetId}`)
                     return
                     } else {
                     // Send error message to messageBus

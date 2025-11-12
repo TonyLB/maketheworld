@@ -302,10 +302,12 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
     }
 
     deserializeSnapshot(externalSnapshot: PlayerSnapshotExternal): PlayerSnapshot | null {
-        if (!isPlayerSnapshot(externalSnapshot)) {
+        // Accept both 'Snapshot' and 'Snapshot Generated' types
+        if (!isPlayerSnapshot(externalSnapshot) && !isPlayerSnapshotGenerated(externalSnapshot)) {
             console.error('Invalid player snapshot external payload', externalSnapshot)
             return null
         }
+        // Convert to internal 'Snapshot' format (normalize 'Snapshot Generated' to 'Snapshot')
         return {
             type: 'Snapshot',
             assets: externalSnapshot.assets.map((asset) => ({ ...asset })),
