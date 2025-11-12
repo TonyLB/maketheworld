@@ -55,7 +55,7 @@ export const isAssetDecachedEvent = (event: any): event is AssetDecachedEventUpd
 }
 
 export const isAssetRemovedEvent = (event: any): event is AssetRemovedEventUpdate => {
-    return event?.type === 'Asset Removed'
+    return event?.type === 'Asset Removed' && typeof event.zone === 'string'
 }
 
 export const isCanonUpdatedEvent = (event: any): event is CanonUpdatedEventUpdate => {
@@ -102,6 +102,8 @@ export type AssetDecachedEventUpdate = {
 
 export type AssetRemovedEventUpdate = {
     type: 'Asset Removed'
+    zone: string
+    player?: string  // Present for Personal and Draft zones
 }
 
 export type CanonUpdatedEventUpdate = {
@@ -152,6 +154,8 @@ export type AssetDecachedEventExternal = {
 
 export type AssetRemovedEventExternal = {
     type: 'Asset Removed'
+    zone: string
+    player?: string  // Present for Personal and Draft zones
 }
 
 export type CanonUpdatedEventExternal = {

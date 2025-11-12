@@ -41,6 +41,7 @@ export type WMLPurgeEvent = {
     type: 'Asset Purged'
     zone: 'Draft' | 'Archive'
     objectsDeleted: number
+    player?: string  // Present for Draft zone (Personal assets are not purgeable)
 }
 
 // Union type for all internal WML events
@@ -78,6 +79,7 @@ export type WMLPurgeEventExternal = {
     type: 'Asset Purged'
     zone: 'Draft' | 'Archive'
     objectsDeleted: number
+    player?: string  // Present for Draft zone (Personal assets are not purgeable)
 }
 
 // Union type for all external WML events
@@ -216,11 +218,12 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
                 error: update.error
             }
         } else if (isWMLPurgeEvent(update)) {
-            // Purge events pass through as-is
+            // Purge events pass through as-is (including optional player)
             return {
                 type: 'Asset Purged',
                 zone: update.zone,
-                objectsDeleted: update.objectsDeleted
+                objectsDeleted: update.objectsDeleted,
+                ...(update.player ? { player: update.player } : {})
             }
         } else {
             throw new Error(`Unknown WML event type: ${JSON.stringify(update)}`)

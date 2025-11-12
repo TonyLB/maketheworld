@@ -10,8 +10,7 @@ import {
 import { PlayerAggregator } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players/baseClasses'
 import {
     AssetLevelEventUpdate,
-    isAssetCachedEvent,
-    isAssetDecachedEvent,
+    isAssetAddedEvent,
     isAssetRemovedEvent,
     isAssetUpdatedEvent,
     isZoneUpdatedEvent
@@ -55,8 +54,7 @@ const isAssetsStreamEvent = (event: StreamingEventPayload): event is AssetsStrea
         return false
     }
     return [
-        isAssetCachedEvent,
-        isAssetDecachedEvent,
+        isAssetAddedEvent,
         isAssetRemovedEvent,
         isAssetUpdatedEvent,
         isZoneUpdatedEvent
@@ -87,9 +85,6 @@ const resolvePlayerName = (event: AssetLevelEventUpdate, meta?: { player?: strin
     const metaPlayer = meta?.player
     return typeof metaPlayer === 'string' && metaPlayer ? metaPlayer : undefined
 }
-
-const isRemovalEvent = (event: AssetLevelEventUpdate): boolean =>
-    isAssetDecachedEvent(event) || isAssetRemovedEvent(event)
 
 const invalidatePlayerLibrary = async (player: string) => {
     internalCache.PlayerLibrary.invalidate(player)
@@ -192,14 +187,28 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
                 if (isAssetsStreamEvent(event)) {
                     const assetId = event.streamKey
                     const [meta] = await internalCache.AssetMetaData.get([assetId])
-                    const player = resolvePlayerName(event.event, meta)
 
-                    if (!player) {
+                    if (isAssetRemovedEvent(event.event)) {
+                        // Use zone and player from event payload (forwarded from source event) to avoid cache timing issues
+                        const { zone, player } = event.event
+                        if (isPlayerZone(zone) && player) {
+                            // Invalidate cache for consistency (even though we only need assetId for removal)
+                            await invalidatePlayerLibrary(player)
+                            await emitAssetRemoved(streamEvent, player, assetId)
+                        }
                         return
                     }
 
-                    if (isRemovalEvent(event.event)) {
-                        await emitAssetRemoved(streamEvent, player, assetId)
+                    if (isAssetAddedEvent(event.event)) {
+                        const { zone } = event.event
+                        if (isPlayerZone(zone)) {
+                            // Get player from metadata (Asset Added doesn't include player in event)
+                            const player = resolvePlayerName(event.event, meta)
+                            if (player) {
+                                const library = await invalidatePlayerLibrary(player)
+                                await emitAssetAssigned(streamEvent, player, assetId, library)
+                            }
+                        }
                         return
                     }
 
@@ -208,7 +217,15 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
                         const wasPlayerZone = isPlayerZone(fromZone)
                         const nowPlayerZone = isPlayerZone(toZone)
 
+                        // Get player from metadata (Zone Updated doesn't include player in event)
+                        const player = resolvePlayerName(event.event, meta)
+                        if (!player) {
+                            return
+                        }
+
                         if (!nowPlayerZone && wasPlayerZone) {
+                            // Invalidate cache for consistency (even though we only need assetId for removal)
+                            await invalidatePlayerLibrary(player)
                             await emitAssetRemoved(streamEvent, player, assetId)
                             return
                         }
@@ -220,11 +237,17 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
                         return
                     }
 
-                    if (isAssetCachedEvent(event.event) || isAssetUpdatedEvent(event.event)) {
+                    if (isAssetUpdatedEvent(event.event)) {
+                        // Asset Updated handles metadata changes (ShortName/Summary)
+                        // If the asset is already in the player's library, the aggregator will handle idempotent updates
                         const currentZone = meta?.zone
                         if (isPlayerZone(currentZone)) {
-                            const library = await invalidatePlayerLibrary(player)
-                            await emitAssetAssigned(streamEvent, player, assetId, library)
+                            // Get player from metadata (Asset Updated doesn't include player in event)
+                            const player = resolvePlayerName(event.event, meta)
+                            if (player) {
+                                const library = await invalidatePlayerLibrary(player)
+                                await emitAssetAssigned(streamEvent, player, assetId, library)
+                            }
                         }
                     }
                 }

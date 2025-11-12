@@ -242,11 +242,16 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         // Continue with removal even if decaching fails
                     }
                     
+                    // Use zone and player from event (forwarded from Asset Purged, which gets player from S3)
+                    const { zone, player } = event.event
+                    
                     // Stream the removal as an asset-level event
                     // This indicates the asset has been permanently deleted
                     await streamEvent({
                         update: { 
-                            type: 'Asset Removed'
+                            type: 'Asset Removed',
+                            zone,
+                            ...(player ? { player } : {})
                         },
                         streamKey: assetId
                     })
@@ -285,10 +290,22 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         // Continue with removal even if decaching fails
                     }
                     
+                    // Get asset metadata to include zone and player in removal event
+                    const assetMeta = (await internalCache.AssetMetaData.get([assetId as AssetUUID]))[0]
+                    const zone = assetMeta?.zone
+                    const player = assetMeta?.player
+                    
+                    if (!zone) {
+                        console.error(`Cannot emit Asset Removed for ${assetId}: zone not found in metadata`)
+                        return
+                    }
+                    
                     // Stream the removal as an asset-level event
                     await streamEvent({
                         update: { 
-                            type: 'Asset Removed'
+                            type: 'Asset Removed',
+                            zone,
+                            ...(player ? { player } : {})
                         },
                         streamKey: assetId as string
                     })
