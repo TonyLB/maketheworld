@@ -108,3 +108,8 @@ export const isSubscriptionClientMessage = (message: Record<string, any>): messa
             return false
     }
 }
+
+// Type guards for specific subscription client message types
+export const isPlayerSubscriptionClientMessage = (message: SubscriptionClientMessage): message is PlayerSubscriptionClientMessage => (
+    message.dataSourceKey === 'mtw.assets.players'
+)

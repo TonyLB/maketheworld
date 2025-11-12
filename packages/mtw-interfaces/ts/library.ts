@@ -15,14 +15,8 @@ export type LibraryAsset = {
 export type LibraryCharacter = {
     CharacterId: EphemeraCharacterId;
     Name: string;
-    scopedId: string;
-    fileName: string;
+    scopedId?: string;
+    fileName?: string;
     fileURL?: string;
-    Pronouns?: {
-        subject: string;
-        object: string;
-        reflexive: string;
-        possessive: string;
-        adjective: string;
-    };
+    Pronouns?: string;
 }

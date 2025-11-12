@@ -179,14 +179,6 @@ Resources:
       Principal: apigateway.amazonaws.com
   AuthenticationFunction:
       Type: AWS::Serverless::Function
-      # Metadata:
-      #   BuildMethod: esbuild
-      #   BuildProperties:
-      #     Minify: true
-      #     Target: "es2020"
-      #     Sourcemap: true
-      #     EntryPoints: 
-      #       - app.ts
       Properties:
           Tracing: Active
           CodeUri: lambda/authentication/build/
@@ -206,6 +198,7 @@ Resources:
                           Region: !Ref AWS::Region
                           CognitoUserPool: !Ref UserPool
                   EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
+                  WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_connections'
@@ -214,6 +207,10 @@ Resources:
                 Resource: '*'
                 Action:
                   - events:PutEvents
+            - Statement:
+              - Effect: Allow
+                Action: execute-api:ManageConnections
+                Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
   ConnectionPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -334,6 +331,15 @@ Resources:
                   - mtw.connections
                 detail-type:
                   - Session Disconnect
+          PlayerConnected:
+            Type: CloudWatchEvent
+            Properties:
+              EventBusName: !Sub ${TablePrefix}-bus
+              Pattern:
+                source:
+                  - mtw.players
+                detail-type:
+                  - Player Connected
           WML:
             Type: CloudWatchEvent
             Properties:
@@ -1401,6 +1407,7 @@ Resources:
                   detail-type:
                     - Initialize Subscription - mtw.assets.contentHeaders
                     - Initialize Subscription - mtw.assets.library
+                    - Initialize Subscription - mtw.assets.players
             WML:
               Type: CloudWatchEvent
               Properties:

@@ -10,6 +10,24 @@ type PlayerLibrary = {
     draftURL: string;
 }
 
+const normalizePronouns = (pronouns: any): string | undefined => {
+    if (typeof pronouns === 'string') {
+        return pronouns
+    }
+    if (pronouns && typeof pronouns === 'object') {
+        const { subject, object } = pronouns as { subject?: string; object?: string }
+        if (typeof subject === 'string' && typeof object === 'string') {
+            return `${subject}/${object}`
+        }
+    }
+    return undefined
+}
+
+const normalizeCharacter = (character: LibraryCharacter): LibraryCharacter => ({
+    ...character,
+    ...(character.Pronouns !== undefined ? { Pronouns: normalizePronouns(character.Pronouns) } : {})
+})
+
 export class CachePlayerLibraryData {
     PlayerLibraries: Record<string, PlayerLibrary> = {}
     clear() {
@@ -34,7 +52,7 @@ export class CachePlayerLibraryData {
         Object.keys(override.Characters).forEach((key) => {
             const character = override.Characters[key]
             if (character) {
-                this.PlayerLibraries[player].Characters[key] = character
+                this.PlayerLibraries[player].Characters[key] = normalizeCharacter(character)
             }
             else if (key in this.PlayerLibraries[player].Characters) {
                 delete this.PlayerLibraries[player].Characters[key]
@@ -59,6 +77,23 @@ export class CachePlayerLibraryData {
                 .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
                 .map(({ AssetId, Story, instance, zone, shortName, summary }) => ({ AssetId: splitType(AssetId)[1], Story, instance, zone, ShortName: shortName, Summary: summary }))
                 .reduce((previous, item) => ({ ...previous, [item.AssetId]: item }), {} as Record<string, LibraryAsset>)
+            Items
+                .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
+                .forEach(({ AssetId, CharacterId, Name, scopedId, fileName, fileURL, Pronouns }: any) => {
+                    const recordId = typeof CharacterId === 'string' && CharacterId
+                        ? CharacterId
+                        : (typeof AssetId === 'string' && AssetId.startsWith('CHARACTER#') ? AssetId : undefined)
+                    if (recordId) {
+                        Characters[recordId] = normalizeCharacter({
+                            CharacterId: recordId as EphemeraCharacterId,
+                            Name: typeof Name === 'string' ? Name : '',
+                            ...(typeof scopedId === 'string' ? { scopedId } : {}),
+                            ...(typeof fileName === 'string' ? { fileName } : {}),
+                            ...(typeof fileURL === 'string' ? { fileURL } : {}),
+                            ...(Pronouns !== undefined ? { Pronouns: normalizePronouns(Pronouns) } : {})
+                        })
+                    }
+                })
             this.PlayerLibraries[player] = {
                 Characters,
                 Assets,

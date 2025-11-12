@@ -28,26 +28,38 @@ export class SubscriptionEvent {
             Key: { ConnectionId },
             ProjectionFields: ['DataCategory']
         })) || []).map(({ DataCategory }) => (DataCategory))
-        const targetConnections = unique((await Promise.all(
-            targetSessions.map((sessionId) => {
-                if (sessionId.startsWith('SESSION#')) {
-                    return internalCache.SessionConnections.get(sessionId.slice(8))
+        
+        // Build session -> connections mapping
+        const sessionConnectionEntries = await Promise.all(
+            targetSessions.map(async (sessionId) => {
+                const sessionKey = sessionId.startsWith('SESSION#') ? sessionId.slice(8) : sessionId
+                const connections = await internalCache.SessionConnections.get(sessionKey)
+                if (connections && connections.length > 0) {
+                    const normalizedConnections = connections
+                        .filter(excludeUndefined)
+                        .map((connectionId) => (connectionId.startsWith('CONNECTION#') ? connectionId.slice(11) : connectionId))
+                    if (normalizedConnections.length > 0) {
+                        return [sessionId, normalizedConnections] as const
+                    }
                 }
-                else {
-                    return internalCache.SessionConnections.get(sessionId)
-                }
+                return null
             })
-        )).flat(1).filter(excludeUndefined)).map((connectionId) => (connectionId.startsWith('CONNECTION#') ? connectionId.slice(11) : connectionId))
-        const message = this._transform ? this._transform(event) : event
-        if (!isSubscriptionClientMessage(message)) {
+        )
+        const sessionConnectionMap: Record<string, string[]> = Object.fromEntries(
+            sessionConnectionEntries.filter((entry): entry is readonly [string, string[]] => entry !== null)
+        )
+        
+        const baseMessage = this._transform ? this._transform(event) : event
+        if (!isSubscriptionClientMessage(baseMessage)) {
             throw new Error('Invalid subscription transform')
         }
+        
+        // Send message to all connections (SessionId is now sent once via SessionInitialized coordination message)
         await Promise.all(
-            targetConnections.map(async (connectionId) => {
-                await apiClient.send(
-                    connectionId,
-                    message
-                )
+            Object.entries(sessionConnectionMap).flatMap(([sessionId, connections]) => {
+                return connections.map(async (connectionId) => {
+                    await apiClient.send(connectionId, baseMessage)
+                })
             })
         )
     }
@@ -77,7 +89,9 @@ export class SubscriptionHandler {
             return new SubscriptionEvent({
                 ...event,
                 dataSourceKey: this._dataSourceKey,
-                type: this._type || event.type,
+                // Only use handler's _type if explicitly defined; don't fall back to event.type
+                // This ensures ConnectionId construction matches subscription storage
+                type: this._type,
                 streamKey: event.streamKey,
                 transform: this._transform
             })

@@ -289,15 +289,9 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                                 scopedId: 'string',
                                 fileName: 'string',
                                 fileURL: 'string',
+                                Pronouns: 'string',
                             }
-                        ),
-                        !message.Pronouns || checkTypes(message.Pronouns, {
-                            subject: 'string',
-                            object: 'string',
-                            possessive: 'string',
-                            adjective: 'string',
-                            reflexive: 'string'
-                        })
+                        )
                     ) && isEphemeraCharacterId(characterItem.CharacterId)
                 )),
                 ...message.Settings.onboardCompleteTags.map((item: any) => (typeof item === 'string'))
@@ -335,15 +329,9 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                                 scopedId: 'string',
                                 fileName: 'string',
                                 fileURL: 'string',
+                                Pronouns: 'string',
                             }
-                        ),
-                        !message.Pronouns || checkTypes(message.Pronouns, {
-                            subject: 'string',
-                            object: 'string',
-                            possessive: 'string',
-                            adjective: 'string',
-                            reflexive: 'string'
-                        })
+                        )
                     )
                 ))
             )

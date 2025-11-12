@@ -18,9 +18,15 @@ export type CoordinationClientErrorMessage = {
     error?: string;
 }
 
+export type CoordinationClientSessionInitializedMessage = {
+    messageType: 'SessionInitialized';
+    SessionId: string;
+}
+
 export type CoordinationClientMessage = CoordinationClientSuccessMessage |
     CoordinationClientErrorMessage |
-    CoordinationClientProgressMessage
+    CoordinationClientProgressMessage |
+    CoordinationClientSessionInitializedMessage
 
     export const isCoordinationClientMessage = (message: any): message is CoordinationClientMessage => {
         if (!('messageType' in message && typeof message.messageType === 'string')) {
@@ -54,6 +60,14 @@ export type CoordinationClientMessage = CoordinationClientSuccessMessage |
                         RequestId: 'string',
                         error: 'string'
                     }
+                )
+            case 'SessionInitialized':
+                return checkTypes(
+                    message,
+                    {
+                        SessionId: 'string'
+                    },
+                    {}
                 )
             default: return false
         }

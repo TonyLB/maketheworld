@@ -7,6 +7,8 @@ import { fromEventBridgeFormat } from "@tonylb/mtw-lambda-patterns/ts/dataSource
 import internalCache from "./internalCache"
 import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
+import { apiClient } from "./apiClient"
+import { CoordinationClientSessionInitializedMessage } from "@tonylb/mtw-interfaces/ts/coordination"
 
 // Configuration for replayable DataSources that support snapshot initialization
 const REPLAYABLE_DATA_SOURCES = [
@@ -126,6 +128,50 @@ export const handler = async (event: any) => {
                 ProjectionFields: ['ConnectionId']
             }) || []).map(({ ConnectionId }) => (ConnectionId))
             await Promise.all(subscriptionDisconnects.map((ConnectionId) => (connectionDB.deleteItem({ ConnectionId, DataCategory }))))
+        }
+    }
+    else if (event.source === 'mtw.players') {
+        if (event["detail-type"] === 'Player Connected') {
+            const { connectionId, sessionId } = event.detail || {}
+            if (connectionId && sessionId) {
+                console.log('[subscriptions] Handling Player Connected event, sending SessionInitialized message', {
+                    connectionId,
+                    sessionId
+                })
+                
+                // Small delay to ensure WebSocket handshake has completed
+                // EventBridge's natural latency (tens of ms) is usually sufficient,
+                // but adding a small buffer for safety
+                await new Promise(resolve => setTimeout(resolve, 100))
+                
+                try {
+                    await apiClient.send(connectionId, {
+                        messageType: 'SessionInitialized',
+                        SessionId: sessionId
+                    } as CoordinationClientSessionInitializedMessage)
+                    console.log('[subscriptions] SessionInitialized message sent successfully', {
+                        connectionId,
+                        sessionId
+                    })
+                }
+                catch (error: any) {
+                    // Log but don't fail - connection might have closed
+                    console.error('[subscriptions] Failed to send SessionInitialized message', {
+                        connectionId,
+                        sessionId,
+                        error: error.message || error,
+                        errorName: error.name,
+                        errorCode: error.code
+                    })
+                }
+            }
+            else {
+                console.warn('[subscriptions] Player Connected event missing connectionId or sessionId', {
+                    hasConnectionId: !!connectionId,
+                    hasSessionId: !!sessionId,
+                    detail: event.detail
+                })
+            }
         }
     }
     else if (event?.source) {

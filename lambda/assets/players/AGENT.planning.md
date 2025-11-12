@@ -55,7 +55,7 @@
   ✅ Emit granular deltas (`Player Asset Assigned/Removed`, `Player Settings Updated`) derived directly from incoming `mtw.assets` events—no in-memory ownership cache.  
   🔄 Follow-up: Once client integration is complete, remove the now-unused legacy streaming paths and retire full-snapshot fallback (keep only for replay).
 - [x] Register the new data source with the subscriptions lambda (`lambda/subscriptions/handlerFramework`) so clients receive the granular deltas.
-- [ ] Update the client (`charcoal-client/src/slices/player`) to subscribe to the new stream and retire the ad-hoc `whoAmI` refresh path.
+- [x] Update the client (`charcoal-client/src/slices/player`) to subscribe to the new stream and retire the ad-hoc `whoAmI` refresh path.
 
 ---
 
