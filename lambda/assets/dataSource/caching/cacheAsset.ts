@@ -141,6 +141,9 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
         const diffSummary = (diff as any).summary
         const hasMetadataChanges = Boolean(diffShortName || diffSummary)
         if (hasMetadataChanges) {
+            // Get player from metadata (already fetched earlier in metaAssetWrite)
+            const assetMeta = (await internalCache.AssetMetaData.get([assetUUID]))[0]
+            const player = assetMeta?.player
             const metadataDiffNDJSON = [
                 {
                     tag: 'Asset' as const,
@@ -151,7 +154,11 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             ]
             const metadataDiff = new StandardForm(metadataDiffNDJSON)
             await streamEvent({
-                update: { type: 'Asset Updated', standardForm: metadataDiff },
+                update: { 
+                    type: 'Asset Updated', 
+                    standardForm: metadataDiff,
+                    ...(player ? { player } : {})
+                },
                 streamKey: assetId
             })
         }

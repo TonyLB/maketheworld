@@ -88,6 +88,7 @@ export type AssetsEventUpdate = ComponentEventUpdate | AssetLevelEventUpdate
 export type AssetAddedEventUpdate = {
     type: 'Asset Added'
     zone: string
+    player?: string  // Present for Personal and Draft zones
 }
 
 export type AssetCachedEventUpdate = {
@@ -115,11 +116,13 @@ export type ZoneUpdatedEventUpdate = {
     type: 'Zone Updated'
     fromZone: string
     toZone: string
+    player?: string  // Present for Personal and Draft zones (in fromZone or toZone)
 }
 
 export type AssetUpdatedEventUpdate = {
     type: 'Asset Updated'
     standardForm: StandardForm
+    player?: string  // Present for Personal and Draft zones
 }
 
 // Union type for all asset-level event updates
@@ -140,6 +143,7 @@ export type AssetsEventExternal = ComponentEventExternal | AssetLevelEventExtern
 export type AssetAddedEventExternal = {
     type: 'Asset Added'
     zone: string
+    player?: string  // Present for Personal and Draft zones
 }
 
 export type AssetCachedEventExternal = {
@@ -167,11 +171,13 @@ export type ZoneUpdatedEventExternal = {
     type: 'Zone Updated'
     fromZone: string
     toZone: string
+    player?: string  // Present for Personal and Draft zones (in fromZone or toZone)
 }
 
 export type AssetUpdatedEventExternal = {
     type: 'Asset Updated'
     wml: string
+    player?: string  // Present for Personal and Draft zones
 }
 
 // Union type for all external asset-level events
@@ -213,7 +219,8 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
                 const internal = update as AssetUpdatedEventUpdate
                 return {
                     type: 'Asset Updated',
-                    wml: schemaToWML([internal.standardForm.schema])
+                    wml: schemaToWML([internal.standardForm.schema]),
+                    ...(internal.player ? { player: internal.player } : {})
                 }
             }
             return update as AssetLevelEventExternal

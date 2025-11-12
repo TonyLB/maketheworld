@@ -9,6 +9,7 @@ import { AssetsEventSerializer, AssetsEventUpdate } from '@tonylb/mtw-interfaces
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
+import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 
 // Separate type for WML events with precise typing
 type WMLSubscribedEvent = StreamingEventPayload & {
@@ -81,11 +82,13 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         })
                         const isNewAsset = !(priorMeta && priorMeta.AssetId)
                         
-                        await cacheAsset({ assetId, streamEvent })
+                        // Load workspace to get fresh zone/player (Content Update events don't include this)
+                        // This avoids cache timing issues since cacheAsset writes metadata asynchronously
+                        const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(assetId, { allowS3Fallback: true })
+                        const zone = assetWorkspace?.zone || 'Unknown'
+                        const player = assetWorkspace?.player
                         
-                        // Get asset metadata to determine zone
-                        const assetMeta = (await internalCache.AssetMetaData.get([assetId]))[0]
-                        const zone = assetMeta?.zone || 'Unknown'
+                        await cacheAsset({ assetId, streamEvent })
                         
                         // Emit Asset Added event for new assets (before Asset Cached)
                         // Consumed by mtw.assets.library DataSource for automatic Library cache updates
@@ -93,7 +96,8 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                             await streamEvent({
                                 update: {
                                     type: 'Asset Added',
-                                    zone
+                                    zone,
+                                    ...(player ? { player } : {})
                                 },
                                 streamKey: assetId
                             })
@@ -220,7 +224,8 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         update: {
                             type: 'Zone Updated',
                             fromZone,
-                            toZone
+                            toZone,
+                            ...(player ? { player } : {})
                         },
                         streamKey: assetUUID
                     })

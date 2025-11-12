@@ -77,15 +77,6 @@ const stripAssetId = (assetId: AssetUUID): string => {
 const playerZones = new Set(['Personal', 'Draft'])
 const isPlayerZone = (zone?: string) => typeof zone === 'string' && playerZones.has(zone)
 
-const resolvePlayerName = (event: AssetLevelEventUpdate, meta?: { player?: string }): string | undefined => {
-    const eventPlayer = (event as unknown as { player?: string }).player
-    if (typeof eventPlayer === 'string' && eventPlayer) {
-        return eventPlayer
-    }
-    const metaPlayer = meta?.player
-    return typeof metaPlayer === 'string' && metaPlayer ? metaPlayer : undefined
-}
-
 const invalidatePlayerLibrary = async (player: string) => {
     internalCache.PlayerLibrary.invalidate(player)
     return internalCache.PlayerLibrary.get(player)
@@ -186,7 +177,6 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
 
                 if (isAssetsStreamEvent(event)) {
                     const assetId = event.streamKey
-                    const [meta] = await internalCache.AssetMetaData.get([assetId])
 
                     if (isAssetRemovedEvent(event.event)) {
                         // Use zone and player from event payload (forwarded from source event) to avoid cache timing issues
@@ -200,25 +190,21 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
                     }
 
                     if (isAssetAddedEvent(event.event)) {
-                        const { zone } = event.event
-                        if (isPlayerZone(zone)) {
-                            // Get player from metadata (Asset Added doesn't include player in event)
-                            const player = resolvePlayerName(event.event, meta)
-                            if (player) {
-                                const library = await invalidatePlayerLibrary(player)
-                                await emitAssetAssigned(streamEvent, player, assetId, library)
-                            }
+                        // Use zone and player from event payload to avoid cache timing issues
+                        const { zone, player } = event.event
+                        if (isPlayerZone(zone) && player) {
+                            const library = await invalidatePlayerLibrary(player)
+                            await emitAssetAssigned(streamEvent, player, assetId, library)
                         }
                         return
                     }
 
                     if (isZoneUpdatedEvent(event.event)) {
-                        const { fromZone, toZone } = event.event
+                        // Use zone and player from event payload to avoid cache timing issues
+                        const { fromZone, toZone, player } = event.event
                         const wasPlayerZone = isPlayerZone(fromZone)
                         const nowPlayerZone = isPlayerZone(toZone)
 
-                        // Get player from metadata (Zone Updated doesn't include player in event)
-                        const player = resolvePlayerName(event.event, meta)
                         if (!player) {
                             return
                         }
@@ -240,14 +226,11 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
                     if (isAssetUpdatedEvent(event.event)) {
                         // Asset Updated handles metadata changes (ShortName/Summary)
                         // If the asset is already in the player's library, the aggregator will handle idempotent updates
-                        const currentZone = meta?.zone
-                        if (isPlayerZone(currentZone)) {
-                            // Get player from metadata (Asset Updated doesn't include player in event)
-                            const player = resolvePlayerName(event.event, meta)
-                            if (player) {
-                                const library = await invalidatePlayerLibrary(player)
-                                await emitAssetAssigned(streamEvent, player, assetId, library)
-                            }
+                        // Use player from event payload to avoid cache timing issues
+                        const { player } = event.event
+                        if (player) {
+                            const library = await invalidatePlayerLibrary(player)
+                            await emitAssetAssigned(streamEvent, player, assetId, library)
                         }
                     }
                 }
