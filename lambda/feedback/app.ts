@@ -34,7 +34,7 @@ export const handler = async (event) => {
         const resolvedTargets = await targetResolver.resolve(targets)
         const connectionIds = resolvedTargets
             .map(target => target.replace('CONNECTION#', ''))
-            .filter(connectionId => connectionId.length > 0) // Filter out empty connection IDs
+            .filter(connectionId => connectionId.length > 0)
         
         switch(messageType) {
             case 'Success':

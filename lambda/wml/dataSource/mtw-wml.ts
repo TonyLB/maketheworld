@@ -275,6 +275,14 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                     return
                 }
                 try {
+                    // Get player from S3 metadata (via AssetWorkspace) BEFORE purging
+                    // (files will be deleted during purge, so we need to fetch metadata first)
+                    let player: string | undefined
+                    if (payload.expectedZone === 'Draft') {
+                        const workspace = await AssetWorkspace.fromUUID(AssetId, { preferDynamo: false, allowS3Fallback: true })
+                        player = workspace?.player
+                    }
+                    
                     const result = await purgeAsset(AssetId, {
                         expectedZone: payload.expectedZone,
                         requireExists: payload.requireExists
@@ -287,7 +295,8 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                                 update: {
                                     type: 'Asset Purged',
                                     zone: payload.expectedZone,
-                                    objectsDeleted: result.objectsDeleted ?? 0
+                                    objectsDeleted: result.objectsDeleted ?? 0,
+                                    ...(player ? { player } : {})
                                 },
                                 streamKey: AssetId
                             })

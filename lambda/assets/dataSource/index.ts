@@ -9,6 +9,7 @@ import { AssetsEventSerializer, AssetsEventUpdate } from '@tonylb/mtw-interfaces
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
+import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 
 // Separate type for WML events with precise typing
 type WMLSubscribedEvent = StreamingEventPayload & {
@@ -81,11 +82,13 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         })
                         const isNewAsset = !(priorMeta && priorMeta.AssetId)
                         
-                        await cacheAsset({ assetId, streamEvent })
+                        // Load workspace to get fresh zone/player (Content Update events don't include this)
+                        // This avoids cache timing issues since cacheAsset writes metadata asynchronously
+                        const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(assetId, { allowS3Fallback: true })
+                        const zone = assetWorkspace?.zone || 'Unknown'
+                        const player = assetWorkspace?.player
                         
-                        // Get asset metadata to determine zone
-                        const assetMeta = (await internalCache.AssetMetaData.get([assetId]))[0]
-                        const zone = assetMeta?.zone || 'Unknown'
+                        await cacheAsset({ assetId, streamEvent })
                         
                         // Emit Asset Added event for new assets (before Asset Cached)
                         // Consumed by mtw.assets.library DataSource for automatic Library cache updates
@@ -93,7 +96,8 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                             await streamEvent({
                                 update: {
                                     type: 'Asset Added',
-                                    zone
+                                    zone,
+                                    ...(player ? { player } : {})
                                 },
                                 streamKey: assetId
                             })
@@ -220,7 +224,8 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         update: {
                             type: 'Zone Updated',
                             fromZone,
-                            toZone
+                            toZone,
+                            ...(player ? { player } : {})
                         },
                         streamKey: assetUUID
                     })
@@ -242,11 +247,23 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         // Continue with removal even if decaching fails
                     }
                     
+                    // Use zone and player from event (forwarded from Asset Purged, which gets player from S3)
+                    // The event structure has zone/player in event.event.update (nested structure from serializer)
+                    const eventData = (event.event as any).update || event.event
+                    const { zone, player } = eventData
+                    
+                    if (!zone) {
+                        console.error(`Cannot emit Asset Removed for ${assetId}: zone is missing from Asset Purged event`)
+                        return
+                    }
+                    
                     // Stream the removal as an asset-level event
                     // This indicates the asset has been permanently deleted
                     await streamEvent({
-                        update: { 
-                            type: 'Asset Removed'
+                        update: {
+                            type: 'Asset Removed',
+                            zone,
+                            ...(player ? { player } : {})
                         },
                         streamKey: assetId
                     })
@@ -285,10 +302,22 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                         // Continue with removal even if decaching fails
                     }
                     
+                    // Get asset metadata to include zone and player in removal event
+                    const assetMeta = (await internalCache.AssetMetaData.get([assetId as AssetUUID]))[0]
+                    const zone = assetMeta?.zone
+                    const player = assetMeta?.player
+                    
+                    if (!zone) {
+                        console.error(`Cannot emit Asset Removed for ${assetId}: zone not found in metadata`)
+                        return
+                    }
+                    
                     // Stream the removal as an asset-level event
                     await streamEvent({
-                        update: { 
-                            type: 'Asset Removed'
+                        update: {
+                            type: 'Asset Removed',
+                            zone,
+                            ...(player ? { player } : {})
                         },
                         streamKey: assetId as string
                     })

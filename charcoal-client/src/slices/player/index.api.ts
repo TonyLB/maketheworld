@@ -1,13 +1,20 @@
 import { PlayerCondition, PlayerAction, PlayerPublic } from './baseClasses'
 import {
+    socketDispatch,
     socketDispatchPromise,
     getStatus,
     LifeLinePubSub
 } from '../lifeLine'
 import { LifeLinePubSubData } from '../lifeLine/lifeLine'
-import { getMyAssets, getMySettings, getPlayer } from './selectors'
-import { addItem, getSerialized, receiveWMLEvent } from '../personalAssets'
+import { getMyAssets, getMySettings } from './selectors'
+import { getSerialized } from '../personalAssets'
 import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
+import {
+    PlayerAggregator,
+    PlayerEventSerializer
+} from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
+import { PlayerSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+import { CoordinationClientSessionInitializedMessage, isCoordinationClientMessage } from '@tonylb/mtw-interfaces/ts/coordination'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
     const status = getStatus(getState())
@@ -32,31 +39,132 @@ const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { mes
     dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Assets: newAssets, Characters, Settings, SessionId }))
 }
 
-export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch) => {
+const EMPTY_PLAYER: PlayerPublic = {
+    PlayerName: '',
+    CodeOfConductConsent: false,
+    Assets: [],
+    Characters: [],
+    Settings: { onboardCompleteTags: [] },
+    SessionId: ''
+}
+
+type PlayerSnapshotState = ReturnType<PlayerAggregator['createEmpty']>
+
+const toPlayerPublic = (args: {
+    streamKey: string;
+    snapshot: PlayerSnapshotState;
+    previous?: PlayerPublic;
+    sessionId?: string;
+}): PlayerPublic => {
+    const { streamKey, snapshot, previous = EMPTY_PLAYER, sessionId } = args
+    // SessionId is received once via SessionInitialized coordination message and stored in player state.
+    // Fallback to previous.SessionId is kept for safety during migration.
+    return {
+        PlayerName: streamKey,
+        CodeOfConductConsent: true,
+        Assets: snapshot.assets,
+        Characters: snapshot.characters,
+        Settings: snapshot.settings,
+        SessionId: sessionId ?? previous.SessionId ?? ''
+    }
+}
+
+const isPlayerSubscriptionMessage = (payload: LifeLinePubSubData): payload is PlayerSubscriptionClientMessage => (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'messageType' in payload &&
+    payload.messageType === 'StreamEvent' &&
+    'dataSourceKey' in payload &&
+    payload.dataSourceKey === 'mtw.assets.players'
+)
+
+export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch, getState) => {
+    const aggregator = new PlayerAggregator()
+    const serializer = new PlayerEventSerializer()
+    let materialized: PlayerSnapshotState = aggregator.createEmpty()
+    let currentPlayerName: string | undefined
+
     const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
         if (payload.messageType === 'Player') {
             dispatch(mergePlayerInfo(receivePlayer, payload))
+            currentPlayerName = payload.PlayerName
+            materialized = {
+                type: 'Snapshot',
+                assets: payload.Assets,
+                characters: payload.Characters,
+                settings: payload.Settings
+            }
+            return
+        }
+
+        // Handle SessionInitialized coordination message - store SessionId once
+        if (isCoordinationClientMessage(payload) && payload.messageType === 'SessionInitialized') {
+            const sessionInitialized = payload as CoordinationClientSessionInitializedMessage
+            const previous = (getState()?.player?.publicData as PlayerPublic | undefined) ?? EMPTY_PLAYER
+            // Update player state with SessionId, preserving other fields
+            dispatch(receivePlayer({
+                ...previous,
+                SessionId: sessionInitialized.SessionId
+            }))
+            return
+        }
+
+        if (isPlayerSubscriptionMessage(payload)) {
+            const update = serializer.deserialize({
+                dataSourceKey: payload.dataSourceKey,
+                streamKey: payload.streamKey,
+                externalUpdate: payload.update
+            })
+            if (!update) {
+                return
+            }
+            const aggregation = aggregator.applyUpdate(materialized, update)
+            if (!aggregation.success) {
+                console.error('mtw.assets.players aggregation failed', aggregation.error)
+                return
+            }
+            materialized = aggregation.snapshot
+            currentPlayerName = payload.streamKey ?? currentPlayerName
+            const previous = (getState()?.player?.publicData as PlayerPublic | undefined) ?? EMPTY_PLAYER
+            if (!currentPlayerName) {
+                console.warn('mtw.assets.players: Received update without streamKey; ignoring snapshot update.')
+                return previous
+            }
+            // SessionId comes from stored player state (set via SessionInitialized message)
+            const next = toPlayerPublic({
+                streamKey: currentPlayerName,
+                snapshot: materialized,
+                previous,
+                sessionId: previous.SessionId
+            })
+            dispatch(receivePlayer(next))
         }
     })
+
+    await dispatch(socketDispatchPromise({
+        message: 'subscribe',
+        dataSourceKey: 'mtw.assets.players',
+        streamKeys: ['self']
+    }, { service: 'subscriptions' }))
 
     return { internalData: { subscription: lifeLineSubscription } }
 }
 
-export const syncAction: PlayerAction = () => async (dispatch) => {
-    //
-    // TODO: Update values based on return value of socketDispatchPromise, rather
-    // than counting implicitly on the subscription to receive that data
-    //
-    await dispatch(socketDispatchPromise({ message: 'whoAmI' }, { service: 'asset' }))
+export const syncAction: PlayerAction = () => async () => {
     return {}
 }
 
 // Removed legacy fetchDraftAsset (single-draft bootstrap). Multi-draft flow will drive subscriptions explicitly.
 
-export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }}) => async () => {
+export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }}) => async (dispatch) => {
     if (subscription) {
         subscription.unsubscribe?.()
     }
+    await dispatch(socketDispatchPromise({
+        message: 'unsubscribe',
+        dataSourceKey: 'mtw.assets.players',
+        streamKeys: ['self']
+    }, { service: 'subscriptions' }))
     return {
         publicData: {
             Assets: [],

@@ -88,10 +88,18 @@ export const connect = async (connectionId: string, userName: string, SessionId:
         ] as Promise<any>[])
     
         if (authenticated) {
+            // Publish Player Connected event with connection details
+            // The subscriptions lambda will handle sending SessionInitialized message
+            // after the WebSocket handshake completes
             await eventBridgeClient.send([{
                 Source: 'mtw.players',
                 DetailType: 'Player Connected',
-                Detail: { player: userName }
+                Detail: {
+                    player: userName,
+                    connectionId,
+                    sessionId: defaultedSessionId,
+                    timestamp: Date.now()
+                }
             }])
             return {
                 statusCode: 200

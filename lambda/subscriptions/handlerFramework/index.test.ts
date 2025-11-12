@@ -16,7 +16,7 @@ describe('subscription handlerFramework', () => {
         {
             dataSourceKey: 'noDetails',
             transform: (event) => ({
-                messageType: 'Subscription',
+                messageType: 'StreamEvent',
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#TEST',
                 timestamp: event.timestamp,
@@ -27,7 +27,7 @@ describe('subscription handlerFramework', () => {
             dataSourceKey: 'detailsOne',
             type: 'TestOne',
             transform: (event) => ({
-                messageType: 'Subscription',
+                messageType: 'StreamEvent',
                 dataSourceKey: 'mtw.wml',
                 streamKey: event.streamKey,
                 timestamp: event.timestamp,
@@ -41,7 +41,7 @@ describe('subscription handlerFramework', () => {
             dataSourceKey: 'mtw.assets.contentHeaders',
             type: 'Headers Updated',
             transform: (event) => ({
-                messageType: 'Subscription',
+                messageType: 'StreamEvent',
                 dataSourceKey: 'mtw.assets.contentHeaders' as any,
                 streamKey: event.streamKey,
                 timestamp: event.timestamp,
@@ -50,6 +50,19 @@ describe('subscription handlerFramework', () => {
                     assetId: (event as any).update?.assetId || 'ASSET#unknown',
                     zone: (event as any).update?.zone || 'Canon',
                     wml: (event as any).update?.wml || ''
+                }
+            })
+        },
+        {
+            dataSourceKey: 'mtw.assets.players',
+            transform: (event) => ({
+                messageType: 'StreamEvent',
+                dataSourceKey: 'mtw.assets.players',
+                streamKey: event.streamKey,
+                timestamp: event.timestamp,
+                update: {
+                    ...(event as any).update,
+                    ...((event as any).RequestId ? { RequestId: (event as any).RequestId } : {})
                 }
             })
         }
@@ -95,17 +108,17 @@ describe('subscription handlerFramework', () => {
 
     it('should publish to subscription with no details', async () => {
         connectionDBMock.query.mockResolvedValue([{
-            ConnectionId: 'STREAM#noDetails::any::testStream',
+            ConnectionId: 'STREAM#noDetails::testStream',
             DataCategory: 'SESSION#ABCD'
         }])
         internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#QRST'])
         const coreEvent = { dataSourceKey: 'noDetails', streamKey: 'testStream', timestamp: 1234567890, update: { type: 'any' } }
         await testLibrary.matchEvent(coreEvent as any)?.publish(coreEvent as any)
         expect(connectionDB.query).toHaveBeenCalledWith({
-            Key: { ConnectionId: 'STREAM#noDetails::any::testStream' },
+            Key: { ConnectionId: 'STREAM#noDetails::testStream' },
             ProjectionFields: ["DataCategory"]
         })
-        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'Subscription', dataSourceKey: 'mtw.wml', streamKey: 'ASSET#TEST', timestamp: 1234567890, update: { type: 'Content Update', RequestId: 'req-no-details', wml: '' } })
+        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'StreamEvent', dataSourceKey: 'mtw.wml', streamKey: 'ASSET#TEST', timestamp: 1234567890, update: { type: 'Content Update', RequestId: 'req-no-details', wml: '' } })
     })
 
     it('should publish to subscription with details', async () => {
@@ -120,7 +133,7 @@ describe('subscription handlerFramework', () => {
             Key: { ConnectionId: 'STREAM#detailsOne::TestOne::ASSET#XYZ' },
             ProjectionFields: ["DataCategory"]
         })
-        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'Subscription', dataSourceKey: 'mtw.wml', streamKey: 'ASSET#XYZ', timestamp: 1234567890, update: { type: 'Merge Conflict', RequestId: 'qrstuv' } })
+        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'StreamEvent', dataSourceKey: 'mtw.wml', streamKey: 'ASSET#XYZ', timestamp: 1234567890, update: { type: 'Merge Conflict', RequestId: 'qrstuv' } })
     })
 
     it('should handle content headers events', async () => {
@@ -136,7 +149,7 @@ describe('subscription handlerFramework', () => {
             ProjectionFields: ["DataCategory"]
         })
         expect(apiClientMock.send).toHaveBeenCalledWith('WXYZ', { 
-            messageType: 'Subscription', 
+            messageType: 'StreamEvent', 
             dataSourceKey: 'mtw.assets.contentHeaders', 
             streamKey: 'ASSET#456', 
             timestamp: 1234567890,
@@ -147,6 +160,163 @@ describe('subscription handlerFramework', () => {
                 wml: 'test wml' 
             } 
         })
+    })
+
+    it('should send mtw.assets.players events without SessionId enrichment (SessionId sent via SessionInitialized coordination message)', async () => {
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#mtw.assets.players::player123',
+            DataCategory: 'SESSION#SESSION123'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#CONN456'])
+        const coreEvent = {
+            dataSourceKey: 'mtw.assets.players',
+            streamKey: 'player123',
+            timestamp: 1234567890,
+            update: {
+                type: 'Player Settings Updated',
+                settings: { onboardCompleteTags: [] }
+            },
+            RequestId: 'req-123'
+        }
+        await testLibrary.matchEvent(coreEvent as any)?.publish(coreEvent as any)
+        expect(connectionDB.query).toHaveBeenCalledWith({
+            Key: { ConnectionId: 'STREAM#mtw.assets.players::player123' },
+            ProjectionFields: ["DataCategory"]
+        })
+        expect(internalCacheMock.SessionConnections.get).toHaveBeenCalledWith('SESSION123')
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN456', {
+            messageType: 'StreamEvent',
+            dataSourceKey: 'mtw.assets.players',
+            streamKey: 'player123',
+            timestamp: 1234567890,
+            update: {
+                type: 'Player Settings Updated',
+                settings: { onboardCompleteTags: [] },
+                RequestId: 'req-123'
+            }
+        })
+    })
+
+    it('should send mtw.assets.players events to multiple sessions without SessionId enrichment', async () => {
+        connectionDBMock.query.mockResolvedValue([
+            {
+                ConnectionId: 'STREAM#mtw.assets.players::player123',
+                DataCategory: 'SESSION#SESSION123'
+            },
+            {
+                ConnectionId: 'STREAM#mtw.assets.players::player123',
+                DataCategory: 'SESSION#SESSION456'
+            }
+        ])
+        internalCacheMock.SessionConnections.get
+            .mockResolvedValueOnce(['CONNECTION#CONN123'])
+            .mockResolvedValueOnce(['CONNECTION#CONN456'])
+        const coreEvent = { 
+            dataSourceKey: 'mtw.assets.players', 
+            streamKey: 'player123', 
+            timestamp: 1234567890, 
+            update: { 
+                type: 'Snapshot',
+                assets: [],
+                characters: [],
+                settings: { onboardCompleteTags: [] }
+            }
+        }
+        await testLibrary.matchEvent(coreEvent as any)?.publish(coreEvent as any)
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN123', expect.objectContaining({
+            messageType: 'StreamEvent',
+            dataSourceKey: 'mtw.assets.players'
+        }))
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN456', expect.objectContaining({
+            messageType: 'StreamEvent',
+            dataSourceKey: 'mtw.assets.players'
+        }))
+        // SessionId should NOT be present (sent via SessionInitialized coordination message instead)
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN123', expect.not.objectContaining({
+            SessionId: expect.anything()
+        }))
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN456', expect.not.objectContaining({
+            SessionId: expect.anything()
+        }))
+    })
+
+    it('should NOT include SessionId in any subscription events (SessionId sent via SessionInitialized coordination message)', async () => {
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#mtw.assets.contentHeaders::Headers Updated::ASSET#456',
+            DataCategory: 'SESSION#SESSION123'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#CONN456'])
+        const coreEvent = { 
+            dataSourceKey: 'mtw.assets.contentHeaders', 
+            streamKey: 'ASSET#456', 
+            timestamp: 1234567890, 
+            update: { type: 'Headers Updated', assetId: 'ASSET#456', zone: 'Canon', wml: 'test wml' } 
+        }
+        await testLibrary.matchEvent(coreEvent as any)?.publish(coreEvent as any)
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN456', expect.not.objectContaining({
+            SessionId: expect.anything()
+        }))
+    })
+
+    it('should handle sessions with multiple connections without SessionId enrichment', async () => {
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#mtw.assets.players::player123',
+            DataCategory: 'SESSION#SESSION123'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#CONN123', 'CONNECTION#CONN456'])
+        const coreEvent = { 
+            dataSourceKey: 'mtw.assets.players', 
+            streamKey: 'player123', 
+            timestamp: 1234567890, 
+            update: { 
+                type: 'Player Settings Updated',
+                settings: { onboardCompleteTags: [] }
+            }
+        }
+        await testLibrary.matchEvent(coreEvent as any)?.publish(coreEvent as any)
+        expect(apiClientMock.send).toHaveBeenCalledTimes(2)
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN123', expect.objectContaining({
+            messageType: 'StreamEvent',
+            dataSourceKey: 'mtw.assets.players'
+        }))
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN456', expect.objectContaining({
+            messageType: 'StreamEvent',
+            dataSourceKey: 'mtw.assets.players'
+        }))
+        // SessionId should NOT be present (sent via SessionInitialized coordination message instead)
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN123', expect.not.objectContaining({
+            SessionId: expect.anything()
+        }))
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN456', expect.not.objectContaining({
+            SessionId: expect.anything()
+        }))
+    })
+
+    it('should handle session IDs without SESSION# prefix (no SessionId enrichment)', async () => {
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#mtw.assets.players::player123',
+            DataCategory: 'SESSION123'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#CONN456'])
+        const coreEvent = { 
+            dataSourceKey: 'mtw.assets.players', 
+            streamKey: 'player123', 
+            timestamp: 1234567890, 
+            update: { 
+                type: 'Player Settings Updated',
+                settings: { onboardCompleteTags: [] }
+            }
+        }
+        await testLibrary.matchEvent(coreEvent as any)?.publish(coreEvent as any)
+        expect(internalCacheMock.SessionConnections.get).toHaveBeenCalledWith('SESSION123')
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN456', expect.objectContaining({
+            messageType: 'StreamEvent',
+            dataSourceKey: 'mtw.assets.players'
+        }))
+        // SessionId should NOT be present (sent via SessionInitialized coordination message instead)
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN456', expect.not.objectContaining({
+            SessionId: expect.anything()
+        }))
     })
 
 })
