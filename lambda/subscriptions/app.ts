@@ -134,11 +134,6 @@ export const handler = async (event: any) => {
         if (event["detail-type"] === 'Player Connected') {
             const { connectionId, sessionId } = event.detail || {}
             if (connectionId && sessionId) {
-                console.log('[subscriptions] Handling Player Connected event, sending SessionInitialized message', {
-                    connectionId,
-                    sessionId
-                })
-                
                 // Small delay to ensure WebSocket handshake has completed
                 // EventBridge's natural latency (tens of ms) is usually sufficient,
                 // but adding a small buffer for safety
@@ -149,28 +144,13 @@ export const handler = async (event: any) => {
                         messageType: 'SessionInitialized',
                         SessionId: sessionId
                     } as CoordinationClientSessionInitializedMessage)
-                    console.log('[subscriptions] SessionInitialized message sent successfully', {
-                        connectionId,
-                        sessionId
-                    })
                 }
                 catch (error: any) {
                     // Log but don't fail - connection might have closed
-                    console.error('[subscriptions] Failed to send SessionInitialized message', {
-                        connectionId,
-                        sessionId,
-                        error: error.message || error,
-                        errorName: error.name,
-                        errorCode: error.code
-                    })
+                    if (error.name !== 'GoneException' && error.name !== 'BadRequestException') {
+                        console.error('Failed to send SessionInitialized message', error)
+                    }
                 }
-            }
-            else {
-                console.warn('[subscriptions] Player Connected event missing connectionId or sessionId', {
-                    hasConnectionId: !!connectionId,
-                    hasSessionId: !!sessionId,
-                    detail: event.detail
-                })
             }
         }
     }
