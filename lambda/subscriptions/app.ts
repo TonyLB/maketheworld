@@ -132,8 +132,8 @@ export const handler = async (event: any) => {
     }
     else if (event.source === 'mtw.players') {
         if (event["detail-type"] === 'Player Connected') {
-            const { connectionId, sessionId } = event.detail || {}
-            if (connectionId && sessionId) {
+            const { connectionId, sessionId, player } = event.detail || {}
+            if (connectionId && sessionId && player) {
                 // Small delay to ensure WebSocket handshake has completed
                 // EventBridge's natural latency (tens of ms) is usually sufficient,
                 // but adding a small buffer for safety
@@ -142,7 +142,8 @@ export const handler = async (event: any) => {
                 try {
                     await apiClient.send(connectionId, {
                         messageType: 'SessionInitialized',
-                        SessionId: sessionId
+                        SessionId: sessionId,
+                        PlayerName: player
                     } as CoordinationClientSessionInitializedMessage)
                 }
                 catch (error: any) {
