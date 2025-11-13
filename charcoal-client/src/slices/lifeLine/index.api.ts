@@ -26,7 +26,7 @@ import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/b
 import { isCoordinationClientMessage } from '@tonylb/mtw-interfaces/ts/coordination'
 import { getConfiguration, receiveRefreshToken } from '../configuration'
 import { push } from '../UI/feedback'
-import { getPlayer } from '../player'
+import { getSessionId } from '../settings'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { anonymousAPIPromise, isAnonymousAPIResultAccessTokenFailure, isAnonymousAPIResultAccessTokenSuccess } from '../../anonymousAPI'
 
@@ -123,7 +123,7 @@ export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getS
     //
     const { publicData: { webSocket, IDToken }, actions: { internalStateChange }} = arg
     const { WebSocketURI, RefreshToken, AnonymousAPIURI } = getConfiguration(getState())
-    const { SessionId } = getPlayer(getState())
+    const SessionId = getSessionId(getState())
     //
     // Use the RefreshToken to get an IDToken to pass to the websocket for authentication
     //

@@ -15,6 +15,7 @@ import {
     subscribeToPlayerDataSource,
     unsubscribeFromPlayerDataSource
 } from './playerDataSource'
+import { updateConnection, getPlayerName } from '../settings'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
     const status = getStatus(getState())
@@ -23,7 +24,7 @@ export const lifelineCondition: PlayerCondition = (_, getState) => {
 }
 
 const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { messageType: 'Player' }) => (dispatch: any, getState: any) => {
-    const { PlayerName, CodeOfConductConsent, Characters, Assets, Settings, SessionId } = payload
+    const { PlayerName, CodeOfConductConsent, Characters, Assets, Settings } = payload
     const state = getState()
     const currentAssets = getMyAssets(state?.player?.publicData)
     const assetsToPreserve = currentAssets
@@ -36,7 +37,8 @@ const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { mes
         ...currentAssets.filter(({ AssetId }) => (assetsToPreserve.includes(AssetId))),
         ...Assets.filter(({ AssetId }) => (!assetsToPreserve.includes(AssetId)))
     ]
-    dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Assets: newAssets, Characters, Settings, SessionId }))
+    // SessionId is now stored in settings slice, not passed to receivePlayer
+    dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Assets: newAssets, Characters, Settings, SessionId: '' }))
 }
 
 const EMPTY_PLAYER: PlayerPublic = {
@@ -49,20 +51,24 @@ const EMPTY_PLAYER: PlayerPublic = {
 }
 
 export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch, getState) => {
-    // Subscribe to the player data source for the 'self' stream
+    // Get the actual PlayerName from settings (populated by SessionInitialized message)
+    // The playerDataSource SSM holds until PlayerName is available, so it should be here by now
+    const playerName = getPlayerName(getState())
+    const streamKey = playerName || 'self'  // Fallback to 'self' if not available (shouldn't happen due to hold condition)
+    
+    // Subscribe to the player data source using the actual player name
     // This will automatically handle out-of-order events, caching, and re-aggregation
-    await dispatch(subscribeToPlayerDataSource(['self']))
+    await dispatch(subscribeToPlayerDataSource([streamKey]))
 
-    // Subscribe to LifeLinePubSub for coordination messages (SessionId)
+    // Subscribe to LifeLinePubSub for coordination messages (SessionId and PlayerName)
     const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
-        // Handle SessionInitialized coordination message - store SessionId once
+        // Handle SessionInitialized coordination message - store SessionId and PlayerName in settings
         if (isCoordinationClientMessage(payload) && payload.messageType === 'SessionInitialized') {
             const sessionInitialized = payload as CoordinationClientSessionInitializedMessage
-            const previous = (getState()?.player?.publicData as PlayerPublic | undefined) ?? EMPTY_PLAYER
-            // Update player state with SessionId, preserving other fields
-            dispatch(receivePlayer({
-                ...previous,
-                SessionId: sessionInitialized.SessionId
+            // Update connection info in settings slice
+            dispatch(updateConnection({
+                sessionId: sessionInitialized.SessionId,
+                playerName: sessionInitialized.PlayerName
             }))
             return
         }
@@ -89,13 +95,16 @@ export const syncAction: PlayerAction = () => async () => {
 
 // Removed legacy fetchDraftAsset (single-draft bootstrap). Multi-draft flow will drive subscriptions explicitly.
 
-export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }}) => async (dispatch) => {
+export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }}) => async (dispatch, getState) => {
     if (subscription) {
         subscription.unsubscribe?.()
     }
     
+    // Get the actual PlayerName from settings to unsubscribe from the correct stream
+    const playerName = getPlayerName(getState())
+    const streamKey = playerName || 'self'  // Fallback to 'self' if not available
     // Unsubscribe from the player data source
-    await dispatch(unsubscribeFromPlayerDataSource(['self']))
+    await dispatch(unsubscribeFromPlayerDataSource([streamKey]))
     
     return {
         publicData: {

@@ -6,6 +6,7 @@ import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import type { DataSourceEventSerializer, EventPayload, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { applyEvents, performCleanup, processRawSnapshot, processRawEvent } from './reducers'
+import type { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
 
 //
 // Configuration interface for creating a data source slice
@@ -25,6 +26,7 @@ export interface DataSourceSliceConfig<
     sliceSelector: (state: any) => any    // Selector to access this slice in Redux store
     promiseCache?: PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>  // Optional promise cache for state machine coordination
     onReady?: (dispatch: any, getState: any) => void  // Optional callback when slice reaches READY state (after INITIALIZE completes)
+    holdCondition?: ISSMHoldCondition<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>  // Optional additional hold condition (checked alongside lifelineCondition)
 }
 
 //
@@ -39,7 +41,7 @@ export const createDataSourceSlice = <
 >(
     config: DataSourceSliceConfig<SnapshotPayload, UpdatePayload, ExternalUpdatePayload, ExternalSnapshotPayload>
 ) => {
-    const { name, dataSourceKey, aggregator, eventSerializer, isSnapshot, isUpdate, sliceSelector, promiseCache: providedPromiseCache } = config
+    const { name, dataSourceKey, aggregator, eventSerializer, isSnapshot, isUpdate, sliceSelector, promiseCache: providedPromiseCache, holdCondition } = config
 
     // Create a promise cache if one wasn't provided
     const promiseCache = providedPromiseCache ?? new PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>()
@@ -75,7 +77,17 @@ export const createDataSourceSlice = <
             INITIAL: {
                 stateType: 'HOLD' as const,
                 next: 'INITIALIZE' as const,
-                condition: lifelineCondition  // Wait for LifeLine to be CONNECTED
+                condition: (data: DataSourceData<SnapshotPayload, UpdatePayload>, getState: any) => {
+                    // Always check LifeLine condition
+                    if (!lifelineCondition(data, getState)) {
+                        return false
+                    }
+                    // If additional hold condition is provided, check it as well
+                    if (holdCondition) {
+                        return holdCondition(data, getState)
+                    }
+                    return true
+                }
             },
             INITIALIZE: {
                 stateType: 'ATTEMPT' as const,

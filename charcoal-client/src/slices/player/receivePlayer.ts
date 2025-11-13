@@ -8,7 +8,7 @@ import { PlayerPublic } from './baseClasses'
 //
 
 export const receivePlayer = (state: PlayerPublic, action: PayloadAction<PlayerPublic>) => {
-    const { PlayerName, CodeOfConductConsent, Assets, Characters, Settings, SessionId } = action.payload
+    const { PlayerName, CodeOfConductConsent, Assets, Characters, Settings } = action.payload
     state.PlayerName = PlayerName
     if (CodeOfConductConsent !== undefined) {
         state.CodeOfConductConsent = CodeOfConductConsent
@@ -16,7 +16,7 @@ export const receivePlayer = (state: PlayerPublic, action: PayloadAction<PlayerP
     state.Assets = Assets
     state.Characters = Characters
     state.Settings = Settings
-    state.SessionId = SessionId
+    // SessionId is now stored in settings slice, not here
 }
 
 export default receivePlayer

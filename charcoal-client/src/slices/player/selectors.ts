@@ -2,6 +2,7 @@ import { PlayerPublic } from './baseClasses'
 import { Selector, RootState } from '../../store'
 import { playerDataSourceSelectors } from './playerDataSource'
 import { PlayerSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
+import { getSessionId as getSessionIdFromSettings, getPlayerName as getPlayerNameFromSettings } from '../settings'
 
 // Helper to get the materialized view from playerDataSource
 const getPlayerSnapshot = (state: RootState): PlayerSnapshot | null => {
@@ -31,16 +32,14 @@ const getPlayerSnapshot = (state: RootState): PlayerSnapshot | null => {
     }
 }
 
-// Helper to get SessionId from player slice (handled separately via coordination messages)
+// Helper to get SessionId from settings slice (handled via coordination messages)
 const getSessionId = (state: RootState): string => {
-    return state.player?.publicData?.SessionId || ''
+    return getSessionIdFromSettings(state)
 }
 
-// Helper to get PlayerName - try to get from playerDataSource stream key, fallback to player slice
+// Helper to get PlayerName from settings slice (handled via coordination messages)
 const getPlayerName = (state: RootState): string => {
-    // The stream key should be the player name after subscriptions lambda processes it
-    // For now, we'll use 'self' as fallback, but ideally we'd get the actual name from the stream
-    return state.player?.publicData?.PlayerName || 'self'
+    return getPlayerNameFromSettings(state) || 'self'
 }
 
 export const getPlayer = (state: RootState): PlayerPublic => {
