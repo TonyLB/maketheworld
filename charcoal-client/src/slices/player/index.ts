@@ -54,12 +54,12 @@ export const {
         addAsset: addAssetReducer
     },
     publicSelectors: {
-        getPlayer: getPlayerSelector,
-        getMyCharacters: getMyCharactersSelector,
-        getMyAssets: getMyAssetsSelector,
-        getMyDraftAssets: getMyDraftAssetsSelector,
-        getMyPersonalAssets: getMyPersonalAssetsSelector,
-        getMySettings: getMySettingsSelector
+        getPlayer: (state: any) => getPlayerSelector(state),
+        getMyCharacters: (state: any) => getMyCharactersSelector(state),
+        getMyAssets: (state: any) => getMyAssetsSelector(state),
+        getMyDraftAssets: (state: any) => getMyDraftAssetsSelector(state),
+        getMyPersonalAssets: (state: any) => getMyPersonalAssetsSelector(state),
+        getMySettings: (state: any) => getMySettingsSelector(state)
     },
     template: {
         initialState: 'INITIAL',
@@ -167,7 +167,7 @@ export const getNextOnboarding = createSelector(
     (entry): OnboardingKey | undefined => (entry?.key)
 )
 
-export const getMyCharacterById = getMyCharacterByIdSelector(getMyCharacters, getMySettings)
-export const getMyCharacterByKey = getMyCharacterByKeySelector(getMyCharacters, getMySettings)
+export const getMyCharacterById = getMyCharacterByIdSelector
+export const getMyCharacterByKey = getMyCharacterByKeySelector
 
 export default playerSlice.reducer

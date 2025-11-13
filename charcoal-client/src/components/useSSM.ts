@@ -9,6 +9,7 @@ import { iterateAllSSMs as personalAssetsSSM } from '../slices/personalAssets'
 import { iterateAllSSMs as collaborationStatusSSM } from '../slices/UI/collaborationStatus'
 import { iterateContentHeaders } from '../slices/contentHeaders'
 import { iterateLibraryDataSource } from '../slices/libraryDataSource'
+import { iteratePlayerDataSource } from '../slices/player/playerDataSource'
 
 export const useStateSeekingMachines = () => {
     const dispatch = useDispatch()
@@ -22,6 +23,7 @@ export const useStateSeekingMachines = () => {
         dispatch(collaborationStatusSSM)
         dispatch(iterateContentHeaders)
         dispatch(iterateLibraryDataSource)
+        dispatch(iteratePlayerDataSource)
     }, [dispatch, heartbeat])
 }
 

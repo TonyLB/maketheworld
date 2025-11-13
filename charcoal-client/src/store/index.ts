@@ -14,6 +14,7 @@ import personalAssets from '../slices/personalAssets'
 import perceptionCache from '../slices/perceptionCache'
 import { contentHeadersSlice, subscribeToContentHeaders } from '../slices/contentHeaders'
 import { libraryDataSourceSlice, subscribeToLibrary } from '../slices/libraryDataSource'
+import { playerDataSourceSlice } from '../slices/player/playerDataSource'
 
 export const store = configureStore({
     reducer: {
@@ -29,7 +30,8 @@ export const store = configureStore({
         ssmHeartbeat,
         perceptionCache,
         contentHeaders: contentHeadersSlice.reducer,
-        libraryDataSource: libraryDataSourceSlice.reducer
+        libraryDataSource: libraryDataSourceSlice.reducer,
+        playerDataSource: playerDataSourceSlice.reducer
     },
     middleware: [thunk]
 })
