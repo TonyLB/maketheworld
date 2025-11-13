@@ -40,6 +40,7 @@
 - Define EventBridge contracts and serializers for the forthcoming `mtw.assets.players` replayable data source in `@tonylb/mtw-interfaces`.
 - Implement a replayable player data source that subscribes to `mtw.assets` events, derives per-player updates, and exposes snapshots via the generic pattern.
 - Transition the client player slice to rely on the new data source (replacing the `whoAmI` life-line dependency) once backend streaming is ready.
+  - **Migration Status**: Client currently subscribes to `mtw.assets.players` but uses manual event processing. Must migrate to `createDataSourceSlice` pattern to get proper out-of-order event handling (timestamp-based sorting and re-aggregation).
 - Treat the player name as the per-stream identifier: the EventBridge `streamKey` for `mtw.assets.players` will be `PlayerName`. Payloads no longer need to echo the name.
 - Keep connection-scoped fields (e.g. `SessionId`) out of the data source payloads. The subscriptions lambda already knows the target session and can enrich outgoing websocket messages with the current session ID as a special case.
 - Until subscription authorization grows richer context, the subscriptions lambda rewrites a sentinel stream key (`self`) to the authenticated `PlayerName` when clients subscribe to `mtw.assets.players`. Document this provisional shim and remove it when we implement proper context-aware routing.
@@ -56,6 +57,12 @@
   🔄 Follow-up: Once client integration is complete, remove the now-unused legacy streaming paths and retire full-snapshot fallback (keep only for replay).
 - [x] Register the new data source with the subscriptions lambda (`lambda/subscriptions/handlerFramework`) so clients receive the granular deltas.
 - [x] Update the client (`charcoal-client/src/slices/player`) to subscribe to the new stream and retire the ad-hoc `whoAmI` refresh path.
+  ⚠️ **PARTIAL**: Client is subscribing to `mtw.assets.players` stream, but still using manual event processing in `subscribeAction` instead of the generic `createDataSourceSlice` pattern. This causes state to be dependent on event arrival order rather than timestamp order.
+- [ ] Migrate client player slice to use `createDataSourceSlice` pattern (like `contentHeaders` slice) to get proper out-of-order event handling, event caching, and timestamp-based re-aggregation.
+  - Replace manual `subscribeAction` event processing with generic data source slice
+  - Use `processRawSnapshot` and `processRawEvent` actions from the generic pattern
+  - Map materialized view to `PlayerPublic` format (preserving `SessionId` handling from coordination messages)
+  - Ensure `SessionId` continues to be handled separately via `SessionInitialized` coordination messages
 
 ---
 

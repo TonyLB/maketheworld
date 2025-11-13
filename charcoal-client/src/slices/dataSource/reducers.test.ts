@@ -195,7 +195,7 @@ describe('dataSource reducers', () => {
                 subscribedStreams: {
                     'stream1': {
                         materializedView: { type: 'Snapshot Generated' as const, items: ['old'] },
-                        recentEvents: []
+                        recentEvents: [] as Array<{ event: TestSnapshot | TestUpdate; timestamp: number }>
                     }
                 }
             }
@@ -278,7 +278,7 @@ describe('dataSource reducers', () => {
                 subscribedStreams: {
                     'stream1': {
                         materializedView: { type: 'Snapshot Generated' as const, items: ['a'] },
-                        recentEvents: []
+                        recentEvents: [] as Array<{ event: TestSnapshot | TestUpdate; timestamp: number }>
                     }
                 }
             }
@@ -414,7 +414,7 @@ describe('dataSource reducers', () => {
                 subscribedStreams: {
                     'stream1': {
                         materializedView: { type: 'Snapshot Generated' as const, items: ['a'] },
-                        recentEvents: []
+                        recentEvents: [] as Array<{ event: TestSnapshot | TestUpdate; timestamp: number }>
                     }
                 }
             }
