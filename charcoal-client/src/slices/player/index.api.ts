@@ -6,10 +6,8 @@ import {
     LifeLinePubSub
 } from '../lifeLine'
 import { LifeLinePubSubData } from '../lifeLine/lifeLine'
-import { getMyAssets, getMySettings } from './selectors'
 import { getSerialized } from '../personalAssets'
 import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
-import { PlayerSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { 
     unsubscribeFromPlayerDataSource
 } from './playerDataSource'

@@ -8,33 +8,23 @@ import {
     unsubscribeAction
 } from './index.api'
 import {
-    getPlayer as getPlayerSelector,
-    getMyCharacters as getMyCharactersSelector,
-    getMyAssets as getMyAssetsSelector,
-    getMyDraftAssets as getMyDraftAssetsSelector,
-    getMyPersonalAssets as getMyPersonalAssetsSelector,
     getMyCharacterById as getMyCharacterByIdSelector,
     getMyCharacterByKey as getMyCharacterByKeySelector,
-    getMySettings as getMySettingsSelector,
-    PlayerSelectors
 } from './selectors'
 import { receivePlayer } from './receivePlayer'
 import { addAsset as addAssetReducer } from './reducers'
 import { PromiseCache } from '../promiseCache'
 import { createSelector } from '@reduxjs/toolkit'
 import { OnboardingKey, OnboardingSubItem, onboardingChapters } from '../../components/Onboarding/checkpoints'
+import { playerDataSourceSelectors } from './playerDataSource'
+import { getPlayerName, getSessionId } from '../settings'
+import { PlayerSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
 
 const playerPromiseCache = new PromiseCache<PlayerData>()
 
 // Type for publicSelectors that singleSSM expects (selectors that take publicData)
 // Our actual selectors read from RootState, so we wrap them in publicSelectors
 type PlayerPublicSelectors = {
-    getPlayer: (state: PlayerPublic) => PlayerPublic;
-    getMyCharacters: (state: PlayerPublic) => PlayerPublic['Characters'];
-    getMyAssets: (state: PlayerPublic) => PlayerPublic['Assets'];
-    getMyDraftAssets: (state: PlayerPublic) => PlayerPublic['Assets'];
-    getMyPersonalAssets: (state: PlayerPublic) => PlayerPublic['Assets'];
-    getMySettings: (state: PlayerPublic) => PlayerPublic['Settings'];
 }
 
 export const {
@@ -65,14 +55,7 @@ export const {
         receivePlayer,
         addAsset: addAssetReducer
     },
-    publicSelectors: {
-        getPlayer: (state: any) => getPlayerSelector(state),
-        getMyCharacters: (state: any) => getMyCharactersSelector(state),
-        getMyAssets: (state: any) => getMyAssetsSelector(state),
-        getMyDraftAssets: (state: any) => getMyDraftAssetsSelector(state),
-        getMyPersonalAssets: (state: any) => getMyPersonalAssetsSelector(state),
-        getMySettings: (state: any) => getMySettingsSelector(state)
-    },
+    publicSelectors: {},
     template: {
         initialState: 'INITIAL',
         initialData: {
@@ -138,18 +121,81 @@ export const {
 
 export const { addAsset, onEnter } = publicActions
 export const {
-    getPlayer,
-    getMyCharacters,
-    getMyAssets,
-    getMyDraftAssets,
-    getMyPersonalAssets,
-    getMySettings,
     getStatus
 } = selectors
 export const { setIntent } = playerSlice.actions
 
+// Helper to get the materialized view from playerDataSource
+const getPlayerSnapshot = (state: any): PlayerSnapshot | null => {
+    if (!state) {
+        return null
+    }
+    
+    // getSubscribedStreams is wrapped by singleSSM to extract publicData automatically
+    // It expects root state and will call sliceSelector(state).publicData internally
+    const subscribedStreams = playerDataSourceSelectors.getSubscribedStreams(state)
+    if (!subscribedStreams) {
+        return null
+    }
+    
+    // Get the actual player name from settings (what we subscribed with)
+    const playerName = getPlayerName(state)
+    if (!playerName) {
+        return null
+    }
+    
+    // Look up the stream using the actual player name
+    const stream = subscribedStreams[playerName]
+    if (!stream?.materializedView) {
+        return null
+    }
+    
+    return stream.materializedView
+}
+
+export const getMySettings = createSelector(
+    getPlayerSnapshot,
+    (snapshot) => snapshot?.settings || { onboardCompleteTags: [] }
+)
+
+export const getPlayer = createSelector(
+    getPlayerSnapshot,
+    getSessionId,
+    getPlayerName,
+    (snapshot, sessionId, playerName) => {
+        return {
+            PlayerName: playerName,
+            CodeOfConductConsent: true,
+            Assets: snapshot?.assets || [],
+            Characters: snapshot?.characters || [],
+            Settings: snapshot?.settings || { onboardCompleteTags: [] },
+            SessionId: sessionId
+        }
+    }
+)
+
+export const getMyCharacters = createSelector(
+    getPlayerSnapshot,
+    (snapshot) => snapshot?.characters || []
+)
+
+export const getMyAssets = createSelector(
+    getPlayerSnapshot,
+    (snapshot) => snapshot?.assets || []
+)
+
+export const getMyDraftAssets = createSelector(
+    getMyAssets,
+    (assets) => assets.filter((asset: any) => (asset?.zone === 'Draft'))
+)
+
+export const getMyPersonalAssets = createSelector(
+    getMyAssets,
+    (assets) => assets.filter((asset: any) => (asset?.zone === 'Personal'))
+)
+
 export const getActiveOnboardingChapter = createSelector(
-    selectors.getMySettings,
+    getMySettings,
     ({ onboardCompleteTags }) => {
         const firstChapterUnfinished = !(onboardCompleteTags.includes(`endMTWNavigation`))
         const index = firstChapterUnfinished ? 0 : onboardingChapters.findIndex(({ chapterKey }) => (onboardCompleteTags.includes(`active${chapterKey}`)))
@@ -158,7 +204,7 @@ export const getActiveOnboardingChapter = createSelector(
 )
 
 export const getOnboardingPage = createSelector(
-    selectors.getMySettings,
+    getMySettings,
     getActiveOnboardingChapter,
     ({ onboardCompleteTags }, { currentChapter }) => {
         if (!currentChapter) {
@@ -170,7 +216,7 @@ export const getOnboardingPage = createSelector(
 )
 
 export const getNextOnboardingEntry = createSelector(
-    selectors.getMySettings,
+    getMySettings,
     getOnboardingPage,
     ({ onboardCompleteTags }, page): OnboardingSubItem | undefined => {
         if (!page) {
