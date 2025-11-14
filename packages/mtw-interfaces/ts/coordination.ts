@@ -21,6 +21,7 @@ export type CoordinationClientErrorMessage = {
 export type CoordinationClientSessionInitializedMessage = {
     messageType: 'SessionInitialized';
     SessionId: string;
+    PlayerName: string;
 }
 
 export type CoordinationClientMessage = CoordinationClientSuccessMessage |
@@ -65,7 +66,8 @@ export type CoordinationClientMessage = CoordinationClientSuccessMessage |
                 return checkTypes(
                     message,
                     {
-                        SessionId: 'string'
+                        SessionId: 'string',
+                        PlayerName: 'string'
                     },
                     {}
                 )

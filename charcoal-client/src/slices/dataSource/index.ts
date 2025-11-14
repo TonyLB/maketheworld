@@ -6,6 +6,7 @@ import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import type { DataSourceEventSerializer, EventPayload, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { applyEvents, performCleanup, processRawSnapshot, processRawEvent } from './reducers'
+import type { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
 
 //
 // Configuration interface for creating a data source slice
@@ -24,7 +25,8 @@ export interface DataSourceSliceConfig<
     isUpdate: (event: UpdatePayload | SnapshotPayload) => event is UpdatePayload  // Type guard to identify update events
     sliceSelector: (state: any) => any    // Selector to access this slice in Redux store
     promiseCache?: PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>  // Optional promise cache for state machine coordination
-    onReady?: (dispatch: any, getState: any) => void  // Optional callback when slice reaches READY state (after INITIALIZE completes)
+    onReady?: (dispatch: any, getState: any, sliceActions: any) => void  // Optional callback when slice reaches READY state (after INITIALIZE completes). Receives dispatch, getState, and slice actions for subscription management.
+    holdCondition?: ISSMHoldCondition<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>  // Optional additional hold condition (checked alongside lifelineCondition)
 }
 
 //
@@ -39,7 +41,7 @@ export const createDataSourceSlice = <
 >(
     config: DataSourceSliceConfig<SnapshotPayload, UpdatePayload, ExternalUpdatePayload, ExternalSnapshotPayload>
 ) => {
-    const { name, dataSourceKey, aggregator, eventSerializer, isSnapshot, isUpdate, sliceSelector, promiseCache: providedPromiseCache } = config
+    const { name, dataSourceKey, aggregator, eventSerializer, isSnapshot, isUpdate, sliceSelector, promiseCache: providedPromiseCache, holdCondition } = config
 
     // Create a promise cache if one wasn't provided
     const promiseCache = providedPromiseCache ?? new PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>()
@@ -75,7 +77,17 @@ export const createDataSourceSlice = <
             INITIAL: {
                 stateType: 'HOLD' as const,
                 next: 'INITIALIZE' as const,
-                condition: lifelineCondition  // Wait for LifeLine to be CONNECTED
+                condition: (data: DataSourceData<SnapshotPayload, UpdatePayload>, getState: any) => {
+                    // Always check LifeLine condition
+                    if (!lifelineCondition(data, getState)) {
+                        return false
+                    }
+                    // If additional hold condition is provided, check it as well
+                    if (holdCondition) {
+                        return holdCondition(data, getState)
+                    }
+                    return true
+                }
             },
             INITIALIZE: {
                 stateType: 'ATTEMPT' as const,
@@ -180,11 +192,23 @@ export const createDataSourceSlice = <
 
     // Now that we have the result with publicActions, create the initialize action
     // This needs to be done after singleSSM call because we need access to the action creators
+    // Create a wrapper for onReady that passes slice actions
+    const onReadyWrapper = config.onReady 
+        ? (dispatch: any, getState: any, _placeholder: any) => {
+            // Pass the actual slice actions instead of the placeholder
+            // Verify sliceActions are available
+            if (!result.slice.actions || !result.slice.actions.internalStateChange || !result.slice.actions.setIntent) {
+                console.warn(`[${name}] onReady wrapper: slice actions not available`, result.slice.actions)
+            }
+            config.onReady!(dispatch, getState, result.slice.actions)
+        }
+        : undefined
     initializeAction = createInitializeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey,
         result.publicActions.processRawSnapshot,
         result.publicActions.processRawEvent,
-        config.onReady
+        onReadyWrapper,
+        sliceSelector  // Pass sliceSelector so we can read current state after onReady
     )
 
     // Create subscription/unsubscription helpers

@@ -22,7 +22,6 @@ export interface PlayerNodes {
     INITIAL: ISSMHoldNode<PlayerInternal, PlayerPublic>;
     SUBSCRIBE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     SYNCHRONIZE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
-    FETCHDRAFTASSET: ISSMAttemptNode<PlayerInternal, PlayerPublic>;
     CONNECTED: ISSMChoiceNode;
     SIGNOUT: ISSMRedirectNode;
     UNSUBSCRIBE: ISSMAttemptNode<PlayerInternal, PlayerPublic>;

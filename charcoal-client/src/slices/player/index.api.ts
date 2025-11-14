@@ -6,24 +6,27 @@ import {
     LifeLinePubSub
 } from '../lifeLine'
 import { LifeLinePubSubData } from '../lifeLine/lifeLine'
-import { getMyAssets, getMySettings } from './selectors'
 import { getSerialized } from '../personalAssets'
 import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
-import {
-    PlayerAggregator,
-    PlayerEventSerializer
-} from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
-import { PlayerSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
-import { CoordinationClientSessionInitializedMessage, isCoordinationClientMessage } from '@tonylb/mtw-interfaces/ts/coordination'
+import { 
+    unsubscribeFromPlayerDataSource
+} from './playerDataSource'
+import { getPlayerName } from '../settings'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
     const status = getStatus(getState())
-
     return (status === 'CONNECTED')
 }
 
+// Hold condition: Wait for PlayerName to be populated from SessionInitialized message
+// This ensures we can subscribe to playerDataSource with the actual player name
+export const playerNameCondition: PlayerCondition = (_, getState) => {
+    const playerName = getPlayerName(getState())
+    return playerName !== ''
+}
+
 const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { messageType: 'Player' }) => (dispatch: any, getState: any) => {
-    const { PlayerName, CodeOfConductConsent, Characters, Assets, Settings, SessionId } = payload
+    const { PlayerName, CodeOfConductConsent, Characters, Assets, Settings } = payload
     const state = getState()
     const currentAssets = getMyAssets(state?.player?.publicData)
     const assetsToPreserve = currentAssets
@@ -36,7 +39,8 @@ const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { mes
         ...currentAssets.filter(({ AssetId }) => (assetsToPreserve.includes(AssetId))),
         ...Assets.filter(({ AssetId }) => (!assetsToPreserve.includes(AssetId)))
     ]
-    dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Assets: newAssets, Characters, Settings, SessionId }))
+    // SessionId is now stored in settings slice, not passed to receivePlayer
+    dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Assets: newAssets, Characters, Settings, SessionId: '' }))
 }
 
 const EMPTY_PLAYER: PlayerPublic = {
@@ -48,123 +52,46 @@ const EMPTY_PLAYER: PlayerPublic = {
     SessionId: ''
 }
 
-type PlayerSnapshotState = ReturnType<PlayerAggregator['createEmpty']>
-
-const toPlayerPublic = (args: {
-    streamKey: string;
-    snapshot: PlayerSnapshotState;
-    previous?: PlayerPublic;
-    sessionId?: string;
-}): PlayerPublic => {
-    const { streamKey, snapshot, previous = EMPTY_PLAYER, sessionId } = args
-    // SessionId is received once via SessionInitialized coordination message and stored in player state.
-    // Fallback to previous.SessionId is kept for safety during migration.
-    return {
-        PlayerName: streamKey,
-        CodeOfConductConsent: true,
-        Assets: snapshot.assets,
-        Characters: snapshot.characters,
-        Settings: snapshot.settings,
-        SessionId: sessionId ?? previous.SessionId ?? ''
-    }
-}
-
-const isPlayerSubscriptionMessage = (payload: LifeLinePubSubData): payload is PlayerSubscriptionClientMessage => (
-    typeof payload === 'object' &&
-    payload !== null &&
-    'messageType' in payload &&
-    payload.messageType === 'StreamEvent' &&
-    'dataSourceKey' in payload &&
-    payload.dataSourceKey === 'mtw.assets.players'
-)
-
 export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch, getState) => {
-    const aggregator = new PlayerAggregator()
-    const serializer = new PlayerEventSerializer()
-    let materialized: PlayerSnapshotState = aggregator.createEmpty()
-    let currentPlayerName: string | undefined
-
+    // Note: playerDataSource now auto-subscribes via onReady callback when it reaches READY state
+    // SessionInitialized is now handled in the lifeLine slice (set up early, before player slice subscribes)
+    
+    // Subscribe to LifeLinePubSub for legacy Player message handling (for backward compatibility during migration)
     const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
+        // Legacy Player message handling (for backward compatibility during migration)
         if (payload.messageType === 'Player') {
             dispatch(mergePlayerInfo(receivePlayer, payload))
-            currentPlayerName = payload.PlayerName
-            materialized = {
-                type: 'Snapshot',
-                assets: payload.Assets,
-                characters: payload.Characters,
-                settings: payload.Settings
-            }
             return
-        }
-
-        // Handle SessionInitialized coordination message - store SessionId once
-        if (isCoordinationClientMessage(payload) && payload.messageType === 'SessionInitialized') {
-            const sessionInitialized = payload as CoordinationClientSessionInitializedMessage
-            const previous = (getState()?.player?.publicData as PlayerPublic | undefined) ?? EMPTY_PLAYER
-            // Update player state with SessionId, preserving other fields
-            dispatch(receivePlayer({
-                ...previous,
-                SessionId: sessionInitialized.SessionId
-            }))
-            return
-        }
-
-        if (isPlayerSubscriptionMessage(payload)) {
-            const update = serializer.deserialize({
-                dataSourceKey: payload.dataSourceKey,
-                streamKey: payload.streamKey,
-                externalUpdate: payload.update
-            })
-            if (!update) {
-                return
-            }
-            const aggregation = aggregator.applyUpdate(materialized, update)
-            if (!aggregation.success) {
-                console.error('mtw.assets.players aggregation failed', aggregation.error)
-                return
-            }
-            materialized = aggregation.snapshot
-            currentPlayerName = payload.streamKey ?? currentPlayerName
-            const previous = (getState()?.player?.publicData as PlayerPublic | undefined) ?? EMPTY_PLAYER
-            if (!currentPlayerName) {
-                console.warn('mtw.assets.players: Received update without streamKey; ignoring snapshot update.')
-                return previous
-            }
-            // SessionId comes from stored player state (set via SessionInitialized message)
-            const next = toPlayerPublic({
-                streamKey: currentPlayerName,
-                snapshot: materialized,
-                previous,
-                sessionId: previous.SessionId
-            })
-            dispatch(receivePlayer(next))
         }
     })
 
-    await dispatch(socketDispatchPromise({
-        message: 'subscribe',
-        dataSourceKey: 'mtw.assets.players',
-        streamKeys: ['self']
-    }, { service: 'subscriptions' }))
-
-    return { internalData: { subscription: lifeLineSubscription } }
+    return { 
+        internalData: { 
+            subscription: lifeLineSubscription
+        } 
+    }
 }
 
 export const syncAction: PlayerAction = () => async () => {
+    // No-op: Data is now read directly from playerDataSource via selectors
+    // This action is kept for state machine compatibility but doesn't need to sync data
     return {}
 }
 
 // Removed legacy fetchDraftAsset (single-draft bootstrap). Multi-draft flow will drive subscriptions explicitly.
 
-export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }}) => async (dispatch) => {
+export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }}) => async (dispatch, getState) => {
     if (subscription) {
         subscription.unsubscribe?.()
     }
-    await dispatch(socketDispatchPromise({
-        message: 'unsubscribe',
-        dataSourceKey: 'mtw.assets.players',
-        streamKeys: ['self']
-    }, { service: 'subscriptions' }))
+    
+    // Get the actual PlayerName from settings to unsubscribe from the correct stream
+    const playerName = getPlayerName(getState())
+    if (playerName) {
+        // Unsubscribe from the player data source
+        await dispatch(unsubscribeFromPlayerDataSource([playerName]))
+    }
+    
     return {
         publicData: {
             Assets: [],

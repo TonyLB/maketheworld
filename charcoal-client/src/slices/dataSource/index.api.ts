@@ -33,7 +33,8 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
     processRawSnapshot: (payload: { streamKey: string; timestamp: number; rawSnapshot: any }) => any,
     processRawEvent: (payload: { streamKey: string; timestamp: number; rawEvent: any }) => any,
-    onReady?: (dispatch: any, getState: any) => void
+    onReady?: (dispatch: any, getState: any, sliceActions: any) => void,
+    sliceSelector?: (state: any) => any
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch, getState) => {
         try {
@@ -54,13 +55,34 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
             })
             
             // Call onReady callback if provided (after successful initialization)
+            // The wrapper in createDataSourceSlice provides sliceActions as the third parameter
             if (onReady) {
-                onReady(dispatch, getState)
+                // The wrapper will provide the actual sliceActions - we just need to call it
+                // The third parameter will be replaced by the wrapper
+                onReady(dispatch, getState, {} as any)  // Placeholder - wrapper replaces this with actual sliceActions
+            }
+            
+            // After onReady may have queued subscriptions, read the current state to preserve any changes
+            // The onReady callback may have dispatched internalStateChange to queue subscriptions,
+            // and we need to preserve those in our return value to avoid overwriting them
+            let currentInternalData = internalData
+            if (sliceSelector && onReady) {
+                // Read the current slice state to get any changes made by onReady
+                const currentState = getState()
+                const sliceState = sliceSelector(currentState)
+                if (sliceState?.internalData) {
+                    // Preserve subscribeStreamKeys and unsubscribeStreamKeys that may have been queued by onReady
+                    currentInternalData = {
+                        ...internalData,
+                        subscribeStreamKeys: sliceState.internalData.subscribeStreamKeys || internalData.subscribeStreamKeys || [],
+                        unsubscribeStreamKeys: sliceState.internalData.unsubscribeStreamKeys || internalData.unsubscribeStreamKeys || []
+                    }
+                }
             }
             
             return {
                 internalData: {
-                    ...internalData,
+                    ...currentInternalData,
                     lifeLineSubscription
                 },
                 publicData

@@ -12,9 +12,15 @@ interface ClientSettings {
     AlwaysShowOnboarding: boolean;
 }
 
+interface ConnectionInfo {
+    sessionId: string;
+    playerName: string;
+}
+
 interface SettingsData {
     server: ServerSettings;
     client: ClientSettings;
+    connection: ConnectionInfo;
 }
 
 const initialState: SettingsData = {
@@ -25,6 +31,10 @@ const initialState: SettingsData = {
         TextEntryLines: 1,
         ShowNeighborhoodHeaders: false,
         AlwaysShowOnboarding: false
+    },
+    connection: {
+        sessionId: '',
+        playerName: ''
     }
 }
 
@@ -37,12 +47,18 @@ const settingsSlice = createSlice({
         },
         receiveClientSettings(state, action: PayloadAction<Partial<ClientSettings>>) {
             state.client = { ...state.client, ...action.payload }
+        },
+        updateConnection(state, action: PayloadAction<Partial<ConnectionInfo>>) {
+            state.connection = { ...state.connection, ...action.payload }
         }
     }
 })
 
 export const getServerSettings = (state: any): ServerSettings => (state.settings.server)
 export const getClientSettings = (state: any): ClientSettings => (state.settings.client)
+export const getConnection = (state: any): ConnectionInfo => (state.settings.connection)
+export const getSessionId = (state: any): string => (state.settings.connection?.sessionId || '')
+export const getPlayerName = (state: any): string => (state.settings.connection?.playerName || '')
 
 export const loadClientSettings = (dispatch: any) => {
     cacheDB.clientSettings.toArray()
@@ -60,5 +76,5 @@ export const putClientSettings = (settings: Partial<ClientSettings>) => (dispatc
 }
 
 
-export const { receiveServerSettings, receiveClientSettings } = settingsSlice.actions
+export const { receiveServerSettings, receiveClientSettings, updateConnection } = settingsSlice.actions
 export default settingsSlice.reducer

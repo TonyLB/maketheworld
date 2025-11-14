@@ -1,42 +1,8 @@
 import { PlayerPublic } from './baseClasses'
-import { Selector } from '../../store'
-
-export const getPlayer = (player: PlayerPublic): PlayerPublic => {
-    const { PlayerName = '', CodeOfConductConsent = false, Assets = [], Characters = [], Settings = { onboardCompleteTags: [] }, SessionId = "" } = player || {}
-    return {
-        PlayerName,
-        CodeOfConductConsent,
-        Assets,
-        Characters,
-        Settings,
-        SessionId
-    }
-}
-
-export const getMyCharacters = (player: PlayerPublic): PlayerPublic['Characters'] => {
-    const { Characters = [] } = player || {}
-    return Characters
-}
-
-export const getMyAssets = (player: PlayerPublic): PlayerPublic['Assets'] => {
-    const { Assets = [] } = player || {}
-    return Assets
-}
-
-export const getMyDraftAssets = (player: PlayerPublic): PlayerPublic['Assets'] => {
-    const { Assets = [] } = player || {}
-    return Assets.filter((asset: any) => (asset?.zone === 'Draft'))
-}
-
-export const getMyPersonalAssets = (player: PlayerPublic): PlayerPublic['Assets'] => {
-    const { Assets = [] } = player || {}
-    return Assets.filter((asset: any) => (asset?.zone === 'Personal'))
-}
-
-export const getMySettings = (player: PlayerPublic): PlayerPublic['Settings'] => {
-    const { Settings = { onboardCompleteTags: [] } } = player || {}
-    return Settings
-}
+import { Selector, RootState } from '../../store'
+import { playerDataSourceSelectors } from './playerDataSource'
+import { PlayerSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
+import { getSessionId as getSessionIdFromSettings, getPlayerName as getPlayerNameFromSettings } from '../settings'
 
 const guestCharacter = (guestId: string, guestName: string): PlayerPublic['Characters'][number] => ({
     CharacterId: `CHARACTER#${guestId}`,
@@ -44,9 +10,10 @@ const guestCharacter = (guestId: string, guestName: string): PlayerPublic['Chara
     Pronouns: 'they/them'
 })
 
-export const getMyCharacterByKey = (getMyCharacters: Selector<PlayerPublic['Characters']>, getMySettings: Selector<PlayerPublic['Settings']>) => (key: string | undefined): Selector<any> => (state) => {
+export const getMyCharacterByKey = (key: string | undefined): Selector<any> => (state) => {
     if (key === 'Guest') {
-        const { guestId, guestName } = getMySettings(state)
+        const settings = getMySettings(state)
+        const { guestId, guestName } = settings
         if (!(guestId && guestName)) {
             throw new Error('Guest character requested but no guestId found in settings')
         }
@@ -56,8 +23,9 @@ export const getMyCharacterByKey = (getMyCharacters: Selector<PlayerPublic['Char
     return Characters.find(({ scopedId }) => (scopedId === key))
 }
 
-export const getMyCharacterById = (getMyCharacters: Selector<PlayerPublic['Characters']>, getMySettings: Selector<PlayerPublic['Settings']>) => (key: string | undefined): Selector<any> => (state) => {
-    const { guestId, guestName } = getMySettings(state)
+export const getMyCharacterById = (key: string | undefined): Selector<any> => (state) => {
+    const settings = getMySettings(state)
+    const { guestId, guestName } = settings
     if (key === `CHARACTER#${guestId}`) {
         if (!(guestId && guestName)) {
             throw new Error('Guest character requested but no guestId found in settings')
@@ -69,13 +37,7 @@ export const getMyCharacterById = (getMyCharacters: Selector<PlayerPublic['Chara
 }
 
 //
-// TODO: See if you can reduce the repetition of creating this type from the selectors
+// Selector types - these now read from RootState instead of PlayerPublic
 //
 export type PlayerSelectors = {
-    getPlayer: (player: PlayerPublic) => PlayerPublic;
-    getMyCharacters: (player: PlayerPublic) => PlayerPublic['Characters'];
-    getMyAssets: (player: PlayerPublic) => PlayerPublic['Assets'];
-    getMyDraftAssets: (player: PlayerPublic) => PlayerPublic['Assets'];
-    getMyPersonalAssets: (player: PlayerPublic) => PlayerPublic['Assets'];
-    getMySettings: (player: PlayerPublic) => PlayerPublic['Settings'];
 }

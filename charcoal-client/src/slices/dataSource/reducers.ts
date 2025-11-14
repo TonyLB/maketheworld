@@ -95,12 +95,13 @@ export const processRawSnapshot = <
     isUpdate: (event: UpdatePayload | SnapshotPayload) => event is UpdatePayload,
     performCleanupWithConfig: ReturnType<typeof performCleanup<SnapshotPayload, UpdatePayload>>,
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload>>
-) => (
+    ) => (
     state: any,
     action: PayloadAction<{ streamKey: string; timestamp: number; rawSnapshot: ExternalSnapshotPayload }>
 ) => {
         const { streamKey, timestamp, rawSnapshot } = action.payload
         
+        // Check if stream is subscribed
         const stream = state.subscribedStreams[streamKey]
         if (!stream) {
             // Stream not subscribed, ignore
@@ -158,11 +159,13 @@ export const processRawEvent = <
     isUpdate: (event: UpdatePayload | SnapshotPayload) => event is UpdatePayload,
     performCleanupWithConfig: ReturnType<typeof performCleanup<SnapshotPayload, UpdatePayload>>,
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload>>
-) => (
+    ) => (
     state: any,
     action: PayloadAction<{ streamKey: string; timestamp: number; rawEvent: ExternalUpdatePayload }>
 ) => {
         const { streamKey, timestamp, rawEvent } = action.payload
+        
+        // Check if stream is subscribed
         const stream = state.subscribedStreams[streamKey]
         if (!stream) {
             // Stream not subscribed, ignore
@@ -213,29 +216,36 @@ export const processRawEvent = <
             ? snapshotEvents[snapshotEvents.length - 1].timestamp 
             : 0
         
-            // Collect all events including new one
-            const allEvents = [
-                ...cleanedRecentEvents.filter(e => e.timestamp > baselineTimestamp),
-                { event, timestamp: eventTimestamp }
-            ]
-            
-            // Sort by timestamp
-            const sortedEvents = allEvents.sort((a, b) => a.timestamp - b.timestamp)
-            
-            // Filter for only UPDATE events to apply (snapshots shouldn't be re-applied)
-            // AND only events AFTER the baseline snapshot (events before are already in the snapshot)
-            const sortedUpdateEvents = sortedEvents.filter((e): e is { timestamp: number, event: UpdatePayload } => 
-                isUpdate(e.event) && e.timestamp > baselineTimestamp
-            )
-            
-            // Re-aggregate in chronological order
-            const newMaterializedView = applyEventsWithAggregator(baselineSnapshot, sortedUpdateEvents)
+        // Collect ALL cached events (including the new one) that need to be considered
+        // We need to include all events from cleanedRecentEvents plus the new event,
+        // then sort by timestamp, then filter for only UPDATE events after the baseline
+        const allEvents = [
+            ...cleanedRecentEvents,
+            { event, timestamp: eventTimestamp }
+        ]
         
+        // Sort by timestamp (first-to-last chronological order)
+        const sortedEvents = allEvents.sort((a, b) => a.timestamp - b.timestamp)
+        
+        // Filter for only UPDATE events to apply (snapshots shouldn't be re-applied)
+        // AND only events AFTER the baseline snapshot (events before are already in the snapshot)
+        const sortedUpdateEvents = sortedEvents.filter((e): e is { timestamp: number, event: UpdatePayload } => 
+            isUpdate(e.event) && e.timestamp > baselineTimestamp
+        )
+        
+        // Re-aggregate in chronological order from the most recent snapshot
+        const newMaterializedView = applyEventsWithAggregator(baselineSnapshot, sortedUpdateEvents)
+    
         // Include baseline snapshot + all sorted events (updates and any intermediate snapshots)
-        const newRecentEvents = snapshotEvents.length > 0
-            ? [snapshotEvents[snapshotEvents.length - 1], ...sortedEvents]
+        // Exclude the baseline snapshot from sortedEvents to avoid duplication
+        const baselineSnapshotEvent = snapshotEvents.length > 0 ? snapshotEvents[snapshotEvents.length - 1] : null
+        const sortedEventsWithoutBaseline = baselineSnapshotEvent
+            ? sortedEvents.filter(e => !(isSnapshot(e.event) && e.timestamp === baselineTimestamp))
             : sortedEvents
-        
+        const newRecentEvents = baselineSnapshotEvent
+            ? [baselineSnapshotEvent, ...sortedEventsWithoutBaseline]
+            : sortedEvents
+    
         // Mutate state directly (Immer will handle immutability)
         state.subscribedStreams[streamKey] = {
             materializedView: newMaterializedView,
