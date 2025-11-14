@@ -81,11 +81,11 @@
   - [x] Remove player slice from SSM iteration - removed from `useSSM.ts`
   - [x] Onboarding actions and selectors remain as standalone functions in `index.ts` and `index.api.ts` (not part of an SSM, can be moved to separate module later if needed)
 
-- [ ] **Post-deprecation verification**: After removing the `player` slice, verify that the backend no longer sends legacy `Player` messages:
-  - [ ] Check `lambda/subscriptions` for any code that still sends `Player` message type
-  - [ ] Check `lambda/assets` for any code that still sends `Player` message type
-  - [ ] Verify that all player data now flows exclusively through `mtw.assets.players` data source stream
-  - [ ] Remove any remaining backend code that generates legacy `Player` messages
+- [x] **Post-deprecation verification**: After removing the `player` slice, verify that the backend no longer sends legacy `Player` messages:
+  - [x] Check `lambda/subscriptions` for any code that still sends `Player` message type - ✅ Verified: No legacy Player messages found
+  - [x] Check `lambda/assets` for any code that still sends `Player` message type - ✅ Verified and removed: All legacy Player/PlayerInfo message code removed
+  - [x] Verify that all player data now flows exclusively through `mtw.assets.players` data source stream - ✅ Verified: Client uses playerDataSource subscription
+  - [x] Remove any remaining backend code that generates legacy `Player` messages - ✅ Complete: Removed `player/info.ts`, `PlayerInfo` message handling, `whoAmI` API endpoint, and all related code
 
 ---
 
@@ -93,6 +93,7 @@
 
 - Summarize final architecture decisions in `lambda/assets/AGENT.event.md` and link to any long-term documentation that replaced this plan.
 - Update client and interface documentation (e.g., `charcoal-client/AGENT.md`, `packages/mtw-interfaces/AGENT.md`) with the new player data source contract.
+- Update multi-draft planning document in `AGENT.drafts.planning.md` to account for all the relevant changes we've implemented.
 - Once all knowledge is migrated, remove `lambda/assets/players/AGENT.planning.md` and delete the temporary document entry in the parent planning docs.
 
 ---

@@ -1,4 +1,4 @@
-import { AssetClientPlayerMessage } from '@tonylb/mtw-interfaces/ts/asset';
+import { AssetClientPlayerAsset, AssetClientPlayerCharacter, AssetClientPlayerSettings } from '@tonylb/mtw-interfaces/ts/asset';
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction, ISSMRedirectNode } from '../stateSeekingMachine/baseClasses'
 
 export interface PlayerInternal {
@@ -6,7 +6,15 @@ export interface PlayerInternal {
     incrementalBackoff: number;
 }
 
-export type PlayerPublic = Omit<AssetClientPlayerMessage, 'messageType' | 'RequestId'>
+// PlayerPublic type - matches the shape of player data (formerly derived from AssetClientPlayerMessage)
+export type PlayerPublic = {
+    PlayerName: string;
+    CodeOfConductConsent: boolean;
+    Assets: AssetClientPlayerAsset[];
+    Characters: AssetClientPlayerCharacter[];
+    Settings: AssetClientPlayerSettings;
+    SessionId: string;
+}
 
 export type PlayerData = {
     internalData: PlayerInternal;

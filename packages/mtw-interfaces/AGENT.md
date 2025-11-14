@@ -26,10 +26,11 @@ Defines interfaces for asset library operations, file management, and player dat
 - **`AssetSubscribe/UnsubscribeAPIMessage`**: Real-time updates
 - **`AssetPlayerSettingsAPIMessage`**: Update player preferences
 - **`AssetLLMGenerateRequestAPIMessage`**: AI content generation
+- (Legacy `AssetWhoAmIAPIMessage` removed - player data now flows through `mtw.assets.players` data source)
 
 #### **Client Messages** (Server → Client)
-- **`AssetClientPlayerMessage`**: Player profile and character data
 - **`AssetClientLibraryMessage`**: Available assets and characters
+- (Legacy `AssetClientPlayerMessage` removed - player data now flows through `mtw.assets.players` data source)
 - **`AssetClientMetaDataMessage`**: Asset metadata and zone information
 - **`AssetClientFetchURL`**: Download URLs for assets
 - **`AssetClientUploadURL`**: Upload URLs with presigned access

@@ -102,9 +102,6 @@ The Assets Lambda receives events from multiple sources:
 - `mtw.coordination` events → Remove Asset
 - `mtw.subscriptions` events → Initialize Subscription (for all 4 data sources)
 
-**SNS Events**:
-- `PlayerInfo` events → Player context updates
-
 **WebSocket API Messages**:
 - Asset fetch requests
 - Metadata queries
@@ -142,11 +139,11 @@ The Assets Lambda uses an internal message bus to coordinate between subsystems:
 - `FetchAsset` - Asset retrieval requests
 - `FetchImports` - Import resolution requests
 - `UploadURL` - Upload link generation
-- `PlayerInfo` - Player context information
-- `PlayerSettings` - Player preference updates
+- `PlayerSettings` - Player preference updates (triggers `mtw.assets.players` data source updates)
 - `ReturnValue` - WebSocket response messages
 - `CollaborationStatus` - Editing collaboration status
 - `Error` - Error responses
+- (Legacy `PlayerInfo` messages removed - player data now flows through `mtw.assets.players` data source)
 
 **Implementation**: [`./messageBus/`](./messageBus/)
 

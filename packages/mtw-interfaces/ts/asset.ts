@@ -68,9 +68,7 @@ export type AssetUnsubscribeAPIMessage = {
     message: 'unsubscribe';
 }
 
-export type AssetWhoAmIAPIMessage = {
-    message: 'whoAmI';
-}
+// Legacy AssetWhoAmIAPIMessage removed - player data now flows through mtw.assets.players data source
 
 type AssetPlayerSettingsAddOnboarding = {
     action: 'addOnboarding';
@@ -106,7 +104,6 @@ export type AssetAPIMessage = { RequestId?: string; connectionId?: string } & (
     AssetCheckoutAPIMessage |
     AssetSubscribeAPIMessage |
     AssetUnsubscribeAPIMessage |
-    AssetWhoAmIAPIMessage |
     AssetPlayerSettingsAPIMessage |
     AssetLLMGenerateRequestAPIMessage |
     AssetCollaborationStatusAPIMessage
@@ -130,7 +127,7 @@ export const isAssetCheckinAPIMessage = (message: AssetAPIMessage): message is A
 export const isAssetCheckoutAPIMessage = (message: AssetAPIMessage): message is AssetCheckoutAPIMessage => (message.message === 'checkout')
 export const isAssetSubscribeAPIMessage = (message: AssetAPIMessage): message is AssetSubscribeAPIMessage => (message.message === 'subscribe')
 export const isAssetUnsubscribeAPIMessage = (message: AssetAPIMessage): message is AssetUnsubscribeAPIMessage => (message.message === 'unsubscribe')
-export const isAssetWhoAmIAPIMessage = (message: AssetAPIMessage): message is AssetWhoAmIAPIMessage => (message.message === 'whoAmI')
+// Legacy isAssetWhoAmIAPIMessage removed - player data now flows through mtw.assets.players data source
 export const isAssetPlayerSettingsAPIMessage = (message: AssetAPIMessage): message is AssetPlayerSettingsAPIMessage => (message.message === 'updatePlayerSettings')
 export const isAssetLLMGenerateAPIMessage = (message: AssetAPIMessage): message is AssetLLMGenerateRequestAPIMessage => (message.message === 'llmGenerate')
 export const isAssetCollaborationStatusAPIMessage = (message: AssetAPIMessage): message is AssetCollaborationStatusAPIMessage => (message.message === 'collaborationStatus')
@@ -156,16 +153,9 @@ export type AssetClientPlayerSettings = {
     guestId?: string;
 }
 
-export type AssetClientPlayerMessage = {
-    messageType: 'Player';
-    RequestId?: string;
-    PlayerName: string;
-    CodeOfConductConsent: boolean;
-    Assets: AssetClientPlayerAsset[];
-    Characters: AssetClientPlayerCharacter[];
-    Settings: AssetClientPlayerSettings;
-    SessionId: string;
-}
+// Legacy AssetClientPlayerMessage removed - player data now flows through mtw.assets.players data source
+// Supporting types (AssetClientPlayerAsset, AssetClientPlayerCharacter, AssetClientPlayerSettings) remain
+// as they are still used by other parts of the system
 
 export type AssetClientLibraryMessage = {
     messageType: 'Library';
@@ -232,7 +222,8 @@ export type AssetClientCollaborationStatus = {
     };
 }
 
-export type AssetClientMessage = AssetClientPlayerMessage |
+// Legacy AssetClientPlayerMessage removed - player data now flows through mtw.assets.players data source
+export type AssetClientMessage =
     AssetClientLibraryMessage |
     AssetClientMetaDataMessage |
     AssetClientFetchURL |
@@ -256,46 +247,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                 typeof message.AssetId === 'string' && isEphemeraAssetId(message.AssetId),
                 ['Canon', 'Library', 'Personal', 'None'].includes(message.zone)
             )
-        case 'Player':
-            return checkAll(
-                checkTypes(message, {
-                    PlayerName: 'string'
-                },
-                {
-                    RequestId: 'string'
-                }),
-                checkTypes(message.Settings, {}, { guestId: 'string', guestName: 'string' }),
-                ...message.Assets.map((assetItem: any) => (
-                    checkTypes(
-                        assetItem,
-                        {
-                            AssetId: 'string'
-                        },
-                        {
-                            Story: 'boolean',
-                            instance: 'boolean'
-                        }
-                    )
-                )),
-                ...message.Characters.map((characterItem: any) => (
-                    checkAll(
-                        checkTypes(
-                            characterItem,
-                            {
-                                CharacterId: 'string',
-                                Name: 'string',
-                            },
-                            {
-                                scopedId: 'string',
-                                fileName: 'string',
-                                fileURL: 'string',
-                                Pronouns: 'string',
-                            }
-                        )
-                    ) && isEphemeraCharacterId(characterItem.CharacterId)
-                )),
-                ...message.Settings.onboardCompleteTags.map((item: any) => (typeof item === 'string'))
-            )
+        // Legacy 'Player' case removed - player data now flows through mtw.assets.players data source
         case 'Library':
             return checkAll(
                 checkTypes(
