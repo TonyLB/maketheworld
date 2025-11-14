@@ -43,12 +43,7 @@ export type UploadURLMessage = {
     images: UploadURLMessageImage[];
 }
 
-export type PlayerInfoMessage = {
-    type: 'PlayerInfo';
-    player?: string;
-    sessionId?: string;
-    RequestId?: string;
-}
+// Legacy PlayerInfoMessage removed - player data now flows through mtw.assets.players data source
 
 export type PlayerSettingsMessage = {
     type: 'PlayerSettings';
@@ -71,7 +66,6 @@ export type MessageType = ReturnValueMessage |
     FetchImportsMessage |
     FetchAssetMessage |
     UploadURLMessage |
-    PlayerInfoMessage |
     PlayerSettingsMessage |
     CollaborationStatusMessage
 
@@ -81,7 +75,7 @@ export const isStreamingEventMessage = (prop: MessageType): prop is StreamingEve
 export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMessage => (prop.type === 'FetchAsset')
 export const isFetchImportsAPIMessage = (prop: MessageType): prop is FetchImportsMessage => (prop.type === 'FetchImports')
 export const isUploadURLMessage = (prop: MessageType): prop is UploadURLMessage => (prop.type === 'UploadURL')
-export const isPlayerInfoMessage = (prop: MessageType): prop is PlayerInfoMessage => (prop.type === 'PlayerInfo')
+// Legacy isPlayerInfoMessage removed - player data now flows through mtw.assets.players data source
 export const isPlayerSettingMessage = (prop: MessageType): prop is PlayerSettingsMessage => (prop.type === 'PlayerSettings')
 export const isCollaborationStatusMessage = (prop: MessageType): prop is CollaborationStatusMessage => (prop.type === 'CollaborationStatus')
 

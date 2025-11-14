@@ -48,27 +48,8 @@ export const playerSettingMessage = async ({ payloads, messageBus }: { payloads:
                 internalCache.PlayerSettings.set(player, Settings)
             }
         }))
-        const requestsByPlayerId = payloads.reduce<Record<string, string[]>>((previous, { player, RequestId }) => ({
-            ...previous,
-            [player || basePlayer]: unique(previous[player || basePlayer] || [], RequestId ? [RequestId] : []) as string[]
-        }), {})
-        Object.entries(requestsByPlayerId).forEach(([player, requestList]) => {
-            if (requestList.length) {
-                requestList.forEach((RequestId) => {
-                    messageBus.send({
-                        type: 'PlayerInfo',
-                        player,
-                        RequestId
-                    })
-                })
-            }
-            else {
-                messageBus.send({
-                    type: 'PlayerInfo',
-                    player
-                })
-            }
-        })
+        // Legacy PlayerInfo message sending removed - player data now flows through mtw.assets.players data source
+        // The data source subscribes to PlayerSettings messages and emits Player Settings Updated events
     }
 }
 

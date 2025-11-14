@@ -2,7 +2,6 @@ import {
     MessageBus,
     isFetchAssetAPIMessage,
     isUploadURLMessage,
-    isPlayerInfoMessage,
     isFetchImportsAPIMessage,
     isPlayerSettingMessage,
     isReturnValueMessage,
@@ -10,7 +9,6 @@ import {
 } from "./baseClasses"
 import fetchAssetMessage from "../fetch"
 import { uploadURLMessage } from "../upload"
-import playerInfoMessage from "../player/info"
 import { fetchImportsMessage } from "../fetchImportDefaults"
 import playerSettingMessage from "../player/update"
 import returnValueMessage from "../returnValue"
@@ -36,12 +34,7 @@ messageBus.subscribe({
     filter: isUploadURLMessage,
     callback: uploadURLMessage
 })
-messageBus.subscribe({
-    tag: 'PlayerInfo',
-    priority: 6,
-    filter: isPlayerInfoMessage,
-    callback: playerInfoMessage
-})
+// Legacy PlayerInfo subscription removed - player data now flows through mtw.assets.players data source
 messageBus.subscribe({
     tag: 'PlayerSettings',
     priority: 5,

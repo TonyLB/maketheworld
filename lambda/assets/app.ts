@@ -7,9 +7,6 @@ import {
     AssetAPIMessage,
     isFetchAssetAPIMessage,
     isUploadAssetLinkAPIMessage,
-    isAssetCheckinAPIMessage,
-    isAssetCheckoutAPIMessage,
-    isAssetWhoAmIAPIMessage,
     isFetchImportsAPIMessage,
     isMetaDataAPIMessage,
     isAssetPlayerSettingsAPIMessage,
@@ -24,11 +21,9 @@ import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
-import { isEphemeraAssetId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { extractReturnValue } from './returnValue'
 import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
-import { StreamingEventMessage } from "./messageBus/baseClasses"
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.assets DataSource
@@ -188,33 +183,7 @@ export const handler = async (event, context) => {
         return
     }
 
-    // Handle SNS messages
-    if (Array.isArray(event?.Records)) {
-        await Promise.all(event.Records
-            .filter(({ Sns }) => (Sns))
-            .map(async ({ Sns }) => {
-                const message = JSON.parse(Sns.Message)
-                if (Sns.MessageAttributes.Type?.Type !== 'String') {
-                    throw new Error(`Incoming message format failure (${JSON.stringify(Sns.MessageAttributes, null, 4)})`)
-                }
-                switch(Sns.MessageAttributes.Type.Value) {
-                    case 'PlayerInfo':
-                        if (typeof message?.player !== 'string') {
-                            throw new Error(`Incoming message format failure (${JSON.stringify(Sns.MessageAttributes, null, 4)})`)
-                        }
-                        messageBus.send({
-                            type: 'PlayerInfo',
-                            player: message.player
-                        })
-                        break
-                }
-            })
-        )
-        await messageBus.flush()
-        return
-    }
-    
-    if (!request || !['fetch', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'whoAmI', 'updatePlayerSettings', 'llmGenerate', 'collaborationStatus'].includes(request.message)) {
+    if (!request || !['fetch', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'updatePlayerSettings', 'llmGenerate', 'collaborationStatus'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {
@@ -272,18 +241,8 @@ export const handler = async (event, context) => {
                 images: request.images
             })
         }
-        if (isAssetWhoAmIAPIMessage(request)) {
-            const player = await internalCache.Connection.get('player')
-            const sessionId = await internalCache.Connection.get('sessionId')
-            if (player) {
-                messageBus.send({
-                    type: 'PlayerInfo',
-                    player,
-                    sessionId,
-                    RequestId: request.RequestId
-                })
-            }
-        }
+        // Legacy whoAmI API endpoint removed - player data now flows through mtw.assets.players data source
+        // Clients subscribe to the data source stream instead of calling this API
         if (isAssetPlayerSettingsAPIMessage(request)) {
             const player = await internalCache.Connection.get('player')
             if (player) {

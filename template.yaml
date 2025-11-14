@@ -1420,14 +1420,6 @@ Resources:
                     - Content Removed
                     - Zone Changed
                     - Asset Purged
-            MTWFeedbackSNS:
-              Type: SNS
-              Properties:
-                Topic: !Ref MTWFeedbackTopic
-                FilterPolicy:
-                    Type:
-                        - PlayerInfo
-                FilterPolicyScope: MessageAttributes
   DeliverMessageSyncFunction:
       Type: AWS::Serverless::Function
       # Metadata:
