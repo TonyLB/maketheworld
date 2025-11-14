@@ -7,14 +7,9 @@ import {
     syncAction,
     unsubscribeAction
 } from './index.api'
-import {
-    getMyCharacterById as getMyCharacterByIdSelector,
-    getMyCharacterByKey as getMyCharacterByKeySelector,
-} from './selectors'
 import { receivePlayer } from './receivePlayer'
-import { addAsset as addAssetReducer } from './reducers'
 import { PromiseCache } from '../promiseCache'
-import { createSelector } from '@reduxjs/toolkit'
+import { createSelector, Selector } from '@reduxjs/toolkit'
 import { OnboardingKey, OnboardingSubItem, onboardingChapters } from '../../components/Onboarding/checkpoints'
 import { playerDataSourceSelectors } from './playerDataSource'
 import { getPlayerName, getSessionId } from '../settings'
@@ -52,8 +47,7 @@ export const {
     },
     sliceSelector: ({ player }) => (player),
     publicReducers: {
-        receivePlayer,
-        addAsset: addAssetReducer
+        receivePlayer
     },
     publicSelectors: {},
     template: {
@@ -119,7 +113,7 @@ export const {
     }
 })
 
-export const { addAsset, onEnter } = publicActions
+export const { onEnter } = publicActions
 export const {
     getStatus
 } = selectors
@@ -232,7 +226,36 @@ export const getNextOnboarding = createSelector(
     (entry): OnboardingKey | undefined => (entry?.key)
 )
 
-export const getMyCharacterById = getMyCharacterByIdSelector
-export const getMyCharacterByKey = getMyCharacterByKeySelector
+const guestCharacter = (guestId: string, guestName: string): PlayerPublic['Characters'][number] => ({
+    CharacterId: `CHARACTER#${guestId}`,
+    Name: guestName,
+    Pronouns: 'they/them'
+})
+
+export const getMyCharacterByKey = (key: string | undefined): Selector<any> => (state) => {
+    if (key === 'Guest') {
+        const settings = getMySettings(state)
+        const { guestId, guestName } = settings
+        if (!(guestId && guestName)) {
+            throw new Error('Guest character requested but no guestId found in settings')
+        }
+        return guestCharacter(guestId, guestName)
+    }
+    const Characters = getMyCharacters(state)
+    return Characters.find(({ scopedId }) => (scopedId === key))
+}
+
+export const getMyCharacterById = (key: string | undefined): Selector<any> => (state) => {
+    const settings = getMySettings(state)
+    const { guestId, guestName } = settings
+    if (key === `CHARACTER#${guestId}`) {
+        if (!(guestId && guestName)) {
+            throw new Error('Guest character requested but no guestId found in settings')
+        }
+        return guestCharacter(guestId, guestName)
+    }
+    const Characters = getMyCharacters(state)
+    return Characters.find(({ CharacterId }) => (CharacterId === key))
+}
 
 export default playerSlice.reducer

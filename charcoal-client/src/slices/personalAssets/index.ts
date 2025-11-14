@@ -24,7 +24,7 @@ import {
     UpdateStandardPayload
 } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { addAsset, getPlayer } from '../player'
+import { getPlayer } from '../player'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
@@ -224,7 +224,6 @@ export const {
 } = selectors
 
 export const newAsset = (assetId: EphemeraAssetId | EphemeraCharacterId) => (dispatch: any) => {
-    dispatch(addAsset(assetId))
     dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
 }
 

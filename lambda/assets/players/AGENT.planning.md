@@ -73,7 +73,7 @@
   - [x] Remove all `'self'` magic-word references from client player data-source
 
 - [ ] Deprecate `player` slice (most functionality now in `playerDataSource`):
-  - [ ] Remove or deprecate `addAsset` reducer - assets now come from `playerDataSource`, this is effectively a no-op
+  - [x] Remove or deprecate `addAsset` reducer - assets now come from `playerDataSource`, this is effectively a no-op
   - [ ] Remove or deprecate `receivePlayer` reducer - only used for legacy `Player` messages during migration
   - [ ] Simplify state machine: remove `SYNCHRONIZE` state (since `syncAction` is now a no-op), transition directly `INITIAL -> SUBSCRIBE -> CONNECTED -> UNSUBSCRIBE`
   - [ ] Minimize `publicData` initialization - remove unused `Assets`, `Characters`, etc. (selectors now read from `playerDataSource`)

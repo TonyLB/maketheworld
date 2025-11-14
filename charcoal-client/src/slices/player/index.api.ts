@@ -12,6 +12,7 @@ import {
     unsubscribeFromPlayerDataSource
 } from './playerDataSource'
 import { getPlayerName } from '../settings'
+import { getMyAssets, getMySettings } from '.'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
     const status = getStatus(getState())
@@ -28,7 +29,7 @@ export const playerNameCondition: PlayerCondition = (_, getState) => {
 const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { messageType: 'Player' }) => (dispatch: any, getState: any) => {
     const { PlayerName, CodeOfConductConsent, Characters, Assets, Settings } = payload
     const state = getState()
-    const currentAssets = getMyAssets(state?.player?.publicData)
+    const currentAssets = getMyAssets(state)
     const assetsToPreserve = currentAssets
         .map(({ AssetId }) => (AssetId))
         .filter((checkId) => (
@@ -124,8 +125,7 @@ type AddOnboardingCheckpointOptions = {
 
 export const addOnboardingComplete = (tags: OnboardingKey[], options?: AddOnboardingCheckpointOptions) => async (dispatch: any, getState: any) => {
     const { requireSequence = false, condition = true } = options || {}
-    const publicData = getState()?.player?.publicData
-    const { onboardCompleteTags } = getMySettings(publicData)
+    const { onboardCompleteTags } = getMySettings(getState())
     //
     // A local duplication of the functionality abstracted in getNextOnboarding ... should
     // really figure out how to not repeat, but Redux and SSM makes that complicated
