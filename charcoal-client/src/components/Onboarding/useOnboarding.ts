@@ -1,19 +1,24 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { getActiveOnboardingChapter, getMySettings, getOnboardingPage, getStatus, getNextOnboarding } from '../../slices/player'
+import { getActiveOnboardingChapter, getMySettings, getOnboardingPage, getNextOnboarding } from '../../slices/player'
+import { playerDataSourceSelectors } from '../../slices/player/playerDataSource'
 import { OnboardingKey } from './checkpoints'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 
 export const useOnboardingChapterActive = () => {
-    const playerState = useSelector(getStatus)
+    const playerDataSourceStatus = useSelector(playerDataSourceSelectors.getStatus)
     const chapterActive = useSelector(getActiveOnboardingChapter)
-    return playerState === 'CONNECTED' ? chapterActive : { index: undefined, currentChapter: undefined }
+    // Player data is available when playerDataSource is READY or SUBSCRIBED
+    const isPlayerDataAvailable = playerDataSourceStatus === 'READY' || playerDataSourceStatus === 'SUBSCRIBED'
+    return isPlayerDataAvailable ? chapterActive : { index: undefined, currentChapter: undefined }
 }
 
 export const useOnboardingPage = () => {
-    const playerState = useSelector(getStatus)
+    const playerDataSourceStatus = useSelector(playerDataSourceSelectors.getStatus)
     const page = useSelector(getOnboardingPage)
-    const currentPage = useMemo(() => (playerState === 'CONNECTED' ? page : undefined), [page, playerState])
+    // Player data is available when playerDataSource is READY or SUBSCRIBED
+    const isPlayerDataAvailable = playerDataSourceStatus === 'READY' || playerDataSourceStatus === 'SUBSCRIBED'
+    const currentPage = useMemo(() => (isPlayerDataAvailable ? page : undefined), [page, isPlayerDataAvailable])
     return currentPage
 }
 

@@ -82,6 +82,12 @@
   - [ ] Remove legacy `Player` message handling once migration is complete (currently in `subscribeAction` for backward compatibility)
   - [ ] Consider removing `player` slice entirely once onboarding is moved and legacy message handling is removed
 
+- [ ] **Post-deprecation verification**: After removing the `player` slice, verify that the backend no longer sends legacy `Player` messages:
+  - [ ] Check `lambda/subscriptions` for any code that still sends `Player` message type
+  - [ ] Check `lambda/assets` for any code that still sends `Player` message type
+  - [ ] Verify that all player data now flows exclusively through `mtw.assets.players` data source stream
+  - [ ] Remove any remaining backend code that generates legacy `Player` messages
+
 ---
 
 ## Cleanup
