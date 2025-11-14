@@ -101,25 +101,11 @@ export const processRawSnapshot = <
 ) => {
         const { streamKey, timestamp, rawSnapshot } = action.payload
         
-        // Check if stream is subscribed, or if this is a 'self' -> actual player name mapping
-        // (backend rewrites 'self' to actual player name for mtw.assets.players subscriptions)
-        let stream = state.subscribedStreams[streamKey]
+        // Check if stream is subscribed
+        const stream = state.subscribedStreams[streamKey]
         if (!stream) {
-            // Check if we subscribed to 'self' but received event with actual player name
-            // This happens when subscriptions lambda rewrites 'self' to the player name
-            if (state.subscribedStreams['self'] && dataSourceKey === 'mtw.assets.players') {
-                // Use the 'self' stream entry but update the activeStreamKeys to include the actual key
-                stream = state.subscribedStreams['self']
-                // Add the actual stream key to activeStreamKeys if not already there
-                if (!state.activeStreamKeys.includes(streamKey)) {
-                    state.activeStreamKeys.push(streamKey)
-                }
-                // Create a new entry for the actual stream key pointing to the same data
-                state.subscribedStreams[streamKey] = { ...stream }
-            } else {
-                // Stream not subscribed, ignore
-                return
-            }
+            // Stream not subscribed, ignore
+            return
         }
         
         // Deserialize snapshot (if no deserializer, assume internal/external formats match)
@@ -179,25 +165,11 @@ export const processRawEvent = <
 ) => {
         const { streamKey, timestamp, rawEvent } = action.payload
         
-        // Check if stream is subscribed, or if this is a 'self' -> actual player name mapping
-        // (backend rewrites 'self' to actual player name for mtw.assets.players subscriptions)
-        let stream = state.subscribedStreams[streamKey]
+        // Check if stream is subscribed
+        const stream = state.subscribedStreams[streamKey]
         if (!stream) {
-            // Check if we subscribed to 'self' but received event with actual player name
-            // This happens when subscriptions lambda rewrites 'self' to the player name
-            if (state.subscribedStreams['self'] && dataSourceKey === 'mtw.assets.players') {
-                // Use the 'self' stream entry but update the activeStreamKeys to include the actual key
-                stream = state.subscribedStreams['self']
-                // Add the actual stream key to activeStreamKeys if not already there
-                if (!state.activeStreamKeys.includes(streamKey)) {
-                    state.activeStreamKeys.push(streamKey)
-                }
-                // Create a new entry for the actual stream key pointing to the same data
-                state.subscribedStreams[streamKey] = { ...stream }
-            } else {
-                // Stream not subscribed, ignore
-                return
-            }
+            // Stream not subscribed, ignore
+            return
         }
         
         // Deserialize event

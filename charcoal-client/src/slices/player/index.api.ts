@@ -10,17 +10,21 @@ import { getMyAssets, getMySettings } from './selectors'
 import { getSerialized } from '../personalAssets'
 import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
 import { PlayerSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
-import { CoordinationClientSessionInitializedMessage, isCoordinationClientMessage } from '@tonylb/mtw-interfaces/ts/coordination'
 import { 
-    subscribeToPlayerDataSource,
     unsubscribeFromPlayerDataSource
 } from './playerDataSource'
-import { updateConnection, getPlayerName } from '../settings'
+import { getPlayerName } from '../settings'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
     const status = getStatus(getState())
-
     return (status === 'CONNECTED')
+}
+
+// Hold condition: Wait for PlayerName to be populated from SessionInitialized message
+// This ensures we can subscribe to playerDataSource with the actual player name
+export const playerNameCondition: PlayerCondition = (_, getState) => {
+    const playerName = getPlayerName(getState())
+    return playerName !== ''
 }
 
 const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { messageType: 'Player' }) => (dispatch: any, getState: any) => {
@@ -51,28 +55,11 @@ const EMPTY_PLAYER: PlayerPublic = {
 }
 
 export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch, getState) => {
-    // Get the actual PlayerName from settings (populated by SessionInitialized message)
-    // The playerDataSource SSM holds until PlayerName is available, so it should be here by now
-    const playerName = getPlayerName(getState())
-    const streamKey = playerName || 'self'  // Fallback to 'self' if not available (shouldn't happen due to hold condition)
+    // Note: playerDataSource now auto-subscribes via onReady callback when it reaches READY state
+    // SessionInitialized is now handled in the lifeLine slice (set up early, before player slice subscribes)
     
-    // Subscribe to the player data source using the actual player name
-    // This will automatically handle out-of-order events, caching, and re-aggregation
-    await dispatch(subscribeToPlayerDataSource([streamKey]))
-
-    // Subscribe to LifeLinePubSub for coordination messages (SessionId and PlayerName)
+    // Subscribe to LifeLinePubSub for legacy Player message handling (for backward compatibility during migration)
     const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
-        // Handle SessionInitialized coordination message - store SessionId and PlayerName in settings
-        if (isCoordinationClientMessage(payload) && payload.messageType === 'SessionInitialized') {
-            const sessionInitialized = payload as CoordinationClientSessionInitializedMessage
-            // Update connection info in settings slice
-            dispatch(updateConnection({
-                sessionId: sessionInitialized.SessionId,
-                playerName: sessionInitialized.PlayerName
-            }))
-            return
-        }
-
         // Legacy Player message handling (for backward compatibility during migration)
         if (payload.messageType === 'Player') {
             dispatch(mergePlayerInfo(receivePlayer, payload))
@@ -102,9 +89,10 @@ export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }
     
     // Get the actual PlayerName from settings to unsubscribe from the correct stream
     const playerName = getPlayerName(getState())
-    const streamKey = playerName || 'self'  // Fallback to 'self' if not available
-    // Unsubscribe from the player data source
-    await dispatch(unsubscribeFromPlayerDataSource([streamKey]))
+    if (playerName) {
+        // Unsubscribe from the player data source
+        await dispatch(unsubscribeFromPlayerDataSource([playerName]))
+    }
     
     return {
         publicData: {

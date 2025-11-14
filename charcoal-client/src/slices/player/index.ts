@@ -1,7 +1,8 @@
-import { PlayerData, PlayerNodes } from './baseClasses'
+import { PlayerData, PlayerNodes, PlayerPublic } from './baseClasses'
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import {
     lifelineCondition,
+    playerNameCondition,
     subscribeAction,
     syncAction,
     unsubscribeAction
@@ -25,12 +26,23 @@ import { OnboardingKey, OnboardingSubItem, onboardingChapters } from '../../comp
 
 const playerPromiseCache = new PromiseCache<PlayerData>()
 
+// Type for publicSelectors that singleSSM expects (selectors that take publicData)
+// Our actual selectors read from RootState, so we wrap them in publicSelectors
+type PlayerPublicSelectors = {
+    getPlayer: (state: PlayerPublic) => PlayerPublic;
+    getMyCharacters: (state: PlayerPublic) => PlayerPublic['Characters'];
+    getMyAssets: (state: PlayerPublic) => PlayerPublic['Assets'];
+    getMyDraftAssets: (state: PlayerPublic) => PlayerPublic['Assets'];
+    getMyPersonalAssets: (state: PlayerPublic) => PlayerPublic['Assets'];
+    getMySettings: (state: PlayerPublic) => PlayerPublic['Settings'];
+}
+
 export const {
     slice: playerSlice,
     selectors,
     publicActions,
     iterateAllSSMs
-} = singleSSM<PlayerNodes, PlayerSelectors>({
+} = singleSSM<PlayerNodes, PlayerPublicSelectors>({
     name: 'player',
     initialSSMState: 'INITIAL',
     initialSSMDesired: ['CONNECTED'],
@@ -80,7 +92,14 @@ export const {
             INITIAL: {
                 stateType: 'HOLD',
                 next: 'SUBSCRIBE',
-                condition: lifelineCondition
+                condition: (data: any, getState: any) => {
+                    // Always check LifeLine condition
+                    if (!lifelineCondition(data, getState)) {
+                        return false
+                    }
+                    // Also check PlayerName condition
+                    return playerNameCondition(data, getState)
+                }
             },
             SUBSCRIBE: {
                 stateType: 'ATTEMPT',

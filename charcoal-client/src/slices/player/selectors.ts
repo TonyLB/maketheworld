@@ -14,17 +14,14 @@ const getPlayerSnapshot = (state: RootState): PlayerSnapshot | null => {
     try {
         // getSubscribedStreams is wrapped to use sliceSelector, so it expects root state
         const subscribedStreams = playerDataSourceSelectors.getSubscribedStreams(state)
-        // Check for 'self' first (what we subscribed to), then check activeStreamKeys
-        // Backend rewrites 'self' to actual player name, so events may come with actual name
-        let stream = subscribedStreams?.['self']
-        if (!stream) {
-            // Check if there's a stream with the actual player name
-            const activeStreamKeys = playerDataSourceSelectors.getActiveStreamKeys(state)
-            const actualStreamKey = activeStreamKeys.find(key => key !== 'self')
-            if (actualStreamKey) {
-                stream = subscribedStreams?.[actualStreamKey]
-            }
+        // Get the actual player name from settings (what we subscribed with)
+        const playerName = getPlayerNameFromSettings(state)
+        if (!playerName) {
+            return null
         }
+        
+        // Look up the stream using the actual player name
+        const stream = subscribedStreams?.[playerName]
         return stream?.materializedView || null
     } catch (error) {
         // If the slice isn't fully initialized yet, return null
@@ -39,7 +36,7 @@ const getSessionId = (state: RootState): string => {
 
 // Helper to get PlayerName from settings slice (handled via coordination messages)
 const getPlayerName = (state: RootState): string => {
-    return getPlayerNameFromSettings(state) || 'self'
+    return getPlayerNameFromSettings(state) || ''
 }
 
 export const getPlayer = (state: RootState): PlayerPublic => {

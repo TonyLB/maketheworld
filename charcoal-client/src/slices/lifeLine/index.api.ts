@@ -26,9 +26,10 @@ import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/b
 import { isCoordinationClientMessage } from '@tonylb/mtw-interfaces/ts/coordination'
 import { getConfiguration, receiveRefreshToken } from '../configuration'
 import { push } from '../UI/feedback'
-import { getSessionId } from '../settings'
+import { getSessionId, updateConnection } from '../settings'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { anonymousAPIPromise, isAnonymousAPIResultAccessTokenFailure, isAnonymousAPIResultAccessTokenSuccess } from '../../anonymousAPI'
+import { CoordinationClientSessionInitializedMessage } from '@tonylb/mtw-interfaces/ts/coordination'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -39,11 +40,14 @@ export const refreshTokenCondition: LifeLineCondition = ({}, getState) => {
     return Boolean(RefreshToken)
 }
 
-export const unsubscribeMessages: LifeLineAction = ({ internalData: { messageSubscription } }) => async () => {
+export const unsubscribeMessages: LifeLineAction = ({ internalData: { messageSubscription, coordinationSubscription } }) => async () => {
     if (messageSubscription) {
         LifeLinePubSub.unsubscribe(messageSubscription)
     }
-    return { internalData: { messageSubscription: null }}
+    if (coordinationSubscription) {
+        LifeLinePubSub.unsubscribe(coordinationSubscription)
+    }
+    return { internalData: { messageSubscription: null, coordinationSubscription: null }}
 }
 
 export const disconnectWebSocket: LifeLineAction = ({ internalData: { pingInterval, refreshTimeout }, publicData: { webSocket } }) => async (dispatch: any, getState: any) => {
@@ -82,9 +86,31 @@ const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubS
     }
 }
 
+// Handle SessionInitialized coordination message - store SessionId and PlayerName in settings
+// This needs to be set up early, before the player slice subscribes, so we handle it in lifeLine
+const receiveCoordinationMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData}) => {
+    if (isCoordinationClientMessage(payload) && payload.messageType === 'SessionInitialized') {
+        const sessionInitialized = payload as CoordinationClientSessionInitializedMessage
+        // Update connection info in settings slice
+        dispatch(updateConnection({
+            sessionId: sessionInitialized.SessionId,
+            playerName: sessionInitialized.PlayerName
+        }))
+        // Trigger heartbeat so SSMs (like playerDataSource) can re-evaluate hold conditions
+        dispatch(heartbeat)
+    }
+}
+
 export const subscribeMessages: LifeLineAction = () => async (dispatch) => {
     const messageSubscription = LifeLinePubSub.subscribe(receiveMessages(dispatch))
-    return { internalData: { messageSubscription }}
+    // Also subscribe to coordination messages (SessionInitialized) to update settings
+    const coordinationSubscription = LifeLinePubSub.subscribe(receiveCoordinationMessages(dispatch))
+    return { 
+        internalData: { 
+            messageSubscription,
+            coordinationSubscription
+        }
+    }
 }
 
 //
