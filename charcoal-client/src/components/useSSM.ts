@@ -3,7 +3,6 @@ import { useSelector, useDispatch } from 'react-redux'
 import { getHeartbeat as getSliceHeartbeat } from '../slices/stateSeekingMachine/ssmHeartbeat'
 import { iterateAllSSMs as activeCharacterSSMs } from '../slices/activeCharacters'
 import { iterateAllSSMs as ephemeraSSM } from '../slices/ephemera'
-import { iterateAllSSMs as playerSSM } from '../slices/player'
 import { iterateAllSSMs as lifeLineSSM } from '../slices/lifeLine'
 import { iterateAllSSMs as personalAssetsSSM } from '../slices/personalAssets'
 import { iterateAllSSMs as collaborationStatusSSM } from '../slices/UI/collaborationStatus'
@@ -17,7 +16,6 @@ export const useStateSeekingMachines = () => {
     useEffect(() => {
         dispatch(activeCharacterSSMs)
         dispatch(ephemeraSSM)
-        dispatch(playerSSM)
         dispatch(lifeLineSSM)
         dispatch(personalAssetsSSM)
         dispatch(collaborationStatusSSM)

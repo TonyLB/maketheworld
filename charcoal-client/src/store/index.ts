@@ -7,7 +7,6 @@ import settings from '../slices/settings'
 import messages from '../slices/messages'
 import activeCharacters from '../slices/activeCharacters'
 import ephemera from '../slices/ephemera'
-import player from '../slices/player'
 import lifeLine from '../slices/lifeLine'
 import ssmHeartbeat from '../slices/stateSeekingMachine/ssmHeartbeat'
 import personalAssets from '../slices/personalAssets'
@@ -23,7 +22,6 @@ export const store = configureStore({
         lifeLine,
         ephemera,
         messages,
-        player,
         personalAssets,
         settings,
         UI: uiReducer,

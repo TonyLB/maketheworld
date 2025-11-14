@@ -1,123 +1,9 @@
-import { PlayerData, PlayerNodes, PlayerPublic } from './baseClasses'
-import { singleSSM } from '../stateSeekingMachine/singleSSM'
-import {
-    lifelineCondition,
-    playerNameCondition,
-    subscribeAction,
-    syncAction,
-    unsubscribeAction
-} from './index.api'
-import { receivePlayer } from './receivePlayer'
-import { PromiseCache } from '../promiseCache'
+import { PlayerPublic } from './baseClasses'
 import { createSelector, Selector } from '@reduxjs/toolkit'
 import { OnboardingKey, OnboardingSubItem, onboardingChapters } from '../../components/Onboarding/checkpoints'
 import { playerDataSourceSelectors } from './playerDataSource'
 import { getPlayerName, getSessionId } from '../settings'
 import { PlayerSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
-
-const playerPromiseCache = new PromiseCache<PlayerData>()
-
-// Type for publicSelectors that singleSSM expects (selectors that take publicData)
-// Our actual selectors read from RootState, so we wrap them in publicSelectors
-type PlayerPublicSelectors = {
-}
-
-export const {
-    slice: playerSlice,
-    selectors,
-    publicActions,
-    iterateAllSSMs
-} = singleSSM<PlayerNodes, PlayerPublicSelectors>({
-    name: 'player',
-    initialSSMState: 'INITIAL',
-    initialSSMDesired: ['CONNECTED'],
-    promiseCache: playerPromiseCache,
-    initialData: {
-        internalData: {
-            incrementalBackoff: 0.5
-        },
-        publicData: {
-            PlayerName: '',
-            CodeOfConductConsent: false,
-            Assets: [],
-            Characters: [],
-            Settings: { onboardCompleteTags: [] },
-            SessionId: ''
-        }
-    },
-    sliceSelector: ({ player }) => (player),
-    publicReducers: {
-        receivePlayer
-    },
-    publicSelectors: {},
-    template: {
-        initialState: 'INITIAL',
-        initialData: {
-            internalData: {
-                incrementalBackoff: 0.5
-            },
-            publicData: {
-                PlayerName: '',
-                CodeOfConductConsent: false,
-                Assets: [],
-                Characters: [],
-                Settings: { onboardCompleteTags: [] },
-                SessionId: ''
-            }
-        },
-        states: {
-            INITIAL: {
-                stateType: 'HOLD',
-                next: 'SUBSCRIBE',
-                condition: (data: any, getState: any) => {
-                    // Always check LifeLine condition
-                    if (!lifelineCondition(data, getState)) {
-                        return false
-                    }
-                    // Also check PlayerName condition
-                    return playerNameCondition(data, getState)
-                }
-            },
-            SUBSCRIBE: {
-                stateType: 'ATTEMPT',
-                action: subscribeAction,
-                resolve: 'SYNCHRONIZE',
-                reject: 'ERROR'
-            },
-            SYNCHRONIZE: {
-                stateType: 'ATTEMPT',
-                action: syncAction,
-                resolve: 'CONNECTED',
-                reject: 'ERROR'
-            },
-            CONNECTED: {
-                stateType: 'CHOICE',
-                choices: ['UNSUBSCRIBE', 'SIGNOUT']
-            },
-            SIGNOUT: {
-                stateType: 'REDIRECT',
-                newIntent: ['CONNECTED'],
-                choices: ['UNSUBSCRIBE']
-            },
-            UNSUBSCRIBE: {
-                stateType: 'ATTEMPT',
-                action: unsubscribeAction,
-                resolve: 'INITIAL',
-                reject: 'ERROR'
-            },
-            ERROR: {
-                stateType: 'CHOICE',
-                choices: []
-            }
-        }
-    }
-})
-
-export const { onEnter } = publicActions
-export const {
-    getStatus
-} = selectors
-export const { setIntent } = playerSlice.actions
 
 // Helper to get the materialized view from playerDataSource
 const getPlayerSnapshot = (state: any): PlayerSnapshot | null => {
@@ -257,5 +143,3 @@ export const getMyCharacterById = (key: string | undefined): Selector<any> => (s
     const Characters = getMyCharacters(state)
     return Characters.find(({ CharacterId }) => (CharacterId === key))
 }
-
-export default playerSlice.reducer
