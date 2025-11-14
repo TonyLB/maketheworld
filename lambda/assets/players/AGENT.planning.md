@@ -40,10 +40,10 @@
 - Define EventBridge contracts and serializers for the forthcoming `mtw.assets.players` replayable data source in `@tonylb/mtw-interfaces`.
 - Implement a replayable player data source that subscribes to `mtw.assets` events, derives per-player updates, and exposes snapshots via the generic pattern.
 - Transition the client player slice to rely on the new data source (replacing the `whoAmI` life-line dependency) once backend streaming is ready.
-  - ✅ **Migration Complete**: Client now uses `createDataSourceSlice` pattern with proper out-of-order event handling. Selectors read directly from `playerDataSource` materialized view. Temporary workaround in place for stream key resolution (see "Fix stream key resolution" checklist item).
+  - ✅ **Migration Complete**: Client now uses `createDataSourceSlice` pattern with proper out-of-order event handling. Selectors read directly from `playerDataSource` materialized view. Stream key resolution is complete - `playerDataSource` auto-subscribes using actual `PlayerName` from `SessionInitialized` message.
 - Treat the player name as the per-stream identifier: the EventBridge `streamKey` for `mtw.assets.players` will be `PlayerName`. Payloads no longer need to echo the name.
 - Keep connection-scoped fields (e.g. `SessionId`) out of the data source payloads. The subscriptions lambda already knows the target session and can enrich outgoing websocket messages with the current session ID as a special case.
-- **Stream Key Resolution**: The subscriptions lambda currently rewrites a sentinel stream key (`self`) to the authenticated `PlayerName` when clients subscribe to `mtw.assets.players`. This creates a mismatch where the frontend subscribes to `'self'` but receives events with the actual player name as the streamKey. **Next step**: Extend the `SessionInitialized` coordination message to include `PlayerName`, have the `playerDataSource` SSM hold until `PlayerName` is received, then subscribe using the actual player name. This eliminates the need for reactive stream key mapping workarounds.
+- **Stream Key Resolution**: ✅ **Complete** - Extended `SessionInitialized` coordination message to include `PlayerName`, added hold condition to `playerDataSource` SSM, and implemented auto-subscribe via `onReady` callback. The `SessionInitialized` handler was moved to `lifeLine` slice to avoid timing issues. All `'self'` magic-word references have been removed from the client.
 - **Legacy API Messages**: `updatePlayerSettings` currently flows through the assets lambda as an ad-hoc messageBus type (`PlayerSettings`). We’ll subscribe to that legacy message for now so the new data source stays in sync, but note that the longer-term goal is to fold these direct API hooks into the unified data-source handler pattern (mirroring how other services route incoming API traffic through data sources).
 
 ---
@@ -63,13 +63,24 @@
   - ✅ Use `processRawSnapshot` and `processRawEvent` actions from the generic pattern
   - ✅ Update selectors to read directly from `playerDataSource` materialized view (single source of truth)
   - ✅ Ensure `SessionId` continues to be handled separately via `SessionInitialized` coordination messages
-  - ⚠️ **Temporary workaround**: Added reactive stream key mapping to handle `'self'` → actual player name mismatch (see next item)
-- [ ] Fix stream key resolution to eliminate reactive workaround:
-  - Extend `SessionInitialized` coordination message to include `PlayerName` (backend change in `lambda/subscriptions/app.ts` and `packages/mtw-interfaces/ts/coordination.ts`)
-  - Add hold condition to `playerDataSource` SSM to wait for `PlayerName` from `SessionInitialized` message
-  - Update `playerDataSource` subscription to use actual `PlayerName` instead of `'self'` once received
-  - Remove reactive stream key mapping workaround from `reducers.ts` (the `'self'` → actual name fallback logic)
-  - Update selector to use actual stream key directly (simplify `getPlayerSnapshot` helper)
+- [x] Fix stream key resolution to eliminate reactive workaround:
+  - [x] Extend `SessionInitialized` coordination message to include `PlayerName` (backend change in `lambda/subscriptions/app.ts` and `packages/mtw-interfaces/ts/coordination.ts`)
+  - [x] Add hold condition to `playerDataSource` SSM to wait for `PlayerName` from `SessionInitialized` message
+  - [x] Update `playerDataSource` subscription to use actual `PlayerName` instead of `'self'` once received (via `onReady` auto-subscribe)
+  - [x] Move `SessionInitialized` handler to `lifeLine` slice to avoid chicken-and-egg timing issues
+  - [x] Remove reactive stream key mapping workaround from `reducers.ts` (the `'self'` → actual name fallback logic)
+  - [x] Update selector to use actual stream key directly (simplify `getPlayerSnapshot` helper)
+  - [x] Remove all `'self'` magic-word references from client player data-source
+
+- [ ] Deprecate `player` slice (most functionality now in `playerDataSource`):
+  - [ ] Remove or deprecate `addAsset` reducer - assets now come from `playerDataSource`, this is effectively a no-op
+  - [ ] Remove or deprecate `receivePlayer` reducer - only used for legacy `Player` messages during migration
+  - [ ] Simplify state machine: remove `SYNCHRONIZE` state (since `syncAction` is now a no-op), transition directly `INITIAL -> SUBSCRIBE -> CONNECTED -> UNSUBSCRIBE`
+  - [ ] Minimize `publicData` initialization - remove unused `Assets`, `Characters`, etc. (selectors now read from `playerDataSource`)
+  - [ ] Move onboarding actions (`updateOnboardingComplete`, `addOnboardingComplete`, `removeOnboardingComplete`) to separate `onboarding` slice or keep in `player` temporarily
+  - [ ] Move onboarding selectors (`getActiveOnboardingChapter`, `getOnboardingPage`, `getNextOnboardingEntry`, `getNextOnboarding`) to separate `onboarding` slice or keep in `player` temporarily
+  - [ ] Remove legacy `Player` message handling once migration is complete (currently in `subscribeAction` for backward compatibility)
+  - [ ] Consider removing `player` slice entirely once onboarding is moved and legacy message handling is removed
 
 ---
 
