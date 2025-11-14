@@ -72,15 +72,20 @@
   - [x] Update selector to use actual stream key directly (simplify `getPlayerSnapshot` helper)
   - [x] Remove all `'self'` magic-word references from client player data-source
 
-- [ ] Deprecate `player` slice (most functionality now in `playerDataSource`):
-  - [ ] Remove or deprecate `addAsset` reducer - assets now come from `playerDataSource`, this is effectively a no-op
-  - [ ] Remove or deprecate `receivePlayer` reducer - only used for legacy `Player` messages during migration
-  - [ ] Simplify state machine: remove `SYNCHRONIZE` state (since `syncAction` is now a no-op), transition directly `INITIAL -> SUBSCRIBE -> CONNECTED -> UNSUBSCRIBE`
-  - [ ] Minimize `publicData` initialization - remove unused `Assets`, `Characters`, etc. (selectors now read from `playerDataSource`)
-  - [ ] Move onboarding actions (`updateOnboardingComplete`, `addOnboardingComplete`, `removeOnboardingComplete`) to separate `onboarding` slice or keep in `player` temporarily
-  - [ ] Move onboarding selectors (`getActiveOnboardingChapter`, `getOnboardingPage`, `getNextOnboardingEntry`, `getNextOnboarding`) to separate `onboarding` slice or keep in `player` temporarily
-  - [ ] Remove legacy `Player` message handling once migration is complete (currently in `subscribeAction` for backward compatibility)
-  - [ ] Consider removing `player` slice entirely once onboarding is moved and legacy message handling is removed
+- [x] Deprecate `player` slice (most functionality now in `playerDataSource`):
+  - [x] Remove or deprecate `addAsset` reducer - assets now come from `playerDataSource`, this is effectively a no-op
+  - [x] Remove or deprecate `receivePlayer` reducer - only used for legacy `Player` messages during migration (file deleted)
+  - [x] Remove entire player slice SSM - removed `singleSSM` call, state machine, and all SSM-related code
+  - [x] Remove legacy `Player` message handling - removed from `subscribeAction`, `mergePlayerInfo`, and all related code
+  - [x] Remove player slice from Redux store - removed reducer registration
+  - [x] Remove player slice from SSM iteration - removed from `useSSM.ts`
+  - [x] Onboarding actions and selectors remain as standalone functions in `index.ts` and `index.api.ts` (not part of an SSM, can be moved to separate module later if needed)
+
+- [ ] **Post-deprecation verification**: After removing the `player` slice, verify that the backend no longer sends legacy `Player` messages:
+  - [ ] Check `lambda/subscriptions` for any code that still sends `Player` message type
+  - [ ] Check `lambda/assets` for any code that still sends `Player` message type
+  - [ ] Verify that all player data now flows exclusively through `mtw.assets.players` data source stream
+  - [ ] Remove any remaining backend code that generates legacy `Player` messages
 
 ---
 

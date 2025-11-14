@@ -25,7 +25,7 @@ import AssetIcon from '@mui/icons-material/Landscape'
 import AddIcon from '@mui/icons-material/Add'
 
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
-import { getMyCharacters, getMyDraftAssets, getMyPersonalAssets, addAsset } from '../../slices/player'
+import { getMyCharacters, getMyDraftAssets, getMyPersonalAssets } from '../../slices/player'
 import { subscribeToLibrary, unsubscribeFromLibrary, getIsLibrarySubscribed, getLibraryAssetIds } from '../../slices/libraryDataSource'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { addItem } from '../../slices/personalAssets'
@@ -279,9 +279,6 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             
             // Subscribe to the new asset in personalAssets slice
             dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
-            
-            // Add asset to player slice tracking
-            dispatch(addAsset(assetId))
             
             // Navigate to edit mode for the newly created draft
             navigate(`/Library/Edit/Asset/${draftUuid}/`)

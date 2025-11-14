@@ -1,107 +1,9 @@
-import { PlayerCondition, PlayerAction, PlayerPublic } from './baseClasses'
-import {
-    socketDispatch,
-    socketDispatchPromise,
-    getStatus,
-    LifeLinePubSub
-} from '../lifeLine'
-import { LifeLinePubSubData } from '../lifeLine/lifeLine'
-import { getSerialized } from '../personalAssets'
+import { socketDispatchPromise } from '../lifeLine'
 import { OnboardingKey, onboardingChapters } from '../../components/Onboarding/checkpoints'
-import { 
-    unsubscribeFromPlayerDataSource
-} from './playerDataSource'
-import { getPlayerName } from '../settings'
+import { getMySettings } from '.'
 
-export const lifelineCondition: PlayerCondition = (_, getState) => {
-    const status = getStatus(getState())
-    return (status === 'CONNECTED')
-}
-
-// Hold condition: Wait for PlayerName to be populated from SessionInitialized message
-// This ensures we can subscribe to playerDataSource with the actual player name
-export const playerNameCondition: PlayerCondition = (_, getState) => {
-    const playerName = getPlayerName(getState())
-    return playerName !== ''
-}
-
-const mergePlayerInfo = (receivePlayer: any, payload: LifeLinePubSubData & { messageType: 'Player' }) => (dispatch: any, getState: any) => {
-    const { PlayerName, CodeOfConductConsent, Characters, Assets, Settings } = payload
-    const state = getState()
-    const currentAssets = getMyAssets(state?.player?.publicData)
-    const assetsToPreserve = currentAssets
-        .map(({ AssetId }) => (AssetId))
-        .filter((checkId) => (
-            Assets.find(({ AssetId }) => (AssetId === checkId)) ||
-            !Boolean(getSerialized(checkId)(state))
-        ))
-    const newAssets = [
-        ...currentAssets.filter(({ AssetId }) => (assetsToPreserve.includes(AssetId))),
-        ...Assets.filter(({ AssetId }) => (!assetsToPreserve.includes(AssetId)))
-    ]
-    // SessionId is now stored in settings slice, not passed to receivePlayer
-    dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Assets: newAssets, Characters, Settings, SessionId: '' }))
-}
-
-const EMPTY_PLAYER: PlayerPublic = {
-    PlayerName: '',
-    CodeOfConductConsent: false,
-    Assets: [],
-    Characters: [],
-    Settings: { onboardCompleteTags: [] },
-    SessionId: ''
-}
-
-export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch, getState) => {
-    // Note: playerDataSource now auto-subscribes via onReady callback when it reaches READY state
-    // SessionInitialized is now handled in the lifeLine slice (set up early, before player slice subscribes)
-    
-    // Subscribe to LifeLinePubSub for legacy Player message handling (for backward compatibility during migration)
-    const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
-        // Legacy Player message handling (for backward compatibility during migration)
-        if (payload.messageType === 'Player') {
-            dispatch(mergePlayerInfo(receivePlayer, payload))
-            return
-        }
-    })
-
-    return { 
-        internalData: { 
-            subscription: lifeLineSubscription
-        } 
-    }
-}
-
-export const syncAction: PlayerAction = () => async () => {
-    // No-op: Data is now read directly from playerDataSource via selectors
-    // This action is kept for state machine compatibility but doesn't need to sync data
-    return {}
-}
-
-// Removed legacy fetchDraftAsset (single-draft bootstrap). Multi-draft flow will drive subscriptions explicitly.
-
-export const unsubscribeAction: PlayerAction = ({ internalData: { subscription }}) => async (dispatch, getState) => {
-    if (subscription) {
-        subscription.unsubscribe?.()
-    }
-    
-    // Get the actual PlayerName from settings to unsubscribe from the correct stream
-    const playerName = getPlayerName(getState())
-    if (playerName) {
-        // Unsubscribe from the player data source
-        await dispatch(unsubscribeFromPlayerDataSource([playerName]))
-    }
-    
-    return {
-        publicData: {
-            Assets: [],
-            Characters: [],
-            PlayerName: '',
-            Settings: { onboardCompleteTags: [] },
-            SessionId: ''
-        }
-    }
-}
+// Legacy Player message handling removed - all player data now comes from playerDataSource
+// Backend cleanup of legacy Player messages is tracked in AGENT.planning.md
 
 export const updateOnboardingComplete = ({ addTags = [], removeTags = [] }: { addTags?: OnboardingKey[], removeTags?: OnboardingKey[] }) => async (dispatch: any) => {
     await dispatch(socketDispatchPromise({
@@ -124,8 +26,7 @@ type AddOnboardingCheckpointOptions = {
 
 export const addOnboardingComplete = (tags: OnboardingKey[], options?: AddOnboardingCheckpointOptions) => async (dispatch: any, getState: any) => {
     const { requireSequence = false, condition = true } = options || {}
-    const publicData = getState()?.player?.publicData
-    const { onboardCompleteTags } = getMySettings(publicData)
+    const { onboardCompleteTags } = getMySettings(getState())
     //
     // A local duplication of the functionality abstracted in getNextOnboarding ... should
     // really figure out how to not repeat, but Redux and SSM makes that complicated

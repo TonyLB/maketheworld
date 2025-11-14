@@ -16,7 +16,8 @@ import { getClientSettings } from '../../slices/settings'
 import { receiveRefreshToken } from '../../slices/configuration'
 import { setIntent as setLifeLineIntent } from '../../slices/lifeLine'
 import { setIntent as setEphemeraIntent } from '../../slices/ephemera'
-import { setIntent as setPlayerIntent } from '../../slices/player'
+import { unsubscribeFromPlayerDataSource } from '../../slices/player/playerDataSource'
+import { updateConnection, getPlayerName } from '../../slices/settings'
 import { clear as clearPersonalAssets } from '../../slices/personalAssets'
 import { clear as clearMessages } from '../../slices/messages'
 import { clear as clearPerceptionCache } from '../../slices/perceptionCache'
@@ -29,11 +30,18 @@ type SettingsProps = {
     onAlwaysShowOnboardingChange: (value: boolean) => void;
 }
 
-const signOut = (dispatch: any) => {
+const signOut = (dispatch: any, getState: any) => {
     dispatch(receiveRefreshToken(undefined))
     dispatch(setLifeLineIntent(['SIGNOUT']))
     dispatch(setEphemeraIntent(['SIGNOUT']))
-    dispatch(setPlayerIntent(['SIGNOUT']))
+    
+    // Unsubscribe from playerDataSource and clear connection info
+    const playerName = getPlayerName(getState())
+    if (playerName) {
+        dispatch(unsubscribeFromPlayerDataSource([playerName]))
+    }
+    dispatch(updateConnection({ sessionId: '', playerName: '' }))
+    
     dispatch(clearPersonalAssets())
     dispatch(clearMessages())
     dispatch(clearPerceptionCache())
