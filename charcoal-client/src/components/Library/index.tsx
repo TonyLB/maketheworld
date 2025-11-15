@@ -88,12 +88,6 @@ const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({
 }) => {
     return (
         <Grid container spacing={2}>
-            {/* Show placeholder only in Drafts tab */}
-            {isDraftsTab && onCreateDraft && (
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <CreateDraftPlaceholder onClick={onCreateDraft} />
-                </Grid>
-            )}
             {Assets.map((asset) => {
                 const assetUuid = asset.AssetId.replace('ASSET#', '')
                 return (
@@ -107,6 +101,12 @@ const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({
                     </Grid>
                 )
             })}
+            {/* Show placeholder only in Drafts tab, at the end of the list */}
+            {isDraftsTab && onCreateDraft && (
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <CreateDraftPlaceholder onClick={onCreateDraft} />
+                </Grid>
+            )}
         </Grid>
     )
 }
@@ -280,8 +280,9 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             // Subscribe to the new asset in personalAssets slice
             dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
             
-            // Navigate to edit mode for the newly created draft
-            navigate(`/Library/Edit/Asset/${draftUuid}/`)
+            // Note: We don't navigate automatically here. The draft will appear in the list
+            // once the mtw.assets.players data source completes its round-trip and populates
+            // the assets space. The user can then click on the draft card to navigate to edit mode.
         } catch (error) {
             console.error('Failed to create draft:', error)
             // TODO: Show error feedback to user
