@@ -51,7 +51,8 @@ interface PersonalAssetCardsProps {
     onCreateDraft?: () => void;
     onPurgeAsset?: (asset: AssetWithMetadata) => void;
     isDraftsTab: boolean;
-    draftAssetIdBeingAdded?: string;
+    draftAssetIdBeingAdded?: AssetUUID;
+    draftAssetIdsBeingDeleted?: Record<AssetUUID, NodeJS.Timeout>;
 }
 
 interface CreateDraftPlaceholderProps {
@@ -88,7 +89,7 @@ const CreateDraftPlaceholder: FunctionComponent<CreateDraftPlaceholderProps> = (
 }
 
 interface DraftInProgressCardProps {
-    assetId: string;
+    assetId: AssetUUID;
 }
 
 const DraftInProgressCard: FunctionComponent<DraftInProgressCardProps> = ({ assetId }) => {
@@ -119,12 +120,14 @@ const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({
     onCreateDraft,
     onPurgeAsset,
     isDraftsTab,
-    draftAssetIdBeingAdded
+    draftAssetIdBeingAdded,
+    draftAssetIdsBeingDeleted
 }) => {
     return (
         <Grid container spacing={2}>
             {Assets.map((asset) => {
-                const assetUuid = asset.AssetId.replace('ASSET#', '')
+                const normalizedAssetId = AssetKey(asset.AssetId)
+                const isDeleting = normalizedAssetId in (draftAssetIdsBeingDeleted ?? {})
                 return (
                     <Grid size={{ xs: 12, sm: 6, md: 4 }} key={asset.AssetId}>
                         <AssetCard
@@ -132,6 +135,7 @@ const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({
                             onClick={() => onAssetClick(asset)}
                             isSelected={selectedAssetId === asset.AssetId}
                             onPurge={isDraftsTab && onPurgeAsset ? () => onPurgeAsset(asset) : undefined}
+                            isDeleting={isDeleting}
                         />
                     </Grid>
                 )
@@ -269,6 +273,10 @@ export const Library: FunctionComponent<LibraryProps> = () => {
     // Track draft asset being added for optimistic UI updates
     const [draftAssetIdBeingAdded, setDraftAssetIdBeingAdded] = React.useState<AssetUUID | undefined>(undefined)
 
+    // Track draft assets being deleted for optimistic UI updates
+    // Record maps AssetUUID to timeout ID, allowing per-asset timeout management
+    const [draftAssetIdsBeingDeleted, setDraftAssetIdsBeingDeleted] = React.useState<Record<AssetUUID, NodeJS.Timeout>>({})
+
     // Clear draftAssetIdBeingAdded when the asset appears in DraftAssets (successful round-trip)
     useEffect(() => {
         if (draftAssetIdBeingAdded) {
@@ -291,6 +299,39 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             return () => clearTimeout(timeout)
         }
     }, [draftAssetIdBeingAdded])
+
+    // Clear draftAssetIdsBeingDeleted when drafts disappear from DraftAssets (successful deletion)
+    useEffect(() => {
+        const deletionKeys = Object.keys(draftAssetIdsBeingDeleted) as AssetUUID[]
+        if (deletionKeys.length > 0) {
+            // Find which drafts in the deletion record are no longer in DraftAssets
+            const currentAssetIds = new Set(DraftAssets.map(asset => AssetKey(asset.AssetId)))
+            const stillExist = deletionKeys.filter(id => currentAssetIds.has(id))
+            
+            // If any drafts were removed, clear their timeouts and remove from record
+            if (stillExist.length !== deletionKeys.length) {
+                setDraftAssetIdsBeingDeleted(prev => {
+                    const next: Record<AssetUUID, NodeJS.Timeout> = {}
+                    // Clear timeouts for removed assets
+                    deletionKeys.forEach(id => {
+                        if (stillExist.includes(id)) {
+                            next[id] = prev[id]
+                        } else {
+                            clearTimeout(prev[id])
+                        }
+                    })
+                    return next
+                })
+            }
+        }
+    }, [DraftAssets, draftAssetIdsBeingDeleted])
+
+    // Cleanup all timeouts on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(draftAssetIdsBeingDeleted).forEach(timeout => clearTimeout(timeout))
+        }
+    }, [draftAssetIdsBeingDeleted])
 
     // Handle asset card click - navigate based on zone
     const handleAssetClick = (asset: AssetWithMetadata) => {
@@ -377,6 +418,19 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             return
         }
 
+        // Optimistically mark as being deleted and set up timeout
+        const timeout = setTimeout(() => {
+            setDraftAssetIdsBeingDeleted(prev => {
+                const next = { ...prev }
+                delete next[normalizedAssetId]
+                return next
+            })
+        }, 10000)
+        setDraftAssetIdsBeingDeleted(prev => ({
+            ...prev,
+            [normalizedAssetId]: timeout
+        }))
+
         const purgeMessage: PurgeAssetAPIMessage = {
             message: 'purgeAsset',
             AssetId: normalizedAssetId,
@@ -390,9 +444,20 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             if (selectedPersonalIndex !== undefined && currentPersonalAssets[selectedPersonalIndex]?.AssetId === AssetId) {
                 clearPersonalPreview()
             }
+            // Note: The draftAssetIdsBeingDeleted state will be cleared automatically when the draft
+            // disappears from DraftAssets or after 10 seconds as a fallback.
         } catch (error) {
             dispatch(push('Failed to purge draft.'))
             console.error('Failed to purge asset', error)
+            // Clear the optimistic state on error (clear timeout and remove from record)
+            setDraftAssetIdsBeingDeleted(prev => {
+                const next = { ...prev }
+                if (next[normalizedAssetId]) {
+                    clearTimeout(next[normalizedAssetId])
+                    delete next[normalizedAssetId]
+                }
+                return next
+            })
         }
     }
 
@@ -427,6 +492,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
                     onPurgeAsset={isDraftsTab ? handlePurgeAsset : undefined}
                     isDraftsTab={isDraftsTab}
                     draftAssetIdBeingAdded={draftAssetIdBeingAdded}
+                    draftAssetIdsBeingDeleted={draftAssetIdsBeingDeleted}
                 />
             </Grid>
             <Grid size={{ xs: 6 }}>

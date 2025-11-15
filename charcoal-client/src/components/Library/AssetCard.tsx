@@ -30,9 +30,10 @@ export interface AssetCardProps {
     onClick: () => void;
     isSelected?: boolean;
     onPurge?: () => void;
+    isDeleting?: boolean;
 }
 
-const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelected, onPurge }) => {
+const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelected, onPurge, isDeleting = false }) => {
     const { AssetId, ShortName, Summary } = asset
     
     // ShortName is already a string (serialized from StandardLiteral.toJSON())
@@ -66,21 +67,44 @@ const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelect
                 display: 'flex',
                 flexDirection: 'column',
                 border: isSelected ? 2 : 1,
-                borderColor: isSelected ? 'primary.main' : 'divider'
+                borderColor: isSelected ? 'primary.main' : 'divider',
+                opacity: isDeleting ? 0.5 : 1,
+                position: 'relative'
             }}
         >
-            <CardActionArea onClick={onClick} sx={{ flexGrow: 1, alignSelf: 'stretch' }}>
+            <CardActionArea 
+                onClick={isDeleting ? undefined : onClick} 
+                disabled={isDeleting}
+                sx={{ flexGrow: 1, alignSelf: 'stretch' }}
+            >
                 <CardContent>
                     <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: 1 }}>
-                        <Avatar variant="rounded" sx={{ marginRight: 1 }}>
+                        <Avatar variant="rounded" sx={{ marginRight: 1, opacity: isDeleting ? 0.5 : 1 }}>
                             <AssetIcon />
                         </Avatar>
-                        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                        <Typography 
+                            variant="h6" 
+                            component="div" 
+                            sx={{ 
+                                flexGrow: 1,
+                                textDecoration: isDeleting ? 'line-through' : 'none',
+                                color: isDeleting ? 'text.disabled' : 'inherit'
+                            }}
+                        >
                             {displayName}
                         </Typography>
+                        {isDeleting && (
+                            <Typography variant="caption" color="error.main" sx={{ marginLeft: 1 }}>
+                                Deleting...
+                            </Typography>
+                        )}
                     </Box>
                     {summaryString && (
-                        <Typography variant="body2" color="text.secondary" sx={{ marginTop: 1 }}>
+                        <Typography 
+                            variant="body2" 
+                            color={isDeleting ? 'text.disabled' : 'text.secondary'} 
+                            sx={{ marginTop: 1 }}
+                        >
                             {summaryString}
                         </Typography>
                     )}
