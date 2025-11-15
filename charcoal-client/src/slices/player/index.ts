@@ -81,7 +81,7 @@ export const getAssetZone = (assetId: string): Selector<any> => createSelector(
     (assets) => {
         // Normalize assetId - handle both 'ASSET#uuid' and 'uuid' formats
         const normalizedId = AssetKey(assetId)
-        const asset = assets.find((a: any) => a.AssetId === normalizedId)
+        const asset = assets.find((a: any) => AssetKey(a.AssetId) === normalizedId)
         return asset?.zone
     }
 )
