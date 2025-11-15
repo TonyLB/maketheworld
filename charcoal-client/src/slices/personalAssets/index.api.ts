@@ -14,7 +14,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { publicSelectors } from './selectors'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
-import { isImportable } from '@tonylb/mtw-base/ts/schema'
+import { isImportable, ComponentUUID, AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -29,7 +29,7 @@ export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => a
         AssetId: id || ''
     }, { service: 'asset' }))
 
-    return { internalData: { fetchURL: url }, publicData: { properties } }
+    return { internalData: { fetchURL: url }, publicData: { properties: properties || {} } }
 }
 
 export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL } }) => async (dispatch, getState) => {
@@ -73,34 +73,50 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
 
     const importsByAssetId = standardForm.metaData
         .filter(treeNodeTypeguard(isSchemaImport))
-        .reduce<Record<string, Record<string, string>>>((previous, { data, children }) => ({
-            ...previous,
-            [data.from]: children
+        .reduce<Record<string, ComponentUUID[]>>((previous, { data, children }) => {
+            const componentUUIDs = children
                 .filter(treeNodeTypeguard(isImportable))
-                .reduce((accumulator, { data: { key, as }}) => ({
-                    ...accumulator,
-                    [as ?? key]: key
-                }), previous[data.from] ?? {})
-        }), {})
+                .map(({ data: componentData }) => {
+                    // Prefer uuid (ComponentUUID) if available, otherwise look up by key in StandardForm
+                    if (componentData.uuid) {
+                        return componentData.uuid
+                    }
+                    if (componentData.key) {
+                        // Look up component in StandardForm by key to get universalKey
+                        const component = standardForm._components.find(c => c.key === componentData.key)
+                        return component?.universalKey
+                    }
+                    return undefined
+                })
+                .filter((uuid): uuid is ComponentUUID => uuid !== undefined)
+            
+            if (componentUUIDs.length > 0) {
+                return {
+                    ...previous,
+                    [data.from]: [...(previous[data.from] ?? []), ...componentUUIDs]
+                }
+            }
+            return previous
+        }, {})
 
     const importFetches: AssetClientFetchImports[] = await Promise.all(
         Object.entries(importsByAssetId).map(([assetId, keys]) => (
             //
             // TODO: Generalize fetchImports to take a list of keys by assetId
             //
-            dispatch(socketDispatchPromise({ message: 'fetchImports', assetId: `ASSET#${assetId}`, keys: Object.values(keys) }, { service: 'asset' }))
+            dispatch(socketDispatchPromise({ message: 'fetchImports', assetId: `ASSET#${assetId}`, keys }, { service: 'asset' }))
         )
     ))
 
-    const base = new StandardForm(id.split('#').slice(1).join('#'))
-    const inherited = importFetches
-        .map(({ importsByAsset }) => (importsByAsset))
-        .flat()
-        .reduce<StandardForm>((previous, { wml }) => {
-            const standardForm = new StandardForm(wml)
-            standardForm._key = id
-            return previous.merge(standardForm)
-        }, base)
+        const base = new StandardForm(id)
+        const inherited = importFetches
+            .map(({ importsByAsset }) => (importsByAsset))
+            .flat()
+            .reduce<StandardForm>((previous, { wml }) => {
+                const standardForm = new StandardForm(wml)
+                standardForm._universalKey = id as AssetUUID
+                return previous.merge(standardForm)
+            }, base)
     dispatch(updateStandard(id)({ type: 'setInherited', inherited: inherited.toJSON() }))
 
 }
@@ -187,7 +203,7 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
         schema._schema = [{
             data: {
                 tag: 'Asset',
-                key: id.split('#')[1],
+                uuid: id,
                 Story: undefined
             },
             children: []

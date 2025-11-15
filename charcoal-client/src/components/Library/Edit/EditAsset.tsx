@@ -295,14 +295,14 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
         cascadingClose: true
     })
     const dispatch = useDispatch()
+    const currentStatus = useSelector(getStatus(AssetId))
+    
     useEffect(() => {
         if (assetKey) {
             dispatch(addItem({ key: `ASSET#${assetKey}` }))
             dispatch(heartbeat)
         }
     }, [dispatch, assetKey])
-
-    const currentStatus = useSelector(getStatus(AssetId))
 
     return <React.Fragment>
         {

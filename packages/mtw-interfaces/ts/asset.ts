@@ -175,7 +175,7 @@ export type AssetClientFetchURL = {
     messageType: 'FetchURL';
     RequestId?: string;
     url: string;
-    properties: Record<string, { fileName: string }>;
+    properties?: Record<string, { fileName: string }>;
 }
 
 export type AssetClientUploadURL = {
@@ -292,6 +292,10 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                 return false
             }
             const properties = message.properties
+            // properties is optional - if missing, treat as empty object (valid)
+            if (properties === undefined || properties === null) {
+                return true
+            }
             return (typeof properties === 'object') && Object.values(properties).reduce<boolean>((previous, property) => (previous && checkTypes(property, { fileName: 'string' })), true)
         case 'UploadURL':
             return checkTypes(message, { url: 'string', s3Object: 'string' }, { RequestId: 'string' }) &&
