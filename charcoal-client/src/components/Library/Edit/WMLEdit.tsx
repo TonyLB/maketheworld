@@ -2,7 +2,7 @@ import React, { FunctionComponent, useState, useEffect, useCallback, useMemo } f
 import { useDispatch, useSelector } from 'react-redux'
 import { Descendant, createEditor, Editor, Range, Point } from 'slate'
 import { withHistory } from 'slate-history'
-import { Slate, Editable, withReact } from 'slate-react'
+import { Slate, Editable, withReact, RenderLeafProps } from 'slate-react'
 
 import {
     Box
@@ -95,7 +95,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
         }
     }, [debounceMoment, lastDebounceMoment, dispatch, draftWML])
     const decorate = useCallback(
-        ([node, path]) => {
+        ([node, path]: [node: Descendant, path: number[]]) => {
             const endPosition = Editor.end(editor, [])
             const returnValue = decorateWithError({
                 editor,
@@ -110,31 +110,27 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
         },
         [editor, errorPosition]
     )
-    const handleChange = useCallback(newValue => {
+    const handleChange = useCallback((newValue: Descendant[]) => {
         const draftValue = sourceStringFromSlate(newValue)
         if (draftValue !== sourceStringFromSlate(value)) {
             debouncedUpdate()
         }
         dispatch(setDraftWML(AssetId)({ value: draftValue }))
     }, [value, debouncedUpdate, dispatch, AssetId])
-    const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
+    const renderLeaf = useCallback((props: RenderLeafProps) => (<Leaf { ...props } />), [])
     return <Box sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
         <LibraryBanner
             primary="Edit World Markup Language"
             secondary={assetKey}
             breadCrumbProps={[
-                ...(AssetId === 'ASSET#draft'
-                    ? [{ href: '/Draft/', label: 'draft' }]
-                    : [{
-                            href: '/Library',
-                            label: 'Library'
-                        },
-                        {
-                            href:  `/Library/Edit/${ (AssetId.split('#')?.[0] || '') === 'CHARACTER' ? 'Character' : 'Asset' }/${assetKey}`,
-                            label: assetKey || ''
-                        }
-                    ]
-                ),
+                {
+                    href: '/Library',
+                    label: 'Library'
+                },
+                {
+                    href: `/Library/Edit/Asset/${assetKey}`,
+                    label: assetKey || ''
+                },
                 {
                     label: 'Edit WML'
                 }

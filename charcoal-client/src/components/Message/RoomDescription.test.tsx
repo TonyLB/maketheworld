@@ -39,17 +39,38 @@ describe('RoomDescription', () => {
     let store: any
 
     beforeEach(() => {
+        // Use a real AssetUUID for the draft asset
+        const draftAssetId = 'ASSET#test-draft-uuid-1234'
         store = mockStore({
             player: {
                 Players: {
                     'CHARACTER#test': {
                         Assets: []
                     }
+                },
+                playerDataSource: {
+                    publicData: {
+                        subscribedStreams: {
+                            'test-player': {
+                                materializedView: {
+                                    type: 'Snapshot',
+                                    assets: [
+                                        {
+                                            AssetId: draftAssetId,
+                                            zone: 'Draft'
+                                        }
+                                    ],
+                                    characters: [],
+                                    settings: {}
+                                }
+                            }
+                        }
+                    }
                 }
             },
             personalAssets: {
                 byId: {
-                    'ASSET#draft': {
+                    [draftAssetId]: {
                         meta: {
                             currentState: 'FRESH'
                         }
@@ -58,6 +79,9 @@ describe('RoomDescription', () => {
             },
             activeCharacters: {
                 activeCharacter: 'CHARACTER#test'
+            },
+            settings: {
+                PlayerName: 'test-player'
             },
             lifeLine: {}
         })

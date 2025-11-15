@@ -172,7 +172,7 @@ const tabList = ({ large, needsOnboarding, navigationTabs = [] }: { large: boole
             value={href}
             index={index + 1 + (needsOnboarding ? 1 : 0)}
             icon={<IconWrapper iconName={iconName} href={href} closable={closable} assetId={assetId} />}
-            checkPoints={href === '/Draft/' ? ['navigateBackToDraft'] : []}
+            checkPoints={[]}
         />
     ))),
     ...(large ? [] : [
@@ -284,7 +284,6 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
             <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
             <Route path="/Library/" element={<Library />} />
             <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
-            <Route path="/Draft/*" element={<EditAsset />} />
             <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
             <Route path="/Knowledge/" element={<Knowledge />} />
             <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
