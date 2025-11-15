@@ -9,12 +9,12 @@ The Assets Lambda serves as a domain authority for asset storage, caching, and m
 The Assets Lambda participates in the event mesh as:
 - **Event Consumer**: Processes WML content updates, diagnostic events, and coordination events
 - **Event Producer**: Publishes asset-level events to EventBridge for downstream subscribers
-- **Data Source Host**: Hosts 4 specialized data sources with different responsibilities
+- **Data Source Host**: Hosts 5 specialized data sources with different responsibilities
 - **Materialized View Authority**: Maintains cached component and asset metadata
 
 ## Data Sources
 
-The Assets Lambda hosts four data sources, each serving a specific purpose:
+The Assets Lambda hosts five data sources, each serving a specific purpose:
 
 ### 1. **mtw.assets** (Main Assets DataSource)
 
@@ -90,6 +90,34 @@ The Assets Lambda hosts four data sources, each serving a specific purpose:
 
 **Documentation**: [`./library/AGENT.md`](./library/AGENT.md)
 
+### 5. **mtw.assets.players** (Player Data)
+
+**Purpose**: Provides per-player asset libraries, characters, and settings for client player slice
+
+**Type**: Replayable (supports client subscriptions)
+
+**Streams**: Per-player streams using player name as streamKey
+
+**Events Published**:
+- `Snapshot` - Complete player library state (assets, characters, settings)
+- `Player Settings Updated` - Player preference changes (onboard tags, guest name/ID)
+- `Player Asset Assigned` - Asset added to player's library (Personal/Draft zones)
+- `Player Asset Removed` - Asset removed from player's library
+- `Player Character Assigned` - Character added to player's library
+- `Player Character Removed` - Character removed from player's library
+
+**Event Subscription**: Subscribes to `mtw.assets` events for player zone (Personal/Draft) changes and internal `PlayerSettings` messages
+
+**Stream Key Resolution**: Uses player name from `SessionInitialized` coordination message; client auto-subscribes via `onReady` callback once player name is available
+
+**Implementation**: [`./players/index.ts`](./players/index.ts)
+
+**Key Architecture Decisions**:
+- Player name is the stream identifier (no connection-scoped fields like `SessionId` in payloads)
+- Subscriptions lambda enriches outgoing WebSocket messages with current session ID as special case
+- Emits granular deltas derived directly from `mtw.assets` events—no in-memory ownership cache
+- Subscribes to legacy `PlayerSettings` messageBus type for now (long-term goal: fold into unified data-source handler pattern)
+
 ## Event Flow Patterns
 
 ### Incoming Events
@@ -100,7 +128,7 @@ The Assets Lambda receives events from multiple sources:
 - `mtw.wml` events → Content Update, Content Removed, Zone Changed
 - `mtw.diagnostics` events → Heal Global Values
 - `mtw.coordination` events → Remove Asset
-- `mtw.subscriptions` events → Initialize Subscription (for all 4 data sources)
+- `mtw.subscriptions` events → Initialize Subscription (for all 5 data sources)
 
 **WebSocket API Messages**:
 - Asset fetch requests
@@ -166,7 +194,8 @@ mtw.assets (Assets Lambda)
   ↓ Asset-level events (Zone Updated, Asset Cached, Asset Removed)
 ├─→ mtw.assets.contentHeaders (subscribes for metadata updates)
 ├─→ mtw.assets.characters (subscribes for character component updates)
-└─→ mtw.assets.library (subscribes for Library zone filtering)
+├─→ mtw.assets.library (subscribes for Library zone filtering)
+└─→ mtw.assets.players (subscribes for Personal/Draft zone changes)
 ```
 
 ### Event Filtering
@@ -176,6 +205,7 @@ Each downstream data source applies its own filtering:
 - **contentHeaders**: Filters for component updates to extract metadata
 - **characters**: Filters for character component changes only
 - **library**: Filters for zone changes involving Library zone
+- **players**: Filters for zone changes involving Personal/Draft zones and player settings updates
 
 This cascading pattern enables:
 - Specialized views of asset data
@@ -222,6 +252,7 @@ The Assets Lambda's event subscriptions are configured in the SAM template:
 - **mtw.assets.contentHeaders** - Content discovery UI
 - **mtw.assets.characters** - Character-specific queries
 - **mtw.assets.library** - Library zone filtering
+- **mtw.assets.players** - Client player slice (replaces legacy `whoAmI` life-line dependency)
 - **Ephemera Lambda** - Real-time game state (via character events)
 - **Frontend Clients** - Via Subscriptions Lambda (for replayable sources)
 
@@ -245,7 +276,7 @@ When WML content updates arrive from the WML Lambda, the `mtw.assets` DataSource
 
 ### Client Subscriptions
 
-Clients subscribe to replayable data sources (contentHeaders, characters, library) through the Subscriptions Lambda using standard DataSource subscription messages with the appropriate `dataSourceKey` and `streamKey`.
+Clients subscribe to replayable data sources (contentHeaders, characters, library, players) through the Subscriptions Lambda using standard DataSource subscription messages with the appropriate `dataSourceKey` and `streamKey`.
 
 **Frontend Examples**: See individual data source AGENT.md files for subscription patterns and helpers
 
@@ -268,6 +299,7 @@ Clients subscribe to replayable data sources (contentHeaders, characters, librar
 - `./contentHeaders/index.ts` - Content headers DataSource
 - `./characters/index.ts` - Characters DataSource
 - `./library/index.ts` - Library DataSource
+- `./players/index.ts` - Players DataSource
 
 **Event Coordination**:
 - `./messageBus/index.ts` - Internal message bus
@@ -285,6 +317,7 @@ Clients subscribe to replayable data sources (contentHeaders, characters, librar
 - **[Content Headers](./contentHeaders/AGENT.md)**: Content headers data source details
 - **[Library Data Source](./library/AGENT.md)**: Library zone filtering details
 - **[Characters Data Source](./characters/AGENT.md)**: Character data details
+- **[Players Data Source](./players/index.ts)**: Player library and settings data source (see inline implementation comments)
 
 ## Development Notes
 
