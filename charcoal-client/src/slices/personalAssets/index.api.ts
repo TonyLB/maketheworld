@@ -108,7 +108,7 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
         )
     ))
 
-        const base = new StandardForm(id.split('#').slice(1).join('#'))
+        const base = new StandardForm(id)
         const inherited = importFetches
             .map(({ importsByAsset }) => (importsByAsset))
             .flat()
