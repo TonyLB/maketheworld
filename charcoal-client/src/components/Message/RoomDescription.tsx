@@ -11,18 +11,14 @@ import HouseIcon from '@mui/icons-material/House'
 
 import MessageComponent from './MessageComponent'
 import {
-    PerceptionMessage,
     PerceptionRoomMetaData,
-    isPerceptionRoomMetaData
 } from '@tonylb/mtw-interfaces/ts/messages'
 
 import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
 import RenderTreeContent from './RenderTreeContent'
 import { getPlayer } from '../../slices/player'
-import { getStatus } from '../../slices/personalAssets'
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import MiniChip from '../MiniChip'
 import { useActiveCharacter } from '../ActiveCharacter'
@@ -92,10 +88,9 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
     // Note: No legacy format handling - this component now only accepts PerceptionMessage
 
     const { Assets } = useSelector(getPlayer)
-    const status = useSelector(getStatus(`ASSET#draft`))
     const { CharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
-    const onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraActionId | EphemeraCharacterId) => void = useCallback((to) => {
+    const onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraCharacterId) => void = useCallback((to) => {
         dispatch(socketDispatchPromise({
             message: 'link',
             to,
@@ -115,7 +110,6 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
     }, [parsedWML, componentUUID])
     
     const inPersonalRoom = useMemo(() => (currentHeader && Boolean(Object.keys(currentAssets).map((assetId) => (assetId.split('#')[1])).find((key) => (Assets?.map(({ AssetId }) => (AssetId))?.includes(key) || false)))), [currentHeader, Assets, currentAssets])
-    const showEdit = useMemo(() => (currentAssets && ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'].includes(status || '')), [currentAssets, status])
     useOnboardingCheckpoint('navigatePersonalRoom', { requireSequence: true, condition: inPersonalRoom })
 
     return <MessageComponent

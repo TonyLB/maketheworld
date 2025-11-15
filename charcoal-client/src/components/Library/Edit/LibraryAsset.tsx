@@ -12,7 +12,7 @@
 //   - AssetId
 //
 
-import React, { useContext, ReactChild, ReactChildren, FunctionComponent, useMemo, useCallback, useState, useEffect } from 'react'
+import React, { useContext, ReactNode, FunctionComponent, useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
@@ -38,6 +38,7 @@ import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { DevEnvironment } from '../../../environment'
+import { getAssetZone } from '../../../slices/player'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -76,7 +77,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
 
 type LibraryAssetProps = {
     assetKey: string;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
     character?: boolean;
 }
 
@@ -96,12 +97,16 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const properties = useSelector(getProperties(AssetId))
     const status = useSelector(getStatus(AssetId))
     const serialized = useSelector(getSerialized(AssetId))
+    const zone = useSelector(getAssetZone(AssetId))
     const dispatch = useDispatch()
     const updateStandard = useCallback((updateAction: UpdateStandardPayload) => {
         dispatch(updateStandardAction(AssetId)(updateAction))
         dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
         dispatch(heartbeat)
     }, [dispatch, AssetId])
+
+    // readonly is false for Draft zone assets, true for all others
+    const readonly = zone !== 'Draft'
 
     return (
         <LibraryAssetContext.Provider value={{
@@ -116,7 +121,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             updateStandard,
             properties,
             loadedImages,
-            readonly: !(assetKey === 'draft'),
+            readonly,
             serialized,
             status,
             saving: pendingEdits.length > 0

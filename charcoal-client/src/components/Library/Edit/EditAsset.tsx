@@ -31,6 +31,7 @@ import {
     getStatus
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
+import { getAssetZone } from '../../../slices/player'
 
 import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
@@ -73,8 +74,9 @@ const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Character' | 'Map' |
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { updateStandard, standardForm, readonly, assetKey } = useLibraryAsset()
-    useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true, condition: assetKey === 'draft' })
+    const { updateStandard, standardForm, readonly, assetKey, AssetId } = useLibraryAsset()
+    const zone = useSelector(getAssetZone(AssetId))
+    useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true, condition: zone === 'Draft' })
     const navigate = useNavigate()
 
     // Asset-level metadata editing (ShortName and Summary) - only for drafts
@@ -286,8 +288,10 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
 
     const { AssetId: assetKey = 'draft' } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}` as const
+    // Use real AssetUUID for navigation - no special case for 'draft'
+    const href = `/Library/Edit/Asset/${assetKey}`
     useAutoPin({
-        href: assetKey === 'draft' ? '/Draft/' : `/Library/Edit/Asset/${assetKey}`,
+        href,
         label: `${assetKey}`,
         type: 'LibraryEdit',
         iconName: 'Asset',

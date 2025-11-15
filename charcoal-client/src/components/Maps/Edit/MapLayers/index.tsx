@@ -43,10 +43,10 @@ type MapLayersContextType = {
 const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
-const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inherited?: boolean; newestRoom?: boolean }> = ({ roomId, name, inherited, children, newestRoom }) => {
+const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inherited?: boolean; newestRoom?: boolean }> = ({ roomId, name, inherited }) => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
-    const { standardForm, updateStandard, AssetId } = useLibraryAsset()
+    const { standardForm, updateStandard, AssetId, assetKey } = useLibraryAsset()
     const [renaming, setRenaming] = useState<boolean>(false)
     const [nameEdit, setNameEdit] = useState<string>('')
     const onRename = useCallback((value: string) => {
@@ -141,7 +141,7 @@ const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inh
                 checkPoints={['renameNewRoom']}
                 condition={Boolean(name.match(/^Room[\d]+$/))}
             />
-            <IconButton ref={editRef} onClick={() => { navigate(`/Draft/Room/${roomId}`) }}><EditIcon /></IconButton>
+            <IconButton ref={editRef} onClick={() => { navigate(`/Library/Edit/Asset/${assetKey}/Room/${roomId}`) }}><EditIcon /></IconButton>
             <TutorialPopover
                 anchorEl={editRef as any}
                 placement='top'

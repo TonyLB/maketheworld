@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useCallback, useMemo, useState } from "react"
+import React, { FunctionComponent, ReactElement, ReactNode, useCallback, useMemo, useState } from "react"
 
 // MaterialUI imports
 import { blue } from '@mui/material/colors'
@@ -130,6 +130,7 @@ export const useOnboardingDispatcher = (): undefined | { text: string | ReactEle
 }
 
 type OnboardingPanelProps = {
+    children?: ReactNode;
     wrapper?: boolean
 }
 

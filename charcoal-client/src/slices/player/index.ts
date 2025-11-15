@@ -4,6 +4,7 @@ import { OnboardingKey, OnboardingSubItem, onboardingChapters } from '../../comp
 import { playerDataSourceSelectors } from './playerDataSource'
 import { getPlayerName, getSessionId } from '../settings'
 import { PlayerSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
+import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 
 // Helper to get the materialized view from playerDataSource
 const getPlayerSnapshot = (state: any): PlayerSnapshot | null => {
@@ -72,6 +73,17 @@ export const getMyDraftAssets = createSelector(
 export const getMyPersonalAssets = createSelector(
     getMyAssets,
     (assets) => assets.filter((asset: any) => (asset?.zone === 'Personal'))
+)
+
+// Get asset zone by AssetId (e.g., 'ASSET#uuid' or just 'uuid')
+export const getAssetZone = (assetId: string): Selector<any> => createSelector(
+    getMyAssets,
+    (assets) => {
+        // Normalize assetId - handle both 'ASSET#uuid' and 'uuid' formats
+        const normalizedId = AssetKey(assetId)
+        const asset = assets.find((a: any) => a.AssetId === normalizedId)
+        return asset?.zone
+    }
 )
 
 export const getActiveOnboardingChapter = createSelector(

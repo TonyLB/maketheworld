@@ -736,36 +736,40 @@ Sign-off checks
 - Navigation uses real AssetUUIDs (no reliance on `'ASSET#draft'` in new code paths)
 
 ### Phase 3.5: Remove Legacy Draft Key Special-Casing
-*Detailed planning deferred - can begin after Phase 3 completion*
+**Status**: ✅ **COMPLETED** (November 2025)
 
-After Phases 2 and 3 provide working multi-draft functionality, remove remaining references to the legacy `'ASSET#draft'` magic key throughout the codebase.
+After Phases 2 and 3 provided working multi-draft functionality, all remaining references to the legacy `'ASSET#draft'` magic key have been removed from the codebase.
 
-**Remaining Legacy References Identified** (as of November 1, 2025):
+**Completed Items**:
 
-- ✅ Remove `fetchDraftAsset` auto-subscription to magic draft key (player/index.api.ts) - **COMPLETED**: Code removed in Phase 1
-- Update map import flow to use real draft AssetUUID instead of `ASSET#draft`:
-  - Target: `charcoal-client/src/components/Maps/View/index.tsx` (lines 66-84)
-  - Context: Import dialog still assumes single `ASSET#draft[${player}]` asset
-  - Action: Update to support multi-draft selection or use default/selected draft UUID
-- Update navigation/routing that assumes single draft:
-  - Target: `charcoal-client/src/components/Library/Edit/WMLEdit.tsx` (lines 126-127) - breadcrumbs for `ASSET#draft`
-  - Target: `charcoal-client/src/components/Library/Edit/EditAsset.tsx` (lines 77, 290) - onboarding check and `useAutoPin` href
-  - Target: `charcoal-client/src/components/Library/Edit/WMLComponentDetail.tsx` (line 125) - `useAutoPin` href
-  - Target: `charcoal-client/src/components/Maps/Edit/index.tsx` (line 26) - `useAutoPin` href
-  - Target: `charcoal-client/src/components/AppLayout/index.tsx` (line 287) - legacy `/Draft/*` route
-  - Action: Remove `assetKey === 'draft'` conditional logic; consolidate to real AssetUUID handling
-- Remove any UI that assumes `assetKey === 'draft'` pattern:
-  - Target: `charcoal-client/src/components/Library/Edit/LibraryAsset.tsx` (line 119) - `readonly: !(assetKey === 'draft')`
-  - Target: `charcoal-client/src/components/Message/RoomDescription.tsx` (line 95) - `getStatus('ASSET#draft')`
-  - Action: Replace with zone-based or UUID-based logic where appropriate
-- Update test files:
-  - Target: `charcoal-client/src/components/Message/RoomDescription.test.tsx` (line 52) - mock state still uses `'ASSET#draft'`
-  - Action: Update test mocks to use real AssetUUID or zone-based patterns
-- Clean up backend shims that provide backward compatibility for legacy draft ID
-  - Verify if any backend code still handles `ASSET#draft` specially and document/remove
+- ✅ **Remove `fetchDraftAsset` auto-subscription** (player/index.api.ts) - Completed in Phase 1
+- ✅ **Update map import flow** (`charcoal-client/src/components/Maps/View/index.tsx`):
+  - Updated to use first draft asset from `getMyDraftAssets` selector
+  - Uses real AssetUUID for navigation instead of hard-coded `ASSET#draft`
+  - **Note**: Marked as technical debt requiring comprehensive reconsideration when refactoring MapEdit (see TODO comment in code)
+- ✅ **Update navigation/routing** - All completed:
+  - ✅ `WMLEdit.tsx` - Breadcrumbs now use real AssetUUID, removed `ASSET#draft` special case
+  - ✅ `EditAsset.tsx` - Onboarding check uses zone-based logic (`zone === 'Draft'`), `useAutoPin` uses real AssetUUID
+  - ✅ `WMLComponentDetail.tsx` - `useAutoPin` uses real AssetUUID
+  - ✅ `Maps/Edit/index.tsx` - `useAutoPin` uses real AssetUUID
+  - ✅ `AppLayout/index.tsx` - Legacy `/Draft/*` route removed
+  - ✅ `Maps/Edit/MapLayers/index.tsx` - Navigation uses real AssetUUID
+- ✅ **Remove UI assumptions** - All completed:
+  - ✅ `LibraryAsset.tsx` - `readonly` logic now uses zone-based check (`zone !== 'Draft'`) instead of `assetKey === 'draft'`
+  - ✅ `RoomDescription.tsx` - Removed orphaned `getStatus('ASSET#draft')` code (was not actually used)
+- ✅ **Update test files**:
+  - ✅ `RoomDescription.test.tsx` - Updated to use real AssetUUID with zone information in mock state
+- ✅ **Backend verification**:
+  - No special-casing found in backend code; remaining `ASSET#draft` references are only in test data (test fixtures), not actual logic
 
-**Prerequisite**: Phase 3 complete (UI for creating/selecting drafts exists)
-**Status**: Not started - deferred until Phase 3 is fully tested and validated
+**Key Changes**:
+- All draft detection now uses zone-based logic (`zone === 'Draft'`) instead of key comparisons
+- All navigation uses real AssetUUIDs (`/Library/Edit/Asset/${uuid}`) instead of magic `/Draft/` routes
+- Added `getAssetZone(assetId)` selector in player slice for zone lookups
+- Replaced manual asset ID normalization with `AssetKey` utility from `@tonylb/mtw-utilities`
+
+**Remaining Technical Debt**:
+- Map import flow in `Maps/View/index.tsx` needs comprehensive redesign for proper multi-draft support (currently uses first draft as fallback)
 
 ### Phase 4: Testing & Polish
 *Detailed planning deferred*

@@ -26,7 +26,7 @@ import { AssetPicker } from '../../AssetPicker';
 import { addImport } from '../../../slices/personalAssets';
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding';
 import TutorialPopover from '../../Onboarding/TutorialPopover';
-import { getPlayer } from '../../../slices/player';
+import { getPlayer, getMyDraftAssets } from '../../../slices/player';
 
 type MapViewProps = {
 }
@@ -37,7 +37,10 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     const large = useMediaQuery('(min-width: 1200px)')
     const iconSize = large ? 50 : medium ? 40 : 30
     const { maps, CharacterId, scopedId, info: { Name = '???' } = {} } = useActiveCharacter()
-    const { PlayerName } = useSelector(getPlayer)
+    const draftAssets = useSelector(getMyDraftAssets)
+    // Get first draft asset for import target (or undefined if no drafts)
+    const firstDraftAsset = draftAssets.length > 0 ? draftAssets[0] : undefined
+    const firstDraftAssetId = firstDraftAsset?.AssetId
     useAutoPin({
         href: `/Character/${scopedId}/Map/`,
         label: `Map: ${Name}`,
@@ -63,9 +66,6 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     const ref = useRef()
     const [open, setOpen] = useState<boolean>(false)
     const importOptions = useMemo(() => {
-        if (assets[`ASSET#draft[${PlayerName}]`]) {
-            return [{ asset: `ASSET#draft` as const, key: assets[`ASSET#draft[${PlayerName}]`] }]
-        }
         if (Object.entries(assets).length > 1) {
             return Object.entries(assets)
                 .filter(([asset]) => (asset !== 'ASSET#primitives'))
@@ -75,14 +75,29 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
             return Object.entries(assets)
                 .map(([asset, key]) => ({ asset: asset as EphemeraAssetId, key }))
         }
-    }, [assets, PlayerName])
+    }, [assets])
+    
+    // TODO: Map Import Flow - Technical Debt
+    // This section needs comprehensive reconsideration when refactoring MapEdit.
+    // The current implementation is a tangled mess of incoherent intent after removing
+    // the single magic-draft pattern. The logic for:
+    // - Selecting which draft to import into (currently just uses first draft)
+    // - Handling the import flow when no drafts exist
+    // - Determining the target asset for map room imports
+    // ...all needs to be redesigned with multi-draft support in mind.
     const onImportListItemClick = useCallback(({ asset, key }: { asset: EphemeraAssetId, key: string }) => {
         // dispatch(addOnboardingComplete(['importRoom']))
-        if (asset !== 'ASSET#draft') {
-            dispatch(addImport({ assetId: `ASSET#draft`, fromAsset: asset.split('#')[1], tag: 'Map', key }))
+        // Import into first draft asset if available, otherwise skip import
+        if (firstDraftAssetId) {
+            // Extract UUID from AssetId (e.g., 'ASSET#uuid' -> 'uuid')
+            const draftAssetKey = firstDraftAssetId.replace('ASSET#', '')
+            const fromAssetKey = asset.split('#')[1]
+            if (asset !== firstDraftAssetId) {
+                dispatch(addImport({ assetId: firstDraftAssetId, fromAsset: fromAssetKey, tag: 'Map', key }))
+            }
+            navigate(`/Library/Edit/Asset/${draftAssetKey}/Map/${key}`)
         }
-        navigate(`/Draft/Map/${key}`)
-    }, [navigate])
+    }, [navigate, firstDraftAssetId, dispatch])
     const onClick = useCallback(() => {
         if (importOptions.length > 1) {
             setOpen(true)

@@ -1,9 +1,10 @@
 import Box from "@mui/material/Box"
 import { blue } from "@mui/material/colors"
-import React, { FunctionComponent } from "react"
+import React, { FunctionComponent, ReactNode } from "react"
 
 type TitledBoxProperties = {
     title?: string;
+    children?: ReactNode;
 }
 
 export const TitledBox: FunctionComponent<TitledBoxProperties> = ({ title, children }) => {
