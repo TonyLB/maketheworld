@@ -29,7 +29,7 @@ export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => a
         AssetId: id || ''
     }, { service: 'asset' }))
 
-    return { internalData: { fetchURL: url }, publicData: { properties } }
+    return { internalData: { fetchURL: url }, publicData: { properties: properties || {} } }
 }
 
 export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL } }) => async (dispatch, getState) => {
