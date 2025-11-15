@@ -107,9 +107,6 @@ const DraftInProgressCard: FunctionComponent<DraftInProgressCardProps> = ({ asse
                 <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
                     Creating Draft...
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ marginTop: 1 }}>
-                    {assetId.replace('ASSET#', '')}
-                </Typography>
             </CardContent>
         </Card>
     )

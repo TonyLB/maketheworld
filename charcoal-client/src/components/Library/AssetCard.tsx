@@ -35,11 +35,8 @@ export interface AssetCardProps {
 const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelected, onPurge }) => {
     const { AssetId, ShortName, Summary } = asset
     
-    // Extract UUID from AssetId (remove ASSET# prefix)
-    const assetUuid = AssetId.replace('ASSET#', '')
-    
     // ShortName is already a string (serialized from StandardLiteral.toJSON())
-    const displayName = ShortName || `Untitled ${assetUuid.slice(0, 8)}...`
+    const displayName = ShortName || 'Untitled'
 
     // Summary is a RenderTree array - extract text content for display
     // RenderTree is RenderTreeNode[] where RenderTreeNode can be string or {data, children}
