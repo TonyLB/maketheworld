@@ -9,6 +9,7 @@ import {
     Card,
     CardActionArea,
     CardContent,
+    CircularProgress,
     Divider,
     Grid,
     List,
@@ -41,6 +42,7 @@ import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { push } from '../../slices/UI/feedback'
 import AddAsset from './Edit/AddAsset'
+import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 interface PersonalAssetCardsProps {
     Assets: AssetWithMetadata[];
@@ -49,31 +51,66 @@ interface PersonalAssetCardsProps {
     onCreateDraft?: () => void;
     onPurgeAsset?: (asset: AssetWithMetadata) => void;
     isDraftsTab: boolean;
+    draftAssetIdBeingAdded?: string;
 }
 
 interface CreateDraftPlaceholderProps {
     onClick: () => void | Promise<void>;
+    disabled?: boolean;
 }
 
-const CreateDraftPlaceholder: FunctionComponent<CreateDraftPlaceholderProps> = ({ onClick }) => {
+const CreateDraftPlaceholder: FunctionComponent<CreateDraftPlaceholderProps> = ({ onClick, disabled = false }) => {
     return (
         <Card 
             sx={{ 
                 height: '100%',
                 border: 2,
                 borderStyle: 'dashed',
-                borderColor: 'divider',
-                cursor: 'pointer'
+                borderColor: disabled ? 'action.disabled' : 'divider',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                opacity: disabled ? 0.5 : 1
             }}
         >
-            <CardActionArea onClick={onClick} sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 150 }}>
+            <CardActionArea 
+                onClick={disabled ? undefined : onClick} 
+                disabled={disabled}
+                sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 150 }}
+            >
                 <CardContent sx={{ textAlign: 'center' }}>
-                    <AddIcon sx={{ fontSize: 48, color: 'text.secondary', marginBottom: 1 }} />
-                    <Typography variant="h6" color="text.secondary">
+                    <AddIcon sx={{ fontSize: 48, color: disabled ? 'action.disabled' : 'text.secondary', marginBottom: 1 }} />
+                    <Typography variant="h6" color={disabled ? 'action.disabled' : 'text.secondary'}>
                         New Draft
                     </Typography>
                 </CardContent>
             </CardActionArea>
+        </Card>
+    )
+}
+
+interface DraftInProgressCardProps {
+    assetId: string;
+}
+
+const DraftInProgressCard: FunctionComponent<DraftInProgressCardProps> = ({ assetId }) => {
+    return (
+        <Card 
+            sx={{ 
+                height: '100%',
+                border: 2,
+                borderStyle: 'solid',
+                borderColor: 'primary.main',
+                backgroundColor: 'action.hover'
+            }}
+        >
+            <CardContent sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 150 }}>
+                <CircularProgress size={48} sx={{ marginBottom: 2, color: 'primary.main' }} />
+                <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                    Creating Draft...
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ marginTop: 1 }}>
+                    {assetId.replace('ASSET#', '')}
+                </Typography>
+            </CardContent>
         </Card>
     )
 }
@@ -84,7 +121,8 @@ const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({
     onAssetClick,
     onCreateDraft,
     onPurgeAsset,
-    isDraftsTab 
+    isDraftsTab,
+    draftAssetIdBeingAdded
 }) => {
     return (
         <Grid container spacing={2}>
@@ -101,10 +139,16 @@ const PersonalAssetCards: FunctionComponent<PersonalAssetCardsProps> = ({
                     </Grid>
                 )
             })}
+            {/* Show in-progress card if a draft is being added */}
+            {isDraftsTab && draftAssetIdBeingAdded && (
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <DraftInProgressCard assetId={draftAssetIdBeingAdded} />
+                </Grid>
+            )}
             {/* Show placeholder only in Drafts tab, at the end of the list */}
             {isDraftsTab && onCreateDraft && (
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <CreateDraftPlaceholder onClick={onCreateDraft} />
+                    <CreateDraftPlaceholder onClick={onCreateDraft} disabled={!!draftAssetIdBeingAdded} />
                 </Grid>
             )}
         </Grid>
@@ -225,6 +269,32 @@ export const Library: FunctionComponent<LibraryProps> = () => {
     const currentPersonalAssets = personalTabValue === 0 ? DraftAssets : PersonalAssets
     const isDraftsTab = personalTabValue === 0
 
+    // Track draft asset being added for optimistic UI updates
+    const [draftAssetIdBeingAdded, setDraftAssetIdBeingAdded] = React.useState<AssetUUID | undefined>(undefined)
+
+    // Clear draftAssetIdBeingAdded when the asset appears in DraftAssets (successful round-trip)
+    useEffect(() => {
+        if (draftAssetIdBeingAdded) {
+            const assetExists = DraftAssets.some(asset => AssetKey(asset.AssetId) === draftAssetIdBeingAdded)
+            if (assetExists) {
+                setDraftAssetIdBeingAdded(undefined)
+            }
+        }
+    }, [DraftAssets, draftAssetIdBeingAdded])
+
+    // Clear draftAssetIdBeingAdded after 10 seconds as a fallback
+    // Note: This effect only depends on draftAssetIdBeingAdded (not DraftAssets) to ensure
+    // the timeout doesn't get reset when DraftAssets changes for unrelated reasons.
+    // The timeout will only be cleared if draftAssetIdBeingAdded changes or the component unmounts.
+    useEffect(() => {
+        if (draftAssetIdBeingAdded) {
+            const timeout = setTimeout(() => {
+                setDraftAssetIdBeingAdded(undefined)
+            }, 10000)
+            return () => clearTimeout(timeout)
+        }
+    }, [draftAssetIdBeingAdded])
+
     // Handle asset card click - navigate based on zone
     const handleAssetClick = (asset: AssetWithMetadata) => {
         const assetUuid = asset.AssetId.replace('ASSET#', '')
@@ -249,6 +319,9 @@ export const Library: FunctionComponent<LibraryProps> = () => {
         // Generate new UUID for the draft
         const draftUuid = uuidv4()
         const assetId = `ASSET#${draftUuid}` as const
+        
+        // Optimistically update UI to show in-progress state
+        setDraftAssetIdBeingAdded(assetId)
         
         // Create minimal empty Asset WML structure
         const schema = new Schema()
@@ -283,8 +356,12 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             // Note: We don't navigate automatically here. The draft will appear in the list
             // once the mtw.assets.players data source completes its round-trip and populates
             // the assets space. The user can then click on the draft card to navigate to edit mode.
+            // The draftAssetIdBeingAdded state will be cleared automatically when the asset appears
+            // in DraftAssets or after 10 seconds as a fallback.
         } catch (error) {
             console.error('Failed to create draft:', error)
+            // Clear the optimistic state on error
+            setDraftAssetIdBeingAdded(undefined)
             // TODO: Show error feedback to user
         }
     }
@@ -352,6 +429,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
                     onCreateDraft={handleCreateDraft}
                     onPurgeAsset={isDraftsTab ? handlePurgeAsset : undefined}
                     isDraftsTab={isDraftsTab}
+                    draftAssetIdBeingAdded={draftAssetIdBeingAdded}
                 />
             </Grid>
             <Grid size={{ xs: 6 }}>
