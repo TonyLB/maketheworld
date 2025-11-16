@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`tagCloseTokenizer should tokenize tag close with whitespace 1`] = `
-Object {
+{
   "endIdx": 9,
   "startIdx": 0,
   "tag": "Room",
@@ -10,7 +10,7 @@ Object {
 `;
 
 exports[`tagCloseTokenizer should tokenize tag close without whitespace 1`] = `
-Object {
+{
   "endIdx": 6,
   "startIdx": 0,
   "tag": "Room",

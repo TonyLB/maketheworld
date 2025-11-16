@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`literalValueTokenizer should expect double-quoted expressions 1`] = `
-Object {
+{
   "endIdx": 5,
   "startIdx": 0,
   "type": "LiteralValue",
@@ -10,25 +10,25 @@ Object {
 `;
 
 exports[`literalValueTokenizer stringLiteralSubTokenizer should not break on escaped quotes 1`] = `
-Object {
+{
   "endIdx": 9,
   "startIdx": 0,
   "type": "LiteralValue",
-  "value": "\\\\'Test\\\\'",
+  "value": "\\'Test\\'",
 }
 `;
 
 exports[`literalValueTokenizer stringLiteralSubTokenizer should not break on other-numbered quotes 1`] = `
-Object {
+{
   "endIdx": 6,
   "startIdx": 0,
   "type": "LiteralValue",
-  "value": "\\"Test",
+  "value": ""Test",
 }
 `;
 
 exports[`literalValueTokenizer stringLiteralSubTokenizer should tokenize bounded double-quote string literal 1`] = `
-Object {
+{
   "endIdx": 5,
   "startIdx": 0,
   "type": "LiteralValue",
@@ -37,7 +37,7 @@ Object {
 `;
 
 exports[`literalValueTokenizer stringLiteralSubTokenizer should tokenize bounded single-quote string literal 1`] = `
-Object {
+{
   "endIdx": 5,
   "startIdx": 0,
   "type": "LiteralValue",

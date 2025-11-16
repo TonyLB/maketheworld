@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`tagOpenBeginTokenizer should tokenize tag open 1`] = `
-Object {
+{
   "endIdx": 4,
   "startIdx": 0,
   "tag": "Room",
@@ -10,7 +10,7 @@ Object {
 `;
 
 exports[`tagOpenEndTokenizer should tokenize non-self-closing tag close 1`] = `
-Object {
+{
   "endIdx": 0,
   "selfClosing": false,
   "startIdx": 0,
@@ -19,7 +19,7 @@ Object {
 `;
 
 exports[`tagOpenEndTokenizer should tokenize self-closing tag close 1`] = `
-Object {
+{
   "endIdx": 1,
   "selfClosing": true,
   "startIdx": 0,

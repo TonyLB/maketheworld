@@ -1,38 +1,38 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`tokenizer should tokenize a single non-self-closing tag 1`] = `
-Array [
-  Object {
+[
+  {
     "endIdx": 4,
     "startIdx": 0,
     "tag": "Room",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 5,
     "startIdx": 5,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 9,
     "isBoolean": false,
     "key": "key",
     "startIdx": 6,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 14,
     "startIdx": 10,
     "type": "KeyValue",
     "value": "ABC",
   },
-  Object {
+  {
     "endIdx": 15,
     "selfClosing": false,
     "startIdx": 15,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 22,
     "startIdx": 16,
     "tag": "Room",
@@ -42,37 +42,37 @@ Array [
 `;
 
 exports[`tokenizer should tokenize a single self-closing tag 1`] = `
-Array [
-  Object {
+[
+  {
     "endIdx": 4,
     "startIdx": 0,
     "tag": "Room",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 5,
     "startIdx": 5,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 9,
     "isBoolean": false,
     "key": "key",
     "startIdx": 6,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 14,
     "startIdx": 10,
     "type": "KeyValue",
     "value": "ABC",
   },
-  Object {
+  {
     "endIdx": 15,
     "startIdx": 15,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 17,
     "selfClosing": true,
     "startIdx": 16,
@@ -82,144 +82,144 @@ Array [
 `;
 
 exports[`tokenizer should tokenize comments 1`] = `
-Array [
-  Object {
+[
+  {
     "endIdx": 5,
     "startIdx": 0,
     "tag": "Asset",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 6,
     "startIdx": 6,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 11,
     "isBoolean": false,
     "key": "uuid",
     "startIdx": 7,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 17,
     "startIdx": 12,
     "type": "KeyValue",
     "value": "Test",
   },
-  Object {
+  {
     "endIdx": 18,
     "selfClosing": false,
     "startIdx": 18,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 36,
     "startIdx": 32,
     "tag": "Room",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 37,
     "startIdx": 37,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 50,
     "startIdx": 38,
     "type": "Comment",
   },
-  Object {
+  {
     "endIdx": 51,
     "startIdx": 51,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 55,
     "isBoolean": false,
     "key": "key",
     "startIdx": 52,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 60,
     "startIdx": 56,
     "type": "KeyValue",
     "value": "ABC",
   },
-  Object {
+  {
     "endIdx": 61,
     "selfClosing": false,
     "startIdx": 61,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 90,
     "startIdx": 79,
     "tag": "Description",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 91,
     "selfClosing": false,
     "startIdx": 91,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 112,
     "startIdx": 92,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 129,
     "startIdx": 113,
     "type": "Description",
     "value": "Test description",
   },
-  Object {
+  {
     "endIdx": 137,
     "startIdx": 129,
     "type": "Comment",
   },
-  Object {
+  {
     "endIdx": 158,
     "startIdx": 138,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 171,
     "startIdx": 159,
     "type": "Comment",
   },
-  Object {
+  {
     "endIdx": 192,
     "startIdx": 172,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 204,
     "startIdx": 193,
     "type": "Description",
     "value": "End of test",
   },
-  Object {
+  {
     "endIdx": 220,
     "startIdx": 204,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 234,
     "startIdx": 221,
     "tag": "Description",
     "type": "TagClose",
   },
-  Object {
+  {
     "endIdx": 254,
     "startIdx": 248,
     "tag": "Room",
     "type": "TagClose",
   },
-  Object {
+  {
     "endIdx": 271,
     "startIdx": 264,
     "tag": "Asset",
@@ -229,188 +229,188 @@ Array [
 `;
 
 exports[`tokenizer should tokenize descriptions 1`] = `
-Array [
-  Object {
+[
+  {
     "endIdx": 5,
     "startIdx": 0,
     "tag": "Asset",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 6,
     "startIdx": 6,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 11,
     "isBoolean": false,
     "key": "uuid",
     "startIdx": 7,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 17,
     "startIdx": 12,
     "type": "KeyValue",
     "value": "Test",
   },
-  Object {
+  {
     "endIdx": 18,
     "selfClosing": false,
     "startIdx": 18,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 36,
     "startIdx": 32,
     "tag": "Room",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 37,
     "startIdx": 37,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 41,
     "isBoolean": false,
     "key": "key",
     "startIdx": 38,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 46,
     "startIdx": 42,
     "type": "KeyValue",
     "value": "ABC",
   },
-  Object {
+  {
     "endIdx": 47,
     "selfClosing": false,
     "startIdx": 47,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 76,
     "startIdx": 65,
     "tag": "Description",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 77,
     "selfClosing": false,
     "startIdx": 77,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 98,
     "startIdx": 78,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 104,
     "startIdx": 99,
     "tag": "Space",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 105,
     "startIdx": 105,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 107,
     "selfClosing": true,
     "startIdx": 106,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 128,
     "startIdx": 108,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 145,
     "startIdx": 129,
     "type": "Description",
     "value": "Test description",
   },
-  Object {
+  {
     "endIdx": 165,
     "startIdx": 145,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 170,
     "startIdx": 166,
     "tag": "Link",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 171,
     "startIdx": 171,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 175,
     "isBoolean": false,
     "key": "key",
     "startIdx": 172,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 180,
     "startIdx": 176,
     "type": "KeyValue",
     "value": "DEF",
   },
-  Object {
+  {
     "endIdx": 181,
     "selfClosing": false,
     "startIdx": 181,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 191,
     "startIdx": 182,
     "type": "Description",
     "value": "link text",
   },
-  Object {
+  {
     "endIdx": 197,
     "startIdx": 191,
     "tag": "Link",
     "type": "TagClose",
   },
-  Object {
+  {
     "endIdx": 218,
     "startIdx": 198,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 230,
     "startIdx": 219,
     "type": "Description",
     "value": "End of test",
   },
-  Object {
+  {
     "endIdx": 246,
     "startIdx": 230,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 260,
     "startIdx": 247,
     "tag": "Description",
     "type": "TagClose",
   },
-  Object {
+  {
     "endIdx": 280,
     "startIdx": 274,
     "tag": "Room",
     "type": "TagClose",
   },
-  Object {
+  {
     "endIdx": 297,
     "startIdx": 290,
     "tag": "Asset",
@@ -420,98 +420,98 @@ Array [
 `;
 
 exports[`tokenizer should tokenize escaped characters in descriptions 1`] = `
-Array [
-  Object {
+[
+  {
     "endIdx": 5,
     "startIdx": 0,
     "tag": "Asset",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 6,
     "startIdx": 6,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 11,
     "isBoolean": false,
     "key": "uuid",
     "startIdx": 7,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 17,
     "startIdx": 12,
     "type": "KeyValue",
     "value": "Test",
   },
-  Object {
+  {
     "endIdx": 18,
     "selfClosing": false,
     "startIdx": 18,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 36,
     "startIdx": 32,
     "tag": "Room",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 37,
     "startIdx": 37,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 41,
     "isBoolean": false,
     "key": "key",
     "startIdx": 38,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 46,
     "startIdx": 42,
     "type": "KeyValue",
     "value": "ABC",
   },
-  Object {
+  {
     "endIdx": 47,
     "selfClosing": false,
     "startIdx": 47,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 76,
     "startIdx": 65,
     "tag": "Description",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 77,
     "selfClosing": false,
     "startIdx": 77,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 86,
     "startIdx": 78,
     "type": "Description",
-    "value": "\\\\ < >",
+    "value": "\\ < >",
   },
-  Object {
+  {
     "endIdx": 99,
     "startIdx": 86,
     "tag": "Description",
     "type": "TagClose",
   },
-  Object {
+  {
     "endIdx": 119,
     "startIdx": 113,
     "tag": "Room",
     "type": "TagClose",
   },
-  Object {
+  {
     "endIdx": 136,
     "startIdx": 129,
     "tag": "Asset",
@@ -521,109 +521,109 @@ Array [
 `;
 
 exports[`tokenizer should tokenize nested tags 1`] = `
-Array [
-  Object {
+[
+  {
     "endIdx": 5,
     "startIdx": 0,
     "tag": "Asset",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 6,
     "startIdx": 6,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 11,
     "isBoolean": false,
     "key": "uuid",
     "startIdx": 7,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 17,
     "startIdx": 12,
     "type": "KeyValue",
     "value": "Test",
   },
-  Object {
+  {
     "endIdx": 18,
     "selfClosing": false,
     "startIdx": 18,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 36,
     "startIdx": 32,
     "tag": "Room",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 37,
     "startIdx": 37,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 41,
     "isBoolean": false,
     "key": "key",
     "startIdx": 38,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 46,
     "startIdx": 42,
     "type": "KeyValue",
     "value": "ABC",
   },
-  Object {
+  {
     "endIdx": 47,
     "selfClosing": false,
     "startIdx": 47,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 72,
     "startIdx": 65,
     "tag": "Feature",
     "type": "TagOpenBegin",
   },
-  Object {
+  {
     "endIdx": 73,
     "startIdx": 73,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 77,
     "isBoolean": false,
     "key": "key",
     "startIdx": 74,
     "type": "Property",
   },
-  Object {
+  {
     "endIdx": 82,
     "startIdx": 78,
     "type": "KeyValue",
     "value": "DEF",
   },
-  Object {
+  {
     "endIdx": 83,
     "startIdx": 83,
     "type": "Whitespace",
   },
-  Object {
+  {
     "endIdx": 85,
     "selfClosing": true,
     "startIdx": 84,
     "type": "TagOpenEnd",
   },
-  Object {
+  {
     "endIdx": 105,
     "startIdx": 99,
     "tag": "Room",
     "type": "TagClose",
   },
-  Object {
+  {
     "endIdx": 122,
     "startIdx": 115,
     "tag": "Asset",
