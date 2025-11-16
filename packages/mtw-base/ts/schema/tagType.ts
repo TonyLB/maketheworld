@@ -32,7 +32,8 @@ export type SchemaTagType =
     'String' |
     'Message' |
     'Moment' |
-    'Grant'
+    'Grant' |
+    'Parent'
 
 export const isLegalSchemaTag = (value: any): value is SchemaTagType => (
     typeof value === 'string' && [
@@ -69,6 +70,7 @@ export const isLegalSchemaTag = (value: any): value is SchemaTagType => (
         'String',
         'Message',
         'Moment',
-        'Grant'
+        'Grant',
+        'Parent'
     ].includes(value)
 )

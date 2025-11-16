@@ -5,6 +5,10 @@ import { ComponentUUID, isSchemaAssetUUID } from ".";
 
 export type SchemaShortNameTag = SchemaLiteralTag<'ShortName'>
 
+export type SchemaParentTag = {
+    tag: 'Parent';
+}
+
 export type SchemaExitTag = {
     tag: 'Exit';
     to: string;
@@ -57,6 +61,13 @@ export type SchemaMomentTag = {
 
 const { typeGuard } = literalTagFactory<'ShortName'>('ShortName')
 export const isSchemaShortName = typeGuard
+
+export const isSchemaParent = (schema: any): schema is SchemaParentTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        values: { tag: 'Parent' }
+    })(schema)
+)
 
 export const isSchemaExit = (schema: any): schema is SchemaExitTag => (
     checkTypes({
