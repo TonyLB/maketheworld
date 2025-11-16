@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useEffect, useMemo, useCallback, useState } from 'react'
+import React, { FunctionComponent, useEffect, useMemo, useCallback, useState, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
     Box,
@@ -59,6 +59,7 @@ import StandardRenderEditor from './StandardRenderEditor'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { useDebouncedOnChange } from '../../../hooks/useDebounce'
 
 type AssetEditFormProps = {}
 
@@ -85,10 +86,28 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         standardForm.shortName ?? new StandardLiteral(''), 
         [standardForm.shortName]
     )
-    const summary = useMemo(() => 
-        standardForm.summary ?? new StandardRender([]), 
-        [standardForm.summary]
-    )
+    
+    // Use local state for Summary to prevent value from being reset during editing
+    // Similar pattern to ExampleEditor
+    const [summary, setSummary] = useState(standardForm.summary ?? new StandardRender([]))
+    const summaryRef = useRef(summary)
+    
+    // Update ref whenever summary changes
+    useEffect(() => {
+        summaryRef.current = summary
+    }, [summary])
+    
+    // Sync local state when standardForm.summary changes (but only if different)
+    // This ensures external updates (e.g., from server) are reflected, but doesn't
+    // overwrite local edits that haven't been saved yet
+    useEffect(() => {
+        const newSummary = standardForm.summary ?? new StandardRender([])
+        const currentSummary = summaryRef.current
+        // Only update if the values are actually different to avoid unnecessary resets
+        if (newSummary.toJSON() !== currentSummary.toJSON()) {
+            setSummary(newSummary)
+        }
+    }, [standardForm.summary])
     
     // Extract display name for banner: use ShortName if available, otherwise extract UUID from universalKey
     const displayName = useMemo(() => 
@@ -109,16 +128,21 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         })
     }, [updateStandard])
 
-    // Handle Summary changes - StandardRenderEditor handles its own debouncing
-    const handleSummaryChange = useCallback((value: StandardRender) => {
-        updateStandard({
-            type: 'update',
-            update: (draft: StandardForm) => {
-                draft._summary = value
-                return draft
-            }
-        })
-    }, [updateStandard])
+    // Handle Summary changes - debounce updates to avoid excessive saves
+    // StandardRenderEditor also has internal debouncing, but we debounce the updateStandard call here
+    useDebouncedOnChange({
+        value: summary,
+        delay: 1000,
+        onChange: (value: StandardRender) => {
+            updateStandard({
+                type: 'update',
+                update: (draft: StandardForm) => {
+                    draft._summary = value
+                    return draft
+                }
+            })
+        }
+    })
 
     //
     // TODO: Refactor below into a single reduce statement that updates a record of lists.
@@ -198,7 +222,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         }}>
                             <StandardRenderEditor
                                 value={summary}
-                                onChange={handleSummaryChange}
+                                onChange={setSummary}
                                 validLinkTags={[]}
                                 toolbar={false}
                             />
