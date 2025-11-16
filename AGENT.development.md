@@ -204,6 +204,50 @@ The following migrations must be completed in this specific order due to depende
 
 ---
 
+## Future Development Considerations
+
+### Multi-Draft System Enhancements
+
+**Context**: The multi-draft system core implementation is complete (Phases 1, 3, 3.5). The following items are future enhancements to consider based on user feedback and usage patterns.
+
+#### Permissions Model
+**Status**: Open question for future consideration
+
+**Current Behavior**: 
+- Drafts are private to the creating player (only visible via player-asset listing)
+- No sharing mechanism exists
+- No explicit permissions model documented
+
+**Future Considerations**:
+- Can drafts be shared for collaboration?
+- How do permissions change when promoting to published? (Likely inherits target zone permissions)
+- Should there be draft-level access controls?
+
+**Recommendation**: Document current private behavior, defer sharing/collaboration to future phase if needed based on user demand.
+
+#### Draft Management Enhancements
+**Status**: Future enhancements (not blocking)
+
+**Questions for Future Consideration**:
+1. **Draft Limits**: Should there be a maximum number of drafts per player?
+2. **Draft Size**: Should drafts have size limitations different from published assets?
+3. **Draft Sharing**: Collaborative drafts (related to Permissions Model above)
+4. **Auto-save Frequency**: How frequently should draft changes persist? (Currently 5 seconds)
+5. **Draft Templates**: Would pre-configured draft templates be useful?
+
+**Recommendation**: Address as needed based on user feedback and usage patterns. No immediate action required.
+
+#### Optional Performance Optimizations
+**Status**: Optional (not blocking)
+
+**Items**:
+- **Optional Filtered Listing Endpoint**: `GET /player/assets?zone=Draft` server-side filtered endpoint
+  - Current: Client-side filtering works via `getMyDraftAssets` selector
+  - Impact: Minor performance optimization for large asset lists
+  - Recommendation: Defer unless performance issues arise
+
+---
+
 ## Cross-Phase Considerations
 
 ### **Documentation Updates**

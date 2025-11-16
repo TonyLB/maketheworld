@@ -133,7 +133,7 @@ export const generationOrder = <K extends string, T extends { key: K } & Record<
             const originatingComponent = nodeToConnectedComponentMapping[from]
             const destinationComponent = nodeToConnectedComponentMapping[to]
             if (originatingComponent && destinationComponent) {
-                return currentConnectedComponents.includes(originatingComponent) && destinationComponent === evaluatingComponent[0]
+                return currentConnectedComponents.includes(originatingComponent as any) && destinationComponent === evaluatingComponent[0]
             }
             return false
         })

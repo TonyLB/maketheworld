@@ -86,7 +86,7 @@ const processComponentEvent = async (
     streamEvent: (params: { update: CharacterEventUpdate, streamKey: string }) => Promise<void>
 ): Promise<void> => {
     const streamKey = event.streamKey
-    const update = event.event
+    const update = event.detailEnvelope as any
 
     // Check if this is a component event and if it's a character component
     if (!isAssetsComponentEvent(update)) {
@@ -127,11 +127,11 @@ export const charactersDataSource = new AssetsDataSource<
     subscribedEventTypeGuard: (event: any): event is StreamingEventPayload => {
         // Subscribe to mtw.assets component events that might be character changes
         return event.dataSourceKey === 'mtw.assets' && 
-               event.event && 
-               typeof event.event === 'object' &&
-               event.event.update &&
-               typeof event.event.update === 'object' &&
-               isAssetsComponentEvent(event.event.update)
+               (event as any).detailEnvelope && 
+               typeof (event as any).detailEnvelope === 'object' &&
+               (event as any).detailEnvelope.update &&
+               typeof (event as any).detailEnvelope.update === 'object' &&
+               isAssetsComponentEvent((event as any).detailEnvelope.update)
     },
     snapshotContentGenerator: generateCharacterSnapshot,
     receiveEvents: async ({ events, streamEvent }) => {
@@ -140,9 +140,9 @@ export const charactersDataSource = new AssetsDataSource<
             // Check if this event should be processed by this data source
             const subscribedEventTypeGuard = (event: any): event is StreamingEventPayload => {
                 return event.dataSourceKey === 'mtw.assets' && 
-                       event.event && 
-                       typeof event.event === 'object' &&
-                       isAssetsComponentEvent(event.event)
+                       (event as any).detailEnvelope && 
+                       typeof (event as any).detailEnvelope === 'object' &&
+                       isAssetsComponentEvent((event as any).detailEnvelope)
             }
             
             if (!subscribedEventTypeGuard(event)) {

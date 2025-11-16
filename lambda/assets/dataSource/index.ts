@@ -14,14 +14,14 @@ import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 // Separate type for WML events with precise typing
 type WMLSubscribedEvent = StreamingEventPayload & {
     dataSourceKey: 'mtw.wml'
-    event: WMLEventUpdate
+    detailEnvelope: WMLEventUpdate
 }
 
 // Union type constraint for legitimate incoming subscribed events
 type AssetsSubscribedEvent = WMLSubscribedEvent | (
     StreamingEventPayload & {
         dataSourceKey: 'mtw.diagnostics' | 'mtw.coordination'
-        event: {
+        detailEnvelope: {
             type: string
         } & Record<string, unknown>
     }
@@ -56,10 +56,10 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
         // These are events published by mtw.diagnostics, mtw.coordination, and mtw.wml
         return Boolean(
             ['mtw.diagnostics', 'mtw.coordination', 'mtw.wml'].includes(event.dataSourceKey) && 
-            event.event && 
-            typeof event.event === 'object' &&
-            'type' in event.event &&
-            typeof event.event.type === 'string'
+            event.detailEnvelope && 
+            typeof event.detailEnvelope === 'object' &&
+            'type' in event.detailEnvelope &&
+            typeof event.detailEnvelope.type === 'string'
         )
     },
     receiveEvents: async ({ events, streamEvent }) => {
@@ -68,7 +68,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
         
         await Promise.all(events.map(async (event) => {
             // Handle mtw.wml events
-            if (isWMLSubscribedEvent(event) && event.event.type === 'Content Update') {
+            if (isWMLSubscribedEvent(event) && event.detailEnvelope.type === 'Content Update') {
                 const assetId = event.streamKey as AssetUUID
                 if (assetId) {
                     try {
@@ -119,8 +119,8 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
             
             // Handle mtw.wml Zone Changed events
-            if (isWMLSubscribedEvent(event) && event.event.type === 'Zone Changed') {
-                const { fromZone, toZone, player, subFolder } = event.event
+            if (isWMLSubscribedEvent(event) && event.detailEnvelope.type === 'Zone Changed') {
+                const { fromZone, toZone, player, subFolder } = event.detailEnvelope
                 const assetId = event.streamKey as AssetUUID
                 if (assetId) {
                     // Ensure AssetId is properly formatted as ASSET#${string}
@@ -183,7 +183,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
             
             // Handle mtw.wml Asset Purged events
-            if (isWMLSubscribedEvent(event) && event.event.type === 'Asset Purged') {
+            if (isWMLSubscribedEvent(event) && event.detailEnvelope.type === 'Asset Purged') {
                 const assetId = event.streamKey as AssetUUID
                 if (assetId) {
                     try {
@@ -195,8 +195,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                     }
                     
                     // Use zone and player from event (forwarded from Asset Purged, which gets player from S3)
-                    // The event structure has zone/player in event.event.update (nested structure from serializer)
-                    const eventData = (event.event as any).update || event.event
+                    const eventData = (event.detailEnvelope as any).update || event.detailEnvelope
                     const { zone, player } = eventData
                     
                     if (!zone) {
@@ -228,18 +227,18 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
 
             // Handle mtw.diagnostics events
-            if (event.dataSourceKey === 'mtw.diagnostics' && event.event.type === 'Heal Global Values') {
+            if (event.dataSourceKey === 'mtw.diagnostics' && event.detailEnvelope.type === 'Heal Global Values') {
                 const returnVal = await healGlobalValues({
-                    shouldHealConnections: Boolean(event.event.connections),
-                    shouldHealGlobalAssets: typeof event.event.assets !== 'boolean' || event.event.assets
+                    shouldHealConnections: Boolean(event.detailEnvelope.connections),
+                    shouldHealGlobalAssets: typeof event.detailEnvelope.assets !== 'boolean' || event.detailEnvelope.assets
                 })
                 
                 return
             }
             
             // Handle mtw.coordination events
-            if (event.dataSourceKey === 'mtw.coordination' && event.event.type === 'Remove Asset') {
-                const { assetId } = event.event
+            if (event.dataSourceKey === 'mtw.coordination' && event.detailEnvelope.type === 'Remove Asset') {
+                const { assetId } = event.detailEnvelope as any
                 if (assetId) {
                     try {
                         // Decache the asset before removing it

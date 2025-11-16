@@ -80,7 +80,7 @@ describe('WML DataSource', () => {
             const validEvent = {
                 dataSourceKey: 'internal',
                 streamKey: 'test-asset',
-                event: {
+                detailEnvelope: {
                     type: 'Move Asset',
                     fromZone: 'Library',
                     toZone: 'Canon'
@@ -95,7 +95,7 @@ describe('WML DataSource', () => {
         it('should reject events with wrong dataSourceKey', () => {
             const invalidEvent = {
                 dataSourceKey: 'mtw.assets',
-                event: {
+                detailEnvelope: {
                     type: 'Move Asset',
                     assetId: 'test-asset',
                     fromZone: 'Library',
@@ -111,7 +111,7 @@ describe('WML DataSource', () => {
         it('should reject events with missing event structure', () => {
             const invalidEvent = {
                 dataSourceKey: 'internal',
-                event: null
+                detailEnvelope: null
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
@@ -138,7 +138,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: mockMoveRequest
+                detailEnvelope: mockMoveRequest
             }
 
             // Simulate the receiveEvents processing
@@ -175,7 +175,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: mockMoveRequest
+                detailEnvelope: mockMoveRequest
             }
 
             // Simulate the receiveEvents processing
@@ -207,7 +207,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: mockMoveRequest
+                detailEnvelope: mockMoveRequest
             }
 
             // Simulate the receiveEvents processing
@@ -242,7 +242,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: mockMoveRequest
+                detailEnvelope: mockMoveRequest
             }
 
             // Should not throw - errors should be caught and logged
@@ -273,7 +273,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: mockMoveRequest
+                detailEnvelope: mockMoveRequest
             }
 
             // Should not throw - streaming errors should be caught and logged
@@ -307,7 +307,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: mockApplyEditRequest
+                detailEnvelope: mockApplyEditRequest
             }
 
             // Simulate the receiveEvents processing
@@ -352,7 +352,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: mockApplyEditRequest
+                detailEnvelope: mockApplyEditRequest
             }
 
             // Simulate the receiveEvents processing
@@ -385,7 +385,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: mockApplyEditRequest
+                detailEnvelope: mockApplyEditRequest
             }
 
             // Should not throw - errors should be caught and logged
@@ -424,7 +424,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: mockApplyEditRequest
+                detailEnvelope: mockApplyEditRequest
             }
 
             // Should not throw - streaming errors should be caught and logged
@@ -457,7 +457,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'invalid-stream-key',
-                event: mockApplyEditRequest
+                detailEnvelope: mockApplyEditRequest
             }
 
             await wmlDataSource.receiveEvents!({
@@ -488,7 +488,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: mockApplyEditRequest
+                detailEnvelope: mockApplyEditRequest
             }
 
             await wmlDataSource.receiveEvents!({
@@ -519,7 +519,7 @@ describe('WML DataSource', () => {
             const validEvent = {
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                event: {
+                detailEnvelope: {
                     type: 'S3 Structure Finding',
                     source: 'primitives.wml',
                     status: 'missing',
@@ -538,7 +538,7 @@ describe('WML DataSource', () => {
             const unknownDiagnosticsEvent = {
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                event: {
+                detailEnvelope: {
                     type: 'Future Event Type',
                     someField: 'someValue'
                 }
@@ -563,7 +563,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                event: {
+                detailEnvelope: {
                     type: 'S3 Structure Finding',
                     source: 'primitives.wml',
                     status: 'missing',
@@ -587,7 +587,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                event: {
+                detailEnvelope: {
                     type: 'S3 Structure Finding',
                     source: 'primitives.wml',
                     status: 'present',  // Not missing
@@ -610,7 +610,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                event: {
+                detailEnvelope: {
                     type: 'S3 Structure Finding',
                     source: 'other-asset.wml',  // Different source
                     status: 'missing',
@@ -635,7 +635,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                event: {
+                detailEnvelope: {
                     type: 'S3 Structure Finding',
                     source: 'primitives.wml',
                     status: 'missing',
@@ -676,7 +676,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: {
+                detailEnvelope: {
                     type: 'Create Snapshot'
                 }
             }
@@ -720,7 +720,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#missing-asset',
-                event: {
+                detailEnvelope: {
                     type: 'Create Snapshot'
                 }
             }
@@ -749,7 +749,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: {
+                detailEnvelope: {
                     type: 'Create Snapshot'
                 }
             }
@@ -783,7 +783,7 @@ describe('WML DataSource', () => {
             const event = {
                 dataSourceKey: 'internal',
                 streamKey: 'ASSET#test-asset',
-                event: {
+                detailEnvelope: {
                     type: 'Create Snapshot'
                 }
             }
@@ -821,7 +821,7 @@ describe('WML DataSource', () => {
                 const event = {
                     dataSourceKey: 'internal',
                     streamKey: 'ASSET#test-asset',
-                    event: {
+                    detailEnvelope: {
                         type: 'Create Snapshot'
                     }
                 }

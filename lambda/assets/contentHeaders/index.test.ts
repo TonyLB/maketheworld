@@ -80,7 +80,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const componentUpdatedEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Component Updated',
                     assetId: 'ASSET#asset123',
                     component: new StandardRoom({
@@ -100,7 +100,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const componentRemovedEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Component Updated',
                     assetId: 'ASSET#asset123',
                     component: new StandardRemove(new StandardRoom({
@@ -120,7 +120,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const otherEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.ephemera',
                 streamKey: 'CHARACTER#char123',
-                event: {
+                detailEnvelope: {
                     type: 'Character Updated',
                     characterId: 'CHARACTER#char123'
                 },
@@ -135,7 +135,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const nonComponentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                event: {
+                detailEnvelope: {
                     type: 'CacheAsset',
                     assetId: 'ASSET#asset123'
                 },
@@ -280,7 +280,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset123',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         component: mockHeaderComponent
                     },
@@ -320,7 +320,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset123',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         component: new StandardRoom({
                             tag: 'Room',
@@ -352,7 +352,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset123',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         component: new StandardRoom({
                             tag: 'Room',
@@ -375,7 +375,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset123',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         component: undefined as any
                     },
@@ -397,7 +397,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset123',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         component: new StandardRoom({
                             tag: 'Room',
@@ -434,7 +434,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const componentRemovedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset123',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         component: new StandardRemove(new StandardRoom({
                             tag: 'Room',
@@ -462,7 +462,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const componentRemovedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset123',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         component: new StandardRemove(new StandardRoom({
                             tag: 'Room',
@@ -485,7 +485,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const componentRemovedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset123',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         component: new StandardRemove(new StandardRoom({
                             tag: 'Room',
@@ -508,7 +508,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const componentRemovedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset123',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         component: undefined as any
                     },
@@ -530,7 +530,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const componentRemovedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset123',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         component: new StandardRemove(new StandardRoom({
                             tag: 'Room',
@@ -561,7 +561,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const zoneChangedEvent: SubscribedWMLEvent = {
                     dataSourceKey: 'mtw.wml',
                     streamKey: 'global',
-                    event: {
+                    detailEnvelope: {
                         type: 'Zone Changed',
                         fromZone: 'Canon',
                         toZone: 'Library'
@@ -590,7 +590,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     {
                         dataSourceKey: 'mtw.wml',
                         streamKey: 'ASSET#test1',
-                        event: {
+                        detailEnvelope: {
                             type: 'Zone Changed',
                             fromZone: 'Canon',
                             toZone: 'Library'
@@ -600,7 +600,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     {
                         dataSourceKey: 'mtw.wml',
                         streamKey: 'ASSET#test2',
-                        event: {
+                        detailEnvelope: {
                             type: 'Zone Changed',
                             fromZone: 'Library',
                             toZone: 'Personal'
@@ -648,7 +648,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     {
                         dataSourceKey: 'mtw.wml',
                         streamKey: 'ASSET#test1',
-                        event: {
+                        detailEnvelope: {
                             type: 'Zone Changed',
                             fromZone: 'Canon',
                             toZone: 'Library'
@@ -658,7 +658,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     {
                         dataSourceKey: 'mtw.assets',
                         streamKey: 'ASSET#test1',
-                        event: {
+                        detailEnvelope: {
                             type: 'Component Updated',
                             component: new StandardRoom({
                                 tag: 'Room',
@@ -714,7 +714,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     {
                         dataSourceKey: 'mtw.assets',
                         streamKey: 'ASSET#asset1',
-                        event: {
+                        detailEnvelope: {
                             type: 'Component Updated',
                             component: new StandardRoom({
                                 tag: 'Room',
@@ -727,7 +727,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     {
                         dataSourceKey: 'mtw.assets',
                         streamKey: 'ASSET#asset2',
-                        event: {
+                        detailEnvelope: {
                             type: 'Component Updated',
                             component: new StandardRemove(new StandardRoom({
                                 tag: 'Room',
@@ -757,7 +757,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 const assetUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#assetMeta',
-                    event: {
+                    detailEnvelope: {
                         type: 'Asset Updated',
                         standardForm: new StandardForm(deIndentWML(`
                             <Asset uuid=(assetMeta)><ShortName>Meta Name</ShortName></Asset>
@@ -797,7 +797,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     {
                         dataSourceKey: 'mtw.assets',
                         streamKey: 'ASSET#mix',
-                        event: {
+                        detailEnvelope: {
                             type: 'Asset Updated',
                             standardForm: new StandardForm(deIndentWML(`<Asset uuid=(mix)><ShortName>Asset Hdr</ShortName></Asset>`))
                         },
@@ -806,7 +806,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     {
                         dataSourceKey: 'mtw.assets',
                         streamKey: 'ASSET#mix',
-                        event: {
+                        detailEnvelope: {
                             type: 'Component Updated',
                             component: new StandardRoom({ tag: 'Room', shortName: 'Hdr', universalKey: 'ROOM#r1' })
                         },

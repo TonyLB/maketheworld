@@ -41,7 +41,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'ASSET#test-asset',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated' as const,
                         component: roomComponent
                     },
@@ -70,7 +70,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'ASSET#test-asset',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated' as const,
                         component: characterComponent
                     },
@@ -95,7 +95,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'ASSET#test-asset',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated' as const,
                         component: roomComponent
                     },
@@ -116,7 +116,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'canon-update',
-                    event: {
+                    detailEnvelope: {
                         type: 'Canon Updated' as const,
                         assetIds: ['ASSET#canon1', 'ASSET#canon2', 'ASSET#canon3']
                     },
@@ -138,7 +138,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'canon-update',
-                    event: {
+                    detailEnvelope: {
                         type: 'Canon Updated' as const,
                         assetIds: ['ASSET#canon1', 'NON-ASSET#invalid', 'ASSET#canon2']
                     },
@@ -160,7 +160,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'canon-update',
-                    event: {
+                    detailEnvelope: {
                         type: 'Canon Updated' as const,
                         assetIds: []
                     },
@@ -184,7 +184,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'ASSET#test-asset',
-                    event: {
+                    detailEnvelope: {
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Canon'
@@ -207,7 +207,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'ASSET#test-asset',
-                    event: {
+                    detailEnvelope: {
                         type: 'Zone Updated' as const,
                         fromZone: 'Canon',
                         toZone: 'Library'
@@ -230,7 +230,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'ASSET#test-asset',
-                    event: {
+                    detailEnvelope: {
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Personal'
@@ -250,7 +250,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'NON-ASSET#test-asset',
-                    event: {
+                    detailEnvelope: {
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Canon'
@@ -278,7 +278,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'ASSET#test-asset',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated' as const,
                         component: roomComponent
                     },
@@ -287,7 +287,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'canon-update',
-                    event: {
+                    detailEnvelope: {
                         type: 'Canon Updated' as const,
                         assetIds: ['ASSET#canon1', 'ASSET#canon2']
                     },
@@ -296,7 +296,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 {
                     dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'ASSET#zone-asset',
-                    event: {
+                    detailEnvelope: {
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Canon'
@@ -330,7 +330,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             const event = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'test-stream',
-                event: {
+                detailEnvelope: {
                     type: 'Component Updated' as const,
                     component: new StandardRoom(deIndentWML(`
                         <Room uuid=(test) />
@@ -346,7 +346,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             const otherEvent = {
                 dataSourceKey: 'mtw.other',
                 streamKey: 'test-stream',
-                event: {
+                detailEnvelope: {
                     type: 'Test Event' as const
                 },
                 timestamp: getCurrentTimestamp()

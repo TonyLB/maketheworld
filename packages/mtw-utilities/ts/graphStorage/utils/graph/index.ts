@@ -301,7 +301,7 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
                         .map((dependency) => (stronglyConnectedComponentByContents[dependency]))
                         .map((stronglyConnectedComponentRepresentative) => (
                             stronglyConnectedComponentRepresentative &&
-                            resultPromises[stronglyConnectedComponentRepresentative]
+                            resultPromises[stronglyConnectedComponentRepresentative as any]
                         ))
                         .filter((results) => (typeof results !== 'undefined'))
                     const dependencyResults: Previous[] = (await Promise.all(dependencyResultPromises)).filter((results) => (typeof results !== 'undefined')) as Previous[]

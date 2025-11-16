@@ -32,7 +32,7 @@ import { AssetLevelEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/ass
 export type SubscribedAssetsEvent = {
     dataSourceKey: 'mtw.assets';
     streamKey: string; // AssetId
-    event: AssetLevelEventUpdate;
+    detailEnvelope: AssetLevelEventUpdate;
     timestamp: number;
 }
 
@@ -40,12 +40,12 @@ export type SubscribedAssetsEvent = {
 const isSubscribedAssetsEvent = (event: StreamingEventPayload): event is SubscribedAssetsEvent => {
     return Boolean(
         event.dataSourceKey === 'mtw.assets' && 
-        event.event && 
-        typeof event.event === 'object' &&
-        event.event !== null &&
-        'type' in event.event &&
+        (event as any).detailEnvelope && 
+        typeof (event as any).detailEnvelope === 'object' &&
+        (event as any).detailEnvelope !== null &&
+        'type' in (event as any).detailEnvelope &&
         // We only care about asset-level events that affect zone status
-        ['Zone Updated', 'Asset Cached', 'Asset Removed'].includes(event.event.type)
+        ['Zone Updated', 'Asset Cached', 'Asset Removed'].includes(((event as any).detailEnvelope as any).type)
     )
 }
 
@@ -109,8 +109,8 @@ export const libraryDataSource = new AssetsDataSource<
             const assetId = event.streamKey as AssetUUID
             
             try {
-                if (event.event.type === 'Zone Updated') {
-                    const { fromZone, toZone } = event.event
+                if (event.detailEnvelope.type === 'Zone Updated') {
+                    const { fromZone, toZone } = event.detailEnvelope
                     
                     // Asset entering Library zone
                     if (toZone === 'Library' && fromZone !== 'Library') {
@@ -134,8 +134,8 @@ export const libraryDataSource = new AssetsDataSource<
                     }
                     // Ignore zone changes that don't involve Library
                 }
-                else if (event.event.type === 'Asset Cached') {
-                    const { zone } = event.event
+                else if (event.detailEnvelope.type === 'Asset Cached') {
+                    const { zone } = event.detailEnvelope
                     
                     // Asset cached in Library zone (new asset or recache)
                     if (zone === 'Library') {
@@ -148,7 +148,7 @@ export const libraryDataSource = new AssetsDataSource<
                         })
                     }
                 }
-                else if (event.event.type === 'Asset Removed') {
+                else if (event.detailEnvelope.type === 'Asset Removed') {
                     // Asset removed - we don't know its zone, but remove from library just in case
                     // The aggregator will handle idempotent removal (no-op if not present)
                     await streamEvent({
