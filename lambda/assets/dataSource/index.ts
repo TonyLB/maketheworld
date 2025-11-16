@@ -134,43 +134,6 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                 }
             }
             
-            // Handle mtw.wml Content Removed events
-            if (isWMLSubscribedEvent(event) && event.event.type === 'Content Removed') {
-                const assetId = event.streamKey as AssetUUID
-                if (assetId) {
-                    try {
-                        await decacheAsset({ assetId, streamEvent })
-                        
-                        // Stream the decaching event for real-time subscribers
-                        await streamEvent({
-                            update: { 
-                                type: 'Asset Decached',
-                            },
-                            streamKey: assetId
-                        })
-                    } catch (error) {
-                        console.error(`Error decaching asset ${assetId}:`, error)
-                        messageBus.send({
-                            type: 'Error',
-                            body: { 
-                                error: `Failed to decache asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`,
-                                statusCode: 500
-                            }
-                        })
-                    }
-                    return
-                } else {
-                    messageBus.send({
-                        type: 'Error',
-                        body: { 
-                            error: 'Invalid AssetId in Content Removed event',
-                            statusCode: 400
-                        }
-                    })
-                    return
-                }
-            }
-
             // Handle mtw.wml Zone Changed events
             if (isWMLSubscribedEvent(event) && event.event.type === 'Zone Changed') {
                 const { fromZone, toZone, player, subFolder } = event.event

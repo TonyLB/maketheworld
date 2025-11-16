@@ -115,10 +115,8 @@ describe('AssetsDataSource', () => {
                 expect.objectContaining({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.assets.test',
-                    event: expect.objectContaining({
-                        streamKey: 'test-stream',
-                        update
-                    })
+                    streamKey: 'test-stream',
+                    event: expect.objectContaining(update)
                 })
             )
         })

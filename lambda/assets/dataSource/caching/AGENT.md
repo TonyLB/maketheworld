@@ -50,7 +50,6 @@ The caching functions are integrated into the `mtw.assets` data source and are t
 
 #### Event Triggers
 - **Content Update Events**: From `mtw.wml` data source when assets are modified
-- **Content Removed Events**: From `mtw.wml` data source when assets are removed or deleted
 - **Legacy Step Function Calls**: For backward compatibility during transition
 
 #### Event Processing
@@ -68,16 +67,8 @@ if (eventData.dataSourceKey === 'mtw.wml' && eventData.event.update.type === 'Co
     })
 }
 
-if (eventData.dataSourceKey === 'mtw.wml' && eventData.event.update.type === 'Content Removed') {
-    const { AssetId } = eventData.event.update
-    await decacheAsset({ assetId: AssetId.replace('ASSET#', ''), streamEvent })
-    // Stream event for real-time subscribers
-    await streamEvent({
-        update: { type: 'DecacheAsset', assetId: AssetId.replace('ASSET#', '') },
-        streamKey: AssetId,
-        detailType: 'Asset Decached'
-    })
-}
+// Asset removal and decaching are triggered by `Asset Purged` (WML) or
+// `Remove Asset` (coordination) events, which result in `Asset Removed`.
 ```
 
 ### Transitional Architecture

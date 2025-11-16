@@ -289,7 +289,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 update: {
                     type: 'Zone Updated',
                     fromZone: 'Personal',
-                    toZone: 'Library'
+                    toZone: 'Library',
+                    player: 'testplayer'
                 },
                 streamKey: 'ASSET#test123'
             })
@@ -444,31 +445,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             expect(receiveEventsSpy).toHaveBeenCalled()
         })
 
-        it('should handle WML content removed events', async () => {
-            const contentRemovedEvent = {
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test789',
-                event: {
-                    type: 'Content Removed',
-                    AssetId: 'ASSET#test789'
-                },
-                timestamp: Date.now()
-            } as const
 
-            const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
-            
-            // Mock streamEvent function to avoid DataSource setup issues
-            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            
-            await assetsDataSource.receiveEvents?.({ 
-                events: [contentRemovedEvent], 
-                streamEvent: mockStreamEvent 
-            })
-
-            // Verify that decacheAsset was called (mocked via the caching module)
-            // The actual decaching logic is tested in the decacheAsset module
-            expect(receiveEventsSpy).toHaveBeenCalled()
-        })
 
         it('should handle WML asset purged events', async () => {
             const assetPurgedEvent = {
@@ -496,7 +473,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
-                    type: 'Asset Removed'
+                    type: 'Asset Removed',
+                    zone: 'Draft'
                 },
                 streamKey: 'ASSET#purged123'
             })
