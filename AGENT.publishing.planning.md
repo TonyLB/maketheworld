@@ -1,16 +1,22 @@
 # Publishing MVP - Agent Planning Guide
 
+**Date**: Original planning document  
+**Last Updated**: November 16, 2025  
+**Status**: Planning / Implementation Phase
+
 ## Overview
 
 This document outlines the implementation plan for the core publishing functionality needed during the Bootstrapping phase: **Publish to New Asset** and **Publish as Update**. These features will enable testing of the refactored WML system while building toward the long-term collaboration vision.
+
+**Note**: This document has been updated to align with the multi-draft system. The multi-draft system core implementation is complete - multiple drafts per player using `ASSET#${uuid}` keys with zone-based identification.
 
 ## Current State Assessment
 
 ### ✅ Existing Infrastructure
 - **Asset Zone System**: Personal → Library → Canon movement via `moveAsset`
-- **Draft System**: `ASSET#draft` with full WML editing interface
+- **Multi-Draft System**: Multiple drafts per player using `ASSET#${uuid}` keys with zone-based identification (core implementation complete)
 - **ApplyWML System**: `applyEdit` functionality for asset updates
-- **Publishing Step Function**: `publishWML.asl.yaml` handles Draft → Target zone
+- **Zone Transitions**: `changeZone` and `moveAsset` support Draft → Personal/Library/Canon
 - **Asset Workspace**: Complete S3/DynamoDB asset management
 - **WML Editor**: Rich Slate-based editing interface
 
@@ -30,10 +36,15 @@ Draft Editor → [Publish Button] → Zone Selector → Asset Name → Direct Pu
 ```
 
 **Technical Flow**:
-- Extend existing `publishWML` step function
+- Use existing `moveAsset`/`changeZone` to move Draft → Target zone
 - Add zone selection (Personal/Library/Canon)
-- Asset naming and validation
+- Asset naming and validation (via ShortName/Summary metadata)
 - Direct asset creation and registration
+
+**Multi-Draft Context**: 
+- Works with any draft asset (not limited to single `ASSET#draft`)
+- Each draft can be published independently
+- Backend support exists (`moveAsset`, `changeZone`) - UI workflow needed
 
 ### 2. Publish as Update
 **Purpose**: Apply draft changes as updates to existing assets
@@ -261,6 +272,35 @@ Draft Content → Publishing UI → Step Function/API → Asset Workspace → S3
    - End-to-end workflow testing
    - Bug fixes and polish
    - Documentation and handoff
+
+## Multi-Draft Publishing Design Questions
+
+**Status**: Open questions to be resolved during implementation
+
+**Note**: These questions were moved from the multi-draft planning documents to consolidate publishing-related planning in this document.
+
+These questions relate to publishing workflows from the multi-draft system:
+
+1. **Publish Workflow Location**: Where should publish action be located?
+   - Option A: Draft editor (inline with editing workflow)
+   - Option B: Library card actions (bulk operations context)
+   - Option C: Both locations (context-dependent)
+
+2. **Publish Target Zones**: Should users be able to publish directly to Library/Canon, or only Personal?
+   - Consideration: Personal zone may be a safer intermediate step
+   - Consideration: Direct publishing to Library/Canon may be needed for power users
+   - Consideration: Permissions model (owner vs elevated roles)
+
+3. **Copy vs Move Behavior**: When publishing, should draft be copied (retained) or moved (deleted)?
+   - Option A: Move (draft deleted after publishing) - simpler, cleaner
+   - Option B: Copy (draft retained) - allows iteration and multiple publishes
+   - Option C: User choice (checkbox or setting) - maximum flexibility
+
+**Current State**: 
+- Backend support exists (`moveAsset`, `changeZone` functions)
+- No UI workflow implemented yet
+- Multi-draft system core implementation complete (Phases 1, 3, 3.5)
+- Publish workflow is the critical remaining gap
 
 ## Long-Term Vision Alignment
 

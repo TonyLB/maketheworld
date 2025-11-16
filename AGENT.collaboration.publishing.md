@@ -1,8 +1,12 @@
 # Asset Publishing - Agent Navigation Guide
 
+**Last Updated**: November 16, 2025
+
 ## Overview
 
 The Asset Publishing system transforms individual creative work into community-accessible content by managing visibility and access across different levels of the world hierarchy. Publishing serves as the bridge between personal creative expression and community-driven world evolution, enabling structured pathways for content to reach broader audiences while maintaining appropriate quality and community consensus.
+
+**Note**: This document has been updated to align with the multi-draft system. Authors can maintain multiple draft assets and publish from any of them. The multi-draft system core implementation is complete with zone-based draft identification.
 
 ### Purpose
 
@@ -80,10 +84,11 @@ The collective decision-making process that determines which content becomes par
 The Author UI enables community members to transform their draft work into published content through structured publishing workflows. This interface builds upon the existing draft editing capabilities in the frontend client, extending them with publishing-specific functionality.
 
 #### Core Publishing Workflow
-- **Draft Creation**: Authors work in existing draft editing interface to create and refine content
+- **Draft Selection**: Authors can publish from any of their draft assets (multi-draft system supports multiple concurrent drafts per player)
+- **Draft Creation**: Authors work in existing draft editing interface to create and refine content across multiple drafts
 - **Publishing Type Selection**: Choose between Suggestion (modify existing asset), New (standalone content), or Choice (multiple alternatives)
 - **Target Selection**: For suggestions, select the specific existing asset to modify; for new content, choose appropriate access level
-- **Content Extraction**: System intelligently presents only content that can be published based on target constraints
+- **Content Extraction**: System intelligently presents only content that can be published based on target constraints from the selected draft
 - **Import Validation**: System prevents suggestions that would introduce new imports or circular dependencies
 - **Provisional Publishing**: Content becomes available in author mode for community feedback before final application
 
@@ -94,7 +99,8 @@ The Author UI enables community members to transform their draft work into publi
 - **Publishing History**: Track status of published content and community feedback
 
 #### Integration with Existing Systems
-- **Draft Editor Integration**: Seamless transition from draft editing to publishing workflow
+- **Draft Editor Integration**: Seamless transition from draft editing to publishing workflow - publishing actions available from within any draft editor
+- **Multi-Draft Support**: Publishing workflow works with any draft asset; authors can publish from the currently open draft or select a draft from their draft list
 - **WML/Standard Format**: All published content uses existing format standards
 - **Asset Management**: Leverages existing asset creation and management capabilities
 - **Event System**: Publishes events for content status changes and community notifications
@@ -130,9 +136,10 @@ The Reviewer UI enables community members to evaluate and provide feedback on pr
 
 #### Publishing Workflow Engine
 - **Publishing Type Handler**: System to process Suggestion, New, and Choice publishing types with appropriate validation
-- **Content Extraction Logic**: Intelligent filtering to identify and present only publishable content from draft documents
+- **Draft Selection**: Support for publishing from any draft asset (multi-draft system) - identify draft by AssetId
+- **Content Extraction Logic**: Intelligent filtering to identify and present only publishable content from the selected draft document
 - **Import Validation System**: Prevents suggestions that would introduce new imports or create circular dependencies
-- **Access Level Management**: Tools to move content between different visibility levels (Personal → Library → Canon, etc.)
+- **Access Level Management**: Tools to move content between different visibility levels (Draft → Personal → Library → Canon, etc.)
 - **Provisional Publishing State**: Temporary storage and visibility system for content awaiting community feedback
 
 #### Asset Management Extensions
@@ -151,7 +158,8 @@ The Reviewer UI enables community members to evaluate and provide feedback on pr
 - **Publishing Status Dashboard**: Track status of published content and community feedback
 
 #### Integration Components
-- **Draft Editor Extensions**: Seamless transition from existing draft editing to publishing workflow
+- **Draft Editor Extensions**: Seamless transition from existing draft editing to publishing workflow - publish button/action available in draft editor for the currently open draft
+- **Draft Selection**: For bulk publishing workflows, ability to select which draft(s) to publish from draft management interface
 - **Constraint Visualization**: Clear indication of what content can be published and why elements are excluded
 - **Publishing History View**: Author-facing interface to track their publishing activity and community responses
 
@@ -164,9 +172,10 @@ The Reviewer UI enables community members to evaluate and provide feedback on pr
 - **Event Publishing**: Integration with existing event system for publishing status changes
 
 #### Asset Processing
-- **Content Extraction Engine**: Server-side logic for identifying publishable content from complex draft documents
+- **Content Extraction Engine**: Server-side logic for identifying publishable content from complex draft documents (works with any draft AssetId)
 - **Import Analysis**: Automated detection of import dependencies and circular reference prevention
 - **Publishing State Management**: Database schema and services for tracking provisional and applied publishing states
+- **Multi-Draft Support**: Publishing operations accept draft AssetId as parameter, supporting publishing from any of a player's draft assets
 
 ### Future Review System (Speculative)
 
