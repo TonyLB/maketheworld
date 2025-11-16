@@ -86,7 +86,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     if (isUpdateStandardPayloadUpdateComponent(payload)) {
         const modified = payload.update(standardForm._clone())
         const diff = standardForm.diff(modified)
-        if (diff) {
+        if (diff && !diff.isEmpty()) {
             mergeToEdit(diff)
         }
     }
@@ -152,4 +152,7 @@ export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ re
     state.pendingEdits = [...state.pendingEdits, { meta: { tag: 'Meta', key: action.payload.requestId, time: Date.now() }, edit: JSON.parse(JSON.stringify(state.edit)) }]
     state.edit.components = []
     state.edit.metaData = []
+    // Clear Asset-level metadata after saving to pendingEdits
+    delete state.edit.shortName
+    delete state.edit.summary
 }

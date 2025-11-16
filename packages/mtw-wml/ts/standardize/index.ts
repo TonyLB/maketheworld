@@ -131,6 +131,9 @@ export class StandardForm {
                     return previous
                 }
             }, [])
+            // Extract Asset-level metadata from StandardFormData
+            this._shortName = args.shortName ? new StandardLiteral(args.shortName) : undefined
+            this._summary = args.summary ? new StandardRender(args.summary) : undefined
             return
         }
         if (isStandardNDJSON(args)) {
@@ -378,11 +381,19 @@ export class StandardForm {
 
     toJSON(options?: StandardToJSONOptions): StandardFormData {
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
-        return {
+        const result: StandardFormData = {
             universalKey: this._universalKey,
             metaData: this.metaData,
             components: this._components.map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON(options) as StandardComponentData))
         }
+        // Include Asset-level metadata in JSON (following omission-over-empty principle)
+        if (this._shortName) {
+            result.shortName = this._shortName.toJSON()
+        }
+        if (this._summary) {
+            result.summary = this._summary.toJSON()
+        }
+        return result
     }
 
     toNDJSON(): StandardNDJSON {

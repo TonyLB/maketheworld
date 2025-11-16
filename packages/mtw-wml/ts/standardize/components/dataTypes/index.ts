@@ -16,6 +16,8 @@ import { StandardRoomData, isStandardRoom } from "./room"
 
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
+import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardImage }
 
@@ -103,6 +105,8 @@ export type StandardFormData = {
     universalKey: AssetUUID;
     components: StandardComponentData[];
     metaData: GenericTree<SchemaTag>;
+    shortName?: StandardEditableData<string>;
+    summary?: StandardEditableData<RenderTree>;
 }
 
 export const isStandardComponentData = (arg: any): arg is StandardComponentData => (isStandardNonEdit(arg) || isStandardRemove(arg) || isStandardReplace(arg))
