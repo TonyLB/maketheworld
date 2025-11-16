@@ -5,6 +5,7 @@ import { StandardRemove } from "@tonylb/mtw-wml/ts/standardize/components/edits"
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
 import { AssetsEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets';
+import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses';
 
 /**
  * Cache asset content to DynamoDB storage
@@ -12,10 +13,7 @@ import { AssetsEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces
  * This function synchronizes asset content between S3 files and DynamoDB storage,
  * identifying and applying only changed components for efficient updates.
  * 
- * @param params - Parameters object
- * @param params.assetId - The asset ID to cache
- * @param params.streamEvent - Function to stream events to EventBridge and messageBus subscribers
- * @returns Promise<void>
+ * Returns the zone/player used for streaming, and whether this is a new asset.
  */
 export const cacheAsset = async ({ assetId, streamEvent }: {
     assetId: string;
@@ -23,10 +21,10 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
         update: AssetsEventUpdate;
         streamKey: string;
     }) => Promise<void>;
-}): Promise<void> => {
+}): Promise<{ zone: Zone; player?: string; isNewAsset: boolean }> => {
     const assetUUID = AssetKey(assetId)
 
-    const [dbAsset, { assetWorkspace, standardForm: fileAsset }] = await Promise.all([
+    const [dbAsset, { assetWorkspace, standardForm: fileAsset }, priorMeta] = await Promise.all([
         internalCache.AssetData.get([assetUUID]).then(([assetCache]) => (assetCache?.standardForm ?? new StandardForm(`<Asset uuid=(${assetId}) />`))),
         (async () => {
             const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(assetUUID, { allowS3Fallback: true })
@@ -35,11 +33,20 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             }
             await assetWorkspace.loadJSON()
             return { assetWorkspace, standardForm: assetWorkspace.standard ?? new StandardForm(assetUUID) }
-        })()
+        })(),
+        assetDB.getItem({
+            Key: {
+                AssetId: assetUUID,
+                DataCategory: 'Meta::Asset'
+            },
+            ProjectionFields: ['AssetId']
+        })
     ])
 
     const diff = dbAsset.diff(fileAsset)
-    
+
+    const isNewAsset = !(priorMeta && (priorMeta as any).AssetId)
+
     // Phase 1B: Parallelize Meta::Asset write with component updates for efficiency
     // Replaces old dbRegister function with minimal, focused metadata write
     const metaAssetWrite = (async () => {
@@ -61,11 +68,12 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
                 // Note: No import graph maintenance (deferred to component-level redesign)
             })
         }
+        return { zone, player }
     })()
     
     if (diff) {
-        await Promise.all([
-            metaAssetWrite,
+        const [metaResult] = await Promise.all([
+            metaAssetWrite as Promise<{ zone?: string; player?: string }>,
             ...diff._components
             .map(async (component) => {
                 if (!component.universalKey) {
@@ -162,8 +170,17 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
                 streamKey: assetId
             })
         }
+
+        if (!metaResult.zone) {
+            throw new Error(`cacheAsset: Missing zone for asset ${assetId}`)
+        }
+        return { zone: metaResult.zone as Zone, player: metaResult.player, isNewAsset }
     } else {
         // Even with no diff, write Meta::Asset record
-        await metaAssetWrite
+        const metaResult = await metaAssetWrite
+        if (!metaResult.zone) {
+            throw new Error(`cacheAsset: Missing zone for asset ${assetId}`)
+        }
+        return { zone: metaResult.zone as Zone, player: metaResult.player, isNewAsset }
     }
 }

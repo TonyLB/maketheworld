@@ -8,7 +8,7 @@ import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { decacheAsset } from './caching'
+import { cacheAsset, decacheAsset } from './caching'
 
 // Mock external dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -47,11 +47,16 @@ jest.mock('./caching')
 
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 const eventBridgeSendMock = jest.mocked(eventBridgeClient.send, { shallow: false })
+const cacheAssetMock = jest.mocked(cacheAsset)
 const decacheAssetMock = jest.mocked(decacheAsset)
 
 describe('AssetsDataSource (mtw.assets)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        cacheAssetMock.mockResolvedValue({
+            zone: 'Library',
+            isNewAsset: false
+        } as any)
         decacheAssetMock.mockResolvedValue(undefined)
         // Mock assetDB.query for diagnostic tests
         assetDBMock.query.mockResolvedValue([])
