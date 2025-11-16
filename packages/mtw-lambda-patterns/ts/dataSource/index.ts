@@ -188,7 +188,7 @@ export class DataSource<
             
             const externalSnapshot: SnapshotType<ExternalSnapshotPayload> = {
                 ...externalPayload,
-                type: 'Snapshot Generated',
+                type: 'Snapshot',
                 createdAt: internalSnapshot.createdAt,
                 expiresAt: internalSnapshot.expiresAt
             }
@@ -233,7 +233,7 @@ export class DataSource<
                 
                 const externalSnapshot: SnapshotType<ExternalSnapshotPayload> = {
                     ...externalPayload,
-                    type: 'Snapshot Generated',
+                    type: 'Snapshot',
                     createdAt: internalSnapshot.createdAt,
                     expiresAt: internalSnapshot.expiresAt
                 }
@@ -528,7 +528,7 @@ export class DataSource<
         // Return the Core External format directly (no deserialization needed)
         return result?.snapshot ? {
             ...result!.snapshot,
-            type: 'Snapshot Generated'
+            type: 'Snapshot'
         } : undefined
     }
 

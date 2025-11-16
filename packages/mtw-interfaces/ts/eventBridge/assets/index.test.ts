@@ -153,7 +153,8 @@ describe('AssetsEventSerializer', () => {
 
         it('should serialize Asset Removed event (pass-through)', () => {
             const assetEvent: AssetLevelEventUpdate = {
-                type: 'Asset Removed'
+                type: 'Asset Removed',
+                zone: 'Canon'
             }
 
             const externalEvent = serializer.serialize({
@@ -163,6 +164,9 @@ describe('AssetsEventSerializer', () => {
             })
 
             expect(externalEvent.type).toBe('Asset Removed')
+            if (externalEvent.type === 'Asset Removed') {
+                expect(externalEvent.zone).toBe('Canon')
+            }
         })
 
         it('should serialize Canon Updated event (pass-through)', () => {

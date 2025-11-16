@@ -11,7 +11,7 @@ import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 export type ContentHeadersEventUpdate = ContentHeadersSnapshot | ContentHeadersUpdate | ZoneUpdatedEvent
 
 export type ContentHeadersSnapshot = {
-    type: 'Snapshot Generated'
+    type: 'Snapshot'
     assets: Array<{
         assetId: AssetUUID
         zone: Zone
@@ -32,7 +32,7 @@ export const isContentHeadersSnapshot = (event: any): event is ContentHeadersSna
         event &&
         typeof event === 'object' &&
         'type' in event &&
-        event.type === 'Snapshot Generated' &&
+        event.type === 'Snapshot' &&
         'assets' in event &&
         Array.isArray(event.assets)
     )
@@ -87,7 +87,7 @@ export class ContentHeadersAggregator {
      */
     createEmpty(): ContentHeadersSnapshot {
         return {
-            type: 'Snapshot Generated',
+            type: 'Snapshot',
             assets: []
         }
     }
@@ -119,7 +119,7 @@ export class ContentHeadersAggregator {
                 return {
                     success: true,
                     snapshot: {
-                        type: 'Snapshot Generated',
+                        type: 'Snapshot',
                         assets: [
                             ...baselineAssets,
                             {
@@ -148,7 +148,7 @@ export class ContentHeadersAggregator {
                 return {
                     success: true,
                     snapshot: {
-                        type: 'Snapshot Generated',
+                        type: 'Snapshot',
                         assets: [
                             ...baselineAssets,
                             {
@@ -160,7 +160,7 @@ export class ContentHeadersAggregator {
                     }
                 }
             } else if (isContentHeadersSnapshot(update)) {
-                // Handle Snapshot Generated event - replace entire snapshot
+                // Handle Snapshot event - replace entire snapshot
                 return {
                     success: true,
                     snapshot: update

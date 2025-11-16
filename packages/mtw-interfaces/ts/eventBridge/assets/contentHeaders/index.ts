@@ -41,7 +41,7 @@ export {
 // External event format (EventBridge) - using WML strings
 // External snapshot uses an array for efficient JSON transmission
 export type ContentHeadersSnapshotExternal = {
-    type: 'Snapshot Generated'
+    type: 'Snapshot'
     assets: Array<{
         assetId: AssetUUID
         zone: Zone
@@ -123,7 +123,7 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         }))
         
         return {
-            type: 'Snapshot Generated',
+            type: 'Snapshot',
             assets: externalAssets
         }
     }
@@ -138,7 +138,7 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
             }))
             
             return {
-                type: 'Snapshot Generated',
+                type: 'Snapshot',
                 assets: internalAssets
             }
         } catch (error) {
@@ -154,7 +154,7 @@ export const isContentHeadersExternal = (event: any): event is ContentHeadersExt
         return false
     }
     switch((event as any).type) {
-        case 'Snapshot Generated':
+        case 'Snapshot':
             return Boolean(
                 event.assets &&
                 Array.isArray(event.assets)
