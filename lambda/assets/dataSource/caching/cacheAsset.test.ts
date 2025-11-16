@@ -152,7 +152,7 @@ describe('Cache Asset (Data Source)', () => {
     })
 
     describe('Address handling', () => {
-        it('should not cache when address is missing', async () => {
+        it('should throw error when zone is missing', async () => {
             // Mock empty dbAsset
             internalCacheMock.AssetData.get.mockResolvedValue([{
                 AssetId: 'ASSET#primitives',
@@ -165,7 +165,7 @@ describe('Cache Asset (Data Source)', () => {
                 zone: undefined
             }])
 
-            await cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })
+            await expect(cacheAsset({ assetId: 'primitives', streamEvent: mockStreamEvent })).rejects.toThrow('cacheAsset: Missing zone')
 
             // Should not call putItem or optimisticUpdate
             expect(assetDBMock.putItem).not.toHaveBeenCalled()
