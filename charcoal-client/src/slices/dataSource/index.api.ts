@@ -45,7 +45,7 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
                     const { streamKey, timestamp, update } = payload
                     
                     // Route to appropriate processor based on message type
-                    if (update.type === 'Snapshot Generated') {
+                    if (update.type === 'Snapshot') {
                         dispatch(processRawSnapshot({ streamKey, timestamp, rawSnapshot: update }))
                     } else {
                         // All other update types are events

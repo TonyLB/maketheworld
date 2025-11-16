@@ -122,14 +122,14 @@ const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot>
         ).then(results => results.filter(excludeUndefined))
         
         return {
-            type: 'Snapshot Generated',
+            type: 'Snapshot',
             assets: contentHeadersAssets
         }
     } catch (error) {
         console.error('Error generating content headers snapshot:', error)
         // Return empty snapshot on error
         return {
-            type: 'Snapshot Generated',
+            type: 'Snapshot',
             assets: []
         }
     }

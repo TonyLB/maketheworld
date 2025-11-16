@@ -21,7 +21,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 const snapshot = aggregator.createEmpty()
                 
                 expect(snapshot).toEqual({
-                    type: 'Snapshot Generated',
+                    type: 'Snapshot',
                     assets: []
                 })
             })
@@ -64,7 +64,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     `))
                     
                     const snapshot = {
-                        type: 'Snapshot Generated' as const,
+                        type: 'Snapshot' as const,
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
@@ -106,7 +106,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     `))
                     
                     const snapshot = {
-                        type: 'Snapshot Generated' as const,
+                        type: 'Snapshot' as const,
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
@@ -151,7 +151,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     `))
                     
                     const snapshot = {
-                        type: 'Snapshot Generated' as const,
+                        type: 'Snapshot' as const,
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
@@ -226,7 +226,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     `))
                     
                     const snapshot = {
-                        type: 'Snapshot Generated' as const,
+                        type: 'Snapshot' as const,
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
@@ -273,7 +273,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                 it('should preserve other assets when updating zone', () => {
                     const snapshot = {
-                        type: 'Snapshot Generated' as const,
+                        type: 'Snapshot' as const,
                         assets: [
                             {
                                 assetId: 'ASSET#test1' as const,
@@ -315,10 +315,10 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 })
             })
 
-            describe('Snapshot Generated events', () => {
+            describe('Snapshot events', () => {
                 it('should replace entire snapshot', () => {
                     const oldSnapshot = {
-                        type: 'Snapshot Generated' as const,
+                        type: 'Snapshot' as const,
                         assets: [{
                             assetId: 'ASSET#old' as const,
                             zone: 'Canon' as const,
@@ -327,7 +327,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     }
 
                     const newSnapshot = {
-                        type: 'Snapshot Generated' as const,
+                        type: 'Snapshot' as const,
                         assets: [{
                             assetId: 'ASSET#new' as const,
                             zone: 'Library' as const,
@@ -348,7 +348,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 it('should return error when merge fails', () => {
                     // Create a snapshot with a StandardForm
                     const snapshot = {
-                        type: 'Snapshot Generated' as const,
+                        type: 'Snapshot' as const,
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
@@ -389,7 +389,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                 it('should return unchanged snapshot on error', () => {
                     const snapshot = {
-                        type: 'Snapshot Generated' as const,
+                        type: 'Snapshot' as const,
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
@@ -423,7 +423,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
             describe('Immutability', () => {
                 it('should not mutate the original snapshot on Headers Updated', () => {
                     const originalSnapshot = {
-                        type: 'Snapshot Generated' as const,
+                        type: 'Snapshot' as const,
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
@@ -444,7 +444,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                 it('should not mutate the original snapshot on Zone Updated', () => {
                     const originalSnapshot = {
-                        type: 'Snapshot Generated' as const,
+                        type: 'Snapshot' as const,
                         assets: [{
                             assetId: 'ASSET#test' as const,
                             zone: 'Canon' as const,
@@ -536,7 +536,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
         describe('serializeSnapshot', () => {
             it('should serialize snapshot to external format', () => {
                 const snapshot = {
-                    type: 'Snapshot Generated' as const,
+                    type: 'Snapshot' as const,
                     assets: [
                         {
                             assetId: 'ASSET#test1' as const,
@@ -554,7 +554,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 const result = serializer.serializeSnapshot(snapshot)
 
                 expect(result).toEqual({
-                    type: 'Snapshot Generated',
+                    type: 'Snapshot',
                     assets: [
                         {
                             assetId: 'ASSET#test1',
@@ -574,7 +574,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
         describe('deserializeSnapshot', () => {
             it('should deserialize snapshot from external format', () => {
                 const externalSnapshot: ContentHeadersSnapshotExternal = {
-                    type: 'Snapshot Generated',
+                    type: 'Snapshot',
                     assets: [
                         {
                             assetId: 'ASSET#test1',
@@ -592,7 +592,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 const result = serializer.deserializeSnapshot(externalSnapshot)
 
                 expect(result).not.toBeNull()
-                expect(result?.type).toBe('Snapshot Generated')
+                expect(result?.type).toBe('Snapshot')
                 expect(result?.assets).toHaveLength(2)
                 expect(result?.assets[0].assetId).toBe('ASSET#test1')
                 expect(result?.assets[0].zone).toBe('Canon')

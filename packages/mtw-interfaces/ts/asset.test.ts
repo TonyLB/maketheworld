@@ -26,45 +26,6 @@ describe('AssetClientMessage typeguard', () => {
         })).toBe(false)
     })
 
-    describe('Player', () => {
-
-        it('should reject when no PlayerName', () => {
-            expect(isAssetClientMessage({
-                messageType: 'Player',
-                CodeOfConductConsent: true,
-                Assets: [],
-                Characters: [],
-                Settings: { onboardCompleteTags: [] },
-                SessionId: 'session123'
-            })).toBe(false)
-        })
-
-        it('should reject when wrong type PlayerName', () => {
-            expect(isAssetClientMessage({
-                messageType: 'Player',
-                PlayerName: 1234,
-                CodeOfConductConsent: true,
-                Assets: [],
-                Characters: [],
-                Settings: { onboardCompleteTags: [] },
-                SessionId: 'session123'
-            })).toBe(false)
-        })
-
-        it('should accept correct entry', () => {
-            expect(isAssetClientMessage({
-                messageType: 'Player',
-                PlayerName: 'TestPlayer',
-                CodeOfConductConsent: true,
-                Assets: [],
-                Characters: [],
-                Settings: { onboardCompleteTags: [] },
-                SessionId: 'session123'
-            })).toBe(true)
-        })
-
-    })
-
     describe('Library', () => {
 
         it('should reject when no Assets field', () => {

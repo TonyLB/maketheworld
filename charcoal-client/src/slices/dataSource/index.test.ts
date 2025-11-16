@@ -5,7 +5,7 @@ import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSo
 
 // Test types
 type TestSnapshot = {
-    type: 'Snapshot Generated'
+    type: 'Snapshot'
     value: number
 }
 
@@ -16,22 +16,22 @@ type TestUpdate = {
 type TestEvent = TestSnapshot | TestUpdate
 
 // Type guards
-const isTestSnapshot = (event: TestEvent): event is TestSnapshot => event.type === 'Snapshot Generated'
+const isTestSnapshot = (event: TestEvent): event is TestSnapshot => event.type === 'Snapshot'
 const isTestUpdate = (event: TestEvent): event is TestUpdate => event.type === 'Increment' || event.type === 'Decrement'
 
 // Mock aggregator
 const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
-    createEmpty: () => ({ type: 'Snapshot Generated', value: 0 }),
+    createEmpty: () => ({ type: 'Snapshot', value: 0 }),
     applyUpdate: (snapshot, update) => {
         if (update.type === 'Increment') {
             return {
                 success: true,
-                snapshot: { type: 'Snapshot Generated', value: snapshot.value + 1 }
+                snapshot: { type: 'Snapshot', value: snapshot.value + 1 }
             }
         } else if (update.type === 'Decrement') {
             return {
                 success: true,
-                snapshot: { type: 'Snapshot Generated', value: snapshot.value - 1 }
+                snapshot: { type: 'Snapshot', value: snapshot.value - 1 }
             }
         }
         return {

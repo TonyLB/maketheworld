@@ -22,13 +22,6 @@ export type PlayerSnapshot = {
     settings: AssetClientPlayerSettings
 }
 
-export type PlayerSnapshotGenerated = {
-    type: 'Snapshot Generated'
-    assets: LibraryAsset[]
-    characters: LibraryCharacter[]
-    settings: AssetClientPlayerSettings
-}
-
 export type PlayerSettingsUpdated = {
     type: 'Player Settings Updated'
     settings: AssetClientPlayerSettings
@@ -67,10 +60,9 @@ export type PlayerEventUpdate =
 // Internal and external formats are currently identical pass-throughs.
 //
 
-export type PlayerSnapshotExternal = PlayerSnapshot | PlayerSnapshotGenerated
+export type PlayerSnapshotExternal = PlayerSnapshot
 export type PlayerExternal =
     | PlayerSnapshot
-    | PlayerSnapshotGenerated
     | PlayerSettingsUpdated
     | PlayerAssetAssigned
     | PlayerAssetRemoved
@@ -115,17 +107,6 @@ const isPlayerSettings = (value: any): value is AssetClientPlayerSettings => (
     value.onboardCompleteTags.every((entry: any) => typeof entry === 'string') &&
     (value.guestName === undefined || typeof value.guestName === 'string') &&
     (value.guestId === undefined || typeof value.guestId === 'string')
-)
-
-const isPlayerSnapshotGenerated = (value: any): value is PlayerSnapshotGenerated => (
-    value &&
-    typeof value === 'object' &&
-    value.type === 'Snapshot Generated' &&
-    Array.isArray(value.assets) &&
-    value.assets.every(isLibraryAsset) &&
-    Array.isArray(value.characters) &&
-    value.characters.every(isLibraryCharacter) &&
-    isPlayerSettings(value.settings)
 )
 
 export const isPlayerSnapshot = (value: any): value is PlayerSnapshot => (
@@ -176,7 +157,6 @@ export const isPlayerCharacterRemoved = (value: any): value is PlayerCharacterRe
 
 export const isPlayerExternal = (value: any): value is PlayerExternal => (
     isPlayerSnapshot(value) ||
-    isPlayerSnapshotGenerated(value) ||
     isPlayerSettingsUpdated(value) ||
     isPlayerAssetAssigned(value) ||
     isPlayerAssetRemoved(value) ||
@@ -247,7 +227,7 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
         externalUpdate: PlayerExternal
     }): PlayerEventUpdate | null {
         const { externalUpdate } = params
-        if (isPlayerSnapshot(externalUpdate) || isPlayerSnapshotGenerated(externalUpdate)) {
+        if (isPlayerSnapshot(externalUpdate)) {
             return {
                 type: 'Snapshot',
                 assets: externalUpdate.assets.map((asset) => ({ ...asset })),
@@ -302,12 +282,10 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
     }
 
     deserializeSnapshot(externalSnapshot: PlayerSnapshotExternal): PlayerSnapshot | null {
-        // Accept both 'Snapshot' and 'Snapshot Generated' types
-        if (!isPlayerSnapshot(externalSnapshot) && !isPlayerSnapshotGenerated(externalSnapshot)) {
+        if (!isPlayerSnapshot(externalSnapshot)) {
             console.error('Invalid player snapshot external payload', externalSnapshot)
             return null
         }
-        // Convert to internal 'Snapshot' format (normalize 'Snapshot Generated' to 'Snapshot')
         return {
             type: 'Snapshot',
             assets: externalSnapshot.assets.map((asset) => ({ ...asset })),
