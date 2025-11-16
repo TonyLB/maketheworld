@@ -1,10 +1,10 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`large WML test should parse properly 1`] = `
-Array [
-  Object {
-    "properties": Array [
-      Object {
+[
+  {
+    "properties": [
+      {
         "key": "uuid",
         "type": 0,
         "value": "Dungeon",
@@ -13,9 +13,9 @@ Array [
     "tag": "Asset",
     "type": 0,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "VORTEX",
@@ -24,9 +24,9 @@ Array [
     "tag": "Room",
     "type": 0,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "to",
         "type": 0,
         "value": "cave",
@@ -35,17 +35,17 @@ Array [
     "tag": "Exit",
     "type": 0,
   },
-  Object {
+  {
     "text": "cave",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Exit",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "uuid",
         "type": 0,
         "value": "example1",
@@ -54,52 +54,52 @@ Array [
     "tag": "Example",
     "type": 0,
   },
-  Object {
-    "properties": Array [],
+  {
+    "properties": [],
     "tag": "Description",
     "type": 0,
   },
-  Object {
+  {
     "text": "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave. ",
     "type": 3,
   },
-  Object {
-    "properties": Array [],
+  {
+    "properties": [],
     "tag": "br",
     "type": 1,
   },
-  Object {
+  {
     "text": " (You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Description",
     "type": 2,
   },
-  Object {
-    "properties": Array [],
+  {
+    "properties": [],
     "tag": "Name",
     "type": 0,
   },
-  Object {
+  {
     "text": "Cave entrance",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Name",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Example",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Room",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "dungeonMap",
@@ -108,9 +108,9 @@ Array [
     "tag": "Map",
     "type": 0,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "dungeonImage",
@@ -119,9 +119,9 @@ Array [
     "tag": "Image",
     "type": 1,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "VORTEX",
@@ -130,14 +130,14 @@ Array [
     "tag": "Room",
     "type": 0,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "x",
         "type": 1,
         "value": "0",
       },
-      Object {
+      {
         "key": "y",
         "type": 1,
         "value": "250",
@@ -146,13 +146,13 @@ Array [
     "tag": "Position",
     "type": 1,
   },
-  Object {
+  {
     "tag": "Room",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "cave",
@@ -161,14 +161,14 @@ Array [
     "tag": "Room",
     "type": 0,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "x",
         "type": 1,
         "value": "0",
       },
-      Object {
+      {
         "key": "y",
         "type": 1,
         "value": "150",
@@ -177,9 +177,9 @@ Array [
     "tag": "Position",
     "type": 1,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "to",
         "type": 0,
         "value": "curvingPassage",
@@ -188,17 +188,17 @@ Array [
     "tag": "Exit",
     "type": 0,
   },
-  Object {
+  {
     "text": "passage",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Exit",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "to",
         "type": 0,
         "value": "VORTEX",
@@ -207,21 +207,21 @@ Array [
     "tag": "Exit",
     "type": 0,
   },
-  Object {
+  {
     "text": "out",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Exit",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Room",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "curvingPassage",
@@ -230,14 +230,14 @@ Array [
     "tag": "Room",
     "type": 0,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "x",
         "type": 1,
         "value": "-150",
       },
-      Object {
+      {
         "key": "y",
         "type": 1,
         "value": "100",
@@ -246,9 +246,9 @@ Array [
     "tag": "Position",
     "type": 1,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "to",
         "type": 0,
         "value": "cave",
@@ -257,17 +257,17 @@ Array [
     "tag": "Exit",
     "type": 0,
   },
-  Object {
+  {
     "text": "cave",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Exit",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "to",
         "type": 0,
         "value": "chamber",
@@ -276,21 +276,21 @@ Array [
     "tag": "Exit",
     "type": 0,
   },
-  Object {
+  {
     "text": "chamber",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Exit",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Room",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "chamber",
@@ -299,14 +299,14 @@ Array [
     "tag": "Room",
     "type": 0,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "x",
         "type": 1,
         "value": "-150",
       },
-      Object {
+      {
         "key": "y",
         "type": 1,
         "value": "0",
@@ -315,9 +315,9 @@ Array [
     "tag": "Position",
     "type": 1,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "to",
         "type": 0,
         "value": "curvingPassage",
@@ -326,25 +326,25 @@ Array [
     "tag": "Exit",
     "type": 0,
   },
-  Object {
+  {
     "text": "passage",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Exit",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Room",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Map",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "cave",
@@ -353,9 +353,9 @@ Array [
     "tag": "Room",
     "type": 0,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "uuid",
         "type": 0,
         "value": "example2",
@@ -364,39 +364,39 @@ Array [
     "tag": "Example",
     "type": 0,
   },
-  Object {
-    "properties": Array [],
+  {
+    "properties": [],
     "tag": "Name",
     "type": 0,
   },
-  Object {
+  {
     "text": "Shallow cave",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Name",
     "type": 2,
   },
-  Object {
-    "properties": Array [],
+  {
+    "properties": [],
     "tag": "Description",
     "type": 0,
   },
-  Object {
+  {
     "text": "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Description",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Example",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "uuid",
         "type": 0,
         "value": "example3",
@@ -405,43 +405,43 @@ Array [
     "tag": "Example",
     "type": 0,
   },
-  Object {
-    "properties": Array [],
+  {
+    "properties": [],
     "tag": "Name",
     "type": 0,
   },
-  Object {
+  {
     "text": "Shallow cave",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Name",
     "type": 2,
   },
-  Object {
-    "properties": Array [],
+  {
+    "properties": [],
     "tag": "Description",
     "type": 0,
   },
-  Object {
+  {
     "text": "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Description",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Example",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Room",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "curvingPassage",
@@ -450,9 +450,9 @@ Array [
     "tag": "Room",
     "type": 0,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "uuid",
         "type": 0,
         "value": "example4",
@@ -461,43 +461,43 @@ Array [
     "tag": "Example",
     "type": 0,
   },
-  Object {
-    "properties": Array [],
+  {
+    "properties": [],
     "tag": "Name",
     "type": 0,
   },
-  Object {
+  {
     "text": "Curving Passage",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Name",
     "type": 2,
   },
-  Object {
-    "properties": Array [],
+  {
+    "properties": [],
     "tag": "Description",
     "type": 0,
   },
-  Object {
+  {
     "text": "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Description",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Example",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Room",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "chamber",
@@ -506,9 +506,9 @@ Array [
     "tag": "Room",
     "type": 0,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "orc",
@@ -517,13 +517,13 @@ Array [
     "tag": "Feature",
     "type": 0,
   },
-  Object {
+  {
     "tag": "Feature",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "key",
         "type": 0,
         "value": "pie",
@@ -532,13 +532,13 @@ Array [
     "tag": "Feature",
     "type": 0,
   },
-  Object {
+  {
     "tag": "Feature",
     "type": 2,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "uuid",
         "type": 0,
         "value": "example5",
@@ -547,13 +547,13 @@ Array [
     "tag": "Example",
     "type": 0,
   },
-  Object {
+  {
     "text": "A ten-by-ten squared off cut stone room. Across from the passage leading in is a table with a ",
     "type": 3,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "to",
         "type": 0,
         "value": "pie",
@@ -562,21 +562,21 @@ Array [
     "tag": "Link",
     "type": 0,
   },
-  Object {
+  {
     "text": "pie",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Link",
     "type": 2,
   },
-  Object {
+  {
     "text": ". Standing before the table is an angry ",
     "type": 3,
   },
-  Object {
-    "properties": Array [
-      Object {
+  {
+    "properties": [
+      {
         "key": "to",
         "type": 0,
         "value": "orc",
@@ -585,27 +585,27 @@ Array [
     "tag": "Link",
     "type": 0,
   },
-  Object {
+  {
     "text": "orc",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Link",
     "type": 2,
   },
-  Object {
+  {
     "text": ".",
     "type": 3,
   },
-  Object {
+  {
     "tag": "Example",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Room",
     "type": 2,
   },
-  Object {
+  {
     "tag": "Asset",
     "type": 2,
   },
@@ -613,32 +613,32 @@ Array [
 `;
 
 exports[`large WML test should standardize properly 1`] = `
-Array [
-  Object {
+[
+  {
     "context": undefined,
     "key": "dungeonImage",
     "tag": "Image",
     "universalKey": undefined,
   },
-  Object {
+  {
     "context": undefined,
-    "examples": Array [
+    "examples": [
       "EXAMPLE#example2",
       "EXAMPLE#example3",
     ],
-    "exits": Array [
-      Object {
+    "exits": [
+      {
         "description": "passage",
-        "to": Object {
+        "to": {
           "context": undefined,
           "key": "curvingPassage",
           "tag": "Room",
           "universalKey": undefined,
         },
       },
-      Object {
+      {
         "description": "out",
-        "to": Object {
+        "to": {
           "context": undefined,
           "key": "VORTEX",
           "tag": "Room",
@@ -651,55 +651,55 @@ Array [
     "tag": "Room",
     "universalKey": undefined,
   },
-  Object {
-    "context": Array [
-      Object {
+  {
+    "context": [
+      {
         "context": undefined,
         "key": "cave",
         "tag": "Room",
         "universalKey": undefined,
       },
     ],
-    "description": Array [
+    "description": [
       "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
     ],
     "key": undefined,
-    "name": Array [
+    "name": [
       "Shallow cave",
     ],
     "summary": undefined,
     "tag": "Example",
     "universalKey": "EXAMPLE#example2",
   },
-  Object {
-    "context": Array [
-      Object {
+  {
+    "context": [
+      {
         "context": undefined,
         "key": "cave",
         "tag": "Room",
         "universalKey": undefined,
       },
     ],
-    "description": Array [
+    "description": [
       "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
     ],
     "key": undefined,
-    "name": Array [
+    "name": [
       "Shallow cave",
     ],
     "summary": undefined,
     "tag": "Example",
     "universalKey": "EXAMPLE#example3",
   },
-  Object {
+  {
     "context": undefined,
-    "examples": Array [
+    "examples": [
       "EXAMPLE#example5",
     ],
-    "exits": Array [
-      Object {
+    "exits": [
+      {
         "description": "passage",
-        "to": Object {
+        "to": {
           "context": undefined,
           "key": "curvingPassage",
           "tag": "Room",
@@ -707,14 +707,14 @@ Array [
         },
       },
     ],
-    "features": Array [
-      Object {
+    "features": [
+      {
         "context": undefined,
         "key": "orc",
         "tag": "Feature",
         "universalKey": undefined,
       },
-      Object {
+      {
         "context": undefined,
         "key": "pie",
         "tag": "Feature",
@@ -726,9 +726,9 @@ Array [
     "tag": "Room",
     "universalKey": undefined,
   },
-  Object {
-    "context": Array [
-      Object {
+  {
+    "context": [
+      {
         "context": undefined,
         "key": "chamber",
         "tag": "Room",
@@ -742,9 +742,9 @@ Array [
     "tag": "Example",
     "universalKey": "EXAMPLE#example5",
   },
-  Object {
-    "context": Array [
-      Object {
+  {
+    "context": [
+      {
         "context": undefined,
         "key": "chamber",
         "tag": "Room",
@@ -756,9 +756,9 @@ Array [
     "tag": "Feature",
     "universalKey": undefined,
   },
-  Object {
-    "context": Array [
-      Object {
+  {
+    "context": [
+      {
         "context": undefined,
         "key": "chamber",
         "tag": "Room",
@@ -770,24 +770,24 @@ Array [
     "tag": "Feature",
     "universalKey": undefined,
   },
-  Object {
+  {
     "context": undefined,
-    "examples": Array [
+    "examples": [
       "EXAMPLE#example4",
     ],
-    "exits": Array [
-      Object {
+    "exits": [
+      {
         "description": "cave",
-        "to": Object {
+        "to": {
           "context": undefined,
           "key": "cave",
           "tag": "Room",
           "universalKey": undefined,
         },
       },
-      Object {
+      {
         "description": "chamber",
-        "to": Object {
+        "to": {
           "context": undefined,
           "key": "chamber",
           "tag": "Room",
@@ -800,35 +800,35 @@ Array [
     "tag": "Room",
     "universalKey": undefined,
   },
-  Object {
-    "context": Array [
-      Object {
+  {
+    "context": [
+      {
         "context": undefined,
         "key": "curvingPassage",
         "tag": "Room",
         "universalKey": undefined,
       },
     ],
-    "description": Array [
+    "description": [
       "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
     ],
     "key": undefined,
-    "name": Array [
+    "name": [
       "Curving Passage",
     ],
     "summary": undefined,
     "tag": "Example",
     "universalKey": "EXAMPLE#example4",
   },
-  Object {
+  {
     "context": undefined,
-    "examples": Array [
+    "examples": [
       "EXAMPLE#example1",
     ],
-    "exits": Array [
-      Object {
+    "exits": [
+      {
         "description": "cave",
-        "to": Object {
+        "to": {
           "context": undefined,
           "key": "cave",
           "tag": "Room",
@@ -841,39 +841,39 @@ Array [
     "tag": "Room",
     "universalKey": undefined,
   },
-  Object {
-    "context": Array [
-      Object {
+  {
+    "context": [
+      {
         "context": undefined,
         "key": "VORTEX",
         "tag": "Room",
         "universalKey": undefined,
       },
     ],
-    "description": Array [
+    "description": [
       "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
-      Object {
-        "children": Array [],
-        "data": Object {
+      {
+        "children": [],
+        "data": {
           "tag": "br",
         },
       },
       "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
     ],
     "key": undefined,
-    "name": Array [
+    "name": [
       "Cave entrance",
     ],
     "summary": undefined,
     "tag": "Example",
     "universalKey": "EXAMPLE#example1",
   },
-  Object {
+  {
     "context": undefined,
-    "images": Array [
-      Object {
-        "children": Array [],
-        "data": Object {
+    "images": [
+      {
+        "children": [],
+        "data": {
           "key": "dungeonImage",
           "tag": "Image",
         },
@@ -881,9 +881,9 @@ Array [
     ],
     "key": "dungeonMap",
     "name": undefined,
-    "positions": Array [
-      Object {
-        "room": Object {
+    "positions": [
+      {
+        "room": {
           "context": undefined,
           "key": "VORTEX",
           "tag": "Room",
@@ -892,8 +892,8 @@ Array [
         "x": 0,
         "y": 250,
       },
-      Object {
-        "room": Object {
+      {
+        "room": {
           "context": undefined,
           "key": "cave",
           "tag": "Room",
@@ -902,8 +902,8 @@ Array [
         "x": 0,
         "y": 150,
       },
-      Object {
-        "room": Object {
+      {
+        "room": {
           "context": undefined,
           "key": "curvingPassage",
           "tag": "Room",
@@ -912,8 +912,8 @@ Array [
         "x": -150,
         "y": 100,
       },
-      Object {
-        "room": Object {
+      {
+        "room": {
           "context": undefined,
           "key": "chamber",
           "tag": "Room",

@@ -59,6 +59,10 @@ const parentTagRenderLiteral = ({ tag: { data: tag, children }, ...args }: Print
     if (!isSchemaParent(tag)) {
         return [{ printMode: PrintMode.naive, output: '' }]
     }
+    // Handle empty Parent tags (self-closing)
+    if (children.length === 0) {
+        return [{ printMode: PrintMode.naive, output: `<${tag.tag} />` }]
+    }
     const textValue = children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('') as string
     const naive = `<${tag.tag}>${textValue}</${tag.tag}>`
     if (naive.length + Math.min(10, args.options.indent * 4) > 80) {
@@ -120,7 +124,14 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             if (!isSchemaParent(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
-            // Validate that the combined string content is a ComponentUUID
+            // Allow empty Parent tags (to express "no parent")
+            if (children.length === 0) {
+                return {
+                    data: { tag: 'Parent' },
+                    children: []
+                }
+            }
+            // If not empty, validate that the combined string content is a ComponentUUID
             const textValue = children
                 .map(({ data }) => data)
                 .filter(isSchemaString)

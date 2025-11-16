@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`keyValueTokenizer should accept a UUID 1`] = `
-Object {
+{
   "endIdx": 20,
   "startIdx": 0,
   "type": "KeyValue",
@@ -10,7 +10,7 @@ Object {
 `;
 
 exports[`keyValueTokenizer should accept periods in keys 1`] = `
-Object {
+{
   "endIdx": 10,
   "startIdx": 0,
   "type": "KeyValue",
@@ -19,7 +19,7 @@ Object {
 `;
 
 exports[`keyValueTokenizer should tokenize with whitespace around value 1`] = `
-Object {
+{
   "endIdx": 7,
   "startIdx": 0,
   "type": "KeyValue",
@@ -28,7 +28,7 @@ Object {
 `;
 
 exports[`keyValueTokenizer should tokenize without whitespace 1`] = `
-Object {
+{
   "endIdx": 7,
   "startIdx": 0,
   "type": "KeyValue",

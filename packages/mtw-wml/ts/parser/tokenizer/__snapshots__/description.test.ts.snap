@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`descriptionTokenizer should break description for comments 1`] = `
-Object {
+{
   "endIdx": 4,
   "startIdx": 0,
   "type": "Description",
@@ -10,7 +10,7 @@ Object {
 `;
 
 exports[`descriptionTokenizer should break description for comments 2`] = `
-Object {
+{
   "endIdx": 11,
   "startIdx": 0,
   "type": "Description",
@@ -19,7 +19,7 @@ Object {
 `;
 
 exports[`descriptionTokenizer should tokenize to end of source 1`] = `
-Object {
+{
   "endIdx": 4,
   "startIdx": 0,
   "type": "Description",
@@ -28,7 +28,7 @@ Object {
 `;
 
 exports[`descriptionTokenizer should tokenize to the next tag 1`] = `
-Object {
+{
   "endIdx": 4,
   "startIdx": 0,
   "type": "Description",
@@ -37,7 +37,7 @@ Object {
 `;
 
 exports[`descriptionTokenizer should tokenize to the next whitespace 1`] = `
-Object {
+{
   "endIdx": 4,
   "startIdx": 0,
   "type": "Description",

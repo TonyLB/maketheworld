@@ -92,7 +92,24 @@ describe('Parent tag', () => {
             expect(() => schemaFromParse(testParse)).toThrow('Parent tag content must be a ComponentUUID, got: not-a-valid-uuid')
         })
 
-        it('should reject Parent tag with empty content', () => {
+        it('should accept empty Parent tag (self-closing)', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Parent />
+                    </Room>
+                </Asset>
+            `))))
+            const schema = schemaFromParse(testParse)
+            const roomNode = schema[0].children.find(({ data }) => data.tag === 'Room')
+            expect(roomNode).toBeDefined()
+            const parentNode = roomNode?.children.find(({ data }) => data.tag === 'Parent')
+            expect(parentNode).toBeDefined()
+            expect(isSchemaParent(parentNode?.data)).toBe(true)
+            expect(parentNode?.children.length).toBe(0)
+        })
+
+        it('should accept empty Parent tag (opening and closing)', () => {
             const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
                 <Asset uuid=(Test)>
                     <Room key=(room1)>
@@ -100,7 +117,13 @@ describe('Parent tag', () => {
                     </Room>
                 </Asset>
             `))))
-            expect(() => schemaFromParse(testParse)).toThrow('Parent tag content must be a ComponentUUID')
+            const schema = schemaFromParse(testParse)
+            const roomNode = schema[0].children.find(({ data }) => data.tag === 'Room')
+            expect(roomNode).toBeDefined()
+            const parentNode = roomNode?.children.find(({ data }) => data.tag === 'Parent')
+            expect(parentNode).toBeDefined()
+            expect(isSchemaParent(parentNode?.data)).toBe(true)
+            expect(parentNode?.children.length).toBe(0)
         })
 
         it('should reject Parent tag with properties', () => {
@@ -144,6 +167,24 @@ describe('Parent tag', () => {
             `)
             expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
         })
+
+        it('should round-trip empty Parent tag (self-closing)', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(Test)><Room key=(room1)><Parent /></Room></Asset>
+            `)
+            expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+        })
+
+        it('should round-trip empty Parent tag (opening and closing)', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(Test)><Room key=(room1)><Parent></Parent></Room></Asset>
+            `)
+            // Empty tags should serialize as self-closing
+            const expectedWML = deIndentWML(`
+                <Asset uuid=(Test)><Room key=(room1)><Parent /></Room></Asset>
+            `)
+            expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(expectedWML)
+        })
     })
 
     describe('edge cases', () => {
@@ -182,6 +223,25 @@ describe('Parent tag', () => {
             expect(parentNode).toBeDefined()
             const nameNode = roomNode?.children.find(({ data }) => data.tag === 'Name')
             expect(nameNode).toBeDefined()
+        })
+
+        it('should allow empty Parent tag alongside other content', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Name>Test Room</Name>
+                        <Parent />
+                        <Description>Room description</Description>
+                    </Room>
+                </Asset>
+            `))))
+            const schema = schemaFromParse(testParse)
+            const roomNode = schema[0].children.find(({ data }) => data.tag === 'Room')
+            expect(roomNode).toBeDefined()
+            const parentNode = roomNode?.children.find(({ data }) => data.tag === 'Parent')
+            expect(parentNode).toBeDefined()
+            expect(isSchemaParent(parentNode?.data)).toBe(true)
+            expect(parentNode?.children.length).toBe(0)
         })
     })
 })
