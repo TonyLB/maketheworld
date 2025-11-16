@@ -36,15 +36,6 @@ This event means that an edit has been applied to the asset
 - schema: A WML schema with (likely) edit elements such as Replace and Remove, as well as added new
 plain elements, that has been applied to authorization layer of the specified asset.
 
-## Content Removed
-- AssetId: `ASSET#{id}`
-- RequestId: uuid
-
-This event means that an asset's content has been removed or the asset has been deleted.
-This should be published when assets are moved to Archive zone or when their content is reset to empty.
-
-**TODO**: This event needs to be implemented in the WML lambda. Currently missing but required by the assets data source for proper decaching.
-
 ## Merge Conflict
 - AssetId: `ASSET#{id}`
 - RequestId: uuid

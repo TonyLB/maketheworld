@@ -1417,7 +1417,6 @@ Resources:
                     - mtw.wml
                   detail-type:
                     - Content Update
-                    - Content Removed
                     - Zone Changed
                     - Asset Purged
   DeliverMessageSyncFunction:

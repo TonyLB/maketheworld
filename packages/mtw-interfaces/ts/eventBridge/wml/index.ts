@@ -16,9 +16,6 @@ export type WMLContentEvent =
         schema: StandardForm
     }
     | {
-        type: 'Content Removed'
-    }
-    | {
         type: 'Merge Conflict'
         error?: string
     }
@@ -52,9 +49,6 @@ export type WMLContentEventExternal =
     | {
         type: 'Content Update'
         wml: string
-    }
-    | {
-        type: 'Content Removed'
     }
     | {
         type: 'Merge Conflict'
@@ -91,7 +85,7 @@ export const isWMLContentEvent = (event: any): event is WMLContentEvent => {
         event &&
         typeof event === 'object' &&
         'type' in event &&
-        (event.type === 'Content Update' || event.type === 'Content Removed' || event.type === 'Merge Conflict')
+        (event.type === 'Content Update' || event.type === 'Merge Conflict')
     )
 }
 
@@ -104,7 +98,6 @@ export const isWMLContentEventExternal = (event: any): event is WMLContentEventE
         case 'Content Update':
             // Must include wml string
             return typeof (event as any).wml === 'string'
-        case 'Content Removed':
         case 'Merge Conflict':
             return true
         default:
@@ -119,14 +112,6 @@ export const isWMLContentUpdateEvent = (event: any): event is WMLContentEvent & 
         event.type === 'Content Update' &&
         'schema' in event &&
         event.schema instanceof StandardForm
-    )
-}
-
-export const isWMLContentRemovedEvent = (event: any): event is WMLContentEvent & { type: 'Content Removed' } => {
-    return Boolean(
-        event &&
-        typeof event === 'object' &&
-        event.type === 'Content Removed'
     )
 }
 
@@ -206,11 +191,6 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
                 type: 'Content Update',
                 wml: schemaToWML([update.schema.schema])
             }
-        } else if (isWMLContentRemovedEvent(update)) {
-            // Content Removed events don't need WML
-            return {
-                type: 'Content Removed'
-            }
         } else if (isWMLMergeConflictEvent(update)) {
             // Merge Conflict events pass through with error information
             return {
@@ -257,11 +237,6 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
                 }
             } else {
                 throw new Error(`Content Update event missing required 'wml' property`)
-            }
-        } else if (externalUpdate.type === 'Content Removed') {
-            // Content Removed events don't need WML parsing
-            return {
-                type: 'Content Removed'
             }
         } else if (externalUpdate.type === 'Merge Conflict') {
             // Merge Conflict events pass through with error information

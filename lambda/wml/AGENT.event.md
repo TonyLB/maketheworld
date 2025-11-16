@@ -25,7 +25,6 @@ The WML Lambda serves as the domain authority for WML source files and their Sta
 
 **Events Published**:
 - `Content Update` - WML content edited and merged successfully
-- `Content Removed` - Asset content deleted or reset (**TODO: Not yet implemented**)
 - `Zone Changed` - Asset moved between zones (Canon, Library, Personal, Draft, Archive)
 - `Merge Conflict` - Edit application failed due to conflicts
 
@@ -58,12 +57,7 @@ The WML Lambda has successfully implemented the DataSource pattern with the foll
 
 ### ❌ Not Yet Implemented
 
-1. **Content Removed Events**: Documented in contracts but not emitted anywhere
-   - **Needed in**: `resetWML/index.ts` - should emit when content is cleared
-   - **Needed in**: Asset archival/deletion flows
-   - **Priority**: High - required by Assets Lambda for proper cache invalidation
-
-2. **Authorization Update Events**: Documented in README.md but no implementation found
+1. **Authorization Update Events**: Documented in README.md but no implementation found
    - **Status**: May be deferred or handled differently in current architecture
    - **Action Needed**: Clarify if authorization edits are a separate concern
 
@@ -119,7 +113,6 @@ The WML Lambda receives events from multiple sources:
 
 **Event Flow**:
 - `Content Update` → Assets Lambda recaches component data
-- `Content Removed` → Assets Lambda removes cached data (when implemented)
 - `Zone Changed` → Assets Lambda updates zone metadata and triggers downstream updates
 
 **Consistency Model**: Eventually consistent - Assets Lambda materializes views based on WML events
@@ -169,7 +162,6 @@ This document is part of a coordinated event flow documentation effort across th
 **Serialization Logic**:
 - **Content Update**: StandardForm → WML string for transmission
 - **Zone Changed**: Pass-through (already structured data)
-- **Content Removed**: No payload transformation needed
 - **Merge Conflict**: Pass-through with optional error message
 
 ### DataSource Implementation
@@ -193,15 +185,7 @@ This document is part of a coordinated event flow documentation effort across th
 
 ### High Priority
 
-1. **Implement Content Removed Events**
-   - ~~Add event emission in `resetWML/index.ts` when content is cleared~~ - N/A (resetWML deprecated)
-   - Add event emission in asset archival/deletion workflows
-   - Required by Assets Lambda for proper cache invalidation
-   - Event contract already defined in `mtw-interfaces`
-
-### Medium Priority
-
-2. **Clarify Authorization Update Events**
+1. **Clarify Authorization Update Events**
    - Determine if authorization edits are a separate concern
    - If needed, implement authorization layer edit handling
    - Document authorization update patterns and integration

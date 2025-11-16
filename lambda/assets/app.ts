@@ -72,23 +72,6 @@ export const handler = async (event, context) => {
                 })
                 await messageBus.flush()
                 return {}
-            case 'decacheAsset':
-                // Legacy Step Function call - publish as internal format WML Content Removed event
-                // This represents an asset being removed, which should trigger decaching
-                messageBus.send({
-                    type: 'StreamingEvent',
-                    dataSourceKey: 'mtw.wml',
-                    streamKey: `ASSET#${event.assetId}`,
-                    event: {
-                        type: 'Content Removed',
-                        update: {
-                            AssetId: event.assetId
-                        }
-                    },
-                    timestamp: Date.now()
-                })
-                await messageBus.flush()
-                return{}
             case 'metaData':
                 return await Promise.all(
                     (event.assetIds || []).map(async (assetId) => {

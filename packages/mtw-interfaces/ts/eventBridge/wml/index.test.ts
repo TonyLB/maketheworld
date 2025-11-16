@@ -34,16 +34,7 @@ describe('WMLEventSerializer', () => {
             }
         })
 
-        it('should serialize Content Removed event', () => {
-            const contentEvent: WMLEventUpdate = {
-                type: 'Content Removed'
-            }
 
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: contentEvent })
-            expect(externalEvent.type).toBe('Content Removed')
-            // Content Removed events don't have a wml property
-            expect('wml' in externalEvent).toBe(false)
-        })
 
         it('should deserialize Content Update event from WML string', () => {
             const wmlString = deIndentWML(`

@@ -125,7 +125,7 @@ The Assets Lambda hosts five data sources, each serving a specific purpose:
 The Assets Lambda receives events from multiple sources:
 
 **EventBridge Events**:
-- `mtw.wml` events → Content Update, Content Removed, Zone Changed
+- `mtw.wml` events → Content Update, Zone Changed
 - `mtw.diagnostics` events → Heal Global Values
 - `mtw.coordination` events → Remove Asset
 - `mtw.subscriptions` events → Initialize Subscription (for all 5 data sources)
