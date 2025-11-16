@@ -13,7 +13,7 @@ import { isEphemeraRoomId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/b
 // For first iteration, no UpdatePayload or SnapshotPayload usage
 type EphemeraSubscribedEvent = StreamingEventPayload & {
     dataSourceKey: 'mtw.assets'
-    event: AssetsEventUpdate
+    detailEnvelope: AssetsEventUpdate
 }
 
 export const ephemeraDataSource = new EphemeraDataSource<never, never, EphemeraSubscribedEvent>({
@@ -24,13 +24,13 @@ export const ephemeraDataSource = new EphemeraDataSource<never, never, EphemeraS
         return Boolean(
             event &&
             event.dataSourceKey === 'mtw.assets' &&
-            event.event && typeof event.event === 'object' &&
-            (isAssetsComponentUpdatedEvent(event.event) || isCanonUpdatedEvent(event.event) || isZoneUpdatedEvent(event.event))
+            (event as any).detailEnvelope && typeof (event as any).detailEnvelope === 'object' &&
+            (isAssetsComponentUpdatedEvent((event as any).detailEnvelope as any) || isCanonUpdatedEvent((event as any).detailEnvelope as any) || isZoneUpdatedEvent((event as any).detailEnvelope as any))
         )
     },
     receiveEvents: async ({ events }) => {
         await Promise.all(events.map(async (evt) => {
-            const { event, streamKey } = evt
+            const { detailEnvelope: event, streamKey } = evt as any
             if (isAssetsComponentUpdatedEvent(event)) {
                 const { component } = event
                 const componentId = component.universalKey || ''

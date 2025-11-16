@@ -88,7 +88,7 @@ export const handler = async (event: any, context: any) => {
                     type: 'StreamingEvent',
                     dataSourceKey: event.source,
                     streamKey: event.detail.streamKey || '',
-                    event: {
+                    detailEnvelope: {
                         type: internalEvent.type,
                         update: internalEvent
                     },

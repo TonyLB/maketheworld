@@ -62,7 +62,7 @@ export const handler = async (event, context) => {
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.wml',
                     streamKey: `ASSET#${event.assetId}`,
-                    event: {
+                    detailEnvelope: {
                         type: 'Content Update',
                         update: {
                             AssetId: event.assetId
@@ -109,9 +109,12 @@ export const handler = async (event, context) => {
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.subscriptions',
                 streamKey: event.detail.streamKey || '',
-                event: {
+                detailEnvelope: {
                     type: event["detail-type"],
-                    update: event.detail
+                    update: {
+                        sessionId: event.detail.sessionId,
+                        requestId: event.detail.requestId
+                    }
                 },
                 timestamp: event.time ? new Date(event.time).getTime() : Date.now()
             })
@@ -144,7 +147,7 @@ export const handler = async (event, context) => {
                         type: 'StreamingEvent',
                         dataSourceKey: event.source,
                         streamKey: event.detail.streamKey || '',
-                        event: {
+                        detailEnvelope: {
                             type: internalEvent.type,
                             update: internalEvent
                         },

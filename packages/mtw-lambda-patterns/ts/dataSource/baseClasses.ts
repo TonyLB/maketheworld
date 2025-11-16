@@ -12,7 +12,7 @@ export type StreamingEvent = {
     dataSourceKey: string;
     streamKey: string;
     timestamp: number;
-    event: EventPayload;
+    detailEnvelope: EventPayload;
 }
 
 // Internal DataSource format (clean, no external baggage)
@@ -20,7 +20,7 @@ export type StreamingEventPayload = {
     dataSourceKey: string;
     streamKey: string;
     timestamp: number;
-    event: EventPayload;
+    detailEnvelope: EventPayload;
 }
 
 // EventBridge serialization interface for DataSource integration

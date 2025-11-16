@@ -348,7 +348,7 @@ export class DataSource<
             dataSourceKey: this.dataSourceKey,
             streamKey,
             timestamp: now,
-            event: update
+            detailEnvelope: update
         }
 
         // Execute all operations in parallel
@@ -615,10 +615,9 @@ export class DataSource<
             type: 'StreamingEvent', 
             dataSourceKey: 'mtw.subscriptions',
             streamKey: string,
-            event: {
+            detailEnvelope: {
                 type: string,
                 update: {
-                    streamKey: string,
                     sessionId: string,
                     requestId: string
                 }
@@ -627,10 +626,10 @@ export class DataSource<
         } => {
             return message.type === 'StreamingEvent' &&
                    message.dataSourceKey === 'mtw.subscriptions' &&
-                   message.event?.type === `Initialize Subscription - ${this.dataSourceKey}` &&
-                   typeof message.event?.update?.streamKey === 'string' &&
-                   typeof message.event?.update?.sessionId === 'string' &&
-                   typeof message.event?.update?.requestId === 'string'
+                   message.detailEnvelope?.type === `Initialize Subscription - ${this.dataSourceKey}` &&
+                   typeof message.streamKey === 'string' &&
+                   typeof message.detailEnvelope?.update?.sessionId === 'string' &&
+                   typeof message.detailEnvelope?.update?.requestId === 'string'
         }
 
         // Subscribe to Initialize Subscription events with higher priority
@@ -641,7 +640,8 @@ export class DataSource<
             callback: async ({ payloads }) => {
                 // Process each Initialize Subscription event
                 for (const payload of payloads) {
-                    const { streamKey, sessionId } = payload.event.update
+                    const { streamKey } = payload
+                    const { sessionId } = payload.detailEnvelope.update
                     
                     try {
                         // Use the existing initializeSubscription method

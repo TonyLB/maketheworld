@@ -59,18 +59,18 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
         // 2. mtw.diagnostics events (system health findings)
         return Boolean(
             (event.dataSourceKey === 'internal' &&
-                event.event &&
-                typeof event.event === 'object' &&
-                isCoordinationEventUpdate(event.event)) ||
+                (event as any).detailEnvelope &&
+                typeof (event as any).detailEnvelope === 'object' &&
+                isCoordinationEventUpdate((event as any).detailEnvelope as any)) ||
             (event.dataSourceKey === 'mtw.diagnostics' &&
-                event.event &&
-                typeof event.event === 'object')
+                (event as any).detailEnvelope &&
+                typeof (event as any).detailEnvelope === 'object')
         )
     },
     receiveEvents: async ({ events, streamEvent }) => {
         // Process internal coordination events from direct API calls and EventBridge
         await Promise.all(events.map(async (event) => {
-            const payload = event.event as any
+            const payload = (event as any).detailEnvelope as any
             
             // Handle Apply Edit events
             if (isApplyEditRequest(payload)) {

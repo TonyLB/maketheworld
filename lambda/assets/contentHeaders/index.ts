@@ -37,7 +37,7 @@ import { WMLZoneEvent, isWMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBri
 export type SubscribedAssetsEvent = {
     dataSourceKey: 'mtw.assets';
     streamKey: string;
-    event: ComponentEventUpdate | AssetUpdatedEventUpdate;
+    detailEnvelope: ComponentEventUpdate | AssetUpdatedEventUpdate;
     timestamp: number;
 }
 
@@ -45,12 +45,12 @@ export type SubscribedAssetsEvent = {
 const isSubscribedAssetsEvent = (event: StreamingEventPayload): event is SubscribedAssetsEvent => {
     return Boolean(
         event.dataSourceKey === 'mtw.assets' && 
-        event.event && 
-        typeof event.event === 'object' &&
-        event.event !== null &&
-        'type' in event.event &&
-        event.event.type &&
-        (event.event.type === 'Component Updated' || event.event.type === 'Asset Updated')
+        event.detailEnvelope && 
+        typeof event.detailEnvelope === 'object' &&
+        event.detailEnvelope !== null &&
+        'type' in event.detailEnvelope &&
+        (event.detailEnvelope as any).type &&
+        ((event.detailEnvelope as any).type === 'Component Updated' || (event.detailEnvelope as any).type === 'Asset Updated')
     )
 }
 
@@ -58,7 +58,7 @@ const isSubscribedAssetsEvent = (event: StreamingEventPayload): event is Subscri
 export type SubscribedWMLEvent = {
     dataSourceKey: 'mtw.wml';
     streamKey: string;
-    event: WMLZoneEvent;
+    detailEnvelope: WMLZoneEvent;
     timestamp: number;
 }
 
@@ -69,10 +69,10 @@ export type SubscribedEvent = SubscribedAssetsEvent | SubscribedWMLEvent
 const isSubscribedWMLEvent = (event: StreamingEventPayload): event is SubscribedWMLEvent => {
     return Boolean(
         event.dataSourceKey === 'mtw.wml' && 
-        event.event && 
-        typeof event.event === 'object' &&
-        event.event !== null &&
-        isWMLZoneEvent(event.event)
+        event.detailEnvelope && 
+        typeof event.detailEnvelope === 'object' &&
+        event.detailEnvelope !== null &&
+        isWMLZoneEvent(event.detailEnvelope as any)
     )
 }
 
@@ -152,7 +152,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
         // Group content events by asset to enable aggregation
         
         const { eventsByAsset, zoneEvents } = events.reduce<{ eventsByAsset: Record<AssetUUID, SubscribedEvent[]>, zoneEvents: SubscribedWMLEvent[] }>((previous, event) => {
-            if (event.event.type === 'Component Updated' || event.event.type === 'Asset Updated') {
+            if (event.detailEnvelope.type === 'Component Updated' || event.detailEnvelope.type === 'Asset Updated') {
                 const assetId = event.streamKey as AssetUUID
                 return {
                     ...previous,
@@ -161,7 +161,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
                         [assetId]: [...previous.eventsByAsset[assetId] ?? [], event]
                     }
                 }
-            } else if (event.event.type === 'Zone Changed') {
+            } else if (event.detailEnvelope.type === 'Zone Changed') {
                 return {
                     ...previous,
                     zoneEvents: [...previous.zoneEvents, event as SubscribedWMLEvent]
@@ -172,7 +172,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
         
 
         const zoneUpdates = zoneEvents.map(async (zoneEvent) => {
-            const { fromZone, toZone } = zoneEvent.event
+            const { fromZone, toZone } = zoneEvent.detailEnvelope
             await streamEvent({
                 streamKey: 'global',
                 update: {
@@ -265,8 +265,8 @@ function createAggregatedContentHeadersUpdate(
         
         // Process all events for this asset
         for (const event of events) {
-            if (event.event.type === 'Component Updated') {
-                const componentUpdate = event.event as ComponentUpdatedEvent
+            if (event.detailEnvelope.type === 'Component Updated') {
+                const componentUpdate = event.detailEnvelope as ComponentUpdatedEvent
                 const { component } = componentUpdate
                 
                 if (!component) {
@@ -279,8 +279,8 @@ function createAggregatedContentHeadersUpdate(
                 if (headerComponent) {
                     headerComponents.push(headerComponent)
                 }
-            } else if (event.event.type === 'Asset Updated') {
-                const assetUpdated = event.event as AssetUpdatedEventUpdate
+            } else if (event.detailEnvelope.type === 'Asset Updated') {
+                const assetUpdated = event.detailEnvelope as AssetUpdatedEventUpdate
                 // Consume the provided StandardForm directly
                 metadataAsset = assetUpdated.standardForm
             }

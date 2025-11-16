@@ -59,7 +59,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             const zoneUpdatedEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Zone Updated',
                     fromZone: 'Canon',
                     toZone: 'Library'
@@ -75,7 +75,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             const assetCachedEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Asset Cached',
                     zone: 'Library'
                 },
@@ -90,7 +90,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             const assetRemovedEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Asset Removed'
                 },
                 timestamp: Date.now()
@@ -104,7 +104,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Component Updated',
                     component: {}
                 },
@@ -119,7 +119,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             const otherEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Content Update'
                 },
                 timestamp: Date.now()
@@ -142,7 +142,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 const event: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#test1',
-                    event: {
+                    detailEnvelope: {
                         type: 'Zone Updated',
                         fromZone: 'Personal',
                         toZone: 'Library'
@@ -168,7 +168,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 const event: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#test1',
-                    event: {
+                    detailEnvelope: {
                         type: 'Zone Updated',
                         fromZone: 'Library',
                         toZone: 'Personal'
@@ -194,7 +194,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 const event: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#test1',
-                    event: {
+                    detailEnvelope: {
                         type: 'Zone Updated',
                         fromZone: 'Canon',
                         toZone: 'Personal'
@@ -214,7 +214,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 const event: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#test1',
-                    event: {
+                    detailEnvelope: {
                         type: 'Zone Updated',
                         fromZone: 'Library',
                         toZone: 'Library'
@@ -236,7 +236,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 const event: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#test1',
-                    event: {
+                    detailEnvelope: {
                         type: 'Asset Cached',
                         zone: 'Library'
                     },
@@ -261,7 +261,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 const event: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#test1',
-                    event: {
+                    detailEnvelope: {
                         type: 'Asset Cached',
                         zone: 'Personal'
                     },
@@ -282,7 +282,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 const event: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#test1',
-                    event: {
+                    detailEnvelope: {
                         type: 'Asset Removed'
                     },
                     timestamp: Date.now()
@@ -309,7 +309,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                     {
                         dataSourceKey: 'mtw.assets',
                         streamKey: 'ASSET#test1',
-                        event: {
+                        detailEnvelope: {
                             type: 'Zone Updated',
                             fromZone: 'Canon',
                             toZone: 'Library'
@@ -319,7 +319,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                     {
                         dataSourceKey: 'mtw.assets',
                         streamKey: 'ASSET#test2',
-                        event: {
+                        detailEnvelope: {
                             type: 'Asset Cached',
                             zone: 'Library'
                         },
@@ -328,7 +328,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                     {
                         dataSourceKey: 'mtw.assets',
                         streamKey: 'ASSET#test3',
-                        event: {
+                        detailEnvelope: {
                             type: 'Zone Updated',
                             fromZone: 'Library',
                             toZone: 'Personal'

@@ -226,7 +226,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const wmlEvent = {
                 dataSourceKey: 'mtw.wml' as const,
                 streamKey: 'ASSET#test123',
-                event: {
+                detailEnvelope: {
                     type: 'Content Update' as const,
                     AssetId: 'ASSET#test123',
                     schema: new StandardForm(`<Asset uuid=(test123) />`)
@@ -252,7 +252,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const zoneChangedEvent = {
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#test123',
-                event: {
+                detailEnvelope: {
                     type: 'Zone Changed',
                     AssetId: 'ASSET#test123',
                     fromZone: 'Personal',
@@ -307,7 +307,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const zoneChangedEvent = {
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#test456',
-                event: {
+                detailEnvelope: {
                     type: 'Zone Changed',
                     AssetId: 'ASSET#test456',
                     fromZone: 'Draft',
@@ -381,7 +381,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const zoneChangedEvent = {
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#test789',
-                event: {
+                detailEnvelope: {
                     type: 'Zone Changed',
                     AssetId: 'ASSET#test789',
                     fromZone: 'Canon',
@@ -456,7 +456,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const assetPurgedEvent = {
                 dataSourceKey: 'mtw.wml' as const,
                 streamKey: 'ASSET#purged123',
-                event: {
+                detailEnvelope: {
                     type: 'Asset Purged' as const,
                     zone: 'Draft' as const,
                     objectsDeleted: 42
@@ -492,7 +492,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const diagnosticEvent = {
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'test-stream',
-                event: {
+                detailEnvelope: {
                     type: 'Heal Global Values'
                 },
                 timestamp: Date.now()
@@ -520,7 +520,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 {
                     dataSourceKey: 'mtw.wml',
                     streamKey: 'ASSET#test123',
-                    event: {
+                    detailEnvelope: {
                         type: 'Content Update',
                         AssetId: 'ASSET#test123',
                         schema: new StandardForm(`<Asset uuid=(test123) />`)
@@ -530,7 +530,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 {
                     dataSourceKey: 'mtw.diagnostics',
                     streamKey: 'test-stream',
-                    event: {
+                    detailEnvelope: {
                         type: 'Heal Global Values'
                     },
                     timestamp: Date.now()
@@ -538,7 +538,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 {
                     dataSourceKey: 'mtw.wml',
                     streamKey: 'ASSET#test456',
-                    event: {
+                    detailEnvelope: {
                         type: 'Content Update',
                         AssetId: 'ASSET#test456',
                         schema: new StandardForm(`<Asset uuid=(test456) />`)
@@ -568,7 +568,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 const event = {
                     dataSourceKey: source,
                     streamKey: 'test-stream',
-                    event: {
+                    detailEnvelope: {
                         type: 'Test Event'
                     },
                     timestamp: Date.now()
@@ -582,7 +582,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const otherEvent = {
                 dataSourceKey: 'mtw.other',
                 streamKey: 'test-stream',
-                event: {
+                detailEnvelope: {
                     type: 'Test Event'
                 },
                 timestamp: Date.now()

@@ -73,7 +73,7 @@ describe('CharactersDataSource', () => {
             const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Component Updated',
                     assetId: 'ASSET#asset123',
                     component
@@ -104,7 +104,7 @@ describe('CharactersDataSource', () => {
             const componentEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Component Updated',
                     assetId: 'ASSET#asset123',
                     component: new StandardRemove(component)
@@ -133,7 +133,7 @@ describe('CharactersDataSource', () => {
             const nonCharacterEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Component Updated',
                     assetId: 'ASSET#asset123',
                     component: {
@@ -161,7 +161,7 @@ describe('CharactersDataSource', () => {
 
             const otherDataSourceEvent = {
                 dataSourceKey: 'mtw.otherDataSource',
-                event: {
+                detailEnvelope: {
                     streamKey: 'ASSET#asset123',
                     update: {
                         type: 'Component Updated',
@@ -198,7 +198,7 @@ describe('CharactersDataSource', () => {
                 {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset1',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         assetId: 'ASSET#asset1',
                         component: component1
@@ -208,7 +208,7 @@ describe('CharactersDataSource', () => {
                 {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'ASSET#asset2',
-                    event: {
+                    detailEnvelope: {
                         type: 'Component Updated',
                         assetId: 'ASSET#asset2',
                         component: component2
@@ -532,7 +532,7 @@ describe('CharactersDataSource', () => {
             const invalidEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Component Updated',
                     assetId: 'ASSET#asset123',
                     component: null // Invalid component
@@ -554,7 +554,7 @@ describe('CharactersDataSource', () => {
             const incompleteEvent: StreamingEventPayload = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'asset123',
-                event: {
+                detailEnvelope: {
                     type: 'Component Updated',
                     assetId: 'ASSET#asset123',
                     component: {
