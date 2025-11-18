@@ -4,6 +4,8 @@ import { StandardRoomData } from "./dataTypes/room"
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
 import StandardReference, { StandardKey } from "./reference"
+import { StandardExplicitParent } from "../explicit"
+import { StandardRemove, StandardReplace } from "./edits"
 
 describe('StandardRoom class', () => {
 
@@ -431,8 +433,228 @@ describe('StandardRoom class', () => {
             expect(json.characters).toBeUndefined() // Empty lists are not serialized (omission-over-empty pattern)
         })
 
+    })
 
+    describe('explicitParent', () => {
+        it('should construct StandardRoom from WML with Parent tag', () => {
+            const testSource = deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#parent-room</Parent>
+                    <ShortName>Test Room</ShortName>
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource)
+            expect(testRoom.key).toEqual('testRoom')
+            expect(testRoom.explicitParent).toBeDefined()
+            expect(testRoom.explicitParent?.toJSON()).toBe('ROOM#parent-room')
+        })
 
+        it('should construct StandardRoom from schema with Parent tag', () => {
+            const schema = new Schema()
+            const testSource = deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>MAP#parent-map</Parent>
+                </Room>
+            `)
+            schema.loadWML(testSource)
+            const testRoom = new StandardRoom(schema.schema[0])
+            expect(testRoom.key).toEqual('testRoom')
+            expect(testRoom.explicitParent).toBeDefined()
+            expect(testRoom.explicitParent?.toJSON()).toBe('MAP#parent-map')
+        })
+
+        it('should handle empty Parent tag (no parent)', () => {
+            const testSource = deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent />
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource)
+            expect(testRoom.key).toEqual('testRoom')
+            expect(testRoom.explicitParent).toBeDefined()
+            expect(testRoom.explicitParent?.toJSON()).toBeUndefined()
+        })
+
+        it('should clone explicitParent correctly', () => {
+            const testRoom = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#parent-room</Parent>
+                </Room>
+            `))
+            const cloned = testRoom.clone() as StandardRoom
+            expect(cloned.explicitParent).toBeDefined()
+            expect(cloned.explicitParent?.toJSON()).toBe('ROOM#parent-room')
+            // Should be a new instance, not the same reference
+            expect(cloned.explicitParent).not.toBe(testRoom.explicitParent)
+        })
+
+        it('should merge explicitParent correctly when both have same parent', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#parent-room</Parent>
+                </Room>
+            `))
+            const room2 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#parent-room</Parent>
+                </Room>
+            `))
+            const merged = room1.merge(room2) as StandardRoom
+            expect(merged.explicitParent).toBeDefined()
+            expect(merged.explicitParent?.toJSON()).toBe('ROOM#parent-room')
+        })
+
+        it('should merge explicitParent correctly when replacing parent', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#old-parent</Parent>
+                </Room>
+            `))
+            const room2 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#new-parent</Parent>
+                </Room>
+            `))
+            const merged = room1.merge(room2) as StandardRoom
+            expect(merged.explicitParent).toBeDefined()
+            expect(merged.explicitParent?.toJSON()).toBe('ROOM#new-parent')
+        })
+
+        it('should merge explicitParent when only one has parent', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#parent-room</Parent>
+                </Room>
+            `))
+            const room2 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom) />
+            `))
+            const merged = room1.merge(room2) as StandardRoom
+            expect(merged.explicitParent).toBeDefined()
+            expect(merged.explicitParent?.toJSON()).toBe('ROOM#parent-room')
+        })
+
+        it('should merge when incoming has parent and base does not', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom) />
+            `))
+            const room2 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#parent-room</Parent>
+                </Room>
+            `))
+            const merged = room1.merge(room2) as StandardRoom
+            expect(merged.explicitParent).toBeDefined()
+            expect(merged.explicitParent?.toJSON()).toBe('ROOM#parent-room')
+        })
+
+        it('should include Parent tag in schema output', () => {
+            const testRoom = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#parent-room</Parent>
+                </Room>
+            `))
+            const schemaOutput = schemaToWML([testRoom.schema])
+            expect(schemaOutput).toContain('<Parent>ROOM#parent-room</Parent>')
+        })
+
+        it('should include empty Parent tag in schema when explicitParent is empty', () => {
+            const testRoom = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent />
+                </Room>
+            `))
+            const schemaOutput = schemaToWML([testRoom.schema])
+            expect(schemaOutput).toContain('<Parent />')
+        })
+
+        it('should not include Parent tag in schema when explicitParent is undefined', () => {
+            const testRoom = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom) />
+            `))
+            const schemaOutput = schemaToWML([testRoom.schema])
+            expect(schemaOutput).not.toContain('<Parent')
+        })
+
+        it('should set explicitParent programmatically', () => {
+            const testRoom = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom) />
+            `))
+            const parent = new StandardExplicitParent('ROOM#parent-room')
+            const withParent = testRoom.clone() as StandardRoom
+            withParent.explicitParent = parent
+            expect(withParent.explicitParent?.toJSON()).toBe('ROOM#parent-room')
+        })
+
+        it('should handle explicitParent with AssetUUID', () => {
+            const testRoom = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ASSET#parent-asset</Parent>
+                </Room>
+            `))
+            expect(testRoom.explicitParent).toBeDefined()
+            expect(testRoom.explicitParent?.toJSON()).toBe('ASSET#parent-asset')
+        })
+
+        it('should diff explicitParent correctly', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#old-parent</Parent>
+                </Room>
+            `))
+            const room2 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#new-parent</Parent>
+                </Room>
+            `))
+            const diff = room1.diff(room2) as StandardRoom
+            expect(diff).toBeDefined()
+            // The diff should show the parent change
+            expect(diff!.explicitParent).toBeDefined()
+        })
+
+        it('should return undefined diff when explicitParent is identical', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#parent-room</Parent>
+                </Room>
+            `))
+            const room2 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#parent-room</Parent>
+                </Room>
+            `))
+            const diff = room1.diff(room2)
+            expect(diff).toBeUndefined()
+        })
+
+        it('should handle explicitParent in Remove operations', () => {
+            const room = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#parent-room</Parent>
+                </Room>
+            `))
+            const remove = new StandardRemove(room)
+            expect(remove.explicitParent).toBeDefined()
+            expect(remove.explicitParent?.toJSON()).toBe('ROOM#parent-room')
+        })
+
+        it('should handle explicitParent in Replace operations', () => {
+            const match = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#old-parent</Parent>
+                </Room>
+            `))
+            const payload = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#new-parent</Parent>
+                </Room>
+            `))
+            const replace = new StandardReplace(match, payload)
+            // Should use explicitParent from match if available, otherwise from payload
+            expect(replace.explicitParent).toBeDefined()
+            expect(replace.explicitParent?.toJSON()).toBe('ROOM#old-parent')
+        })
     })
 
 })
