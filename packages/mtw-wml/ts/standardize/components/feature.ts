@@ -138,8 +138,11 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         if (!(incoming instanceof StandardFeature)) {
             throw new Error('Mismatched component types in diff')
         }
+        // Check explicitParent differences separately
+        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
+        const hasExplicitParentDiff = explicitParentDiff !== undefined
         const examplesDiff = this.examples.diff(incoming.examples) ?? new ReferenceList([])
-        if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.payload.length) {
+        if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.payload.length && !hasExplicitParentDiff) {
             return undefined
         }
         const base = this.clone()
@@ -148,6 +151,8 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
             ? this._payload._shortName.diff(incoming._payload._shortName)
             : incoming._payload._shortName
         base._payload._examples = examplesDiff
+        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
+        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
         return base
     }
 

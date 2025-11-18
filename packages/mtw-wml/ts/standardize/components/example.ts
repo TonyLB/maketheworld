@@ -170,7 +170,10 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         if (!(incoming instanceof StandardExample)) {
             throw new Error('Mismatched component types in diff')
         }
-        if (deepEqual(this.toJSON(), incoming.toJSON())) {
+        // Check explicitParent differences separately
+        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
+        const hasExplicitParentDiff = explicitParentDiff !== undefined
+        if (deepEqual(this.toJSON(), incoming.toJSON()) && !hasExplicitParentDiff) {
             return undefined
         }
         const base = this.clone()
@@ -184,6 +187,8 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         base._payload._description = this._payload._description
             ? this._payload._description.diff(incoming._payload._description)
             : incoming._payload._description
+        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
+        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
         return base
     }
 
