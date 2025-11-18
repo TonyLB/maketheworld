@@ -5,6 +5,7 @@ import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
 import StandardReference, { StandardKey } from "./reference";
+import { StandardExplicitParent } from "../explicit";
 
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;
@@ -31,6 +32,7 @@ export interface StandardComponent {
     _from?: AssetUUID;
     key?: string;
     universalKey?: ComponentUUID;
+    explicitParent?: StandardExplicitParent;
     clone(): StandardComponent;
     withMapping(mapping: StandardKey[]): StandardComponent;
     withKey(key: string): StandardComponent;

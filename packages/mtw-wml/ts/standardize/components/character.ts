@@ -139,7 +139,10 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         if (!(incoming instanceof StandardCharacter)) {
             throw new Error('Mismatched component types in diff')
         }
-        if (deepEqual(this.toJSON(), incoming.toJSON())) {
+        // Check explicitParent differences separately
+        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
+        const hasExplicitParentDiff = explicitParentDiff !== undefined
+        if (deepEqual(this.toJSON(), incoming.toJSON()) && !hasExplicitParentDiff) {
             return undefined
         }
         const base = this.clone()
@@ -154,6 +157,8 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
             ? this._payload._name.diff(incoming._payload._name)
             : incoming._payload._name
         base._payload._image = this._payload._image ?? incoming._payload._image
+        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
+        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
         return base
     }
 
