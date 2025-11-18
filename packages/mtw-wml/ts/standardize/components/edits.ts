@@ -7,6 +7,7 @@ import { ComponentTag } from "./dataTypes/abstract";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
 import StandardReference, { StandardKey, StandardReferenceRemove, StandardReferenceReplace } from "./reference";
+import { StandardExplicitParent } from "../explicit";
 
 //
 // StandardRemove class provides a class that contains a matching StandardComponent to be removed. Note that merge
@@ -17,11 +18,13 @@ export class StandardRemove implements StandardComponent {
     _key: StandardKey;
     _mapping?: StandardKey[];
     _match: StandardComponent;
+    explicitParent?: StandardExplicitParent;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
             this._key = props._key
             this._match = props._match.clone()
+            this.explicitParent = props.explicitParent
             return
         }
         const tag = props.tag
@@ -30,6 +33,7 @@ export class StandardRemove implements StandardComponent {
         }
         this._key = new StandardKey(props._key)
         this._match = props as StandardComponent
+        this.explicitParent = props.explicitParent
         return
     }
 
@@ -181,6 +185,7 @@ export class StandardReplace implements StandardComponent {
     _payload: StandardComponent;
     _mapping?: StandardKey[];
     leastCommonContext: StandardKey[] = [];
+    explicitParent?: StandardExplicitParent;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Replace' as const;
     constructor(...propsArray: [StandardReplace] | [StandardComponent, StandardComponent]) {
         if (propsArray.length > 1) {
@@ -196,6 +201,8 @@ export class StandardReplace implements StandardComponent {
                 throw new Error(`Invalid tag provided to StandardReplace constructor: ${tag}`)
             }
             this._key = new StandardKey(match._key)
+            // Use explicitParent from match if available, otherwise from payload
+            this.explicitParent = match.explicitParent ?? payload.explicitParent
             return
         }
         const [props] = propsArray as [string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace]
@@ -203,6 +210,7 @@ export class StandardReplace implements StandardComponent {
             this._key = props._key
             this._match = props._match.clone()
             this._payload = props._payload.clone()
+            this.explicitParent = props.explicitParent
             return
         }
         throw new Error('StandardReplace constructor called with invalid arguments')

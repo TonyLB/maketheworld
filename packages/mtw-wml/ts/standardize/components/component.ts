@@ -26,6 +26,7 @@ import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses
 import { ReferenceFormat } from "./utils/references";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import StandardReference, { StandardKey } from "./reference";
+import { StandardExplicitParent } from "../explicit";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -56,6 +57,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _payload: InstanceType<typeof Base>;
         _from?: AssetUUID;
         _origin?: AssetUUID[];
+        explicitParent?: StandardExplicitParent;
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
@@ -64,6 +66,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._from = props._from
                 this._origin = props._origin
                 this._mapping = props._mapping
+                this.explicitParent = props.explicitParent
                 return
             }
             if (typeof props === 'string' && isLegalKey(props)) {
