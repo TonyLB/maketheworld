@@ -27,6 +27,7 @@ import { ReferenceFormat } from "./utils/references";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import StandardReference, { StandardKey } from "./reference";
 import { StandardExplicitParent } from "../explicit";
+import SchemaTagTree from "../../tagTree/schema";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -66,7 +67,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._from = props._from
                 this._origin = props._origin
                 this._mapping = props._mapping
-                this.explicitParent = props.explicitParent
+                // Clone explicitParent if it exists - use schema to clone (handles empty Parent tags)
+                this.explicitParent = props.explicitParent ? new StandardExplicitParent(props.explicitParent.schema) : undefined
                 return
             }
             if (typeof props === 'string' && isLegalKey(props)) {
@@ -91,7 +93,44 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._key = new StandardKey({ tag, key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
                 this._from = node.data.from
                 this._origin = 'origin' in node.data ? node.data.origin : undefined
-                this._payload.fromSchema(node)
+                // Extract Parent tag from children using tagTree (handles Remove/Replace wrapping)
+                // Filter for Parent tags that are direct children, excluding ones nested in other components
+                const tagTree = new SchemaTagTree(node.children)
+                const parentItem = tagTree
+                    .filter({ 
+                        and: [
+                            { match: 'Parent' },
+                            { not: { or: [
+                                { match: 'Room' },
+                                { match: 'Feature' },
+                                { match: 'Knowledge' },
+                                { match: 'Example' },
+                                { match: 'Character' },
+                                { match: 'Image' },
+                                { match: 'Map' },
+                                { match: 'Message' },
+                                { match: 'Moment' },
+                                { match: 'Exit' }
+                            ] } }
+                        ]
+                    })
+                    .prune({ not: { or: [{ match: 'Parent' }, { match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
+                    .tree
+                if (parentItem.length > 0) {
+                    // Always create StandardExplicitParent if Parent tag exists (even if empty)
+                    this.explicitParent = new StandardExplicitParent(parentItem)
+                }
+                // Create a node without Parent tag for payload processing
+                const nodeWithoutParent = {
+                    ...node,
+                    children: node.children.filter(child => {
+                        // Filter out Parent tags (but keep them if wrapped in Remove/Replace for payload processing)
+                        const childTagTree = new SchemaTagTree([child])
+                        const hasParent = childTagTree.filter({ match: 'Parent' }).tree.length > 0
+                        return !hasParent
+                    })
+                }
+                this._payload.fromSchema(nodeWithoutParent)
                 return
             }
             this._key = isStandardReferencePayloadData(props) ? new StandardKey(props) : typeof props === 'string' ? new StandardKey(props) : new StandardKey('')
@@ -155,6 +194,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 ...this._payload.toJSON(options),
                 ...(this._from ? { from: this._from } : {}),
                 ...(this._origin ? { origin: this._origin } : {}),
+                ...(this.explicitParent ? { explicitParent: this.explicitParent.toJSON() } : {}),
             } as D
         }
 
@@ -163,7 +203,15 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
                 throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
             }
-            return { ...payload, data: { ...payload.data, from: this._from, origin: this._origin } }
+            // Add Parent tag to children if explicitParent is defined
+            const children = [...payload.children]
+            if (this.explicitParent) {
+                const parentSchema = this.explicitParent.schema
+                if (parentSchema.length > 0) {
+                    children.push(parentSchema[0])
+                }
+            }
+            return { ...payload, data: { ...payload.data, from: this._from, origin: this._origin }, children }
         }
 
         nestedSchema(lookup: (value: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
@@ -194,7 +242,15 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
                 throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
             }
-            return { ...payload, data: { ...payload.data, from: this._from, origin: this._origin } }
+            // Add Parent tag to children if explicitParent is defined
+            const children = [...payload.children]
+            if (this.explicitParent) {
+                const parentSchema = this.explicitParent.schema
+                if (parentSchema.length > 0) {
+                    children.push(parentSchema[0])
+                }
+            }
+            return { ...payload, data: { ...payload.data, from: this._from, origin: this._origin }, children }
         }
 
         referencedKeys(): StandardComponentReferenceKey[] {
@@ -231,26 +287,77 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             returnValue._from = this._from ?? incoming._from
             returnValue._origin = this._origin ?? (incoming as any)._origin
             returnValue._payload = this._payload.merge((incoming as any)._payload)
+            // Merge explicitParent
+            if (this.explicitParent && (incoming as any).explicitParent) {
+                const merged = this.explicitParent.merge((incoming as any).explicitParent)
+                returnValue.explicitParent = merged ?? undefined
+            } else {
+                returnValue.explicitParent = this.explicitParent ?? (incoming as any).explicitParent
+            }
 
             return returnValue as StandardComponent
+        }
+
+        /**
+         * Internal method to apply explicitParent diff logic to a component.
+         * Can be called from overridden diff methods to handle explicitParent consistently.
+         * 
+         * @param base - The component to apply the diff to
+         * @param incoming - The incoming component being compared against
+         * @param explicitParentDiff - Optional pre-computed explicitParent diff to avoid recalculation
+         */
+        _applyExplicitParentDiffToComponent(
+            base: StandardComponent,
+            incoming: StandardComponent,
+            explicitParentDiff?: StandardExplicitParent | undefined
+        ): void {
+            const hasExplicitParentDiff = explicitParentDiff !== undefined
+            
+            if (hasExplicitParentDiff) {
+                base.explicitParent = explicitParentDiff
+            } else if (this.explicitParent && !incoming.explicitParent) {
+                // This has explicitParent, incoming doesn't - include removal in diff
+                const removal = this.explicitParent.diff(undefined)
+                base.explicitParent = removal ?? this.explicitParent
+            } else if (!this.explicitParent && incoming.explicitParent) {
+                // Incoming has explicitParent, this doesn't - include it in diff
+                base.explicitParent = incoming.explicitParent
+            }
         }
 
         diff(incoming: StandardComponent): StandardComponent | undefined {
             if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
                 throw new Error(`Mismatched universalKeys in StandardComponent diff (${this.key} vs ${incoming.key})`)
             }
-            if (deepEqual(this.toJSON(), incoming.toJSON())) {
+            // Check explicitParent differences separately
+            const explicitParentDiff = this.explicitParent?.diff((incoming as any).explicitParent)
+            const hasExplicitParentDiff = explicitParentDiff !== undefined
+            // Check other differences (explicitParent is now included in toJSON, but we handle it separately for diff logic)
+            // Temporarily exclude explicitParent from comparison to check other differences
+            const thisJSON = this.toJSON() as any
+            const incomingJSON = incoming.toJSON() as any
+            const thisJSONWithoutParent = { ...thisJSON }
+            delete thisJSONWithoutParent.explicitParent
+            const incomingJSONWithoutParent = { ...incomingJSON }
+            delete incomingJSONWithoutParent.explicitParent
+            const otherDiff = deepEqual(thisJSONWithoutParent, incomingJSONWithoutParent)
+            // If both are equal and no explicitParent diff, return undefined
+            if (otherDiff && !hasExplicitParentDiff) {
                 return undefined
             }
-            else {
-                const leastCommonContext = (this._key?.context ?? []).filter((reference) => (
-                    (incoming._key?.context ?? []).some((incomingReference) => (
-                        reference.equals(incomingReference)
-                    ))
+            // Otherwise create a diff
+            const leastCommonContext = (this._key?.context ?? []).filter((reference) => (
+                (incoming._key?.context ?? []).some((incomingReference) => (
+                    reference.equals(incomingReference)
                 ))
+            ))
 
-                return new StandardReplace(this, incoming).withLeastCommonContext(leastCommonContext)
+            const diffComponent = new StandardReplace(this, incoming).withLeastCommonContext(leastCommonContext)
+            // Apply explicitParent diff to the diff component (pass pre-computed diff to avoid recalculation)
+            if (diffComponent) {
+                this._applyExplicitParentDiffToComponent(diffComponent, incoming, explicitParentDiff)
             }
+            return diffComponent
         }
 
         subset(options: StandardFormSubsetRequest): StandardComponent {

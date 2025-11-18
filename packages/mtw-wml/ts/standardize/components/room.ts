@@ -237,6 +237,9 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         if (incoming.key !== this.key) {
             return new StandardReplace(this, incoming)
         }
+        // Check explicitParent differences separately
+        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
+        const hasExplicitParentDiff = explicitParentDiff !== undefined
         const featuresDiff = this.features.diff(incoming.features) ?? new ReferenceList([])
         const examplesDiff = this.examples.diff(incoming.examples) ?? new ReferenceList([])
         const charactersDiff = this.characters.diff(incoming.characters) ?? new ReferenceList([])
@@ -244,7 +247,8 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
             !featuresDiff.payload.length &&
             !examplesDiff.payload.length &&
             !charactersDiff.payload.length &&
-            !diffStandardExitList(this.exits, incoming.exits).length
+            !diffStandardExitList(this.exits, incoming.exits).length &&
+            !hasExplicitParentDiff
         ) {
             return undefined
         }
@@ -257,6 +261,8 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         base._payload._examples = examplesDiff
         base._payload._characters = charactersDiff
         base._payload._exits = diffStandardExitList(this.exits, incoming.exits)
+        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
+        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
         return base
     }
 

@@ -598,12 +598,12 @@ describe('StandardRoom class', () => {
 
         it('should diff explicitParent correctly', () => {
             const room1 = new StandardRoom(deIndentWML(`
-                <Room key=(testRoom)>
+                <Room uuid=(ROOM#test-room)>
                     <Parent>ROOM#old-parent</Parent>
                 </Room>
             `))
             const room2 = new StandardRoom(deIndentWML(`
-                <Room key=(testRoom)>
+                <Room uuid=(ROOM#test-room)>
                     <Parent>ROOM#new-parent</Parent>
                 </Room>
             `))
