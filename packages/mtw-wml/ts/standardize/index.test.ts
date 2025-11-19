@@ -52,6 +52,199 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(`<Asset uuid=(Test) />`)
     })
 
+    describe('_getParentChildEdges()', () => {
+        it('should return empty array for empty StandardForm', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            const edges = sf._getParentChildEdges()
+            expect(edges).toEqual([])
+        })
+
+        it('should return empty array for StandardForm with no parent-child relationships', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(room1) />
+                <Feature key=(feature1) />
+            </Asset>`)
+            const edges = sf._getParentChildEdges()
+            expect(edges).toEqual([])
+        })
+
+        it('should collect edges from Room with Direct children (Feature, Example, Character)', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(room1)>
+                    <Feature key=(feature1) />
+                    <Example key=(example1) />
+                    <Character key=(char1) />
+                </Room>
+            </Asset>`).finalize()
+            const edges = sf._getParentChildEdges()
+            
+            // Should have 3 edges: room1 → feature1, room1 → example1, room1 → char1
+            expect(edges.length).toBe(3)
+            
+            const room1UUID = sf.byId['room1'].universalKey!
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            const example1UUID = sf.byId['example1'].universalKey!
+            const char1UUID = sf.byId['char1'].universalKey!
+            
+            expect(edges).toContainEqual({ parent: room1UUID, child: feature1UUID })
+            expect(edges).toContainEqual({ parent: room1UUID, child: example1UUID })
+            expect(edges).toContainEqual({ parent: room1UUID, child: char1UUID })
+        })
+
+        it('should collect edges from Map with Position references to Rooms', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Map key=(map1)>
+                    <Room key=(room1)>
+                        <Position x="0" y="100" />
+                    </Room>
+                    <Room key=(room2)>
+                        <Position x="100" y="200" />
+                    </Room>
+                </Map>
+            </Asset>`).finalize()
+            const edges = sf._getParentChildEdges()
+            
+            // Should have 2 edges: map1 → room1, map1 → room2 (via Position references)
+            expect(edges.length).toBe(2)
+            
+            const map1UUID = sf.byId['map1'].universalKey!
+            const room1UUID = sf.byId['room1'].universalKey!
+            const room2UUID = sf.byId['room2'].universalKey!
+            
+            expect(edges).toContainEqual({ parent: map1UUID, child: room1UUID })
+            expect(edges).toContainEqual({ parent: map1UUID, child: room2UUID })
+        })
+
+        it('should collect edges from Feature with Example children', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Feature key=(feature1)>
+                    <Example key=(example1) />
+                    <Example key=(example2) />
+                </Feature>
+            </Asset>`).finalize()
+            const edges = sf._getParentChildEdges()
+            
+            // Should have 2 edges: feature1 → example1, feature1 → example2
+            expect(edges.length).toBe(2)
+            
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            const example1UUID = sf.byId['example1'].universalKey!
+            const example2UUID = sf.byId['example2'].universalKey!
+            
+            expect(edges).toContainEqual({ parent: feature1UUID, child: example1UUID })
+            expect(edges).toContainEqual({ parent: feature1UUID, child: example2UUID })
+        })
+
+        it('should collect edges from Message with Room children', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Message key=(message1)>
+                    <Room key=(room1) />
+                    <Room key=(room2) />
+                </Message>
+            </Asset>`).finalize()
+            const edges = sf._getParentChildEdges()
+            
+            // Should have 2 edges: message1 → room1, message1 → room2
+            expect(edges.length).toBe(2)
+            
+            const message1UUID = sf.byId['message1'].universalKey!
+            const room1UUID = sf.byId['room1'].universalKey!
+            const room2UUID = sf.byId['room2'].universalKey!
+            
+            expect(edges).toContainEqual({ parent: message1UUID, child: room1UUID })
+            expect(edges).toContainEqual({ parent: message1UUID, child: room2UUID })
+        })
+
+        it('should collect edges from Moment with Message children', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Moment key=(moment1)>
+                    <Message key=(message1) />
+                    <Message key=(message2) />
+                </Moment>
+            </Asset>`).finalize()
+            const edges = sf._getParentChildEdges()
+            
+            // Should have 2 edges: moment1 → message1, moment1 → message2
+            expect(edges.length).toBe(2)
+            
+            const moment1UUID = sf.byId['moment1'].universalKey!
+            const message1UUID = sf.byId['message1'].universalKey!
+            const message2UUID = sf.byId['message2'].universalKey!
+            
+            expect(edges).toContainEqual({ parent: moment1UUID, child: message1UUID })
+            expect(edges).toContainEqual({ parent: moment1UUID, child: message2UUID })
+        })
+
+        it('should handle multi-level nesting correctly', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Map key=(map1)>
+                    <Room key=(room1)>
+                        <Position x="0" y="0" />
+                        <Feature key=(feature1)>
+                            <Example key=(example1) />
+                        </Feature>
+                    </Room>
+                </Map>
+            </Asset>`).finalize()
+            const edges = sf._getParentChildEdges()
+            
+            // Should have 3 edges: map1 → room1 (via Position), room1 → feature1, feature1 → example1
+            expect(edges.length).toBe(3)
+            
+            const map1UUID = sf.byId['map1'].universalKey!
+            const room1UUID = sf.byId['room1'].universalKey!
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            const example1UUID = sf.byId['example1'].universalKey!
+            
+            expect(edges).toContainEqual({ parent: map1UUID, child: room1UUID })
+            expect(edges).toContainEqual({ parent: room1UUID, child: feature1UUID })
+            expect(edges).toContainEqual({ parent: feature1UUID, child: example1UUID })
+        })
+
+        it('should exclude Exit references (not parent-child relationships)', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(room1)>
+                    <Exit to=(room2)>Go to room 2</Exit>
+                </Room>
+                <Room key=(room2) />
+            </Asset>`).finalize()
+            const edges = sf._getParentChildEdges()
+            
+            // Should have 0 edges - Exit is not a parent-child relationship
+            expect(edges).toEqual([])
+        })
+
+        it('should skip components without universalKey', () => {
+            // Create a StandardForm and manually add a component without universalKey
+            const sf = new StandardForm('ASSET#TestAsset')
+            const roomWithoutUUID = new StandardRoom({ tag: 'Room', key: 'room1' })
+            // @ts-ignore - accessing private for test
+            sf._components = [roomWithoutUUID]
+            
+            const edges = sf._getParentChildEdges()
+            // Should skip room1 since it has no universalKey
+            expect(edges).toEqual([])
+        })
+
+        it('should skip child references without universalKey', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(room1)>
+                    <Feature key=(feature1) />
+                </Room>
+            </Asset>`).finalize()
+            
+            // Manually remove universalKey from feature1 to test skipping
+            const room1 = sf.byId['room1']
+            const feature1 = sf.byId['feature1']
+            // @ts-ignore - accessing private for test
+            feature1._key.universalKey = undefined
+            
+            const edges = sf._getParentChildEdges()
+            // Should have 0 edges - feature1 has no universalKey
+            expect(edges).toEqual([])
+        })
+    })
+
     it('should accept edit tags in JSON form', () => {
         const test = new StandardForm({
             universalKey: 'ASSET#test',

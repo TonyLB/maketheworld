@@ -339,6 +339,58 @@ export class StandardForm {
         return returnProxy as unknown as Record<string, StandardComponent>
     }
 
+    /**
+     * Computes parent→child edges from all components in this StandardForm.
+     * 
+     * **Requires universalKey assignment**: This method relies on all components having
+     * `universalKey` values assigned. When called from within `finalize()`, this should
+     * be after the key-remapping step that assigns universalKeys to components that don't
+     * have them. Without universalKeys, components cannot be uniquely identified for edge
+     * construction.
+     * 
+     * Edges are computed on-demand from component.referencedKeys() filtered for
+     * 'Direct' or 'Position' reference types (which represent parent-child relationships).
+     * 
+     * @returns Array of parent→child edge pairs, where each edge is represented as
+     *          `{ parent: ComponentUUID, child: ComponentUUID }`
+     */
+    _getParentChildEdges(): Array<{ parent: ComponentUUID; child: ComponentUUID }> {
+        const edges: Array<{ parent: ComponentUUID; child: ComponentUUID }> = []
+        
+        for (const component of this._components) {
+            // Skip components without universalKey (can't create edges without identifiers)
+            if (!component.universalKey) {
+                continue
+            }
+            
+            const parentUUID: ComponentUUID = component.universalKey
+            
+            // Get all referenced keys from this component
+            const referencedKeys = component.referencedKeys()
+            
+            // Filter for 'Direct' or 'Position' reference types (parent-child relationships)
+            const childReferences = referencedKeys.filter(
+                (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position'
+            )
+            
+            // Create edges for each child
+            for (const childRef of childReferences) {
+                // Look up the actual component to get its universalKey
+                // (the key from referencedKeys might only have a local key)
+                const childKey = childRef.key
+                const childComponent = this._lookup(childKey.toJSON())
+                if (childComponent?.universalKey) {
+                    edges.push({
+                        parent: parentUUID,
+                        child: childComponent.universalKey
+                    })
+                }
+            }
+        }
+        
+        return edges
+    }
+
     get byUniversalId(): Record<ComponentUUID, StandardComponent> {
         const returnProxy = new Proxy(this, {
             get: (target, prop: ComponentUUID) => {
@@ -412,8 +464,14 @@ export class StandardForm {
             .filter(({ _key }) => ((_key.context ?? []).length === 0))
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
+        const lookupWrapper = (key: string | StandardKey): StandardComponent | undefined => {
+            if (typeof key === 'string') {
+                return this._lookup(key)
+            }
+            return this._lookup(key.toJSON())
+        }
         const children = sortedChildren
-            .map((component) => (component.withMapping(mapKeys).remapReferences('key').nestedSchema(this._lookup.bind(this), { context: [] })))
+            .map((component) => (component.withMapping(mapKeys).remapReferences('key').nestedSchema(lookupWrapper, { context: [] })))
         return {
             data: { tag: 'Asset', uuid: this._universalKey, Story: undefined },
             children: [
@@ -789,7 +847,7 @@ export class StandardForm {
 
     assureComponent(reference: StandardKey): StandardForm {
         const returnValue = this._clone()
-        const existingComponent = returnValue._lookup(reference)
+        const existingComponent = returnValue._lookup(reference.toJSON())
         if (existingComponent) {
             return returnValue
         }
