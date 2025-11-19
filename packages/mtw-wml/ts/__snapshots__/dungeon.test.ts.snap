@@ -630,7 +630,6 @@ exports[`large WML test should standardize properly 1`] = `
       {
         "description": "passage",
         "to": {
-          "context": undefined,
           "key": "curvingPassage",
           "tag": "Room",
           "universalKey": undefined,
@@ -639,7 +638,6 @@ exports[`large WML test should standardize properly 1`] = `
       {
         "description": "out",
         "to": {
-          "context": undefined,
           "key": "VORTEX",
           "tag": "Room",
           "universalKey": undefined,
@@ -654,7 +652,6 @@ exports[`large WML test should standardize properly 1`] = `
   {
     "context": [
       {
-        "context": undefined,
         "key": "cave",
         "tag": "Room",
         "universalKey": undefined,
@@ -674,7 +671,6 @@ exports[`large WML test should standardize properly 1`] = `
   {
     "context": [
       {
-        "context": undefined,
         "key": "cave",
         "tag": "Room",
         "universalKey": undefined,
@@ -700,7 +696,6 @@ exports[`large WML test should standardize properly 1`] = `
       {
         "description": "passage",
         "to": {
-          "context": undefined,
           "key": "curvingPassage",
           "tag": "Room",
           "universalKey": undefined,
@@ -709,13 +704,11 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "features": [
       {
-        "context": undefined,
         "key": "orc",
         "tag": "Feature",
         "universalKey": undefined,
       },
       {
-        "context": undefined,
         "key": "pie",
         "tag": "Feature",
         "universalKey": undefined,
@@ -729,7 +722,6 @@ exports[`large WML test should standardize properly 1`] = `
   {
     "context": [
       {
-        "context": undefined,
         "key": "chamber",
         "tag": "Room",
         "universalKey": undefined,
@@ -745,7 +737,6 @@ exports[`large WML test should standardize properly 1`] = `
   {
     "context": [
       {
-        "context": undefined,
         "key": "chamber",
         "tag": "Room",
         "universalKey": undefined,
@@ -759,7 +750,6 @@ exports[`large WML test should standardize properly 1`] = `
   {
     "context": [
       {
-        "context": undefined,
         "key": "chamber",
         "tag": "Room",
         "universalKey": undefined,
@@ -779,7 +769,6 @@ exports[`large WML test should standardize properly 1`] = `
       {
         "description": "cave",
         "to": {
-          "context": undefined,
           "key": "cave",
           "tag": "Room",
           "universalKey": undefined,
@@ -788,7 +777,6 @@ exports[`large WML test should standardize properly 1`] = `
       {
         "description": "chamber",
         "to": {
-          "context": undefined,
           "key": "chamber",
           "tag": "Room",
           "universalKey": undefined,
@@ -803,7 +791,6 @@ exports[`large WML test should standardize properly 1`] = `
   {
     "context": [
       {
-        "context": undefined,
         "key": "curvingPassage",
         "tag": "Room",
         "universalKey": undefined,
@@ -829,7 +816,6 @@ exports[`large WML test should standardize properly 1`] = `
       {
         "description": "cave",
         "to": {
-          "context": undefined,
           "key": "cave",
           "tag": "Room",
           "universalKey": undefined,
@@ -844,7 +830,6 @@ exports[`large WML test should standardize properly 1`] = `
   {
     "context": [
       {
-        "context": undefined,
         "key": "VORTEX",
         "tag": "Room",
         "universalKey": undefined,
@@ -884,7 +869,6 @@ exports[`large WML test should standardize properly 1`] = `
     "positions": [
       {
         "room": {
-          "context": undefined,
           "key": "VORTEX",
           "tag": "Room",
           "universalKey": undefined,
@@ -894,7 +878,6 @@ exports[`large WML test should standardize properly 1`] = `
       },
       {
         "room": {
-          "context": undefined,
           "key": "cave",
           "tag": "Room",
           "universalKey": undefined,
@@ -904,7 +887,6 @@ exports[`large WML test should standardize properly 1`] = `
       },
       {
         "room": {
-          "context": undefined,
           "key": "curvingPassage",
           "tag": "Room",
           "universalKey": undefined,
@@ -914,7 +896,6 @@ exports[`large WML test should standardize properly 1`] = `
       },
       {
         "room": {
-          "context": undefined,
           "key": "chamber",
           "tag": "Room",
           "universalKey": undefined,

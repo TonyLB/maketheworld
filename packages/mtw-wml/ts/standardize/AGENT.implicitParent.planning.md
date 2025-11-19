@@ -114,11 +114,11 @@ This is a complex refactoring that touches core StandardForm operations. Follow 
 
 **Current phase**: Planning and design
 
-**Task breakdown**: See [Implementation Plan](#implementation-plan) section below for the complete 6-phase implementation strategy.
+**Task breakdown**: See [Implementation Plan](#implementation-plan) section below for the complete 7-phase implementation strategy.
 
 **To begin implementation**:
 1. Review the Implementation Plan section to understand all phases
-2. Start with Phase 1: Edge Collection Infrastructure
+2. Start with Phase 3: Graph Construction (Phases 1 and 2 are complete)
 3. Follow the phase-by-phase approach, ensuring tests pass after each phase
 
 ### 7. Run Tests Before Starting
@@ -249,40 +249,108 @@ For the problematic scenario:
 
 ## Implementation Plan
 
-### Phase 1: Data Representation Migration
+### Phase 1: Data Representation Migration ✅ COMPLETE
 
 **Goal**: Migrate from `context` array to `parent` reference
 
-**Tasks**:
-1. Add `parent?: StandardKey | ComponentUUID` field to `StandardKey`
-2. Create basic helper methods: `hasParent()`, `getDirectParent()`
-3. Create `getAncestryChain()` helper method (without caching - will add caching in Phase 4)
-4. Update `StandardKey` to support both `context` and `parent` during transition
-5. Write tests for helper methods
+**Status**: ✅ Completed
 
-**Files to modify**:
-- `./components/reference.ts` - Add `parent` field and basic helper methods
-- `./components/baseClasses.ts` - Update type definitions
-- Create helper utilities for ancestry chain computation (simple traversal, no caching yet)
+**Tasks Completed**:
+1. ✅ Added `parent?: StandardKey` field to `StandardKey` class
+   - In memory: `parent` is always a `StandardKey` object (not `ComponentUUID`)
+   - In serialized form (`StandardReferenceData`): `parent` is `ComponentUUID` string (no recursive nesting)
+2. ✅ Created helper methods: `hasParent()`, `getDirectParent()`, `withParent()`
+3. ✅ Created `getAncestryChain(lookup, visited)` helper method
+   - Requires `lookup` function to resolve parent UUIDs to full `StandardKey` objects
+   - Uses `visited` array for cycle detection
+   - Throws error on cycle detection (defensive programming - cycles indicate data integrity problems)
+4. ✅ Updated `StandardKey` constructor to accept `StandardKey` directly (for cloning)
+5. ✅ Updated `toJSON()` to serialize `parent` as just its `universalKey` (ComponentUUID string)
+6. ✅ Updated `StandardReferenceData` type: `parent?: ComponentUUID` (string only, no recursive nesting)
+7. ✅ Updated `clone()` method to use direct `StandardKey` construction
+8. ✅ Comprehensive tests for all helper methods
+
+**Key Design Decisions**:
+- **Parent storage**: `parent` is always `StandardKey` in memory, but serializes to `ComponentUUID` string
+- **No recursive nesting**: Parent StandardKey objects don't contain their own parent (only one level)
+- **Lookup required**: `getAncestryChain()` requires a lookup function since parent only contains one level
+- **Cycle detection**: Throws error instead of returning empty array (cycles indicate bugs)
+
+**Files Modified**:
+- ✅ `./components/reference.ts` - Added `parent` field, helper methods, updated constructor and `toJSON()`
+- ✅ `./components/dataTypes/reference.ts` - Updated `StandardReferenceData` type
+- ✅ `./components/reference.test.ts` - Comprehensive test coverage
 
 **Note**: Caching mechanism deferred to Phase 4 (Topological Resolution) to avoid circular dependency issues. Without topological sorting, caching on an unsorted graph could lead to infinite loops.
 
-### Phase 2: Edge Collection Infrastructure
+### Phase 2: Edge Collection Infrastructure ✅ COMPLETE
 
-**Goal**: Collect parent→child edges during component processing
+**Goal**: Create infrastructure to compute parent→child edges on-demand
 
-**Tasks**:
-1. Create `ParentChildEdge` type to represent edges
-2. Modify `processComponents()` to collect edges from `componentContext` chains
-3. Store edges in a new field on `StandardForm` (or compute on-demand)
-4. Handle explicit `Parent` tags as edges
-5. Set `parent` field on components during processing (from edges)
-6. Write tests for edge collection
+**Status**: ✅ Completed
 
-**Files to modify**:
-- `./processComponents.ts` - Add edge collection logic and set `parent` field
-- `./index.ts` - Add edge storage/retrieval
-- `./components/component.ts` - Extract edges from explicitParent
+**Tasks Completed**:
+1. ✅ Created edge type: `Array<{ parent: ComponentUUID; child: ComponentUUID }>` (returned by `_getParentChildEdges()`)
+2. ✅ Implemented `_getParentChildEdges()` method on `StandardForm` class
+   - Computes edges on-demand from `StandardForm` components
+   - For each component with `universalKey`, gets direct children via `component.referencedKeys()`
+   - Filters for `referenceType: 'Direct'` OR `referenceType: 'Position'` to get child references
+   - Looks up child components via `_lookup()` to get their `universalKey` (handles local keys)
+   - Creates edges: `parent → child` for each child reference
+   - Skips components without `universalKey` (can't create edges without identifiers)
+   - Note: 'Position' references (from Map) already contain the room key via `position._payload.room.plain`
+3. ✅ Did NOT set `parent` field during this phase - that happens in Phase 4 after topological resolution
+4. ✅ Did NOT include explicit `Parent` tags (those are user-set via `explicitParent`, separate from implicit parent)
+5. ✅ Comprehensive test coverage for edge computation
+
+**Analysis of `referencedKeys()` vs Component-Specific Child Storage**:
+
+✅ **Components where `referencedKeys()` with `referenceType: 'Direct'` matches child storage**:
+- **StandardRoom**: `referencedKeys()` returns `features.payload`, `examples.payload`, `characters.payload` as 'Direct' ✅
+- **StandardFeature**: `referencedKeys()` returns `examples.payload` as 'Direct' ✅
+- **StandardKnowledge**: `referencedKeys()` returns `examples.payload` as 'Direct' ✅
+- **StandardMessage**: `referencedKeys()` returns `_rooms.payload` as 'Direct' ✅
+- **StandardMoment**: `referencedKeys()` returns `messages.payload` as 'Direct' (also includes 'Dependency' but same items) ✅
+
+✅ **Components with special reference types that still work**:
+- **StandardMap**: `referencedKeys()` returns positions with `referenceType: 'Position'`
+  - The key is `position._payload.room.plain` (the room's StandardKey) ✅
+  - This is exactly what we need for Map → Room edges
+  - **Solution**: Filter for both `referenceType: 'Direct'` OR `referenceType: 'Position'` in edge collection
+
+⚠️ **Reference types to exclude**:
+- **'Exit'**: Room-to-room connections, not parent-child relationships (exclude from edge collection)
+- **'Link'**: References in render trees, not component hierarchy (exclude from edge collection)
+- **'Dependency'**: Used by Moment for messages, but same items as 'Direct' (can include or exclude, doesn't matter)
+
+⚠️ **Components with no children**:
+- **StandardCharacter**: `referencedKeys()` returns `[]` (no children) ✅
+- **StandardImage**: `referencedKeys()` returns `[]` (no children) ✅
+- **StandardExample**: `referencedKeys()` returns only 'Link' references from render trees, not 'Direct' (no child components) ✅
+
+**Conclusion**: Filter `referencedKeys()` for `referenceType: 'Direct'` OR `referenceType: 'Position'` to get all parent→child edges. No special handling needed - the 'Position' references already contain the room keys we need.
+
+**Key Design Decisions**:
+- **On-demand computation**: Edges are computed when needed (e.g., in `finalize()`), not stored during `processComponents()`. This keeps the data model clean and allows edges to be recomputed after merges.
+- **Child lookup**: Uses `component.referencedKeys()` filtered by `referenceType: 'Direct'` or `'Position'` to get child references, then looks up child components via `_lookup()` to get their `universalKey`. This handles cases where child references only have local keys.
+- **Explicit vs Implicit**: `explicitParent` is user-set via `<Parent>` tags and is separate from implicit parent calculation. Only implicit nesting (schema structure) is considered for edge collection.
+- **Where `parent` will be set**: In Phase 4, after topological resolution, we'll set `parent` on `StandardComponent._key.parent` (the component's own key), representing where the component appears in the hierarchy.
+
+**Files Modified**:
+- ✅ `./index.ts` - Added `_getParentChildEdges()` method (internal method, returns `Array<{ parent: ComponentUUID; child: ComponentUUID }>`)
+- ✅ `./index.test.ts` - Comprehensive test coverage including:
+  - Empty StandardForm and no relationships
+  - Direct children (Room → Feature/Example/Character, Feature → Example, Message → Room, Moment → Message)
+  - Position references (Map → Room via Position)
+  - Multi-level nesting
+  - Exclusion of Exit references
+  - Skipping components/references without `universalKey`
+
+**Implementation Details**:
+- Method name: `_getParentChildEdges()` (internal method, prefixed with `_`)
+- Requires `finalize()` to be called first to ensure all components have `universalKey` assigned
+- Handles both `referenceType: 'Direct'` (most components) and `referenceType: 'Position'` (Map → Room relationships)
+- Uses `_lookup()` to resolve child references that may only have local keys to their full components with `universalKey`
 
 ### Phase 3: Graph Construction
 
@@ -398,11 +466,13 @@ For the problematic scenario:
 - `[...parentContext, currentKey]` - Rebuild chain from parent
 - `context.length` - Sort by depth
 
-### Proposed Approach: Single Parent Reference
+### Proposed Approach: Single Parent Reference ✅ IMPLEMENTED
 
-**Proposed representation**: `StandardKey.parent?: StandardKey | ComponentUUID` - Direct parent only
-- Example: `parent = Room-key` for a Feature in Room
-- Ancestry chain computed on-demand via parent traversal
+**Implemented representation**: 
+- In memory: `StandardKey.parent?: StandardKey` - Direct parent only (always `StandardKey` object)
+- In serialized form: `StandardReferenceData.parent?: ComponentUUID` - Direct parent UUID only (string)
+- Example: `parent = Room-key` (StandardKey object) for a Feature in Room
+- Ancestry chain computed on-demand via parent traversal with lookup function
 
 **Benefits**:
 1. **Aligns with graph structure**: Graph edges are parent→child, matching the data model
@@ -417,45 +487,51 @@ For the problematic scenario:
 - **Lookup helper**: `getAncestryChain(component)` function with memoization
 - **Depth computation**: Compute depth via traversal (cacheable)
 
-**Example resolution algorithm**:
+**Implemented algorithm** (Phase 1):
 ```typescript
-// During topological resolution
-const resolvedContexts = new Map<ComponentUUID, StandardKey[]>()
-
-function getAncestryChain(component: StandardComponent, lookup: Map): StandardKey[] {
-    if (resolvedContexts.has(component.universalKey)) {
-        return resolvedContexts.get(component.universalKey)!
+// In StandardKey.getAncestryChain()
+getAncestryChain(
+    lookup: (uuid: ComponentUUID) => StandardKey | undefined,
+    visited: ComponentUUID[] = []
+): StandardKey[] {
+    if (!this.universalKey) return []
+    
+    const keyIdentifier: ComponentUUID = this.universalKey
+    
+    // Cycle detection - throw error (defensive programming)
+    if (visited.includes(keyIdentifier)) {
+        throw new Error(`Cycle detected in parent chain: ${keyIdentifier}`)
     }
     
-    if (!component._key.parent) {
-        // Asset level
-        resolvedContexts.set(component.universalKey, [])
-        return []
+    const extendedVisited = [...visited, keyIdentifier]
+    
+    if (!this.parent) {
+        return [] // Asset level
     }
     
-    const parent = lookup.get(component._key.parent)
-    if (!parent) {
-        // Parent not found, treat as Asset level
-        resolvedContexts.set(component.universalKey, [])
-        return []
+    // Parent is StandardKey, but only contains one level
+    // Use parent's universalKey to look up full parent chain
+    const parentKey = this.parent.universalKey ? lookup(this.parent.universalKey) : undefined
+    
+    if (!parentKey) {
+        return [] // Parent not found
     }
     
-    // Recursively get parent's chain, then append parent
-    const parentChain = getAncestryChain(parent, lookup)
-    const chain = [...parentChain, new StandardKey(parent._key.plain)]
-    resolvedContexts.set(component.universalKey, chain)
-    return chain
+    const parentChain = parentKey.getAncestryChain(lookup, extendedVisited)
+    return [...parentChain, parentKey]
 }
 ```
+
+**Note**: Caching will be added in Phase 4 after topological sorting ensures no cycles.
 
 **Migration impact**:
 - **Breaking change**: `context` array → `parent` single reference
 - **Helper methods needed**: `getAncestryChain()`, `getDepth()`, `hasParent()`
 - **Update all call sites**: Replace `context.slice(-1)[0]` with `parent`, `context?.length` with `parent !== undefined`
 
-### Decision: Single Parent Reference
+### Decision: Single Parent Reference ✅ IMPLEMENTED
 
-**Decision**: Replace `context?: StandardKey[]` with `parent?: StandardKey | ComponentUUID`
+**Decision**: Replace `context?: StandardKey[]` with `parent?: StandardKey` (in memory) / `parent?: ComponentUUID` (serialized)
 
 **Rationale**:
 1. Graph edges naturally represent parent→child relationships
@@ -463,12 +539,22 @@ function getAncestryChain(component: StandardComponent, lookup: Map): StandardKe
 3. Full chain can be computed on-demand with caching
 4. Eliminates array intersection problems (merge just handles parent)
 5. Aligns with graph-based resolution approach
+6. **No recursive nesting**: Parent StandardKey objects don't contain their own parent (only one level)
 
-**Implementation strategy**:
-- Add `parent` field to `StandardKey`
-- Add helper methods for ancestry chain computation (with caching)
-- Update all `context` usages to use `parent` + helpers
-- Remove `context` array after migration complete
+**Implementation strategy** ✅:
+- ✅ Added `parent?: StandardKey` field to `StandardKey` (in memory)
+- ✅ Added `parent?: ComponentUUID` to `StandardReferenceData` (serialized form)
+- ✅ Added helper methods for ancestry chain computation (`getAncestryChain()` with lookup)
+- ✅ Updated `toJSON()` to serialize parent as UUID string (no recursive nesting)
+- ✅ Updated constructor to accept `StandardKey` directly (for cloning)
+- ⏳ Update all `context` usages to use `parent` + helpers (Phase 6)
+- ⏳ Remove `context` array after migration complete (Phase 6)
+
+**Key Implementation Details**:
+- Parent is always `StandardKey` in memory, but serializes to `ComponentUUID` string
+- `getAncestryChain()` requires a lookup function to resolve parent UUIDs to full `StandardKey` objects
+- Cycle detection throws error (defensive programming)
+- Constructor accepts `StandardKey` directly for efficient cloning
 
 **Alternative considered**: Keep `context` array, compute from `parent` when needed
 - **Rejected**: Would maintain redundant data and complexity
