@@ -245,6 +245,160 @@ describe('StandardForm', () => {
         })
     })
 
+    describe('_buildComponentGraph()', () => {
+        it('should return empty graph for empty StandardForm', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            const graph = sf._buildComponentGraph()
+            
+            expect(Object.keys(graph.nodes).length).toBe(0)
+            expect(graph.edges.length).toBe(0)
+            expect(graph.directional).toBe(true)
+        })
+
+        it('should create graph with nodes but no edges for isolated components', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(room1) />
+                <Feature key=(feature1) />
+            </Asset>`).finalize()
+            const graph = sf._buildComponentGraph()
+            
+            const room1UUID = sf.byId['room1'].universalKey!
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            
+            // Should have 2 nodes (room1 and feature1)
+            expect(Object.keys(graph.nodes).length).toBe(2)
+            expect(graph.nodes[room1UUID]).toEqual({ key: room1UUID })
+            expect(graph.nodes[feature1UUID]).toEqual({ key: feature1UUID })
+            
+            // Should have 0 edges (no parent-child relationships)
+            expect(graph.edges.length).toBe(0)
+            expect(graph.directional).toBe(true)
+        })
+
+        it('should create graph with nodes and edges from Room with children', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(room1)>
+                    <Feature key=(feature1) />
+                    <Example key=(example1) />
+                </Room>
+            </Asset>`).finalize()
+            const graph = sf._buildComponentGraph()
+            
+            const room1UUID = sf.byId['room1'].universalKey!
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            const example1UUID = sf.byId['example1'].universalKey!
+            
+            // Should have 3 nodes
+            expect(Object.keys(graph.nodes).length).toBe(3)
+            expect(graph.nodes[room1UUID]).toEqual({ key: room1UUID })
+            expect(graph.nodes[feature1UUID]).toEqual({ key: feature1UUID })
+            expect(graph.nodes[example1UUID]).toEqual({ key: example1UUID })
+            
+            // Should have 2 edges: room1 → feature1, room1 → example1
+            expect(graph.edges.length).toBe(2)
+            expect(graph.edges).toContainEqual({ from: room1UUID, to: feature1UUID })
+            expect(graph.edges).toContainEqual({ from: room1UUID, to: example1UUID })
+            expect(graph.directional).toBe(true)
+        })
+
+        it('should create graph with nodes and edges from Map with Position references', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Map key=(map1)>
+                    <Room key=(room1)>
+                        <Position x="0" y="100" />
+                    </Room>
+                    <Room key=(room2)>
+                        <Position x="100" y="200" />
+                    </Room>
+                </Map>
+            </Asset>`).finalize()
+            const graph = sf._buildComponentGraph()
+            
+            const map1UUID = sf.byId['map1'].universalKey!
+            const room1UUID = sf.byId['room1'].universalKey!
+            const room2UUID = sf.byId['room2'].universalKey!
+            
+            // Should have 3 nodes
+            expect(Object.keys(graph.nodes).length).toBe(3)
+            
+            // Should have 2 edges: map1 → room1, map1 → room2
+            expect(graph.edges.length).toBe(2)
+            expect(graph.edges).toContainEqual({ from: map1UUID, to: room1UUID })
+            expect(graph.edges).toContainEqual({ from: map1UUID, to: room2UUID })
+        })
+
+        it('should create graph with multi-level nesting', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Map key=(map1)>
+                    <Room key=(room1)>
+                        <Position x="0" y="0" />
+                        <Feature key=(feature1)>
+                            <Example key=(example1) />
+                        </Feature>
+                    </Room>
+                </Map>
+            </Asset>`).finalize()
+            const graph = sf._buildComponentGraph()
+            
+            const map1UUID = sf.byId['map1'].universalKey!
+            const room1UUID = sf.byId['room1'].universalKey!
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            const example1UUID = sf.byId['example1'].universalKey!
+            
+            // Should have 4 nodes
+            expect(Object.keys(graph.nodes).length).toBe(4)
+            
+            // Should have 3 edges: map1 → room1, room1 → feature1, feature1 → example1
+            expect(graph.edges.length).toBe(3)
+            expect(graph.edges).toContainEqual({ from: map1UUID, to: room1UUID })
+            expect(graph.edges).toContainEqual({ from: room1UUID, to: feature1UUID })
+            expect(graph.edges).toContainEqual({ from: feature1UUID, to: example1UUID })
+        })
+
+        it('should only include components with universalKey as nodes', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(room1)>
+                    <Feature key=(feature1) />
+                </Room>
+            </Asset>`).finalize()
+            
+            // Manually remove universalKey from feature1
+            const feature1 = sf.byId['feature1']
+            // @ts-ignore - accessing private for test
+            feature1._key.universalKey = undefined
+            
+            const graph = sf._buildComponentGraph()
+            
+            const room1UUID = sf.byId['room1'].universalKey!
+            
+            // Should only have 1 node (room1, not feature1)
+            expect(Object.keys(graph.nodes).length).toBe(1)
+            expect(graph.nodes[room1UUID]).toEqual({ key: room1UUID })
+            
+            // Should have 0 edges (feature1 has no universalKey, so edge can't be created)
+            expect(graph.edges.length).toBe(0)
+        })
+
+        it('should create directional graph (parent → child)', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(room1)>
+                    <Feature key=(feature1) />
+                </Room>
+            </Asset>`).finalize()
+            const graph = sf._buildComponentGraph()
+            
+            const room1UUID = sf.byId['room1'].universalKey!
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            
+            // Graph should be directional
+            expect(graph.directional).toBe(true)
+            
+            // Should have edge from room1 to feature1, but not reverse
+            expect(graph.edges).toContainEqual({ from: room1UUID, to: feature1UUID })
+            expect(graph.edges).not.toContainEqual({ from: feature1UUID, to: room1UUID })
+        })
+    })
+
     it('should accept edit tags in JSON form', () => {
         const test = new StandardForm({
             universalKey: 'ASSET#test',

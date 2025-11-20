@@ -118,7 +118,7 @@ This is a complex refactoring that touches core StandardForm operations. Follow 
 
 **To begin implementation**:
 1. Review the Implementation Plan section to understand all phases
-2. Start with Phase 3: Graph Construction (Phases 1 and 2 are complete)
+2. Start with Phase 4: Topological Resolution (Phases 1, 2, and 3 are complete)
 3. Follow the phase-by-phase approach, ensuring tests pass after each phase
 
 ### 7. Run Tests Before Starting
@@ -352,29 +352,30 @@ For the problematic scenario:
 - Handles both `referenceType: 'Direct'` (most components) and `referenceType: 'Position'` (Map → Room relationships)
 - Uses `_lookup()` to resolve child references that may only have local keys to their full components with `universalKey`
 
-### Phase 3: Graph Construction
+### Phase 3: Graph Construction ✅ COMPLETE
 
 **Goal**: Build directed graph from collected edges
 
-**Status**: ⏳ Next Phase
+**Status**: ✅ Completed
 
-**Tasks**:
-1. Import `Graph` class from `mtw-utilities`
-2. Create graph construction method (e.g., `_buildComponentGraph()`) that:
-   - Takes the edges from `_getParentChildEdges()`
+**Tasks Completed**:
+1. ✅ Imported `Graph` class from `mtw-utilities`
+2. ✅ Created `_buildComponentGraph()` method that:
+   - Gets edges from `_getParentChildEdges()`
    - Creates a `Graph<ComponentUUID, { key: ComponentUUID }, {}>` instance
-   - Maps each component (by `universalKey`) to a graph node
-   - Adds all collected edges to the graph
-   - Returns the constructed graph
-3. Integrate graph construction into `finalize()`:
-   - Call `_getParentChildEdges()` after universalKey assignment
-   - Build graph from edges
-   - Pass graph to topological resolution (Phase 4)
-4. Write tests for graph construction:
-   - Test graph construction from edges
-   - Test graph includes all components with universalKeys
-   - Test graph includes all parent→child edges
-   - Test graph handles components without edges (isolated nodes)
+   - Maps each component (by `universalKey`) to a graph node using functional `reduce`
+   - Converts edges from `{ parent, child }` to `{ from, to }` format
+   - Returns a directed graph (`directional: true`)
+3. ✅ Integrated graph construction into `finalize()`:
+   - Called `_buildComponentGraph()` after universalKey assignment
+   - Graph is built but not yet used (will be used in Phase 4 for topological resolution)
+4. ✅ Comprehensive test coverage:
+   - Empty graph for empty StandardForm
+   - Graph with isolated nodes (no edges)
+   - Graph with edges from various component types (Room, Map, Feature, etc.)
+   - Multi-level nesting
+   - Only includes components with universalKey
+   - Verifies graph is directional
 
 **Implementation Details**:
 - Graph nodes: Use `ComponentUUID` as the key, with node data `{ key: ComponentUUID }`
@@ -382,10 +383,16 @@ For the problematic scenario:
 - Graph direction: Directed graph (`directional: true`)
 - Graph construction happens after universalKey assignment in `finalize()`, but before topological resolution
 
-**Files to modify**:
-- `./index.ts` - Add `_buildComponentGraph()` method, integrate into `finalize()`
-- Add graph utilities import: `import { Graph } from 'mtw-utilities/ts/graphStorage/utils/graph'`
-- `./index.test.ts` - Add tests for graph construction
+**Files Modified**:
+- ✅ `./index.ts` - Added `_buildComponentGraph()` method, integrated into `finalize()`
+- ✅ Added graph utilities import: `import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'`
+- ✅ `./index.test.ts` - Comprehensive test coverage (7 tests)
+
+**Key Design Decisions**:
+- **Functional style**: Node creation uses `reduce` with spread operator for immutability
+- **Graph direction**: Directed graph (`directional: true`) since parent→child relationships are directional
+- **Node structure**: Simple `{ key: ComponentUUID }` structure (no additional data needed)
+- **Edge conversion**: Edges converted from `{ parent, child }` to `{ from, to }` format required by Graph class
 
 ### Phase 4: Topological Resolution
 

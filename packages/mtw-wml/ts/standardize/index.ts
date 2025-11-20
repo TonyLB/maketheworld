@@ -38,6 +38,7 @@ import { StandardLiteral } from "./literal"
 import { StandardRender } from "./render"
 import { excludeUndefined } from "../lib/lists"
 import { rebuildSchemaFromStandardRender } from "./components/utils/extractStandardRender"
+import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
     return (value instanceof StandardRemove) ||
@@ -389,6 +390,53 @@ export class StandardForm {
         }
         
         return edges
+    }
+
+    /**
+     * Builds a directed graph from the parent-child edges in this StandardForm.
+     * 
+     * **Requires universalKey assignment**: This method relies on all components having
+     * `universalKey` values assigned. When called from within `finalize()`, this should
+     * be after the key-remapping step that assigns universalKeys to components that don't
+     * have them.
+     * 
+     * The graph is constructed from edges collected via `_getParentChildEdges()`, with
+     * nodes representing components (by universalKey) and edges representing parent→child
+     * relationships.
+     * 
+     * @returns A directed graph where:
+     *          - Nodes = components (keyed by ComponentUUID)
+     *          - Edges = parent→child relationships (from parent to child)
+     */
+    _buildComponentGraph(): Graph<ComponentUUID, { key: ComponentUUID }, {}> {
+        // Get all parent-child edges
+        const edges = this._getParentChildEdges()
+        
+        // Create nodes from all components with universalKey
+        const nodes: Partial<Record<ComponentUUID, { key: ComponentUUID }>> = this._components
+            .reduce<Partial<Record<ComponentUUID, { key: ComponentUUID }>>>(
+                (acc, component) => {
+                    if (component.universalKey) {
+                        return { ...acc, [component.universalKey]: { key: component.universalKey }}
+                    }
+                    return acc
+                },
+                {}
+            )
+        
+        // Convert edges from { parent, child } to { from, to } format for Graph
+        const graphEdges = edges.map(({ parent, child }) => ({
+            from: parent,
+            to: child
+        }))
+        
+        // Create and return directed graph
+        return new Graph<ComponentUUID, { key: ComponentUUID }, {}>(
+            nodes,
+            graphEdges,
+            {}, // defaultItem (empty since we only need { key })
+            true // directional = true (parent→child is directional)
+        )
     }
 
     get byUniversalId(): Record<ComponentUUID, StandardComponent> {
@@ -882,6 +930,13 @@ export class StandardForm {
                 }
                 return component
             })
+        returnValue._components = uuidDefaultedComponents
+        
+        // Build component graph from parent-child edges
+        // (Graph construction happens here, but topological resolution will be in Phase 4)
+        // TODO: Use componentGraph for topological resolution in Phase 4
+        returnValue._buildComponentGraph()
+        
         const rebuiltContextComponents = uuidDefaultedComponents
             .sort(({ _key: keyA }, { _key: keyB }) => ((keyA.context ?? []).length - (keyB.context ?? []).length))
             .reduce<StandardComponent[]>((previous, component) => {
