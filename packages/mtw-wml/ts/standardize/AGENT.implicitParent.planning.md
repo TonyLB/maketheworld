@@ -356,42 +356,121 @@ For the problematic scenario:
 
 **Goal**: Build directed graph from collected edges
 
+**Status**: ⏳ Next Phase
+
 **Tasks**:
 1. Import `Graph` class from `mtw-utilities`
-2. Create graph construction function in `finalize()` or separate method
-3. Map components to graph nodes (by universalKey)
-4. Add all collected edges to graph
-5. Write tests for graph construction
+2. Create graph construction method (e.g., `_buildComponentGraph()`) that:
+   - Takes the edges from `_getParentChildEdges()`
+   - Creates a `Graph<ComponentUUID, { key: ComponentUUID }, {}>` instance
+   - Maps each component (by `universalKey`) to a graph node
+   - Adds all collected edges to the graph
+   - Returns the constructed graph
+3. Integrate graph construction into `finalize()`:
+   - Call `_getParentChildEdges()` after universalKey assignment
+   - Build graph from edges
+   - Pass graph to topological resolution (Phase 4)
+4. Write tests for graph construction:
+   - Test graph construction from edges
+   - Test graph includes all components with universalKeys
+   - Test graph includes all parent→child edges
+   - Test graph handles components without edges (isolated nodes)
+
+**Implementation Details**:
+- Graph nodes: Use `ComponentUUID` as the key, with node data `{ key: ComponentUUID }`
+- Graph edges: Use the edges from `_getParentChildEdges()` directly (they're already `{ parent: ComponentUUID, child: ComponentUUID }`)
+- Graph direction: Directed graph (`directional: true`)
+- Graph construction happens after universalKey assignment in `finalize()`, but before topological resolution
 
 **Files to modify**:
-- `./index.ts` - Graph construction in `finalize()`
-- Add graph utilities import
+- `./index.ts` - Add `_buildComponentGraph()` method, integrate into `finalize()`
+- Add graph utilities import: `import { Graph } from 'mtw-utilities/ts/graphStorage/utils/graph'`
+- `./index.test.ts` - Add tests for graph construction
 
 ### Phase 4: Topological Resolution
 
-**Goal**: Resolve parent references in dependency order
+**Goal**: Resolve implicit parent references using graph-based topological analysis
+
+**Status**: ⏳ Planned
+
+**Algorithm Overview**:
+
+After universalKey assignment in `finalize()`, we:
+1. Generate graph from collected edges (Phase 3)
+2. Derive topological sort from graph (returns `ComponentUUID[][]` - array of strongly connected components)
+3. Reduce over topological sort to compute `selectedAncestry` for each component
+4. Extract implicit parent from `selectedAncestry` (last item = most proximate parent)
+
+**Detailed Algorithm**:
+
+**Step 1: Graph Construction** (Phase 3)
+- Build directed graph from `_getParentChildEdges()`
+- Graph nodes = components (by `universalKey`)
+- Graph edges = parent→child relationships
+
+**Step 2: Topological Sort**
+- Call `graph.topologicalSort()` → returns `ComponentUUID[][]`
+- Each inner array is a strongly connected component (SCC)
+- For acyclic graphs, each SCC is a single node
+- Order ensures parents are processed before children
+
+**Step 3: Reduce Over Topological Sort**
+
+For each SCC (set of nodes) in topological order:
+
+1. **Find unique parents**: Collect all parent nodes (via back-edges) for all nodes in the current set
+2. **Filter to external parents**: Keep only parents that are outside the current set (already processed due to topological order)
+3. **Construct ancestry-threads**: For each external parent, build ancestry thread as:
+   - `[...selectedAncestry-of-parent, parent]`
+   - If parent has no `selectedAncestry` yet (shouldn't happen due to topological order), use `[]`
+   - Each thread is a `ComponentUUID[]` representing a path from Asset level to that parent
+4. **Find longest common prefix**: Across all ancestry-threads, find the longest common prefix
+   - This is mathematically identical to "the nearest ancestor that all positions have in common"
+   - If no common prefix exists, result is `[]` (Asset level)
+5. **Register selectedAncestry**: Store the longest common prefix as `selectedAncestry` for all nodes in the current set
+
+**Step 4: Extract Implicit Parent**
+- For each component, `implicitParent` = last item in `selectedAncestry` (most proximate parent)
+- If `selectedAncestry` is empty, component is at Asset level (no implicit parent)
+
+**Key Concepts**:
+
+- **Strongly Connected Components (SCC)**: Nodes in an SCC can navigate to each other, so they share ancestry threads and can be processed as a group
+- **Ancestry-thread**: Like the old `context` array - a listing from earliest (Asset) to latest (most proximate) parent in a hierarchy path. Stored temporarily as `ComponentUUID[]` during algorithm, but long-term we only store the last item (implicit parent)
+- **selectedAncestry**: Full chain FROM the component's implicit parent down to Asset level. Allows quick construction of child ancestry-threads by prepending: `[...parent.selectedAncestry, parent]`
+- **Most-complete common ancestry**: Longest common prefix across all ancestry-threads, which equals the nearest common ancestor
 
 **Tasks**:
-1. Use `topologicalSort()` to get resolution order
-2. Implement resolution algorithm that:
-   - Processes components in topological order
-   - For each component, collects all parent edges from all appearances
-   - Resolves parent by looking up already-resolved parents
-   - Handles multiple appearances with different parents (finds common parent or Asset level)
-   - Sets `parent` field on component
+1. Implement `_resolveImplicitParents(graph: Graph<...>)` method that:
+   - Gets topological sort from graph
+   - Reduces over topological sort to compute `selectedAncestry` for each component
+   - Stores `selectedAncestry` temporarily (as `Map<ComponentUUID, ComponentUUID[]>`)
+   - Extracts `implicitParent` from `selectedAncestry` for each component
+2. Integrate into `finalize()`:
+   - After graph construction, call `_resolveImplicitParents()`
+   - Set `parent` field on each component's `_key` (or store `implicitParent` separately - TBD)
+   - Replace current context rebuilding logic with topological resolution
 3. **Add caching mechanism for ancestry chain computation**:
    - Now safe because topological sort ensures no circular dependencies
-   - Cache computed ancestry chains during resolution
-   - Update `getAncestryChain()` to use cache
+   - Cache computed ancestry chains during resolution (can use `selectedAncestry` as cache)
+   - Update `getAncestryChain()` to use cache when available
    - Add `getDepth()` helper that uses cached chains
-4. Replace current `finalize()` context rebuilding with topological parent resolution
-5. Use `getAncestryChain()` helper when full chain is needed (e.g., for sorting)
-6. Write comprehensive tests including edge case
+4. Write comprehensive tests:
+   - Test simple parent-child relationships
+   - Test multi-level nesting
+   - Test components with multiple appearances (the edge case scenario)
+   - Test components at Asset level
+   - Test SCC handling (if cycles exist)
 
 **Files to modify**:
-- `./index.ts` - Replace context rebuilding in `finalize()` with parent resolution
-- Add resolution algorithm using parent references
-- `./components/reference.ts` - Add caching to `getAncestryChain()` and `getDepth()` helpers
+- `./index.ts` - Add `_resolveImplicitParents()` method, integrate into `finalize()`
+- `./components/reference.ts` - Add caching to `getAncestryChain()` and `getDepth()` helpers (optional, can use `selectedAncestry` from resolution)
+- `./index.test.ts` - Comprehensive tests for topological resolution
+
+**Design Decision Pending**:
+- Should `implicitParent` be stored on `StandardComponent._key.parent` or separately on `StandardComponent`?
+- User intuition: May want to remove `parent` from `StandardKey` entirely and store `implicitParent` separately
+- Will evaluate after implementation to see which approach is cleaner
 
 ### Phase 5: Merge Integration
 
