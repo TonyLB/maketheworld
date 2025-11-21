@@ -246,6 +246,29 @@ The following migrations must be completed in this specific order due to depende
   - Impact: Minor performance optimization for large asset lists
   - Recommendation: Defer unless performance issues arise
 
+#### Hierarchical Component Organization
+**Status**: Future enhancement (not blocking)
+
+**Goal**: Allow Features and Knowledges to contain references to their own type for hierarchical organization
+
+**Current Behavior**:
+- `StandardFeature` only allows `Example` children (not `Feature` children)
+- `StandardKnowledge` only allows `Example` children (not `Knowledge` children)
+- This prevents hierarchical organization of Features and Knowledges
+
+**Future Considerations**:
+- Allow `Feature` components to contain other `Feature` components as children
+- Allow `Knowledge` components to contain other `Knowledge` components as children
+- This would enable hierarchical organization (e.g., "Combat Features" containing "Melee Combat" and "Ranged Combat")
+- Would enable cycle detection testing in component graphs
+- Would require updates to:
+  - `StandardFeature.withChild()` to accept `Feature` children
+  - `StandardKnowledge.withChild()` to accept `Knowledge` children
+  - WML schema validation
+  - Component rendering logic
+
+**Recommendation**: Address as needed based on content organization requirements. No immediate action required.
+
 ---
 
 ## Cross-Phase Considerations
