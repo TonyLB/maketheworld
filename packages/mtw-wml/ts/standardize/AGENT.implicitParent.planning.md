@@ -398,7 +398,7 @@ For the problematic scenario:
 
 **Goal**: Resolve implicit parent references using graph-based topological analysis
 
-**Status**: ⏳ Planned
+**Status**: 🚧 In Progress
 
 **Algorithm Overview**:
 
@@ -415,11 +415,19 @@ After universalKey assignment in `finalize()`, we:
 - Graph nodes = components (by `universalKey`)
 - Graph edges = parent→child relationships
 
-**Step 2: Topological Sort**
-- Call `graph.topologicalSort()` → returns `ComponentUUID[][]`
-- Each inner array is a strongly connected component (SCC)
-- For acyclic graphs, each SCC is a single node
-- Order ensures parents are processed before children
+**Step 2: Topological Sort** ✅ COMPLETE
+- ✅ Implemented `_getTopologicalSort()` method that:
+  - Builds component graph via `_buildComponentGraph()`
+  - Calls `graph.topologicalSort()` → returns `ComponentUUID[][]`
+  - Each inner array is a strongly connected component (SCC)
+  - For acyclic graphs, each SCC is a single node
+  - Order ensures parents are processed before children
+- ✅ Comprehensive test coverage (5 tests):
+  - Empty graph
+  - Isolated components (no edges)
+  - Simple parent-child relationships
+  - Multi-level nesting
+  - Multiple independent trees
 
 **Step 3: Reduce Over Topological Sort**
 
@@ -448,8 +456,9 @@ For each SCC (set of nodes) in topological order:
 - **Most-complete common ancestry**: Longest common prefix across all ancestry-threads, which equals the nearest common ancestor
 
 **Tasks**:
-1. Implement `_resolveImplicitParents(graph: Graph<...>)` method that:
-   - Gets topological sort from graph
+1. ✅ Derive topological sort from graph (via `_getTopologicalSort()`)
+2. ⏳ Implement `_resolveImplicitParents()` method that:
+   - Gets topological sort from graph (using `_getTopologicalSort()`)
    - Reduces over topological sort to compute `selectedAncestry` for each component
    - Stores `selectedAncestry` temporarily (as `Map<ComponentUUID, ComponentUUID[]>`)
    - Extracts `implicitParent` from `selectedAncestry` for each component
@@ -469,10 +478,14 @@ For each SCC (set of nodes) in topological order:
    - Test components at Asset level
    - Test SCC handling (if cycles exist)
 
-**Files to modify**:
+**Files Modified**:
+- ✅ `./index.ts` - Added `_getTopologicalSort()` method
+- ✅ `./index.test.ts` - Added tests for topological sort (5 tests)
+
+**Files to modify** (remaining tasks):
 - `./index.ts` - Add `_resolveImplicitParents()` method, integrate into `finalize()`
 - `./components/reference.ts` - Add caching to `getAncestryChain()` and `getDepth()` helpers (optional, can use `selectedAncestry` from resolution)
-- `./index.test.ts` - Comprehensive tests for topological resolution
+- `./index.test.ts` - Add tests for full topological resolution (selectedAncestry computation)
 
 **Design Decision Pending**:
 - Should `implicitParent` be stored on `StandardComponent._key.parent` or separately on `StandardComponent`?

@@ -404,11 +404,16 @@ export class StandardForm {
      * nodes representing components (by universalKey) and edges representing parent→child
      * relationships.
      * 
-     * @returns A directed graph where:
-     *          - Nodes = components (keyed by ComponentUUID)
-     *          - Edges = parent→child relationships (from parent to child)
+     * @returns An object containing both the graph and its topological sort:
+     *          - `graph`: A directed graph where:
+     *            - Nodes = components (keyed by ComponentUUID)
+     *            - Edges = parent→child relationships (from parent to child)
+     *          - `topologicalSort`: Array of SCCs in topological order (`ComponentUUID[][]`)
      */
-    _buildComponentGraph(): Graph<ComponentUUID, { key: ComponentUUID }, {}> {
+    _buildComponentGraph(): {
+        graph: Graph<ComponentUUID, { key: ComponentUUID }, {}>;
+        topologicalSort: ComponentUUID[][];
+    } {
         // Get all parent-child edges
         const edges = this._getParentChildEdges()
         
@@ -430,13 +435,36 @@ export class StandardForm {
             to: child
         }))
         
-        // Create and return directed graph
-        return new Graph<ComponentUUID, { key: ComponentUUID }, {}>(
+        // Create directed graph
+        const graph = new Graph<ComponentUUID, { key: ComponentUUID }, {}>(
             nodes,
             graphEdges,
             {}, // defaultItem (empty since we only need { key })
             true // directional = true (parent→child is directional)
         )
+        
+        // Compute topological sort
+        const topologicalSort = graph.topologicalSort()
+        
+        return { graph, topologicalSort }
+    }
+
+    /**
+     * Derives a topological sort from the component graph.
+     * 
+     * Returns an array of strongly connected components (SCCs), where each SCC is an array
+     * of ComponentUUIDs. The outer array is in topological order (parents before children).
+     * 
+     * **Requires universalKey assignment**: This method relies on `_buildComponentGraph()`,
+     * which requires all components to have `universalKey` values assigned (via `finalize()`).
+     * 
+     * @returns Array of SCCs in topological order: `ComponentUUID[][]`
+     *          Each inner array represents a strongly connected component (nodes that form a cycle).
+     *          For acyclic graphs, each SCC will contain a single node.
+     */
+    _getTopologicalSort(): ComponentUUID[][] {
+        const { topologicalSort } = this._buildComponentGraph()
+        return topologicalSort
     }
 
     get byUniversalId(): Record<ComponentUUID, StandardComponent> {
@@ -932,10 +960,10 @@ export class StandardForm {
             })
         returnValue._components = uuidDefaultedComponents
         
-        // Build component graph from parent-child edges
+        // Build component graph from parent-child edges and compute topological sort
         // (Graph construction happens here, but topological resolution will be in Phase 4)
-        // TODO: Use componentGraph for topological resolution in Phase 4
-        returnValue._buildComponentGraph()
+        // TODO: Use componentGraph and topologicalSort for topological resolution in Phase 4
+        const { graph: componentGraph, topologicalSort } = returnValue._buildComponentGraph()
         
         const rebuiltContextComponents = uuidDefaultedComponents
             .sort(({ _key: keyA }, { _key: keyB }) => ((keyA.context ?? []).length - (keyB.context ?? []).length))

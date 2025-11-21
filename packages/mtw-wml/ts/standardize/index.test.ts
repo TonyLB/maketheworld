@@ -248,7 +248,7 @@ describe('StandardForm', () => {
     describe('_buildComponentGraph()', () => {
         it('should return empty graph for empty StandardForm', () => {
             const sf = new StandardForm('ASSET#TestAsset')
-            const graph = sf._buildComponentGraph()
+            const { graph } = sf._buildComponentGraph()
             
             expect(Object.keys(graph.nodes).length).toBe(0)
             expect(graph.edges.length).toBe(0)
@@ -260,7 +260,7 @@ describe('StandardForm', () => {
                 <Room key=(room1) />
                 <Feature key=(feature1) />
             </Asset>`).finalize()
-            const graph = sf._buildComponentGraph()
+            const { graph } = sf._buildComponentGraph()
             
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
@@ -282,7 +282,7 @@ describe('StandardForm', () => {
                     <Example key=(example1) />
                 </Room>
             </Asset>`).finalize()
-            const graph = sf._buildComponentGraph()
+            const { graph } = sf._buildComponentGraph()
             
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
@@ -312,7 +312,7 @@ describe('StandardForm', () => {
                     </Room>
                 </Map>
             </Asset>`).finalize()
-            const graph = sf._buildComponentGraph()
+            const { graph } = sf._buildComponentGraph()
             
             const map1UUID = sf.byId['map1'].universalKey!
             const room1UUID = sf.byId['room1'].universalKey!
@@ -338,7 +338,7 @@ describe('StandardForm', () => {
                     </Room>
                 </Map>
             </Asset>`).finalize()
-            const graph = sf._buildComponentGraph()
+            const { graph } = sf._buildComponentGraph()
             
             const map1UUID = sf.byId['map1'].universalKey!
             const room1UUID = sf.byId['room1'].universalKey!
@@ -367,7 +367,7 @@ describe('StandardForm', () => {
             // @ts-ignore - accessing private for test
             feature1._key.universalKey = undefined
             
-            const graph = sf._buildComponentGraph()
+            const { graph } = sf._buildComponentGraph()
             
             const room1UUID = sf.byId['room1'].universalKey!
             
@@ -385,7 +385,7 @@ describe('StandardForm', () => {
                     <Feature key=(feature1) />
                 </Room>
             </Asset>`).finalize()
-            const graph = sf._buildComponentGraph()
+            const { graph } = sf._buildComponentGraph()
             
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
@@ -395,9 +395,118 @@ describe('StandardForm', () => {
             
             // Should have edge from room1 to feature1, but not reverse
             expect(graph.edges).toContainEqual({ from: room1UUID, to: feature1UUID })
-            expect(graph.edges).not.toContainEqual({ from: feature1UUID, to: room1UUID })
+            expect(graph.edges).not.toContainEqual({ from: feature1UUID, to: room1UUID         })
+    })
+
+    describe('_getTopologicalSort()', () => {
+        it('should return empty array for empty StandardForm', () => {
+            const sf = new StandardForm('ASSET#TestAsset').finalize()
+            const sort = sf._getTopologicalSort()
+            
+            expect(sort).toEqual([])
+        })
+
+        it('should return singletons for isolated components (no edges)', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(room1) />
+                <Feature key=(feature1) />
+            </Asset>`).finalize()
+            const sort = sf._getTopologicalSort()
+            
+            const room1UUID = sf.byId['room1'].universalKey!
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            
+            // Should have 2 SCCs, each with one node (order may vary for isolated nodes)
+            expect(sort.length).toBe(2)
+            expect(sort.flat().sort()).toEqual([room1UUID, feature1UUID].sort())
+        })
+
+        it('should return topological order for simple parent-child relationship', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(room1)>
+                    <Feature key=(feature1) />
+                </Room>
+            </Asset>`).finalize()
+            const sort = sf._getTopologicalSort()
+            
+            const room1UUID = sf.byId['room1'].universalKey!
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            
+            // Should have 2 SCCs: [room1], [feature1] (room1 comes before feature1)
+            expect(sort.length).toBe(2)
+            expect(sort[0]).toEqual([room1UUID])
+            expect(sort[1]).toEqual([feature1UUID])
+        })
+
+        it('should return topological order for multi-level nesting', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Map key=(map1)>
+                    <Room key=(room1)>
+                        <Position x="0" y="0" />
+                        <Feature key=(feature1)>
+                            <Example key=(example1) />
+                        </Feature>
+                    </Room>
+                </Map>
+            </Asset>`).finalize()
+            const sort = sf._getTopologicalSort()
+            
+            const map1UUID = sf.byId['map1'].universalKey!
+            const room1UUID = sf.byId['room1'].universalKey!
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            const example1UUID = sf.byId['example1'].universalKey!
+            
+            // Should have 4 SCCs in order: map1, room1, feature1, example1
+            expect(sort.length).toBe(4)
+            expect(sort[0]).toEqual([map1UUID])
+            expect(sort[1]).toEqual([room1UUID])
+            expect(sort[2]).toEqual([feature1UUID])
+            expect(sort[3]).toEqual([example1UUID])
+        })
+
+        // Note: Cycle detection is tested in the Graph class itself (see mtw-utilities).
+        // Currently, we cannot create valid cycles in test data because:
+        // - StandardFeature only allows Example children (not Feature children)
+        // - StandardKnowledge only allows Example children (not Knowledge children)
+        // - Other component types don't support self-referential nesting
+        // 
+        // The topological sort algorithm correctly groups cycles into single SCCs when they exist.
+        // Future development: Allow Features and Knowledges to contain references to their own type
+        // for hierarchical organization (see AGENT.development.md).
+
+        it('should handle multiple independent trees', () => {
+            const sf = new StandardForm(`<Asset uuid=(TestAsset)>
+                <Room key=(room1)>
+                    <Feature key=(feature1) />
+                </Room>
+                <Room key=(room2)>
+                    <Feature key=(feature2) />
+                </Room>
+            </Asset>`).finalize()
+            const sort = sf._getTopologicalSort()
+            
+            const room1UUID = sf.byId['room1'].universalKey!
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            const room2UUID = sf.byId['room2'].universalKey!
+            const feature2UUID = sf.byId['feature2'].universalKey!
+            
+            // Should have 4 SCCs: room1, feature1, room2, feature2
+            // (room1 and room2 can be in any order relative to each other, but their children come after)
+            expect(sort.length).toBe(4)
+            const allUUIDs = sort.flat()
+            expect(allUUIDs).toEqual(expect.arrayContaining([room1UUID, feature1UUID, room2UUID, feature2UUID]))
+            
+            // Verify parent-child ordering within each tree
+            const room1Index = sort.findIndex(scc => scc.includes(room1UUID))
+            const feature1Index = sort.findIndex(scc => scc.includes(feature1UUID))
+            expect(room1Index).toBeLessThan(feature1Index)
+            
+            const room2Index = sort.findIndex(scc => scc.includes(room2UUID))
+            const feature2Index = sort.findIndex(scc => scc.includes(feature2UUID))
+            expect(room2Index).toBeLessThan(feature2Index)
         })
     })
+})
 
     it('should accept edit tags in JSON form', () => {
         const test = new StandardForm({
