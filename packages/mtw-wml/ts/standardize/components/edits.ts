@@ -19,6 +19,7 @@ export class StandardRemove implements StandardComponent {
     _mapping?: StandardKey[];
     _match: StandardComponent;
     explicitParent?: StandardExplicitParent;
+    _implicitParent?: ComponentUUID;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
@@ -169,6 +170,14 @@ export class StandardRemove implements StandardComponent {
         returnValue._match = returnValue._match.withOrigin(origin)
         return returnValue
     }
+
+    get implicitParent(): ComponentUUID | undefined { return this._implicitParent }
+
+    withImplicitParent(implicitParent: ComponentUUID | undefined): StandardComponent {
+        const returnValue = this.clone()
+        returnValue._implicitParent = implicitParent
+        return returnValue
+    }
 }
 
 //
@@ -186,6 +195,7 @@ export class StandardReplace implements StandardComponent {
     _mapping?: StandardKey[];
     leastCommonContext: StandardKey[] = [];
     explicitParent?: StandardExplicitParent;
+    _implicitParent?: ComponentUUID;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Replace' as const;
     constructor(...propsArray: [StandardReplace] | [StandardComponent, StandardComponent]) {
         if (propsArray.length > 1) {
@@ -370,6 +380,14 @@ export class StandardReplace implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = returnValue._match.withOrigin(origin)
         returnValue._payload = returnValue._payload.withOrigin(origin)
+        return returnValue
+    }
+
+    get implicitParent(): ComponentUUID | undefined { return this._implicitParent }
+
+    withImplicitParent(implicitParent: ComponentUUID | undefined): StandardComponent {
+        const returnValue = this.clone()
+        returnValue._implicitParent = implicitParent
         return returnValue
     }
 }
