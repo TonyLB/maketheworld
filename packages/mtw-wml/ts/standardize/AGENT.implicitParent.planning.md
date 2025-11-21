@@ -549,6 +549,32 @@ For each SCC (set of nodes) in topological order:
 - Update: Existing component tests
 - Update: All tests that used `context` array
 
+### Phase 8: Representation Review and Reorganization (Future Consideration)
+
+**Goal**: Evaluate and potentially reorganize how `explicitParent` and `implicitParent` are represented after legacy code cleanup
+
+**Status**: ⏳ Future Consideration
+
+**Current State**:
+- `explicitParent`: Stored as `StandardExplicitParent` object on component instance, serialized in `toJSON()`, handled in merge/diff
+- `implicitParent`: Stored as `ComponentUUID` on component instance, serialized in `toJSON()`, cleared in merge, ignored in diff
+
+**Questions to Consider**:
+1. **Semantic distinction**: Should `explicitParent` be considered part of the content payload (user-provided data), while `implicitParent` is considered metadata (system-computed)?
+2. **Storage location**: Should they be stored differently based on their semantic roles?
+3. **Serialization**: Should they be serialized differently (e.g., `explicitParent` in content data, `implicitParent` in metadata section)?
+4. **Merge/diff behavior**: Are the current merge/diff behaviors appropriate given their semantic roles?
+5. **Consistency**: After cleaning up legacy `context` code, should we align their representations more closely or keep them distinct?
+
+**Tasks** (deferred until after Phase 6 cleanup):
+1. Review all differences between `explicitParent` and `implicitParent` implementations
+2. Evaluate whether semantic distinction (content vs metadata) should drive representation
+3. Consider reorganization options (e.g., move `explicitParent` to payload, keep `implicitParent` as instance metadata)
+4. Assess impact of any reorganization on existing code and tests
+5. Document final decision and rationale
+
+**Note**: This phase should be deferred until after Phase 6 (Complete Migration and Cleanup) to ensure we're working with clean code without legacy `context` array interference.
+
 ---
 
 ## Data Representation: Context Array vs Single Parent
