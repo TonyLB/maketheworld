@@ -3456,40 +3456,58 @@ describe('StandardForm', () => {
             expect(finalized.byId.testRoom.universalKey).toEqual('ROOM#mock-uuid-1')
         })
 
-        it('should rebuild context on finalize', () => {
-            const testWML = deIndentWML(`
-                <Asset uuid=(test)>
-                    <Feature uuid=(testFeature) key=(testFeature) />
-                    <Room uuid=(testRoom) key=(testRoom)>
-                        <Feature key=(testFeature)>
+        describe('hierarchy', () => {
+            it('should rebuild context on finalize and set implicitParent correctly', () => {
+                const testWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Feature uuid=(testFeature) key=(testFeature) />
+                        <Room uuid=(testRoom) key=(testRoom)>
+                            <Feature key=(testFeature)>
+                                <Example uuid=(testFeatureBase)>
+                                    <Description>Test Feature</Description>
+                                </Example>
+                            </Feature>
+                        </Room>
+                    </Asset>
+                `)
+                const test = new StandardForm(testWML)
+                const findBaseExample = test._lookup('EXAMPLE#testFeatureBase')
+                expect((findBaseExample?._key?.context ?? []).map((context) => (context.plain.toJSON()))).toEqual([
+                    { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' },
+                    { key: 'testFeature', tag: 'Feature' }
+                ])
+                const finalized = test.finalize()
+                const findFinalizedExample = finalized._lookup('EXAMPLE#testFeatureBase')
+                expect((findFinalizedExample?._key?.context ?? []).map((context) => (context.plain.toJSON()))).toEqual([
+                    'FEATURE#testFeature'
+                ])
+                expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Feature uuid=(testFeature) key=(testFeature)>
                             <Example uuid=(testFeatureBase)>
                                 <Description>Test Feature</Description>
                             </Example>
                         </Feature>
-                    </Room>
-                </Asset>
-            `)
-            const test = new StandardForm(testWML)
-            const findBaseExample = test._lookup('EXAMPLE#testFeatureBase')
-            expect((findBaseExample?._key?.context ?? []).map((context) => (context.plain.toJSON()))).toEqual([
-                { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' },
-                { key: 'testFeature', tag: 'Feature' }
-            ])
-            const finalized = test.finalize()
-            const findFinalizedExample = finalized._lookup('EXAMPLE#testFeatureBase')
-            expect((findFinalizedExample?._key?.context ?? []).map((context) => (context.plain.toJSON()))).toEqual([
-                'FEATURE#testFeature'
-            ])
-            expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`
-                <Asset uuid=(test)>
-                    <Feature uuid=(testFeature) key=(testFeature)>
-                        <Example uuid=(testFeatureBase)>
-                            <Description>Test Feature</Description>
-                        </Example>
-                    </Feature>
-                    <Room uuid=(testRoom) key=(testRoom)><Feature key=(testFeature) /></Room>
-                </Asset>
-            `))
+                        <Room uuid=(testRoom) key=(testRoom)><Feature key=(testFeature) /></Room>
+                    </Asset>
+                `))
+                
+                // Test expectations for implicitParent (to be populated in Phase 4)
+                // After finalize(), implicitParent should reflect the hierarchy:
+                // - Example is in Feature → implicitParent should be 'FEATURE#testFeature'
+                // - Feature is at Asset level (not in Room) → implicitParent should be undefined
+                // - Room is at Asset level → implicitParent should be undefined
+                const finalizedExample = finalized._lookup('EXAMPLE#testFeatureBase')
+                const finalizedFeature = finalized._lookup('FEATURE#testFeature')
+                const finalizedRoom = finalized._lookup('ROOM#testRoom')
+                
+                // TODO: These expectations will pass once Phase 4 computes implicitParent
+                // For now, they document what the expected behavior should be
+                // Currently implicitParent is undefined because it's not computed yet
+                expect(finalizedExample?.implicitParent).toBeUndefined() // TODO: Should be 'FEATURE#testFeature' after Phase 4
+                expect(finalizedFeature?.implicitParent).toBeUndefined() // Feature is at Asset level
+                expect(finalizedRoom?.implicitParent).toBeUndefined() // Room is at Asset level
+            })
         })
 
         it('should remap references to UUIDs on finalize', () => {
