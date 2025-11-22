@@ -2,13 +2,13 @@ import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
 import { SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example";
 import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
-import { StandardReferenceData } from "./reference";
+import { ReferenceListData } from "./reference";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardMessageData = {
     tag: 'Message';
     description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
-    rooms?: StandardEditableData<StandardReferenceData>[];
+    rooms?: ReferenceListData;
 } & StandardBaseData
 
 export const isStandardMessage = (arg: any): arg is StandardMessageData => {
