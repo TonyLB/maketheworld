@@ -475,45 +475,55 @@ export class StandardForm {
      * have them. Without universalKeys, components cannot be uniquely identified for edge
      * construction.
      * 
-     * Edges are computed on-demand from component.referencedKeys() filtered for
-     * 'Direct' or 'Position' reference types (which represent parent-child relationships).
+     * Edges are computed on-demand from:
+     * 1. component.referencedKeys() filtered for 'Direct' or 'Position' reference types (component→component edges)
+     * 2. StandardForm.topLevel (Asset→component edges for Asset-level components)
      * 
      * @returns Array of parent→child edge pairs, where each edge is represented as
-     *          `{ parent: ComponentUUID, child: ComponentUUID }`
+     *          `{ parent: ComponentUUID | AssetUUID, child: ComponentUUID }`
      */
-    _getParentChildEdges(): Array<{ parent: ComponentUUID; child: ComponentUUID }> {
-        const edges: Array<{ parent: ComponentUUID; child: ComponentUUID }> = []
+    _getParentChildEdges(): Array<{ parent: ComponentUUID | AssetUUID; child: ComponentUUID }> {
+        const topLevelReferences = this._topLevel
+            ? this._topLevel.payload.reduce<Array<{ parent: AssetUUID; child: ComponentUUID }>>((acc, topLevelRef) => {
+                const topLevelKey = topLevelRef.plain()
+                const topLevelComponent = this._lookup(topLevelKey.toJSON())
+                return topLevelComponent?.universalKey
+                    ? [...acc, { parent: this._universalKey, child: topLevelComponent.universalKey }]
+                    : acc
+            }, [])
+            : []
         
-        for (const component of this._components) {
-            // Skip components without universalKey (can't create edges without identifiers)
-            if (!component.universalKey) {
-                continue
-            }
-            
-            const parentUUID: ComponentUUID = component.universalKey
-            
-            // Get all referenced keys from this component
-            const referencedKeys = component.referencedKeys()
-            
-            // Filter for 'Direct' or 'Position' reference types (parent-child relationships)
-            const childReferences = referencedKeys.filter(
-                (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position'
-            )
-            
-            // Create edges for each child
-            for (const childRef of childReferences) {
-                // Look up the actual component to get its universalKey
-                // (the key from referencedKeys might only have a local key)
-                const childKey = childRef.key
-                const childComponent = this._lookup(childKey.toJSON())
-                if (childComponent?.universalKey) {
-                    edges.push({
-                        parent: parentUUID,
-                        child: childComponent.universalKey
-                    })
+        const edges = this._components.reduce<Array<{ parent: ComponentUUID | AssetUUID; child: ComponentUUID }>>(
+            (acc, component) => {
+                if (!component.universalKey) {
+                    return acc
                 }
-            }
-        }
+                
+                const parentUUID: ComponentUUID = component.universalKey
+                
+                // Get all referenced keys from this component
+                const referencedKeys = component.referencedKeys()
+                const childReferences = referencedKeys.filter(
+                    (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position'
+                )
+                
+                const componentEdges = childReferences.reduce<Array<{ parent: ComponentUUID; child: ComponentUUID }>>(
+                    (childAcc, childRef) => {
+                        // Look up the actual component to get its universalKey
+                        // (the key from referencedKeys might only have a local key)
+                        const childKey = childRef.key
+                        const childComponent = this._lookup(childKey.toJSON())
+                        return childComponent?.universalKey
+                            ? [...childAcc, { parent: parentUUID, child: childComponent.universalKey }]
+                            : childAcc
+                    },
+                    []
+                )
+                
+                return [...acc, ...componentEdges]
+            },
+            topLevelReferences
+        )
         
         return edges
     }
