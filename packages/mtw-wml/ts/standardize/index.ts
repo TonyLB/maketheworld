@@ -276,7 +276,15 @@ export class StandardForm {
                     .filter(edge => typeof edge.parent === 'string' && edge.parent === this._universalKey)
                     .map(edge => edge.child)
                 if (topLevelKeys.length > 0) {
-                    this._topLevel = new ReferenceList(topLevelKeys.map(key => key.toJSON()))
+                    // Convert StandardKeys to reference format
+                    const topLevelReferences = topLevelKeys.map(key => {
+                        const component = this._lookup(key.toJSON())
+                        if (component) {
+                            return component.referenceData
+                        }
+                        return key.toJSON() // Fallback to key JSON if component not found
+                    })
+                    this._topLevel = new ReferenceList(topLevelReferences)
                 }
                 return
             }
