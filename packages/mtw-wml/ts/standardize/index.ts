@@ -424,6 +424,141 @@ export class StandardForm {
     }
 
     /**
+     * Gets the ancestry chain for a component by traversing its implicitParent chain.
+     * 
+     * Returns an array of ComponentUUID[] representing the chain from Asset level (earliest ancestor)
+     * to direct parent (most proximate ancestor). This matches the order of the old `context` array.
+     * 
+     * Note: This does NOT include the current component itself, only ancestors.
+     * 
+     * **Note on implicit vs explicit parent**: This function currently only uses `implicitParent`.
+     * As we add more nuanced interaction between implicit and explicit parent, we may want to
+     * modify this to consider both parent types (e.g., explicit parent takes precedence, or merge both chains).
+     * 
+     * @param component The component to get the ancestry chain for
+     * @returns Array of ComponentUUID[] representing the ancestry chain (earliest to most proximate),
+     *          empty array for Asset-level components
+     */
+    _getAncestryChainFromImplicitParent(component: StandardComponent): ComponentUUID[] {
+        const chain: ComponentUUID[] = []
+        let current: StandardComponent | undefined = component
+        
+        // Traverse up the implicitParent chain, building chain from most proximate to earliest
+        const visited = new Set<ComponentUUID>()
+        while (current?.implicitParent) {
+            const parentUUID = current.implicitParent
+            
+            // Cycle detection
+            if (visited.has(parentUUID)) {
+                throw new Error(`Cycle detected in implicitParent chain: ${parentUUID} appears multiple times. Chain: ${Array.from(visited).join(' -> ')} -> ${parentUUID}`)
+            }
+            visited.add(parentUUID)
+            
+            // Add parent to chain (most proximate first)
+            chain.push(parentUUID)
+            
+            // Look up parent component to continue traversal
+            current = this._lookup(parentUUID)
+            if (!current) {
+                break // Parent not found, stop traversal
+            }
+        }
+        
+        // Reverse to get order from Asset level (earliest) to direct parent (most proximate)
+        // This matches the old context array format: [earliest ancestor, ..., direct parent]
+        return chain.reverse()
+    }
+
+    /**
+     * Gets the depth of a component (number of ancestors) from its implicitParent chain.
+     * 
+     * Returns 0 for Asset-level components (no implicit parent).
+     * 
+     * **Note on implicit vs explicit parent**: This function currently only uses `implicitParent`.
+     * As we add more nuanced interaction between implicit and explicit parent, we may want to
+     * modify this to consider both parent types.
+     * 
+     * @param component The component to get the depth for
+     * @returns Number of ancestors (0 for Asset-level components)
+     */
+    _getDepthFromImplicitParent(component: StandardComponent): number {
+        return this._getAncestryChainFromImplicitParent(component).length
+    }
+
+    /**
+     * Checks if one component is an ancestor of another by traversing implicitParent chains.
+     * 
+     * **Note on implicit vs explicit parent**: This function currently only uses `implicitParent`.
+     * As we add more nuanced interaction between implicit and explicit parent, we may want to
+     * modify this to consider both parent types.
+     * 
+     * @param child The potential child component
+     * @param ancestor The potential ancestor component
+     * @returns true if ancestor is an ancestor of child, false otherwise
+     */
+    _isAncestorOf(child: StandardComponent, ancestor: StandardComponent): boolean {
+        if (!child.implicitParent || !ancestor.universalKey) {
+            return false
+        }
+        
+        // Check if ancestor is in child's ancestry chain
+        const childChain = this._getAncestryChainFromImplicitParent(child)
+        return childChain.includes(ancestor.universalKey)
+    }
+
+    /**
+     * Finds the first differing ancestor between two components by comparing their ancestry chains.
+     * 
+     * Returns the ComponentUUID of the first ancestor where the two components' ancestry chains differ,
+     * or undefined if they share the same ancestry chain.
+     * 
+     * **Note on implicit vs explicit parent**: This function currently only uses `implicitParent`.
+     * As we add more nuanced interaction between implicit and explicit parent, we may want to
+     * modify this to consider both parent types.
+     * 
+     * @param componentA First component to compare
+     * @param componentB Second component to compare
+     * @returns ComponentUUID of first differing ancestor, or undefined if chains are identical
+     */
+    _findFirstDifferingAncestor(componentA: StandardComponent, componentB: StandardComponent): ComponentUUID | undefined {
+        const chainA = this._getAncestryChainFromImplicitParent(componentA)
+        const chainB = this._getAncestryChainFromImplicitParent(componentB)
+        
+        // Find the first position where chains differ
+        const minLength = Math.min(chainA.length, chainB.length)
+        for (let i = 0; i < minLength; i++) {
+            if (chainA[i] !== chainB[i]) {
+                // Return the first differing ancestor (from the shorter chain or the one that differs)
+                return chainA[i] !== undefined ? chainA[i] : chainB[i]
+            }
+        }
+        
+        // If one chain is longer, return the first item beyond the common prefix
+        if (chainA.length > chainB.length) {
+            return chainA[chainB.length]
+        }
+        if (chainB.length > chainA.length) {
+            return chainB[chainA.length]
+        }
+        
+        // Chains are identical
+        return undefined
+    }
+
+    /**
+     * Extracts the direct parent from a context array (for migration/backward compatibility).
+     * 
+     * Helper function to extract the direct parent from the old context array format.
+     * Used when converting from old context-based code to implicitParent-based code.
+     * 
+     * @param context The context array (old format)
+     * @returns The direct parent StandardKey (last item in context), or undefined if empty
+     */
+    _extractParentFromContext(context: StandardKey[]): StandardKey | undefined {
+        return context.length > 0 ? context[context.length - 1] : undefined
+    }
+
+    /**
      * Builds a directed graph from the parent-child edges in this StandardForm.
      * 
      * **Requires universalKey assignment**: As per `_getParentChildEdges` above.
