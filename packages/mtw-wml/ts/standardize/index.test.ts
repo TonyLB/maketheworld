@@ -446,12 +446,12 @@ describe('StandardForm', () => {
             expect(graph.edges).not.toContainEqual({ from: feature1UUID, to: room1UUID         })
     })
 
-    describe('_getTopologicalSort()', () => {
+    describe('_buildComponentGraph() topological sort', () => {
         it('should return empty array for empty StandardForm', () => {
             const sf = new StandardForm('ASSET#TestAsset').finalize()
-            const sort = sf._getTopologicalSort()
+            const { topologicalSort } = sf._buildComponentGraph()
             
-            expect(sort).toEqual([])
+            expect(topologicalSort).toEqual([])
         })
 
         it('should return singletons for isolated components (no edges)', () => {
@@ -459,16 +459,16 @@ describe('StandardForm', () => {
                 <Room key=(room1) />
                 <Feature key=(feature1) />
             </Asset>`).finalize()
-            const sort = sf._getTopologicalSort()
+            const { topologicalSort } = sf._buildComponentGraph()
             
             const assetUUID = sf.universalKey
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
             
             // Should have 3 SCCs: [Asset], [room1], [feature1] (Asset comes first, then isolated components)
-            expect(sort.length).toBe(3)
-            expect(sort[0]).toEqual([assetUUID])
-            expect(sort.flat().slice(1).sort()).toEqual([room1UUID, feature1UUID].sort())
+            expect(topologicalSort.length).toBe(3)
+            expect(topologicalSort[0]).toEqual([assetUUID])
+            expect(topologicalSort.flat().slice(1).sort()).toEqual([room1UUID, feature1UUID].sort())
         })
 
         it('should return topological order for simple parent-child relationship', () => {
@@ -477,17 +477,17 @@ describe('StandardForm', () => {
                     <Feature key=(feature1) />
                 </Room>
             </Asset>`).finalize()
-            const sort = sf._getTopologicalSort()
+            const { topologicalSort } = sf._buildComponentGraph()
             
             const assetUUID = sf.universalKey
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
             
             // Should have 3 SCCs: [Asset], [room1], [feature1] (Asset comes first, then room1, then feature1)
-            expect(sort.length).toBe(3)
-            expect(sort[0]).toEqual([assetUUID])
-            expect(sort[1]).toEqual([room1UUID])
-            expect(sort[2]).toEqual([feature1UUID])
+            expect(topologicalSort.length).toBe(3)
+            expect(topologicalSort[0]).toEqual([assetUUID])
+            expect(topologicalSort[1]).toEqual([room1UUID])
+            expect(topologicalSort[2]).toEqual([feature1UUID])
         })
 
         it('should return topological order for multi-level nesting', () => {
@@ -501,7 +501,7 @@ describe('StandardForm', () => {
                     </Room>
                 </Map>
             </Asset>`).finalize()
-            const sort = sf._getTopologicalSort()
+            const { topologicalSort } = sf._buildComponentGraph()
             
             const assetUUID = sf.universalKey
             const map1UUID = sf.byId['map1'].universalKey!
@@ -510,12 +510,12 @@ describe('StandardForm', () => {
             const example1UUID = sf.byId['example1'].universalKey!
             
             // Should have 5 SCCs in order: Asset, map1, room1, feature1, example1
-            expect(sort.length).toBe(5)
-            expect(sort[0]).toEqual([assetUUID])
-            expect(sort[1]).toEqual([map1UUID])
-            expect(sort[2]).toEqual([room1UUID])
-            expect(sort[3]).toEqual([feature1UUID])
-            expect(sort[4]).toEqual([example1UUID])
+            expect(topologicalSort.length).toBe(5)
+            expect(topologicalSort[0]).toEqual([assetUUID])
+            expect(topologicalSort[1]).toEqual([map1UUID])
+            expect(topologicalSort[2]).toEqual([room1UUID])
+            expect(topologicalSort[3]).toEqual([feature1UUID])
+            expect(topologicalSort[4]).toEqual([example1UUID])
         })
 
         // Note: Cycle detection is tested in the Graph class itself (see mtw-utilities).
@@ -537,7 +537,7 @@ describe('StandardForm', () => {
                     <Feature key=(feature2) />
                 </Room>
             </Asset>`).finalize()
-            const sort = sf._getTopologicalSort()
+            const { topologicalSort } = sf._buildComponentGraph()
             
             const assetUUID = sf.universalKey
             const room1UUID = sf.byId['room1'].universalKey!
@@ -547,18 +547,18 @@ describe('StandardForm', () => {
             
             // Should have 5 SCCs: [Asset], [room1, room2], [feature1, feature2]
             // (Asset comes first, then room1 and room2 can be in any order, then their children feature1 and feature2)
-            expect(sort.length).toBe(5)
-            expect(sort[0]).toEqual([assetUUID])
-            const allUUIDs = sort.flat()
+            expect(topologicalSort.length).toBe(5)
+            expect(topologicalSort[0]).toEqual([assetUUID])
+            const allUUIDs = topologicalSort.flat()
             expect(allUUIDs).toEqual(expect.arrayContaining([assetUUID, room1UUID, feature1UUID, room2UUID, feature2UUID]))
             
             // Verify parent-child ordering within each tree
-            const room1Index = sort.findIndex(scc => scc.includes(room1UUID))
-            const feature1Index = sort.findIndex(scc => scc.includes(feature1UUID))
+            const room1Index = topologicalSort.findIndex(scc => scc.includes(room1UUID))
+            const feature1Index = topologicalSort.findIndex(scc => scc.includes(feature1UUID))
             expect(room1Index).toBeLessThan(feature1Index)
             
-            const room2Index = sort.findIndex(scc => scc.includes(room2UUID))
-            const feature2Index = sort.findIndex(scc => scc.includes(feature2UUID))
+            const room2Index = topologicalSort.findIndex(scc => scc.includes(room2UUID))
+            const feature2Index = topologicalSort.findIndex(scc => scc.includes(feature2UUID))
             expect(room2Index).toBeLessThan(feature2Index)
         })
     })

@@ -12,7 +12,7 @@ import StandardMap from "./components/map"
 import { wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { StandardBaseData } from "./components/dataTypes/abstract"
-import { StandardComponent } from "./components/baseClasses"
+import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import { StandardRemove, StandardReplace } from "./components/edits"
 import { standardComponentFactory } from "./componentFactory"
@@ -360,6 +360,17 @@ export class StandardForm {
         return returnProxy as unknown as Record<string, StandardComponent>
     }
 
+    referencedKeys(): StandardComponentReferenceKey[] {
+        if (!this._topLevel) {
+            return []
+        }
+        // Convert topLevel references to StandardComponentReferenceKey format
+        return this._topLevel.payload.map(ref => ({
+            key: ref.plain(),
+            referenceType: 'Direct' as const
+        }))
+    }
+
     /**
      * Computes parent→child edges from all components in this StandardForm.
      * 
@@ -377,46 +388,36 @@ export class StandardForm {
      *          `{ parent: ComponentUUID | AssetUUID, child: ComponentUUID }`
      */
     _getParentChildEdges(): Array<{ parent: ComponentUUID | AssetUUID; child: ComponentUUID }> {
-        const topLevelReferences = this._topLevel
-            ? this._topLevel.payload.reduce<Array<{ parent: AssetUUID; child: ComponentUUID }>>((acc, topLevelRef) => {
-                const topLevelKey = topLevelRef.plain()
-                const topLevelComponent = this._lookup(topLevelKey.toJSON())
-                return topLevelComponent?.universalKey
-                    ? [...acc, { parent: this._universalKey, child: topLevelComponent.universalKey }]
-                    : acc
-            }, [])
-            : []
+        // Helper function to extract edges from an entity with universalKey and referencedKeys
+        const getEdges = (
+            entity: { universalKey?: ComponentUUID | AssetUUID; referencedKeys(): StandardComponentReferenceKey[] }
+        ): Array<{ parent: ComponentUUID | AssetUUID; child: ComponentUUID }> => {
+            const parentUUID = entity.universalKey
+            if (!parentUUID) {
+                return []
+            }
+            
+            const childReferences = entity.referencedKeys().filter(
+                (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position'
+            )
+            
+            return childReferences.reduce<Array<{ parent: ComponentUUID | AssetUUID; child: ComponentUUID }>>(
+                (childAcc, childRef) => {
+                    // Look up the actual component to get its universalKey
+                    // (the key from referencedKeys might only have a local key)
+                    const childKey = childRef.key
+                    const childUUID = this._lookup(childKey.toJSON())?.universalKey
+                    return childUUID
+                        ? [...childAcc, { parent: parentUUID, child: childUUID }]
+                        : childAcc
+                },
+                []
+            )
+        }
         
-        const edges = this._components.reduce<Array<{ parent: ComponentUUID | AssetUUID; child: ComponentUUID }>>(
-            (acc, component) => {
-                if (!component.universalKey) {
-                    return acc
-                }
-                
-                const parentUUID: ComponentUUID = component.universalKey
-                
-                // Get all referenced keys from this component
-                const referencedKeys = component.referencedKeys()
-                const childReferences = referencedKeys.filter(
-                    (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position'
-                )
-                
-                const componentEdges = childReferences.reduce<Array<{ parent: ComponentUUID; child: ComponentUUID }>>(
-                    (childAcc, childRef) => {
-                        // Look up the actual component to get its universalKey
-                        // (the key from referencedKeys might only have a local key)
-                        const childKey = childRef.key
-                        const childComponent = this._lookup(childKey.toJSON())
-                        return childComponent?.universalKey
-                            ? [...childAcc, { parent: parentUUID, child: childComponent.universalKey }]
-                            : childAcc
-                    },
-                    []
-                )
-                
-                return [...acc, ...componentEdges]
-            },
-            topLevelReferences
+        const edges = [this, ...this._components].reduce<Array<{ parent: ComponentUUID | AssetUUID; child: ComponentUUID }>>(
+            (acc, entity) => ([...acc, ...getEdges(entity)]),
+            []
         )
         
         return edges
@@ -425,22 +426,10 @@ export class StandardForm {
     /**
      * Builds a directed graph from the parent-child edges in this StandardForm.
      * 
-     * **Requires universalKey assignment**: This method relies on all components having
-     * `universalKey` values assigned. When called from within `finalize()`, this should
-     * be after the key-remapping step that assigns universalKeys to components that don't
-     * have them.
-     * 
-     * The graph is constructed from edges computed on-demand via `_getParentChildEdges()`:
-     * - Component→component edges from `component.referencedKeys()` (filtered for 'Direct' or 'Position' types)
-     * - Asset→component edges from `StandardForm.topLevel` (Asset-level components)
+     * **Requires universalKey assignment**: As per `_getParentChildEdges` above.
      * 
      * The graph includes Asset as a node (via AssetUUID) to capture Asset-level components.
      * 
-     * @returns An object containing both the graph and its topological sort:
-     *          - `graph`: A directed graph where:
-     *            - Nodes = components (keyed by ComponentUUID) and Asset (keyed by AssetUUID)
-     *            - Edges = parent→child relationships (from parent to child)
-     *          - `topologicalSort`: Array of SCCs in topological order (`(ComponentUUID | AssetUUID)[][]`)
      */
     _buildComponentGraph(): {
         graph: Graph<ComponentUUID | AssetUUID, { key: ComponentUUID | AssetUUID }, {}>;
@@ -485,24 +474,6 @@ export class StandardForm {
         const topologicalSort = graph.topologicalSort()
 
         return { graph, topologicalSort }
-    }
-
-    /**
-     * Derives a topological sort from the component graph.
-     * 
-     * Returns an array of strongly connected components (SCCs), where each SCC is an array
-     * of ComponentUUIDs or AssetUUID. The outer array is in topological order (parents before children).
-     * 
-     * **Requires universalKey assignment**: This method relies on `_buildComponentGraph()`,
-     * which requires all components to have `universalKey` values assigned (via `finalize()`).
-     * 
-     * @returns Array of SCCs in topological order: `(ComponentUUID | AssetUUID)[][]`
-     *          Each inner array represents a strongly connected component (nodes that form a cycle).
-     *          For acyclic graphs, each SCC will contain a single node.
-     */
-    _getTopologicalSort(): (ComponentUUID | AssetUUID)[][] {
-        const { topologicalSort } = this._buildComponentGraph()
-        return topologicalSort
     }
 
     /**
