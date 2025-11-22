@@ -39,7 +39,8 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(result).toEqual([])
+        expect(result.components).toEqual([])
+        expect(result.topLevel).toEqual([])
     })
 
     it('should parse a provided schema', () => {
@@ -66,8 +67,8 @@ describe("processComponents", () => {
             schema: schema.schema
         })
 
-        expect(result.find(({ key }) => (key === 'test')) instanceof StandardRoom).toBe(true)
-        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+        expect(result.components.find(({ key }) => (key === 'test')) instanceof StandardRoom).toBe(true)
+        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             '<Room key=(test)><Example uuid=(testRoomExample) /></Room>',
             deIndentWML(`
                 <Example uuid=(testRoomExample)>
@@ -107,7 +108,7 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             deIndentWML(`
                 <Room key=(test)>
                     <Feature key=(testLocal) />
@@ -180,7 +181,7 @@ describe("processComponents", () => {
             schema: schema.schema,
         })
 
-        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             `<Room key=(test)><Example uuid=(testRoomExample) /></Room>`,
             deIndentWML(`
                 <Example uuid=(testRoomExample)>
@@ -224,7 +225,7 @@ describe("processComponents", () => {
             schema: schema.schema,
         })
 
-        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             `<Room key=(test)><Example uuid=(testRoomExample) /></Room>`,
             `<Example uuid=(testRoomExample)><Description>One<br /></Description></Example>`,
             `<Room key=(testTwo) />`,
@@ -268,7 +269,7 @@ describe("processComponents", () => {
             schema: schema.schema,
         })
 
-        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             `<Room key=(test)><Example uuid=(testRoomExample) /></Room>`,
             `<Example uuid=(testRoomExample)><Description>One<br /></Description></Example>`,
             `<Room key=(testTwo) />`,
@@ -315,7 +316,7 @@ describe("processComponents", () => {
             schema: schema.schema,
         })
 
-        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             deIndentWML(`
                 <Room key=(test)><Example uuid=(testRoomExample) /></Room>
             `),
@@ -368,7 +369,7 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             deIndentWML(`
                 <Map key=(testMap)><Room key=(testRoom)><Position x="0" y="100" /></Room></Map>
             `),
@@ -403,7 +404,7 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             deIndentWML(`
                 <Remove><Room key=(test)><Example uuid=(testRoomExample) /></Room></Remove>
             `),
@@ -450,7 +451,7 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             deIndentWML(`
                 <Replace><Room key=(test)><Example uuid=(testRoomExample) /></Room></Replace>
                 <With><Room key=(test)><Example uuid=(testRoomExample) /></Room></With>
@@ -503,7 +504,7 @@ describe("processComponents", () => {
             componentTemplates,
             schema: schema.schema,
         })
-        expect(result.map((component) => (schemaToWML([component.schema])))).toEqual([
+        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             deIndentWML(`
                 <Room key=(testRoom)><Feature key=(testFeatureLocal) /></Room>
             `),
@@ -514,8 +515,8 @@ describe("processComponents", () => {
                 <Feature key=(testFeatureGlobal) />
             `),
         ])
-        expect((result[1]._key?.context ?? []).map((reference) => (reference.toJSON()))).toEqual([{ key: 'testRoom', tag: 'Room' }])
-        expect(result[2]._key?.context).toBeUndefined()
+        expect((result.components[1]._key?.context ?? []).map((reference) => (reference.toJSON()))).toEqual([{ key: 'testRoom', tag: 'Room' }])
+        expect(result.components[2]._key?.context).toBeUndefined()
     })
 
     it('should allow Characters as legal sub-components of Room', () => {
@@ -536,13 +537,13 @@ describe("processComponents", () => {
         })
         
         // Verify Character was processed as a sub-component of Room
-        const characterComponent = result.find(({ key }) => (key === 'testCharacter'))
+        const characterComponent = result.components.find(({ key }) => (key === 'testCharacter'))
         expect(characterComponent).toBeDefined()
         expect(characterComponent?._key?.context?.length).toBe(1)
         expect(characterComponent?._key?.context?.[0]?.toJSON()).toEqual({ key: 'testRoom', tag: 'Room' })
         
         // Verify Room was processed (though it won't include Character references yet)
-        const roomComponent = result.find(({ key }) => (key === 'testRoom'))
+        const roomComponent = result.components.find(({ key }) => (key === 'testRoom'))
         expect(roomComponent).toBeDefined()
         
         // Phase 3: Room schema output should now include Character references!

@@ -63,9 +63,18 @@ describe('StandardForm', () => {
             const sf = new StandardForm(`<Asset uuid=(TestAsset)>
                 <Room key=(room1) />
                 <Feature key=(feature1) />
-            </Asset>`)
+            </Asset>`).finalize()
             const edges = sf._getParentChildEdges()
-            expect(edges).toEqual([])
+            
+            // Should have 2 Asset-level edges: Asset → room1, Asset → feature1
+            expect(edges.length).toBe(2)
+            
+            const assetUUID = sf.universalKey
+            const room1UUID = sf.byId['room1'].universalKey!
+            const feature1UUID = sf.byId['feature1'].universalKey!
+            
+            expect(edges).toContainEqual({ parent: assetUUID, child: room1UUID })
+            expect(edges).toContainEqual({ parent: assetUUID, child: feature1UUID })
         })
 
         it('should collect edges from Room with Direct children (Feature, Example, Character)', () => {
@@ -78,14 +87,16 @@ describe('StandardForm', () => {
             </Asset>`).finalize()
             const edges = sf._getParentChildEdges()
             
-            // Should have 3 edges: room1 → feature1, room1 → example1, room1 → char1
-            expect(edges.length).toBe(3)
+            // Should have 4 edges: Asset → room1, room1 → feature1, room1 → example1, room1 → char1
+            expect(edges.length).toBe(4)
             
+            const assetUUID = sf.universalKey
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
             const example1UUID = sf.byId['example1'].universalKey!
             const char1UUID = sf.byId['char1'].universalKey!
             
+            expect(edges).toContainEqual({ parent: assetUUID, child: room1UUID })
             expect(edges).toContainEqual({ parent: room1UUID, child: feature1UUID })
             expect(edges).toContainEqual({ parent: room1UUID, child: example1UUID })
             expect(edges).toContainEqual({ parent: room1UUID, child: char1UUID })
@@ -104,13 +115,15 @@ describe('StandardForm', () => {
             </Asset>`).finalize()
             const edges = sf._getParentChildEdges()
             
-            // Should have 2 edges: map1 → room1, map1 → room2 (via Position references)
-            expect(edges.length).toBe(2)
+            // Should have 3 edges: Asset → map1, map1 → room1, map1 → room2 (via Position references)
+            expect(edges.length).toBe(3)
             
+            const assetUUID = sf.universalKey
             const map1UUID = sf.byId['map1'].universalKey!
             const room1UUID = sf.byId['room1'].universalKey!
             const room2UUID = sf.byId['room2'].universalKey!
             
+            expect(edges).toContainEqual({ parent: assetUUID, child: map1UUID })
             expect(edges).toContainEqual({ parent: map1UUID, child: room1UUID })
             expect(edges).toContainEqual({ parent: map1UUID, child: room2UUID })
         })
@@ -124,13 +137,15 @@ describe('StandardForm', () => {
             </Asset>`).finalize()
             const edges = sf._getParentChildEdges()
             
-            // Should have 2 edges: feature1 → example1, feature1 → example2
-            expect(edges.length).toBe(2)
+            // Should have 3 edges: Asset → feature1, feature1 → example1, feature1 → example2
+            expect(edges.length).toBe(3)
             
+            const assetUUID = sf.universalKey
             const feature1UUID = sf.byId['feature1'].universalKey!
             const example1UUID = sf.byId['example1'].universalKey!
             const example2UUID = sf.byId['example2'].universalKey!
             
+            expect(edges).toContainEqual({ parent: assetUUID, child: feature1UUID })
             expect(edges).toContainEqual({ parent: feature1UUID, child: example1UUID })
             expect(edges).toContainEqual({ parent: feature1UUID, child: example2UUID })
         })
@@ -144,13 +159,15 @@ describe('StandardForm', () => {
             </Asset>`).finalize()
             const edges = sf._getParentChildEdges()
             
-            // Should have 2 edges: message1 → room1, message1 → room2
-            expect(edges.length).toBe(2)
+            // Should have 3 edges: Asset → message1, message1 → room1, message1 → room2
+            expect(edges.length).toBe(3)
             
+            const assetUUID = sf.universalKey
             const message1UUID = sf.byId['message1'].universalKey!
             const room1UUID = sf.byId['room1'].universalKey!
             const room2UUID = sf.byId['room2'].universalKey!
             
+            expect(edges).toContainEqual({ parent: assetUUID, child: message1UUID })
             expect(edges).toContainEqual({ parent: message1UUID, child: room1UUID })
             expect(edges).toContainEqual({ parent: message1UUID, child: room2UUID })
         })
@@ -164,13 +181,15 @@ describe('StandardForm', () => {
             </Asset>`).finalize()
             const edges = sf._getParentChildEdges()
             
-            // Should have 2 edges: moment1 → message1, moment1 → message2
-            expect(edges.length).toBe(2)
+            // Should have 3 edges: Asset → moment1, moment1 → message1, moment1 → message2
+            expect(edges.length).toBe(3)
             
+            const assetUUID = sf.universalKey
             const moment1UUID = sf.byId['moment1'].universalKey!
             const message1UUID = sf.byId['message1'].universalKey!
             const message2UUID = sf.byId['message2'].universalKey!
             
+            expect(edges).toContainEqual({ parent: assetUUID, child: moment1UUID })
             expect(edges).toContainEqual({ parent: moment1UUID, child: message1UUID })
             expect(edges).toContainEqual({ parent: moment1UUID, child: message2UUID })
         })
@@ -188,14 +207,16 @@ describe('StandardForm', () => {
             </Asset>`).finalize()
             const edges = sf._getParentChildEdges()
             
-            // Should have 3 edges: map1 → room1 (via Position), room1 → feature1, feature1 → example1
-            expect(edges.length).toBe(3)
+            // Should have 4 edges: Asset → map1, map1 → room1 (via Position), room1 → feature1, feature1 → example1
+            expect(edges.length).toBe(4)
             
+            const assetUUID = sf.universalKey
             const map1UUID = sf.byId['map1'].universalKey!
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
             const example1UUID = sf.byId['example1'].universalKey!
             
+            expect(edges).toContainEqual({ parent: assetUUID, child: map1UUID })
             expect(edges).toContainEqual({ parent: map1UUID, child: room1UUID })
             expect(edges).toContainEqual({ parent: room1UUID, child: feature1UUID })
             expect(edges).toContainEqual({ parent: feature1UUID, child: example1UUID })
@@ -210,8 +231,16 @@ describe('StandardForm', () => {
             </Asset>`).finalize()
             const edges = sf._getParentChildEdges()
             
-            // Should have 0 edges - Exit is not a parent-child relationship
-            expect(edges).toEqual([])
+            // Should have 2 Asset-level edges: Asset → room1, Asset → room2
+            // Exit is not a parent-child relationship, so no room1 → room2 edge
+            expect(edges.length).toBe(2)
+            
+            const assetUUID = sf.universalKey
+            const room1UUID = sf.byId['room1'].universalKey!
+            const room2UUID = sf.byId['room2'].universalKey!
+            
+            expect(edges).toContainEqual({ parent: assetUUID, child: room1UUID })
+            expect(edges).toContainEqual({ parent: assetUUID, child: room2UUID })
         })
 
         it('should skip components without universalKey', () => {
@@ -240,8 +269,13 @@ describe('StandardForm', () => {
             feature1._key.universalKey = undefined
             
             const edges = sf._getParentChildEdges()
-            // Should have 0 edges - feature1 has no universalKey
-            expect(edges).toEqual([])
+            // Should have 1 edge: Asset → room1 (feature1 has no universalKey, so no room1 → feature1 edge)
+            expect(edges.length).toBe(1)
+            
+            const assetUUID = sf.universalKey
+            const room1UUID = room1.universalKey!
+            
+            expect(edges).toContainEqual({ parent: assetUUID, child: room1UUID })
         })
     })
 
@@ -262,16 +296,20 @@ describe('StandardForm', () => {
             </Asset>`).finalize()
             const { graph } = sf._buildComponentGraph()
             
+            const assetUUID = sf.universalKey
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
             
-            // Should have 2 nodes (room1 and feature1)
-            expect(Object.keys(graph.nodes).length).toBe(2)
+            // Should have 3 nodes (Asset, room1, and feature1) - Asset-level components create Asset node
+            expect(Object.keys(graph.nodes).length).toBe(3)
+            expect(graph.nodes[assetUUID]).toEqual({ key: assetUUID })
             expect(graph.nodes[room1UUID]).toEqual({ key: room1UUID })
             expect(graph.nodes[feature1UUID]).toEqual({ key: feature1UUID })
             
-            // Should have 0 edges (no parent-child relationships)
-            expect(graph.edges.length).toBe(0)
+            // Should have 2 edges (Asset → room1, Asset → feature1) - Asset-level components create edges from Asset
+            expect(graph.edges.length).toBe(2)
+            expect(graph.edges).toContainEqual({ from: assetUUID, to: room1UUID })
+            expect(graph.edges).toContainEqual({ from: assetUUID, to: feature1UUID })
             expect(graph.directional).toBe(true)
         })
 
@@ -284,18 +322,21 @@ describe('StandardForm', () => {
             </Asset>`).finalize()
             const { graph } = sf._buildComponentGraph()
             
+            const assetUUID = sf.universalKey
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
             const example1UUID = sf.byId['example1'].universalKey!
             
-            // Should have 3 nodes
-            expect(Object.keys(graph.nodes).length).toBe(3)
+            // Should have 4 nodes (Asset, room1, feature1, example1) - Asset-level Room creates Asset node
+            expect(Object.keys(graph.nodes).length).toBe(4)
+            expect(graph.nodes[assetUUID]).toEqual({ key: assetUUID })
             expect(graph.nodes[room1UUID]).toEqual({ key: room1UUID })
             expect(graph.nodes[feature1UUID]).toEqual({ key: feature1UUID })
             expect(graph.nodes[example1UUID]).toEqual({ key: example1UUID })
             
-            // Should have 2 edges: room1 → feature1, room1 → example1
-            expect(graph.edges.length).toBe(2)
+            // Should have 3 edges: Asset → room1, room1 → feature1, room1 → example1
+            expect(graph.edges.length).toBe(3)
+            expect(graph.edges).toContainEqual({ from: assetUUID, to: room1UUID })
             expect(graph.edges).toContainEqual({ from: room1UUID, to: feature1UUID })
             expect(graph.edges).toContainEqual({ from: room1UUID, to: example1UUID })
             expect(graph.directional).toBe(true)
@@ -314,15 +355,17 @@ describe('StandardForm', () => {
             </Asset>`).finalize()
             const { graph } = sf._buildComponentGraph()
             
+            const assetUUID = sf.universalKey
             const map1UUID = sf.byId['map1'].universalKey!
             const room1UUID = sf.byId['room1'].universalKey!
             const room2UUID = sf.byId['room2'].universalKey!
             
-            // Should have 3 nodes
-            expect(Object.keys(graph.nodes).length).toBe(3)
+            // Should have 4 nodes (Asset, map1, room1, room2) - Asset-level Map creates Asset node
+            expect(Object.keys(graph.nodes).length).toBe(4)
             
-            // Should have 2 edges: map1 → room1, map1 → room2
-            expect(graph.edges.length).toBe(2)
+            // Should have 3 edges: Asset → map1, map1 → room1, map1 → room2
+            expect(graph.edges.length).toBe(3)
+            expect(graph.edges).toContainEqual({ from: assetUUID, to: map1UUID })
             expect(graph.edges).toContainEqual({ from: map1UUID, to: room1UUID })
             expect(graph.edges).toContainEqual({ from: map1UUID, to: room2UUID })
         })
@@ -340,16 +383,18 @@ describe('StandardForm', () => {
             </Asset>`).finalize()
             const { graph } = sf._buildComponentGraph()
             
+            const assetUUID = sf.universalKey
             const map1UUID = sf.byId['map1'].universalKey!
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
             const example1UUID = sf.byId['example1'].universalKey!
             
-            // Should have 4 nodes
-            expect(Object.keys(graph.nodes).length).toBe(4)
+            // Should have 5 nodes (Asset, map1, room1, feature1, example1) - Asset-level Map creates Asset node
+            expect(Object.keys(graph.nodes).length).toBe(5)
             
-            // Should have 3 edges: map1 → room1, room1 → feature1, feature1 → example1
-            expect(graph.edges.length).toBe(3)
+            // Should have 4 edges: Asset → map1, map1 → room1, room1 → feature1, feature1 → example1
+            expect(graph.edges.length).toBe(4)
+            expect(graph.edges).toContainEqual({ from: assetUUID, to: map1UUID })
             expect(graph.edges).toContainEqual({ from: map1UUID, to: room1UUID })
             expect(graph.edges).toContainEqual({ from: room1UUID, to: feature1UUID })
             expect(graph.edges).toContainEqual({ from: feature1UUID, to: example1UUID })
@@ -369,14 +414,17 @@ describe('StandardForm', () => {
             
             const { graph } = sf._buildComponentGraph()
             
+            const assetUUID = sf.universalKey
             const room1UUID = sf.byId['room1'].universalKey!
             
-            // Should only have 1 node (room1, not feature1)
-            expect(Object.keys(graph.nodes).length).toBe(1)
+            // Should have 2 nodes (Asset, room1) - Asset-level Room creates Asset node, feature1 has no universalKey so not included
+            expect(Object.keys(graph.nodes).length).toBe(2)
+            expect(graph.nodes[assetUUID]).toEqual({ key: assetUUID })
             expect(graph.nodes[room1UUID]).toEqual({ key: room1UUID })
             
-            // Should have 0 edges (feature1 has no universalKey, so edge can't be created)
-            expect(graph.edges.length).toBe(0)
+            // Should have 1 edge (Asset → room1) - feature1 has no universalKey, so edge from room1 to feature1 can't be created
+            expect(graph.edges.length).toBe(1)
+            expect(graph.edges).toContainEqual({ from: assetUUID, to: room1UUID })
         })
 
         it('should create directional graph (parent → child)', () => {
@@ -398,12 +446,12 @@ describe('StandardForm', () => {
             expect(graph.edges).not.toContainEqual({ from: feature1UUID, to: room1UUID         })
     })
 
-    describe('_getTopologicalSort()', () => {
+    describe('_buildComponentGraph() topological sort', () => {
         it('should return empty array for empty StandardForm', () => {
             const sf = new StandardForm('ASSET#TestAsset').finalize()
-            const sort = sf._getTopologicalSort()
+            const { topologicalSort } = sf._buildComponentGraph()
             
-            expect(sort).toEqual([])
+            expect(topologicalSort).toEqual([])
         })
 
         it('should return singletons for isolated components (no edges)', () => {
@@ -411,14 +459,16 @@ describe('StandardForm', () => {
                 <Room key=(room1) />
                 <Feature key=(feature1) />
             </Asset>`).finalize()
-            const sort = sf._getTopologicalSort()
+            const { topologicalSort } = sf._buildComponentGraph()
             
+            const assetUUID = sf.universalKey
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
             
-            // Should have 2 SCCs, each with one node (order may vary for isolated nodes)
-            expect(sort.length).toBe(2)
-            expect(sort.flat().sort()).toEqual([room1UUID, feature1UUID].sort())
+            // Should have 3 SCCs: [Asset], [room1], [feature1] (Asset comes first, then isolated components)
+            expect(topologicalSort.length).toBe(3)
+            expect(topologicalSort[0]).toEqual([assetUUID])
+            expect(topologicalSort.flat().slice(1).sort()).toEqual([room1UUID, feature1UUID].sort())
         })
 
         it('should return topological order for simple parent-child relationship', () => {
@@ -427,15 +477,17 @@ describe('StandardForm', () => {
                     <Feature key=(feature1) />
                 </Room>
             </Asset>`).finalize()
-            const sort = sf._getTopologicalSort()
+            const { topologicalSort } = sf._buildComponentGraph()
             
+            const assetUUID = sf.universalKey
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
             
-            // Should have 2 SCCs: [room1], [feature1] (room1 comes before feature1)
-            expect(sort.length).toBe(2)
-            expect(sort[0]).toEqual([room1UUID])
-            expect(sort[1]).toEqual([feature1UUID])
+            // Should have 3 SCCs: [Asset], [room1], [feature1] (Asset comes first, then room1, then feature1)
+            expect(topologicalSort.length).toBe(3)
+            expect(topologicalSort[0]).toEqual([assetUUID])
+            expect(topologicalSort[1]).toEqual([room1UUID])
+            expect(topologicalSort[2]).toEqual([feature1UUID])
         })
 
         it('should return topological order for multi-level nesting', () => {
@@ -449,19 +501,21 @@ describe('StandardForm', () => {
                     </Room>
                 </Map>
             </Asset>`).finalize()
-            const sort = sf._getTopologicalSort()
+            const { topologicalSort } = sf._buildComponentGraph()
             
+            const assetUUID = sf.universalKey
             const map1UUID = sf.byId['map1'].universalKey!
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
             const example1UUID = sf.byId['example1'].universalKey!
             
-            // Should have 4 SCCs in order: map1, room1, feature1, example1
-            expect(sort.length).toBe(4)
-            expect(sort[0]).toEqual([map1UUID])
-            expect(sort[1]).toEqual([room1UUID])
-            expect(sort[2]).toEqual([feature1UUID])
-            expect(sort[3]).toEqual([example1UUID])
+            // Should have 5 SCCs in order: Asset, map1, room1, feature1, example1
+            expect(topologicalSort.length).toBe(5)
+            expect(topologicalSort[0]).toEqual([assetUUID])
+            expect(topologicalSort[1]).toEqual([map1UUID])
+            expect(topologicalSort[2]).toEqual([room1UUID])
+            expect(topologicalSort[3]).toEqual([feature1UUID])
+            expect(topologicalSort[4]).toEqual([example1UUID])
         })
 
         // Note: Cycle detection is tested in the Graph class itself (see mtw-utilities).
@@ -483,26 +537,28 @@ describe('StandardForm', () => {
                     <Feature key=(feature2) />
                 </Room>
             </Asset>`).finalize()
-            const sort = sf._getTopologicalSort()
+            const { topologicalSort } = sf._buildComponentGraph()
             
+            const assetUUID = sf.universalKey
             const room1UUID = sf.byId['room1'].universalKey!
             const feature1UUID = sf.byId['feature1'].universalKey!
             const room2UUID = sf.byId['room2'].universalKey!
             const feature2UUID = sf.byId['feature2'].universalKey!
             
-            // Should have 4 SCCs: room1, feature1, room2, feature2
-            // (room1 and room2 can be in any order relative to each other, but their children come after)
-            expect(sort.length).toBe(4)
-            const allUUIDs = sort.flat()
-            expect(allUUIDs).toEqual(expect.arrayContaining([room1UUID, feature1UUID, room2UUID, feature2UUID]))
+            // Should have 5 SCCs: [Asset], [room1, room2], [feature1, feature2]
+            // (Asset comes first, then room1 and room2 can be in any order, then their children feature1 and feature2)
+            expect(topologicalSort.length).toBe(5)
+            expect(topologicalSort[0]).toEqual([assetUUID])
+            const allUUIDs = topologicalSort.flat()
+            expect(allUUIDs).toEqual(expect.arrayContaining([assetUUID, room1UUID, feature1UUID, room2UUID, feature2UUID]))
             
             // Verify parent-child ordering within each tree
-            const room1Index = sort.findIndex(scc => scc.includes(room1UUID))
-            const feature1Index = sort.findIndex(scc => scc.includes(feature1UUID))
+            const room1Index = topologicalSort.findIndex(scc => scc.includes(room1UUID))
+            const feature1Index = topologicalSort.findIndex(scc => scc.includes(feature1UUID))
             expect(room1Index).toBeLessThan(feature1Index)
             
-            const room2Index = sort.findIndex(scc => scc.includes(room2UUID))
-            const feature2Index = sort.findIndex(scc => scc.includes(feature2UUID))
+            const room2Index = topologicalSort.findIndex(scc => scc.includes(room2UUID))
+            const feature2Index = topologicalSort.findIndex(scc => scc.includes(feature2UUID))
             expect(room2Index).toBeLessThan(feature2Index)
         })
     })
@@ -595,6 +651,11 @@ describe('StandardForm', () => {
         expect(standard.toJSON()).toEqual({
             universalKey: 'ASSET#Test',
             metaData: [],
+            topLevel: [
+                { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' },
+                { key: 'testRoomRemove', tag: 'Room', universalKey: 'ROOM#testRoomRemove' },
+                { key: 'testRoomReplace', tag: 'Room', universalKey: 'ROOM#testRoomReplace' }
+            ],
             components: [
                 {
                     tag: 'Room',
@@ -679,6 +740,7 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             universalKey: 'ASSET#Test',
             metaData: [{ data: { tag: 'Meta', key: 'ABC', time: 1234 }, children: [] }],
+            topLevel: [{ key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' }],
             components: [
                 {
                     tag: 'Room',
@@ -897,6 +959,11 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             universalKey: 'ASSET#Test',
             metaData: [],
+            topLevel: [
+                { key: 'testGlobal', tag: 'Feature', universalKey: 'FEATURE#testGlobal' },
+                { key: 'test', tag: 'Room', universalKey: 'ROOM#testRoom' },
+                { key: 'testTwo', tag: 'Room', universalKey: 'ROOM#testTwo' }
+            ],
             components: [{
                 tag: 'Feature',
                 key: 'testGlobal',
@@ -959,6 +1026,10 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             universalKey: 'ASSET#Test',
             metaData: [],
+            topLevel: [
+                { key: 'test', tag: 'Room', universalKey: 'ROOM#test' },
+                { key: 'testTwo', tag: 'Room', universalKey: 'ROOM#testTwo' }
+            ],
             components: [{
                 tag: 'Room',
                 key: 'test',
@@ -990,6 +1061,7 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             universalKey: 'ASSET#Test',
             metaData: [],
+            topLevel: [{ key: 'test', tag: 'Knowledge', universalKey: 'KNOWLEDGE#test' }],
             components: [{
                 tag: 'Knowledge',
                 key: 'test',
@@ -1019,6 +1091,10 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             universalKey: 'ASSET#Test',
             metaData: [],
+            topLevel: [
+                { key: 'test', tag: 'Room', universalKey: 'ROOM#test' },
+                { key: 'testTwo', tag: 'Room', universalKey: 'ROOM#testTwo' }
+            ],
             components: [{
                 tag: 'Room',
                 key: 'test',
@@ -3102,7 +3178,15 @@ describe('StandardForm', () => {
 
         const ndjson = testSource.toNDJSON()
         expect(ndjson).toEqual([
-            { tag: 'Asset', universalKey: 'ASSET#test' },
+            {
+                tag: 'Asset',
+                universalKey: 'ASSET#test',
+                topLevel: [
+                    { key: 'testGlobal', tag: 'Feature', universalKey: 'FEATURE#003' },
+                    { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#001' },
+                    { key: 'testRoomTwo', tag: 'Room', universalKey: 'ROOM#002' }
+                ]
+            },
             {
                 tag: 'Feature',
                 key: 'testGlobal',
@@ -3456,40 +3540,56 @@ describe('StandardForm', () => {
             expect(finalized.byId.testRoom.universalKey).toEqual('ROOM#mock-uuid-1')
         })
 
-        it('should rebuild context on finalize', () => {
-            const testWML = deIndentWML(`
-                <Asset uuid=(test)>
-                    <Feature uuid=(testFeature) key=(testFeature) />
-                    <Room uuid=(testRoom) key=(testRoom)>
-                        <Feature key=(testFeature)>
+        describe('hierarchy', () => {
+            it('should rebuild context on finalize and set implicitParent correctly', () => {
+                const testWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Feature uuid=(testFeature) key=(testFeature) />
+                        <Room uuid=(testRoom) key=(testRoom)>
+                            <Feature key=(testFeature)>
+                                <Example uuid=(testFeatureBase)>
+                                    <Description>Test Feature</Description>
+                                </Example>
+                            </Feature>
+                        </Room>
+                    </Asset>
+                `)
+                const test = new StandardForm(testWML)
+                const findBaseExample = test._lookup('EXAMPLE#testFeatureBase')
+                expect((findBaseExample?._key?.context ?? []).map((context) => (context.plain.toJSON()))).toEqual([
+                    { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' },
+                    { key: 'testFeature', tag: 'Feature' }
+                ])
+                const finalized = test.finalize()
+                const findFinalizedExample = finalized._lookup('EXAMPLE#testFeatureBase')
+                expect((findFinalizedExample?._key?.context ?? []).map((context) => (context.plain.toJSON()))).toEqual([
+                    'FEATURE#testFeature'
+                ])
+                expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Feature uuid=(testFeature) key=(testFeature)>
                             <Example uuid=(testFeatureBase)>
                                 <Description>Test Feature</Description>
                             </Example>
                         </Feature>
-                    </Room>
-                </Asset>
-            `)
-            const test = new StandardForm(testWML)
-            const findBaseExample = test._lookup('EXAMPLE#testFeatureBase')
-            expect((findBaseExample?._key?.context ?? []).map((context) => (context.plain.toJSON()))).toEqual([
-                { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' },
-                { key: 'testFeature', tag: 'Feature' }
-            ])
-            const finalized = test.finalize()
-            const findFinalizedExample = finalized._lookup('EXAMPLE#testFeatureBase')
-            expect((findFinalizedExample?._key?.context ?? []).map((context) => (context.plain.toJSON()))).toEqual([
-                'FEATURE#testFeature'
-            ])
-            expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`
-                <Asset uuid=(test)>
-                    <Feature uuid=(testFeature) key=(testFeature)>
-                        <Example uuid=(testFeatureBase)>
-                            <Description>Test Feature</Description>
-                        </Example>
-                    </Feature>
-                    <Room uuid=(testRoom) key=(testRoom)><Feature key=(testFeature) /></Room>
-                </Asset>
-            `))
+                        <Room uuid=(testRoom) key=(testRoom)><Feature key=(testFeature) /></Room>
+                    </Asset>
+                `))
+                
+                // Test expectations for implicitParent (Phase 4 implementation)
+                // After finalize(), implicitParent should reflect the hierarchy:
+                // - Example is in Feature → implicitParent should be 'FEATURE#testFeature'
+                // - Feature is at Asset level (not in Room) → implicitParent should be undefined
+                // - Room is at Asset level → implicitParent should be undefined
+                const finalizedExample = finalized._lookup('EXAMPLE#testFeatureBase')
+                const finalizedFeature = finalized._lookup('FEATURE#testFeature')
+                const finalizedRoom = finalized._lookup('ROOM#testRoom')
+                
+                // Verify implicitParent values are correctly computed
+                expect(finalizedExample?.implicitParent).toBe('FEATURE#testFeature')
+                expect(finalizedFeature?.implicitParent).toBeUndefined() // Feature is at Asset level
+                expect(finalizedRoom?.implicitParent).toBeUndefined() // Room is at Asset level
+            })
         })
 
         it('should remap references to UUIDs on finalize', () => {
@@ -4215,7 +4315,7 @@ describe('StandardForm', () => {
             const testWML = deIndentWML(`
                 <Asset uuid=(test)>
                     <ShortName>Test Asset Name</ShortName>
-                    <Room key=(room1)><ShortName>Test Room</ShortName></Room>
+                    <Room uuid=(room1) key=(room1)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `)
             const original = new StandardForm(testWML)
@@ -4225,7 +4325,8 @@ describe('StandardForm', () => {
             expect(ndjson[0]).toEqual({
                 tag: 'Asset',
                 universalKey: 'ASSET#test',
-                shortName: 'Test Asset Name'
+                shortName: 'Test Asset Name',
+                topLevel: [{ key: 'room1', tag: 'Room', universalKey: 'ROOM#room1' }]
             })
             
             // Round-trip through NDJSON
@@ -4239,7 +4340,7 @@ describe('StandardForm', () => {
             const testWML = deIndentWML(`
                 <Asset uuid=(test)>
                     <Summary>This is a test summary</Summary>
-                    <Room key=(room1)><ShortName>Test Room</ShortName></Room>
+                    <Room uuid=(room1) key=(room1)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `)
             const original = new StandardForm(testWML)
@@ -4249,7 +4350,8 @@ describe('StandardForm', () => {
             expect(ndjson[0]).toEqual({
                 tag: 'Asset',
                 universalKey: 'ASSET#test',
-                summary: ['This is a test summary']
+                summary: ['This is a test summary'],
+                topLevel: [{ key: 'room1', tag: 'Room', universalKey: 'ROOM#room1' }]
             })
             
             // Round-trip through NDJSON
@@ -4264,7 +4366,7 @@ describe('StandardForm', () => {
                 <Asset uuid=(nakatomiPlaza)>
                     <ShortName>Nakatomi Plaza</ShortName>
                     <Summary>A high-rise office building in downtown Los Angeles</Summary>
-                    <Room key=(lobby)>
+                    <Room uuid=(lobby) key=(lobby)>
                         <ShortName>Main Lobby</ShortName>
                         <Example uuid=(example1)>
                             <Description>A gleaming marble lobby</Description>
@@ -4280,7 +4382,8 @@ describe('StandardForm', () => {
                 tag: 'Asset',
                 universalKey: 'ASSET#nakatomiPlaza',
                 shortName: 'Nakatomi Plaza',
-                summary: ['A high-rise office building in downtown Los Angeles']
+                summary: ['A high-rise office building in downtown Los Angeles'],
+                topLevel: [{ key: 'lobby', tag: 'Room', universalKey: 'ROOM#lobby' }]
             })
             
             // Round-trip through NDJSON
@@ -4293,7 +4396,7 @@ describe('StandardForm', () => {
         it('should round-trip Asset without ShortName or Summary through NDJSON', () => {
             const testWML = deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room key=(room1)><ShortName>Test Room</ShortName></Room>
+                    <Room uuid=(room1) key=(room1)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `)
             const original = new StandardForm(testWML)
@@ -4302,7 +4405,8 @@ describe('StandardForm', () => {
             // Verify NDJSON header has no shortName or summary
             expect(ndjson[0]).toEqual({
                 tag: 'Asset',
-                universalKey: 'ASSET#test'
+                universalKey: 'ASSET#test',
+                topLevel: [{ key: 'room1', tag: 'Room', universalKey: 'ROOM#room1' }]
             })
             
             // Round-trip through NDJSON

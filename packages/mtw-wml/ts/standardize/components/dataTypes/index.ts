@@ -18,6 +18,7 @@ import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
+import { StandardReferenceData } from "./reference"
 
 export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardImage }
 
@@ -107,6 +108,7 @@ export type StandardFormData = {
     metaData: GenericTree<SchemaTag>;
     shortName?: StandardEditableData<string>;
     summary?: StandardEditableData<RenderTree>;
+    topLevel?: StandardEditableData<StandardReferenceData>[];
 }
 
 export const isStandardComponentData = (arg: any): arg is StandardComponentData => (isStandardNonEdit(arg) || isStandardRemove(arg) || isStandardReplace(arg))

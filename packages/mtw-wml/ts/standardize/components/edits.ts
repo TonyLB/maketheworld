@@ -86,7 +86,7 @@ export class StandardRemove implements StandardComponent {
         return {
             key: this.key,
             tag: 'Remove',
-            component: this._match.toJSON() as StandardComponentNonEditData
+            component: this._match.toJSON() as StandardComponentNonEditData,
         }
     }
 
@@ -281,7 +281,7 @@ export class StandardReplace implements StandardComponent {
             key: this.key,
             tag: 'Replace',
             match: this._match.toJSON() as StandardComponentNonEditData,
-            payload: this._payload.toJSON() as StandardComponentNonEditData
+            payload: this._payload.toJSON() as StandardComponentNonEditData,
         }
     }
 
