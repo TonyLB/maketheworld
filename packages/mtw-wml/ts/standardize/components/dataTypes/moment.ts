@@ -1,11 +1,11 @@
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
-import { isStandardReferencePayloadData, StandardReferenceData } from "./reference";
+import { isStandardReferencePayloadData, ReferenceListData } from "./reference";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardMomentData = {
     tag: 'Moment';
-    messages?: StandardEditableData<StandardReferenceData>[];
+    messages?: ReferenceListData;
 } & StandardBaseData
 
 export const isStandardMoment = (arg: any): arg is StandardMomentData => {

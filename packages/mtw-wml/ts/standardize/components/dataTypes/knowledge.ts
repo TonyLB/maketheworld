@@ -1,4 +1,4 @@
-import { StandardReferenceData } from "./reference";
+import { ReferenceListData } from "./reference";
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
@@ -6,7 +6,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 export type StandardKnowledgeData = {
     tag: 'Knowledge';
     shortName?: StandardEditableData<string>;
-    examples?: StandardEditableData<StandardReferenceData>[];
+    examples?: ReferenceListData;
 } & StandardBaseData
 
 export const isStandardKnowledge = (arg: any): arg is StandardKnowledgeData => {

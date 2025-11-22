@@ -24,7 +24,7 @@ import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
-import { StandardReferenceData } from "./components/dataTypes/reference"
+import { ReferenceListData, StandardReferenceData } from "./components/dataTypes/reference"
 import StandardReference, { ReferenceList, StandardKey } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
@@ -304,8 +304,8 @@ export class StandardForm {
         return this._summary
     }
 
-    get header(): { tag: 'Asset'; shortName?: StandardEditableData<string>; summary?: StandardEditableData<RenderTree>; topLevel?: StandardEditableData<StandardReferenceData>[] } & StandardBaseData & SerializeNDJSONMixin {
-        const header: { tag: 'Asset'; shortName?: StandardEditableData<string>; summary?: StandardEditableData<RenderTree>; topLevel?: StandardEditableData<StandardReferenceData>[] } & StandardBaseData & SerializeNDJSONMixin = {
+    get header(): { tag: 'Asset'; shortName?: StandardEditableData<string>; summary?: StandardEditableData<RenderTree>; topLevel?: ReferenceListData } & StandardBaseData & SerializeNDJSONMixin {
+        const header: { tag: 'Asset'; shortName?: StandardEditableData<string>; summary?: StandardEditableData<RenderTree>; topLevel?: ReferenceListData } & StandardBaseData & SerializeNDJSONMixin = {
             tag: 'Asset',
             universalKey: this._universalKey
         }
