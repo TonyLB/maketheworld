@@ -20,12 +20,14 @@ export class StandardRemove implements StandardComponent {
     _match: StandardComponent;
     explicitParent?: StandardExplicitParent;
     _implicitParent?: ComponentUUID;
+    _topLevel?: boolean;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
             this._key = props._key
             this._match = props._match.clone()
             this.explicitParent = props.explicitParent
+            this._topLevel = props._topLevel
             return
         }
         const tag = props.tag
@@ -35,6 +37,7 @@ export class StandardRemove implements StandardComponent {
         this._key = new StandardKey(props._key)
         this._match = props as StandardComponent
         this.explicitParent = props.explicitParent
+        this._topLevel = props.topLevel
         return
     }
 
@@ -86,7 +89,8 @@ export class StandardRemove implements StandardComponent {
         return {
             key: this.key,
             tag: 'Remove',
-            component: this._match.toJSON() as StandardComponentNonEditData
+            component: this._match.toJSON() as StandardComponentNonEditData,
+            ...(this._topLevel !== undefined ? { topLevel: this._topLevel } : {})
         }
     }
 
@@ -178,6 +182,12 @@ export class StandardRemove implements StandardComponent {
         returnValue._implicitParent = implicitParent
         return returnValue
     }
+
+    withTopLevel(topLevel: boolean | undefined): StandardComponent {
+        const returnValue = this.clone()
+        returnValue._topLevel = topLevel
+        return returnValue
+    }
 }
 
 //
@@ -196,6 +206,7 @@ export class StandardReplace implements StandardComponent {
     leastCommonContext: StandardKey[] = [];
     explicitParent?: StandardExplicitParent;
     _implicitParent?: ComponentUUID;
+    _topLevel?: boolean;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Replace' as const;
     constructor(...propsArray: [StandardReplace] | [StandardComponent, StandardComponent]) {
         if (propsArray.length > 1) {
@@ -213,6 +224,8 @@ export class StandardReplace implements StandardComponent {
             this._key = new StandardKey(match._key)
             // Use explicitParent from match if available, otherwise from payload
             this.explicitParent = match.explicitParent ?? payload.explicitParent
+            // Use topLevel from match if available, otherwise from payload
+            this._topLevel = match.topLevel ?? payload.topLevel
             return
         }
         const [props] = propsArray as [string | StandardReplaceData | GenericTreeNode<SchemaTag> | StandardReplace]
@@ -221,6 +234,7 @@ export class StandardReplace implements StandardComponent {
             this._match = props._match.clone()
             this._payload = props._payload.clone()
             this.explicitParent = props.explicitParent
+            this._topLevel = props._topLevel
             return
         }
         throw new Error('StandardReplace constructor called with invalid arguments')
@@ -281,7 +295,8 @@ export class StandardReplace implements StandardComponent {
             key: this.key,
             tag: 'Replace',
             match: this._match.toJSON() as StandardComponentNonEditData,
-            payload: this._payload.toJSON() as StandardComponentNonEditData
+            payload: this._payload.toJSON() as StandardComponentNonEditData,
+            ...(this._topLevel !== undefined ? { topLevel: this._topLevel } : {})
         }
     }
 
@@ -388,6 +403,12 @@ export class StandardReplace implements StandardComponent {
     withImplicitParent(implicitParent: ComponentUUID | undefined): StandardComponent {
         const returnValue = this.clone()
         returnValue._implicitParent = implicitParent
+        return returnValue
+    }
+
+    withTopLevel(topLevel: boolean | undefined): StandardComponent {
+        const returnValue = this.clone()
+        returnValue._topLevel = topLevel
         return returnValue
     }
 }

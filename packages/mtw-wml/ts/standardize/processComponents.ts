@@ -136,7 +136,9 @@ export const processComponents = (props: {
                         : component.withLeastCommonContext(componentContext)
                     : component
 
-                const editWrappedComponent = inContextOfRemove ? new StandardRemove(localizedComponent) : localizedComponent
+                // Set topLevel: true if component has no parent (is at Asset level)
+                const componentWithTopLevel = parentTag ? localizedComponent : localizedComponent.withTopLevel(true)
+                const editWrappedComponent = inContextOfRemove ? new StandardRemove(componentWithTopLevel) : componentWithTopLevel
 
                 //
                 // Track parent→child edge for this component

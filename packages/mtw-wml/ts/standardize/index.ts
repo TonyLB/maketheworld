@@ -523,13 +523,32 @@ export class StandardForm {
         graph: Graph<ComponentUUID | AssetUUID, { key: ComponentUUID | AssetUUID }, {}>;
         topologicalSort: (ComponentUUID | AssetUUID)[][];
     } {
-        // Get edges from both sources for parallel testing/comparison
-        // Currently using processingEdges as primary source (includes Asset-level components)
-        // Keep _getParentChildEdges() available for comparison via _compareEdgeSources()
-        const processingEdges = this._resolveProcessingEdges()
+        // Get edges from processingEdges if available (from processComponents), otherwise reconstruct
+        let edges = this._resolveProcessingEdges()
         
-        // Use processingEdges as the primary source
-        const edges = processingEdges
+        // If _processingEdges is missing (e.g., constructed from StandardFormData), reconstruct edges
+        if (edges.length === 0 && !this._processingEdges) {
+            // Fallback: reconstruct edges from component.referencedKeys() and topLevel flag
+            const referencedEdges = this._getParentChildEdges()
+            
+            // Find Asset-level components using topLevel flag
+            // Note: A component can appear at Asset level AND nested, so check all topLevel components
+            const assetLevelEdges: Array<{ parent: AssetUUID; child: ComponentUUID }> = []
+            for (const component of this._components) {
+                if (component.universalKey && component.topLevel) {
+                    assetLevelEdges.push({
+                        parent: this._universalKey,
+                        child: component.universalKey
+                    })
+                }
+            }
+            
+            // Combine referenced edges with Asset-level edges
+            edges = [
+                ...referencedEdges.map(e => ({ parent: e.parent, child: e.child })),
+                ...assetLevelEdges
+            ]
+        }
         
         // Create nodes from all components with universalKey
         const nodes: Partial<Record<ComponentUUID | AssetUUID, { key: ComponentUUID | AssetUUID }>> = this._components
