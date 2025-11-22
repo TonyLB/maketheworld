@@ -1,7 +1,8 @@
 # Implicit Parent Resolution System - Planning Document
 
 **Date**: November 18, 2025  
-**Status**: Planning Phase  
+**Last Updated**: November 22, 2025  
+**Status**: Phase 4 Complete - Core functionality implemented  
 **Related**: [`AGENT.md`](./AGENT.md) - StandardForm operations and component hierarchy
 
 ---
@@ -394,34 +395,34 @@ For the problematic scenario:
 - **Node structure**: Simple `{ key: ComponentUUID }` structure (no additional data needed)
 - **Edge conversion**: Edges converted from `{ parent, child }` to `{ from, to }` format required by Graph class
 
-### Phase 4: Topological Resolution
+### Phase 4: Topological Resolution ✅ COMPLETE
 
 **Goal**: Resolve implicit parent references using graph-based topological analysis
 
-**Status**: 🚧 In Progress
+**Status**: ✅ Completed
 
 **Algorithm Overview**:
 
 After universalKey assignment in `finalize()`, we:
 1. Generate graph from collected edges (Phase 3)
-2. Derive topological sort from graph (returns `ComponentUUID[][]` - array of strongly connected components)
+2. Derive topological sort from graph (returns `(ComponentUUID | AssetUUID)[][]` - array of strongly connected components)
 3. Reduce over topological sort to compute `selectedAncestry` for each component
 4. Extract implicit parent from `selectedAncestry` (last item = most proximate parent)
 
 **Detailed Algorithm**:
 
-**Step 1: Graph Construction** (Phase 3)
-- Build directed graph from `_getParentChildEdges()`
-- Graph nodes = components (by `universalKey`)
-- Graph edges = parent→child relationships
+**Step 1: Graph Construction** (Phase 3) ✅ COMPLETE
+- ✅ Build directed graph from `_getParentChildEdges()`
+- ✅ Graph nodes = components (by `universalKey`) and Asset (by `AssetUUID`)
+- ✅ Graph edges = parent→child relationships (computed on-demand from `referencedKeys()`)
+- ✅ Includes Asset-level components via `StandardForm.topLevel` and `StandardForm.referencedKeys()`
 
 **Step 2: Topological Sort** ✅ COMPLETE
-- ✅ Implemented `_getTopologicalSort()` method that:
-  - Builds component graph via `_buildComponentGraph()`
-  - Calls `graph.topologicalSort()` → returns `ComponentUUID[][]`
-  - Each inner array is a strongly connected component (SCC)
-  - For acyclic graphs, each SCC is a single node
-  - Order ensures parents are processed before children
+- ✅ Graph construction integrated into `_buildComponentGraph()` which returns both graph and topological sort
+- ✅ Topological sort returns `(ComponentUUID | AssetUUID)[][]` (includes Asset node)
+- ✅ Each inner array is a strongly connected component (SCC)
+- ✅ For acyclic graphs, each SCC is a single node
+- ✅ Order ensures parents are processed before children
 - ✅ Comprehensive test coverage (5 tests):
   - Empty graph
   - Isolated components (no edges)
@@ -429,24 +430,26 @@ After universalKey assignment in `finalize()`, we:
   - Multi-level nesting
   - Multiple independent trees
 
-**Step 3: Reduce Over Topological Sort**
+**Step 3: Reduce Over Topological Sort** ✅ COMPLETE
 
-For each SCC (set of nodes) in topological order:
+✅ Implemented in `_resolveImplicitParents()` method. For each SCC (set of nodes) in topological order:
 
-1. **Find unique parents**: Collect all parent nodes (via back-edges) for all nodes in the current set
-2. **Filter to external parents**: Keep only parents that are outside the current set (already processed due to topological order)
-3. **Construct ancestry-threads**: For each external parent, build ancestry thread as:
+1. ✅ **Find unique parents**: Collect all parent nodes (via back-edges) for all nodes in the current set
+2. ✅ **Filter to external parents**: Keep only parents that are outside the current set (already processed due to topological order)
+3. ✅ **Construct ancestry-threads**: For each external parent, build ancestry thread as:
    - `[...selectedAncestry-of-parent, parent]`
    - If parent has no `selectedAncestry` yet (shouldn't happen due to topological order), use `[]`
-   - Each thread is a `ComponentUUID[]` representing a path from Asset level to that parent
-4. **Find longest common prefix**: Across all ancestry-threads, find the longest common prefix
+   - Each thread is a `(ComponentUUID | AssetUUID)[]` representing a path from Asset level to that parent
+4. ✅ **Find longest common prefix**: Across all ancestry-threads, find the longest common prefix
    - This is mathematically identical to "the nearest ancestor that all positions have in common"
    - If no common prefix exists, result is `[]` (Asset level)
-5. **Register selectedAncestry**: Store the longest common prefix as `selectedAncestry` for all nodes in the current set
+5. ✅ **Register selectedAncestry**: Store the longest common prefix as `selectedAncestry` for all nodes in the current set
 
-**Step 4: Extract Implicit Parent**
-- For each component, `implicitParent` = last item in `selectedAncestry` (most proximate parent)
-- If `selectedAncestry` is empty, component is at Asset level (no implicit parent)
+**Step 4: Extract Implicit Parent** ✅ COMPLETE
+- ✅ For each component, `implicitParent` = last item in `selectedAncestry` (most proximate parent)
+- ✅ If `selectedAncestry` is empty, component is at Asset level (no implicit parent)
+- ✅ AssetUUID parents are filtered out (implicitParent must be ComponentUUID)
+- ✅ Components are updated via `withImplicitParent()` method
 
 **Key Concepts**:
 
@@ -455,59 +458,65 @@ For each SCC (set of nodes) in topological order:
 - **selectedAncestry**: Full chain FROM the component's implicit parent down to Asset level. Allows quick construction of child ancestry-threads by prepending: `[...parent.selectedAncestry, parent]`
 - **Most-complete common ancestry**: Longest common prefix across all ancestry-threads, which equals the nearest common ancestor
 
-**Tasks**:
-1. ✅ Derive topological sort from graph (via `_getTopologicalSort()`)
-2. ⏳ Implement `_resolveImplicitParents()` method that:
-   - Gets topological sort from graph (using `_getTopologicalSort()`)
+**Tasks Completed**:
+1. ✅ Derive topological sort from graph (integrated into `_buildComponentGraph()`)
+2. ✅ Implemented `_resolveImplicitParents()` method that:
+   - Gets graph and topological sort from `_buildComponentGraph()`
    - Reduces over topological sort to compute `selectedAncestry` for each component
-   - Stores `selectedAncestry` temporarily (as `Map<ComponentUUID, ComponentUUID[]>`)
-   - Extracts `implicitParent` from `selectedAncestry` for each component
-2. Integrate into `finalize()`:
-   - After graph construction, call `_resolveImplicitParents()`
-   - Set `parent` field on each component's `_key` (or store `implicitParent` separately - TBD)
-   - Replace current context rebuilding logic with topological resolution
-3. **Add caching mechanism for ancestry chain computation**:
-   - Now safe because topological sort ensures no circular dependencies
-   - Cache computed ancestry chains during resolution (can use `selectedAncestry` as cache)
-   - Update `getAncestryChain()` to use cache when available
-   - Add `getDepth()` helper that uses cached chains
-4. Write comprehensive tests:
-   - Test simple parent-child relationships
-   - Test multi-level nesting
-   - Test components with multiple appearances (the edge case scenario)
-   - Test components at Asset level
-   - Test SCC handling (if cycles exist)
+   - Stores `selectedAncestry` temporarily (as `Map<ComponentUUID | AssetUUID, ComponentUUID[]>`)
+   - Extracts `implicitParent` from `selectedAncestry` for each component (filters out AssetUUID)
+   - Returns updated components with `implicitParent` set
+3. ✅ Integrated into `finalize()`:
+   - After graph construction, calls `_resolveImplicitParents()`
+   - Sets `implicitParent` on each component via `withImplicitParent()` method
+   - `implicitParent` is stored separately on `StandardComponent` (not on `StandardKey.parent`)
+4. ✅ Edge computation is on-demand:
+   - `_getParentChildEdges()` computes edges from `StandardForm.referencedKeys()` and `component.referencedKeys()`
+   - `StandardForm.referencedKeys()` returns top-level components (Asset→component edges)
+   - No need to store edges - they're computed when needed
+5. ✅ Added `topLevel` property to `StandardForm`:
+   - Stores `ReferenceList` of Asset-level components
+   - Populated during `processComponents()` from schema
+   - Used by `StandardForm.referencedKeys()` to return Asset→component references
+6. ✅ Comprehensive test coverage:
+   - Tests for hierarchy resolution in `finalize()` 
+   - Tests verify `implicitParent` values are correctly computed
+   - Tests include Asset-level components
 
 **Files Modified**:
-- ✅ `./index.ts` - Added `_getTopologicalSort()` method
-- ✅ `./index.test.ts` - Added tests for topological sort (5 tests)
+- ✅ `./index.ts` - Added `_resolveImplicitParents()` method, integrated into `finalize()`
+- ✅ `./index.ts` - Added `referencedKeys()` method to `StandardForm` (returns top-level components)
+- ✅ `./index.ts` - Added `topLevel` property to `StandardForm`
+- ✅ `./index.ts` - Refactored `_getParentChildEdges()` to use unified `getEdges()` helper
+- ✅ `./index.ts` - Removed `_getTopologicalSort()` (inlined into `_buildComponentGraph()`)
+- ✅ `./processComponents.ts` - Refactored to return `topLevel` instead of full edge graph
+- ✅ `./index.test.ts` - Comprehensive test coverage for hierarchy resolution
 
-**Files to modify** (remaining tasks):
-- `./index.ts` - Add `_resolveImplicitParents()` method, integrate into `finalize()`
-- `./components/reference.ts` - Add caching to `getAncestryChain()` and `getDepth()` helpers (optional, can use `selectedAncestry` from resolution)
-- `./index.test.ts` - Add tests for full topological resolution (selectedAncestry computation)
+**Design Decision Made**:
+- ✅ `implicitParent` is stored separately on `StandardComponent` (as `ComponentUUID | undefined`)
+- ✅ `StandardKey.parent` remains available for explicit parent relationships (future use)
+- ✅ `implicitParent` is treated as computed metadata (cleared in merge, recomputed in finalize)
 
-**Design Decision Pending**:
-- Should `implicitParent` be stored on `StandardComponent._key.parent` or separately on `StandardComponent`?
-- User intuition: May want to remove `parent` from `StandardKey` entirely and store `implicitParent` separately
-- Will evaluate after implementation to see which approach is cleaner
-
-### Phase 5: Merge Integration
+### Phase 5: Merge Integration ❌ NOT NEEDED
 
 **Goal**: Preserve edges and parent references during merge operations
 
-**Tasks**:
-1. Combine edge lists from both StandardForms during merge
-2. Update `StandardKey.merge()` to handle `parent` field (not array intersection)
-3. Merge parent references: if both have same parent, keep it; if different, resolve via graph
-4. Ensure edges survive merge operations
-5. Update merge tests to verify edge and parent preservation
-6. Handle edge conflicts (same edge from different sources)
+**Status**: ❌ Not needed - Skipped
 
-**Files to modify**:
-- `./index.ts` - `merge()` method
-- `./mergeToComponentList.ts` - Preserve edge information
-- `./components/reference.ts` - Update `StandardKey.merge()` for `parent` field
+**Decision**: Phase 5 is not needed. The current implementation is correct and sufficient.
+
+**Rationale**:
+1. **Edges are computed on-demand**: Edges are computed from `referencedKeys()` when needed, not stored. No preservation logic required.
+2. **ImplicitParent is computed metadata**: `implicitParent` is cleared in `merge()` and recomputed in `finalize()`. This ensures it always reflects the current graph state after merge.
+3. **No use case for preservation**: After evaluation, there is no important use case for preserving `implicitParent` across merges. The recomputation approach is:
+   - Simpler (no merge conflict resolution needed)
+   - More correct (always reflects current graph state)
+   - Performant enough (computation is fast, happens only in `finalize()`)
+
+**Current Implementation** (already correct):
+- ✅ `./components/component.ts` - `merge()` clears `implicitParent` (line 306)
+- ✅ `./index.ts` - `finalize()` recomputes `implicitParent` after merge
+- ✅ No changes needed
 
 ### Phase 6: Complete Migration and Cleanup
 
