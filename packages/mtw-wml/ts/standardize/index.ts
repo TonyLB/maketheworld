@@ -103,6 +103,7 @@ export class StandardForm {
     _shortName?: StandardLiteral;
     _summary?: StandardRender;
     _processingEdges?: ComponentProcessingEdge[];
+    _topLevel?: ReferenceList;
     /**
      * Optional semantic mode indicating how this StandardForm should be interpreted and used.
      * 
@@ -136,6 +137,12 @@ export class StandardForm {
             // Extract Asset-level metadata from StandardFormData
             this._shortName = args.shortName ? new StandardLiteral(args.shortName) : undefined
             this._summary = args.summary ? new StandardRender(args.summary) : undefined
+            this._topLevel = args.topLevel ? new ReferenceList(args.topLevel) : undefined
+            
+            // If topLevel not provided in data, populate from graph
+            if (!this._topLevel) {
+                this._populateTopLevelFromGraph()
+            }
             return
         }
         if (isStandardNDJSON(args)) {
@@ -151,6 +158,7 @@ export class StandardForm {
             // Extract Asset-level metadata from NDJSON header
             this._shortName = (assetLine as any).shortName ? new StandardLiteral((assetLine as any).shortName) : undefined
             this._summary = (assetLine as any).summary ? new StandardRender((assetLine as any).summary) : undefined
+            this._topLevel = (assetLine as any).topLevel ? new ReferenceList((assetLine as any).topLevel) : undefined
             
             this._components = args.filter(isStandardComponentData).reduce<StandardComponent[]>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
                 const standardItem = standardComponentFactory(standardData)
@@ -165,6 +173,10 @@ export class StandardForm {
 
             this._metaData = []
 
+            // If topLevel not provided in data, populate from graph
+            if (!this._topLevel) {
+                this._populateTopLevelFromGraph()
+            }
             return
         }
         if (isSchemaTreeNode(args) || typeof args === 'string') {
@@ -258,6 +270,14 @@ export class StandardForm {
                 this._components = componentFragments
                     .reduce<StandardComponent[]>(mergeToComponentList(universalKeyMappings), [])
                     .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
+                
+                // Populate topLevel from processingEdges: find components where parent is Asset
+                const topLevelKeys = processingEdges
+                    .filter(edge => typeof edge.parent === 'string' && edge.parent === this._universalKey)
+                    .map(edge => edge.child)
+                if (topLevelKeys.length > 0) {
+                    this._topLevel = new ReferenceList(topLevelKeys.map(key => key.toJSON()))
+                }
                 return
             }
             else {
@@ -293,8 +313,8 @@ export class StandardForm {
         return this._summary
     }
 
-    get header(): { tag: 'Asset'; shortName?: StandardEditableData<string>; summary?: StandardEditableData<RenderTree> } & StandardBaseData & SerializeNDJSONMixin {
-        const header: { tag: 'Asset'; shortName?: StandardEditableData<string>; summary?: StandardEditableData<RenderTree> } & StandardBaseData & SerializeNDJSONMixin = {
+    get header(): { tag: 'Asset'; shortName?: StandardEditableData<string>; summary?: StandardEditableData<RenderTree>; topLevel?: StandardEditableData<StandardReferenceData>[] } & StandardBaseData & SerializeNDJSONMixin {
+        const header: { tag: 'Asset'; shortName?: StandardEditableData<string>; summary?: StandardEditableData<RenderTree>; topLevel?: StandardEditableData<StandardReferenceData>[] } & StandardBaseData & SerializeNDJSONMixin = {
             tag: 'Asset',
             universalKey: this._universalKey
         }
@@ -304,6 +324,9 @@ export class StandardForm {
         }
         if (this._summary) {
             header.summary = this._summary.toJSON()
+        }
+        if (this._topLevel) {
+            header.topLevel = this._topLevel.toJSON()
         }
         return header
     }
@@ -397,6 +420,42 @@ export class StandardForm {
         }
 
         return resolvedEdges
+    }
+
+    /**
+     * Populates `_topLevel` by finding components where the Asset is the parent.
+     * Uses the graph constructed from processingEdges or component references.
+     */
+    _populateTopLevelFromGraph(): void {
+        // Build graph to find Asset-level components
+        const { graph } = this._buildComponentGraph()
+        
+        // Find all components that have the Asset as their parent
+        const topLevelComponents: ComponentUUID[] = []
+        const assetNode = graph.getNode(this._universalKey)
+        if (assetNode) {
+            // Get all edges from Asset node (Asset → Component)
+            const outgoingEdges = assetNode.edges
+            for (const edge of outgoingEdges) {
+                const childUUID = edge.to
+                // Verify it's a ComponentUUID (not another AssetUUID)
+                if (childUUID !== this._universalKey && this._lookup(childUUID)) {
+                    topLevelComponents.push(childUUID as ComponentUUID)
+                }
+            }
+        }
+        
+        if (topLevelComponents.length > 0) {
+            // Convert ComponentUUIDs to StandardReference format
+            const topLevelReferences = topLevelComponents.map(uuid => {
+                const component = this._lookup(uuid)
+                if (component) {
+                    return component.referenceData
+                }
+                return uuid // Fallback to UUID string if component not found
+            })
+            this._topLevel = new ReferenceList(topLevelReferences)
+        }
     }
 
     /**
@@ -787,6 +846,9 @@ export class StandardForm {
         if (this._summary) {
             result.summary = this._summary.toJSON()
         }
+        if (this._topLevel) {
+            result.topLevel = this._topLevel.toJSON()
+        }
         return result
     }
 
@@ -831,6 +893,7 @@ export class StandardForm {
         returnValue._shortName = this._shortName
         returnValue._summary = this._summary
         returnValue._processingEdges = this._processingEdges ? [...this._processingEdges] : undefined
+        returnValue._topLevel = this._topLevel ? this._topLevel.clone() : undefined
         returnValue._components = this._components.map((component) => (component.clone()))
         return returnValue
     }
