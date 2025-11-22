@@ -378,61 +378,8 @@ export class StandardForm {
     }
 
     /**
-     * Resolves edges collected during component processing (via processComponents) from
-     * StandardKey format to ComponentUUID format.
-     * 
-     * **Requires universalKey assignment**: This method relies on all components having
-     * `universalKey` values assigned. When called from within `finalize()`, this should
-     * be after the key-remapping step that assigns universalKeys to components that don't
-     * have them.
-     * 
-     * This method resolves StandardKey edges to ComponentUUID edges by looking up components
-     * via `_lookup()`. AssetUUID parents are kept as-is.
-     * 
-     * @returns Array of parent→child edge pairs in ComponentUUID format, where each edge is
-     *          represented as `{ parent: ComponentUUID | AssetUUID, child: ComponentUUID }`
-     */
-    _resolveProcessingEdges(): Array<{ parent: ComponentUUID | AssetUUID; child: ComponentUUID }> {
-        if (!this._processingEdges) {
-            return []
-        }
-
-        const resolvedEdges: Array<{ parent: ComponentUUID | AssetUUID; child: ComponentUUID }> = []
-
-        for (const edge of this._processingEdges) {
-            // Resolve child StandardKey to ComponentUUID
-            const childComponent = this._lookup(edge.child.toJSON())
-            if (!childComponent?.universalKey) {
-                // Skip edges where child cannot be resolved (component not found or no universalKey)
-                continue
-            }
-
-            // Resolve parent: if it's AssetUUID, keep as-is; if it's StandardKey, resolve to ComponentUUID
-            if (typeof edge.parent === 'string') {
-                // Parent is AssetUUID, keep as-is
-                resolvedEdges.push({
-                    parent: edge.parent,
-                    child: childComponent.universalKey
-                })
-            } else {
-                // Parent is StandardKey, resolve to ComponentUUID
-                const parentComponent = this._lookup(edge.parent.toJSON())
-                if (parentComponent?.universalKey) {
-                    resolvedEdges.push({
-                        parent: parentComponent.universalKey,
-                        child: childComponent.universalKey
-                    })
-                }
-                // Skip edges where parent cannot be resolved
-            }
-        }
-
-        return resolvedEdges
-    }
-
-    /**
      * Populates `_topLevel` by finding components where the Asset is the parent.
-     * Uses the graph constructed from processingEdges or component references.
+     * Uses the graph constructed from component references.
      */
     _populateTopLevelFromGraph(): void {
         // Build graph to find Asset-level components
@@ -529,51 +476,6 @@ export class StandardForm {
     }
 
     /**
-     * Compares edges from _getParentChildEdges() (old method) with edges from _resolveProcessingEdges() (new method)
-     * to verify they capture the same information (for parallel testing during migration).
-     * 
-     * Note: processingEdges includes Asset-level edges (AssetUUID → ComponentUUID) which referencedEdges does not.
-     * This comparison focuses on ComponentUUID → ComponentUUID edges to verify equivalence for nested components.
-     * 
-     * @returns Comparison result showing:
-     *          - `referencedOnly`: Edges only in _getParentChildEdges() (should be empty if processingEdges is complete)
-     *          - `processingOnly`: Edges only in _resolveProcessingEdges() (includes Asset-level edges + any missing from referencedEdges)
-     *          - `common`: Edges in both sets (ComponentUUID → ComponentUUID only)
-     *          - `assetLevelEdges`: Asset-level edges from processingEdges (unique to new method)
-     * @internal For testing/validation during migration
-     */
-    _compareEdgeSources(): {
-        referencedOnly: Array<{ parent: ComponentUUID; child: ComponentUUID }>;
-        processingOnly: Array<{ parent: ComponentUUID; child: ComponentUUID }>;
-        common: Array<{ parent: ComponentUUID; child: ComponentUUID }>;
-        assetLevelEdges: Array<{ parent: AssetUUID; child: ComponentUUID }>;
-    } {
-        const referencedEdges = this._getParentChildEdges()
-        const processingEdges = this._resolveProcessingEdges()
-        
-        // Separate Asset-level edges from ComponentUUID edges in processingEdges
-        const assetLevelEdges = processingEdges.filter(
-            (e): e is { parent: AssetUUID; child: ComponentUUID } => 
-                typeof e.parent === 'string' && e.parent.startsWith('ASSET#')
-        )
-        const processingComponentEdges = processingEdges.filter(
-            (e): e is { parent: ComponentUUID; child: ComponentUUID } => 
-                typeof e.parent !== 'string' || !e.parent.startsWith('ASSET#')
-        )
-        
-        // Create sets for comparison (normalized to string format)
-        const referencedEdgeSet = new Set(referencedEdges.map(e => `${e.parent}→${e.child}`))
-        const processingComponentEdgeSet = new Set(processingComponentEdges.map(e => `${e.parent}→${e.child}`))
-        
-        // Find differences
-        const referencedOnly = referencedEdges.filter(e => !processingComponentEdgeSet.has(`${e.parent}→${e.child}`))
-        const processingOnly = processingComponentEdges.filter(e => !referencedEdgeSet.has(`${e.parent}→${e.child}`))
-        const common = referencedEdges.filter(e => processingComponentEdgeSet.has(`${e.parent}→${e.child}`))
-        
-        return { referencedOnly, processingOnly, common, assetLevelEdges }
-    }
-
-    /**
      * Builds a directed graph from the parent-child edges in this StandardForm.
      * 
      * **Requires universalKey assignment**: This method relies on all components having
@@ -581,12 +483,9 @@ export class StandardForm {
      * be after the key-remapping step that assigns universalKeys to components that don't
      * have them.
      * 
-     * The graph is constructed from edges collected via:
-     * - `_getParentChildEdges()` (computed from component.referencedKeys())
-     * - `_resolveProcessingEdges()` (collected during processComponents)
-     * 
-     * Currently using `_resolveProcessingEdges()` as the primary source (includes Asset-level components).
-     * Both sources are kept available for parallel testing/comparison.
+     * The graph is constructed from edges computed on-demand via `_getParentChildEdges()`:
+     * - Component→component edges from `component.referencedKeys()` (filtered for 'Direct' or 'Position' types)
+     * - Asset→component edges from `StandardForm.topLevel` (Asset-level components)
      * 
      * The graph includes Asset as a node (via AssetUUID) to capture Asset-level components.
      * 
@@ -600,16 +499,8 @@ export class StandardForm {
         graph: Graph<ComponentUUID | AssetUUID, { key: ComponentUUID | AssetUUID }, {}>;
         topologicalSort: (ComponentUUID | AssetUUID)[][];
     } {
-        // Get edges from processingEdges if available (from processComponents), otherwise reconstruct
-        let edges = this._resolveProcessingEdges()
-        
-        // If _processingEdges is missing (e.g., constructed from StandardFormData), reconstruct edges
-        if (edges.length === 0 && !this._processingEdges) {
-            // Fallback: reconstruct edges from component.referencedKeys()
-            // Note: This fallback cannot detect Asset-level components without additional information
-            const referencedEdges = this._getParentChildEdges()
-            edges = referencedEdges.map(e => ({ parent: e.parent, child: e.child }))
-        }
+        // Get edges on-demand from _getParentChildEdges() (authoritative source)
+        const edges = this._getParentChildEdges()
         
         // Create nodes from all components with universalKey
         const nodes: Partial<Record<ComponentUUID | AssetUUID, { key: ComponentUUID | AssetUUID }>> = this._components
