@@ -34,7 +34,6 @@ export interface StandardComponent {
     universalKey?: ComponentUUID;
     explicitParent?: StandardExplicitParent;
     implicitParent?: ComponentUUID;
-    topLevel?: boolean;
     clone(): StandardComponent;
     withMapping(mapping: StandardKey[]): StandardComponent;
     withKey(key: string): StandardComponent;
@@ -60,5 +59,4 @@ export interface StandardComponent {
     withImport(fromAsset: AssetUUID): StandardComponent;
     withOrigin(origin: AssetUUID[] | undefined): StandardComponent;
     withImplicitParent(implicitParent: ComponentUUID | undefined): StandardComponent;
-    withTopLevel(topLevel: boolean | undefined): StandardComponent;
 }

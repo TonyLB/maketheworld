@@ -60,7 +60,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _origin?: AssetUUID[];
         explicitParent?: StandardExplicitParent;
         _implicitParent?: ComponentUUID;
-        _topLevel?: boolean;
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
@@ -72,7 +71,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 // Clone explicitParent if it exists - use schema to clone (handles empty Parent tags)
                 this.explicitParent = props.explicitParent ? new StandardExplicitParent(props.explicitParent.schema) : undefined
                 this._implicitParent = props._implicitParent
-                this._topLevel = props._topLevel
                 return
             }
             if (typeof props === 'string' && isLegalKey(props)) {
@@ -143,10 +141,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (typeof props === 'object' && 'implicitParent' in props && props.implicitParent) {
                 this._implicitParent = props.implicitParent as ComponentUUID
             }
-            // Read topLevel from JSON data if present
-            if (typeof props === 'object' && 'topLevel' in props && props.topLevel !== undefined) {
-                this._topLevel = props.topLevel as boolean
-            }
         }
 
         withMapping(mapping: StandardKey[]): StandardComponent {
@@ -157,7 +151,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         get key(): string | undefined { return this._key.key }
         get universalKey(): ComponentUUID | undefined { return this._key.universalKey }
         get standardKey(): StandardKey { return this._key }
-        get topLevel(): boolean | undefined { return this._topLevel }
         withStandardKey(key: StandardKey): this {
             const returnValue = new GeneratedComponentClass(this)
             returnValue._key = key
@@ -210,7 +203,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 ...(this._origin ? { origin: this._origin } : {}),
                 ...(this.explicitParent ? { explicitParent: this.explicitParent.toJSON() } : {}),
                 ...(this._implicitParent ? { implicitParent: this._implicitParent } : {}),
-                ...(this._topLevel !== undefined ? { topLevel: this._topLevel } : {}),
             } as D
         }
 
@@ -310,8 +302,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             } else {
                 returnValue.explicitParent = this.explicitParent ?? (incoming as any).explicitParent
             }
-            // Merge topLevel: if either component is topLevel, the merged result is topLevel
-            returnValue._topLevel = this._topLevel || (incoming as any)._topLevel || undefined
             // implicitParent is computed metadata - don't copy during merge, will be recomputed during finalize()
             returnValue._implicitParent = undefined
 
@@ -434,12 +424,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         withImplicitParent(implicitParent: ComponentUUID | undefined): StandardComponent {
             const returnValue = this.clone() as GeneratedComponentClass
             returnValue._implicitParent = implicitParent
-            return returnValue
-        }
-
-        withTopLevel(topLevel: boolean | undefined): StandardComponent {
-            const returnValue = this.clone() as GeneratedComponentClass
-            returnValue._topLevel = topLevel
             return returnValue
         }
     }

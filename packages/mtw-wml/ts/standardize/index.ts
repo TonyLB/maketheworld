@@ -528,26 +528,10 @@ export class StandardForm {
         
         // If _processingEdges is missing (e.g., constructed from StandardFormData), reconstruct edges
         if (edges.length === 0 && !this._processingEdges) {
-            // Fallback: reconstruct edges from component.referencedKeys() and topLevel flag
+            // Fallback: reconstruct edges from component.referencedKeys()
+            // Note: This fallback cannot detect Asset-level components without additional information
             const referencedEdges = this._getParentChildEdges()
-            
-            // Find Asset-level components using topLevel flag
-            // Note: A component can appear at Asset level AND nested, so check all topLevel components
-            const assetLevelEdges: Array<{ parent: AssetUUID; child: ComponentUUID }> = []
-            for (const component of this._components) {
-                if (component.universalKey && component.topLevel) {
-                    assetLevelEdges.push({
-                        parent: this._universalKey,
-                        child: component.universalKey
-                    })
-                }
-            }
-            
-            // Combine referenced edges with Asset-level edges
-            edges = [
-                ...referencedEdges.map(e => ({ parent: e.parent, child: e.child })),
-                ...assetLevelEdges
-            ]
+            edges = referencedEdges.map(e => ({ parent: e.parent, child: e.child }))
         }
         
         // Create nodes from all components with universalKey
