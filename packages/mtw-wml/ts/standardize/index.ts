@@ -14,7 +14,7 @@ import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { isLegalKey } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent } from "./components/baseClasses"
-import processComponents, { ComponentProcessingTemplate } from "./processComponents"
+import processComponents, { ComponentProcessingTemplate, ComponentProcessingEdge } from "./processComponents"
 import { StandardRemove, StandardReplace } from "./components/edits"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardToJSONOptions } from "./components/baseClasses"
@@ -102,6 +102,7 @@ export class StandardForm {
     _metaData: GenericTree<SchemaTag>;
     _shortName?: StandardLiteral;
     _summary?: StandardRender;
+    _processingEdges?: ComponentProcessingEdge[];
     /**
      * Optional semantic mode indicating how this StandardForm should be interpreted and used.
      * 
@@ -222,7 +223,12 @@ export class StandardForm {
                     }
                 ]
 
-                const componentFragments = processComponents({ componentTemplates, schema: node.children })
+                const { components: componentFragments, edges: processingEdges } = processComponents({ 
+                    componentTemplates, 
+                    schema: node.children,
+                    assetUUID: this._universalKey
+                })
+                this._processingEdges = processingEdges
                 const universalKeyMappings: StandardKey[] = componentFragments
                     .reduce<StandardKey[]>((previous, component) => {
                         const previousMatchIndex = previous.findIndex(({ key, universalKey }) => (
@@ -341,6 +347,59 @@ export class StandardForm {
     }
 
     /**
+     * Resolves edges collected during component processing (via processComponents) from
+     * StandardKey format to ComponentUUID format.
+     * 
+     * **Requires universalKey assignment**: This method relies on all components having
+     * `universalKey` values assigned. When called from within `finalize()`, this should
+     * be after the key-remapping step that assigns universalKeys to components that don't
+     * have them.
+     * 
+     * This method resolves StandardKey edges to ComponentUUID edges by looking up components
+     * via `_lookup()`. AssetUUID parents are kept as-is.
+     * 
+     * @returns Array of parent→child edge pairs in ComponentUUID format, where each edge is
+     *          represented as `{ parent: ComponentUUID | AssetUUID, child: ComponentUUID }`
+     */
+    _resolveProcessingEdges(): Array<{ parent: ComponentUUID | AssetUUID; child: ComponentUUID }> {
+        if (!this._processingEdges) {
+            return []
+        }
+
+        const resolvedEdges: Array<{ parent: ComponentUUID | AssetUUID; child: ComponentUUID }> = []
+
+        for (const edge of this._processingEdges) {
+            // Resolve child StandardKey to ComponentUUID
+            const childComponent = this._lookup(edge.child.toJSON())
+            if (!childComponent?.universalKey) {
+                // Skip edges where child cannot be resolved (component not found or no universalKey)
+                continue
+            }
+
+            // Resolve parent: if it's AssetUUID, keep as-is; if it's StandardKey, resolve to ComponentUUID
+            if (typeof edge.parent === 'string') {
+                // Parent is AssetUUID, keep as-is
+                resolvedEdges.push({
+                    parent: edge.parent,
+                    child: childComponent.universalKey
+                })
+            } else {
+                // Parent is StandardKey, resolve to ComponentUUID
+                const parentComponent = this._lookup(edge.parent.toJSON())
+                if (parentComponent?.universalKey) {
+                    resolvedEdges.push({
+                        parent: parentComponent.universalKey,
+                        child: childComponent.universalKey
+                    })
+                }
+                // Skip edges where parent cannot be resolved
+            }
+        }
+
+        return resolvedEdges
+    }
+
+    /**
      * Computes parent→child edges from all components in this StandardForm.
      * 
      * **Requires universalKey assignment**: This method relies on all components having
@@ -393,6 +452,51 @@ export class StandardForm {
     }
 
     /**
+     * Compares edges from _getParentChildEdges() (old method) with edges from _resolveProcessingEdges() (new method)
+     * to verify they capture the same information (for parallel testing during migration).
+     * 
+     * Note: processingEdges includes Asset-level edges (AssetUUID → ComponentUUID) which referencedEdges does not.
+     * This comparison focuses on ComponentUUID → ComponentUUID edges to verify equivalence for nested components.
+     * 
+     * @returns Comparison result showing:
+     *          - `referencedOnly`: Edges only in _getParentChildEdges() (should be empty if processingEdges is complete)
+     *          - `processingOnly`: Edges only in _resolveProcessingEdges() (includes Asset-level edges + any missing from referencedEdges)
+     *          - `common`: Edges in both sets (ComponentUUID → ComponentUUID only)
+     *          - `assetLevelEdges`: Asset-level edges from processingEdges (unique to new method)
+     * @internal For testing/validation during migration
+     */
+    _compareEdgeSources(): {
+        referencedOnly: Array<{ parent: ComponentUUID; child: ComponentUUID }>;
+        processingOnly: Array<{ parent: ComponentUUID; child: ComponentUUID }>;
+        common: Array<{ parent: ComponentUUID; child: ComponentUUID }>;
+        assetLevelEdges: Array<{ parent: AssetUUID; child: ComponentUUID }>;
+    } {
+        const referencedEdges = this._getParentChildEdges()
+        const processingEdges = this._resolveProcessingEdges()
+        
+        // Separate Asset-level edges from ComponentUUID edges in processingEdges
+        const assetLevelEdges = processingEdges.filter(
+            (e): e is { parent: AssetUUID; child: ComponentUUID } => 
+                typeof e.parent === 'string' && e.parent.startsWith('ASSET#')
+        )
+        const processingComponentEdges = processingEdges.filter(
+            (e): e is { parent: ComponentUUID; child: ComponentUUID } => 
+                typeof e.parent !== 'string' || !e.parent.startsWith('ASSET#')
+        )
+        
+        // Create sets for comparison (normalized to string format)
+        const referencedEdgeSet = new Set(referencedEdges.map(e => `${e.parent}→${e.child}`))
+        const processingComponentEdgeSet = new Set(processingComponentEdges.map(e => `${e.parent}→${e.child}`))
+        
+        // Find differences
+        const referencedOnly = referencedEdges.filter(e => !processingComponentEdgeSet.has(`${e.parent}→${e.child}`))
+        const processingOnly = processingComponentEdges.filter(e => !referencedEdgeSet.has(`${e.parent}→${e.child}`))
+        const common = referencedEdges.filter(e => processingComponentEdgeSet.has(`${e.parent}→${e.child}`))
+        
+        return { referencedOnly, processingOnly, common, assetLevelEdges }
+    }
+
+    /**
      * Builds a directed graph from the parent-child edges in this StandardForm.
      * 
      * **Requires universalKey assignment**: This method relies on all components having
@@ -400,26 +504,36 @@ export class StandardForm {
      * be after the key-remapping step that assigns universalKeys to components that don't
      * have them.
      * 
-     * The graph is constructed from edges collected via `_getParentChildEdges()`, with
-     * nodes representing components (by universalKey) and edges representing parent→child
-     * relationships.
+     * The graph is constructed from edges collected via:
+     * - `_getParentChildEdges()` (computed from component.referencedKeys())
+     * - `_resolveProcessingEdges()` (collected during processComponents)
+     * 
+     * Currently using `_resolveProcessingEdges()` as the primary source (includes Asset-level components).
+     * Both sources are kept available for parallel testing/comparison.
+     * 
+     * The graph includes Asset as a node (via AssetUUID) to capture Asset-level components.
      * 
      * @returns An object containing both the graph and its topological sort:
      *          - `graph`: A directed graph where:
-     *            - Nodes = components (keyed by ComponentUUID)
+     *            - Nodes = components (keyed by ComponentUUID) and Asset (keyed by AssetUUID)
      *            - Edges = parent→child relationships (from parent to child)
-     *          - `topologicalSort`: Array of SCCs in topological order (`ComponentUUID[][]`)
+     *          - `topologicalSort`: Array of SCCs in topological order (`(ComponentUUID | AssetUUID)[][]`)
      */
     _buildComponentGraph(): {
-        graph: Graph<ComponentUUID, { key: ComponentUUID }, {}>;
-        topologicalSort: ComponentUUID[][];
+        graph: Graph<ComponentUUID | AssetUUID, { key: ComponentUUID | AssetUUID }, {}>;
+        topologicalSort: (ComponentUUID | AssetUUID)[][];
     } {
-        // Get all parent-child edges
-        const edges = this._getParentChildEdges()
+        // Get edges from both sources for parallel testing/comparison
+        // Currently using processingEdges as primary source (includes Asset-level components)
+        // Keep _getParentChildEdges() available for comparison via _compareEdgeSources()
+        const processingEdges = this._resolveProcessingEdges()
+        
+        // Use processingEdges as the primary source
+        const edges = processingEdges
         
         // Create nodes from all components with universalKey
-        const nodes: Partial<Record<ComponentUUID, { key: ComponentUUID }>> = this._components
-            .reduce<Partial<Record<ComponentUUID, { key: ComponentUUID }>>>(
+        const nodes: Partial<Record<ComponentUUID | AssetUUID, { key: ComponentUUID | AssetUUID }>> = this._components
+            .reduce<Partial<Record<ComponentUUID | AssetUUID, { key: ComponentUUID | AssetUUID }>>>(
                 (acc, component) => {
                     if (component.universalKey) {
                         return { ...acc, [component.universalKey]: { key: component.universalKey }}
@@ -429,14 +543,20 @@ export class StandardForm {
                 {}
             )
         
+        // Add Asset node if we have Asset-level edges
+        const hasAssetLevelEdges = edges.some(edge => edge.parent === this._universalKey)
+        if (hasAssetLevelEdges) {
+            nodes[this._universalKey] = { key: this._universalKey }
+        }
+        
         // Convert edges from { parent, child } to { from, to } format for Graph
         const graphEdges = edges.map(({ parent, child }) => ({
             from: parent,
             to: child
         }))
         
-        // Create directed graph
-        const graph = new Graph<ComponentUUID, { key: ComponentUUID }, {}>(
+        // Create directed graph with ComponentUUID | AssetUUID as key type
+        const graph = new Graph<ComponentUUID | AssetUUID, { key: ComponentUUID | AssetUUID }, {}>(
             nodes,
             graphEdges,
             {}, // defaultItem (empty since we only need { key })
@@ -445,7 +565,7 @@ export class StandardForm {
         
         // Compute topological sort
         const topologicalSort = graph.topologicalSort()
-        
+
         return { graph, topologicalSort }
     }
 
@@ -453,18 +573,161 @@ export class StandardForm {
      * Derives a topological sort from the component graph.
      * 
      * Returns an array of strongly connected components (SCCs), where each SCC is an array
-     * of ComponentUUIDs. The outer array is in topological order (parents before children).
+     * of ComponentUUIDs or AssetUUID. The outer array is in topological order (parents before children).
      * 
      * **Requires universalKey assignment**: This method relies on `_buildComponentGraph()`,
      * which requires all components to have `universalKey` values assigned (via `finalize()`).
      * 
-     * @returns Array of SCCs in topological order: `ComponentUUID[][]`
+     * @returns Array of SCCs in topological order: `(ComponentUUID | AssetUUID)[][]`
      *          Each inner array represents a strongly connected component (nodes that form a cycle).
      *          For acyclic graphs, each SCC will contain a single node.
      */
-    _getTopologicalSort(): ComponentUUID[][] {
+    _getTopologicalSort(): (ComponentUUID | AssetUUID)[][] {
         const { topologicalSort } = this._buildComponentGraph()
         return topologicalSort
+    }
+
+    /**
+     * Resolves implicit parent relationships using topological analysis of the component graph.
+     * 
+     * This method implements Phase 4 of the implicit parent resolution system:
+     * 1. Gets topological sort from graph (ensures parents are processed before children)
+     * 2. Reduces over topological sort to compute `selectedAncestry` for each component
+     * 3. Extracts `implicitParent` from `selectedAncestry` (last item = most proximate parent)
+     * 
+     * **Algorithm**:
+     * For each SCC (strongly connected component) in topological order:
+     * - Find all parent nodes (via back-edges) for nodes in the current set
+     * - Filter to external parents (already processed due to topological order)
+     * - Construct ancestry-threads: `[...selectedAncestry-of-parent, parent]` for each external parent
+     * - Find longest common prefix across all ancestry-threads (nearest common ancestor)
+     * - Store as `selectedAncestry` for all nodes in the current set
+     * - Extract `implicitParent` = last item in `selectedAncestry` (or undefined if empty)
+     * 
+     * **Note**: AssetUUID parents are filtered out when setting `implicitParent` since `implicitParent`
+     * must be a ComponentUUID (Asset is not a component that can be an implicit parent).
+     * 
+     * **Requires universalKey assignment**: This method relies on `_buildComponentGraph()`,
+     * which requires all components to have `universalKey` values assigned (via `finalize()`).
+     * 
+     * @param graph The component graph (from `_buildComponentGraph()`)
+     * @param topologicalSort The topological sort (from `_buildComponentGraph()`)
+     * @returns Map of ComponentUUID to ComponentUUID (implicitParent), and updated components with implicitParent set
+     */
+    _resolveImplicitParents(
+        graph: Graph<ComponentUUID | AssetUUID, { key: ComponentUUID | AssetUUID }, {}>,
+        topologicalSort: (ComponentUUID | AssetUUID)[][]
+    ): { implicitParents: Map<ComponentUUID, ComponentUUID | undefined>, updatedComponents: StandardComponent[] } {
+        // Helper to check if a UUID is AssetUUID (starts with 'ASSET#')
+        const isAssetUUID = (uuid: ComponentUUID | AssetUUID): uuid is AssetUUID => {
+            return typeof uuid === 'string' && uuid.startsWith('ASSET#')
+        }
+        
+        // Map to store selectedAncestry for each component (temporary during algorithm)
+        // selectedAncestry is the full chain FROM the component's implicit parent down to Asset level
+        // Only stores ComponentUUID (filters out AssetUUID)
+        const selectedAncestry: Map<ComponentUUID | AssetUUID, ComponentUUID[]> = new Map()
+        
+        // Map to store implicitParent for each component (final result)
+        // Only stores ComponentUUID (not AssetUUID, since implicitParent must be ComponentUUID)
+        const implicitParents: Map<ComponentUUID, ComponentUUID | undefined> = new Map()
+        
+        // Helper to get selectedAncestry for a component (returns [] if not set yet)
+        const getSelectedAncestry = (uuid: ComponentUUID | AssetUUID): ComponentUUID[] => {
+            return selectedAncestry.get(uuid) ?? []
+        }
+        
+        // Helper to find longest common prefix of multiple arrays (filters out AssetUUID)
+        const longestCommonPrefix = (arrays: (ComponentUUID | AssetUUID)[][]): ComponentUUID[] => {
+            // Filter out AssetUUID from all arrays
+            const filteredArrays: ComponentUUID[][] = arrays.map(arr => 
+                arr.filter((uuid): uuid is ComponentUUID => !isAssetUUID(uuid))
+            )
+            
+            if (filteredArrays.length === 0) return []
+            if (filteredArrays.length === 1) return filteredArrays[0]
+            
+            // Find the shortest array to use as reference
+            const shortest = filteredArrays.reduce((min, arr) => arr.length < min.length ? arr : min, filteredArrays[0])
+            
+            // Check each position in the shortest array
+            for (let i = 0; i < shortest.length; i++) {
+                const value = shortest[i]
+                // Check if all arrays have the same value at this position
+                if (!filteredArrays.every(arr => arr[i] === value)) {
+                    // Return prefix up to (but not including) this position
+                    return shortest.slice(0, i)
+                }
+            }
+            
+            // All arrays match the shortest array completely
+            return shortest
+        }
+        
+        // Reduce over topological sort (process parents before children)
+        for (const scc of topologicalSort) {
+            // Step 1: Find unique parents for all nodes in this SCC
+            const parentSet = new Set<ComponentUUID | AssetUUID>()
+            for (const nodeUUID of scc) {
+                const graphNode = graph.getNode(nodeUUID)
+                if (graphNode) {
+                    // Get back-edges (edges pointing TO this node, i.e., parent→child relationships)
+                    const backEdges = graphNode.backEdges
+                    for (const edge of backEdges) {
+                        parentSet.add(edge.from)
+                    }
+                }
+            }
+            
+            // Step 2: Filter to external parents (parents outside this SCC, already processed)
+            const externalParents = Array.from(parentSet).filter(parentUUID => !scc.includes(parentUUID))
+            
+            // Step 3: Construct ancestry-threads for each external parent
+            const ancestryThreads: (ComponentUUID | AssetUUID)[][] = externalParents.map(parentUUID => {
+                const parentAncestry = getSelectedAncestry(parentUUID)
+                // Ancestry thread: [...parent's selectedAncestry, parent]
+                // Note: parentAncestry only contains ComponentUUID (filters out AssetUUID)
+                // parentUUID might be AssetUUID or ComponentUUID
+                return [...parentAncestry, parentUUID]
+            })
+            
+            // If no external parents, component is at Asset level (ancestry thread is empty)
+            if (externalParents.length === 0) {
+                ancestryThreads.push([])
+            }
+            
+            // Step 4: Find longest common prefix (nearest common ancestor)
+            // This filters out AssetUUID automatically
+            const commonAncestry = longestCommonPrefix(ancestryThreads)
+            
+            // Step 5: Register selectedAncestry for all nodes in this SCC
+            for (const nodeUUID of scc) {
+                selectedAncestry.set(nodeUUID, commonAncestry)
+                
+                // Step 6: Extract implicitParent (last item in selectedAncestry, or undefined if empty)
+                // Only set implicitParent for ComponentUUID nodes (not AssetUUID)
+                if (!isAssetUUID(nodeUUID)) {
+                    const implicitParent = commonAncestry.length > 0 
+                        ? commonAncestry[commonAncestry.length - 1] 
+                        : undefined
+                    implicitParents.set(nodeUUID, implicitParent)
+                }
+            }
+        }
+        
+        // Update components with implicitParent values
+        const updatedComponents = this._components.map(component => {
+            if (component.universalKey) {
+                const implicitParent = implicitParents.get(component.universalKey)
+                if (implicitParent !== undefined || component.implicitParent !== undefined) {
+                    // Only update if there's a change (avoid unnecessary cloning)
+                    return component.withImplicitParent(implicitParent)
+                }
+            }
+            return component
+        })
+        
+        return { implicitParents, updatedComponents }
     }
 
     get byUniversalId(): Record<ComponentUUID, StandardComponent> {
@@ -564,6 +827,7 @@ export class StandardForm {
         returnValue._metaData = [...this._metaData]
         returnValue._shortName = this._shortName
         returnValue._summary = this._summary
+        returnValue._processingEdges = this._processingEdges ? [...this._processingEdges] : undefined
         returnValue._components = this._components.map((component) => (component.clone()))
         return returnValue
     }
@@ -961,11 +1225,13 @@ export class StandardForm {
         returnValue._components = uuidDefaultedComponents
         
         // Build component graph from parent-child edges and compute topological sort
-        // (Graph construction happens here, but topological resolution will be in Phase 4)
-        // TODO: Use componentGraph and topologicalSort for topological resolution in Phase 4
         const { graph: componentGraph, topologicalSort } = returnValue._buildComponentGraph()
         
-        const rebuiltContextComponents = uuidDefaultedComponents
+        // Resolve implicit parents using topological analysis
+        const { updatedComponents: componentsWithImplicitParents } = returnValue._resolveImplicitParents(componentGraph, topologicalSort)
+        returnValue._components = componentsWithImplicitParents
+        
+        const rebuiltContextComponents = componentsWithImplicitParents
             .sort(({ _key: keyA }, { _key: keyB }) => ((keyA.context ?? []).length - (keyB.context ?? []).length))
             .reduce<StandardComponent[]>((previous, component) => {
                 if (component._key.context && component._key.context.length > 0) {

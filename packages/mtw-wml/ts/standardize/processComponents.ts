@@ -2,7 +2,7 @@ import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/baseClasses"
 import { StandardRemove, StandardReplace } from "./components/edits"
-import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaComponent, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardKey } from "./components/reference"
@@ -14,14 +14,30 @@ export type ComponentProcessingTemplate = {
 }
 
 //
+// Edge type: parent can be either a StandardKey (for nested components) or AssetUUID (for Asset-level components)
+// child is always a StandardKey (components don't have universalKey during processing)
+//
+export type ComponentProcessingEdge = {
+    parent: StandardKey | AssetUUID;
+    child: StandardKey;
+}
+
+export type ComponentProcessingResult = {
+    components: StandardComponent[];
+    edges: ComponentProcessingEdge[];
+}
+
+//
 // processComponents takes a list of component templates and a tag tree, and extracts the standard byId object.
+// Now also collects parent→child edges during processing.
 //
 export const processComponents = (props: {
     componentTemplates: ComponentProcessingTemplate[];
     schema: GenericTree<SchemaTag>;
     componentContext?: StandardKey[];
     inContextOfRemove?: boolean;
-}): StandardComponent[] => {
+    assetUUID?: AssetUUID;
+}): ComponentProcessingResult => {
     //
     // Loop through each tag in standard order
     //
@@ -30,14 +46,19 @@ export const processComponents = (props: {
         schema,
         componentContext = [],
         inContextOfRemove = false,
+        assetUUID,
     } = props
 
-    const recursiveById = schema.reduce<StandardComponent[]>((previous, item) => {
+    const recursiveResult = schema.reduce<ComponentProcessingResult>((previous, item) => {
         //
         // If the item is a remove, set inContextOfRemove to true
         //
         if (treeNodeTypeguard(isSchemaRemove)(item)) {
-            return [...previous, ...processComponents({ ...props, schema: item.children, inContextOfRemove: true })]
+            const removeResult = processComponents({ ...props, schema: item.children, inContextOfRemove: true })
+            return {
+                components: [...previous.components, ...removeResult.components],
+                edges: [...previous.edges, ...removeResult.edges]
+            }
         }
 
         //
@@ -51,19 +72,19 @@ export const processComponents = (props: {
             const replaceMatch = item.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
             const replacePayload = item.children.find(treeNodeTypeguard(isSchemaReplacePayload))
             if (replaceMatch && replacePayload) {
-                const matchComponents = processComponents({ ...props, schema: replaceMatch.children })
-                const payloadComponents = processComponents({ ...props, schema: replacePayload.children })
+                const matchResult = processComponents({ ...props, schema: replaceMatch.children })
+                const payloadResult = processComponents({ ...props, schema: replacePayload.children })
                 //
                 // TODO: In order to merge the two lists, we need to create a zippered list of the two,
                 // matching by StandardKey.
                 //
                 const mergedComponents = [
-                    ...(matchComponents.map((item) => {
-                        const payloadMatch = payloadComponents.find(({ _key }) => (_key.equals(item._key)))
+                    ...(matchResult.components.map((item) => {
+                        const payloadMatch = payloadResult.components.find(({ _key }) => (_key.equals(item._key)))
                         return { matchComponent: item, payloadComponent: payloadMatch }
                     })),
-                    ...(payloadComponents
-                        .filter(({ _key }) => (!matchComponents.some(({ _key: matchKey }) => (matchKey.equals(_key)))))
+                    ...(payloadResult.components
+                        .filter(({ _key }) => (!matchResult.components.some(({ _key: matchKey }) => (matchKey.equals(_key)))))
                         .map((item) => ({ matchComponent: undefined, payloadComponent: item }))
                     )
                 ]
@@ -79,7 +100,10 @@ export const processComponents = (props: {
                     }
                     return previous
                 }, [])
-                return [...previous, ...replaceComponents]
+                return {
+                    components: [...previous.components, ...replaceComponents],
+                    edges: [...previous.edges, ...matchResult.edges, ...payloadResult.edges]
+                }
             }
             throw new Error('Replace must have both a ReplaceMatch and a ReplacePayload')
         }
@@ -113,17 +137,46 @@ export const processComponents = (props: {
                     : component
 
                 const editWrappedComponent = inContextOfRemove ? new StandardRemove(localizedComponent) : localizedComponent
-                return [
-                    ...previous,
-                    editWrappedComponent,
-                    ...processComponents({ ...props, schema: item.children, componentContext: [...componentContext, localizedComponent._key.plain] })
-                ]
+
+                //
+                // Track parent→child edge for this component
+                //
+                const newEdges: ComponentProcessingEdge[] = []
+                if (parentTag) {
+                    // Component has a parent in the hierarchy: parent → child edge
+                    newEdges.push({
+                        parent: parentTag,
+                        child: localizedComponent._key.plain
+                    })
+                } else if (assetUUID) {
+                    // Component is at Asset level (no parent tag): Asset → child edge
+                    newEdges.push({
+                        parent: assetUUID,
+                        child: localizedComponent._key.plain
+                    })
+                }
+
+                // Process children recursively
+                const childrenResult = processComponents({ 
+                    ...props, 
+                    schema: item.children, 
+                    componentContext: [...componentContext, localizedComponent._key.plain] 
+                })
+
+                return {
+                    components: [...previous.components, editWrappedComponent, ...childrenResult.components],
+                    edges: [...previous.edges, ...newEdges, ...childrenResult.edges]
+                }
             }
         }
-        return [...previous, ...processComponents({ ...props, schema: item.children })]
-    }, [])
+        const childrenResult = processComponents({ ...props, schema: item.children })
+        return {
+            components: [...previous.components, ...childrenResult.components],
+            edges: [...previous.edges, ...childrenResult.edges]
+        }
+    }, { components: [], edges: [] })
 
-    return recursiveById
+    return recursiveResult
 }
 
 export default processComponents
