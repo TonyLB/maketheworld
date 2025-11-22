@@ -13,18 +13,9 @@ export type ComponentProcessingTemplate = {
     legalParents?: (ComponentTag | 'Asset')[];
 }
 
-//
-// Edge type: parent can be either a StandardKey (for nested components) or AssetUUID (for Asset-level components)
-// child is always a StandardKey (components don't have universalKey during processing)
-//
-export type ComponentProcessingEdge = {
-    parent: StandardKey | AssetUUID;
-    child: StandardKey;
-}
-
 export type ComponentProcessingResult = {
     components: StandardComponent[];
-    edges: ComponentProcessingEdge[];
+    topLevel: StandardKey[];
 }
 
 //
@@ -57,7 +48,7 @@ export const processComponents = (props: {
             const removeResult = processComponents({ ...props, schema: item.children, inContextOfRemove: true })
             return {
                 components: [...previous.components, ...removeResult.components],
-                edges: [...previous.edges, ...removeResult.edges]
+                topLevel: [...previous.topLevel, ...removeResult.topLevel]
             }
         }
 
@@ -102,7 +93,7 @@ export const processComponents = (props: {
                 }, [])
                 return {
                     components: [...previous.components, ...replaceComponents],
-                    edges: [...previous.edges, ...matchResult.edges, ...payloadResult.edges]
+                    topLevel: [...previous.topLevel, ...matchResult.topLevel, ...payloadResult.topLevel]
                 }
             }
             throw new Error('Replace must have both a ReplaceMatch and a ReplacePayload')
@@ -139,22 +130,9 @@ export const processComponents = (props: {
                 const editWrappedComponent = inContextOfRemove ? new StandardRemove(localizedComponent) : localizedComponent
 
                 //
-                // Track parent→child edge for this component
+                // Track if this component is at Asset level (topLevel)
                 //
-                const newEdges: ComponentProcessingEdge[] = []
-                if (parentTag) {
-                    // Component has a parent in the hierarchy: parent → child edge
-                    newEdges.push({
-                        parent: parentTag,
-                        child: localizedComponent._key.plain
-                    })
-                } else if (assetUUID) {
-                    // Component is at Asset level (no parent tag): Asset → child edge
-                    newEdges.push({
-                        parent: assetUUID,
-                        child: localizedComponent._key.plain
-                    })
-                }
+                const isTopLevel = !parentTag && assetUUID
 
                 // Process children recursively
                 const childrenResult = processComponents({ 
@@ -165,16 +143,18 @@ export const processComponents = (props: {
 
                 return {
                     components: [...previous.components, editWrappedComponent, ...childrenResult.components],
-                    edges: [...previous.edges, ...newEdges, ...childrenResult.edges]
+                    topLevel: isTopLevel 
+                        ? [...previous.topLevel, localizedComponent._key.plain]
+                        : previous.topLevel
                 }
             }
         }
         const childrenResult = processComponents({ ...props, schema: item.children })
         return {
             components: [...previous.components, ...childrenResult.components],
-            edges: [...previous.edges, ...childrenResult.edges]
+            topLevel: [...previous.topLevel, ...childrenResult.topLevel]
         }
-    }, { components: [], edges: [] })
+    }, { components: [], topLevel: [] })
 
     return recursiveResult
 }

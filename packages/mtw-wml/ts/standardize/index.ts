@@ -11,18 +11,16 @@ import StandardKnowledge, { StandardKnowledgePayload } from "./components/knowle
 import StandardMap from "./components/map"
 import { wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
-import { isLegalKey } from "./utils"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent } from "./components/baseClasses"
-import processComponents, { ComponentProcessingTemplate, ComponentProcessingEdge } from "./processComponents"
+import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import { StandardRemove, StandardReplace } from "./components/edits"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardToJSONOptions } from "./components/baseClasses"
 import { AssetUUID, ComponentUUID, isSchemaAsset, isSchemaAssetUUID, isSchemaOutputTag, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaImport, isSchemaMeta } from "@tonylb/mtw-base/ts/schema/metaData"
-import { isSchemaExit, isSchemaShortName } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { isSchemaSummary } from "@tonylb/mtw-base/ts/schema/example"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
@@ -102,7 +100,6 @@ export class StandardForm {
     _metaData: GenericTree<SchemaTag>;
     _shortName?: StandardLiteral;
     _summary?: StandardRender;
-    _processingEdges?: ComponentProcessingEdge[];
     _topLevel?: ReferenceList;
     /**
      * Optional semantic mode indicating how this StandardForm should be interpreted and used.
@@ -138,11 +135,6 @@ export class StandardForm {
             this._shortName = args.shortName ? new StandardLiteral(args.shortName) : undefined
             this._summary = args.summary ? new StandardRender(args.summary) : undefined
             this._topLevel = args.topLevel ? new ReferenceList(args.topLevel) : undefined
-            
-            // If topLevel not provided in data, populate from graph
-            if (!this._topLevel) {
-                this._populateTopLevelFromGraph()
-            }
             return
         }
         if (isStandardNDJSON(args)) {
@@ -172,11 +164,6 @@ export class StandardForm {
             }, [])
 
             this._metaData = []
-
-            // If topLevel not provided in data, populate from graph
-            if (!this._topLevel) {
-                this._populateTopLevelFromGraph()
-            }
             return
         }
         if (isSchemaTreeNode(args) || typeof args === 'string') {
@@ -235,12 +222,11 @@ export class StandardForm {
                     }
                 ]
 
-                const { components: componentFragments, edges: processingEdges } = processComponents({ 
+                const { components: componentFragments, topLevel: topLevelKeys } = processComponents({ 
                     componentTemplates, 
                     schema: node.children,
                     assetUUID: this._universalKey
                 })
-                this._processingEdges = processingEdges
                 const universalKeyMappings: StandardKey[] = componentFragments
                     .reduce<StandardKey[]>((previous, component) => {
                         const previousMatchIndex = previous.findIndex(({ key, universalKey }) => (
@@ -271,10 +257,7 @@ export class StandardForm {
                     .reduce<StandardComponent[]>(mergeToComponentList(universalKeyMappings), [])
                     .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
                 
-                // Populate topLevel from processingEdges: find components where parent is Asset
-                const topLevelKeys = processingEdges
-                    .filter(edge => typeof edge.parent === 'string' && edge.parent === this._universalKey)
-                    .map(edge => edge.child)
+                // Populate topLevel from processComponents result
                 if (topLevelKeys.length > 0) {
                     // Convert StandardKeys to reference format
                     const topLevelReferences = topLevelKeys.map(key => {
@@ -375,42 +358,6 @@ export class StandardForm {
 
         })
         return returnProxy as unknown as Record<string, StandardComponent>
-    }
-
-    /**
-     * Populates `_topLevel` by finding components where the Asset is the parent.
-     * Uses the graph constructed from component references.
-     */
-    _populateTopLevelFromGraph(): void {
-        // Build graph to find Asset-level components
-        const { graph } = this._buildComponentGraph()
-        
-        // Find all components that have the Asset as their parent
-        const topLevelComponents: ComponentUUID[] = []
-        const assetNode = graph.getNode(this._universalKey)
-        if (assetNode) {
-            // Get all edges from Asset node (Asset → Component)
-            const outgoingEdges = assetNode.edges
-            for (const edge of outgoingEdges) {
-                const childUUID = edge.to
-                // Verify it's a ComponentUUID (not another AssetUUID)
-                if (childUUID !== this._universalKey && this._lookup(childUUID)) {
-                    topLevelComponents.push(childUUID as ComponentUUID)
-                }
-            }
-        }
-        
-        if (topLevelComponents.length > 0) {
-            // Convert ComponentUUIDs to StandardReference format
-            const topLevelReferences = topLevelComponents.map(uuid => {
-                const component = this._lookup(uuid)
-                if (component) {
-                    return component.referenceData
-                }
-                return uuid // Fallback to UUID string if component not found
-            })
-            this._topLevel = new ReferenceList(topLevelReferences)
-        }
     }
 
     /**
@@ -801,7 +748,6 @@ export class StandardForm {
         returnValue._metaData = [...this._metaData]
         returnValue._shortName = this._shortName
         returnValue._summary = this._summary
-        returnValue._processingEdges = this._processingEdges ? [...this._processingEdges] : undefined
         returnValue._topLevel = this._topLevel ? this._topLevel.clone() : undefined
         returnValue._components = this._components.map((component) => (component.clone()))
         return returnValue

@@ -651,7 +651,11 @@ describe('StandardForm', () => {
         expect(standard.toJSON()).toEqual({
             universalKey: 'ASSET#Test',
             metaData: [],
-            topLevel: [{ key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' }],
+            topLevel: [
+                { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' },
+                { key: 'testRoomRemove', tag: 'Room', universalKey: 'ROOM#testRoomRemove' },
+                { key: 'testRoomReplace', tag: 'Room', universalKey: 'ROOM#testRoomReplace' }
+            ],
             components: [
                 {
                     tag: 'Room',
@@ -957,6 +961,7 @@ describe('StandardForm', () => {
             metaData: [],
             topLevel: [
                 { key: 'testGlobal', tag: 'Feature', universalKey: 'FEATURE#testGlobal' },
+                { key: 'test', tag: 'Room', universalKey: 'ROOM#testRoom' },
                 { key: 'testTwo', tag: 'Room', universalKey: 'ROOM#testTwo' }
             ],
             components: [{
@@ -3173,7 +3178,15 @@ describe('StandardForm', () => {
 
         const ndjson = testSource.toNDJSON()
         expect(ndjson).toEqual([
-            { tag: 'Asset', universalKey: 'ASSET#test', topLevel: [{ key: 'testGlobal', tag: 'Feature', universalKey: 'FEATURE#003' }, { key: 'testRoomTwo', tag: 'Room', universalKey: 'ROOM#002' }] },
+            {
+                tag: 'Asset',
+                universalKey: 'ASSET#test',
+                topLevel: [
+                    { key: 'testGlobal', tag: 'Feature', universalKey: 'FEATURE#003' },
+                    { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#001' },
+                    { key: 'testRoomTwo', tag: 'Room', universalKey: 'ROOM#002' }
+                ]
+            },
             {
                 tag: 'Feature',
                 key: 'testGlobal',

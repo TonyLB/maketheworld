@@ -40,7 +40,7 @@ describe("processComponents", () => {
             schema: schema.schema,
         })
         expect(result.components).toEqual([])
-        expect(result.edges).toEqual([])
+        expect(result.topLevel).toEqual([])
     })
 
     it('should parse a provided schema', () => {
