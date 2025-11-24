@@ -12,13 +12,13 @@ After analyzing the codebase, here are the key findings:
 ### ✅ Can be replaced with `implicitParent`:
 1. **Getting direct parent**: `context.slice(-1)[0]` → `component.implicitParent`
 2. **Checking if has parent**: `context?.length > 0` → `component.implicitParent !== undefined`
-3. **Sorting by depth**: `context.length` → Need helper to compute depth from `implicitParent`
-4. **Finding nested components**: Check if component is parent of others → Use `implicitParent` lookup
+3. **Finding nested components**: Check if component is parent of others → Use `implicitParent` lookup
+
+**Note**: The only numeric usage of `context.length` (for sorting by depth) is in the legacy context rebuilding code that will be removed entirely, so no depth helper is needed.
 
 ### ⚠️ Need helper functions:
-1. **Ancestry chain computation**: Need helper to build chain from `implicitParent` using lookup
-2. **Depth computation**: Need helper to compute depth from `implicitParent`
-3. **Context array for serialization**: May need to compute from `implicitParent` for backward compatibility
+1. **Ancestry chain computation**: Need helper to build chain from `implicitParent` using lookup ✅ (implemented)
+2. **Context array for serialization**: May need to compute from `implicitParent` for backward compatibility (decision: remove entirely)
 
 ### ❌ Cannot be directly replaced (need different approach):
 1. **`withLeastCommonContext()`**: This method sets context array - needs redesign
@@ -268,12 +268,7 @@ To replace `context` usages with `implicitParent`, we need these helper function
 - Uses lookup function to get parent components
 - Caches results to avoid repeated traversals
 
-### 2. `getDepthFromImplicitParent(component, lookup): number`
-- Computes depth (number of ancestors) from `implicitParent`
-- Returns 0 for Asset-level components
-- Uses cached ancestry chain if available
-
-### 3. `isAncestorOf(child, ancestor, lookup): boolean`
+### 2. `isAncestorOf(child, ancestor, lookup): boolean`
 - Checks if `ancestor` is an ancestor of `child`
 - Uses ancestry chain traversal
 - For sorting logic
@@ -283,7 +278,7 @@ To replace `context` usages with `implicitParent`, we need these helper function
 - Returns the differing ancestor UUID
 - For sorting logic
 
-### 5. `extractParentFromContext(context: StandardKey[]): StandardKey | undefined`
+### 4. `extractParentFromContext(context: StandardKey[]): StandardKey | undefined`
 - Helper to extract direct parent from context array (for migration/backward compatibility)
 - Returns last item in context array
 - Used when converting from old context-based code
@@ -292,17 +287,16 @@ To replace `context` usages with `implicitParent`, we need these helper function
 
 ## Migration Strategy
 
-### Phase 1: Add Helper Functions
-1. Add `getAncestryChainFromImplicitParent()` to `StandardForm` or utility module
-2. Add `getDepthFromImplicitParent()` helper
-3. Add `isAncestorOf()` helper
-4. Add `findFirstDifferingAncestor()` helper
+### Phase 1: Add Helper Functions ✅ COMPLETE
+1. ✅ Add `getAncestryChainFromImplicitParent()` to `StandardForm`
+2. ✅ Add `isAncestorOf()` helper
+3. ✅ Add `findFirstDifferingAncestor()` helper
+4. ✅ Add `extractParentFromContext()` helper (for migration)
 
 ### Phase 2: Replace Simple Usages
 1. Replace `context.slice(-1)[0]` → `implicitParent` lookup
 2. Replace `context?.length > 0` → `implicitParent !== undefined`
-3. Replace `context.length` → `getDepthFromImplicitParent()`
-4. Replace nested component filtering → `implicitParent` check
+3. Replace nested component filtering → `implicitParent` check
 
 ### Phase 3: Redesign Complex Methods
 1. Remove legacy context rebuilding in `finalize()`

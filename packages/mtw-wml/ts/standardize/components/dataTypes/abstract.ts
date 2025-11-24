@@ -14,6 +14,7 @@ export type StandardBaseData = {
     update?: boolean;
     context?: StandardReferenceData[];
     origin?: AssetUUID[];  // Array of ancestor asset UUIDs in inheritance chain
+    implicitParent?: StandardReferenceData | ComponentUUID;  // Parent StandardKey (serialized as StandardReferenceData or ComponentUUID)
 }
 
 export type EditInternalStandardNode<T extends SchemaTag, ChildType extends SchemaTag> = GenericTreeNodeFiltered<T, ChildType>

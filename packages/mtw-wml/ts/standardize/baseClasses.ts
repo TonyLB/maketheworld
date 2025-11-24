@@ -38,6 +38,7 @@ export type StandardRemove = {
     tag: 'Remove';
     context?: StandardReferenceData[];
     component: StandardComponentNonEditData;
+    implicitParent?: StandardReferenceData | ComponentUUID;  // Parent StandardKey (serialized as StandardReferenceData or ComponentUUID)
 }
 
 export type StandardReplace = {
@@ -47,6 +48,7 @@ export type StandardReplace = {
     context?: StandardReferenceData[];
     match: StandardComponentNonEditData;
     payload: StandardComponentNonEditData;
+    implicitParent?: StandardReferenceData | ComponentUUID;  // Parent StandardKey (serialized as StandardReferenceData or ComponentUUID)
 }
 
 export const unwrapStandardComponent = (component: StandardComponentData): StandardComponentNonEditData => {

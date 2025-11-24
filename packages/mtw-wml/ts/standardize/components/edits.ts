@@ -20,6 +20,7 @@ export class StandardRemove implements StandardComponent {
     _match: StandardComponent;
     explicitParent?: StandardExplicitParent;
     _implicitParent?: ComponentUUID;
+    _implicitParentKey?: StandardKey;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
@@ -171,11 +172,17 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
-    get implicitParent(): ComponentUUID | undefined { return this._implicitParent }
+    get implicitParent(): StandardKey | undefined { return this._implicitParentKey }
 
-    withImplicitParent(implicitParent: ComponentUUID | undefined): StandardComponent {
+    withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
         const returnValue = this.clone()
-        returnValue._implicitParent = implicitParent
+        returnValue._implicitParentKey = implicitParent ? new StandardKey(implicitParent) : undefined
+        return returnValue
+    }
+
+    withImplicitParentKey(implicitParentKey: StandardKey | undefined): StandardComponent {
+        const returnValue = this.clone()
+        returnValue._implicitParentKey = implicitParentKey ? new StandardKey(implicitParentKey) : undefined
         return returnValue
     }
 }
@@ -196,6 +203,7 @@ export class StandardReplace implements StandardComponent {
     leastCommonContext: StandardKey[] = [];
     explicitParent?: StandardExplicitParent;
     _implicitParent?: ComponentUUID;
+    _implicitParentKey?: StandardKey;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Replace' as const;
     constructor(...propsArray: [StandardReplace] | [StandardComponent, StandardComponent]) {
         if (propsArray.length > 1) {
@@ -383,11 +391,17 @@ export class StandardReplace implements StandardComponent {
         return returnValue
     }
 
-    get implicitParent(): ComponentUUID | undefined { return this._implicitParent }
+    get implicitParent(): StandardKey | undefined { return this._implicitParentKey }
 
-    withImplicitParent(implicitParent: ComponentUUID | undefined): StandardComponent {
+    withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
         const returnValue = this.clone()
-        returnValue._implicitParent = implicitParent
+        returnValue._implicitParentKey = implicitParent ? new StandardKey(implicitParent) : undefined
+        return returnValue
+    }
+
+    withImplicitParentKey(implicitParentKey: StandardKey | undefined): StandardComponent {
+        const returnValue = this.clone()
+        returnValue._implicitParentKey = implicitParentKey ? new StandardKey(implicitParentKey) : undefined
         return returnValue
     }
 }

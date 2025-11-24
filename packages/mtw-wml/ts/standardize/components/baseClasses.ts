@@ -19,9 +19,11 @@ export type StandardComponentReferenceKey = {
 
 export type NestedSchemaOptions = {
     key: StandardKey;
-    context: StandardKey[];
-    removeContext?: boolean;
-    inLeastCommonContext?: boolean;
+    parent?: StandardKey;  // Parent component StandardKey (undefined for Asset-level rendering)
+    // Legacy fields (deprecated, kept for backward compatibility during migration):
+    context?: StandardKey[];  // @deprecated - use parent instead
+    removeContext?: boolean;  // @deprecated
+    inLeastCommonContext?: boolean;  // @deprecated
 }
 
 export type StandardDiffOptions = {
@@ -33,7 +35,7 @@ export interface StandardComponent {
     key?: string;
     universalKey?: ComponentUUID;
     explicitParent?: StandardExplicitParent;
-    implicitParent?: ComponentUUID;
+    implicitParent?: StandardKey;
     clone(): StandardComponent;
     withMapping(mapping: StandardKey[]): StandardComponent;
     withKey(key: string): StandardComponent;
@@ -58,5 +60,6 @@ export interface StandardComponent {
     withChild(child: StandardReference): StandardComponent;
     withImport(fromAsset: AssetUUID): StandardComponent;
     withOrigin(origin: AssetUUID[] | undefined): StandardComponent;
-    withImplicitParent(implicitParent: ComponentUUID | undefined): StandardComponent;
+    withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent;
+    withImplicitParentKey(implicitParentKey: StandardKey | undefined): StandardComponent;
 }

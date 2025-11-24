@@ -60,6 +60,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _origin?: AssetUUID[];
         explicitParent?: StandardExplicitParent;
         _implicitParent?: ComponentUUID;
+        _implicitParentKey?: StandardKey;  // Temporary storage for StandardKey before finalize()
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
@@ -71,6 +72,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 // Clone explicitParent if it exists - use schema to clone (handles empty Parent tags)
                 this.explicitParent = props.explicitParent ? new StandardExplicitParent(props.explicitParent.schema) : undefined
                 this._implicitParent = props._implicitParent
+                this._implicitParentKey = props._implicitParentKey ? new StandardKey(props._implicitParentKey) : undefined
                 return
             }
             if (typeof props === 'string' && isLegalKey(props)) {
@@ -137,9 +139,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             }
             this._key = isStandardReferencePayloadData(props) ? new StandardKey(props) : typeof props === 'string' ? new StandardKey(props) : new StandardKey('')
             this._payload.fromJSON(props)
-            // Read implicitParent from JSON data if present
-            if (typeof props === 'object' && 'implicitParent' in props && props.implicitParent) {
-                this._implicitParent = props.implicitParent as ComponentUUID
+            if (!isSchemaTreeNode(props) && props.implicitParent) {
+                this._implicitParentKey = new StandardKey(props.implicitParent)
             }
         }
 
@@ -172,7 +173,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return new StandardReference(this.referenceData)
         }
         get origin(): AssetUUID[] | undefined { return this._origin }
-        get implicitParent(): ComponentUUID | undefined { return this._implicitParent }
+        get implicitParent(): StandardKey | undefined { return this._implicitParentKey }
 
         clone(): StandardComponent {
             return new GeneratedComponentClass(this)
@@ -197,12 +198,11 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return {
                 key: this.key,
                 universalKey: this.universalKey,
-                context: (this._key?.context ?? []).length > 0 ? (this._key.context ?? []).map((context) => context.toJSON()) : undefined,
                 ...this._payload.toJSON(options),
                 ...(this._from ? { from: this._from } : {}),
                 ...(this._origin ? { origin: this._origin } : {}),
                 ...(this.explicitParent ? { explicitParent: this.explicitParent.toJSON() } : {}),
-                ...(this._implicitParent ? { implicitParent: this._implicitParent } : {}),
+                ...(this._implicitParentKey ? { implicitParent: this._implicitParentKey.toJSON() } : {}),
             } as D
         }
 
@@ -223,29 +223,40 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         }
 
         nestedSchema(lookup: (value: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-            const { context } = options
-            const contextKey = this._key.plain
-            const newContext = [...(context ?? []), contextKey]
-            //
-            // inLeastCommonContext should not actually check the *whole* context, because while a sub-element of (say)
-            // a global-level element might have a leastCommonContext that shows that it was defined in the context of a
-            // room where its parent was referenced, the only relevant questions are whether:
-            //   (a) the element is being rendered in the context of its highest-level direct parent, and
-            //   (b) the parent has determined that *it* is in the correct context to render
-            //
-            const inLeastCommonContext = context?.length > 0
-                ? Boolean(
-                    (this._key?.context ?? []).length > 0 &&
-                    (this._key?.context ?? []).slice(-1)[0].equals(context.slice(-1)[0])
-                )
-                : Boolean((this._key?.context?.length ?? 0) === 0)
-
-            if (!inLeastCommonContext) {
+            // Check if component should be rendered based on implicitParent
+            // Component should be rendered if:
+            //   (a) It has no implicitParent and we are rendering the asset (expectedParent === undefined), OR
+            //   (b) It has an implicitParent and we're rendering in the context of that parent (implicitParent matches expectedParent)
+            const expectedParent = options.parent
+            
+            // Get implicit parent as StandardKey (works both before and after finalize)
+            // After finalize: look up ComponentUUID to get StandardKey
+            // Before finalize: use _implicitParentKey directly
+            let implicitParentKey: StandardKey | undefined = this._implicitParentKey
+            if (!implicitParentKey && this._implicitParent) {
+                // After finalize: look up parent component by ComponentUUID to get its StandardKey
+                const parentComponent = lookup(this._implicitParent)
+                implicitParentKey = parentComponent?._key.plain
+            }
+            
+            // Determine if we should render:
+            // - If expectedParent is undefined, render only if component is Asset-level (no implicit parent)
+            // - If expectedParent is set, render only if it matches our implicit parent (compare StandardKeys)
+            const shouldRender = expectedParent === undefined
+                ? implicitParentKey === undefined  // Asset-level rendering: only render if component is also Asset-level
+                : implicitParentKey !== undefined && implicitParentKey.equals(expectedParent)  // Nested rendering: only render if parent matches
+            
+            if (!shouldRender) {
                 const reference = new StandardReference(this._key).toFormat('key')
                 return reference.schema[0]
             }
+            
+            // Pass the current component's StandardKey to children
+            // Children should render if their implicitParent matches this component's StandardKey
+            const contextKey = this._key.plain
+            const childParent = this._key.plain
             const payload = this._payload.nestedSchema
-                ? this._payload.nestedSchema(lookup, { ...options, key: contextKey, context: newContext, inLeastCommonContext })
+                ? this._payload.nestedSchema(lookup, { ...options, key: contextKey, parent: childParent })
                 : this._payload.schema(this.key, this.universalKey)
             if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
                 throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
@@ -304,6 +315,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             }
             // implicitParent is computed metadata - don't copy during merge, will be recomputed during finalize()
             returnValue._implicitParent = undefined
+            returnValue._implicitParentKey = undefined
 
             return returnValue as StandardComponent
         }
@@ -421,9 +433,15 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return returnValue
         }
 
-        withImplicitParent(implicitParent: ComponentUUID | undefined): StandardComponent {
+        withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
             const returnValue = this.clone() as GeneratedComponentClass
-            returnValue._implicitParent = implicitParent
+            returnValue._implicitParentKey = implicitParent ? new StandardKey(implicitParent) : undefined
+            return returnValue
+        }
+
+        withImplicitParentKey(implicitParentKey: StandardKey | undefined): StandardComponent {
+            const returnValue = this.clone() as GeneratedComponentClass
+            returnValue._implicitParentKey = implicitParentKey ? new StandardKey(implicitParentKey) : undefined
             return returnValue
         }
     }
