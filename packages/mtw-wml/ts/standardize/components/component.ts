@@ -242,7 +242,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 ? typeof implicitParentKey === 'undefined'  // Asset-level rendering: only render if component is also Asset-level
                 : implicitParentKey?.equals(expectedParent)  // Nested rendering: only render if parent matches
             
-            console.log(`shouldRender (${this._key.plain.toJSON()} x ${implicitParentKey?.toJSON()} x ${expectedParent?.toJSON()}): ${shouldRender}`)
             if (!shouldRender) {
                 const reference = new StandardReference(this._key).toFormat('key')
                 return reference.schema[0]

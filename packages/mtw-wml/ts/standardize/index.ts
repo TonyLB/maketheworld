@@ -281,7 +281,6 @@ export class StandardForm {
                 
                 // Generate implicit parents using StandardKey (works before finalize)
                 const withImplicitParents = this.generateImplicitParents()
-                console.log(`withImplicitParents: ${JSON.stringify(withImplicitParents.toJSON(), null, 4)}`)
                 this._components = withImplicitParents._components
                 return
             }
@@ -615,14 +614,7 @@ export class StandardForm {
                 }
                 try {
                     const existingKey = new StandardKey(JSON.parse(existingJSON))
-                    // Match by key+tag
-                    if (existingKey.key === standardKey.key && existingKey.tag === standardKey.tag) {
-                        return true
-                    }
-                    // Match by universalKey (if both have it)
-                    if (existingKey.universalKey && standardKey.universalKey && existingKey.universalKey === standardKey.universalKey) {
-                        return true
-                    }
+                    return existingKey.equals(standardKey)
                 } catch (e) {
                     // If parsing fails, skip this entry
                     return false

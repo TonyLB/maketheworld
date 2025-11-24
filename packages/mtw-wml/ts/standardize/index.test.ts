@@ -3902,7 +3902,6 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const test = new StandardForm(testWML)
-        console.log(`test.schema: ${JSON.stringify(test.toJSON(), null, 4)}`)
 
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })
@@ -4476,6 +4475,21 @@ describe('StandardForm', () => {
                         </Room>
                     </Asset>
                 `))
+            })
+
+            it('should handle edits correctly', () => {
+                const testWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room key=(testRoom)><Remove><Feature key=(testFeature) /></Remove></Room>
+                        <Room key=(testRoom2)>
+                            <Replace><Feature key=(testFeature2) /></Replace>
+                            <With><Feature key=(testFeature2) /></With>
+                        </Room>
+                    </Asset>
+                `)
+                const test = new StandardForm(testWML)
+                const withImplicitParents = test.generateImplicitParents()
+                expect(schemaToWML([withImplicitParents.schema])).toEqual(testWML)
             })
 
             it('should work correctly with manually added components', () => {
