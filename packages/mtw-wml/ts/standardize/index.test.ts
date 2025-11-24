@@ -3823,7 +3823,7 @@ describe('StandardForm', () => {
                 <Room uuid=(002) key=(testRoomTwo) />
             </Asset>
         `)
-        const testSource = new StandardForm(testWML).finalize()
+        const testSource = new StandardForm(testWML)
 
         const ndjson = testSource.toNDJSON()
         expect(ndjson).toEqual([
@@ -3902,6 +3902,7 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const test = new StandardForm(testWML)
+        console.log(`test.schema: ${JSON.stringify(test.toJSON(), null, 4)}`)
 
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })
@@ -3914,7 +3915,7 @@ describe('StandardForm', () => {
                 </Room>
             </Asset>
         `)
-        const testSource = new StandardForm(testWML).finalize()
+        const testSource = new StandardForm(testWML)
         const test = new StandardForm(testSource.toNDJSON())
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })
@@ -4191,58 +4192,6 @@ describe('StandardForm', () => {
             expect(finalized.byId.testRoom.universalKey).toEqual('ROOM#mock-uuid-1')
         })
 
-        describe('hierarchy', () => {
-            it('should rebuild context on finalize and set implicitParent correctly', () => {
-                const testWML = deIndentWML(`
-                    <Asset uuid=(test)>
-                        <Feature uuid=(testFeature) key=(testFeature) />
-                        <Room uuid=(testRoom) key=(testRoom)>
-                            <Feature key=(testFeature)>
-                                <Example uuid=(testFeatureBase)>
-                                    <Description>Test Feature</Description>
-                                </Example>
-                            </Feature>
-                        </Room>
-                    </Asset>
-                `)
-                const test = new StandardForm(testWML)
-                const findBaseExample = test._lookup('EXAMPLE#testFeatureBase')
-                expect((findBaseExample?._key?.context ?? []).map((context) => (context.plain.toJSON()))).toEqual([
-                    { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' },
-                    { key: 'testFeature', tag: 'Feature' }
-                ])
-                const finalized = test.finalize()
-                const findFinalizedExample = finalized._lookup('EXAMPLE#testFeatureBase')
-                expect((findFinalizedExample?._key?.context ?? []).map((context) => (context.plain.toJSON()))).toEqual([
-                    'FEATURE#testFeature'
-                ])
-                expect(schemaToWML([finalized.schema])).toEqual(deIndentWML(`
-                    <Asset uuid=(test)>
-                        <Feature uuid=(testFeature) key=(testFeature)>
-                            <Example uuid=(testFeatureBase)>
-                                <Description>Test Feature</Description>
-                            </Example>
-                        </Feature>
-                        <Room uuid=(testRoom) key=(testRoom)><Feature key=(testFeature) /></Room>
-                    </Asset>
-                `))
-                
-                // Test expectations for implicitParent (Phase 4 implementation)
-                // After finalize(), implicitParent should reflect the hierarchy:
-                // - Example is in Feature → implicitParent should be 'FEATURE#testFeature'
-                // - Feature is at Asset level (not in Room) → implicitParent should be undefined
-                // - Room is at Asset level → implicitParent should be undefined
-                const finalizedExample = finalized._lookup('EXAMPLE#testFeatureBase')
-                const finalizedFeature = finalized._lookup('FEATURE#testFeature')
-                const finalizedRoom = finalized._lookup('ROOM#testRoom')
-                
-                // Verify implicitParent values are correctly computed
-                expect(finalizedExample?.implicitParent).toBe('FEATURE#testFeature')
-                expect(finalizedFeature?.implicitParent).toBeUndefined() // Feature is at Asset level
-                expect(finalizedRoom?.implicitParent).toBeUndefined() // Room is at Asset level
-            })
-        })
-
         it('should remap references to UUIDs on finalize', () => {
             const testWML = deIndentWML(`
                 <Asset uuid=(test)>
@@ -4257,28 +4206,6 @@ describe('StandardForm', () => {
             expect(findRoom).toBeInstanceOf(StandardRoom)
             expect((findRoom as StandardRoom).features.toJSON()).toEqual([
                 'FEATURE#testFeature'
-            ])
-        })
-
-        it('should remap context to UUIDs on finalize', () => {
-            const testWML = deIndentWML(`
-                <Asset uuid=(test)>
-                    <Room uuid=(testRoom) key=(testRoom)>
-                        <Feature uuid=(testFeature) key=(testFeature)>
-                            <Example uuid=(testExample) />
-                        </Feature>
-                    </Room>
-                </Asset>
-            `)
-            const test = new StandardForm(testWML).finalize()
-            const findExample = test._lookup('EXAMPLE#testExample')
-            expect(findExample?._key?.context?.map((context) => context.plain.toJSON())).toEqual([
-                'ROOM#testRoom',
-                'FEATURE#testFeature'
-            ])
-            const findFeature = test._lookup('FEATURE#testFeature')
-            expect(findFeature?._key?.context?.map((context) => context.plain.toJSON())).toEqual([
-                'ROOM#testRoom'
             ])
         })
 
@@ -4421,8 +4348,8 @@ describe('StandardForm', () => {
             it('should set implicitParent correctly using StandardKey before finalize', () => {
                 const testWML = deIndentWML(`
                     <Asset uuid=(test)>
-                        <Feature uuid=(testFeature) key=(testFeature) />
-                        <Room uuid=(testRoom) key=(testRoom)>
+                        <Feature key=(testFeature) />
+                        <Room key=(testRoom)>
                             <Feature key=(testFeature)>
                                 <Example uuid=(testFeatureBase)>
                                     <Description>Test Feature</Description>
@@ -4431,12 +4358,12 @@ describe('StandardForm', () => {
                         </Room>
                     </Asset>
                 `)
-                const test = new StandardForm(testWML).generateImplicitParents()
+                const test = new StandardForm(testWML)
                 
                 // Look up components after generateImplicitParents
                 const exampleWithParents = test._lookup('EXAMPLE#testFeatureBase')
-                const featureWithParents = test._lookup('FEATURE#testFeature')
-                const roomWithParents = test._lookup('ROOM#testRoom')
+                const featureWithParents = test._lookup({ key: 'testFeature', tag: 'Feature' })
+                const roomWithParents = test._lookup({ key: 'testRoom', tag: 'Room' })
                 
                 // Verify implicitParent values are correctly computed as StandardKey
                 // - Example is in Feature → implicitParent should be the Feature's StandardKey
@@ -4455,12 +4382,12 @@ describe('StandardForm', () => {
                 // Verify that schema correctly reflects the hierarchy
                 expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(test)>
-                        <Feature uuid=(testFeature) key=(testFeature)>
+                        <Feature key=(testFeature)>
                             <Example uuid=(testFeatureBase)>
                                 <Description>Test Feature</Description>
                             </Example>
                         </Feature>
-                        <Room uuid=(testRoom) key=(testRoom)><Feature key=(testFeature) /></Room>
+                        <Room key=(testRoom)><Feature key=(testFeature) /></Room>
                     </Asset>
                 `))
             })
@@ -4470,7 +4397,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(test)>
                         <Room uuid=(testRoom) key=(testRoom)>
                             <Feature uuid=(testFeature) key=(testFeature)>
-                                <Example uuid=(testExample) key=(testExample)>
+                                <Example uuid=(testExample)>
                                     <Description>Nested Example</Description>
                                 </Example>
                             </Feature>
@@ -4478,11 +4405,10 @@ describe('StandardForm', () => {
                     </Asset>
                 `)
                 const test = new StandardForm(testWML)
-                const withImplicitParents = test.generateImplicitParents()
                 
-                const example = withImplicitParents._lookup('EXAMPLE#testExample')
-                const feature = withImplicitParents._lookup('FEATURE#testFeature')
-                const room = withImplicitParents._lookup('ROOM#testRoom')
+                const example = test._lookup('EXAMPLE#testExample')
+                const feature = test._lookup('FEATURE#testFeature')
+                const room = test._lookup('ROOM#testRoom')
                 
                 // Example should have Feature as implicitParent
                 expect(example?.implicitParent).toBeDefined()
@@ -4498,24 +4424,58 @@ describe('StandardForm', () => {
                 
                 // Room should be at Asset level
                 expect(room?.implicitParent).toBeUndefined()
+
+                // Verify that schema correctly reflects the hierarchy
+                expect(schemaToWML([test.schema])).toEqual(testWML)
+                
             })
 
             it('should handle components at Asset level correctly', () => {
                 const testWML = deIndentWML(`
                     <Asset uuid=(test)>
-                        <Feature uuid=(testFeature) key=(testFeature) />
-                        <Room uuid=(testRoom) key=(testRoom) />
+                        <Feature key=(testGlobal) />
+                        <Room uuid=(testRoom) key=(testRoom)>
+                            <Feature uuid=(testGlobal) key=(testGlobal)>
+                                <Example uuid=(testGlobalExample)>
+                                    <Description>Global Example</Description>
+                                </Example>
+                            </Feature>
+                            <Feature uuid=(testFeature) key=(testFeature)>
+                                <Example uuid=(testFeatureExample)>
+                                    <Description>Nested Example</Description>
+                                </Example>
+                            </Feature>
+                        </Room>
                     </Asset>
                 `)
                 const test = new StandardForm(testWML)
-                const withImplicitParents = test.generateImplicitParents()
                 
-                const feature = withImplicitParents._lookup('FEATURE#testFeature')
-                const room = withImplicitParents._lookup('ROOM#testRoom')
+                const feature = test._lookup('FEATURE#testFeature')
+                const globalFeature = test._lookup('FEATURE#testGlobal')
+                const room = test._lookup('ROOM#testRoom')
                 
                 // Both should be at Asset level with no implicitParent
-                expect(feature?.implicitParent).toBeUndefined()
+                expect(feature?.implicitParent).toBeDefined()
+                expect(globalFeature?.implicitParent).toBeUndefined()
                 expect(room?.implicitParent).toBeUndefined()
+
+                expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Feature uuid=(testGlobal) key=(testGlobal)>
+                            <Example uuid=(testGlobalExample)>
+                                <Description>Global Example</Description>
+                            </Example>
+                        </Feature>
+                        <Room uuid=(testRoom) key=(testRoom)>
+                            <Feature key=(testGlobal) />
+                            <Feature uuid=(testFeature) key=(testFeature)>
+                                <Example uuid=(testFeatureExample)>
+                                    <Description>Nested Example</Description>
+                                </Example>
+                            </Feature>
+                        </Room>
+                    </Asset>
+                `))
             })
 
             it('should work correctly with manually added components', () => {

@@ -189,6 +189,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (this._payload.remapReferences) {
                 const returnValue = this.clone() as GeneratedComponentClass
                 returnValue._payload = returnValue._payload.remapReferences?.({ mapTo, mappings: this._mapping ?? [] }) ?? returnValue._payload
+                returnValue._implicitParentKey = this._implicitParentKey ? this._implicitParentKey.toFormat(mapTo) : undefined
                 return returnValue as this
             }
             return this
@@ -232,20 +233,16 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             // Get implicit parent as StandardKey (works both before and after finalize)
             // After finalize: look up ComponentUUID to get StandardKey
             // Before finalize: use _implicitParentKey directly
-            let implicitParentKey: StandardKey | undefined = this._implicitParentKey
-            if (!implicitParentKey && this._implicitParent) {
-                // After finalize: look up parent component by ComponentUUID to get its StandardKey
-                const parentComponent = lookup(this._implicitParent)
-                implicitParentKey = parentComponent?._key.plain
-            }
+            const implicitParentKey: StandardKey | undefined = this._implicitParentKey
             
             // Determine if we should render:
             // - If expectedParent is undefined, render only if component is Asset-level (no implicit parent)
             // - If expectedParent is set, render only if it matches our implicit parent (compare StandardKeys)
-            const shouldRender = expectedParent === undefined
-                ? implicitParentKey === undefined  // Asset-level rendering: only render if component is also Asset-level
-                : implicitParentKey !== undefined && implicitParentKey.equals(expectedParent)  // Nested rendering: only render if parent matches
+            const shouldRender = typeof expectedParent === 'undefined'
+                ? typeof implicitParentKey === 'undefined'  // Asset-level rendering: only render if component is also Asset-level
+                : implicitParentKey?.equals(expectedParent)  // Nested rendering: only render if parent matches
             
+            console.log(`shouldRender (${this._key.plain.toJSON()} x ${implicitParentKey?.toJSON()} x ${expectedParent?.toJSON()}): ${shouldRender}`)
             if (!shouldRender) {
                 const reference = new StandardReference(this._key).toFormat('key')
                 return reference.schema[0]
@@ -254,9 +251,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             // Pass the current component's StandardKey to children
             // Children should render if their implicitParent matches this component's StandardKey
             const contextKey = this._key.plain
-            const childParent = this._key.plain
             const payload = this._payload.nestedSchema
-                ? this._payload.nestedSchema(lookup, { ...options, key: contextKey, parent: childParent })
+                ? this._payload.nestedSchema(lookup, { ...options, key: contextKey, parent: contextKey })
                 : this._payload.schema(this.key, this.universalKey)
             if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
                 throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)

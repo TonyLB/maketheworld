@@ -136,6 +136,10 @@ export class StandardForm {
             this._shortName = args.shortName ? new StandardLiteral(args.shortName) : undefined
             this._summary = args.summary ? new StandardRender(args.summary) : undefined
             this._topLevel = args.topLevel ? new ReferenceList(args.topLevel) : undefined
+
+            // Generate implicit parents
+            const withImplicitParents = this.generateImplicitParents()
+            this._components = withImplicitParents._components
             return
         }
         if (isStandardNDJSON(args)) {
@@ -165,6 +169,10 @@ export class StandardForm {
             }, [])
 
             this._metaData = []
+
+            // Generate implicit parents
+            const withImplicitParents = this.generateImplicitParents()
+            this._components = withImplicitParents._components
             return
         }
         if (isSchemaTreeNode(args) || typeof args === 'string') {
@@ -273,6 +281,7 @@ export class StandardForm {
                 
                 // Generate implicit parents using StandardKey (works before finalize)
                 const withImplicitParents = this.generateImplicitParents()
+                console.log(`withImplicitParents: ${JSON.stringify(withImplicitParents.toJSON(), null, 4)}`)
                 this._components = withImplicitParents._components
                 return
             }
@@ -825,149 +834,6 @@ export class StandardForm {
         }
                 
         return returnValue
-    }
-
-    /**
-     * Resolves implicit parent relationships using topological analysis of the component graph.
-     * 
-     * This method implements Phase 4 of the implicit parent resolution system:
-     * 1. Gets topological sort from graph (ensures parents are processed before children)
-     * 2. Reduces over topological sort to compute `selectedAncestry` for each component
-     * 3. Extracts `implicitParent` from `selectedAncestry` (last item = most proximate parent)
-     * 
-     * **Algorithm**:
-     * For each SCC (strongly connected component) in topological order:
-     * - Find all parent nodes (via back-edges) for nodes in the current set
-     * - Filter to external parents (already processed due to topological order)
-     * - Construct ancestry-threads: `[...selectedAncestry-of-parent, parent]` for each external parent
-     * - Find longest common prefix across all ancestry-threads (nearest common ancestor)
-     * - Store as `selectedAncestry` for all nodes in the current set
-     * - Extract `implicitParent` = last item in `selectedAncestry` (or undefined if empty)
-     * 
-     * **Note**: AssetUUID parents are filtered out when setting `implicitParent` since `implicitParent`
-     * must be a ComponentUUID (Asset is not a component that can be an implicit parent).
-     * 
-     * **Requires universalKey assignment**: This method relies on `_buildComponentGraph()`,
-     * which requires all components to have `universalKey` values assigned (via `finalize()`).
-     * 
-     * @param graph The component graph (from `_buildComponentGraph()`)
-     * @param topologicalSort The topological sort (from `_buildComponentGraph()`)
-     * @returns Map of ComponentUUID to ComponentUUID (implicitParent), and updated components with implicitParent set
-     */
-    _resolveImplicitParents(
-        graph: Graph<ComponentUUID | AssetUUID, { key: ComponentUUID | AssetUUID }, {}>,
-        topologicalSort: (ComponentUUID | AssetUUID)[][]
-    ): { implicitParents: Map<ComponentUUID, ComponentUUID | undefined>, updatedComponents: StandardComponent[] } {
-        
-        // Map to store selectedAncestry for each component (temporary during algorithm)
-        // selectedAncestry is the full chain FROM the component's implicit parent down to Asset level
-        // Only stores ComponentUUID (filters out AssetUUID)
-        const selectedAncestry: Map<ComponentUUID | AssetUUID, ComponentUUID[]> = new Map()
-        
-        // Map to store implicitParent for each component (final result)
-        // Only stores ComponentUUID (not AssetUUID, since implicitParent must be ComponentUUID)
-        const implicitParents: Map<ComponentUUID, ComponentUUID | undefined> = new Map()
-        
-        // Helper to get selectedAncestry for a component (returns [] if not set yet)
-        const getSelectedAncestry = (uuid: ComponentUUID | AssetUUID): ComponentUUID[] => {
-            return selectedAncestry.get(uuid) ?? []
-        }
-        
-        // Helper to find longest common prefix of multiple arrays (filters out AssetUUID)
-        const longestCommonPrefix = (arrays: (ComponentUUID | AssetUUID)[][]): ComponentUUID[] => {
-            // Filter out AssetUUID from all arrays
-            const filteredArrays: ComponentUUID[][] = arrays.map(arr => 
-                arr.filter((uuid): uuid is ComponentUUID => !isSchemaAssetUUID(uuid))
-            )
-            
-            if (filteredArrays.length === 0) return []
-            if (filteredArrays.length === 1) return filteredArrays[0]
-            
-            // Find the shortest array to use as reference
-            const shortest = filteredArrays.reduce((min, arr) => arr.length < min.length ? arr : min, filteredArrays[0])
-            
-            // Check each position in the shortest array
-            for (let i = 0; i < shortest.length; i++) {
-                const value = shortest[i]
-                // Check if all arrays have the same value at this position
-                if (!filteredArrays.every(arr => arr[i] === value)) {
-                    // Return prefix up to (but not including) this position
-                    return shortest.slice(0, i)
-                }
-            }
-            
-            // All arrays match the shortest array completely
-            return shortest
-        }
-        
-        // Reduce over topological sort (process parents before children)
-        for (const scc of topologicalSort) {
-            // Step 1: Find unique parents for all nodes in this SCC
-            const parentSet = new Set<ComponentUUID | AssetUUID>()
-            for (const nodeUUID of scc) {
-                const graphNode = graph.getNode(nodeUUID)
-                if (graphNode) {
-                    // Get back-edges (edges pointing TO this node, i.e., parent→child relationships)
-                    const backEdges = graphNode.backEdges
-                    for (const edge of backEdges) {
-                        parentSet.add(edge.from)
-                    }
-                }
-            }
-            
-            // Step 2: Filter to external parents (parents outside this SCC, already processed)
-            const externalParents = Array.from(parentSet).filter(parentUUID => !scc.includes(parentUUID))
-            
-            // Step 3: Construct ancestry-threads for each external parent
-            const ancestryThreads: (ComponentUUID | AssetUUID)[][] = externalParents.map(parentUUID => {
-                const parentAncestry = getSelectedAncestry(parentUUID)
-                // Ancestry thread: [...parent's selectedAncestry, parent]
-                // Note: parentAncestry only contains ComponentUUID (filters out AssetUUID)
-                // parentUUID might be AssetUUID or ComponentUUID
-                return [...parentAncestry, parentUUID]
-            })
-            
-            // If no external parents, component is at Asset level (ancestry thread is empty)
-            if (externalParents.length === 0) {
-                ancestryThreads.push([])
-            }
-            
-            // Step 4: Find longest common prefix (nearest common ancestor)
-            // This filters out AssetUUID automatically
-            const commonAncestry = longestCommonPrefix(ancestryThreads)
-            
-            // Step 5: Register selectedAncestry for all nodes in this SCC
-            for (const nodeUUID of scc) {
-                selectedAncestry.set(nodeUUID, commonAncestry)
-                
-                // Step 6: Extract implicitParent (last item in selectedAncestry, or undefined if empty)
-                // Only set implicitParent for ComponentUUID nodes (not AssetUUID)
-                if (!isSchemaAssetUUID(nodeUUID)) {
-                    const implicitParent = commonAncestry.length > 0 
-                        ? commonAncestry[commonAncestry.length - 1] 
-                        : undefined
-                    implicitParents.set(nodeUUID, implicitParent)
-                }
-            }
-        }
-        
-        // Update components with implicitParent values (StandardKey)
-        const updatedComponents = this._components.map(component => {
-            if (component.universalKey) {
-                const implicitParentUUID = implicitParents.get(component.universalKey)
-                if (implicitParentUUID !== undefined || component.implicitParent !== undefined) {
-                    // Look up parent component to get its StandardKey
-                    const parentComponent = implicitParentUUID ? this._lookup(implicitParentUUID) : undefined
-                    const implicitParentKey = parentComponent?._key.plain
-                    // Set _implicitParentKey (StandardKey) via withImplicitParent
-                    // Note: _implicitParent (ComponentUUID) is set separately if needed for backward compatibility
-                    return component.withImplicitParent(implicitParentKey)
-                }
-            }
-            return component
-        })
-        
-        return { implicitParents, updatedComponents }
     }
 
     get byUniversalId(): Record<ComponentUUID, StandardComponent> {
