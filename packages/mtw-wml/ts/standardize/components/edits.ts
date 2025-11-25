@@ -19,7 +19,7 @@ export class StandardRemove implements StandardComponent {
     _mapping?: StandardKey[];
     _match: StandardComponent;
     explicitParent?: StandardExplicitParent;
-    _implicitParent?: ComponentUUID;
+    _implicitParent?: StandardKey;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Remove' as const;
     constructor(props: StandardRemove | StandardComponent) {
         if (props instanceof StandardRemove) {
@@ -171,13 +171,14 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
-    get implicitParent(): ComponentUUID | undefined { return this._implicitParent }
+    get implicitParent(): StandardKey | undefined { return this._implicitParent }
 
-    withImplicitParent(implicitParent: ComponentUUID | undefined): StandardComponent {
+    withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
         const returnValue = this.clone()
-        returnValue._implicitParent = implicitParent
+        returnValue._implicitParent = implicitParent ? new StandardKey(implicitParent) : undefined
         return returnValue
     }
+
 }
 
 //
@@ -195,7 +196,7 @@ export class StandardReplace implements StandardComponent {
     _mapping?: StandardKey[];
     leastCommonContext: StandardKey[] = [];
     explicitParent?: StandardExplicitParent;
-    _implicitParent?: ComponentUUID;
+    _implicitParent?: StandardKey;
     tag: ComponentTag | 'Remove' | 'Replace' = 'Replace' as const;
     constructor(...propsArray: [StandardReplace] | [StandardComponent, StandardComponent]) {
         if (propsArray.length > 1) {
@@ -383,11 +384,11 @@ export class StandardReplace implements StandardComponent {
         return returnValue
     }
 
-    get implicitParent(): ComponentUUID | undefined { return this._implicitParent }
+    get implicitParent(): StandardKey | undefined { return this._implicitParent }
 
-    withImplicitParent(implicitParent: ComponentUUID | undefined): StandardComponent {
+    withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
         const returnValue = this.clone()
-        returnValue._implicitParent = implicitParent
+        returnValue._implicitParent = implicitParent ? new StandardKey(implicitParent) : undefined
         return returnValue
     }
 }

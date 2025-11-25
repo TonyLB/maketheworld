@@ -520,24 +520,54 @@ After universalKey assignment in `finalize()`, we:
 
 ### Phase 6: Complete Migration and Cleanup
 
-**Goal**: Remove `context` array, complete migration to `parent` reference
+**Goal**: Remove `context` array, complete migration to `implicitParent`
+
+**Status**: ⏳ Pending
+
+**Key Decisions**:
+
+1. **Remove `withLeastCommonContext()`**: 
+   - ✅ We now have `withExplicitParent()` and `withImplicitParent()` to fill the gap
+   - ✅ No real need for `withLeastCommonContext()` - it was a workaround for the old context system
+   - **Action**: Remove method entirely, update all call sites to use `withImplicitParent()` or `withExplicitParent()` as appropriate
+
+2. **Simplify `diff()` method**:
+   - ⚠️ The current `diff()` algorithm using context intersection is an organic first-iteration
+   - ⚠️ May not be the final approach we need
+   - **Action**: Remove most of the context intersection logic, leave TODO comment for future implementation
+   - **Rationale**: Better to have a simpler, incomplete implementation than a complex one based on deprecated patterns
+
+3. **No backward compatibility for serialization**:
+   - ✅ We're revamping the storage structure to be better
+   - ✅ Serialization should stay in sync with our newest outlook
+   - **Action**: Remove `context` from `toJSON()` serialization entirely (breaking change)
+   - **Rationale**: Clean break is better than maintaining legacy format
 
 **Tasks**:
-1. Update all remaining `context` array usages to use `parent` + helpers
-2. Remove `context` field from `StandardKey` (breaking change)
-3. Rename `withLeastCommonContext()` → `withImplicitParent()` (or `withParent()`)
-4. Update all call sites and interface definitions
-5. Update documentation
-6. Remove temporary compatibility code
+1. ⏳ Add helper functions for ancestry chain operations (see assessment document)
+2. ⏳ Replace simple `context` usages with `implicitParent`:
+   - `context.slice(-1)[0]` → `implicitParent` lookup
+   - `context?.length > 0` → `implicitParent !== undefined`
+   - `context.length` → depth helper from `implicitParent`
+   - Nested component filtering → `implicitParent` check
+3. ⏳ Remove legacy context rebuilding in `finalize()` (lines 1126-1140)
+4. ⏳ Remove `withLeastCommonContext()` method and all call sites
+5. ⏳ Simplify `diff()` method - remove context intersection, add TODO
+6. ⏳ Remove `context` from `toJSON()` serialization
+7. ⏳ Update `sortOrder.ts` to use ancestry chain helpers
+8. ⏳ Remove `context` field from `StandardKey` (breaking change)
+9. ⏳ Update all call sites and interface definitions
+10. ⏳ Update documentation
+11. ⏳ Remove temporary compatibility code
 
 **Files to modify**:
 - `./components/reference.ts` - Remove `context` field
-- `./components/baseClasses.ts` - Interface definitions
-- `./components/component.ts` - Method implementations
-- `./components/edits.ts` - Edit component methods
-- `./index.ts` - All context usages
-- `./processComponents.ts` - All context usages
-- `./sortOrder.ts` - Use `getAncestryChain()` helper
+- `./components/baseClasses.ts` - Interface definitions (remove `withLeastCommonContext()`)
+- `./components/component.ts` - Remove `withLeastCommonContext()`, simplify `diff()`, remove context from `toJSON()`
+- `./components/edits.ts` - Remove `withLeastCommonContext()` usage
+- `./index.ts` - Remove legacy context rebuilding, replace all context usages
+- `./processComponents.ts` - Remove context usages
+- `./sortOrder.ts` - Use ancestry chain helpers
 - All component classes and call sites
 
 ### Phase 7: Testing and Validation
