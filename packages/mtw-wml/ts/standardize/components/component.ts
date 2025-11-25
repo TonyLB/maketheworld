@@ -59,8 +59,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _from?: AssetUUID;
         _origin?: AssetUUID[];
         explicitParent?: StandardExplicitParent;
-        _implicitParent?: ComponentUUID;
-        _implicitParentKey?: StandardKey;  // Temporary storage for StandardKey before finalize()
+        _implicitParent?: StandardKey;
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
@@ -71,8 +70,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._mapping = props._mapping
                 // Clone explicitParent if it exists - use schema to clone (handles empty Parent tags)
                 this.explicitParent = props.explicitParent ? new StandardExplicitParent(props.explicitParent.schema) : undefined
-                this._implicitParent = props._implicitParent
-                this._implicitParentKey = props._implicitParentKey ? new StandardKey(props._implicitParentKey) : undefined
+                this._implicitParent = props._implicitParent ? new StandardKey(props._implicitParent) : undefined
                 return
             }
             if (typeof props === 'string' && isLegalKey(props)) {
@@ -140,7 +138,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             this._key = isStandardReferencePayloadData(props) ? new StandardKey(props) : typeof props === 'string' ? new StandardKey(props) : new StandardKey('')
             this._payload.fromJSON(props)
             if (!isSchemaTreeNode(props) && props.implicitParent) {
-                this._implicitParentKey = new StandardKey(props.implicitParent)
+                this._implicitParent = new StandardKey(props.implicitParent)
             }
         }
 
@@ -173,7 +171,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return new StandardReference(this.referenceData)
         }
         get origin(): AssetUUID[] | undefined { return this._origin }
-        get implicitParent(): StandardKey | undefined { return this._implicitParentKey }
+        get implicitParent(): StandardKey | undefined { return this._implicitParent }
 
         clone(): StandardComponent {
             return new GeneratedComponentClass(this)
@@ -189,7 +187,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (this._payload.remapReferences) {
                 const returnValue = this.clone() as GeneratedComponentClass
                 returnValue._payload = returnValue._payload.remapReferences?.({ mapTo, mappings: this._mapping ?? [] }) ?? returnValue._payload
-                returnValue._implicitParentKey = this._implicitParentKey ? this._implicitParentKey.toFormat(mapTo) : undefined
+                returnValue._implicitParent = this._implicitParent ? this._implicitParent.toFormat(mapTo) : undefined
                 return returnValue as this
             }
             return this
@@ -203,7 +201,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 ...(this._from ? { from: this._from } : {}),
                 ...(this._origin ? { origin: this._origin } : {}),
                 ...(this.explicitParent ? { explicitParent: this.explicitParent.toJSON() } : {}),
-                ...(this._implicitParentKey ? { implicitParent: this._implicitParentKey.toJSON() } : {}),
+                ...(this._implicitParent ? { implicitParent: this._implicitParent.toJSON() } : {}),
             } as D
         }
 
@@ -231,9 +229,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             const expectedParent = options.parent
             
             // Get implicit parent as StandardKey (works both before and after finalize)
-            // After finalize: look up ComponentUUID to get StandardKey
-            // Before finalize: use _implicitParentKey directly
-            const implicitParentKey: StandardKey | undefined = this._implicitParentKey
+            const implicitParentKey: StandardKey | undefined = this._implicitParent
             
             // Determine if we should render:
             // - If expectedParent is undefined, render only if component is Asset-level (no implicit parent)
@@ -310,7 +306,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             }
             // implicitParent is computed metadata - don't copy during merge, will be recomputed during finalize()
             returnValue._implicitParent = undefined
-            returnValue._implicitParentKey = undefined
 
             return returnValue as StandardComponent
         }
@@ -430,13 +425,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
         withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
             const returnValue = this.clone() as GeneratedComponentClass
-            returnValue._implicitParentKey = implicitParent ? new StandardKey(implicitParent) : undefined
-            return returnValue
-        }
-
-        withImplicitParentKey(implicitParentKey: StandardKey | undefined): StandardComponent {
-            const returnValue = this.clone() as GeneratedComponentClass
-            returnValue._implicitParentKey = implicitParentKey ? new StandardKey(implicitParentKey) : undefined
+            returnValue._implicitParent = implicitParent ? new StandardKey(implicitParent) : undefined
             return returnValue
         }
     }

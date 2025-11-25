@@ -53,7 +53,7 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(`<Asset uuid=(Test) />`)
     })
 
-    describe('_getParentChildEdgesWithStandardKey()', () => {
+    describe('_getParentChildEdges()', () => {
         // Helper to check if edges contain a specific edge (handles StandardKey comparison)
         const containsEdge = (
             edges: Array<{ parent: StandardKey | string; child: StandardKey }>,
@@ -365,7 +365,7 @@ describe('StandardForm', () => {
         })
     })
 
-    describe('_buildComponentGraphWithStandardKey()', () => {
+    describe('_buildComponentGraph()', () => {
         // Helper to find synthetic UUID for a StandardKey or AssetUUID by searching graph nodes
         const findSyntheticUUID = (
             key: StandardKey | AssetUUID,

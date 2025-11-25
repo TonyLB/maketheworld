@@ -61,5 +61,4 @@ export interface StandardComponent {
     withImport(fromAsset: AssetUUID): StandardComponent;
     withOrigin(origin: AssetUUID[] | undefined): StandardComponent;
     withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent;
-    withImplicitParentKey(implicitParentKey: StandardKey | undefined): StandardComponent;
 }

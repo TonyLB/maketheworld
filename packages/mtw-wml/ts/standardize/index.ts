@@ -632,10 +632,10 @@ export class StandardForm {
      * Generates implicit parent relationships using StandardKey (works before finalize()).
      * 
      * This method creates a graph using StandardKey instead of ComponentUUID, allowing it
-     * to work before finalize() has assigned universalKeys. Sets `_implicitParentKey` on
-     * components, which can later be converted to `_implicitParent` (ComponentUUID) in finalize().
+     * to work before finalize() has assigned universalKeys. Sets `_implicitParent` on
+     * components as a StandardKey.
      * 
-     * @returns Updated StandardForm with implicitParentKey set on all components
+     * @returns Updated StandardForm with implicitParent set on all components
      */
     generateImplicitParents(): StandardForm {
         const { graph, topologicalSort } = this._buildComponentGraph()
@@ -714,7 +714,7 @@ export class StandardForm {
 
             returnValue._components = returnValue._components.map(component => {
                 if (keysToUpdate.some(key => key.equals(component._key.plain))) {
-                    return component.withImplicitParentKey(implicitParentKey)
+                    return component.withImplicitParent(implicitParentKey)
                 }
                 return component
             })
