@@ -72,7 +72,7 @@ describe('StandardForm', () => {
 
         it('should return empty array for empty StandardForm', () => {
             const sf = new StandardForm('ASSET#TestAsset')
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             expect(edges).toEqual([])
         })
 
@@ -81,7 +81,7 @@ describe('StandardForm', () => {
                 <Room key=(room1) />
                 <Feature key=(feature1) />
             </Asset>`)
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             
             // Should have 2 Asset-level edges: Asset → room1, Asset → feature1
             expect(edges.length).toBe(2)
@@ -102,7 +102,7 @@ describe('StandardForm', () => {
                     <Character key=(char1) />
                 </Room>
             </Asset>`)
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             
             // Should have 4 edges: Asset → room1, room1 → feature1, room1 → example1, room1 → char1
             expect(edges.length).toBe(4)
@@ -130,7 +130,7 @@ describe('StandardForm', () => {
                     </Room>
                 </Map>
             </Asset>`)
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             
             // Should have 3 edges: Asset → map1, map1 → room1, map1 → room2 (via Position references)
             expect(edges.length).toBe(3)
@@ -152,7 +152,7 @@ describe('StandardForm', () => {
                     <Example key=(example2) />
                 </Feature>
             </Asset>`)
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             
             // Should have 3 edges: Asset → feature1, feature1 → example1, feature1 → example2
             expect(edges.length).toBe(3)
@@ -174,7 +174,7 @@ describe('StandardForm', () => {
                     <Room key=(room2) />
                 </Message>
             </Asset>`)
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             
             // Should have 3 edges: Asset → message1, message1 → room1, message1 → room2
             expect(edges.length).toBe(3)
@@ -196,7 +196,7 @@ describe('StandardForm', () => {
                     <Message key=(message2) />
                 </Moment>
             </Asset>`)
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             
             // Should have 3 edges: Asset → moment1, moment1 → message1, moment1 → message2
             expect(edges.length).toBe(3)
@@ -222,7 +222,7 @@ describe('StandardForm', () => {
                     </Room>
                 </Map>
             </Asset>`)
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             
             // Should have 4 edges: Asset → map1, map1 → room1 (via Position), room1 → feature1, feature1 → example1
             expect(edges.length).toBe(4)
@@ -246,7 +246,7 @@ describe('StandardForm', () => {
                 </Room>
                 <Room key=(room2) />
             </Asset>`)
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             
             // Should have 2 Asset-level edges: Asset → room1, Asset → room2
             // Exit is not a parent-child relationship, so no room1 → room2 edge
@@ -269,7 +269,7 @@ describe('StandardForm', () => {
             </Asset>`)
             // Don't call finalize() - components won't have universalKey
             
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             
             // Should have 2 edges: Asset → room1, room1 → feature1
             // Even though components don't have universalKey yet
@@ -296,7 +296,7 @@ describe('StandardForm', () => {
             </Asset>`)
             // Don't call finalize() - feature1 won't have universalKey, but room1 and example1 will
             
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             
             // Should have 3 edges: Asset → room1, room1 → feature1, room1 → example1
             // Should work even though feature1 has no universalKey
@@ -324,7 +324,7 @@ describe('StandardForm', () => {
                 </Room>
             </Asset>`).finalize()
             
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             
             // Should have 2 edges: Asset → room1, room1 → feature1
             expect(edges.length).toBe(2)
@@ -351,7 +351,7 @@ describe('StandardForm', () => {
             // @ts-ignore - accessing private for test
             sf._topLevel = new ReferenceList([roomWithoutUUID.referenceData])
             
-            const edges = sf._getParentChildEdgesWithStandardKey()
+            const edges = sf._getParentChildEdges()
             // Should have 1 edge: Asset → room1 (room1 is in topLevel)
             // feature1 is not in topLevel, so no Asset → feature1 edge
             // But if room1 had children, those edges would work even without universalKey
@@ -383,7 +383,7 @@ describe('StandardForm', () => {
 
         it('should return empty graph for empty StandardForm', () => {
             const sf = new StandardForm('ASSET#TestAsset')
-            const { graph, topologicalSort } = sf._buildComponentGraphWithStandardKey()
+            const { graph, topologicalSort } = sf._buildComponentGraph()
             
             expect(Object.keys(graph.nodes).length).toBe(0)
             expect(graph.edges.length).toBe(0)
@@ -396,7 +396,7 @@ describe('StandardForm', () => {
                 <Room key=(room1) />
                 <Feature key=(feature1) />
             </Asset>`)
-            const { graph, topologicalSort } = sf._buildComponentGraphWithStandardKey()
+            const { graph, topologicalSort } = sf._buildComponentGraph()
             
             const assetUUID = sf.universalKey
             const room1Key = sf.byId['room1']._key.plain
@@ -436,7 +436,7 @@ describe('StandardForm', () => {
                     <Example key=(example1) />
                 </Room>
             </Asset>`)
-            const { graph, topologicalSort } = sf._buildComponentGraphWithStandardKey()
+            const { graph, topologicalSort } = sf._buildComponentGraph()
             
             const assetUUID = sf.universalKey
             const room1Key = sf.byId['room1']._key.plain
@@ -470,7 +470,7 @@ describe('StandardForm', () => {
                     </Room>
                 </Map>
             </Asset>`)
-            const { graph, topologicalSort } = sf._buildComponentGraphWithStandardKey()
+            const { graph, topologicalSort } = sf._buildComponentGraph()
             
             const assetUUID = sf.universalKey
             const map1Key = sf.byId['map1']._key.plain
@@ -504,7 +504,7 @@ describe('StandardForm', () => {
                     </Room>
                 </Map>
             </Asset>`)
-            const { graph, topologicalSort } = sf._buildComponentGraphWithStandardKey()
+            const { graph, topologicalSort } = sf._buildComponentGraph()
             
             const assetUUID = sf.universalKey
             const map1Key = sf.byId['map1']._key.plain
@@ -538,7 +538,7 @@ describe('StandardForm', () => {
             </Asset>`)
             // Don't call finalize() - components won't have universalKey
             
-            const { graph, topologicalSort } = sf._buildComponentGraphWithStandardKey()
+            const { graph, topologicalSort } = sf._buildComponentGraph()
             
             const assetUUID = sf.universalKey
             const room1Key = sf.byId['room1']._key.plain
@@ -575,7 +575,7 @@ describe('StandardForm', () => {
             </Asset>`)
             // Don't call finalize() - feature1 won't have universalKey, but room1 and example1 will
             
-            const { graph, topologicalSort } = sf._buildComponentGraphWithStandardKey()
+            const { graph, topologicalSort } = sf._buildComponentGraph()
             
             const assetUUID = sf.universalKey
             const room1Key = sf.byId['room1']._key.plain
@@ -615,7 +615,7 @@ describe('StandardForm', () => {
                 </Room>
             </Asset>`).finalize()
             
-            const { graph, topologicalSort } = sf._buildComponentGraphWithStandardKey()
+            const { graph, topologicalSort } = sf._buildComponentGraph()
             
             const assetUUID = sf.universalKey
             const room1Key = sf.byId['room1']._key.plain
@@ -659,7 +659,7 @@ describe('StandardForm', () => {
                     <Feature key=(feature1) />
                 </Room>
             </Asset>`)
-            const { graph, topologicalSort } = sf._buildComponentGraphWithStandardKey()
+            const { graph, topologicalSort } = sf._buildComponentGraph()
             
             const room1Key = sf.byId['room1']._key.plain
             const feature1Key = sf.byId['feature1']._key.plain
@@ -687,7 +687,7 @@ describe('StandardForm', () => {
             const room1ByUUID = sf.byUniversalId['ROOM#001']
             expect(room1ByUUID).toBeDefined()
             
-            const { graph, topologicalSort } = sf._buildComponentGraphWithStandardKey()
+            const { graph, topologicalSort } = sf._buildComponentGraph()
             
             // Both the local key StandardKey and the universalKey StandardKey should map to the same synthetic UUID
             const room1Key = sf.byId['room1']._key.plain
@@ -2774,7 +2774,7 @@ describe('StandardForm', () => {
             //
             // Now the nested Example component can be written into schema
             //
-            expect(schemaToWML([subset.finalize().schema])).toEqual(deIndentWML(`
+            expect(schemaToWML([subset.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
                     <Room key=(testRoom)>
                         <ShortName>Test Room</ShortName>
