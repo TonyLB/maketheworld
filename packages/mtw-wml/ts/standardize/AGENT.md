@@ -76,7 +76,6 @@ particular context.
 - **`finalize()`**: Completes the asset by ensuring all references are properly mapped
 - **`mapContents(callback)`**: Transforms all component content
 - **`renameKey(props)`**: Renames component keys throughout the asset
-- **`assureComponent(reference)`**: Ensures a component exists in the asset
 
 ### Constructor Overloads
 
@@ -278,36 +277,6 @@ const diff = original.diff(modified)
 //            <With><Description>Grand hall</Description></With>
 //        </Example>
 
-```
-
-### Content Transformation
-
-StandardForm provides methods to transform all component content:
-
-```typescript
-// Transform all component content
-const transformed = asset.mapContents((tree) => {
-    // Apply transformation to each component's schema
-    return transformedTree
-})
-
-```
-
-### Reference Management
-
-StandardForm handles component references and mappings:
-
-```typescript
-// Rename component keys throughout the asset
-const renamed = asset.renameKey([
-    { fromKey: 'oldRoom', toKey: 'newRoom', retainOldExportAs: true }
-])
-
-// Ensure component exists
-const assured = asset.assureComponent({ key: 'missingRoom', tag: 'Room' })
-
-// Finalize asset (complete all mappings)
-const finalized = asset.finalize()
 ```
 
 ## Edit Operations

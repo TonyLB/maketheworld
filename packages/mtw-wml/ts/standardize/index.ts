@@ -711,7 +711,6 @@ export class StandardForm {
                 .map((key) => (graph.nodes[key]?.standardKey))
                 .filter((key): key is StandardKey => key !== undefined)
 
-
             returnValue._components = returnValue._components.map(component => {
                 if (keysToUpdate.some(key => key.equals(component._key.plain))) {
                     return component.withImplicitParent(implicitParentKey)
@@ -784,9 +783,10 @@ export class StandardForm {
     }
 
     toNDJSON(): StandardNDJSON {
+        const mapKeys = this._components.map(({ _key }) => (_key.plain))
         const components: (StandardComponentData & SerializeNDJSONMixin)[] = this._components
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
-            .map((component) => (component.toJSON()))
+            .map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON()))
         return [
             this.header,
             ...components
@@ -866,7 +866,7 @@ export class StandardForm {
         // Note: if this._summary exists but incoming._summary is undefined,
         // we keep this._summary (already set by _clone())
 
-        return returnValue
+        return returnValue.generateImplicitParents()
     }
 
     subset(requests: StandardFormSubsetRequest[]): StandardForm {
@@ -1100,7 +1100,7 @@ export class StandardForm {
                 }, previous)
             }, [])
 
-        return returnValue
+        return returnValue.generateImplicitParents()
     }
 
     renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }[]): StandardForm {
@@ -1181,58 +1181,6 @@ export class StandardForm {
         return returnValue
     }
 
-    /**
-     * Ensures a component exists in the asset, creating it if necessary and establishing parent-child relationships.
-     * 
-     * **Legacy Pattern**: This is a dynamic-programming solution that allows operations to be applied in any order
-     * by making it safe to apply parent-changing impacts to parents that might not yet have been processed.
-     * 
-     * **Future Simplification**: Now that we have topological sort in `finalize()`, we could potentially simplify
-     * this to just direct lookup and child addition (parents are guaranteed to exist before children in topological order).
-     * However, this method is still used in contexts outside of `finalize()` where topological ordering isn't guaranteed.
-     * 
-     * @param reference The component to ensure exists
-     * @param parent Optional parent component (if not provided, extracts from reference.context for backward compatibility)
-     */
-    assureComponent(reference: StandardKey, parent?: StandardKey): StandardForm {
-        const returnValue = this._clone()
-        const existingComponent = returnValue._lookup(reference.toJSON())
-        if (existingComponent) {
-            return returnValue
-        }
-        // Create component without context (we'll handle parent relationship separately)
-        // TODO: Remove withLeastCommonContext once we've migrated away from context entirely
-        const newComponent = standardComponentFactory(defaultComponentFromTag(reference.tag, reference.key, reference.universalKey))?.withLeastCommonContext(reference.context ?? [])
-        if (!newComponent) {
-            throw new Error(`Unable to create component for tag ${reference.tag} with key ${reference.key} and universalKey ${reference.universalKey}`)
-        }
-        returnValue._components = [...returnValue._components, newComponent]
-        
-        // Determine parent: use provided parent, or extract from reference.context (for backward compatibility during migration)
-        // TODO: Remove context fallback once we've migrated away from context entirely
-        const parentKey = parent ?? (reference.context && reference.context.length > 0 
-            ? reference.context[reference.context.length - 1] 
-            : undefined)
-        
-        if (parentKey) {
-            // For recursive call, extract parent's parent from context if available (during migration)
-            // TODO: Remove this fallback once we've migrated away from context entirely
-            const parentParent = parentKey.context && parentKey.context.length > 0
-                ? parentKey.context[parentKey.context.length - 1]
-                : undefined
-            const assuredValue = returnValue.assureComponent(parentKey, parentParent)
-            assuredValue._components = assuredValue._components
-                .map((component) => {
-                    if (component._key.plain.equals(parentKey.plain)) {
-                        return component.withChild(new StandardReference(reference.plain))
-                    }
-                    return component
-                })
-            return assuredValue
-        }
-        return returnValue
-    }
-
     finalize(): StandardForm {
         let returnValue = this._clone()
         const uuidGenerator = new UUIDGenerator()
@@ -1247,32 +1195,34 @@ export class StandardForm {
         returnValue = returnValue.generateImplicitParents()
         
         // Hierarchy assurance: Add child references to parent components
-        // TODO: This uses assureComponent which is a legacy dynamic-programming pattern that ensures
-        // components exist in any order. Since we now have topological sort, we could simplify this
-        // to just direct lookup and child addition (parents are guaranteed to exist before children).
-        const hierarchyAssuredStandardForm = returnValue._components
-            .reduce<StandardForm>((previous, component) => {
-                // Get parent component from implicitParent (StandardKey) instead of context
-                const parentComponent = component.implicitParent
-                    ? returnValue._lookup(component.implicitParent.toJSON())
-                    : undefined
-                if (parentComponent) {
-                    const parentKey = parentComponent._key.plain
-                    const assuredComponent = previous.assureComponent(parentKey, undefined)
-                    assuredComponent._components = assuredComponent._components
-                        .map((existingComponent) => {
-                            if (existingComponent._key.plain.equals(parentKey)) {
-                                return existingComponent.withChild(new StandardReference(component._key.plain))
-                            }
-                            return existingComponent
-                        })
-                    return assuredComponent
+        returnValue._components = returnValue._components
+            .map((component) => {
+                const implicitChildren = returnValue._components
+                    .filter(({ implicitParent }) => (implicitParent && implicitParent.equals(component._key.plain)))
+                if (implicitChildren.length > 0) {
+                    //
+                    // If the component is the implicit parent, assure that it includes all
+                    // the child references
+                    //
+                    // TODO: We need to change this when explicitParent is implemented, so that
+                    // it does not add a child reference to the implicit parent if positioning
+                    // will be overridden by an explicit parent. That may involve moving the
+                    // child reference addition to the finalize() step.
+                    //
+                    // TODO: We need to evaluate whether this adds the right type of reference
+                    // when different StandardKey types (e.g. add and replace) are combined by
+                    // the implicit-parent mechanism.
+                    //
+                    return implicitChildren.reduce<StandardComponent>((previous, current) => {
+                        return previous.withChild(new StandardReference(current._key.plain))
+                    }, component)
                 }
-                return previous
-            }, returnValue)
-        const mappings: StandardKey[] = hierarchyAssuredStandardForm._components
+                return component
+            })
+
+        const mappings: StandardKey[] = returnValue._components
             .map((component) => (component._key))
-        returnValue._components = hierarchyAssuredStandardForm._components.map((component) => (component.withMapping(mappings).remapReferences('universal')))
+        returnValue._components = returnValue._components.map((component) => (component.withMapping(mappings).remapReferences('universal')))
         return returnValue
     }
 
@@ -1380,7 +1330,7 @@ export class StandardForm {
             ? this._summary.diff(incoming._summary)
             : incoming._summary
 
-        return diffedValue.finalize()
+        return diffedValue.generateImplicitParents()
     }
 
     /**
