@@ -866,6 +866,10 @@ export class StandardForm {
     // StandardForm merge method accounts for component-level edits (like StandardRemove and StandardReplace)
     // and merges all contents in place
     //
+    // TODO: Revisit merge() logic after context removal - should use buildComponentGraph to determine
+    // proper parent relationships when components appear in multiple contexts. The current context
+    // intersection in StandardKey.merge() is a temporary measure that will be removed.
+    //
     merge(incoming: StandardForm): StandardForm {
         const mergedUniversalKeyMappings = mergeUniversalKeyMappings([...this._keys, ...incoming._keys])
         const returnValue = this._clone()
@@ -1335,11 +1339,14 @@ export class StandardForm {
         // StandardReplace or StandardRemove form (so that you can match terms completely in the
         // final diff)
         //
+        // TODO: Revisit this logic after context removal - should use buildComponentGraph to determine
+        // cascade-delete behavior based on whether components appear with other parents that still have connections.
+        // For now, use implicitParent to find nested components (replaces context-based lookup).
         diffedValue._components = diffedComponents
             .filter((component) => (component instanceof StandardReplace || component instanceof StandardRemove))
             .reduce<StandardComponent[]>((previous, component) => {
                 const nestedComponents = this._components
-                    .filter(({ _key }) => (Boolean((_key.context ?? []).find((contextKey) => (contextKey.equals(component._key.plain))))))
+                    .filter((childComponent) => childComponent.implicitParent?.equals(component._key))
                     .filter(({ universalKey }) => (!Boolean(previous.find(({ universalKey: existingUniversalKey }) => (existingUniversalKey === universalKey)))))
                 return [...previous, ...nestedComponents]
             }, diffedComponents)

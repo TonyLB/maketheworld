@@ -7,9 +7,9 @@
 
 ## Executive Summary
 
-**Overall Progress**: ~50% Complete
+**Overall Progress**: ~60% Complete
 
-The migration infrastructure is in place (helper functions implemented), and sorting logic has been successfully migrated. The `context` property is still actively used in several areas and cannot be safely removed yet.
+The migration infrastructure is in place (helper functions implemented), and sorting logic has been successfully migrated. Context dependencies have been removed from `diff()` and nested component finding, though these methods are marked for future refactoring to use graph-based logic. The `context` property is still actively used in several areas (primarily `withLeastCommonContext()` and `StandardKey.merge()`) and cannot be safely removed yet.
 
 ---
 
@@ -42,38 +42,44 @@ The migration infrastructure is in place (helper functions implemented), and sor
 
 ---
 
-#### 2. Context Intersection in `diff()` - **STILL USING CONTEXT**
-**Status**: ❌ Not migrated
+#### 4. Context Intersection in `StandardKey.merge()` - **STILL USING CONTEXT** (temporary)
+**Status**: ❌ Still uses context, temporary compatibility measure
 
-**Location**: `components/component.ts` lines 360-366
+**Location**: `components/reference.ts` lines 220-221
 
-```360:366:packages/mtw-wml/ts/standardize/components/component.ts
-            const leastCommonContext = (this._key?.context ?? []).filter((reference) => (
-                (incoming._key?.context ?? []).some((incomingReference) => (
-                    reference.equals(incomingReference)
-                ))
-            ))
+**Current Behavior**: Performs context array intersection to find common ancestors when merging two `StandardKey` instances.
 
-            const diffComponent = new StandardReplace(this, incoming).withLeastCommonContext(leastCommonContext)
-```
+**Changes Made**: Added TODO comment noting this is temporary and will be removed when context property is removed.
 
-**Action Required**: Simplify `diff()` method - remove context intersection logic, add TODO for future implementation (per assessment decision).
+**Future Work**: Remove context intersection entirely when `context` property is removed from `StandardKey`. Hierarchical connections are handled at the component level (via `implicitParent`), not at the key level.
 
 ---
 
-#### 3. Finding Nested Components - **STILL USING CONTEXT**
-**Status**: ❌ Not migrated
+#### 2. Context Intersection in `diff()` - ✅ **CONTEXT DEPENDENCY REMOVED** (needs revisit)
+**Status**: ✅ Context dependency removed, but logic needs future refactor
 
-**Location**: `index.ts` line 1317
+**Location**: `components/component.ts` line 366
 
-```1317:1317:packages/mtw-wml/ts/standardize/index.ts
-                    .filter(({ _key }) => (Boolean((_key.context ?? []).find((contextKey) => (contextKey.equals(component._key.plain)))))
-```
+**Changes Made**:
+- Removed context intersection logic (lines 360-364)
+- Now passes empty array `[]` to `withLeastCommonContext()` (sets context to undefined)
+- Added TODO comment noting that `diff()` should use `buildComponentGraph` for cascade-delete decisions
 
-**Action Required**: Replace with `implicitParent` check:
-```typescript
-.filter((childComponent) => childComponent.implicitParent?.equals(component._key))
-```
+**Future Work**: Refactor `diff()` to use graph structure to determine whether nested components should be removed based on whether they appear with other parents that still have connections.
+
+---
+
+#### 3. Finding Nested Components - ✅ **MIGRATED** (needs revisit)
+**Status**: ✅ Context dependency removed, but logic needs future refactor
+
+**Location**: `index.ts` line 1346
+
+**Changes Made**:
+- Replaced context-based lookup with `implicitParent` check
+- Now uses: `.filter((childComponent) => childComponent.implicitParent?.equals(component._key))`
+- Added TODO comment noting that this should use `buildComponentGraph` for cascade-delete decisions
+
+**Future Work**: Refactor to use graph structure to determine whether nested components should be included in diff based on whether they appear with other parents that still have connections.
 
 ---
 
@@ -158,7 +164,7 @@ The migration infrastructure is in place (helper functions implemented), and sor
 ## Migration Checklist
 
 ### Phase 2: Replace Simple Usages
-- [ ] Replace nested component filtering in `index.ts` line 1317
+- [x] ✅ Replace nested component filtering in `index.ts` line 1346 - **COMPLETE** (needs future refactor)
 - [ ] Update any remaining `context.slice(-1)[0]` → `implicitParent` lookups
 - [ ] Update any remaining `context?.length > 0` → `implicitParent !== undefined` checks
 
@@ -166,9 +172,10 @@ The migration infrastructure is in place (helper functions implemented), and sor
 - [ ] Remove `withLeastCommonContext()` from all component classes
 - [ ] Remove `withLeastCommonContext()` from interface (`baseClasses.ts`)
 - [ ] Update `processComponents.ts` to use `withImplicitParent()` instead
-- [ ] Simplify `diff()` method - remove context intersection, add TODO
+- [x] ✅ Simplify `diff()` method - remove context intersection, add TODO - **COMPLETE** (needs future refactor)
 - [ ] Update edit components (`edits.ts`) to set `implicitParent` instead of `context`
 - [x] ✅ Update `sortOrder.ts` to use ancestry chain helpers - **COMPLETE**
+- [x] ✅ Replace nested component filtering in `diff()` - **COMPLETE** (needs future refactor)
 
 ### Phase 4: Update Serialization
 - [ ] Remove `context` from `StandardKey.toJSON()`
@@ -192,19 +199,48 @@ The migration infrastructure is in place (helper functions implemented), and sor
 
 ---
 
+## Methods Marked for Future Refactoring
+
+The following methods have had their context dependencies removed or minimized, but are marked with TODO comments indicating they need a more comprehensive refactor to use `buildComponentGraph` for proper cascade-delete and parent relationship logic:
+
+1. **`StandardComponent.diff()`** (`components/component.ts` line 366)
+   - Context intersection removed, now passes empty array to `withLeastCommonContext()`
+   - Should use graph to determine cascade-delete behavior
+
+2. **`StandardForm.diff()` nested component finding** (`index.ts` line 1346)
+   - Replaced context lookup with `implicitParent` check
+   - Should use graph to determine whether nested components should be included based on other parent connections
+
+3. **`StandardComponent.merge()`** (`components/component.ts` line 285)
+   - Currently delegates to `StandardKey.merge()` which uses context intersection
+   - Should use graph to resolve parent relationships when components appear in multiple contexts
+
+4. **`StandardForm.merge()`** (`index.ts` line 869)
+   - Currently delegates to component-level merge which uses context intersection
+   - Should use graph to resolve parent relationships
+
+5. **`StandardKey.merge()`** (`components/reference.ts` line 220)
+   - Still uses context intersection (temporary compatibility measure)
+   - Will be removed when `context` property is removed from `StandardKey`
+   - Note: Hierarchical connections are handled at component level, not key level
+
+---
+
 ## Recommended Next Steps
 
 1. ~~**Implement `findFirstDifferingAncestor()` helper**~~ - ✅ **NOT NEEDED** - Sorting simplified
 2. ~~**Update `sortOrder.ts`**~~ - ✅ **COMPLETE** - Now uses `getAncestryChain` instead of context
-3. **Remove `withLeastCommonContext()` systematically**:
+3. ~~**Simplify `diff()` method**~~ - ✅ **COMPLETE** - Context dependency removed (needs future refactor)
+4. ~~**Replace nested component filtering in `diff()`**~~ - ✅ **COMPLETE** - Now uses `implicitParent` (needs future refactor)
+5. **Remove `withLeastCommonContext()` systematically**:
    - Start with removing from interface
    - Update all call sites to use `withImplicitParent()` or `withExplicitParent()`
    - Remove implementations from all component classes
-4. **Simplify `diff()` method** - Remove context intersection, add TODO
-5. **Update edit components** - Set `implicitParent` instead of `context`
-6. **Remove context from serialization** - Update `toJSON()` methods
-7. **Update tests** - Replace all context assertions with `implicitParent` checks
-8. **Remove context property** - Final cleanup after all usages removed
+6. **Update edit components** - Set `implicitParent` instead of `context`
+7. **Remove context from serialization** - Update `toJSON()` methods
+8. **Update tests** - Replace all context assertions with `implicitParent` checks
+9. **Remove context property** - Final cleanup after all usages removed
+10. **Future work**: Refactor `diff()` and `merge()` methods to use `buildComponentGraph` for proper cascade-delete and parent relationship logic
 
 ---
 
@@ -224,6 +260,8 @@ The migration infrastructure is in place (helper functions implemented), and sor
 - Helper functions are well-implemented and ready to use.
 - The migration strategy is clear, but requires systematic work across many files.
 - ✅ **Sorting logic migration complete** - `sortOrder.ts` now uses `getAncestryChain` exclusively, no context dependencies.
+- ✅ **`diff()` and nested component finding** - Context dependencies removed, but marked for future refactor to use `buildComponentGraph` for proper cascade-delete logic.
+- ⚠️ **`merge()` and `StandardKey.merge()`** - Still use context intersection, but marked with TODO for future refactor. Context intersection in `StandardKey.merge()` is temporary and will be removed.
 - ⚠️ **Note**: `sortOrder.ts` contains debug `console.log` statements that should be removed before finalizing.
 
 

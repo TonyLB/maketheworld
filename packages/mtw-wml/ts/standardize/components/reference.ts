@@ -214,6 +214,9 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         if (other.universalKey) {
             returnValue.universalKey = other.universalKey
         }
+        // TODO: Remove context intersection after context property is removed from StandardKey.
+        // This context intersection is a temporary compatibility measure. Hierarchical connections
+        // are handled at the component level (via implicitParent), not at the key level.
         const newContext = (this.context ?? []).filter((reference) => ((other.context ?? []).some((otherReference) => ((otherReference.equals(new StandardKey(reference.toJSON())))))))
         returnValue.context = newContext.length > 0 ? newContext : undefined
         return returnValue
