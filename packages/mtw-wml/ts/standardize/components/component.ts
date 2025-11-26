@@ -391,13 +391,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return returnValue
         }
 
-        withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this)
-            const newContext = leastCommonContext.map((context) => (context.clone()))
-            returnValue._key.context = newContext.length > 0 ? newContext : undefined
-            return returnValue
-        }
-
         withFileName(key: string | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             // returnValue._key._fileName = key

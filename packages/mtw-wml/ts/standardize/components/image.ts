@@ -89,10 +89,6 @@ export class StandardImage extends componentClassFactory(StandardImagePayload, '
         return new StandardImage(super.withOrigin(origin) as StandardImage)
     }
     
-    override withLeastCommonContext(context: StandardKey[]): StandardComponent {
-        return new StandardImage(super.withLeastCommonContext(context) as StandardImage)
-    }
-
     override withChild(child: StandardReference): StandardComponent {
         return new StandardImage(super.withChild(child) as StandardImage)
     }

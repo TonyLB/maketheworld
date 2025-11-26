@@ -96,59 +96,6 @@ describe('StandardFeature class', () => {
         `))
     })
 
-    it('should properly merge leastCommonContext on two nested features', () => {
-        const testOne = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example1) /></Feature>`).withLeastCommonContext([new StandardKey('ROOM#testRoom')])
-        const testTwo = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example2) /></Feature>`).withLeastCommonContext([new StandardKey('ROOM#testRoom')])
-
-        const merged = testOne.merge(testTwo)
-        if (!merged) {
-            expect(true).toBe(false)
-            return
-        }
-        expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
-            <Feature key=(testFeature1)>
-                <Example key=(Example1) />
-                <Example key=(Example2) />
-            </Feature>
-        `))
-        expect((merged._key.context ?? []).map((ref) => ref.toJSON())).toEqual(['ROOM#testRoom'])
-    })
-
-    it('should properly reduce leastCommonContext on two nested features without common context', () => {
-        const testOne = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example1) /></Feature>`).withLeastCommonContext([new StandardKey('ROOM#testRoom')])
-        const testTwo = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example2) /></Feature>`).withLeastCommonContext([new StandardKey('ROOM#testRoomTwo')])
-
-        const merged = testOne.merge(testTwo)
-        if (!merged) {
-            expect(true).toBe(false)
-            return
-        }
-        expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
-            <Feature key=(testFeature1)>
-                <Example key=(Example1) />
-                <Example key=(Example2) />
-            </Feature>
-        `))
-        expect((merged._key.context ?? []).map((ref) => ref.toJSON())).toEqual([])
-    })
-
-    it('should properly retain leastCommonContext on merging a non-nested feature', () => {
-        const testOne = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example1) /></Feature>`).withLeastCommonContext([new StandardKey('ROOM#testRoom')])
-        const testTwo = new StandardFeature(`<Feature key=(testFeature1)><Example key=(Example2) /></Feature>`)
-
-        const merged = testOne.merge(testTwo)
-        if (!merged) {
-            expect(true).toBe(false)
-            return
-        }
-        expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
-            <Feature key=(testFeature1)>
-                <Example key=(Example1) />
-                <Example key=(Example2) />
-            </Feature>
-        `))
-        expect((merged._key.context ?? []).map((ref) => ref.toJSON())).toEqual([])
-    })
 
     it('should correctly add an example reference to a feature', () => {
         const test = new StandardFeature(`

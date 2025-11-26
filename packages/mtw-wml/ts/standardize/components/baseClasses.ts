@@ -56,7 +56,6 @@ export interface StandardComponent {
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
     reference: StandardReference;
     referenceData: StandardReferenceData;
-    withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent;
     withChild(child: StandardReference): StandardComponent;
     withImport(fromAsset: AssetUUID): StandardComponent;
     withOrigin(origin: AssetUUID[] | undefined): StandardComponent;

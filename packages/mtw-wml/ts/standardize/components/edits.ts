@@ -154,13 +154,6 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
-    withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
-        const returnValue = this.clone()
-        returnValue._match._key.context = leastCommonContext
-        returnValue._key = new StandardKey(this._match._key)
-        return returnValue
-    }
-
     withChild(): StandardComponent {
         return this.clone()        
     }
@@ -235,14 +228,6 @@ export class StandardReplace implements StandardComponent {
     get key() { return this._key.key }
     get universalKey() { return this._key.universalKey }
     get fileName() { return undefined }
-
-    withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
-        const returnValue = this.clone()
-        returnValue._match._key.context = leastCommonContext
-        returnValue._payload._key.context = leastCommonContext
-        returnValue._key = new StandardKey(this._match._key)
-        return returnValue
-    }
 
     clone(): StandardReplace {
         return new StandardReplace(this)
