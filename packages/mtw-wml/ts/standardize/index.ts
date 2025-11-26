@@ -264,7 +264,6 @@ export class StandardForm {
                     .filter(({ key, universalKey }) => (key || universalKey))
                 this._components = componentFragments
                     .reduce<StandardComponent[]>(mergeToComponentList(universalKeyMappings), [])
-                    .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
                     
                 // Populate topLevel from processComponents result
                 if (topLevelKeys.length > 0) {
@@ -281,7 +280,17 @@ export class StandardForm {
                 
                 // Generate implicit parents using StandardKey (works before finalize)
                 const withImplicitParents = this.generateImplicitParents()
+                // Sort after implicitParent is available, so sortOrder can use it instead of context
+                // Create getAncestryChain helper that takes a StandardKey, looks up the component, and gets its ancestry chain
+                const getAncestryChain = (key: StandardKey): StandardKey[] => {
+                    const component = withImplicitParents._lookup(key.toJSON())
+                    if (component && component.implicitParent) {
+                        return withImplicitParents._getAncestryChainFromImplicitParent(component)
+                    }
+                    return []  // No implicitParent means at Asset level, no ancestry chain
+                }
                 this._components = withImplicitParents._components
+                    .sort((componentA, componentB) => (standardComponentSortOrder(componentA._key, componentB._key, getAncestryChain)))
                 return
             }
             else {
@@ -784,8 +793,16 @@ export class StandardForm {
 
     toNDJSON(): StandardNDJSON {
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
+        // Create getAncestryChain helper for sorting
+        const getAncestryChain = (key: StandardKey): StandardKey[] => {
+            const component = this._lookup(key.toJSON())
+            if (component && component.implicitParent) {
+                return this._getAncestryChainFromImplicitParent(component)
+            }
+            return []  // No implicitParent means at Asset level, no ancestry chain
+        }
         const components: (StandardComponentData & SerializeNDJSONMixin)[] = this._components
-            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
+            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, getAncestryChain)))
             .map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON()))
         return [
             this.header,
@@ -795,9 +812,17 @@ export class StandardForm {
 
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
+        // Create getAncestryChain helper for sorting
+        const getAncestryChain = (key: StandardKey): StandardKey[] => {
+            const component = this._lookup(key.toJSON())
+            if (component && component.implicitParent) {
+                return this._getAncestryChainFromImplicitParent(component)
+            }
+            return []  // No implicitParent means at Asset level, no ancestry chain
+        }
         const sortedChildren = this._components
             .filter((component) => (!component.implicitParent))
-            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB)))
+            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, getAncestryChain)))
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
         const lookupWrapper = (key: string | StandardKey): StandardComponent | undefined => {
             if (typeof key === 'string') {
