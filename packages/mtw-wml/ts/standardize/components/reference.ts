@@ -70,16 +70,13 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         return new StandardKey(this)
     }
     toJSON: () => StandardReferenceData = () => {
-        if (typeof this.key === 'undefined' && (typeof this.context === 'undefined' || this.context.length === 0) && !this.parent) {
+        if (typeof this.key === 'undefined' && !this.parent) {
             if (typeof this.universalKey === 'undefined') {
                 throw new Error('StandardKey must have a universalKey or key')
             }
             return this.universalKey
         }
         const result: any = { key: this.key, tag: this.tag, universalKey: this.universalKey }
-        if (this.context) {
-            result.context = this.context.map((item) => (item.toJSON()))
-        }
         if (this.parent) {
             // Serialize parent as just its universalKey to avoid recursive nesting
             // The full parent chain can be resolved using getAncestryChain() with a lookup function
