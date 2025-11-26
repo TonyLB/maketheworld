@@ -615,13 +615,11 @@ exports[`large WML test should parse properly 1`] = `
 exports[`large WML test should standardize properly 1`] = `
 [
   {
-    "context": undefined,
     "key": "dungeonImage",
     "tag": "Image",
     "universalKey": undefined,
   },
   {
-    "context": undefined,
     "examples": [
       "EXAMPLE#example2",
       "EXAMPLE#example3",
@@ -650,16 +648,14 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "context": [
-      {
-        "key": "cave",
-        "tag": "Room",
-        "universalKey": undefined,
-      },
-    ],
     "description": [
       "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
     ],
+    "implicitParent": {
+      "key": "cave",
+      "tag": "Room",
+      "universalKey": undefined,
+    },
     "key": undefined,
     "name": [
       "Shallow cave",
@@ -669,16 +665,14 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": "EXAMPLE#example2",
   },
   {
-    "context": [
-      {
-        "key": "cave",
-        "tag": "Room",
-        "universalKey": undefined,
-      },
-    ],
     "description": [
       "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
     ],
+    "implicitParent": {
+      "key": "cave",
+      "tag": "Room",
+      "universalKey": undefined,
+    },
     "key": undefined,
     "name": [
       "Shallow cave",
@@ -688,7 +682,6 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": "EXAMPLE#example3",
   },
   {
-    "context": undefined,
     "examples": [
       "EXAMPLE#example5",
     ],
@@ -720,14 +713,12 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "context": [
-      {
-        "key": "chamber",
-        "tag": "Room",
-        "universalKey": undefined,
-      },
-    ],
     "description": undefined,
+    "implicitParent": {
+      "key": "chamber",
+      "tag": "Room",
+      "universalKey": undefined,
+    },
     "key": undefined,
     "name": undefined,
     "summary": undefined,
@@ -735,33 +726,28 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": "EXAMPLE#example5",
   },
   {
-    "context": [
-      {
-        "key": "chamber",
-        "tag": "Room",
-        "universalKey": undefined,
-      },
-    ],
+    "implicitParent": {
+      "key": "chamber",
+      "tag": "Room",
+      "universalKey": undefined,
+    },
     "key": "orc",
     "shortName": undefined,
     "tag": "Feature",
     "universalKey": undefined,
   },
   {
-    "context": [
-      {
-        "key": "chamber",
-        "tag": "Room",
-        "universalKey": undefined,
-      },
-    ],
+    "implicitParent": {
+      "key": "chamber",
+      "tag": "Room",
+      "universalKey": undefined,
+    },
     "key": "pie",
     "shortName": undefined,
     "tag": "Feature",
     "universalKey": undefined,
   },
   {
-    "context": undefined,
     "examples": [
       "EXAMPLE#example4",
     ],
@@ -789,16 +775,14 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "context": [
-      {
-        "key": "curvingPassage",
-        "tag": "Room",
-        "universalKey": undefined,
-      },
-    ],
     "description": [
       "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
     ],
+    "implicitParent": {
+      "key": "curvingPassage",
+      "tag": "Room",
+      "universalKey": undefined,
+    },
     "key": undefined,
     "name": [
       "Curving Passage",
@@ -808,7 +792,6 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": "EXAMPLE#example4",
   },
   {
-    "context": undefined,
     "examples": [
       "EXAMPLE#example1",
     ],
@@ -828,13 +811,6 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "context": [
-      {
-        "key": "VORTEX",
-        "tag": "Room",
-        "universalKey": undefined,
-      },
-    ],
     "description": [
       "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
       {
@@ -845,6 +821,11 @@ exports[`large WML test should standardize properly 1`] = `
       },
       "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
     ],
+    "implicitParent": {
+      "key": "VORTEX",
+      "tag": "Room",
+      "universalKey": undefined,
+    },
     "key": undefined,
     "name": [
       "Cave entrance",
@@ -854,7 +835,6 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": "EXAMPLE#example1",
   },
   {
-    "context": undefined,
     "images": [
       {
         "children": [],

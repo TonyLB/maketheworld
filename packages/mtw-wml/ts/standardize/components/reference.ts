@@ -11,7 +11,6 @@ import { editableListClassFactory, EditableListItem } from "./editableList";
 export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
     universalKey?: ComponentUUID;
-    context?: StandardKey[];
     parent?: StandardKey;
     _tag?: ComponentTag;
     constructor(data: string | StandardReferenceData | StandardKey) {
@@ -19,7 +18,6 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         if (data instanceof StandardKey) {
             this.key = data.key
             this.universalKey = data.universalKey
-            this.context = data.context ? data.context.map(item => new StandardKey(item)) : undefined
             this.parent = data.parent ? new StandardKey(data.parent) : undefined
             this._tag = data._tag
             return
@@ -36,7 +34,6 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         else {
             this.key = data.key
             this.universalKey = data.universalKey
-            this.context = data.context ? data.context.map(item => new StandardKey(item)) : undefined
             // Support parent field - always convert to StandardKey
             // In serialized form, parent is only ComponentUUID string (no recursive nesting)
             if (data.parent) {
@@ -94,11 +91,7 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         returnValue.key = key
         return returnValue
     }
-    withContext(context: StandardKey[]): StandardKey {
-        const returnValue = this.clone()
-        returnValue.context = context
-        return returnValue
-    }
+    // context support has been removed; hierarchical relationships are handled at the component level
 
     withParent(parent: StandardKey | ComponentUUID | undefined): StandardKey {
         const returnValue = this.clone()
@@ -211,17 +204,11 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         if (other.universalKey) {
             returnValue.universalKey = other.universalKey
         }
-        // TODO: Remove context intersection after context property is removed from StandardKey.
-        // This context intersection is a temporary compatibility measure. Hierarchical connections
-        // are handled at the component level (via implicitParent), not at the key level.
-        const newContext = (this.context ?? []).filter((reference) => ((other.context ?? []).some((otherReference) => ((otherReference.equals(new StandardKey(reference.toJSON())))))))
-        returnValue.context = newContext.length > 0 ? newContext : undefined
         return returnValue
     }
 
     get plain(): StandardKey {
         const returnValue = this.clone()
-        returnValue.context = undefined
         returnValue.parent = undefined
         return returnValue
     }
@@ -366,7 +353,8 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         return this.payload.tag
     }
     get context() {
-        return this.payload.context
+        // context has been removed from StandardKey; retained for backward compatibility (always undefined)
+        return undefined
     }
     get schema() {
         return this.payload.schema
@@ -391,11 +379,6 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     withKey(key: string): StandardReferenceSimple {
         const returnValue = this.clone()
         returnValue.payload = this.payload.withKey(key)
-        return returnValue
-    }
-    withContext(context: StandardKey[]): StandardReferenceSimple {
-        const returnValue = this.clone()
-        returnValue.payload = this.payload.withContext(context)
         return returnValue
     }
     equals(other: StandardReferenceSimple): boolean {
@@ -428,7 +411,8 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
         return this.match.universalKey
     }
     get context() {
-        return this.match.context
+        // context has been removed from StandardKey; retained for backward compatibility (always undefined)
+        return undefined
     }
     get tag() {
         return this.match.tag
@@ -456,11 +440,6 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
     withKey(key: string): StandardReferenceRemove {
         const returnValue = this.clone()
         returnValue.match = this.match.withKey(key)
-        return returnValue
-    }
-    withContext(context: StandardKey[]): StandardReferenceRemove {
-        const returnValue = this.clone()
-        returnValue.match = this.match.withContext(context)
         return returnValue
     }
 }
@@ -495,7 +474,8 @@ export class StandardReferenceReplace implements StandardEditableWrapper<Standar
         return this.payload.universalKey
     }
     get context() {
-        return this.payload.context
+        // context has been removed from StandardKey; retained for backward compatibility (always undefined)
+        return undefined
     }
     get tag() {
         return this.payload.tag
@@ -537,12 +517,6 @@ export class StandardReferenceReplace implements StandardEditableWrapper<Standar
         const returnValue = this.clone()
         returnValue.match = this.match.withKey(key)
         returnValue.payload = this.payload.withKey(key)
-        return returnValue
-    }
-    withContext(context: StandardKey[]): StandardReferenceReplace {
-        const returnValue = this.clone()
-        returnValue.match = this.match.withContext(context)
-        returnValue.payload = this.payload.withContext(context)
         return returnValue
     }
 }
@@ -647,12 +621,6 @@ export class StandardReference {
         return returnValue
     }
 
-    withContext(context: StandardKey[]): StandardReference {
-        const returnValue = this.clone()
-        returnValue._payload = this._payload.withContext(context)
-        return returnValue
-    }
-
     plain(): StandardKey {
         return this._payload.plain
     }
@@ -754,8 +722,7 @@ export class ReferenceList extends editableListClassFactory<StandardEditablePayl
                             return data
                         }
                         return {
-                            ...data,
-                            context: undefined
+                            ...data
                         }
                     }
                     return data
