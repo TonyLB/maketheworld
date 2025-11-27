@@ -216,10 +216,6 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         return new StandardExample(super.withOrigin(origin) as StandardExample)
     }
 
-    override withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
-        return new StandardExample(super.withLeastCommonContext(leastCommonContext) as StandardExample)
-    }
-
     override withChild(child: StandardReference): StandardComponent {
         return new StandardExample(super.withChild(child) as StandardExample)
     }

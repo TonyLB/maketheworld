@@ -1,30 +1,46 @@
 import { standardComponentSortOrder } from './sortOrder'
 import { StandardReferenceSimple, StandardKey } from './components/reference'
-import { ComponentTag } from './components/dataTypes/abstract'
+import StandardFeature from './components/feature'
+import StandardRoom from './components/room'
+import StandardCharacter from './components/character'
+import StandardKnowledge from './components/knowledge'
+import { StandardComponent } from './components/baseClasses'
 
 describe('standardComponentSortOrder', () => {
-    // Lookup function for ancestry, returns a StandardReference with the given key and a tag based on key
-    const lookup = (key: string) => {
-        // For test purposes, tag is based on the last part of the key, or 'Room' by default
-        const tagMap: Record<string, string> = {
-            'Room1': 'Room',
-            'Room1.Feature1': 'Feature',
-            'Room1.Feature2': 'Feature',
-            'Room2': 'Room',
-            'Room2.Feature1': 'Feature',
-            'Room1.Feature1.Sub1': 'Knowledge',
-            'Room1.Feature1.Sub2': 'Knowledge'
+
+    // Helper to create getAncestryChain function for testing
+    // Builds a map of components by their _key for lookup
+    const createGetAncestryChain = (components: StandardComponent[]): ((key: StandardKey) => StandardKey[]) => {
+        // Helper to find component by key - handles cloned keys via JSON comparison
+        const findComponent = (key: StandardKey): StandardComponent | undefined => {
+            return components.find(comp => comp._key.equals(key))
         }
-        return new StandardReferenceSimple({ key, tag: (tagMap[key] || 'Room') as ComponentTag })
+        
+        return (key: StandardKey): StandardKey[] => {
+            // Look up component by key
+            const component = findComponent(key)
+            
+            if (!component || !component.implicitParent) {
+                return []  // No component or no implicitParent means at Asset level
+            }
+            
+            return [...createGetAncestryChain(components)(component.implicitParent), component.implicitParent]
+        }
     }
 
-    const sortOrder = standardComponentSortOrder
+    // Default getAncestryChain for tests that don't need hierarchy (returns empty array)
+    const sortOrder = (a: StandardReferenceSimple | StandardKey, b: StandardReferenceSimple | StandardKey, getAncestryChain: (key: StandardKey) => StandardKey[] = () => ([])) => {
+        return standardComponentSortOrder(a, b, getAncestryChain)
+    }
 
     it('should order subcomponents after their parent', () => {
-        const parent = new StandardReferenceSimple({ key: 'Room1', tag: 'Room' })
-        const child = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
-        expect(sortOrder(parent, child)).toBeLessThan(0)
-        expect(sortOrder(child, parent)).toBeGreaterThan(0)
+        const parentKey = new StandardKey({ key: 'Room1', tag: 'Room' })
+        const parent = new StandardRoom({ key: 'Room1', tag: 'Room' })
+        const child = new StandardFeature({ key: 'Feature1', tag: 'Feature' }).withImplicitParent(parentKey)
+        
+        const getAncestryChain = createGetAncestryChain([parent, child])
+        expect(sortOrder(parent._key, child._key, getAncestryChain)).toBeLessThan(0)
+        expect(sortOrder(child._key, parent._key, getAncestryChain)).toBeGreaterThan(0)
     })
 
     it('should order siblings by tag order', () => {
@@ -36,10 +52,14 @@ describe('standardComponentSortOrder', () => {
     })
 
     it('should order siblings with same tag by key', () => {
-        const featureA = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
-        const featureB = new StandardReferenceSimple({ key: 'Feature2', tag: 'Feature' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
-        expect(sortOrder(featureA, featureB)).toBeLessThan(0)
-        expect(sortOrder(featureB, featureA)).toBeGreaterThan(0)
+        const parentKey = new StandardKey({ key: 'Room1', tag: 'Room' })
+        const parent = new StandardRoom({ key: 'Room1', tag: 'Room' })
+        const featureA = new StandardFeature({ key: 'Feature1', tag: 'Feature' }).withImplicitParent(parentKey)
+        const featureB = new StandardFeature({ key: 'Feature2', tag: 'Feature' }).withImplicitParent(parentKey)
+        
+        const getAncestryChain = createGetAncestryChain([parent, featureA, featureB])
+        expect(sortOrder(featureA._key, featureB._key, getAncestryChain)).toBeLessThan(0)
+        expect(sortOrder(featureB._key, featureA._key, getAncestryChain)).toBeGreaterThan(0)
     })
 
     it('should order unrelated components by tag order', () => {
@@ -51,16 +71,15 @@ describe('standardComponentSortOrder', () => {
     })
 
     it('should order deeply nested subcomponents after their ancestors', () => {
-        const parent = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
-        const child = new StandardReferenceSimple({ key: 'Feature1.Sub1', tag: 'Knowledge' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
-        expect(sortOrder(parent, child)).toBeLessThan(0)
-        expect(sortOrder(child, parent)).toBeGreaterThan(0)
-    })
-
-    it('should order components with no key as equal', () => {
-        const a = new StandardReferenceSimple({ key: undefined, tag: 'Room' })
-        const b = new StandardReferenceSimple({ key: undefined, tag: 'Room' })
-        expect(sortOrder(a, b)).toBe(0)
+        const roomKey = new StandardKey({ key: 'Room1', tag: 'Room' })
+        const room = new StandardRoom({ key: 'Room1', tag: 'Room' })
+        const featureKey = new StandardKey({ key: 'Feature1', tag: 'Feature' })
+        const feature = new StandardFeature({ key: 'Feature1', tag: 'Feature' }).withImplicitParent(roomKey)
+        const knowledge = new StandardKnowledge({ key: 'Feature1.Sub1', tag: 'Knowledge' }).withImplicitParent(featureKey)
+        
+        const getAncestryChain = createGetAncestryChain([room, feature, knowledge])
+        expect(sortOrder(feature._key, knowledge._key, getAncestryChain)).toBeLessThan(0)
+        expect(sortOrder(knowledge._key, feature._key, getAncestryChain)).toBeGreaterThan(0)
     })
 
     it('should order components with same key and tag as equal', () => {
@@ -70,19 +89,30 @@ describe('standardComponentSortOrder', () => {
     })
 
     it('should order components with different ancestry by ancestor tag order', () => {
-        const a = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature'}).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
-        const b = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature'}).withContext([new StandardKey({ key: 'Room2', tag: 'Room' })])
+        const room1 = new StandardRoom({ key: 'Room1', tag: 'Room' })
+        const room2 = new StandardRoom({ key: 'Room2', tag: 'Room' })
+        const featureA = new StandardFeature({ key: 'Feature1', tag: 'Feature' }).withImplicitParent(room1._key)
+        const featureB = new StandardFeature({ key: 'Feature2', tag: 'Feature' }).withImplicitParent(room2._key)
+        
+        const getAncestryChain = createGetAncestryChain([room1, room2, featureA, featureB])
+        
         // Both are Feature, but their ancestors are Room1 and Room2, which are both Room, so fallback to key comparison
-        expect(sortOrder(a, b)).toBeLessThan(0)
-        expect(sortOrder(b, a)).toBeGreaterThan(0)
+        // Room1 should come before Room2 alphabetically
+        expect(sortOrder(featureA._key, featureB._key, getAncestryChain)).toBeLessThan(0)
+        expect(sortOrder(featureB._key, featureA._key, getAncestryChain)).toBeGreaterThan(0)
     })
 
     it('should order components with different tags and different ancestry', () => {
-        const a = new StandardReferenceSimple({ key: 'Feature1', tag: 'Feature' }).withContext([new StandardKey({ key: 'Room1', tag: 'Room' })])
-        const b = new StandardReferenceSimple({ key: 'Room2', tag: 'Room' })
-        // Room1 comes before Room2
-        expect(sortOrder(b, a)).toBeGreaterThan(0)
-        expect(sortOrder(a, b)).toBeLessThan(0)
+        const room1Key = new StandardKey({ key: 'Room1', tag: 'Room' })
+        const room1 = new StandardRoom({ key: 'Room1', tag: 'Room' })
+        const room2 = new StandardRoom({ key: 'Room2', tag: 'Room' })
+        const feature = new StandardFeature({ key: 'Feature1', tag: 'Feature' }).withImplicitParent(room1Key)
+        
+        const getAncestryChain = createGetAncestryChain([room1, room2, feature])
+        // Feature has Room1 as ancestor, Room2 is at Asset level
+        // When comparing differing ancestors: Room1 vs Room2 (both Room), fallback to key comparison
+        expect(sortOrder(room2._key, feature._key, getAncestryChain)).toBeGreaterThan(0)
+        expect(sortOrder(feature._key, room2._key, getAncestryChain)).toBeLessThan(0)
     })
 
     it('should order components with empty keys as equal', () => {

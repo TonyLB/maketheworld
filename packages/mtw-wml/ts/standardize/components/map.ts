@@ -174,10 +174,6 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
         return new StandardMap(super.withOrigin(origin) as StandardMap)
     }
 
-    override withLeastCommonContext(context: StandardKey[]): StandardComponent {
-        return new StandardMap(super.withLeastCommonContext(context) as StandardMap)
-    }
-
     override withChild(child: StandardReference): StandardComponent {
         return new StandardMap(super.withChild(child) as StandardMap)
     }

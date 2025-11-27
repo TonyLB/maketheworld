@@ -282,6 +282,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         // is strictly for merging the content of two non-edit Components. It will, however, merge
         // edit tags on the import and export information of the components
         //
+        // TODO: Revisit merge() logic after context removal - should use buildComponentGraph to determine
+        // proper parent relationships when components appear in multiple contexts. The current context
+        // intersection in StandardKey.merge() is a temporary measure that will be removed.
+        //
         merge(incoming: StandardComponent): StandardComponent {
             const returnValue = new GeneratedComponentClass(this.universalKey ?? this.key ??'')
             if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
@@ -357,13 +361,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 return undefined
             }
             // Otherwise create a diff
-            const leastCommonContext = (this._key?.context ?? []).filter((reference) => (
-                (incoming._key?.context ?? []).some((incomingReference) => (
-                    reference.equals(incomingReference)
-                ))
-            ))
-
-            const diffComponent = new StandardReplace(this, incoming).withLeastCommonContext(leastCommonContext)
+            // TODO: Revisit diff() logic after context removal - should use buildComponentGraph to determine
+            // cascade-delete behavior based on whether components appear with other parents that still have connections.
+            // For now, create StandardReplace without setting context (context will be removed entirely).
+            const diffComponent = new StandardReplace(this, incoming)
             // Apply explicitParent diff to the diff component (pass pre-computed diff to avoid recalculation)
             if (diffComponent) {
                 this._applyExplicitParentDiffToComponent(diffComponent, incoming, explicitParentDiff)
@@ -387,13 +388,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         withUniversalKey(key: ComponentUUID | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             returnValue._key.universalKey = key
-            return returnValue
-        }
-
-        withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent {
-            const returnValue = new GeneratedComponentClass(this)
-            const newContext = leastCommonContext.map((context) => (context.clone()))
-            returnValue._key.context = newContext.length > 0 ? newContext : undefined
             return returnValue
         }
 

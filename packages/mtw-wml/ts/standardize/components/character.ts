@@ -186,10 +186,6 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         return new StandardCharacter(super.withOrigin(origin) as StandardCharacter)
     }
 
-    override withLeastCommonContext(context: StandardKey[]): StandardComponent {
-        return new StandardCharacter(super.withLeastCommonContext(context) as StandardCharacter)
-    }
-
     override withChild(child: StandardReference): StandardComponent {
         return new StandardCharacter(super.withChild(child) as StandardCharacter)
     }

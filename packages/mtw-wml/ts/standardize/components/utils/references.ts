@@ -84,7 +84,6 @@ export const mapKeyToFormat = (format: ReferenceFormat) =>
                 tag: key.tag,
                 key: ['key', 'both'].includes(format) ? key.key : undefined,
                 universalKey: ['universal', 'both'].includes(format) ? key.universalKey : undefined,
-                context: key.context?.map(mapKeyToFormat(format)).map(k => k.toJSON())
             })
     }
 

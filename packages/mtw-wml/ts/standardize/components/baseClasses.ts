@@ -20,10 +20,7 @@ export type StandardComponentReferenceKey = {
 export type NestedSchemaOptions = {
     key: StandardKey;
     parent?: StandardKey;  // Parent component StandardKey (undefined for Asset-level rendering)
-    // Legacy fields (deprecated, kept for backward compatibility during migration):
-    context?: StandardKey[];  // @deprecated - use parent instead
-    removeContext?: boolean;  // @deprecated
-    inLeastCommonContext?: boolean;  // @deprecated
+    removeContext?: boolean;  // If true, return nestedSchema without Remove wrapper
 }
 
 export type StandardDiffOptions = {
@@ -56,7 +53,6 @@ export interface StandardComponent {
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent;
     reference: StandardReference;
     referenceData: StandardReferenceData;
-    withLeastCommonContext(leastCommonContext: StandardKey[]): StandardComponent;
     withChild(child: StandardReference): StandardComponent;
     withImport(fromAsset: AssetUUID): StandardComponent;
     withOrigin(origin: AssetUUID[] | undefined): StandardComponent;

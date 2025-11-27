@@ -489,36 +489,6 @@ describe("processComponents", () => {
         ])
     })
 
-    it('should correctly process context', () => {
-        const testSource = `
-            <Asset uuid=(Test)>
-                <Room key=(testRoom)>
-                    <Feature key=(testFeatureLocal) />
-                </Room>
-                <Feature key=(testFeatureGlobal) />
-            </Asset>
-        `
-        const schema = new Schema()
-        schema.loadWML(testSource)
-        const result = processComponents({
-            componentTemplates,
-            schema: schema.schema,
-        })
-        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
-            deIndentWML(`
-                <Room key=(testRoom)><Feature key=(testFeatureLocal) /></Room>
-            `),
-            deIndentWML(`
-                <Feature key=(testFeatureLocal) />
-            `),
-            deIndentWML(`
-                <Feature key=(testFeatureGlobal) />
-            `),
-        ])
-        expect((result.components[1]._key?.context ?? []).map((reference) => (reference.toJSON()))).toEqual([{ key: 'testRoom', tag: 'Room' }])
-        expect(result.components[2]._key?.context).toBeUndefined()
-    })
-
     it('should allow Characters as legal sub-components of Room', () => {
         const testSource = `
             <Asset uuid=(Test)>
@@ -536,17 +506,8 @@ describe("processComponents", () => {
             schema: schema.schema,
         })
         
-        // Verify Character was processed as a sub-component of Room
-        const characterComponent = result.components.find(({ key }) => (key === 'testCharacter'))
-        expect(characterComponent).toBeDefined()
-        expect(characterComponent?._key?.context?.length).toBe(1)
-        expect(characterComponent?._key?.context?.[0]?.toJSON()).toEqual({ key: 'testRoom', tag: 'Room' })
-        
-        // Verify Room was processed (though it won't include Character references yet)
         const roomComponent = result.components.find(({ key }) => (key === 'testRoom'))
-        expect(roomComponent).toBeDefined()
-        
-        // Phase 3: Room schema output should now include Character references!
+        expect(roomComponent).toBeDefined()        
         expect(schemaToWML([roomComponent!.schema])).toBe('<Room key=(testRoom)><Character key=(testCharacter) /></Room>')
     })
 })

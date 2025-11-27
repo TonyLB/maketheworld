@@ -195,7 +195,7 @@ export class ComponentRenderData {
 
             if (naiveFirstExample) {
                 const example = naiveFirstExample.clone();
-                example._key = new StandardKey(`EXAMPLE#rendered`).withContext([new StandardKey(EphemeraId)]);
+                example._key = new StandardKey(`EXAMPLE#rendered`);
                 formComponents.push(example.toJSON());
             }
 
@@ -213,7 +213,7 @@ export class ComponentRenderData {
             }
             if (naiveFirstExample) {
                 const example = naiveFirstExample.clone()
-                example._key = (new StandardKey(`EXAMPLE#rendered`)).withContext([new StandardKey(EphemeraId)])
+                example._key = (new StandardKey(`EXAMPLE#rendered`))
                 return new StandardForm([
                     { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                     featureRow,
@@ -237,7 +237,7 @@ export class ComponentRenderData {
             }
             if (naiveFirstExample) {
                 const example = naiveFirstExample.clone()
-                example._key = (new StandardKey(`EXAMPLE#rendered`)).withContext([new StandardKey(EphemeraId)])
+                example._key = (new StandardKey(`EXAMPLE#rendered`))
                 return new StandardForm([
                     { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                     knowledgeRow,

@@ -117,15 +117,12 @@ export const processComponents = (props: {
                 }
 
                 //
-                // Localize the key for the component if it has a parent tag, EXCEPT for the case where the component
-                // is a room within a map. Because of the way maps display positions, we need to keep the room at a
-                // higher level, so that the position can be displayed separately from the room.
+                // Note: We no longer set context here. Parent relationships are determined later by
+                // generateImplicitParents() which builds a graph from component.referencedKeys() edges.
+                // The componentContext parameter is still used to determine parentTag for topLevel tracking,
+                // but we don't need to set context on the component itself.
                 //
-                const localizedComponent = parentTag
-                    ? component instanceof StandardRoom
-                        ? component.withLeastCommonContext(componentContext.filter(({ tag }) => (tag !== 'Map')))
-                        : component.withLeastCommonContext(componentContext)
-                    : component
+                const localizedComponent = component
 
                 const editWrappedComponent = inContextOfRemove ? new StandardRemove(localizedComponent) : localizedComponent
 

@@ -2,7 +2,7 @@ import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericT
 import { AssetUUID, isSchemaAsset, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardAuthorizationItem } from "./components/baseClasses"
 import { isStandardAuthorizationCollection, StandardAuthorizationCollectionData } from "./components/dataTypes"
-import StandardReference from "../components/reference"
+import StandardReference, { StandardKey } from "../components/reference"
 import { isSchemaTreeNode, nodeFromWML } from "../../schema"
 import { excludeUndefined } from "../../lib/lists"
 import processAuthorizations from "./processAuthorizations"
@@ -170,6 +170,10 @@ export class StandardAuthorizationCollection {
     }
 
     _sortOrderFactory(): (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => number {
+        // For authorization sorting, we don't have access to full component hierarchy,
+        // so we provide a getAncestryChain that returns empty (treats everything as Asset-level)
+        const getAncestryChain = (): StandardKey[] => []
+        
         return (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => {
             // Global grants (no component) come first
             if (!a.component && !b.component) return 0
@@ -177,7 +181,7 @@ export class StandardAuthorizationCollection {
             if (!b.component) return 1
             
             // Use the underlying StandardKey from each component for sorting
-            return standardComponentSortOrder(a.component.plain(), b.component.plain())
+            return standardComponentSortOrder(a.component.plain(), b.component.plain(), getAncestryChain)
         }
     }
 

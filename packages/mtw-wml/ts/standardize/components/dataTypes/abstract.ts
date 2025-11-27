@@ -12,7 +12,7 @@ export type StandardBaseData = {
     key?: string;
     universalKey?: ComponentUUID;
     update?: boolean;
-    context?: StandardReferenceData[];
+    // context has been removed; hierarchical relationships are handled at the component level
     origin?: AssetUUID[];  // Array of ancestor asset UUIDs in inheritance chain
     implicitParent?: StandardReferenceData | ComponentUUID;  // Parent StandardKey (serialized as StandardReferenceData or ComponentUUID)
 }
