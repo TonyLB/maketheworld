@@ -381,7 +381,7 @@ export class StandardForm {
         }
         // Convert topLevel references to StandardComponentReferenceKey format
         return this._topLevel.payload.map(ref => ({
-            key: ref.plain(),
+            key: ref.plain().standardKey,
             referenceType: 'Direct' as const
         }))
     }

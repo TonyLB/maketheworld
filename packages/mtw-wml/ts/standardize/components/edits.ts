@@ -66,7 +66,14 @@ export class StandardRemove implements StandardComponent {
     }
 
     get reference(): StandardReference {
-        return new StandardReference(new StandardReferenceRemove(this._match._key))
+        // Extract tag from the underlying component (filter out 'Remove' wrapper tag)
+        const componentTag = this._match.tag === 'Remove' || this._match.tag === 'Replace' 
+            ? undefined 
+            : this._match.tag as ComponentTag
+        if (!componentTag) {
+            throw new Error('Cannot create StandardReferenceRemove reference without component tag')
+        }
+        return new StandardReference(new StandardReferenceRemove(this._match._key, componentTag))
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRemove {
@@ -243,7 +250,14 @@ export class StandardReplace implements StandardComponent {
     }
 
     get reference(): StandardReference {
-        return new StandardReference(new StandardReferenceReplace(this._match._key, this._payload._key))
+        // Extract tag from the underlying payload component (filter out 'Remove'/'Replace' wrapper tags)
+        const componentTag = this._payload.tag === 'Remove' || this._payload.tag === 'Replace'
+            ? undefined
+            : this._payload.tag as ComponentTag
+        if (!componentTag) {
+            throw new Error('Cannot create StandardReferenceReplace reference without component tag')
+        }
+        return new StandardReference(new StandardReferenceReplace(this._match._key, this._payload._key, componentTag))
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardReplace {

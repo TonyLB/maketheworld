@@ -5,6 +5,7 @@ import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { isSimplePositionData, StandardPositionData } from "./dataTypes/position";
+import { StandardReferenceData } from "./dataTypes/reference";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
 import StandardReference, { standardReferenceDeserialize, standardReferenceSerialize, StandardReferenceSimple } from "./reference";
 
@@ -13,7 +14,8 @@ export class StandardPositionSimpleBase implements StandardEditablePayload<Stand
     x: number;
     y: number;
     constructor(data: StandardPositionData) {
-        this.room = new StandardReferenceSimple(data.room)
+        // Position always refers to a Room, so pass 'Room' as explicit tag
+        this.room = new StandardReferenceSimple(data.room, 'Room')
         this.x = data.x;
         this.y = data.y;
     }
@@ -36,8 +38,13 @@ export class StandardPositionSimpleBase implements StandardEditablePayload<Stand
         return new StandardPositionSimpleBase(this.toJSON())
     }
     toJSON: () => StandardPositionData = () => {
+        // Position always refers to Room, so don't serialize redundant tag
+        const roomData = this.room.plain.toJSON()
+        // Remove tag (it's always 'Room' for Position, so redundant in serialization)
+        // Position's room is always an object (StandardReferenceSimple), never a string
+        const { tag, ...roomWithoutTag } = roomData as Exclude<StandardReferenceData, string>
         return {
-            room: this.room.plain.toJSON(),
+            room: roomWithoutTag,
             x: this.x,
             y: this.y
         }

@@ -35,7 +35,12 @@ describe('StandardPosition', () => {
             y: 2
         }
         const testPosition = new StandardPosition(testPositionData)
-        expect(testPosition.toJSON()).toEqual(testPositionData)
+        // Position doesn't serialize redundant tag since it always refers to Room
+        expect(testPosition.toJSON()).toEqual({
+            room: { key: 'test' },
+            x: 1,
+            y: 2
+        })
     })
 
     it('should merge correctly', () => {
@@ -68,9 +73,10 @@ describe('diffStandardPositionList', () => {
         const base = [new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test' }, x: 1, y: 2 }), new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
         const incoming: StandardPosition[] = []
         const result = diffStandardPositionList({ base, incoming })
+        // Position doesn't serialize redundant tag since it always refers to Room
         expect(result.map((reference) => (reference.toJSON()))).toEqual([
-            { tag: 'Remove', match: { room: { key: 'test', tag: 'Room' }, x: 1, y: 2 } },
-            { tag: 'Remove', match: { room: { key: 'test2', tag: 'Room' }, x: 3, y: 4 } }
+            { tag: 'Remove', match: { room: { key: 'test' }, x: 1, y: 2 } },
+            { tag: 'Remove', match: { room: { key: 'test2' }, x: 3, y: 4 } }
         ])
     })
 
@@ -85,7 +91,8 @@ describe('diffStandardPositionList', () => {
         const base = [new StandardPosition({ room: { tag: 'Room', key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
         const incoming = [new StandardPosition({ room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 }), new StandardPosition({ room: { tag: 'Room', key: 'test3' }, x: 5, y: 6 })]
         const result = diffStandardPositionList({ base, incoming })
-        expect(result.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Remove', match: { room: { key: 'test1', tag: 'Room' }, x: 1, y: 2 } }, { room: { key: 'test3', tag: 'Room' }, x: 5, y: 6 }])
+        // Position doesn't serialize redundant tag since it always refers to Room
+        expect(result.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Remove', match: { room: { key: 'test1' }, x: 1, y: 2 } }, { room: { key: 'test3' }, x: 5, y: 6 }])
     })
 
     it('should return empty array when lists are identical', () => {

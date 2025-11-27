@@ -70,6 +70,67 @@ Each component follows a consistent pattern:
 - **Component Class**: Provides the public API and inheritance structure
 - **Data Types**: Define serialization formats for storage
 
+### StandardKey vs. StandardReference: Semantic Separation
+
+**CRITICAL ARCHITECTURAL PATTERN**: `StandardKey` and `StandardReference` serve fundamentally different roles and must be used appropriately:
+
+#### **StandardKey: Minimal Identifier**
+
+- **Purpose**: Represents the minimal information needed to identify a component
+- **Properties**: Only `key` and/or `universalKey` (no tag stored)
+- **Tag Derivation**: Tag can be derived from `universalKey` (e.g., `FEATURE#uuid` → `Feature`), but may be `undefined` if only `key` is present
+- **Use Cases**:
+  - Internal component identification (`StandardComponent._key`)
+  - Lookup keys in maps and collections
+  - Minimal references when full context is available
+- **Limitations**: Cannot generate schema independently if tag cannot be derived
+
+#### **StandardReference: Standalone Reference Object**
+
+- **Purpose**: Represents a complete, self-contained reference with full edit and render functionality
+- **Properties**: Contains `StandardKey` as payload, plus stored `tag`
+- **Tag Storage**: Tag is stored directly in `StandardReference`, making it self-contained
+- **Use Cases**:
+  - ReferenceList items (e.g., `features`, `examples`, `characters` in rooms)
+  - Independent schema generation (can generate schema without lookup)
+  - Standalone reference operations (like `StandardLiteral` or other standalone objects)
+- **Construction Pattern**: 
+  - When constructing from `StandardKey`: **Tag is required** - `new StandardReferenceSimple(key, tag)`
+  - When constructing from other data: Tag is derived automatically from the data
+
+#### **When to Use Which**
+
+- **Use `StandardKey`** when:
+  - You only need to identify something (e.g., `component._key`)
+  - You have the full component context and can derive tag when needed
+  - You're storing minimal identifiers in collections
+
+- **Use `StandardReference`** when:
+  - You need a reference that can operate independently
+  - The reference appears in ReferenceList items
+  - You need to generate schema without a lookup function
+  - You're passing references between contexts where tag context may be lost
+
+#### **Example**
+
+```typescript
+// StandardKey: Minimal identifier (tag derived from universalKey)
+const key = new StandardKey('FEATURE#my-feature')
+key.tag  // 'Feature' (derived)
+key.schema  // Works if universalKey present, throws if only key
+
+// StandardReference: Self-contained reference (tag stored)
+const ref = new StandardReferenceSimple(key, 'Feature')  // Tag required when constructing from StandardKey
+ref.tag  // 'Feature' (stored)
+ref.schema  // Always works independently
+
+// StandardReference from data: Tag derived automatically
+const refFromData = new StandardReference('FEATURE#my-feature')
+refFromData.tag  // 'Feature' (derived and stored)
+```
+
+This semantic separation ensures that references can be passed between contexts without losing the information needed to render or manipulate them, while keys remain minimal identifiers optimized for lookup and storage.
+
 ### Serialization vs. Manipulation Types
 
 **CRITICAL ARCHITECTURAL DISTINCTION**: There are two types of data structures:
