@@ -6,7 +6,6 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 export type StandardReferenceData = string | ({
     key?: string;
     universalKey?: ComponentUUID;
-    context?: StandardReferenceData[];
     parent?: ComponentUUID;  // Only ComponentUUID string - no recursive nesting, use lookup for full chain
     tag: ComponentTag;
 })

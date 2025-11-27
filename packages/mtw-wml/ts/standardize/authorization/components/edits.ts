@@ -50,7 +50,7 @@ export class StandardAuthRemove implements StandardAuthorizationItem {
     }
 
     nestedSchema(byId: Record<string, StandardAuthorizationItem>, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-        const { removeContext} = options
+        const { removeContext } = options
         if (removeContext) {
             return this._match.nestedSchema(byId, options)
         }

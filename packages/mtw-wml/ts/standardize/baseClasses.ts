@@ -36,7 +36,6 @@ export type StandardRemove = {
     key?: string;
     universalKey?: string;
     tag: 'Remove';
-    context?: StandardReferenceData[];
     component: StandardComponentNonEditData;
     implicitParent?: StandardReferenceData | ComponentUUID;  // Parent StandardKey (serialized as StandardReferenceData or ComponentUUID)
 }
@@ -45,7 +44,6 @@ export type StandardReplace = {
     key?: string;
     universalKey?: string;
     tag: 'Replace';
-    context?: StandardReferenceData[];
     match: StandardComponentNonEditData;
     payload: StandardComponentNonEditData;
     implicitParent?: StandardReferenceData | ComponentUUID;  // Parent StandardKey (serialized as StandardReferenceData or ComponentUUID)

@@ -1,19 +1,23 @@
 # Implicit Parent Resolution System - Planning Document
 
 **Date**: November 18, 2025  
-**Last Updated**: November 22, 2025  
-**Status**: Phase 4 Complete - Core functionality implemented  
+**Last Updated**: November 26, 2025  
+**Status**: ✅ **COMPLETE** - Migration from `context` to `implicitParent` finished. The `context` property has been fully removed from `StandardKey` and all related code.  
 **Related**: [`AGENT.md`](./AGENT.md) - StandardForm operations and component hierarchy
+
+**Note**: This document describes the planning and migration process. The migration is now complete - `context` has been removed and all code now uses `implicitParent`.
 
 ---
 
 ## Overview
 
+**✅ MIGRATION COMPLETE**: This document described the planning and implementation of the refactoring from the `leastCommonContext` system (using `StandardKey.context` array) to the `implicitParent` resolution system. The migration is now complete - `context` has been fully removed from `StandardKey` and all code now uses `implicitParent` with graph-based topological resolution.
+
 This document plans the refactoring of the `leastCommonContext` system to a more robust `implicitParent` resolution system that can handle complex scenarios where components appear in multiple contexts with conflicting parent relationships.
 
-### Core Problem
+### Core Problem (Historical)
 
-The current `leastCommonContext` system uses simple array intersection to determine component hierarchy, which fails when:
+The previous `leastCommonContext` system used simple array intersection to determine component hierarchy, which failed when:
 - Parent components appear in multiple contexts (e.g., Room-2 appears both in Map-3 and at Asset level)
 - Child components appear in different parent contexts (e.g., Feature-1 appears in Room-2 and Room-4)
 - Parent context changes during merge operations cause information loss
@@ -47,9 +51,9 @@ This is a complex refactoring that touches core StandardForm operations. Follow 
   - **Key Insight**: The current context rebuilding in `finalize()` is fragile and loses information
 
 - **[`./components/AGENT.md`](./components/AGENT.md)** - StandardComponent System
-  - **Why**: Components store context in `StandardKey.context` and have `explicitParent` support
-  - **Focus**: How `withLeastCommonContext()` works, how `explicitParent` differs from context
-  - **Key Insight**: `explicitParent` is manually set, while context is system-calculated
+  - **Why**: Components now use `implicitParent` (graph-based resolution) and have `explicitParent` support
+  - **Focus**: How `implicitParent` is determined via topological resolution, how `explicitParent` differs from `implicitParent`
+  - **Key Insight**: `explicitParent` is manually set, while `implicitParent` is system-calculated via graph resolution
 
 ### 2. Read Current Document
 
