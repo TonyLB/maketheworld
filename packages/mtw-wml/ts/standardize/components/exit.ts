@@ -64,7 +64,7 @@ const payloadFactory = (props: GenericTree<SchemaTag> | StandardExitData): Stand
         return new StandardExitBase({
             to: isSchemaComponentUUID(to)
                 ? to
-                : { tag: 'Room', key: to },
+                : { key: to },
             description: props[0].children.length > 0 && isSchemaString(props[0].children[0].data) ? new StandardLiteral([props[0].children[0]]).toJSON() : undefined
         })
     }

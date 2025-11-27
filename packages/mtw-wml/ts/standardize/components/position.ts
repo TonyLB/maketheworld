@@ -58,13 +58,13 @@ const payloadFactory = (props: StandardPositionData | GenericTree<SchemaTag>): S
         if (!(treeNodeTypeguard(isSchemaComponent)(node) && treeNodeTypeguard(isSchemaRoom)(node))) {
             throw new Error('Invalid argument in StandardPositionSimpleBase constructor')
         }
-        const { tag, key, uuid } = node.data
+        const { key, uuid } = node.data
         const position = node.children.find(treeNodeTypeguard(isSchemaPosition))
         if (!position) {
             throw new Error('Invalid argument in StandardPositionSimpleBase constructor')
         }
         return new StandardPositionSimpleBase({
-            room: { tag, key, universalKey: uuid },
+            room: { key, universalKey: uuid },
             x: position.data.x,
             y: position.data.y
         })

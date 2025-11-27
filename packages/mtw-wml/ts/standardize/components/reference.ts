@@ -11,13 +11,11 @@ import { editableListClassFactory, EditableListItem } from "./editableList";
 export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
     universalKey?: ComponentUUID;
-    _tag?: ComponentTag;
     constructor(data: string | StandardReferenceData | StandardKey) {
         // Handle StandardKey instance directly (for cloning)
         if (data instanceof StandardKey) {
             this.key = data.key
             this.universalKey = data.universalKey
-            this._tag = data._tag
             return
         }
         
@@ -26,29 +24,29 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
                 console.log(`Invalid StandardReferenceData passed to StandardKey: ${JSON.stringify(data, null, 4)}`)
                 throw new Error('Invalid StandardReferenceData passed to StandardKey')
             }
-            this._tag = componentTagFromUpperCase(data.split('#')[0] as Uppercase<ComponentTag>)
             this.universalKey = data
         }
         else {
             this.key = data.key
             this.universalKey = data.universalKey
-            this._tag = data.tag
+            // tag is no longer stored; it will be derived from universalKey when needed
         }
     }
-    get tag(): ComponentTag {
-        if (this._tag) {
-            return this._tag
-        }
+    get tag(): ComponentTag | undefined {
         if (typeof this.universalKey === 'undefined') {
-            throw new Error('StandardKey must have a universalKey or tag')
+            return undefined
         }
         const [upcaseTag] = this.universalKey.split('#')
         return componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
     }
     get schema() {
+        const tag = this.tag
+        if (tag === undefined) {
+            throw new Error('StandardKey.schema requires tag to be derivable from universalKey')
+        }
         return [{
             data: {
-                tag: this.tag,
+                tag,
                 key: this.key,
                 uuid: this.universalKey
             } as SchemaTag,
@@ -65,8 +63,7 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
             }
             return this.universalKey
         }
-        const result: any = { key: this.key, tag: this.tag, universalKey: this.universalKey }
-        return result as StandardReferenceData
+        return { key: this.key, universalKey: this.universalKey }
     }
     withKey(key: string): StandardKey {
         const returnValue = this.clone()
@@ -80,7 +77,10 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         // Returns if the two objects share either the same key or the same universalKey,
         // and have no other differences
         //
-        if (this.tag !== other.tag) {
+        // Compare tags if both can be derived
+        const thisTag = this.tag
+        const otherTag = other.tag
+        if (thisTag !== undefined && otherTag !== undefined && thisTag !== otherTag) {
             return false
         }
         if (this.universalKey && other.universalKey && this.universalKey !== other.universalKey) {
@@ -120,13 +120,11 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         const returnValue = this.clone()
         if (format === 'key') {
             if (returnValue.key) {
-                returnValue._tag = returnValue.tag
                 returnValue.universalKey = undefined
             }
         }
         else {
             if (returnValue.universalKey) {
-                returnValue._tag = undefined
                 returnValue.key = undefined
             }
         }
@@ -143,8 +141,9 @@ const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): 
         if (!treeNodeTypeguard(isSchemaComponent)(node)) {
             throw new Error('Invalid argument in StandardKey constructor')
         }
-        const { tag, key, uuid } = node.data
-        return new StandardKey({ tag, key, universalKey: uuid })
+        const { key, uuid } = node.data
+        // tag is no longer stored; it will be derived from uuid (universalKey) when needed
+        return new StandardKey({ key, universalKey: uuid })
     }
     throw new Error('Invalid argument in StandardKey constructor')
 }
@@ -152,10 +151,9 @@ const payloadFactory = (props: StandardReferenceData | GenericTree<SchemaTag>): 
 export const standardReferenceDeserialize = (incoming: StandardReferenceData): Exclude<StandardReferenceData, string> => {
     if (typeof incoming === 'string') {
         if (!isSchemaComponentUUID(incoming)) {
-            throw new Error('Invalid StandardReferenceData passed to standardReferenceSerialize')
+            throw new Error('Invalid StandardReferenceData passed to standardReferenceDeserialize')
         }
-        const [upcaseTag] = incoming.split('#')
-        return { tag: componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>), universalKey: incoming }
+        return { universalKey: incoming }
     }
     return incoming;
 }
@@ -167,7 +165,7 @@ export const standardReferenceSerialize = (incoming: StandardReferenceData): Sta
         }
         return incoming
     }
-    const { tag, universalKey, key } = incoming
+    const { universalKey, key } = incoming
     if (key) {
         return incoming
     }
@@ -458,7 +456,7 @@ export class StandardReference {
     get universalKey(): ComponentUUID | undefined {
         return this._payload.universalKey
     }
-    get tag(): ComponentTag {
+    get tag(): ComponentTag | undefined {
         return this._payload.tag
     }
 

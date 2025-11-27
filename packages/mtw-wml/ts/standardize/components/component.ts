@@ -75,7 +75,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             }
             if (typeof props === 'string' && isLegalKey(props)) {
                 this._key = new StandardKey({
-                    tag: this._payload.tag,
                     key: props
                 })
                 return
@@ -91,8 +90,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 if (!treeNodeTypeguard(isSchemaComponent)(node)) {
                     throw new Error(`Invalid schema node type in ${label} constructor call: ${node.data.tag}`)
                 }
-                const tag = node.data.tag
-                this._key = new StandardKey({ tag, key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
+                this._key = new StandardKey({ key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
                 this._from = node.data.from
                 this._origin = 'origin' in node.data ? node.data.origin : undefined
                 // Extract Parent tag from children using tagTree (handles Remove/Replace wrapping)
@@ -162,7 +160,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 return this.universalKey
             }
             return {
-                tag: this.tag,
                 key: this.key,
                 universalKey: this.universalKey,
             }

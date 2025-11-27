@@ -5,7 +5,7 @@ import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, Schema
 type StandardReferenceData = string | ({
     key?: string;
     universalKey?: ComponentUUID;
-    tag: ComponentTag;
+    // tag is no longer stored; it is derived from universalKey when needed
 })
 
 export type StandardBaseData = {

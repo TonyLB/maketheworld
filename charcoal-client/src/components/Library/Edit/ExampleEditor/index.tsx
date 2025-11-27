@@ -97,7 +97,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
                         const parent = draft._lookup(parentId)
                         if (parent instanceof StandardRoom || parent instanceof StandardFeature || parent instanceof StandardKnowledge) {
                             draft._components = [...draft._components, new StandardExample(componentId).withLeastCommonContext([parentId])]
-                            parent._payload._examples.push(new StandardReference({ universalKey: componentId, tag: 'Example' }))
+                            parent._payload._examples.push(new StandardReference({ universalKey: componentId }))
                             console.log(`Example references: ${JSON.stringify(parent._payload._examples, null, 4)}`)
                         }
                     }

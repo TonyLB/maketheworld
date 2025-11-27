@@ -8,7 +8,7 @@ import { deIndentWML } from "../../schema/utils"
 describe('StandardAuthorizationResource class', () => {
 
     it('should construct StandardAuthorizationResource from JSON', () => {
-        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
+        const reference = new StandardReference({ key: 'Room1' })
         const grants: StandardAuthorizationItem[] = [
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
@@ -24,13 +24,13 @@ describe('StandardAuthorizationResource class', () => {
 
     it('should construct StandardAuthorizationResource from NDJSON', () => {
         const resource = new StandardAuthorizationResource([{
-            component: { key: 'Room1', tag: 'Room' },
+            component: { key: 'Room1' },
             grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
         }, {
-            component: { key: 'Room1', tag: 'Room' },
+            component: { key: 'Room1' },
             grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
         }])
-        expect(resource.component?.toJSON()).toEqual({ key: 'Room1', tag: 'Room' })
+        expect(resource.component?.toJSON()).toEqual({ key: 'Room1' })
         expect(resource.grants).toEqual([
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
@@ -40,10 +40,10 @@ describe('StandardAuthorizationResource class', () => {
     it('should throw error on NDJSON with differing components', () => {
         expect(() => {
             new StandardAuthorizationResource([{
-                component: { key: 'Room1', tag: 'Room' },
+                component: { key: 'Room1' },
                 grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
             }, {
-                component: { key: 'Room2', tag: 'Room' },
+                component: { key: 'Room2' },
                 grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
             }])
         }).toThrow()
@@ -70,11 +70,11 @@ describe('StandardAuthorizationResource class', () => {
         const resource = new StandardAuthorizationResource(wml)
         expect(resource.toNDJSON()).toEqual([
             {
-                component: { key: 'Room1', tag: 'Room' },
+                component: { key: 'Room1' },
                 grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
             },
             {
-                component: { key: 'Room1', tag: 'Room' },
+                component: { key: 'Room1' },
                 grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
             }
         ])
@@ -190,7 +190,7 @@ describe('StandardAuthorizationResource class', () => {
     })
 
     it('should render schema for resource with reference', () => {
-        const reference = new StandardReference({ key: 'Room1', tag: 'Room' })
+        const reference = new StandardReference({ key: 'Room1' })
         const grants: StandardAuthorizationItem[] = [
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })

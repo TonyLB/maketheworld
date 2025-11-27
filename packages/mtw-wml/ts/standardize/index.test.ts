@@ -687,7 +687,7 @@ describe('StandardForm', () => {
             const room1ByUUID = sf.byUniversalId['ROOM#001']
             expect(room1ByUUID).toBeDefined()
             
-            const { graph, topologicalSort } = sf._buildComponentGraph()
+            const { graph } = sf._buildComponentGraph()
             
             // Both the local key StandardKey and the universalKey StandardKey should map to the same synthetic UUID
             const room1Key = sf.byId['room1']._key.plain
@@ -718,7 +718,7 @@ describe('StandardForm', () => {
                     payload: {
                         tag: 'Room',
                         key: 'testRoom',
-                        exits: [{ to: { key: 'testRoomTwo', tag: 'Room' }, description: 'out' }],
+                        exits: [{ to: { key: 'testRoomTwo' }, description: 'out' }],
                     }
                 },
                 {
@@ -3771,8 +3771,8 @@ describe('StandardForm', () => {
                 
                 // Look up components after generateImplicitParents
                 const exampleWithParents = test._lookup('EXAMPLE#testFeatureBase')
-                const featureWithParents = test._lookup({ key: 'testFeature', tag: 'Feature' })
-                const roomWithParents = test._lookup({ key: 'testRoom', tag: 'Room' })
+                const featureWithParents = test._lookup('FEATURE#testFeature')
+                const roomWithParents = test._lookup('ROOM#testRoom')
                 
                 // Verify implicitParent values are correctly computed as StandardKey
                 // - Example is in Feature → implicitParent should be the Feature's StandardKey

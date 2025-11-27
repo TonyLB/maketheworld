@@ -1,12 +1,11 @@
 import checkTypes, { CheckTypes } from "@tonylb/mtw-base/ts/utils/checkTypes";
-import { ComponentTag } from "./abstract";
-import { ComponentUUID, isSchemaComponentTag, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardReferenceData = string | ({
     key?: string;
     universalKey?: ComponentUUID;
-    tag: ComponentTag;
+    // tag is no longer stored; it is derived from universalKey when needed
 })
 
 /**
@@ -19,10 +18,9 @@ export const isStandardReferencePayloadData = (arg: any): arg is StandardReferen
     return (typeof arg === 'string' && isSchemaComponentUUID(arg)) ||
         (
             checkTypes({
-                required: { tag: CheckTypes.STRING },
+                required: {},
                 optional: { key: CheckTypes.STRING, universalKey: CheckTypes.STRING }
             })(arg) &&
-            isSchemaComponentTag(arg.tag) &&
             (!arg.universalKey || isSchemaComponentUUID(arg.universalKey))
         )
 }

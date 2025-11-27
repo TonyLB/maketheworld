@@ -88,7 +88,8 @@ export const mapKeyToFormat = (format: ReferenceFormat) =>
     }
 
 export const childReferenceFactory = (props: any): StandardReference => {
-    const reference = new StandardReference(props)
+    const { tag, uuid, ...rest } = props.data
+    const reference = new StandardReference({ universalKey: uuid, ...rest })
     if (reference._payload instanceof StandardReferenceReplace && reference._payload.match.equals(reference._payload.payload)) {
         // If the match and payload are the same, this is a reference to a child node that is being
         // modified, and *for this particular method* we include a plain reference (so that parents
