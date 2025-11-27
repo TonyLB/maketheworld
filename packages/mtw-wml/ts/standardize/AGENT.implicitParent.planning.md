@@ -258,33 +258,39 @@ For the problematic scenario:
 
 **Goal**: Migrate from `context` array to `parent` reference
 
-**Status**: ✅ Completed
+**Status**: ✅ Completed (later revised - `StandardKey.parent` was removed)
 
-**Tasks Completed**:
-1. ✅ Added `parent?: StandardKey` field to `StandardKey` class
+**Tasks Completed** (Historical):
+1. ✅ Added `parent?: StandardKey` field to `StandardKey` class (later removed)
    - In memory: `parent` is always a `StandardKey` object (not `ComponentUUID`)
    - In serialized form (`StandardReferenceData`): `parent` is `ComponentUUID` string (no recursive nesting)
-2. ✅ Created helper methods: `hasParent()`, `getDirectParent()`, `withParent()`
-3. ✅ Created `getAncestryChain(lookup, visited)` helper method
+2. ✅ Created helper methods: `hasParent()`, `getDirectParent()`, `withParent()` (later removed)
+3. ✅ Created `getAncestryChain(lookup, visited)` helper method (later removed)
    - Requires `lookup` function to resolve parent UUIDs to full `StandardKey` objects
    - Uses `visited` array for cycle detection
    - Throws error on cycle detection (defensive programming - cycles indicate data integrity problems)
 4. ✅ Updated `StandardKey` constructor to accept `StandardKey` directly (for cloning)
-5. ✅ Updated `toJSON()` to serialize `parent` as just its `universalKey` (ComponentUUID string)
-6. ✅ Updated `StandardReferenceData` type: `parent?: ComponentUUID` (string only, no recursive nesting)
+5. ✅ Updated `toJSON()` to serialize `parent` as just its `universalKey` (ComponentUUID string) (later removed)
+6. ✅ Updated `StandardReferenceData` type: `parent?: ComponentUUID` (string only, no recursive nesting) (later removed)
 7. ✅ Updated `clone()` method to use direct `StandardKey` construction
-8. ✅ Comprehensive tests for all helper methods
+8. ✅ Comprehensive tests for all helper methods (later removed)
 
-**Key Design Decisions**:
+**Key Design Decisions** (Historical):
 - **Parent storage**: `parent` is always `StandardKey` in memory, but serializes to `ComponentUUID` string
 - **No recursive nesting**: Parent StandardKey objects don't contain their own parent (only one level)
 - **Lookup required**: `getAncestryChain()` requires a lookup function since parent only contains one level
 - **Cycle detection**: Throws error instead of returning empty array (cycles indicate bugs)
 
-**Files Modified**:
-- ✅ `./components/reference.ts` - Added `parent` field, helper methods, updated constructor and `toJSON()`
-- ✅ `./components/dataTypes/reference.ts` - Updated `StandardReferenceData` type
-- ✅ `./components/reference.test.ts` - Comprehensive test coverage
+**Files Modified** (Historical):
+- ✅ `./components/reference.ts` - Added `parent` field, helper methods, updated constructor and `toJSON()` (later removed)
+- ✅ `./components/dataTypes/reference.ts` - Updated `StandardReferenceData` type (later removed)
+- ✅ `./components/reference.test.ts` - Comprehensive test coverage (later removed)
+
+**Later Revision** (November 26, 2025):
+- ❌ **Removed `StandardKey.parent` field entirely** - The field was never used in application logic
+- ❌ **Removed all parent-related helper methods** - Not needed since parent field doesn't exist
+- ✅ **Final implementation stores hierarchy on `StandardComponent.implicitParent`** instead (see Phase 4)
+- See [`AGENT.implicitParent.parentField.assessment.md`](./AGENT.implicitParent.parentField.assessment.md) for full assessment
 
 **Note**: Caching mechanism deferred to Phase 4 (Topological Resolution) to avoid circular dependency issues. Without topological sorting, caching on an unsorted graph could lead to infinite loops.
 
@@ -339,7 +345,7 @@ For the problematic scenario:
 - **On-demand computation**: Edges are computed when needed (e.g., in `finalize()`), not stored during `processComponents()`. This keeps the data model clean and allows edges to be recomputed after merges.
 - **Child lookup**: Uses `component.referencedKeys()` filtered by `referenceType: 'Direct'` or `'Position'` to get child references, then looks up child components via `_lookup()` to get their `universalKey`. This handles cases where child references only have local keys.
 - **Explicit vs Implicit**: `explicitParent` is user-set via `<Parent>` tags and is separate from implicit parent calculation. Only implicit nesting (schema structure) is considered for edge collection.
-- **Where `parent` will be set**: In Phase 4, after topological resolution, we'll set `parent` on `StandardComponent._key.parent` (the component's own key), representing where the component appears in the hierarchy.
+- **Where hierarchy is stored**: In Phase 4, after topological resolution, `implicitParent` is set on `StandardComponent.implicitParent` (not on `StandardComponent._key.parent` - that field doesn't exist).
 
 **Files Modified**:
 - ✅ `./index.ts` - Added `_getParentChildEdges()` method (internal method, returns `Array<{ parent: ComponentUUID; child: ComponentUUID }>`)
@@ -497,9 +503,10 @@ After universalKey assignment in `finalize()`, we:
 - ✅ `./index.test.ts` - Comprehensive test coverage for hierarchy resolution
 
 **Design Decision Made**:
-- ✅ `implicitParent` is stored separately on `StandardComponent` (as `ComponentUUID | undefined`)
-- ✅ `StandardKey.parent` remains available for explicit parent relationships (future use)
+- ✅ `implicitParent` is stored separately on `StandardComponent` (as `StandardKey | undefined`)
+- ❌ `StandardKey.parent` was removed (November 26, 2025) - not used in application logic
 - ✅ `implicitParent` is treated as computed metadata (cleared in merge, recomputed in finalize)
+- ✅ `explicitParent` is stored separately on `StandardComponent` for user-set parent relationships
 
 ### Phase 5: Merge Integration ❌ NOT NEEDED
 
@@ -634,13 +641,17 @@ After universalKey assignment in `finalize()`, we:
 - `[...parentContext, currentKey]` - Rebuild chain from parent
 - `context.length` - Sort by depth
 
-### Proposed Approach: Single Parent Reference ✅ IMPLEMENTED
+### Proposed Approach: Single Parent Reference ❌ REMOVED (November 26, 2025)
 
-**Implemented representation**: 
-- In memory: `StandardKey.parent?: StandardKey` - Direct parent only (always `StandardKey` object)
-- In serialized form: `StandardReferenceData.parent?: ComponentUUID` - Direct parent UUID only (string)
+**Originally implemented representation** (later removed): 
+- In memory: `StandardKey.parent?: StandardKey` - Direct parent only (always `StandardKey` object) - **REMOVED**
+- In serialized form: `StandardReferenceData.parent?: ComponentUUID` - Direct parent UUID only (string) - **REMOVED**
 - Example: `parent = Room-key` (StandardKey object) for a Feature in Room
 - Ancestry chain computed on-demand via parent traversal with lookup function
+
+**Final implementation** (Phase 4):
+- Hierarchy stored on `StandardComponent.implicitParent?: StandardKey` instead
+- See Phase 4 section for details
 
 **Benefits**:
 1. **Aligns with graph structure**: Graph edges are parent→child, matching the data model
@@ -655,9 +666,10 @@ After universalKey assignment in `finalize()`, we:
 - **Lookup helper**: `getAncestryChain(component)` function with memoization
 - **Depth computation**: Compute depth via traversal (cacheable)
 
-**Implemented algorithm** (Phase 1):
+**Originally implemented algorithm** (Phase 1 - later removed):
 ```typescript
-// In StandardKey.getAncestryChain()
+// In StandardKey.getAncestryChain() - REMOVED (November 26, 2025)
+// This code example is preserved for historical reference only
 getAncestryChain(
     lookup: (uuid: ComponentUUID) => StandardKey | undefined,
     visited: ComponentUUID[] = []
@@ -690,7 +702,7 @@ getAncestryChain(
 }
 ```
 
-**Note**: Caching will be added in Phase 4 after topological sorting ensures no cycles.
+**Note**: This algorithm was removed because `StandardKey.parent` was never used. The final implementation uses `StandardComponent.implicitParent` instead, with ancestry chain computed via `_getAncestryChainFromImplicitParent()` in `StandardForm` (see Phase 4).
 
 **Migration impact**:
 - **Breaking change**: `context` array → `parent` single reference
@@ -709,20 +721,22 @@ getAncestryChain(
 5. Aligns with graph-based resolution approach
 6. **No recursive nesting**: Parent StandardKey objects don't contain their own parent (only one level)
 
-**Implementation strategy** ✅:
-- ✅ Added `parent?: StandardKey` field to `StandardKey` (in memory)
-- ✅ Added `parent?: ComponentUUID` to `StandardReferenceData` (serialized form)
-- ✅ Added helper methods for ancestry chain computation (`getAncestryChain()` with lookup)
-- ✅ Updated `toJSON()` to serialize parent as UUID string (no recursive nesting)
+**Implementation strategy** (Historical - later revised):
+- ✅ Added `parent?: StandardKey` field to `StandardKey` (in memory) - **REMOVED** (November 26, 2025)
+- ✅ Added `parent?: ComponentUUID` to `StandardReferenceData` (serialized form) - **REMOVED** (November 26, 2025)
+- ✅ Added helper methods for ancestry chain computation (`getAncestryChain()` with lookup) - **REMOVED** (November 26, 2025)
+- ✅ Updated `toJSON()` to serialize parent as UUID string (no recursive nesting) - **REMOVED** (November 26, 2025)
 - ✅ Updated constructor to accept `StandardKey` directly (for cloning)
-- ⏳ Update all `context` usages to use `parent` + helpers (Phase 6)
+- ⏳ Update all `context` usages to use `implicitParent` instead (Phase 6)
 - ⏳ Remove `context` array after migration complete (Phase 6)
 
-**Key Implementation Details**:
-- Parent is always `StandardKey` in memory, but serializes to `ComponentUUID` string
-- `getAncestryChain()` requires a lookup function to resolve parent UUIDs to full `StandardKey` objects
-- Cycle detection throws error (defensive programming)
-- Constructor accepts `StandardKey` directly for efficient cloning
+**Key Implementation Details** (Historical - `StandardKey.parent` was removed):
+- ~~Parent is always `StandardKey` in memory, but serializes to `ComponentUUID` string~~ - **REMOVED**
+- ~~`getAncestryChain()` requires a lookup function to resolve parent UUIDs to full `StandardKey` objects~~ - **REMOVED**
+- ~~Cycle detection throws error (defensive programming)~~ - **REMOVED**
+- Constructor accepts `StandardKey` directly for efficient cloning (still used)
+
+**Final implementation** uses `StandardComponent.implicitParent` instead (see Phase 4).
 
 **Alternative considered**: Keep `context` array, compute from `parent` when needed
 - **Rejected**: Would maintain redundant data and complexity

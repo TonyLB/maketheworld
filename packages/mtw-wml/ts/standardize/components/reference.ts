@@ -11,14 +11,12 @@ import { editableListClassFactory, EditableListItem } from "./editableList";
 export class StandardKey implements StandardEditablePayload<StandardReferenceData> {
     key?: string;
     universalKey?: ComponentUUID;
-    parent?: StandardKey;
     _tag?: ComponentTag;
     constructor(data: string | StandardReferenceData | StandardKey) {
         // Handle StandardKey instance directly (for cloning)
         if (data instanceof StandardKey) {
             this.key = data.key
             this.universalKey = data.universalKey
-            this.parent = data.parent ? new StandardKey(data.parent) : undefined
             this._tag = data._tag
             return
         }
@@ -34,12 +32,6 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         else {
             this.key = data.key
             this.universalKey = data.universalKey
-            // Support parent field - always convert to StandardKey
-            // In serialized form, parent is only ComponentUUID string (no recursive nesting)
-            if (data.parent) {
-                // Parent is ComponentUUID string - construct StandardKey from it
-                this.parent = new StandardKey(data.parent)
-            }
             this._tag = data.tag
         }
     }
@@ -67,23 +59,13 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         return new StandardKey(this)
     }
     toJSON: () => StandardReferenceData = () => {
-        if (typeof this.key === 'undefined' && !this.parent) {
+        if (typeof this.key === 'undefined') {
             if (typeof this.universalKey === 'undefined') {
                 throw new Error('StandardKey must have a universalKey or key')
             }
             return this.universalKey
         }
         const result: any = { key: this.key, tag: this.tag, universalKey: this.universalKey }
-        if (this.parent) {
-            // Serialize parent as just its universalKey to avoid recursive nesting
-            // The full parent chain can be resolved using getAncestryChain() with a lookup function
-            if (this.parent.universalKey) {
-                result.parent = this.parent.universalKey
-            } else {
-                // If parent doesn't have universalKey, serialize its plain form (which clears parent)
-                result.parent = this.parent.plain.toJSON()
-            }
-        }
         return result as StandardReferenceData
     }
     withKey(key: string): StandardKey {
@@ -92,86 +74,6 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
         return returnValue
     }
     // context support has been removed; hierarchical relationships are handled at the component level
-
-    withParent(parent: StandardKey | ComponentUUID | undefined): StandardKey {
-        const returnValue = this.clone()
-        // Always convert to StandardKey if it's a ComponentUUID string
-        if (parent && typeof parent === 'string') {
-            returnValue.parent = new StandardKey(parent)
-        } else {
-            returnValue.parent = parent
-        }
-        return returnValue
-    }
-
-    /**
-     * Returns true if this key has a parent reference
-     */
-    hasParent(): boolean {
-        return this.parent !== undefined
-    }
-
-    /**
-     * Returns the direct parent as a StandardKey, or undefined if no parent
-     */
-    getDirectParent(): StandardKey | undefined {
-        return this.parent
-    }
-
-    /**
-     * Gets the full ancestry chain by traversing parent links.
-     * Returns an array of StandardKey[] representing the chain from root to direct parent.
-     * 
-     * Note: This does NOT include the current key itself, only ancestors.
-     * 
-     * @param lookup - Function to look up a component by its universalKey to resolve parent references
-     * @param visited - Internal array to detect cycles (should not be called directly)
-     * @returns Array of StandardKey[] representing the ancestry chain, empty array for Asset-level components
-     */
-    getAncestryChain(
-        lookup: (uuid: ComponentUUID) => StandardKey | undefined,
-        visited: ComponentUUID[] = []
-    ): StandardKey[] {
-        // Safety check: detect cycles (though this shouldn't happen with proper topological sorting)
-        // Use universalKey as identifier if available, otherwise we can't reliably detect cycles
-        // StandardKeys without universalKey shouldn't be in parent chains anyway
-        if (!this.universalKey) {
-            // No universalKey means we can't reliably track this in the visited set
-            // Return empty to avoid issues
-            return []
-        }
-        
-        const keyIdentifier: ComponentUUID = this.universalKey
-        
-        // Check for cycle BEFORE adding to visited
-        if (visited.includes(keyIdentifier)) {
-            // Cycle detected - this indicates a data integrity problem
-            // Throw an error rather than silently returning empty
-            throw new Error(`Cycle detected in parent chain: ${keyIdentifier} appears multiple times in ancestry. Visited: ${visited.join(' -> ')} -> ${keyIdentifier}`)
-        }
-        
-        // Add current key to visited BEFORE recursive call
-        const extendedVisited = [...visited, keyIdentifier]
-        
-        if (!this.parent) {
-            // Asset level - no ancestors
-            return []
-        }
-
-        // Parent in StandardKey is stored as a StandardKey object, but only contains one level
-        // We need to use the parent's universalKey to look up the full parent chain
-        const parentKey = this.parent.universalKey ? lookup(this.parent.universalKey) : undefined
-        
-        if (!parentKey) {
-            // Parent not found in lookup - treat as Asset level
-            return []
-        }
-
-        // Recursively get parent's chain, then append parent
-        // Pass the extended visited array to detect cycles across the recursion
-        const parentChain = parentKey.getAncestryChain(lookup, extendedVisited)
-        return [...parentChain, parentKey]
-    }
     
     equals(other: StandardKey): boolean {
         //
@@ -208,9 +110,7 @@ export class StandardKey implements StandardEditablePayload<StandardReferenceDat
     }
 
     get plain(): StandardKey {
-        const returnValue = this.clone()
-        returnValue.parent = undefined
-        return returnValue
+        return this.clone()
     }
 
     toFormat(format: ReferenceFormat): StandardKey {
