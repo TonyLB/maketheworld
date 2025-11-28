@@ -2,7 +2,6 @@ import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardReferenceSimple, StandardKey } from "./components/reference"
 
 type SortKey = StandardReferenceSimple | StandardKey
-type AncestryChainEntry = { key: StandardKey, tag: ComponentTag }
 type LookupResult = { reference: StandardReferenceSimple; implicitParent?: StandardKey }
 type LookupFunction = (key: StandardKey) => LookupResult | undefined
 
@@ -13,7 +12,7 @@ type LookupFunction = (key: StandardKey) => LookupResult | undefined
 const buildAncestryChain = (
     key: StandardKey,
     lookup: LookupFunction
-): AncestryChainEntry[] => {
+): StandardReferenceSimple[] => {
     const lookupResult = lookup(key)
     
     if (!lookupResult) {
@@ -22,7 +21,7 @@ const buildAncestryChain = (
         if (!tag) {
             throw new Error(`Cannot determine tag for key in sortOrder: ${JSON.stringify(key)}`)
         }
-        return [{ key, tag }]
+        return [new StandardReferenceSimple(key, tag)]
     }
     
     // Get tag from reference
@@ -32,7 +31,7 @@ const buildAncestryChain = (
     }
     
     // Build ancestry chain by traversing implicitParent
-    const ancestryChain: AncestryChainEntry[] = []
+    const ancestryChain: StandardReferenceSimple[] = []
     let current: LookupResult | undefined = lookupResult
     
     while (current?.implicitParent) {
@@ -45,17 +44,12 @@ const buildAncestryChain = (
             if (!parentTag) {
                 throw new Error(`Cannot determine tag for parent in ancestry chain: ${JSON.stringify(parentKey)}`)
             }
-            ancestryChain.push({ key: parentKey, tag: parentTag })
+            ancestryChain.push(new StandardReferenceSimple(parentKey, parentTag))
             break
         }
         
-        // Get tag from parent reference
-        const parentTag = parentLookupResult.reference.tag
-        if (!parentTag) {
-            throw new Error(`Cannot determine tag for parent reference in ancestry chain: ${JSON.stringify(parentKey)}`)
-        }
-        
-        ancestryChain.push({ key: parentKey, tag: parentTag })
+        // Use parent reference directly
+        ancestryChain.push(parentLookupResult.reference)
         current = parentLookupResult
     }
     
@@ -63,7 +57,7 @@ const buildAncestryChain = (
     ancestryChain.reverse()
     
     // Return full chain including current key
-    return [...ancestryChain, { key, tag: componentTag }]
+    return [...ancestryChain, lookupResult.reference]
 }
 
 export const standardComponentSortOrder = (
@@ -87,7 +81,7 @@ export const standardComponentSortOrder = (
     const fullChainA = buildAncestryChain(keyA, lookup)
     const fullChainB = buildAncestryChain(keyB, lookup)
     
-    const differingIndex = fullChainA.findIndex((ancestorEntry, index) => (!((fullChainB.length > index) && fullChainB[index].key.equals(ancestorEntry.key))))
+    const differingIndex = fullChainA.findIndex((ancestorEntry, index) => (!((fullChainB.length > index) && fullChainB[index].standardKey.equals(ancestorEntry.standardKey))))
     if (differingIndex === -1 || differingIndex >= fullChainB.length) {
         return fullChainA.length - fullChainB.length
     }
@@ -104,7 +98,7 @@ export const standardComponentSortOrder = (
             return indexA - indexB
         }
         else {
-            return (elementToCompareA.key.key ?? '').localeCompare(elementToCompareB.key.key ?? '')
+            return (elementToCompareA.standardKey.key ?? '').localeCompare(elementToCompareB.standardKey.key ?? '')
         }
     }
 }
