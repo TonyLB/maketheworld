@@ -825,48 +825,50 @@ export class StandardReference {
         }
         if (this._payload instanceof StandardReferenceSimple) {
             const currentKey = this._payload.standardKey
-            const lookedUpKey = callback(currentKey) ?? currentKey
-            if (lookedUpKey.equals(currentKey)) {
+            const lookedUpKey = callback(currentKey)
+            // Only clone if no lookup found a match (lookedUpKey is undefined or same object reference)
+            if (!lookedUpKey || lookedUpKey === currentKey) {
                 return this.clone()
             }
-            // Convert StandardKey to StandardReferencePayload
+            // Extract properties directly from looked-up key to preserve both key and universalKey
             const tag = this._payload.tag
-            const keyData = lookedUpKey.toJSON()
-            const referenceData: StandardReferenceData = typeof keyData === 'string' 
-                ? keyData 
-                : { ...keyData, tag }
+            const referenceData: StandardReferenceData = lookedUpKey.universalKey && !lookedUpKey.key
+                ? lookedUpKey.universalKey  // Use ComponentUUID string form when only universalKey exists
+                : { key: lookedUpKey.key || '', universalKey: lookedUpKey.universalKey, tag }
             return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(referenceData)))
         }
         if (this._payload instanceof StandardReferenceRemove) {
             const currentKey = this._payload.plain.standardKey
-            const lookedUpKey = callback(currentKey) ?? currentKey
-            if (lookedUpKey.equals(currentKey)) {
+            const lookedUpKey = callback(currentKey)
+            // Only clone if no lookup found a match
+            if (!lookedUpKey || lookedUpKey === currentKey) {
                 return this.clone()
             }
             const tag = this._payload.tag
-            const keyData = lookedUpKey.toJSON()
-            const referenceData: StandardReferenceData = typeof keyData === 'string' 
-                ? keyData 
-                : { ...keyData, tag }
+            const referenceData: StandardReferenceData = lookedUpKey.universalKey && !lookedUpKey.key
+                ? lookedUpKey.universalKey
+                : { key: lookedUpKey.key || '', universalKey: lookedUpKey.universalKey, tag }
             return new StandardReference(new StandardReferenceRemove(new StandardReferencePayload(referenceData)))
         }
         if (this._payload instanceof StandardReferenceReplace) {
             const matchKey = this._payload.match.standardKey
             const payloadKey = this._payload.payload.standardKey
-            const lookedUpMatchKey = callback(matchKey) ?? matchKey
-            const lookedUpPayloadKey = callback(payloadKey) ?? payloadKey
-            if (lookedUpMatchKey.equals(matchKey) && lookedUpPayloadKey.equals(payloadKey)) {
+            const lookedUpMatchKey = callback(matchKey)
+            const lookedUpPayloadKey = callback(payloadKey)
+            // Only clone if no lookup found matches for either
+            if ((!lookedUpMatchKey || lookedUpMatchKey === matchKey) && 
+                (!lookedUpPayloadKey || lookedUpPayloadKey === payloadKey)) {
                 return this.clone()
             }
             const tag = this._payload.tag
-            const matchKeyData = lookedUpMatchKey.toJSON()
-            const payloadKeyData = lookedUpPayloadKey.toJSON()
-            const matchData: StandardReferenceData = typeof matchKeyData === 'string' 
-                ? matchKeyData 
-                : { ...matchKeyData, tag }
-            const payloadData: StandardReferenceData = typeof payloadKeyData === 'string' 
-                ? payloadKeyData 
-                : { ...payloadKeyData, tag }
+            const matchKeyToUse = lookedUpMatchKey ?? matchKey
+            const payloadKeyToUse = lookedUpPayloadKey ?? payloadKey
+            const matchData: StandardReferenceData = matchKeyToUse.universalKey && !matchKeyToUse.key
+                ? matchKeyToUse.universalKey
+                : { key: matchKeyToUse.key || '', universalKey: matchKeyToUse.universalKey, tag }
+            const payloadData: StandardReferenceData = payloadKeyToUse.universalKey && !payloadKeyToUse.key
+                ? payloadKeyToUse.universalKey
+                : { key: payloadKeyToUse.key || '', universalKey: payloadKeyToUse.universalKey, tag }
             return new StandardReference(new StandardReferenceReplace(
                 new StandardReferencePayload(matchData),
                 new StandardReferencePayload(payloadData)

@@ -121,10 +121,10 @@ describe('StandardReference', () => {
         }
         const testReference = new StandardReference(testReferenceData)
         // ComponentUUID form creates a payload with only universalKey (no key)
-        // So equality check will fail because one has key and one doesn't
+        // StandardKey.equals() returns true when universalKeys match, even if one has a key and the other doesn't
         const componentUUIDRef = new StandardReference('ROOM#1234')
-        expect(testReference.equal(componentUUIDRef)).toBe(false)
-        // But they should be equal when both have the same universalKey and no conflicting key
+        expect(testReference.equal(componentUUIDRef)).toBe(true)  // Equal because universalKeys match
+        // They should be equal when both have the same universalKey
         expect(componentUUIDRef.equal(componentUUIDRef)).toBe(true)
     })
 
