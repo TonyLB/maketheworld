@@ -5,8 +5,10 @@ import { StandardRemove, StandardReplace } from "./components/edits"
 import { isSchemaComponent, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { ComponentTag } from "./components/dataTypes/abstract"
-import { StandardKey } from "./components/reference"
+import { StandardKey, StandardReferenceSimple } from "./components/reference"
+import { ReferenceCollection } from "./components/utils/referenceCollection"
 import StandardRoom from "./components/room"
+import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists"
 
 export type ComponentProcessingTemplate = {
     key: ComponentTag;
@@ -16,6 +18,7 @@ export type ComponentProcessingTemplate = {
 export type ComponentProcessingResult = {
     components: StandardComponent[];
     topLevel: StandardKey[];
+    referenceCollection: ReferenceCollection;
 }
 
 //
@@ -40,7 +43,7 @@ export const processComponents = (props: {
         assetUUID,
     } = props
 
-    const recursiveResult = schema.reduce<ComponentProcessingResult>((previous, item) => {
+    const recursiveResult = schema.reduce<Omit<ComponentProcessingResult, 'referenceCollection'>>((previous, item) => {
         //
         // If the item is a remove, set inContextOfRemove to true
         //
@@ -156,7 +159,25 @@ export const processComponents = (props: {
         }
     }, { components: [], topLevel: [] })
 
-    return recursiveResult
+    // Build ReferenceCollection from all components
+    const references = recursiveResult.components
+        .map(component => {
+            try {
+                const referenceData = component.referenceData
+                return new StandardReferenceSimple(referenceData)
+            } catch (error) {
+                // Skip components that don't have valid referenceData
+                return undefined
+            }
+        })
+        .filter(excludeUndefined)
+    
+    const referenceCollection = new ReferenceCollection(references)
+
+    return {
+        ...recursiveResult,
+        referenceCollection
+    }
 }
 
 export default processComponents
