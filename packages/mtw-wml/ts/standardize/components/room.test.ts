@@ -3,7 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardRoomData } from "./dataTypes/room"
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
-import StandardReference, { StandardKey } from "./reference"
+import StandardReference, { StandardKey, StandardReferenceSimple } from "./reference"
 import { StandardExplicitParent } from "../explicit"
 import { StandardRemove, StandardReplace } from "./edits"
 
@@ -66,7 +66,7 @@ describe('StandardRoom class', () => {
             key: 'test',
             tag: 'Room',
             shortName: 'ShortName Test',
-            exits: [{ to: { key: 'testTwo', tag: 'Room' }, description: 'Exit test' }],
+            exits: [{ to: { key: 'testTwo' }, description: 'Exit test' }],
             features: [{ tag: 'Feature', key: 'testFeature' }]
         }
         const testRoom = new StandardRoom(testRoomData)
@@ -176,9 +176,9 @@ describe('StandardRoom class', () => {
             </Room>
         `)
         const remapped = test.withMapping([
-            new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne'}),
-            new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base', context: ['ROOM#Room1'] }),
-            new StandardKey({ universalKey: 'ROOM#testRoomTwo', tag: 'Room', key: 'testRoomTwo' })
+            new StandardKey({ universalKey: 'ROOM#Room1', key: 'testRoomOne'}),
+            new StandardKey({ universalKey: 'EXAMPLE#Example1', key: 'base' }),
+            new StandardKey({ universalKey: 'ROOM#testRoomTwo', key: 'testRoomTwo' })
         ]).remapReferences('universal')
         expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Room uuid=(Room1) key=(testRoomOne)>
@@ -216,8 +216,8 @@ describe('StandardRoom class', () => {
                 <Feature uuid=(Feature1) />
             </Room>
         `)
-        const feature = new StandardKey({ tag: 'Feature', key: 'featureTwo' })
-        const added = test.withChild(new StandardReference(feature))
+        const feature = new StandardKey({ key: 'featureTwo' })
+        const added = test.withChild(new StandardReference(new StandardReferenceSimple(feature, 'Feature')))
         expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
             <Room key=(testRoomOne)>
                 <Feature uuid=(Feature1) />
@@ -274,7 +274,7 @@ describe('StandardRoom class', () => {
                 exits: [],
                 characters: [
                     { tag: 'Character', key: 'char1' },
-                    { tag: 'Character', universalKey: 'CHARACTER#uuid123' }
+                    'CHARACTER#uuid123'
                 ]
             }
             const room = new StandardRoom(roomData)

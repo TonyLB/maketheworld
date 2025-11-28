@@ -11,7 +11,7 @@ import { editableListClassFactory, EditableListItem } from "./editableList";
 export class StandardKey implements StandardEditablePayload<StandardKeyData> {
     key?: string;
     universalKey?: ComponentUUID;
-    constructor(data: string | StandardKeyData | StandardReferenceData | StandardKey) {
+    constructor(data: string | { key?: string; universalKey?: ComponentUUID } | StandardKeyData | StandardReferenceData | StandardKey) {
         // Handle StandardKey instance directly (for cloning)
         if (data instanceof StandardKey) {
             this.key = data.key
@@ -27,10 +27,11 @@ export class StandardKey implements StandardEditablePayload<StandardKeyData> {
             this.universalKey = data
         }
         else {
-            // Extract key and universalKey, ignoring tag if present (StandardReferenceData includes tag)
+            if (!data.key && !data.universalKey) {
+                throw new Error('StandardKey must have a key or universalKey')
+            }
             this.key = data.key
             this.universalKey = data.universalKey
-            // tag is no longer stored; it will be derived from universalKey when needed
         }
     }
     get tag(): ComponentTag | undefined {
@@ -171,10 +172,10 @@ export class StandardReferencePayload implements StandardEditablePayload<Standar
             this.key = data.key
             this.universalKey = data.universalKey
             // Runtime fail-safe: TypeScript requires tag in object form, but validate at runtime
-            if (!data.tag) {
+            if (!data.tag && !data.universalKey) {
                 throw new Error('StandardReferenceData object form requires tag')
             }
-            this._tag = data.tag
+            this._tag = data.tag ?? deriveTagFromReferenceData(data)
             return
         }
         

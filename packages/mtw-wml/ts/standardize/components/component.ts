@@ -156,10 +156,14 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         get fileName(): string | undefined { return undefined }
         get tag(): ComponentTag { return this._payload.tag }
         get referenceData(): StandardReferenceData {
-            if (this.universalKey && !this.key) {
+            if (!this.key) {
+                if (!this.universalKey) {
+                    throw new Error('StandardComponent referenceData requires a key or universalKey')
+                }
                 return this.universalKey
             }
             return {
+                tag: this.tag,
                 key: this.key,
                 universalKey: this.universalKey,
             }

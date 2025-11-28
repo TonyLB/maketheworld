@@ -9,17 +9,17 @@ import { standardAuthorizationFactory } from "./authorizationFactory";
 import { excludeUndefined } from "../../lib/lists";
 import { diffSignedStringSets, SignedStringSet } from "./components/utils";
 import { unique } from "../../list";
-import { StandardReferenceData, isStandardReferencePayloadData } from "../components/dataTypes/reference";
+import { StandardKeyData, isStandardKeyData } from "../components/dataTypes/reference";
 import { isSchemaTreeNode, treeFromWML } from "../../schema";
 
 export type StandardAuthorizationResourceNDJSON = {
-    component?: StandardReferenceData;  // Undefined for global (Asset-level) grants
+    component?: StandardKeyData;  // Undefined for global (Asset-level) grants
     grant: StandardAuthorizationData;
 }
 
 export const isStandardAuthorizationResourceNDJSON = (value: any): value is StandardAuthorizationResourceNDJSON => {
     return typeof value === 'object' &&
-        (!('component' in value) || value.component === undefined || isStandardReferencePayloadData(value.component)) &&
+        (!('component' in value) || value.component === undefined || isStandardKeyData(value.component)) &&
         'grant' in value && isStandardAuthorizationData(value.grant)
 }
 
@@ -89,14 +89,14 @@ export class StandardAuthorizationResource {
 
     toJSON(): StandardAuthorizationResourceData {
         return {
-            component: this.component?.toJSON() as StandardReferenceData | undefined,
+            component: this.component?.plain()?.standardKey?.toJSON(),
             grants: this.grants.map(grant => grant.toJSON())
         }
     }
 
     toNDJSON(): StandardAuthorizationResourceNDJSON[] {
         return this.grants.map(grant => ({
-            component: this.component?.toJSON() as StandardReferenceData | undefined,
+            component: this.component?.plain()?.standardKey?.toJSON(),
             grant: grant.toJSON()
         }))
     }

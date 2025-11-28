@@ -103,8 +103,8 @@ export const standardComponentSortOrder = (
     //
     
     // Extract keys from references if needed
-    const keyA = referenceA instanceof StandardReferenceSimple ? referenceA.payload : referenceA
-    const keyB = referenceB instanceof StandardReferenceSimple ? referenceB.payload : referenceB
+    const keyA = referenceA instanceof StandardReferenceSimple ? referenceA.standardKey : referenceA
+    const keyB = referenceB instanceof StandardReferenceSimple ? referenceB.standardKey : referenceB
     
     // Build ancestry chains using lookup (includes current keys with tags)
     const fullChainA = buildAncestryChain(keyA, lookup)

@@ -1,8 +1,8 @@
 import checkTypes, { CheckTypes } from "@tonylb/mtw-base/ts/utils/checkTypes";
-import { isStandardReferencePayloadData, StandardReferenceData } from "./reference"
+import { isStandardReferencePayloadData, StandardKeyData } from "./reference"
 
 export type StandardPositionData = {
-    room: StandardReferenceData;
+    room: StandardKeyData;
     x: number;
     y: number;
 }

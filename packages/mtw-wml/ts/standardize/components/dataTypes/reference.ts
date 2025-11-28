@@ -57,10 +57,16 @@ export const isStandardReferencePayloadData = (arg: any): arg is StandardReferen
     }
     // Object form: requires key and tag
     if (checkTypes({
-        required: { key: CheckTypes.STRING, tag: CheckTypes.STRING },
-        optional: { universalKey: CheckTypes.STRING }
+        required: { },
+        optional: { universalKey: CheckTypes.STRING, tag: CheckTypes.STRING, key: CheckTypes.STRING }
     })(arg)) {
         if (arg.universalKey && !isSchemaComponentUUID(arg.universalKey)) {
+            return false
+        }
+        if (!arg.tag && !arg.universalKey) {
+            return false
+        }
+        if (!arg.key && !arg.universalKey) {
             return false
         }
         return true

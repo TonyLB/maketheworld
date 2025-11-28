@@ -30,7 +30,7 @@ describe('StandardPosition', () => {
 
     it('should construct StandardPosition from StandardPositionData', () => {
         const testPositionData: StandardPositionData = {
-            room: { key: 'test', tag: 'Room' },
+            room: { key: 'test' },
             x: 1,
             y: 2
         }

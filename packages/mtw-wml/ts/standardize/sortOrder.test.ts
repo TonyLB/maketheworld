@@ -31,8 +31,8 @@ describe('standardComponentSortOrder', () => {
     })
 
     it('should order siblings by tag order', () => {
-        const room = new StandardReferenceSimple({ key: 'Room1', universalKey: 'ROOM#Room1' })
-        const feature = new StandardReferenceSimple({ key: 'Feature1', universalKey: 'FEATURE#Feature1' })
+        const room = new StandardReferenceSimple({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#Room1' })
+        const feature = new StandardReferenceSimple({ tag: 'Feature', key: 'Feature1', universalKey: 'FEATURE#Feature1' })
         // Room comes before Feature in componentKeys
         expect(sortOrder(room, feature)).toBeGreaterThan(0)
         expect(sortOrder(feature, room)).toBeLessThan(0)
@@ -49,8 +49,8 @@ describe('standardComponentSortOrder', () => {
     })
 
     it('should order unrelated components by tag order', () => {
-        const room = new StandardReferenceSimple({ key: 'Room1', universalKey: 'ROOM#Room1' })
-        const character = new StandardReferenceSimple({ key: 'Char1', universalKey: 'CHARACTER#Char1' })
+        const room = new StandardReferenceSimple({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#Room1' })
+        const character = new StandardReferenceSimple({ tag: 'Character', key: 'Char1', universalKey: 'CHARACTER#Char1' })
         // Character comes before Room in componentKeys
         expect(sortOrder(character, room)).toBeLessThan(0)
         expect(sortOrder(room, character)).toBeGreaterThan(0)
@@ -68,8 +68,8 @@ describe('standardComponentSortOrder', () => {
     })
 
     it('should order components with same key and tag as equal', () => {
-        const a = new StandardReferenceSimple({ key: 'Room1', universalKey: 'ROOM#Room1' })
-        const b = new StandardReferenceSimple({ key: 'Room1', universalKey: 'ROOM#Room1' })
+        const a = new StandardReferenceSimple({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#Room1' })
+        const b = new StandardReferenceSimple({ tag: 'Room', key: 'Room1', universalKey: 'ROOM#Room1' })
         expect(sortOrder(a, b)).toBe(0)
     })
 

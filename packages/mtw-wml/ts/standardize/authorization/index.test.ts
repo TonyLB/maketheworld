@@ -19,7 +19,7 @@ describe('StandardAuthorizationCollection', () => {
             universalKey: 'ASSET#TestKey',
             grants: [
                 {
-                    component: { key: 'Room1', tag: 'Room' },
+                    component: { key: 'Room1' },
                     grants: []
                 }
             ]
@@ -44,9 +44,9 @@ describe('StandardAuthorizationCollection', () => {
         const ndjson: StandardAuthorizationCollectionNDJSON[] = [
             { tag: 'Asset', universalKey: 'ASSET#Test' },
             { component: undefined, grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
-            { component: { key: 'Room1', tag: 'Room' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } },
-            { component: { key: 'Room1', tag: 'Room' }, grant: { tag: 'Grant', player: 'Player2', actions: ['action2'] } },
-            { component: { key: 'Room2', tag: 'Room' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action3'] } }
+            { component: { key: 'Room1' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } },
+            { component: { key: 'Room1' }, grant: { tag: 'Grant', player: 'Player2', actions: ['action2'] } },
+            { component: { key: 'Room2' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action3'] } }
         ]
         const collection = new StandardAuthorizationCollection(ndjson)
         expect(collection.toJSON()).toEqual({
@@ -160,7 +160,7 @@ describe('StandardAuthorizationCollection', () => {
                     }]
                 },
                 {
-                    component: { key: 'Room1', tag: 'Room' },
+                    component: { key: 'Room1' },
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -183,7 +183,7 @@ describe('StandardAuthorizationCollection', () => {
         expect(collection.toNDJSON()).toEqual([
             { tag: 'Asset', universalKey: 'ASSET#test' },
             { component: undefined, grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
-            { component: { key: 'Room1', tag: 'Room' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
+            { component: { key: 'Room1' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
         ])
     })
 

@@ -1,10 +1,10 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { StandardEditableDataDelta, v2StandardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
+import { v2StandardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
 import { isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { StandardReferenceData } from "../components/dataTypes/reference"
+import { StandardKeyData } from "../components/dataTypes/reference"
 import { isStandardReferenceData, StandardKey } from "../components/reference"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isStandardLiteralData, StandardLiteral } from "../literal"
@@ -13,7 +13,7 @@ import { excludeUndefined, zipperList } from "../../lib/lists"
 import { ReferenceFormat } from "./utils/references"
 
 export type StandardExitData = {
-    to: StandardReferenceData;
+    to: StandardKeyData;
     description?: StandardEditableData<string>;
 }
 

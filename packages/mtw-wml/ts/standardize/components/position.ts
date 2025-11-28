@@ -1,5 +1,5 @@
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
@@ -7,15 +7,15 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { isSimplePositionData, StandardPositionData } from "./dataTypes/position";
 import { StandardReferenceData } from "./dataTypes/reference";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
-import StandardReference, { standardReferenceDeserialize, standardReferenceSerialize, StandardReferenceSimple } from "./reference";
+import StandardReference, { StandardKey, standardReferenceDeserialize, standardReferenceSerialize, StandardReferenceSimple } from "./reference";
 
 export class StandardPositionSimpleBase implements StandardEditablePayload<StandardPositionData> {
-    room: StandardReferenceSimple;
+    room: StandardKey;
     x: number;
     y: number;
     constructor(data: StandardPositionData) {
         // Position always refers to a Room, so pass 'Room' as explicit tag
-        this.room = new StandardReferenceSimple(data.room, 'Room')
+        this.room = new StandardKey(data.room)
         this.x = data.x;
         this.y = data.y;
     }
@@ -38,13 +38,8 @@ export class StandardPositionSimpleBase implements StandardEditablePayload<Stand
         return new StandardPositionSimpleBase(this.toJSON())
     }
     toJSON: () => StandardPositionData = () => {
-        // Position always refers to Room, so don't serialize redundant tag
-        const roomData = this.room.plain.toJSON()
-        // Remove tag (it's always 'Room' for Position, so redundant in serialization)
-        // Position's room is always an object (StandardReferenceSimple), never a string
-        const { tag, ...roomWithoutTag } = roomData as Exclude<StandardReferenceData, string>
         return {
-            room: roomWithoutTag,
+            room: this.room.toJSON(),
             x: this.x,
             y: this.y
         }
@@ -71,7 +66,7 @@ const payloadFactory = (props: StandardPositionData | GenericTree<SchemaTag>): S
             throw new Error('Invalid argument in StandardPositionSimpleBase constructor')
         }
         return new StandardPositionSimpleBase({
-            room: { key, universalKey: uuid },
+            room: key ? { key, universalKey: uuid } : uuid as ComponentUUID,
             x: position.data.x,
             y: position.data.y
         })
@@ -79,26 +74,12 @@ const payloadFactory = (props: StandardPositionData | GenericTree<SchemaTag>): S
     throw new Error('Invalid argument in StandardKey constructor')
 }
 
-const standardPositionDeserialize = (incoming: StandardPositionData): StandardPositionData => {
-    return {
-        ...incoming,
-        room: standardReferenceDeserialize(incoming.room)
-    }
-}
-
-const standardPositionSerialize = (incoming: StandardPositionData): StandardPositionData => {
-    return {
-        ...incoming,
-        room: standardReferenceSerialize(incoming.room)
-    }
-}
-
 const standardPositionAdd = (base: StandardPositionData, incoming: StandardPositionData): StandardPositionData => {
     return incoming
 }
 
 const standardPositionSubtract = (base: StandardPositionData, incoming: StandardPositionData): { add?: StandardPositionData, remove?: StandardPositionData } => {
-    if (deepEqual(standardPositionDeserialize(base), standardPositionDeserialize(incoming))) {
+    if (deepEqual(base, incoming)) {
         return { add: undefined, remove: undefined }
     }
     else {
@@ -107,11 +88,11 @@ const standardPositionSubtract = (base: StandardPositionData, incoming: Standard
 }
 
 const standardPositionDiff = (base: StandardPositionData, incoming: StandardPositionData): { add?: StandardPositionData, remove?: StandardPositionData } => {
-    if (deepEqual(standardPositionDeserialize(base), standardPositionDeserialize(incoming))) {
+    if (deepEqual(base, incoming)) {
         return { add: undefined, remove: undefined }
     }
     else {
-        return { add: standardPositionSerialize(incoming), remove: standardPositionSerialize(base) }
+        return { add: incoming, remove: base }
     }
 }
 

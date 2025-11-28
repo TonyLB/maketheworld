@@ -9,7 +9,7 @@ describe('StandardExit', () => {
             <Exit to=(test)>Test Exit</Exit>
         `)
         const testExit = StandardExit.create(testSource)
-        expect(testExit.toJSON()).toEqual({ to: { key: 'test', tag: 'Room' }, description: 'Test Exit' })
+        expect(testExit.toJSON()).toEqual({ to: { key: 'test' }, description: 'Test Exit' })
         expect(schemaToWML(testExit.schema)).toEqual(testSource)
     })
 
@@ -20,13 +20,13 @@ describe('StandardExit', () => {
         `)
         schema.loadWML(testSource)
         const testExit = StandardExit.create(schema.schema)
-        expect(testExit.toJSON()).toEqual({ to: { key: 'test', tag: 'Room' }, description: 'Test Exit' })
+        expect(testExit.toJSON()).toEqual({ to: { key: 'test' }, description: 'Test Exit' })
         expect(schemaToWML(testExit.schema)).toEqual(testSource)
     })
 
     it('should construct StandardExit from StandardExitData', () => {
         const testExitData: StandardExitData = {
-            to: { key: 'test', tag: 'Room' },
+            to: { key: 'test' },
             description: 'Test Exit'
         }
         const testExit = StandardExit.create(testExitData)
@@ -41,7 +41,7 @@ describe('StandardExit', () => {
         const testExitData = {
             tag: 'Remove',
             match: {
-                to: { key: 'test', tag: 'Room' },
+                to: { key: 'test' },
                 description: 'Test Exit'
             }
         } as const
@@ -51,7 +51,7 @@ describe('StandardExit', () => {
 
     it('should correctly remap references', () => {
         const testExit = StandardExit.create(`<Exit to=(test)>Test Exit</Exit>`)
-        const remappedExit = testExit.remapReferences({ mapTo: 'universal', mappings: [new StandardKey({ tag: 'Room', key: 'test', universalKey: 'ROOM#universalTest' })] })
+        const remappedExit = testExit.remapReferences({ mapTo: 'universal', mappings: [new StandardKey({ key: 'test', universalKey: 'ROOM#universalTest' })] })
         expect(schemaToWML(remappedExit.schema)).toEqual(`<Exit to=(ROOM#universalTest)>Test Exit</Exit>`)
     })
 })
