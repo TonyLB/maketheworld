@@ -24,7 +24,7 @@ import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
-import { ReferenceListData, StandardReferenceData } from "./components/dataTypes/reference"
+import { ReferenceListData, StandardReferenceData, StandardKeyData } from "./components/dataTypes/reference"
 import StandardReference, { ReferenceList, StandardKey } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
@@ -253,10 +253,14 @@ export class StandardForm {
                         }
                         return [
                             ...previous.slice(0, previousMatchIndex),
-                            new StandardKey({
-                                universalKey: previousMatch.universalKey ?? component.universalKey,
-                                key: previousMatch.key ?? component.key
-                            }),
+                            new StandardKey(
+                                previousMatch.key ?? component.key
+                                    ? {
+                                        universalKey: previousMatch.universalKey ?? component.universalKey,
+                                        key: previousMatch.key ?? component.key!
+                                    }
+                                    : (previousMatch.universalKey ?? component.universalKey ?? '')
+                            ),
                             ...previous.slice(previousMatchIndex + 1)
                         ]
                     }, [])
@@ -683,7 +687,7 @@ export class StandardForm {
             }
             
             const getAncestryThread = (key: StandardKey): StandardKey[] => {
-                const component = returnValue._lookup(key.plain.toJSON())
+                const component = returnValue._lookup(key.toJSON())
                 if (component) {
                     const ancestryChain = component.implicitParent ? getAncestryThread(component.implicitParent) : []
                     return [...ancestryChain, key]
@@ -799,7 +803,8 @@ export class StandardForm {
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
         const lookupWrapper = (key: string | StandardKey): StandardComponent | undefined => {
             if (typeof key === 'string') {
-                return this._lookup(key)
+                // String is assumed to be ComponentUUID (part of StandardKeyData)
+                return this._lookup(key as ComponentUUID)
             }
             return this._lookup(key.toJSON())
         }
@@ -831,8 +836,8 @@ export class StandardForm {
             .map((component) => (component._key))
     }
 
-    _lookup(reference: StandardReferenceData): StandardComponent | undefined {
-        return lookupInComponentList(this._components, new StandardKey(reference))
+    _lookup(keyData: StandardKeyData): StandardComponent | undefined {
+        return lookupInComponentList(this._components, new StandardKey(keyData))
     }
 
     //
@@ -1267,11 +1272,17 @@ export class StandardForm {
         //
 
         const zipperedComponents = allKeys
-            .map((reference) => ({
-                reference,
-                previous: this._lookup(reference)?.withMapping(mergedForKeys)?.remapReferences('both'),
-                incoming: incoming._lookup(reference)?.withMapping(mergedForKeys)?.remapReferences('both')
-            }))
+            .map((reference: StandardReferenceData) => {
+                // Convert StandardReferenceData to StandardKeyData by removing tag if present
+                const keyData: StandardKeyData = typeof reference === 'string' 
+                    ? reference 
+                    : { key: reference.key, universalKey: reference.universalKey }
+                return {
+                    reference,
+                    previous: this._lookup(keyData)?.withMapping(mergedForKeys)?.remapReferences('both'),
+                    incoming: incoming._lookup(keyData)?.withMapping(mergedForKeys)?.remapReferences('both')
+                }
+            })
             .filter(({ previous, incoming }) => (previous || incoming))
 
         //

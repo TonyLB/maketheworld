@@ -83,7 +83,7 @@ const localPositionsFromStandardForms = ({ inherited, local, mapId }: { inherite
         const mapComponent = standardForm.byUniversalId[mapId]
         if (mapComponent && mapComponent instanceof StandardMap) {
             return mapComponent.positions.map((position) => {
-                const roomComponent = standardForm._lookup(position.room._payload.plain.toJSON())
+                const roomComponent = standardForm._lookup(position.room._payload.plain.standardKey.toJSON())
                 if (roomComponent && roomComponent instanceof StandardRoom) {
                     return {
                         name: roomComponent.shortName?._payload.plain.toJSON() ?? '',
