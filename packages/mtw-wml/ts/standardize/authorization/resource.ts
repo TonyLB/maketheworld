@@ -10,6 +10,8 @@ import { excludeUndefined } from "../../lib/lists";
 import { diffSignedStringSets, SignedStringSet } from "./components/utils";
 import { unique } from "../../list";
 import { StandardKeyData, isStandardKeyData } from "../components/dataTypes/reference";
+import { ComponentTag, componentTagFromUpperCase } from "../components/dataTypes/abstract";
+import { ComponentUUID, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaTreeNode, treeFromWML } from "../../schema";
 
 export type StandardAuthorizationResourceNDJSON = {
@@ -23,6 +25,22 @@ export const isStandardAuthorizationResourceNDJSON = (value: any): value is Stan
         'grant' in value && isStandardAuthorizationData(value.grant)
 }
 
+// Helper to derive component tag from StandardKeyData
+const deriveTagFromKeyData = (keyData: StandardKeyData): ComponentTag | undefined => {
+    if (typeof keyData === 'string') {
+        if (isSchemaComponentUUID(keyData)) {
+            const [upcaseTag] = keyData.split('#')
+            return componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
+        }
+        return undefined
+    }
+    if (keyData.universalKey) {
+        const [upcaseTag] = keyData.universalKey.split('#')
+        return componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
+    }
+    return undefined
+}
+
 export class StandardAuthorizationResource {
     component?: StandardReference;  // Undefined for global (Asset-level) grants
     grants: StandardAuthorizationItem[] = [];
@@ -33,7 +51,15 @@ export class StandardAuthorizationResource {
         }
         if (isStandardAuthorizationResourceData(props)) {
             const { component, grants } = props
-            this.component = component ? new StandardReference(component) : undefined
+            if (component) {
+                const tag = deriveTagFromKeyData(component)
+                if (!tag) {
+                    throw new Error(`Cannot derive tag from component key data: ${JSON.stringify(component)}`)
+                }
+                this.component = new StandardReference(component, tag)
+            } else {
+                this.component = undefined
+            }
             this.grants = grants.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
             return
         }
@@ -49,7 +75,14 @@ export class StandardAuthorizationResource {
         }
         else if (Array.isArray(props) && props.every(isStandardAuthorizationResourceNDJSON)) {
             const { component, grants } = props.reduce<{ component?: StandardReference; grants: StandardAuthorizationItem[] }>((previous, { component, grant }) => {
-                const tempComponent = component ? new StandardReference(component) : undefined
+                let tempComponent: StandardReference | undefined = undefined
+                if (component) {
+                    const tag = deriveTagFromKeyData(component)
+                    if (!tag) {
+                        throw new Error(`Cannot derive tag from component key data: ${JSON.stringify(component)}`)
+                    }
+                    tempComponent = new StandardReference(component, tag)
+                }
                 
                 // Only check consistency if we've already seen items (previous.grants.length > 0)
                 if (previous.grants.length > 0) {

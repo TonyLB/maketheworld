@@ -673,11 +673,21 @@ export class StandardReferenceReplace implements StandardEditableWrapper<Standar
 export class StandardReference {
     _payload: StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace;
     
-    constructor(arg: any) {
+    constructor(arg: any, explicitTag?: ComponentTag) {
+        // Handle wrapper instances directly
         if (arg instanceof StandardReferenceSimple || arg instanceof StandardReferenceRemove || arg instanceof StandardReferenceReplace) {
             this._payload = arg
             return
         }
+        
+        // Handle (key, tag) pattern: new StandardReference(key, 'Room')
+        if (explicitTag !== undefined) {
+            // Create StandardReferenceSimple with the key and tag
+            this._payload = new StandardReferenceSimple(arg, explicitTag)
+            return
+        }
+        
+        // Fall back to factory pattern for single argument
         const delta = factory(arg)
         if (!delta) {
             console.log(`Invalid argument to StandardReference constructor: ${JSON.stringify(arg)}`)

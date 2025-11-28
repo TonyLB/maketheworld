@@ -329,7 +329,7 @@ export class StandardPosition {
         return this._payload.schema
     }
     get room(): StandardReference {
-        return new StandardReference(this._payload.room)
+        return new StandardReference(this._payload.room, 'Room')
     }
     get x(): number {
         return this._payload.x

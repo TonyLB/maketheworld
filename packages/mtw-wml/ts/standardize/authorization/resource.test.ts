@@ -8,7 +8,7 @@ import { deIndentWML } from "../../schema/utils"
 describe('StandardAuthorizationResource class', () => {
 
     it('should construct StandardAuthorizationResource from JSON', () => {
-        const reference = new StandardReference({ key: 'Room1' })
+        const reference = new StandardReference({ key: 'Room1' }, 'Room')
         const grants: StandardAuthorizationItem[] = [
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
@@ -190,7 +190,7 @@ describe('StandardAuthorizationResource class', () => {
     })
 
     it('should render schema for resource with reference', () => {
-        const reference = new StandardReference({ key: 'Room1' })
+        const reference = new StandardReference({ key: 'Room1' }, 'Room')
         const grants: StandardAuthorizationItem[] = [
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
