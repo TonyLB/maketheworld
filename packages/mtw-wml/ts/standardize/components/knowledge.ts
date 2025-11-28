@@ -98,7 +98,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey }))
         ]
     }
 

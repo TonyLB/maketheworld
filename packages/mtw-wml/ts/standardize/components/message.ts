@@ -84,7 +84,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this._rooms.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
+            ...this._rooms.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey }))
         ]
     }
 

@@ -147,9 +147,9 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return [
             ...exitReferenceKeys(this.exits)
                 .map((key) => ({ referenceType: 'Exit' as const, key: isSchemaComponentUUID(key) ? new StandardKey(key) : new StandardKey({ key }) })),
-            ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
-            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
+            ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey })),
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey })),
+            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey }))
         ]
     }
 

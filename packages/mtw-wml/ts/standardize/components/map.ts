@@ -110,7 +110,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return this.positions.map((position ) => {
             if (position._payload instanceof StandardPositionSimple || position._payload instanceof StandardPositionReplace) {
-                return [{ referenceType: 'Position' as const, key: position._payload.room.plain }]
+                return [{ referenceType: 'Position' as const, key: position._payload.room.plain.standardKey }]
             }
             return []
         }).flat(1)

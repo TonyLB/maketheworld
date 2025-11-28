@@ -79,8 +79,8 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.messages.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
-            ...this.messages.payload.map((reference) => ({ referenceType: 'Dependency' as const, key: reference._payload.plain })),
+            ...this.messages.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey })),
+            ...this.messages.payload.map((reference) => ({ referenceType: 'Dependency' as const, key: reference._payload.plain.standardKey })),
         ]
     }
 
