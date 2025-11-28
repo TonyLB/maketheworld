@@ -171,8 +171,19 @@ export class StandardAuthorizationCollection {
 
     _sortOrderFactory(): (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => number {
         // For authorization sorting, we don't have access to full component hierarchy,
-        // so we provide a lookup that returns undefined (treats everything as Asset-level)
-        const lookup = () => undefined
+        // so we provide a lookup that returns references but no implicitParent (treats everything as Asset-level)
+        const lookup = (key: StandardKey) => {
+            // Find the matching resource by component reference
+            const resource = this._grants.find(resource => {
+                if (!resource.component) return false
+                return resource.component.plain().standardKey.equals(key)
+            })
+            if (!resource?.component) return undefined
+            return {
+                reference: resource.component.plain(),
+                implicitParent: undefined // Authorization resources have no parent hierarchy
+            }
+        }
         
         return (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => {
             // Global grants (no component) come first

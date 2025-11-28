@@ -284,8 +284,15 @@ export class StandardForm {
                 // Generate implicit parents using StandardKey (works before finalize)
                 const withImplicitParents = this.generateImplicitParents()
                 // Sort after implicitParent is available, so sortOrder can use it instead of context
-                // Create lookup helper for sorting
-                const lookup = (key: StandardKey) => withImplicitParents._lookup(key.toJSON())
+                // Create lookup helper for sorting - convert StandardComponent to new lookup result format
+                const lookup = (key: StandardKey) => {
+                    const component = withImplicitParents._lookup(key.toJSON())
+                    if (!component) return undefined
+                    return {
+                        reference: component.reference.plain(),
+                        implicitParent: component.implicitParent
+                    }
+                }
                 this._components = withImplicitParents._components
                     .sort((componentA, componentB) => (standardComponentSortOrder(componentA._key, componentB._key, lookup)))
                 return
@@ -774,8 +781,15 @@ export class StandardForm {
 
     toNDJSON(): StandardNDJSON {
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
-        // Create lookup helper for sorting
-        const lookup = (key: StandardKey) => this._lookup(key.toJSON())
+        // Create lookup helper for sorting - convert StandardComponent to new lookup result format
+        const lookup = (key: StandardKey) => {
+            const component = this._lookup(key.toJSON())
+            if (!component) return undefined
+            return {
+                reference: component.reference.plain(),
+                implicitParent: component.implicitParent
+            }
+        }
         const components: (StandardComponentData & SerializeNDJSONMixin)[] = this._components
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, lookup)))
             .map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON()))
@@ -787,8 +801,15 @@ export class StandardForm {
 
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
-        // Create lookup helper for sorting
-        const lookup = (key: StandardKey) => this._lookup(key.toJSON())
+        // Create lookup helper for sorting - convert StandardComponent to new lookup result format
+        const lookup = (key: StandardKey) => {
+            const component = this._lookup(key.toJSON())
+            if (!component) return undefined
+            return {
+                reference: component.reference.plain(),
+                implicitParent: component.implicitParent
+            }
+        }
         const sortedChildren = this._components
             .filter((component) => (!component.implicitParent))
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, lookup)))

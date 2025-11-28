@@ -9,15 +9,20 @@ import { StandardComponent } from './components/baseClasses'
 describe('standardComponentSortOrder', () => {
 
     // Helper to create lookup function for testing
-    // Builds a map of components by their _key for lookup
-    const createLookup = (components: StandardComponent[]): ((key: StandardKey) => StandardComponent | undefined) => {
-        return (key: StandardKey): StandardComponent | undefined => {
-            return components.find(comp => comp._key.equals(key))
+    // Builds a map of components by their _key for lookup and converts to new lookup result format
+    const createLookup = (components: StandardComponent[]): ((key: StandardKey) => { reference: StandardReferenceSimple; implicitParent?: StandardKey } | undefined) => {
+        return (key: StandardKey) => {
+            const component = components.find(comp => comp._key.equals(key))
+            if (!component) return undefined
+            return {
+                reference: component.reference.plain(),
+                implicitParent: component.implicitParent
+            }
         }
     }
 
     // Default lookup for tests that don't need hierarchy (returns undefined for all keys)
-    const sortOrder = (a: StandardReferenceSimple | StandardKey, b: StandardReferenceSimple | StandardKey, lookup: (key: StandardKey) => StandardComponent | undefined = () => undefined) => {
+    const sortOrder = (a: StandardReferenceSimple | StandardKey, b: StandardReferenceSimple | StandardKey, lookup: (key: StandardKey) => { reference: StandardReferenceSimple; implicitParent?: StandardKey } | undefined = () => undefined) => {
         return standardComponentSortOrder(a, b, lookup)
     }
 

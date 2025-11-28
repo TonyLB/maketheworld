@@ -1,24 +1,23 @@
 import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardReferenceSimple, StandardKey } from "./components/reference"
-import { StandardComponent } from "./components/baseClasses"
-import { StandardRemove, StandardReplace } from "./components/edits"
 
 type SortKey = StandardReferenceSimple | StandardKey
 type AncestryChainEntry = { key: StandardKey, tag: ComponentTag }
-type LookupFunction = (key: StandardKey) => StandardComponent | undefined
+type LookupResult = { reference: StandardReferenceSimple; implicitParent?: StandardKey }
+type LookupFunction = (key: StandardKey) => LookupResult | undefined
 
 /**
  * Builds an ancestry chain for a given key using the lookup function.
- * Returns the full chain including the current key with its tag (derived from the component via lookup).
+ * Returns the full chain including the current key with its tag (derived from the lookup result).
  */
 const buildAncestryChain = (
     key: StandardKey,
     lookup: LookupFunction
 ): AncestryChainEntry[] => {
-    const component = lookup(key)
+    const lookupResult = lookup(key)
     
-    if (!component) {
-        // If component not found, try to derive tag from key's universalKey
+    if (!lookupResult) {
+        // If lookup result not found, try to derive tag from key's universalKey
         const tag = key.tag
         if (!tag) {
             throw new Error(`Cannot determine tag for key in sortOrder: ${JSON.stringify(key)}`)
@@ -26,42 +25,22 @@ const buildAncestryChain = (
         return [{ key, tag }]
     }
     
-    // Get tag from component
-    // For 'Remove' and 'Replace' components, derive tag from their _match property
-    let componentTag: ComponentTag | undefined
-    if (component instanceof StandardRemove) {
-        componentTag = component._match.tag && component._match.tag !== 'Remove' && component._match.tag !== 'Replace'
-            ? component._match.tag
-            : undefined
-    } else if (component instanceof StandardReplace) {
-        componentTag = component._match.tag && component._match.tag !== 'Remove' && component._match.tag !== 'Replace'
-            ? component._match.tag
-            : undefined
-    } else {
-        componentTag = component.tag && component.tag !== 'Remove' && component.tag !== 'Replace'
-            ? component.tag
-            : undefined
-    }
-    
-    // Fallback to key.tag if component tag couldn't be determined
+    // Get tag from reference
+    const componentTag = lookupResult.reference.tag
     if (!componentTag) {
-        componentTag = key.tag ?? undefined
-    }
-    
-    if (!componentTag) {
-        throw new Error(`Cannot determine tag for component in sortOrder: ${JSON.stringify(key)}`)
+        throw new Error(`Cannot determine tag for reference in sortOrder: ${JSON.stringify(key)}`)
     }
     
     // Build ancestry chain by traversing implicitParent
     const ancestryChain: AncestryChainEntry[] = []
-    let current: StandardComponent | undefined = component
+    let current: LookupResult | undefined = lookupResult
     
     while (current?.implicitParent) {
         const parentKey = current.implicitParent
-        const parentComponent = lookup(parentKey)
+        const parentLookupResult = lookup(parentKey)
         
-        if (!parentComponent) {
-            // Parent component not found, try to derive tag from parentKey
+        if (!parentLookupResult) {
+            // Parent not found, try to derive tag from parentKey
             const parentTag = parentKey.tag
             if (!parentTag) {
                 throw new Error(`Cannot determine tag for parent in ancestry chain: ${JSON.stringify(parentKey)}`)
@@ -70,16 +49,14 @@ const buildAncestryChain = (
             break
         }
         
-        // For 'Remove' and 'Replace' components, derive tag from their _match property
-        let parentTag: ComponentTag
-        if (parentComponent instanceof StandardRemove || parentComponent instanceof StandardReplace) {
-            parentTag = parentComponent._match.tag as ComponentTag
-        } else {
-            parentTag = parentComponent.tag as ComponentTag
+        // Get tag from parent reference
+        const parentTag = parentLookupResult.reference.tag
+        if (!parentTag) {
+            throw new Error(`Cannot determine tag for parent reference in ancestry chain: ${JSON.stringify(parentKey)}`)
         }
         
         ancestryChain.push({ key: parentKey, tag: parentTag })
-        current = parentComponent
+        current = parentLookupResult
     }
     
     // Reverse to get order from Asset level (earliest) to direct parent (most proximate)
