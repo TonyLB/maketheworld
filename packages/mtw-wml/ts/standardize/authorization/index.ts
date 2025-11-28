@@ -180,7 +180,7 @@ export class StandardAuthorizationCollection {
             if (!a.component) return -1
             if (!b.component) return 1
             
-            // Use the underlying StandardKey from each component for sorting
+            // Use the StandardReferenceSimple directly for sorting (it extracts the key internally)
             return standardComponentSortOrder(a.component.plain(), b.component.plain(), lookup)
         }
     }

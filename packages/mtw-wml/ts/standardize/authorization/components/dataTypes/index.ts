@@ -1,4 +1,4 @@
-import { isStandardKeyData, StandardKeyData } from "../../../components/dataTypes/reference";
+import { isStandardReferencePayloadData, StandardReferenceData } from "../../../components/dataTypes/reference";
 import { checkAll } from "../../../components/dataTypes/typeguards";
 import { isStandardGrant, StandardGrantData } from './grant'
 import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema";
@@ -65,7 +65,7 @@ export type StandardAuthorizationData = StandardAuthNonEditData | StandardAuthRe
 export const isStandardAuthorizationData = (arg: any): arg is StandardAuthorizationData => (isStandardAuthNonEditData(arg) || isStandardAuthRemove(arg) || isStandardAuthReplace(arg))
 
 export type StandardAuthorizationResourceData = {
-    component?: StandardKeyData;  // Undefined for global (Asset-level) grants
+    component?: StandardReferenceData;  // Undefined for global (Asset-level) grants
     grants: StandardAuthorizationData[];
 }
 
@@ -74,7 +74,7 @@ export const isStandardAuthorizationResourceData = (arg: any): arg is StandardAu
         return false
     }
     return checkAll(
-        (!('component' in arg) || arg.component === undefined || isStandardKeyData(arg.component)),
+        (!('component' in arg) || arg.component === undefined || isStandardReferencePayloadData(arg.component)),
         ('grants' in arg && Array.isArray(arg.grants) && arg.grants.every(isStandardAuthorizationData))
     )
 }

@@ -392,6 +392,16 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
             return
         }
         
+        // Handle StandardKeyData (plain object) with explicit tag - convert to StandardReferencePayload
+        if (explicitTag && isStandardKeyData(data)) {
+            // Convert StandardKeyData to StandardReferenceData by adding the tag
+            const referenceData: StandardReferenceData = typeof data === 'string'
+                ? data
+                : { ...data, tag: explicitTag }
+            this.payload = new StandardReferencePayload(referenceData)
+            return
+        }
+        
         // Handle StandardReferenceData or GenericTree - use factory
         const delta = factory(data)
         if (delta && delta.add && !delta.remove) {

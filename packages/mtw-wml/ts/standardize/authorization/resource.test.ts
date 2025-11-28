@@ -14,23 +14,22 @@ describe('StandardAuthorizationResource class', () => {
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
         ]
         const resource = new StandardAuthorizationResource({ component: reference, grants })
-        expect(resource.component?.toJSON()).toEqual(reference.toJSON())
         expect(resource.grants).toEqual(grants)
         expect(resource.toJSON()).toEqual({
-            component: reference.toJSON(),
+            component: { key: 'Room1', tag: 'Room' },
             grants: grants.map(grant => grant.toJSON())
         })
     })
 
     it('should construct StandardAuthorizationResource from NDJSON', () => {
         const resource = new StandardAuthorizationResource([{
-            component: { key: 'Room1' },
+            component: { key: 'Room1', tag: 'Room' },
             grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
         }, {
-            component: { key: 'Room1' },
+            component: { key: 'Room1', tag: 'Room' },
             grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
         }])
-        expect(resource.component?.toJSON()).toEqual({ key: 'Room1' })
+        expect(resource.component?.plain()?.payload.toJSON()).toEqual({ key: 'Room1', tag: 'Room' })
         expect(resource.grants).toEqual([
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })
@@ -40,10 +39,10 @@ describe('StandardAuthorizationResource class', () => {
     it('should throw error on NDJSON with differing components', () => {
         expect(() => {
             new StandardAuthorizationResource([{
-                component: { key: 'Room1' },
+                component: { key: 'Room1', tag: 'Room' },
                 grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
             }, {
-                component: { key: 'Room2' },
+                component: { key: 'Room2', tag: 'Room' },
                 grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
             }])
         }).toThrow()
@@ -70,11 +69,11 @@ describe('StandardAuthorizationResource class', () => {
         const resource = new StandardAuthorizationResource(wml)
         expect(resource.toNDJSON()).toEqual([
             {
-                component: { key: 'Room1' },
+                component: { key: 'Room1', tag: 'Room' },
                 grant: { tag: 'Grant', player: 'player1', actions: ['action1'] }
             },
             {
-                component: { key: 'Room1' },
+                component: { key: 'Room1', tag: 'Room' },
                 grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
             }
         ])

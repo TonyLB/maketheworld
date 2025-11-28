@@ -9,36 +9,18 @@ import { standardAuthorizationFactory } from "./authorizationFactory";
 import { excludeUndefined } from "../../lib/lists";
 import { diffSignedStringSets, SignedStringSet } from "./components/utils";
 import { unique } from "../../list";
-import { StandardKeyData, isStandardKeyData } from "../components/dataTypes/reference";
-import { ComponentTag, componentTagFromUpperCase } from "../components/dataTypes/abstract";
-import { ComponentUUID, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
+import { StandardReferenceData, isStandardReferencePayloadData } from "../components/dataTypes/reference";
 import { isSchemaTreeNode, treeFromWML } from "../../schema";
 
 export type StandardAuthorizationResourceNDJSON = {
-    component?: StandardKeyData;  // Undefined for global (Asset-level) grants
+    component?: StandardReferenceData;  // Undefined for global (Asset-level) grants
     grant: StandardAuthorizationData;
 }
 
 export const isStandardAuthorizationResourceNDJSON = (value: any): value is StandardAuthorizationResourceNDJSON => {
     return typeof value === 'object' &&
-        (!('component' in value) || value.component === undefined || isStandardKeyData(value.component)) &&
+        (!('component' in value) || value.component === undefined || isStandardReferencePayloadData(value.component)) &&
         'grant' in value && isStandardAuthorizationData(value.grant)
-}
-
-// Helper to derive component tag from StandardKeyData
-const deriveTagFromKeyData = (keyData: StandardKeyData): ComponentTag | undefined => {
-    if (typeof keyData === 'string') {
-        if (isSchemaComponentUUID(keyData)) {
-            const [upcaseTag] = keyData.split('#')
-            return componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
-        }
-        return undefined
-    }
-    if (keyData.universalKey) {
-        const [upcaseTag] = keyData.universalKey.split('#')
-        return componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
-    }
-    return undefined
 }
 
 export class StandardAuthorizationResource {
@@ -52,11 +34,7 @@ export class StandardAuthorizationResource {
         if (isStandardAuthorizationResourceData(props)) {
             const { component, grants } = props
             if (component) {
-                const tag = deriveTagFromKeyData(component)
-                if (!tag) {
-                    throw new Error(`Cannot derive tag from component key data: ${JSON.stringify(component)}`)
-                }
-                this.component = new StandardReference(component, tag)
+                this.component = new StandardReference(component)
             } else {
                 this.component = undefined
             }
@@ -77,11 +55,7 @@ export class StandardAuthorizationResource {
             const { component, grants } = props.reduce<{ component?: StandardReference; grants: StandardAuthorizationItem[] }>((previous, { component, grant }) => {
                 let tempComponent: StandardReference | undefined = undefined
                 if (component) {
-                    const tag = deriveTagFromKeyData(component)
-                    if (!tag) {
-                        throw new Error(`Cannot derive tag from component key data: ${JSON.stringify(component)}`)
-                    }
-                    tempComponent = new StandardReference(component, tag)
+                    tempComponent = new StandardReference(component)
                 }
                 
                 // Only check consistency if we've already seen items (previous.grants.length > 0)
@@ -122,14 +96,14 @@ export class StandardAuthorizationResource {
 
     toJSON(): StandardAuthorizationResourceData {
         return {
-            component: this.component?.plain()?.standardKey?.toJSON(),
+            component: this.component?.plain()?.payload.toJSON(),
             grants: this.grants.map(grant => grant.toJSON())
         }
     }
 
     toNDJSON(): StandardAuthorizationResourceNDJSON[] {
         return this.grants.map(grant => ({
-            component: this.component?.plain()?.standardKey?.toJSON(),
+            component: this.component?.plain()?.payload.toJSON(),
             grant: grant.toJSON()
         }))
     }
