@@ -7,6 +7,8 @@ import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { excludeUndefined } from "../../../lib/lists"
 import { StandardExit, StandardExitPlain, StandardExitRemove, StandardExitReplace } from "../exit"
+import { StandardReferenceSimple } from "../reference"
+import { isSchemaTreeNode } from "../../../schema"
 
 export const linkReferenceKeys = (mappings: StandardKey[]) => (tree: GenericTree<SchemaTag>): StandardKey[] => {
     return unique(tree
@@ -94,14 +96,12 @@ export const mapKeyToFormat = (format: ReferenceFormat) =>
     }
 
 export const childReferenceFactory = (props: any): StandardReference => {
-    const { tag, uuid, ...rest } = props.data
-    // Pass tag explicitly to StandardReference constructor
-    const reference = new StandardReference({ universalKey: uuid, tag, ...rest })
+    const reference = new StandardReference(isSchemaTreeNode(props) ? [props] : props)
     if (reference._payload instanceof StandardReferenceReplace && reference._payload.match.standardKey.equals(reference._payload.payload.standardKey)) {
         // If the match and payload are the same, this is a reference to a child node that is being
         // modified, and *for this particular method* we include a plain reference (so that parents
         // will know to render the change)
-        return new StandardReference(reference._payload.plain)
+        return new StandardReference(new StandardReferenceSimple(reference._payload.plain))
     }
     return reference
 }

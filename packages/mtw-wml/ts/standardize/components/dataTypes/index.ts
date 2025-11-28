@@ -32,9 +32,6 @@ export type StandardComponentNonEditData =
     StandardMapData |
     StandardMessageData |
     StandardMomentData |
-
-
-
     StandardImageData
 
 export type StandardRemoveData = {

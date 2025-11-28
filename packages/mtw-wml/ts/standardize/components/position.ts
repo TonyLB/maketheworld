@@ -20,7 +20,7 @@ export class StandardPositionSimpleBase implements StandardEditablePayload<Stand
         this.y = data.y;
     }
     get schema() {
-        const roomSchema = this.room.schema
+        const roomSchema = new StandardReferenceSimple(this.room, 'Room').schema
         return roomSchema.map(node => {
             if (treeNodeTypeguard(isSchemaRoom)(node)) {
                 return {

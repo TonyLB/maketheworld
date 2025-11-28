@@ -25,7 +25,7 @@ import { StandardReplace } from "./edits";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
-import StandardReference, { StandardKey } from "./reference";
+import StandardReference, { StandardKey, StandardReferenceSimple } from "./reference";
 import { StandardExplicitParent } from "../explicit";
 import SchemaTagTree from "../../tagTree/schema";
 
@@ -240,7 +240,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 : implicitParentKey?.equals(expectedParent)  // Nested rendering: only render if parent matches
             
             if (!shouldRender) {
-                const reference = new StandardReference(this._key).toFormat('key')
+                const reference = new StandardReference(new StandardReferenceSimple(this._key, this.tag)).toFormat('key')
                 return reference.schema[0]
             }
             
@@ -274,7 +274,9 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         // can be equal (semantically) without being identical.
         //
         equals(incoming: StandardComponent): boolean {
-            return deepEqual(this.toJSON(), incoming.toJSON())
+            const { implicitParent: _implicitParent1, ...thisJSONWithoutImplicitParent } = this.toJSON()
+            const { implicitParent: _implicitParent2, ...incomingJSONWithoutImplicitParent } = incoming.toJSON()
+            return deepEqual(thisJSONWithoutImplicitParent, incomingJSONWithoutImplicitParent)
         }
 
         //

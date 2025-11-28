@@ -405,11 +405,7 @@ describe('StandardRoom class', () => {
                 </Room>
             `)
             const referencedKeys = room.referencedKeys()
-            const characterKeys = referencedKeys.filter(ref => ref.key.tag === 'Character')
-            expect(characterKeys.length).toBe(2)
-            expect(characterKeys.some(ref => ref.key.key === 'char1')).toBe(true)
-            expect(characterKeys.some(ref => ref.key.universalKey === 'CHARACTER#uuid123')).toBe(true)
-            expect(characterKeys.every(ref => ref.referenceType === 'Direct')).toBe(true)
+            expect(referencedKeys.map((ref) => ref.key.toJSON())).toEqual([{ key: 'feat1' }, { key: 'char1' }, 'CHARACTER#uuid123'])
         })
 
         it('should provide access to characters via getter', () => {

@@ -1,5 +1,5 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { v2StandardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
+import { v2StandardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import { isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"

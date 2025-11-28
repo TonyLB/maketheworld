@@ -801,7 +801,7 @@ describe('StandardForm', () => {
                     examples: ['EXAMPLE#testRoomBase'],
                     exits: [{
                         tag: 'Remove',
-                        match: { to: { tag: 'Room', key: 'testDestination' }, description: 'out' }
+                        match: { to: { key: 'testDestination' }, description: 'out' }
                     }]
                 },
                 {
@@ -823,6 +823,7 @@ describe('StandardForm', () => {
                 {
                     tag: 'Remove',
                     key: 'testRoomRemove',
+                    universalKey: 'ROOM#testRoomRemove',
                     component: {
                         tag: 'Room',
                         key: 'testRoomRemove',
@@ -832,6 +833,7 @@ describe('StandardForm', () => {
                 {
                     tag: 'Replace',
                     key: 'testRoomReplace',
+                    universalKey: 'ROOM#testRoomReplace',
                     match: {
                         tag: 'Room',
                         key: 'testRoomReplace',
@@ -847,6 +849,7 @@ describe('StandardForm', () => {
                 },
                 {
                     tag: 'Replace',
+                    universalKey: 'EXAMPLE#testRoomReplaceBase',
                     match: {
                         tag: 'Example',
                         universalKey: 'EXAMPLE#testRoomReplaceBase',
@@ -1917,7 +1920,8 @@ describe('StandardForm', () => {
         expect(mapTest.byId.testRoomOne.toJSON()).toEqual({
             key: 'testRoomOne',
             universalKey: 'ROOM#testRoomOne',
-            tag: 'Room'
+            tag: 'Room',
+            implicitParent: { key: 'testMap', universalKey: 'MAP#testMap'}
         })
     })
 
@@ -1935,6 +1939,7 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const test = new StandardForm(testSource)
+        console.log(`test.toJSON(): ${JSON.stringify(test.toJSON(), null, 4)}`)
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
@@ -3858,6 +3863,8 @@ describe('StandardForm', () => {
                     </Asset>
                 `)
                 const test = new StandardForm(testWML)
+
+                console.log(`test: ${JSON.stringify(test.toJSON(), null, 4)}`)
                 
                 const feature = test._lookup('FEATURE#testFeature')
                 const globalFeature = test._lookup('FEATURE#testGlobal')
@@ -3899,6 +3906,7 @@ describe('StandardForm', () => {
                 `)
                 const test = new StandardForm(testWML)
                 const withImplicitParents = test.generateImplicitParents()
+                console.log(`withImplicitParents: ${JSON.stringify(withImplicitParents.toJSON(), null, 4)}`)
                 expect(schemaToWML([withImplicitParents.schema])).toEqual(testWML)
             })
 

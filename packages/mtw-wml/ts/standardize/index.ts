@@ -513,59 +513,42 @@ export class StandardForm {
         const edges = this._getParentChildEdges()
         const uuidGenerator = new UUIDGenerator()
         
-        // Map to track StandardKey → synthetic UUID
+        // Array to track StandardKey → synthetic UUID
         // We merge StandardKeys that refer to the same component
-        const standardKeyToSyntheticUUID = new Map<string, string>()
-        const syntheticUUIDToStandardKey = new Map<string, StandardKey | AssetUUID>()
+        const keyMappings: { key: StandardKey | AssetUUID; syntheticKey: string }[] = []
         
         // Helper to get or create synthetic UUID for a StandardKey or AssetUUID
         const getSyntheticUUID = (key: StandardKey | AssetUUID): string => {
             // For AssetUUID, use it directly (no need for synthetic)
             if (typeof key === 'string' && key.startsWith('ASSET#')) {
-                if (!standardKeyToSyntheticUUID.has(key)) {
-                    standardKeyToSyntheticUUID.set(key, key)
-                    syntheticUUIDToStandardKey.set(key, key)
+                const existing = keyMappings.find(m => typeof m.key === 'string' && m.key === key)
+                if (!existing) {
+                    keyMappings.push({ key, syntheticKey: key })
                 }
                 return key
             }
             
-            // For StandardKey, create a unique identifier for matching
+            // For StandardKey, check if we've seen an equivalent one
             const standardKey = key as StandardKey
-            const keyJSON = JSON.stringify(standardKey.toJSON())
             
-            // Check if we've already seen this exact StandardKey
-            if (standardKeyToSyntheticUUID.has(keyJSON)) {
-                return standardKeyToSyntheticUUID.get(keyJSON)!
-            }
-            
-            // Check if we've seen a StandardKey with the same key+tag (local key match)
-            // or same universalKey (if both have universalKey)
-            const existingMatch = Array.from(standardKeyToSyntheticUUID.entries()).find(([existingJSON, _]) => {
-                // Skip AssetUUID entries (they're strings, not JSON)
-                if (typeof existingJSON === 'string' && existingJSON.startsWith('ASSET#')) {
+            // Check if we've already seen this exact StandardKey or an equivalent one
+            const existingMatch = keyMappings.find(m => {
+                if (typeof m.key === 'string') {
+                    // Skip AssetUUID entries
                     return false
                 }
-                try {
-                    const existingKey = new StandardKey(JSON.parse(existingJSON))
-                    return existingKey.equals(standardKey)
-                } catch (e) {
-                    // If parsing fails, skip this entry
-                    return false
-                }
-                return false
+                const existingKey = m.key as StandardKey
+                return existingKey.equals(standardKey)
             })
             
             if (existingMatch) {
                 // Use existing synthetic UUID
-                const syntheticUUID = existingMatch[1]
-                standardKeyToSyntheticUUID.set(keyJSON, syntheticUUID)
-                return syntheticUUID
+                return existingMatch.syntheticKey
             }
             
             // Create new synthetic UUID
             const syntheticUUID = `SYNTHETIC#${uuidGenerator.next()}`
-            standardKeyToSyntheticUUID.set(keyJSON, syntheticUUID)
-            syntheticUUIDToStandardKey.set(syntheticUUID, standardKey)
+            keyMappings.push({ key: standardKey, syntheticKey: syntheticUUID })
             return syntheticUUID
         }
         
@@ -579,11 +562,12 @@ export class StandardForm {
         // Build node data with StandardKey information
         const nodes: Partial<Record<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }>> = {}
         nodeKeys.forEach(syntheticUUID => {
-            const standardKeyOrAsset = syntheticUUIDToStandardKey.get(syntheticUUID)
+            const mapping = keyMappings.find(m => m.syntheticKey === syntheticUUID)
             const nodeData: { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID } = { key: syntheticUUID }
             
-            if (standardKeyOrAsset && !(typeof standardKeyOrAsset === 'string' && standardKeyOrAsset.startsWith('ASSET#'))) {
-                const standardKey = standardKeyOrAsset as StandardKey
+            if (mapping && typeof mapping.key !== 'string') {
+                // StandardKey (not AssetUUID)
+                const standardKey = mapping.key as StandardKey
                 nodeData.standardKey = standardKey
                 if (standardKey.universalKey) {
                     nodeData.componentUUID = standardKey.universalKey as ComponentUUID
@@ -680,8 +664,16 @@ export class StandardForm {
             // implicit component parent for this group of components.
             //
             if (externalParents.some(parent => parent.startsWith('ASSET#'))) {
+                const keysToUpdate = scc
+                    .filter(key => !isSchemaAssetUUID(key))
+                    .map((key) => (graph.nodes[key]?.standardKey))
+                    .filter((key): key is StandardKey => key !== undefined)
+
                 returnValue._components = returnValue._components.map(component => {
-                    return component.withImplicitParent(undefined)
+                    if (keysToUpdate.some(key => key.equals(component._key.plain))) {
+                        return component.withImplicitParent(undefined)
+                    }
+                    return component
                 })
                 continue
             }

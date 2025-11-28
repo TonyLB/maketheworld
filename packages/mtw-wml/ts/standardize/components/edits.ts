@@ -102,6 +102,7 @@ export class StandardRemove implements StandardComponent {
     toJSON(): StandardRemoveData {
         return {
             key: this.key,
+            universalKey: this.universalKey,
             tag: 'Remove',
             component: this._match.toJSON() as StandardComponentNonEditData,
         }
@@ -299,6 +300,7 @@ export class StandardReplace implements StandardComponent {
     toJSON(): StandardReplaceData {
         return {
             key: this.key,
+            universalKey: this.universalKey,
             tag: 'Replace',
             match: this._match.toJSON() as StandardComponentNonEditData,
             payload: this._payload.toJSON() as StandardComponentNonEditData,
