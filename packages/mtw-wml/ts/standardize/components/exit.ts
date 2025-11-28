@@ -4,8 +4,8 @@ import { isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { StandardKeyData } from "../components/dataTypes/reference"
-import { isStandardReferenceData, StandardKey } from "../components/reference"
+import { StandardKeyData, isStandardKeyData } from "../components/dataTypes/reference"
+import { StandardKey } from "../components/reference"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isStandardLiteralData, StandardLiteral } from "../literal"
 import { deepEqual } from "../../lib/objects"
@@ -19,7 +19,7 @@ export type StandardExitData = {
 
 // Typeguard for plain exit data
 const isSimpleExitData = (value: any): value is StandardExitData => {
-    return (typeof value === 'object' && value !== null && 'to' in value && isStandardReferenceData(value.to) && (!value.description || isStandardLiteralData(value.description)))
+    return (typeof value === 'object' && value !== null && 'to' in value && isStandardKeyData(value.to) && (!value.description || isStandardLiteralData(value.description)))
 }
 
 

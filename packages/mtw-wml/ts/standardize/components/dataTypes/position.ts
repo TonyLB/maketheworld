@@ -1,5 +1,5 @@
 import checkTypes, { CheckTypes } from "@tonylb/mtw-base/ts/utils/checkTypes";
-import { isStandardReferencePayloadData, StandardKeyData } from "./reference"
+import { isStandardKeyData, StandardKeyData } from "./reference"
 
 export type StandardPositionData = {
     room: StandardKeyData;
@@ -15,7 +15,7 @@ export const isSimplePositionData = (arg: any): arg is StandardPositionData => {
     return checkTypes({
         required: { x: CheckTypes.NUMBER, y: CheckTypes.NUMBER },
         values: {
-            room: (room: any) => (isStandardReferencePayloadData(room))
+            room: (room: any) => (isStandardKeyData(room))
         }
     })(arg)
 }

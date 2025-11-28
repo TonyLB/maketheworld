@@ -1,11 +1,10 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
-import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
+import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
-import { SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
-import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardPositionData } from "./position";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
-import { isStandardReferenceData } from "../reference";
+import { isStandardKeyData } from "./reference";
 
 export type StandardMapData = {
     tag: 'Map';
@@ -35,7 +34,7 @@ export const isStandardMap = (arg: any): arg is StandardMapData => {
                 arg.positions.every((position) => (
                     'x' in position && typeof position.x === 'number' &&
                     'y' in position && typeof position.y === 'number' &&
-                    'room' in position && isStandardReferenceData(position.room)
+                    'room' in position && isStandardKeyData(position.room)
                 ))
             )
         )
