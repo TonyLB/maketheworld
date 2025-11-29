@@ -234,7 +234,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             
             // Determine if we should render:
             // - If expectedParent is undefined, render only if component is Asset-level (no implicit parent)
-            // - If expectedParent is set, render only if it matches our implicit parent (compare StandardKeys)
+            // - If expectedParent is set, render only if component has implicitParent and it matches expectedParent
             const shouldRender = typeof expectedParent === 'undefined'
                 ? typeof implicitParentKey === 'undefined'  // Asset-level rendering: only render if component is also Asset-level
                 : implicitParentKey?.equals(expectedParent)  // Nested rendering: only render if parent matches
