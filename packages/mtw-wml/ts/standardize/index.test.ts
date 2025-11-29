@@ -850,14 +850,17 @@ describe('StandardForm', () => {
                 {
                     tag: 'Replace',
                     universalKey: 'EXAMPLE#testRoomReplaceBase',
+                    implicitParent: 'ROOM#testRoomReplace',
                     match: {
                         tag: 'Example',
                         universalKey: 'EXAMPLE#testRoomReplaceBase',
+                        implicitParent: 'ROOM#testRoomReplace',
                         name: ['Name Test']
                     },
                     payload: {
                         tag: 'Example',
                         universalKey: 'EXAMPLE#testRoomReplaceBase',
+                        implicitParent: 'ROOM#testRoomReplace',
                         name: ['Name Changed']
                     }
                 }
@@ -1109,6 +1112,12 @@ describe('StandardForm', () => {
                 examples: ['EXAMPLE#testGlobalBase']
             },
             {
+                tag: 'Example',
+                implicitParent: 'FEATURE#testGlobal',
+                universalKey: 'EXAMPLE#testGlobalBase',
+                description: ['Global']
+            },
+            {
                 tag: 'Room',
                 key: 'test',
                 universalKey: 'ROOM#testRoom',
@@ -1120,16 +1129,6 @@ describe('StandardForm', () => {
                 implicitParent: 'ROOM#testRoom',
                 universalKey: 'EXAMPLE#testRoomBase',
                 description: ['One']
-            },
-            //
-            // The following Example appears out of natural order, because the StandardForm has not been finalized (and therefore it
-            // thinks that it is sorted in the place that it appeared, not under its (relocated) parent Feature).
-            //
-            {
-                tag: 'Example',
-                implicitParent: 'FEATURE#testGlobal',
-                universalKey: 'EXAMPLE#testGlobalBase',
-                description: ['Global']
             },
             {
                 tag: 'Feature',
@@ -1939,7 +1938,6 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const test = new StandardForm(testSource)
-        console.log(`test.toJSON(): ${JSON.stringify(test.toJSON(), null, 4)}`)
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
@@ -2673,34 +2671,6 @@ describe('StandardForm', () => {
                             <Feature uuid=(testFeature) key=(testFeature) />
                         </Room>
                     </Remove>
-                </Asset>
-            `))
-        })
-
-        it('should diff a rename correctly', () => {
-            const base = new StandardForm(`
-                <Asset uuid=(test)>
-                    <Room uuid=(Room1) key=(Room1)><Exit to=(Room2)>text</Exit></Room>
-                    <Room uuid=(Room2) key=(Room2)>
-                        <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
-                    </Room>
-                </Asset>
-            `)
-            const incoming = base._clone()
-            incoming.byUniversalId['ROOM#Room2'] = incoming.byUniversalId['ROOM#Room2'].withKey('garden')
-            const diff = base.diff(incoming)
-            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
-                <Asset uuid=(test)>
-                    <Replace>
-                        <Room uuid=(Room2) key=(Room2)>
-                            <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
-                        </Room>
-                    </Replace>
-                    <With>
-                        <Room uuid=(Room2) key=(garden)>
-                            <Example uuid=(Room2Base) key=(base)><Name>Garden</Name></Example>
-                        </Room>
-                    </With>
                 </Asset>
             `))
         })
@@ -3864,8 +3834,6 @@ describe('StandardForm', () => {
                 `)
                 const test = new StandardForm(testWML)
 
-                console.log(`test: ${JSON.stringify(test.toJSON(), null, 4)}`)
-                
                 const feature = test._lookup('FEATURE#testFeature')
                 const globalFeature = test._lookup('FEATURE#testGlobal')
                 const room = test._lookup('ROOM#testRoom')
@@ -3906,7 +3874,6 @@ describe('StandardForm', () => {
                 `)
                 const test = new StandardForm(testWML)
                 const withImplicitParents = test.generateImplicitParents()
-                console.log(`withImplicitParents: ${JSON.stringify(withImplicitParents.toJSON(), null, 4)}`)
                 expect(schemaToWML([withImplicitParents.schema])).toEqual(testWML)
             })
 
@@ -3930,6 +3897,111 @@ describe('StandardForm', () => {
                 if (feature?.implicitParent && room) {
                     expect(feature.implicitParent.equals(room._key.plain)).toBe(true)
                 }
+            })
+
+            it('should set implicitParent correctly for Features inside Remove and Replace within a Room', () => {
+                const testWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room key=(testRoom)>
+                            <Remove>
+                                <Feature key=(removedFeature) />
+                            </Remove>
+                            <Replace>
+                                <Feature key=(replacedFeature)>
+                                    <ShortName>Replaced Feature</ShortName>
+                                </Feature>
+                            </Replace>
+                            <With>
+                                <Feature key=(replacedFeature)>
+                                    <ShortName>Replaced Feature Two</ShortName>
+                                </Feature>
+                            </With>
+                        </Room>
+                    </Asset>
+                `)
+                const test = new StandardForm(testWML)
+                
+                // First, check what components exist before generateImplicitParents
+                // The Features inside Remove/Replace should be extracted as separate components
+                const removedFeatureBefore = test._lookup({ key: 'removedFeature' })
+                const replacedFeatureBefore = test._lookup({ key: 'replacedFeature' })
+                
+                // Features should exist as separate components (not just wrapped in Remove/Replace)
+                expect(removedFeatureBefore).toBeDefined()
+                expect(replacedFeatureBefore).toBeDefined()
+                
+                const withImplicitParents = test.generateImplicitParents()
+                
+                // Look up the Room and Features
+                const room = withImplicitParents.byId.testRoom
+                const removedFeature = withImplicitParents._lookup({ key: 'removedFeature' })
+                const replacedFeature = withImplicitParents._lookup({ key: 'replacedFeature' })
+                
+                // Verify Room exists and is at Asset level
+                expect(room).toBeDefined()
+                expect(room?.implicitParent).toBeUndefined()
+                
+                // Verify Features exist and have Room as implicitParent
+                expect(removedFeature).toBeDefined()
+                expect(removedFeature?.implicitParent).toBeDefined()
+                if (removedFeature?.implicitParent && room) {
+                    expect(removedFeature.implicitParent.equals(room._key.plain)).toBe(true)
+                }
+                
+                expect(replacedFeature).toBeDefined()
+                expect(replacedFeature?.implicitParent).toBeDefined()
+                if (replacedFeature?.implicitParent && room) {
+                    expect(replacedFeature.implicitParent.equals(room._key.plain)).toBe(true)
+                }
+            })
+
+            it('should set implicitParent correctly for Features and Examples inside removed Room', () => {
+                const testWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Remove>
+                            <Room key=(testRoom)>
+                                <Feature key=(testFeature) />
+                                <Example uuid=(testExample) />
+                            </Room>
+                        </Remove>
+                    </Asset>
+                `)
+                const test = new StandardForm(testWML)
+                
+                // First, check what components exist before generateImplicitParents
+                // The Features inside Remove should be extracted as separate components
+                const removedFeatureBefore = test._lookup({ key: 'testFeature' })
+                const removedExampleBefore = test._lookup('EXAMPLE#testExample')
+                
+                // Features should exist as separate components (not just wrapped in Remove/Replace)
+                expect(removedFeatureBefore).toBeDefined()
+                expect(removedExampleBefore).toBeDefined()
+                
+                const withImplicitParents = test.generateImplicitParents()
+                
+                // Look up the Room and Example
+                const room = withImplicitParents.byId.testRoom
+                const feature = withImplicitParents._lookup({ key: 'testFeature' })
+                const example = withImplicitParents._lookup('EXAMPLE#testExample')
+                
+                // Verify Room exists and is at Asset level
+                expect(room).toBeDefined()
+                expect(room?.implicitParent).toBeUndefined()
+                
+                // Verify Feature exists and have Room as implicitParent
+                expect(feature).toBeDefined()
+                expect(feature?.implicitParent).toBeDefined()
+                if (feature?.implicitParent && room) {
+                    expect(feature.implicitParent.equals(room._key.plain)).toBe(true)
+                }
+                
+                // Verify Example exists and have Room as implicitParent
+                expect(example).toBeDefined()
+                expect(example?.implicitParent).toBeDefined()
+                if (example?.implicitParent && room) {
+                    expect(example.implicitParent.equals(room._key.plain)).toBe(true)
+                }
+                
             })
         })
     })

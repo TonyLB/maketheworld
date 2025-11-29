@@ -26,6 +26,7 @@ export class StandardRemove implements StandardComponent {
             this._key = props._key
             this._match = props._match.clone()
             this.explicitParent = props.explicitParent
+            this._implicitParent = props._implicitParent ? new StandardKey(props._implicitParent) : undefined
             return
         }
         const tag = props.tag
@@ -96,6 +97,7 @@ export class StandardRemove implements StandardComponent {
     remapReferences(mapTo): StandardRemove {
         const returnValue = this.clone()
         returnValue._match = returnValue._match.withMapping(this._mapping ?? []).remapReferences(mapTo)
+        returnValue._implicitParent = this._implicitParent ? this._implicitParent.toFormat(mapTo) : undefined
         return returnValue
     }
 
@@ -105,6 +107,7 @@ export class StandardRemove implements StandardComponent {
             universalKey: this.universalKey,
             tag: 'Remove',
             component: this._match.toJSON() as StandardComponentNonEditData,
+            ...(this._implicitParent ? { implicitParent: this._implicitParent.toJSON() } : {}),
         }
     }
 
@@ -120,9 +123,13 @@ export class StandardRemove implements StandardComponent {
         if (removeContext) {
             return this._match.nestedSchema(lookup, options)
         }
+        // When rendering Remove, preserve the incoming parent context (Remove doesn't introduce a new parent)
+        // The match component's key is used for rendering, but parent context flows through unchanged
+        // The match component itself will pass its key as parent to its children (see componentClassFactory nestedSchema)
+        const matchKey = new StandardKey(this._match._key)
         return {
             data: { tag: 'Remove' },
-            children: [this._match.nestedSchema(lookup, { ...options, key: new StandardKey({ key: this._match.key, universalKey: this._match.universalKey }), removeContext: true })]
+            children: [this._match.nestedSchema(lookup, { ...options, key: matchKey, removeContext: true })]
         }
     }
 
@@ -187,6 +194,7 @@ export class StandardRemove implements StandardComponent {
     withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
         const returnValue = this.clone()
         returnValue._implicitParent = implicitParent ? new StandardKey(implicitParent) : undefined
+        returnValue._match = returnValue._match.withImplicitParent(implicitParent)
         return returnValue
     }
 
@@ -233,6 +241,7 @@ export class StandardReplace implements StandardComponent {
             this._match = props._match.clone()
             this._payload = props._payload.clone()
             this.explicitParent = props.explicitParent
+            this._implicitParent = props._implicitParent ? new StandardKey(props._implicitParent) : undefined
             return
         }
         throw new Error('StandardReplace constructor called with invalid arguments')
@@ -294,6 +303,7 @@ export class StandardReplace implements StandardComponent {
         const returnValue = this.clone()
         returnValue._match = returnValue._match.withMapping(this._mapping ?? []).remapReferences(mapTo)
         returnValue._payload = returnValue._payload.withMapping(this._mapping ?? []).remapReferences(mapTo)
+        returnValue._implicitParent = this._implicitParent ? this._implicitParent.toFormat(mapTo) : undefined
         return returnValue
     }
 
@@ -304,6 +314,7 @@ export class StandardReplace implements StandardComponent {
             tag: 'Replace',
             match: this._match.toJSON() as StandardComponentNonEditData,
             payload: this._payload.toJSON() as StandardComponentNonEditData,
+            ...(this._implicitParent ? { implicitParent: this._implicitParent.toJSON() } : {}),
         }
     }
 
@@ -318,11 +329,16 @@ export class StandardReplace implements StandardComponent {
     }
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+        // When rendering Replace, preserve the incoming parent context (Replace doesn't introduce a new parent)
+        // The match/payload component keys are used for rendering, but parent context flows through unchanged
+        // Each component itself will pass its key as parent to its children (see componentClassFactory nestedSchema)
+        const matchKey = new StandardKey(this._match._key)
+        const payloadKey = new StandardKey(this._payload._key)
         return {
             data: { tag: 'Replace' },
             children: [
-                { data: { tag: 'ReplaceMatch' }, children: [this._match.nestedSchema(lookup, options)] },
-                { data: { tag: 'ReplacePayload' }, children: [this._payload.nestedSchema(lookup, options)] }
+                { data: { tag: 'ReplaceMatch' }, children: [this._match.nestedSchema(lookup, { ...options, key: matchKey })] },
+                { data: { tag: 'ReplacePayload' }, children: [this._payload.nestedSchema(lookup, { ...options, key: payloadKey })] }
             ]
         }
     }
@@ -410,6 +426,8 @@ export class StandardReplace implements StandardComponent {
     withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
         const returnValue = this.clone()
         returnValue._implicitParent = implicitParent ? new StandardKey(implicitParent) : undefined
+        returnValue._match = returnValue._match.withImplicitParent(implicitParent)
+        returnValue._payload = returnValue._payload.withImplicitParent(implicitParent)
         return returnValue
     }
 }
