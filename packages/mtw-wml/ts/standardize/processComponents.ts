@@ -5,8 +5,10 @@ import { StandardRemove, StandardReplace } from "./components/edits"
 import { isSchemaComponent, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { ComponentTag } from "./components/dataTypes/abstract"
-import { StandardKey } from "./components/reference"
+import { StandardKey, StandardReferenceSimple } from "./components/reference"
+import { ReferenceCollection } from "./components/utils/referenceCollection"
 import StandardRoom from "./components/room"
+import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists"
 
 export type ComponentProcessingTemplate = {
     key: ComponentTag;
@@ -16,6 +18,7 @@ export type ComponentProcessingTemplate = {
 export type ComponentProcessingResult = {
     components: StandardComponent[];
     topLevel: StandardKey[];
+    referenceCollection: ReferenceCollection;
 }
 
 //
@@ -25,7 +28,7 @@ export type ComponentProcessingResult = {
 export const processComponents = (props: {
     componentTemplates: ComponentProcessingTemplate[];
     schema: GenericTree<SchemaTag>;
-    componentContext?: StandardKey[];
+    componentContext?: ComponentTag[];
     inContextOfRemove?: boolean;
     assetUUID?: AssetUUID;
 }): ComponentProcessingResult => {
@@ -40,7 +43,7 @@ export const processComponents = (props: {
         assetUUID,
     } = props
 
-    const recursiveResult = schema.reduce<ComponentProcessingResult>((previous, item) => {
+    const recursiveResult = schema.reduce<Omit<ComponentProcessingResult, 'referenceCollection'>>((previous, item) => {
         //
         // If the item is a remove, set inContextOfRemove to true
         //
@@ -106,11 +109,10 @@ export const processComponents = (props: {
                 const component = standardComponentFactory(item)
 
                 //
-                // If the template has legalParents, extract the nearest legal parent tags from the componentContext
+                // If the template has legalParents, check if there are any legal parent tags in the componentContext
                 //
                 const legalParentTags = template.legalParents ?? []
-                const ancestorTags = componentContext.filter(({ tag }) => (legalParentTags.includes(tag)))
-                const parentTag = ancestorTags.slice(-1)[0]
+                const ancestorTags = componentContext.filter((tag) => (legalParentTags.includes(tag)))
 
                 if (!component) {
                     return previous
@@ -119,7 +121,7 @@ export const processComponents = (props: {
                 //
                 // Note: We no longer set context here. Parent relationships are determined later by
                 // generateImplicitParents() which builds a graph from component.referencedKeys() edges.
-                // The componentContext parameter is still used to determine parentTag for topLevel tracking,
+                // The componentContext parameter is still used for topLevel tracking,
                 // but we don't need to set context on the component itself.
                 //
                 const localizedComponent = component
@@ -129,13 +131,17 @@ export const processComponents = (props: {
                 //
                 // Track if this component is at Asset level (topLevel)
                 //
-                const isTopLevel = !parentTag && assetUUID
+                const isTopLevel = ancestorTags.length === 0 && assetUUID
 
                 // Process children recursively
+                // Get tag from component (filter out 'Remove' and 'Replace' for edit-wrapped components)
+                const componentTag = editWrappedComponent.tag && editWrappedComponent.tag !== 'Remove' && editWrappedComponent.tag !== 'Replace'
+                    ? editWrappedComponent.tag
+                    : localizedComponent.tag as ComponentTag
                 const childrenResult = processComponents({ 
                     ...props, 
-                    schema: item.children, 
-                    componentContext: [...componentContext, localizedComponent._key.plain] 
+                    schema: item.children,
+                    componentContext: [...componentContext, componentTag]
                 })
 
                 return {
@@ -153,7 +159,25 @@ export const processComponents = (props: {
         }
     }, { components: [], topLevel: [] })
 
-    return recursiveResult
+    // Build ReferenceCollection from all components
+    const references = recursiveResult.components
+        .map(component => {
+            try {
+                const referenceData = component.referenceData
+                return new StandardReferenceSimple(referenceData)
+            } catch (error) {
+                // Skip components that don't have valid referenceData
+                return undefined
+            }
+        })
+        .filter(excludeUndefined)
+    
+    const referenceCollection = new ReferenceCollection(references)
+
+    return {
+        ...recursiveResult,
+        referenceCollection
+    }
 }
 
 export default processComponents

@@ -44,7 +44,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
             const descriptionChildren = tagTree.filter({ not: { match: 'Room' } }).tree
             const descriptionItem = descriptionChildren.length ? { data: { tag: 'Description' as const }, children: descriptionChildren } : undefined
             this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
-            this._rooms = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaRoom)).map((node => (childReferenceFactory([node])))))
+            this._rooms = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaRoom)).map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardMessage constructor')
@@ -84,7 +84,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this._rooms.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
+            ...this._rooms.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey }))
         ]
     }
 

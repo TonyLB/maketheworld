@@ -3,6 +3,7 @@ import { Schema, schemaToWML } from "../schema"
 import { deIndentWML } from "../schema/utils"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import StandardRoom from "./components/room"
+import { StandardKey } from "./components/reference"
 
 const componentTemplates: ComponentProcessingTemplate[] = [
     { 
@@ -509,5 +510,129 @@ describe("processComponents", () => {
         const roomComponent = result.components.find(({ key }) => (key === 'testRoom'))
         expect(roomComponent).toBeDefined()        
         expect(schemaToWML([roomComponent!.schema])).toBe('<Room key=(testRoom)><Character key=(testCharacter) /></Room>')
+    })
+
+    describe('referenceCollection', () => {
+        it('should return empty referenceCollection when no components', () => {
+            const schema = new Schema()
+            schema.loadWML(`<Asset uuid=(test) />`)
+            const result = processComponents({
+                componentTemplates,
+                schema: schema.schema,
+            })
+            expect(result.referenceCollection.references.length).toBe(0)
+        })
+
+        it('should build referenceCollection from simple flat schema', () => {
+            const testSource = `
+                <Asset uuid=(Test)>
+                    <Room key=(room1) />
+                    <Room key=(room2) />
+                    <Feature key=(feature1) />
+                </Asset>
+            `
+            const schema = new Schema()
+            schema.loadWML(testSource)
+            const result = processComponents({
+                componentTemplates,
+                schema: schema.schema,
+                assetUUID: 'ASSET#Test'
+            })
+            
+            expect(result.referenceCollection.references.length).toBe(3)
+            
+            const room1 = result.referenceCollection.lookup(new StandardKey({ key: 'room1' }))
+            expect(room1?.key).toBe('room1')
+            expect(room1?.tag).toBe('Room')
+            
+            const room2 = result.referenceCollection.lookup(new StandardKey({ key: 'room2' }))
+            expect(room2?.key).toBe('room2')
+            expect(room2?.tag).toBe('Room')
+            
+            const feature1 = result.referenceCollection.lookup(new StandardKey({ key: 'feature1' }))
+            expect(feature1?.key).toBe('feature1')
+            expect(feature1?.tag).toBe('Feature')
+        })
+
+        it('should include all components in referenceCollection from nested schema', () => {
+            const testSource = `
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Feature key=(feature1) />
+                        <Example uuid=(example1) />
+                    </Room>
+                    <Feature key=(feature2) />
+                </Asset>
+            `
+            const schema = new Schema()
+            schema.loadWML(testSource)
+            const result = processComponents({
+                componentTemplates,
+                schema: schema.schema,
+                assetUUID: 'ASSET#Test'
+            })
+            
+            // Should include Room, Feature (nested), Example, and Feature (top-level)
+            expect(result.referenceCollection.references.length).toBeGreaterThanOrEqual(3)
+            
+            const room1 = result.referenceCollection.lookup(new StandardKey({ key: 'room1' }))
+            expect(room1?.tag).toBe('Room')
+            
+            const feature1 = result.referenceCollection.lookup(new StandardKey({ key: 'feature1' }))
+            expect(feature1?.tag).toBe('Feature')
+            
+            const feature2 = result.referenceCollection.lookup(new StandardKey({ key: 'feature2' }))
+            expect(feature2?.tag).toBe('Feature')
+        })
+
+        it('should merge duplicate component appearances in referenceCollection', () => {
+            const testSource = `
+                <Asset uuid=(Test)>
+                    <Room key=(room1) />
+                    <Room key=(room1) uuid=(uuid1) />
+                </Asset>
+            `
+            const schema = new Schema()
+            schema.loadWML(testSource)
+            const result = processComponents({
+                componentTemplates,
+                schema: schema.schema,
+                assetUUID: 'ASSET#Test'
+            })
+            
+            // Should merge the two room1 appearances into one
+            const room1Refs = result.referenceCollection.references.filter(ref => ref.key === 'room1')
+            expect(room1Refs.length).toBe(1)
+            
+            const room1 = result.referenceCollection.lookup(new StandardKey({ key: 'room1' }))
+            expect(room1?.key).toBe('room1')
+            expect(room1?.universalKey).toBe('ROOM#uuid1')
+            expect(room1?.tag).toBe('Room')
+        })
+
+        it('should handle components with universalKey in referenceCollection', () => {
+            const testSource = `
+                <Asset uuid=(Test)>
+                    <Room uuid=(room1) />
+                    <Room key=(room2) />
+                </Asset>
+            `
+            const schema = new Schema()
+            schema.loadWML(testSource)
+            const result = processComponents({
+                componentTemplates,
+                schema: schema.schema,
+                assetUUID: 'ASSET#Test'
+            })
+            
+            // Find the room with uuid - it should have a universalKey set
+            const roomWithUUID = result.referenceCollection.references.find(ref => ref.universalKey === 'ROOM#room1')
+            expect(roomWithUUID).toBeDefined()
+            expect(roomWithUUID?.tag).toBe('Room')
+            
+            const room2 = result.referenceCollection.lookup(new StandardKey({ key: 'room2' }))
+            expect(room2?.key).toBe('room2')
+            expect(room2?.tag).toBe('Room')
+        })
     })
 })

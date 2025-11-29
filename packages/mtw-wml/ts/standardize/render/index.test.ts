@@ -164,7 +164,7 @@ describe('StandardRender', () => {
         `)
         const base = new StandardRender(baseSchema.schema)
         const merged = base.merge(new StandardRender(incomingSchema.schema))
-        console.log(`merged: ${JSON.stringify(merged?.toJSON(), null, 4)}`)
+
         expect(schemaToWML(merged!.schema)).toEqual(deIndentWML(`
             Example
             <Link to=(Feature1)>Link</Link>

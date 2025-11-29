@@ -687,7 +687,7 @@ describe('StandardForm', () => {
             const room1ByUUID = sf.byUniversalId['ROOM#001']
             expect(room1ByUUID).toBeDefined()
             
-            const { graph, topologicalSort } = sf._buildComponentGraph()
+            const { graph } = sf._buildComponentGraph()
             
             // Both the local key StandardKey and the universalKey StandardKey should map to the same synthetic UUID
             const room1Key = sf.byId['room1']._key.plain
@@ -718,7 +718,7 @@ describe('StandardForm', () => {
                     payload: {
                         tag: 'Room',
                         key: 'testRoom',
-                        exits: [{ to: { key: 'testRoomTwo', tag: 'Room' }, description: 'out' }],
+                        exits: [{ to: { key: 'testRoomTwo' }, description: 'out' }],
                     }
                 },
                 {
@@ -801,7 +801,7 @@ describe('StandardForm', () => {
                     examples: ['EXAMPLE#testRoomBase'],
                     exits: [{
                         tag: 'Remove',
-                        match: { to: { tag: 'Room', key: 'testDestination' }, description: 'out' }
+                        match: { to: { key: 'testDestination' }, description: 'out' }
                     }]
                 },
                 {
@@ -823,6 +823,7 @@ describe('StandardForm', () => {
                 {
                     tag: 'Remove',
                     key: 'testRoomRemove',
+                    universalKey: 'ROOM#testRoomRemove',
                     component: {
                         tag: 'Room',
                         key: 'testRoomRemove',
@@ -832,6 +833,7 @@ describe('StandardForm', () => {
                 {
                     tag: 'Replace',
                     key: 'testRoomReplace',
+                    universalKey: 'ROOM#testRoomReplace',
                     match: {
                         tag: 'Room',
                         key: 'testRoomReplace',
@@ -847,6 +849,7 @@ describe('StandardForm', () => {
                 },
                 {
                     tag: 'Replace',
+                    universalKey: 'EXAMPLE#testRoomReplaceBase',
                     match: {
                         tag: 'Example',
                         universalKey: 'EXAMPLE#testRoomReplaceBase',
@@ -1917,7 +1920,8 @@ describe('StandardForm', () => {
         expect(mapTest.byId.testRoomOne.toJSON()).toEqual({
             key: 'testRoomOne',
             universalKey: 'ROOM#testRoomOne',
-            tag: 'Room'
+            tag: 'Room',
+            implicitParent: { key: 'testMap', universalKey: 'MAP#testMap'}
         })
     })
 
@@ -1935,6 +1939,7 @@ describe('StandardForm', () => {
             </Asset>
         `)
         const test = new StandardForm(testSource)
+        console.log(`test.toJSON(): ${JSON.stringify(test.toJSON(), null, 4)}`)
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
@@ -3771,8 +3776,8 @@ describe('StandardForm', () => {
                 
                 // Look up components after generateImplicitParents
                 const exampleWithParents = test._lookup('EXAMPLE#testFeatureBase')
-                const featureWithParents = test._lookup({ key: 'testFeature', tag: 'Feature' })
-                const roomWithParents = test._lookup({ key: 'testRoom', tag: 'Room' })
+                const featureWithParents = test._lookup('FEATURE#testFeature')
+                const roomWithParents = test._lookup('ROOM#testRoom')
                 
                 // Verify implicitParent values are correctly computed as StandardKey
                 // - Example is in Feature → implicitParent should be the Feature's StandardKey
@@ -3858,6 +3863,8 @@ describe('StandardForm', () => {
                     </Asset>
                 `)
                 const test = new StandardForm(testWML)
+
+                console.log(`test: ${JSON.stringify(test.toJSON(), null, 4)}`)
                 
                 const feature = test._lookup('FEATURE#testFeature')
                 const globalFeature = test._lookup('FEATURE#testGlobal')
@@ -3899,6 +3906,7 @@ describe('StandardForm', () => {
                 `)
                 const test = new StandardForm(testWML)
                 const withImplicitParents = test.generateImplicitParents()
+                console.log(`withImplicitParents: ${JSON.stringify(withImplicitParents.toJSON(), null, 4)}`)
                 expect(schemaToWML([withImplicitParents.schema])).toEqual(testWML)
             })
 

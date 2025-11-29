@@ -272,7 +272,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
                     
                     {/* Exits from this room */}
                     {getRelevantExits(roomComponent).map((exit, index) => {                        
-                        const destinationComponent = standardForm._lookup(exit._payload.plain.to)
+                        const destinationComponent = standardForm._lookup(exit._payload.plain.to.toJSON())
                         const exitName = (destinationComponent && destinationComponent instanceof StandardRoom) 
                             ? destinationComponent.shortName?._payload.plain.toJSON() ?? destinationComponent.key ?? ''
                             : ''

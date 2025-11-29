@@ -11,7 +11,7 @@ import StandardKnowledge, { StandardKnowledgePayload } from "./components/knowle
 import StandardMap from "./components/map"
 import { wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
-import { StandardBaseData } from "./components/dataTypes/abstract"
+import { ComponentTag, StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import { StandardRemove, StandardReplace } from "./components/edits"
@@ -24,7 +24,7 @@ import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
-import { ReferenceListData, StandardReferenceData } from "./components/dataTypes/reference"
+import { ReferenceListData, StandardReferenceData, StandardKeyData } from "./components/dataTypes/reference"
 import StandardReference, { ReferenceList, StandardKey } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
@@ -253,11 +253,14 @@ export class StandardForm {
                         }
                         return [
                             ...previous.slice(0, previousMatchIndex),
-                            new StandardKey({
-                                universalKey: previousMatch.universalKey ?? component.universalKey,
-                                key: previousMatch.key ?? component.key,
-                                tag: previousMatch.tag ?? component.tag
-                            }),
+                            new StandardKey(
+                                previousMatch.key ?? component.key
+                                    ? {
+                                        universalKey: previousMatch.universalKey ?? component.universalKey,
+                                        key: previousMatch.key ?? component.key!
+                                    }
+                                    : (previousMatch.universalKey ?? component.universalKey ?? '')
+                            ),
                             ...previous.slice(previousMatchIndex + 1)
                         ]
                     }, [])
@@ -281,16 +284,17 @@ export class StandardForm {
                 // Generate implicit parents using StandardKey (works before finalize)
                 const withImplicitParents = this.generateImplicitParents()
                 // Sort after implicitParent is available, so sortOrder can use it instead of context
-                // Create getAncestryChain helper that takes a StandardKey, looks up the component, and gets its ancestry chain
-                const getAncestryChain = (key: StandardKey): StandardKey[] => {
+                // Create lookup helper for sorting - convert StandardComponent to new lookup result format
+                const lookup = (key: StandardKey) => {
                     const component = withImplicitParents._lookup(key.toJSON())
-                    if (component && component.implicitParent) {
-                        return withImplicitParents._getAncestryChainFromImplicitParent(component)
+                    if (!component) return undefined
+                    return {
+                        reference: component.reference.plain(),
+                        implicitParent: component.implicitParent
                     }
-                    return []  // No implicitParent means at Asset level, no ancestry chain
                 }
                 this._components = withImplicitParents._components
-                    .sort((componentA, componentB) => (standardComponentSortOrder(componentA._key, componentB._key, getAncestryChain)))
+                    .sort((componentA, componentB) => (standardComponentSortOrder(componentA._key, componentB._key, lookup)))
                 return
             }
             else {
@@ -388,7 +392,7 @@ export class StandardForm {
         }
         // Convert topLevel references to StandardComponentReferenceKey format
         return this._topLevel.payload.map(ref => ({
-            key: ref.plain(),
+            key: ref.plain().standardKey,
             referenceType: 'Direct' as const
         }))
     }
@@ -488,27 +492,6 @@ export class StandardForm {
     }
 
     /**
-     * Checks if one component is an ancestor of another by traversing implicitParent chains.
-     * 
-     * **Note on implicit vs explicit parent**: This function currently only uses `implicitParent`.
-     * As we add more nuanced interaction between implicit and explicit parent, we may want to
-     * modify this to consider both parent types.
-     * 
-     * @param child The potential child component
-     * @param ancestor The potential ancestor component
-     * @returns true if ancestor is an ancestor of child, false otherwise
-     */
-    _isAncestorOf(child: StandardComponent, ancestor: StandardComponent): boolean {
-        if (!child.implicitParent || !ancestor.universalKey) {
-            return false
-        }
-        
-        // Check if ancestor is in child's ancestry chain
-        const childChain = this._getAncestryChainFromImplicitParent(child)
-        return childChain.some(chain => chain.equals(ancestor._key))
-    }
-
-    /**
      * Extracts the direct parent from a context array (for migration/backward compatibility).
      * 
      * Helper function to extract the direct parent from the old context array format.
@@ -537,59 +520,42 @@ export class StandardForm {
         const edges = this._getParentChildEdges()
         const uuidGenerator = new UUIDGenerator()
         
-        // Map to track StandardKey → synthetic UUID
+        // Array to track StandardKey → synthetic UUID
         // We merge StandardKeys that refer to the same component
-        const standardKeyToSyntheticUUID = new Map<string, string>()
-        const syntheticUUIDToStandardKey = new Map<string, StandardKey | AssetUUID>()
+        const keyMappings: { key: StandardKey | AssetUUID; syntheticKey: string }[] = []
         
         // Helper to get or create synthetic UUID for a StandardKey or AssetUUID
         const getSyntheticUUID = (key: StandardKey | AssetUUID): string => {
             // For AssetUUID, use it directly (no need for synthetic)
             if (typeof key === 'string' && key.startsWith('ASSET#')) {
-                if (!standardKeyToSyntheticUUID.has(key)) {
-                    standardKeyToSyntheticUUID.set(key, key)
-                    syntheticUUIDToStandardKey.set(key, key)
+                const existing = keyMappings.find(m => typeof m.key === 'string' && m.key === key)
+                if (!existing) {
+                    keyMappings.push({ key, syntheticKey: key })
                 }
                 return key
             }
             
-            // For StandardKey, create a unique identifier for matching
+            // For StandardKey, check if we've seen an equivalent one
             const standardKey = key as StandardKey
-            const keyJSON = JSON.stringify(standardKey.toJSON())
             
-            // Check if we've already seen this exact StandardKey
-            if (standardKeyToSyntheticUUID.has(keyJSON)) {
-                return standardKeyToSyntheticUUID.get(keyJSON)!
-            }
-            
-            // Check if we've seen a StandardKey with the same key+tag (local key match)
-            // or same universalKey (if both have universalKey)
-            const existingMatch = Array.from(standardKeyToSyntheticUUID.entries()).find(([existingJSON, _]) => {
-                // Skip AssetUUID entries (they're strings, not JSON)
-                if (typeof existingJSON === 'string' && existingJSON.startsWith('ASSET#')) {
+            // Check if we've already seen this exact StandardKey or an equivalent one
+            const existingMatch = keyMappings.find(m => {
+                if (typeof m.key === 'string') {
+                    // Skip AssetUUID entries
                     return false
                 }
-                try {
-                    const existingKey = new StandardKey(JSON.parse(existingJSON))
-                    return existingKey.equals(standardKey)
-                } catch (e) {
-                    // If parsing fails, skip this entry
-                    return false
-                }
-                return false
+                const existingKey = m.key as StandardKey
+                return existingKey.equals(standardKey)
             })
             
             if (existingMatch) {
                 // Use existing synthetic UUID
-                const syntheticUUID = existingMatch[1]
-                standardKeyToSyntheticUUID.set(keyJSON, syntheticUUID)
-                return syntheticUUID
+                return existingMatch.syntheticKey
             }
             
             // Create new synthetic UUID
             const syntheticUUID = `SYNTHETIC#${uuidGenerator.next()}`
-            standardKeyToSyntheticUUID.set(keyJSON, syntheticUUID)
-            syntheticUUIDToStandardKey.set(syntheticUUID, standardKey)
+            keyMappings.push({ key: standardKey, syntheticKey: syntheticUUID })
             return syntheticUUID
         }
         
@@ -603,11 +569,12 @@ export class StandardForm {
         // Build node data with StandardKey information
         const nodes: Partial<Record<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }>> = {}
         nodeKeys.forEach(syntheticUUID => {
-            const standardKeyOrAsset = syntheticUUIDToStandardKey.get(syntheticUUID)
+            const mapping = keyMappings.find(m => m.syntheticKey === syntheticUUID)
             const nodeData: { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID } = { key: syntheticUUID }
             
-            if (standardKeyOrAsset && !(typeof standardKeyOrAsset === 'string' && standardKeyOrAsset.startsWith('ASSET#'))) {
-                const standardKey = standardKeyOrAsset as StandardKey
+            if (mapping && typeof mapping.key !== 'string') {
+                // StandardKey (not AssetUUID)
+                const standardKey = mapping.key as StandardKey
                 nodeData.standardKey = standardKey
                 if (standardKey.universalKey) {
                     nodeData.componentUUID = standardKey.universalKey as ComponentUUID
@@ -698,16 +665,37 @@ export class StandardForm {
                 }
                 return previous
             }, []))
-            
-            const ancestryThreads: (StandardKey | AssetUUID)[][] = externalParents.map(parentSyntheticUUID => {
-                const parentKeyOrAsset = getStandardKeyOrAsset(parentSyntheticUUID)
-                if (parentKeyOrAsset && parentKeyOrAsset instanceof StandardKey) {
-                    const parentComponent = returnValue._lookup(parentKeyOrAsset.plain.toJSON())
-                    if (parentComponent) {
-                        return [this._universalKey, ...returnValue._getAncestryChainFromImplicitParent(parentComponent), parentKeyOrAsset.plain]
+
+            //
+            // If `ASSET#` is one of the external parents, then we know immediately that there is no
+            // implicit component parent for this group of components.
+            //
+            if (externalParents.some(parent => parent.startsWith('ASSET#'))) {
+                const keysToUpdate = scc
+                    .filter(key => !isSchemaAssetUUID(key))
+                    .map((key) => (graph.nodes[key]?.standardKey))
+                    .filter((key): key is StandardKey => key !== undefined)
+
+                returnValue._components = returnValue._components.map(component => {
+                    if (keysToUpdate.some(key => key.equals(component._key.plain))) {
+                        return component.withImplicitParent(undefined)
                     }
+                    return component
+                })
+                continue
+            }
+            
+            const getAncestryThread = (key: StandardKey): StandardKey[] => {
+                const component = returnValue._lookup(key.toJSON())
+                if (component) {
+                    const ancestryChain = component.implicitParent ? getAncestryThread(component.implicitParent) : []
+                    return [...ancestryChain, key]
                 }
-                return [this._universalKey]
+                return []
+            }
+            const ancestryThreads: StandardKey[][] = externalParents.map(parentSyntheticUUID => {
+                const parentKeyOrAsset = getStandardKeyOrAsset(parentSyntheticUUID) as StandardKey
+                return getAncestryThread(parentKeyOrAsset)
             })
             
             const commonAncestry = longestCommonPrefix(ancestryThreads)
@@ -793,16 +781,17 @@ export class StandardForm {
 
     toNDJSON(): StandardNDJSON {
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
-        // Create getAncestryChain helper for sorting
-        const getAncestryChain = (key: StandardKey): StandardKey[] => {
+        // Create lookup helper for sorting - convert StandardComponent to new lookup result format
+        const lookup = (key: StandardKey) => {
             const component = this._lookup(key.toJSON())
-            if (component && component.implicitParent) {
-                return this._getAncestryChainFromImplicitParent(component)
+            if (!component) return undefined
+            return {
+                reference: component.reference.plain(),
+                implicitParent: component.implicitParent
             }
-            return []  // No implicitParent means at Asset level, no ancestry chain
         }
         const components: (StandardComponentData & SerializeNDJSONMixin)[] = this._components
-            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, getAncestryChain)))
+            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, lookup)))
             .map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON()))
         return [
             this.header,
@@ -812,21 +801,23 @@ export class StandardForm {
 
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
-        // Create getAncestryChain helper for sorting
-        const getAncestryChain = (key: StandardKey): StandardKey[] => {
+        // Create lookup helper for sorting - convert StandardComponent to new lookup result format
+        const lookup = (key: StandardKey) => {
             const component = this._lookup(key.toJSON())
-            if (component && component.implicitParent) {
-                return this._getAncestryChainFromImplicitParent(component)
+            if (!component) return undefined
+            return {
+                reference: component.reference.plain(),
+                implicitParent: component.implicitParent
             }
-            return []  // No implicitParent means at Asset level, no ancestry chain
         }
         const sortedChildren = this._components
             .filter((component) => (!component.implicitParent))
-            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, getAncestryChain)))
+            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, lookup)))
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
         const lookupWrapper = (key: string | StandardKey): StandardComponent | undefined => {
             if (typeof key === 'string') {
-                return this._lookup(key)
+                // String is assumed to be ComponentUUID (part of StandardKeyData)
+                return this._lookup(key as ComponentUUID)
             }
             return this._lookup(key.toJSON())
         }
@@ -858,8 +849,8 @@ export class StandardForm {
             .map((component) => (component._key))
     }
 
-    _lookup(reference: StandardReferenceData): StandardComponent | undefined {
-        return lookupInComponentList(this._components, new StandardKey(reference))
+    _lookup(keyData: StandardKeyData): StandardComponent | undefined {
+        return lookupInComponentList(this._components, new StandardKey(keyData))
     }
 
     //
@@ -1294,11 +1285,17 @@ export class StandardForm {
         //
 
         const zipperedComponents = allKeys
-            .map((reference) => ({
-                reference,
-                previous: this._lookup(reference)?.withMapping(mergedForKeys)?.remapReferences('both'),
-                incoming: incoming._lookup(reference)?.withMapping(mergedForKeys)?.remapReferences('both')
-            }))
+            .map((reference: StandardReferenceData) => {
+                // Convert StandardReferenceData to StandardKeyData by removing tag if present
+                const keyData: StandardKeyData = typeof reference === 'string' 
+                    ? reference 
+                    : { key: reference.key, universalKey: reference.universalKey }
+                return {
+                    reference,
+                    previous: this._lookup(keyData)?.withMapping(mergedForKeys)?.remapReferences('both'),
+                    incoming: incoming._lookup(keyData)?.withMapping(mergedForKeys)?.remapReferences('both')
+                }
+            })
             .filter(({ previous, incoming }) => (previous || incoming))
 
         //

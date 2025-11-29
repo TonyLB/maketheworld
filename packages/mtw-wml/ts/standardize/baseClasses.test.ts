@@ -9,10 +9,7 @@ describe('StandardForm baseClasses', () => {
             tag: "Room",
             shortName: "Sturdy Mug",
             exits: [{
-                to: {
-                    tag: 'Room',
-                    key: "marketSquare"
-                },
+                to: { key: "marketSquare" },
                 description: "market square"
             }],
             examples: [{ key: "base", tag: "Example" }],
@@ -28,10 +25,7 @@ describe('StandardForm baseClasses', () => {
             tag: "Room",
             shortName: "Sturdy Mug",
             exits: [{
-                to: {
-                    tag: "Room",
-                    key: "marketSquare"
-                },
+                to: { key: "marketSquare" },
                 description: "market square"
             }],
             examples: [{ key: "base", tag: "Example" }],

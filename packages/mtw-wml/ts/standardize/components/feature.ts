@@ -46,7 +46,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
-            this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node])))))
+            this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardFeature constructor')
@@ -76,7 +76,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key } = options
         return {
-            data: key.schema[0].data,
+            data: { tag: 'Feature', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...this.examples.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
@@ -97,7 +97,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey }))
         ]
     }
 

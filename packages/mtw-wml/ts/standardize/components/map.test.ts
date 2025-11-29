@@ -21,7 +21,7 @@ describe('StandardMap class', () => {
         expect(testMap.key).toEqual('test')
         expect(testMap.name?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
-        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { tag: 'Room', key: "testRoom" }, x: 100, y: 100 }])
+        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { key: "testRoom" }, x: 100, y: 100 }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
     })
 
@@ -39,7 +39,7 @@ describe('StandardMap class', () => {
         expect(testMap.key).toEqual('test')
         expect(testMap.name?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
-        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { tag: 'Room', key: "testRoom" }, x: 100, y: 100 }])
+        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { key: "testRoom" }, x: 100, y: 100 }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
     })
 
@@ -49,13 +49,13 @@ describe('StandardMap class', () => {
             tag: 'Map',
             name: 'Name Test',
             images: [{ data: { tag: 'Image', key: "testImage" }, children: [] }],
-            positions: [{ room: { tag: 'Room', key: "testRoom" }, x: 10, y: 100 }]
+            positions: [{ room: { key: "testRoom" }, x: 10, y: 100 }]
         }
         const testMap = new StandardMap(testMapData)
         expect(testMap.key).toEqual('test')
         expect(testMap.name?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
-        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { tag: 'Room', key: "testRoom" }, x: 10, y: 100 }])
+        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { key: "testRoom" }, x: 10, y: 100 }])
         expect(testMap.toJSON()).toEqual(testMapData)
     })
 
@@ -70,7 +70,7 @@ describe('StandardMap class', () => {
                 </Room>
             </Map>
         `))
-        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { tag: 'Room', key: "testRoom" }, x: 100, y: 100 }])
+        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { key: "testRoom" }, x: 100, y: 100 }])
     })
 
     it('should construct StandardMap from StandardMapData with missing images and positions', () => {

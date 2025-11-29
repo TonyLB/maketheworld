@@ -17,8 +17,7 @@ import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardKey } from "./components/reference";
-import { deepEqual } from "../lib/objects";
-import { StandardReferenceData } from "./components/dataTypes/reference";
+import { StandardKeyData } from "./components/dataTypes/reference";
 import { StandardComponentReferenceKey } from "./components/baseClasses";
 
 /**
@@ -37,7 +36,7 @@ export type StandardRemove = {
     universalKey?: string;
     tag: 'Remove';
     component: StandardComponentNonEditData;
-    implicitParent?: StandardReferenceData | ComponentUUID;  // Parent StandardKey (serialized as StandardReferenceData or ComponentUUID)
+    implicitParent?: StandardKeyData;  // Parent StandardKey (serialized as StandardKeyData, minimal identifier without tag)
 }
 
 export type StandardReplace = {
@@ -46,7 +45,7 @@ export type StandardReplace = {
     tag: 'Replace';
     match: StandardComponentNonEditData;
     payload: StandardComponentNonEditData;
-    implicitParent?: StandardReferenceData | ComponentUUID;  // Parent StandardKey (serialized as StandardReferenceData or ComponentUUID)
+    implicitParent?: StandardKeyData;  // Parent StandardKey (serialized as StandardKeyData, minimal identifier without tag)
 }
 
 export const unwrapStandardComponent = (component: StandardComponentData): StandardComponentNonEditData => {

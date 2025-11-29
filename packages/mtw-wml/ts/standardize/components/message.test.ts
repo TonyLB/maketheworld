@@ -116,8 +116,8 @@ describe('StandardMessage class', () => {
                 <Room key=(testRoomOne) />
             </Message>
         `)
-        const room = new StandardKey({ tag: 'Room', key: 'testRoomTwo' })
-        const added = test.withChild(new StandardReference(room))
+        const room = new StandardKey({ key: 'testRoomTwo' })
+        const added = test.withChild(new StandardReference(room, 'Room'))
         expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
             <Message key=(testMessage)>
                 <Room key=(testRoomOne) />

@@ -34,7 +34,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         if (treeNodeTypeguard(isSchemaMoment)(node)) {
             this._messages = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaMessage)).map((reference) => {
                 if (treeNodeTypeguard(isSchemaMessage)(reference) || treeNodeTypeguard(isSchemaRemove)(reference)) {
-                    return childReferenceFactory([reference])
+                    return childReferenceFactory(reference)
                 }
                 throw new Error('Schema mismatch in StandardMoment constructor')
             }))
@@ -62,7 +62,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key } = options
         return {
-            data: key.schema[0].data,
+            data: { tag: 'Moment', key: key.key ?? '', uuid: key.universalKey },
             children: this.messages.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1)
         }
     }
@@ -79,8 +79,8 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.messages.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
-            ...this.messages.payload.map((reference) => ({ referenceType: 'Dependency' as const, key: reference._payload.plain })),
+            ...this.messages.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey })),
+            ...this.messages.payload.map((reference) => ({ referenceType: 'Dependency' as const, key: reference._payload.plain.standardKey })),
         ]
     }
 

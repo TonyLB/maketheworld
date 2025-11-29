@@ -629,7 +629,6 @@ exports[`large WML test should standardize properly 1`] = `
         "description": "passage",
         "to": {
           "key": "curvingPassage",
-          "tag": "Room",
           "universalKey": undefined,
         },
       },
@@ -637,7 +636,6 @@ exports[`large WML test should standardize properly 1`] = `
         "description": "out",
         "to": {
           "key": "VORTEX",
-          "tag": "Room",
           "universalKey": undefined,
         },
       },
@@ -653,7 +651,6 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "implicitParent": {
       "key": "cave",
-      "tag": "Room",
       "universalKey": undefined,
     },
     "key": undefined,
@@ -670,7 +667,6 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "implicitParent": {
       "key": "cave",
-      "tag": "Room",
       "universalKey": undefined,
     },
     "key": undefined,
@@ -690,7 +686,6 @@ exports[`large WML test should standardize properly 1`] = `
         "description": "passage",
         "to": {
           "key": "curvingPassage",
-          "tag": "Room",
           "universalKey": undefined,
         },
       },
@@ -716,7 +711,6 @@ exports[`large WML test should standardize properly 1`] = `
     "description": undefined,
     "implicitParent": {
       "key": "chamber",
-      "tag": "Room",
       "universalKey": undefined,
     },
     "key": undefined,
@@ -728,7 +722,6 @@ exports[`large WML test should standardize properly 1`] = `
   {
     "implicitParent": {
       "key": "chamber",
-      "tag": "Room",
       "universalKey": undefined,
     },
     "key": "orc",
@@ -739,7 +732,6 @@ exports[`large WML test should standardize properly 1`] = `
   {
     "implicitParent": {
       "key": "chamber",
-      "tag": "Room",
       "universalKey": undefined,
     },
     "key": "pie",
@@ -756,7 +748,6 @@ exports[`large WML test should standardize properly 1`] = `
         "description": "cave",
         "to": {
           "key": "cave",
-          "tag": "Room",
           "universalKey": undefined,
         },
       },
@@ -764,7 +755,6 @@ exports[`large WML test should standardize properly 1`] = `
         "description": "chamber",
         "to": {
           "key": "chamber",
-          "tag": "Room",
           "universalKey": undefined,
         },
       },
@@ -780,7 +770,6 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "implicitParent": {
       "key": "curvingPassage",
-      "tag": "Room",
       "universalKey": undefined,
     },
     "key": undefined,
@@ -800,7 +789,6 @@ exports[`large WML test should standardize properly 1`] = `
         "description": "cave",
         "to": {
           "key": "cave",
-          "tag": "Room",
           "universalKey": undefined,
         },
       },
@@ -823,7 +811,6 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "implicitParent": {
       "key": "VORTEX",
-      "tag": "Room",
       "universalKey": undefined,
     },
     "key": undefined,
@@ -850,7 +837,6 @@ exports[`large WML test should standardize properly 1`] = `
       {
         "room": {
           "key": "VORTEX",
-          "tag": "Room",
           "universalKey": undefined,
         },
         "x": 0,
@@ -859,7 +845,6 @@ exports[`large WML test should standardize properly 1`] = `
       {
         "room": {
           "key": "cave",
-          "tag": "Room",
           "universalKey": undefined,
         },
         "x": 0,
@@ -868,7 +853,6 @@ exports[`large WML test should standardize properly 1`] = `
       {
         "room": {
           "key": "curvingPassage",
-          "tag": "Room",
           "universalKey": undefined,
         },
         "x": -150,
@@ -877,7 +861,6 @@ exports[`large WML test should standardize properly 1`] = `
       {
         "room": {
           "key": "chamber",
-          "tag": "Room",
           "universalKey": undefined,
         },
         "x": -150,

@@ -1,24 +1,25 @@
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { isSimplePositionData, StandardPositionData } from "./dataTypes/position";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
-import StandardReference, { standardReferenceDeserialize, standardReferenceSerialize, StandardReferenceSimple } from "./reference";
+import StandardReference, { StandardKey, standardReferenceDeserialize, standardReferenceSerialize, StandardReferenceSimple } from "./reference";
 
 export class StandardPositionSimpleBase implements StandardEditablePayload<StandardPositionData> {
-    room: StandardReferenceSimple;
+    room: StandardKey;
     x: number;
     y: number;
     constructor(data: StandardPositionData) {
-        this.room = new StandardReferenceSimple(data.room)
+        // Position always refers to a Room, so pass 'Room' as explicit tag
+        this.room = new StandardKey(data.room)
         this.x = data.x;
         this.y = data.y;
     }
     get schema() {
-        const roomSchema = this.room.schema
+        const roomSchema = new StandardReferenceSimple(this.room, 'Room').schema
         return roomSchema.map(node => {
             if (treeNodeTypeguard(isSchemaRoom)(node)) {
                 return {
@@ -37,7 +38,7 @@ export class StandardPositionSimpleBase implements StandardEditablePayload<Stand
     }
     toJSON: () => StandardPositionData = () => {
         return {
-            room: this.room.plain.toJSON(),
+            room: this.room.toJSON(),
             x: this.x,
             y: this.y
         }
@@ -58,13 +59,13 @@ const payloadFactory = (props: StandardPositionData | GenericTree<SchemaTag>): S
         if (!(treeNodeTypeguard(isSchemaComponent)(node) && treeNodeTypeguard(isSchemaRoom)(node))) {
             throw new Error('Invalid argument in StandardPositionSimpleBase constructor')
         }
-        const { tag, key, uuid } = node.data
+        const { key, uuid } = node.data
         const position = node.children.find(treeNodeTypeguard(isSchemaPosition))
         if (!position) {
             throw new Error('Invalid argument in StandardPositionSimpleBase constructor')
         }
         return new StandardPositionSimpleBase({
-            room: { tag, key, universalKey: uuid },
+            room: key ? { key, universalKey: uuid } : uuid as ComponentUUID,
             x: position.data.x,
             y: position.data.y
         })
@@ -72,26 +73,12 @@ const payloadFactory = (props: StandardPositionData | GenericTree<SchemaTag>): S
     throw new Error('Invalid argument in StandardKey constructor')
 }
 
-const standardPositionDeserialize = (incoming: StandardPositionData): StandardPositionData => {
-    return {
-        ...incoming,
-        room: standardReferenceDeserialize(incoming.room)
-    }
-}
-
-const standardPositionSerialize = (incoming: StandardPositionData): StandardPositionData => {
-    return {
-        ...incoming,
-        room: standardReferenceSerialize(incoming.room)
-    }
-}
-
 const standardPositionAdd = (base: StandardPositionData, incoming: StandardPositionData): StandardPositionData => {
     return incoming
 }
 
 const standardPositionSubtract = (base: StandardPositionData, incoming: StandardPositionData): { add?: StandardPositionData, remove?: StandardPositionData } => {
-    if (deepEqual(standardPositionDeserialize(base), standardPositionDeserialize(incoming))) {
+    if (deepEqual(base, incoming)) {
         return { add: undefined, remove: undefined }
     }
     else {
@@ -100,11 +87,11 @@ const standardPositionSubtract = (base: StandardPositionData, incoming: Standard
 }
 
 const standardPositionDiff = (base: StandardPositionData, incoming: StandardPositionData): { add?: StandardPositionData, remove?: StandardPositionData } => {
-    if (deepEqual(standardPositionDeserialize(base), standardPositionDeserialize(incoming))) {
+    if (deepEqual(base, incoming)) {
         return { add: undefined, remove: undefined }
     }
     else {
-        return { add: standardPositionSerialize(incoming), remove: standardPositionSerialize(base) }
+        return { add: incoming, remove: base }
     }
 }
 
@@ -341,7 +328,7 @@ export class StandardPosition {
         return this._payload.schema
     }
     get room(): StandardReference {
-        return new StandardReference(this._payload.room)
+        return new StandardReference(this._payload.room, 'Room')
     }
     get x(): number {
         return this._payload.x

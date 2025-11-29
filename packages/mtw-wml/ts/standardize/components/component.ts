@@ -25,7 +25,7 @@ import { StandardReplace } from "./edits";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
-import StandardReference, { StandardKey } from "./reference";
+import StandardReference, { StandardKey, StandardReferenceSimple } from "./reference";
 import { StandardExplicitParent } from "../explicit";
 import SchemaTagTree from "../../tagTree/schema";
 
@@ -75,7 +75,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             }
             if (typeof props === 'string' && isLegalKey(props)) {
                 this._key = new StandardKey({
-                    tag: this._payload.tag,
                     key: props
                 })
                 return
@@ -91,8 +90,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 if (!treeNodeTypeguard(isSchemaComponent)(node)) {
                     throw new Error(`Invalid schema node type in ${label} constructor call: ${node.data.tag}`)
                 }
-                const tag = node.data.tag
-                this._key = new StandardKey({ tag, key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
+                this._key = new StandardKey({ key: node.data.key, universalKey: 'uuid' in node.data ? node.data.uuid : undefined })
                 this._from = node.data.from
                 this._origin = 'origin' in node.data ? node.data.origin : undefined
                 // Extract Parent tag from children using tagTree (handles Remove/Replace wrapping)
@@ -158,7 +156,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         get fileName(): string | undefined { return undefined }
         get tag(): ComponentTag { return this._payload.tag }
         get referenceData(): StandardReferenceData {
-            if (this.universalKey && !this.key) {
+            if (!this.key) {
+                if (!this.universalKey) {
+                    throw new Error('StandardComponent referenceData requires a key or universalKey')
+                }
                 return this.universalKey
             }
             return {
@@ -239,7 +240,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 : implicitParentKey?.equals(expectedParent)  // Nested rendering: only render if parent matches
             
             if (!shouldRender) {
-                const reference = new StandardReference(this._key).toFormat('key')
+                const reference = new StandardReference(new StandardReferenceSimple(this._key, this.tag)).toFormat('key')
                 return reference.schema[0]
             }
             
@@ -273,7 +274,9 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         // can be equal (semantically) without being identical.
         //
         equals(incoming: StandardComponent): boolean {
-            return deepEqual(this.toJSON(), incoming.toJSON())
+            const { implicitParent: _implicitParent1, ...thisJSONWithoutImplicitParent } = this.toJSON()
+            const { implicitParent: _implicitParent2, ...incomingJSONWithoutImplicitParent } = incoming.toJSON()
+            return deepEqual(thisJSONWithoutImplicitParent, incomingJSONWithoutImplicitParent)
         }
 
         //

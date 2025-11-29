@@ -67,9 +67,9 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .reorderedSiblings([['Exit'], ['If']])
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
             this._exits = exitTagTree.tree.map((exitData) => (StandardExit.create([exitData])))
-            this._features = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map((node => (childReferenceFactory([node])))))
-            this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node])))))
-            this._characters = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaCharacter)).map((node => (childReferenceFactory([node])))))
+            this._features = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map(childReferenceFactory))
+            this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(childReferenceFactory))
+            this._characters = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaCharacter)).map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')
@@ -111,7 +111,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key } = options
         return {
-            data: key.schema[0].data,
+            data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...this.features.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
@@ -146,10 +146,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
             ...exitReferenceKeys(this.exits)
-                .map((key) => ({ referenceType: 'Exit' as const, key: isSchemaComponentUUID(key) ? new StandardKey(key) : new StandardKey({ key, tag: 'Room' }) })),
-            ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain })),
-            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
+                .map((key) => ({ referenceType: 'Exit' as const, key: isSchemaComponentUUID(key) ? new StandardKey(key) : new StandardKey({ key }) })),
+            ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey })),
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey })),
+            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey }))
         ]
     }
 

@@ -7,6 +7,8 @@ import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { excludeUndefined } from "../../../lib/lists"
 import { StandardExit, StandardExitPlain, StandardExitRemove, StandardExitReplace } from "../exit"
+import { StandardReferenceSimple } from "../reference"
+import { isSchemaTreeNode } from "../../../schema"
 
 export const linkReferenceKeys = (mappings: StandardKey[]) => (tree: GenericTree<SchemaTag>): StandardKey[] => {
     return unique(tree
@@ -69,7 +71,7 @@ export const exitReferenceKeys = (list: StandardExit[]): string[] => {
 // It is used to convert references from one format to another.
 //
 // The differente references types are:
-// - key: A reference that inclueds the local (to the Asset) key of the reference, and NOT the universal key
+// - key: A reference that includes the local (to the Asset) key of the reference, and NOT the universal key
 // - universal: A reference that includes the universal key of the reference, and NOT the local (to the Asset) key
 // - both: A reference that includes both the local (to the Asset) key and the universal key of the reference
 //
@@ -80,20 +82,26 @@ export type ReferenceFormat = 'key' | 'universal' | 'both';
 
 export const mapKeyToFormat = (format: ReferenceFormat) =>
     (key: StandardKey): StandardKey => {
-        return new StandardKey({
-                tag: key.tag,
-                key: ['key', 'both'].includes(format) ? key.key : undefined,
-                universalKey: ['universal', 'both'].includes(format) ? key.universalKey : undefined,
-            })
+        switch (format) {
+            case 'key':
+                return new StandardKey({ key: key.key ?? '' })
+            case 'universal':
+                return new StandardKey(key.universalKey ?? '')
+            case 'both':
+                if (key.key) {
+                    return new StandardKey({ key: key.key, universalKey: key.universalKey })
+                }
+                return new StandardKey(key.universalKey ?? '')
+        }
     }
 
 export const childReferenceFactory = (props: any): StandardReference => {
-    const reference = new StandardReference(props)
-    if (reference._payload instanceof StandardReferenceReplace && reference._payload.match.equals(reference._payload.payload)) {
+    const reference = new StandardReference(isSchemaTreeNode(props) ? [props] : props)
+    if (reference._payload instanceof StandardReferenceReplace && reference._payload.match.standardKey.equals(reference._payload.payload.standardKey)) {
         // If the match and payload are the same, this is a reference to a child node that is being
         // modified, and *for this particular method* we include a plain reference (so that parents
         // will know to render the change)
-        return new StandardReference(reference._payload.plain)
+        return new StandardReference(new StandardReferenceSimple(reference._payload.plain))
     }
     return reference
 }

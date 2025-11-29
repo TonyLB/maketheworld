@@ -56,18 +56,35 @@ export class StandardRemove implements StandardComponent {
     }
 
     get referenceData(): StandardReferenceData {
-        if (this.universalKey && !this.key) {
+        // Extract tag from the underlying component (filter out 'Remove' wrapper tag)
+        const componentTag = this._match.tag === 'Remove' || this._match.tag === 'Replace' 
+            ? undefined 
+            : this._match.tag as ComponentTag
+        if (!componentTag) {
+            throw new Error('StandardRemove referenceData requires a component tag')
+        }
+        if (!this.key) {
+            if (!this.universalKey) {
+                throw new Error('StandardRemove referenceData requires a key or universalKey')
+            }
             return this.universalKey
         }
         return {
-            tag: this._match.tag as ComponentTag,
+            tag: componentTag,
             key: this.key,
             universalKey: this.universalKey,
         }
     }
 
     get reference(): StandardReference {
-        return new StandardReference(new StandardReferenceRemove(this._match._key))
+        // Extract tag from the underlying component (filter out 'Remove' wrapper tag)
+        const componentTag = this._match.tag === 'Remove' || this._match.tag === 'Replace' 
+            ? undefined 
+            : this._match.tag as ComponentTag
+        if (!componentTag) {
+            throw new Error('Cannot create StandardReferenceRemove reference without component tag')
+        }
+        return new StandardReference(new StandardReferenceRemove(this._match._key, componentTag))
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardRemove {
@@ -85,6 +102,7 @@ export class StandardRemove implements StandardComponent {
     toJSON(): StandardRemoveData {
         return {
             key: this.key,
+            universalKey: this.universalKey,
             tag: 'Remove',
             component: this._match.toJSON() as StandardComponentNonEditData,
         }
@@ -104,7 +122,7 @@ export class StandardRemove implements StandardComponent {
         }
         return {
             data: { tag: 'Remove' },
-            children: [this._match.nestedSchema(lookup, { ...options, key: new StandardKey({ tag: this._match.tag as ComponentTag, key: this._match.key, universalKey: this._match.universalKey }), removeContext: true })]
+            children: [this._match.nestedSchema(lookup, { ...options, key: new StandardKey({ key: this._match.key, universalKey: this._match.universalKey }), removeContext: true })]
         }
     }
 
@@ -234,18 +252,35 @@ export class StandardReplace implements StandardComponent {
     }
 
     get referenceData(): StandardReferenceData {
-        if (this.universalKey && !this.key) {
+        // Extract tag from the underlying payload component (filter out 'Remove'/'Replace' wrapper tags)
+        const componentTag = this._payload.tag === 'Remove' || this._payload.tag === 'Replace'
+            ? undefined
+            : this._payload.tag as ComponentTag
+        if (!componentTag) {
+            throw new Error('StandardReplace referenceData requires a component tag')
+        }
+        if (!this.key) {
+            if (!this.universalKey) {
+                throw new Error('StandardReplace referenceData requires a key or universalKey')
+            }
             return this.universalKey
         }
         return {
-            tag: this._match.tag as ComponentTag,
+            tag: componentTag,
             key: this.key,
             universalKey: this.universalKey,
         }
     }
 
     get reference(): StandardReference {
-        return new StandardReference(new StandardReferenceReplace(this._match._key, this._payload._key))
+        // Extract tag from the underlying payload component (filter out 'Remove'/'Replace' wrapper tags)
+        const componentTag = this._payload.tag === 'Remove' || this._payload.tag === 'Replace'
+            ? undefined
+            : this._payload.tag as ComponentTag
+        if (!componentTag) {
+            throw new Error('Cannot create StandardReferenceReplace reference without component tag')
+        }
+        return new StandardReference(new StandardReferenceReplace(this._match._key, this._payload._key, componentTag))
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardReplace {
@@ -265,6 +300,7 @@ export class StandardReplace implements StandardComponent {
     toJSON(): StandardReplaceData {
         return {
             key: this.key,
+            universalKey: this.universalKey,
             tag: 'Replace',
             match: this._match.toJSON() as StandardComponentNonEditData,
             payload: this._payload.toJSON() as StandardComponentNonEditData,

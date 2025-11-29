@@ -1,11 +1,11 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { StandardEditableDataDelta, v2StandardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
+import { v2StandardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import { isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { StandardReferenceData } from "../components/dataTypes/reference"
-import { isStandardReferenceData, StandardKey } from "../components/reference"
+import { StandardKeyData, isStandardKeyData } from "../components/dataTypes/reference"
+import { StandardKey } from "../components/reference"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isStandardLiteralData, StandardLiteral } from "../literal"
 import { deepEqual } from "../../lib/objects"
@@ -13,16 +13,14 @@ import { excludeUndefined, zipperList } from "../../lib/lists"
 import { ReferenceFormat } from "./utils/references"
 
 export type StandardExitData = {
-    to: StandardReferenceData;
+    to: StandardKeyData;
     description?: StandardEditableData<string>;
 }
 
 // Typeguard for plain exit data
 const isSimpleExitData = (value: any): value is StandardExitData => {
-    return (typeof value === 'object' && value !== null && 'to' in value && isStandardReferenceData(value.to) && (!value.description || isStandardLiteralData(value.description)))
+    return (typeof value === 'object' && value !== null && 'to' in value && isStandardKeyData(value.to) && (!value.description || isStandardLiteralData(value.description)))
 }
-
-
 
 //
 // StandardExitBase holds the contents for a simple StandardExit
@@ -64,7 +62,7 @@ const payloadFactory = (props: GenericTree<SchemaTag> | StandardExitData): Stand
         return new StandardExitBase({
             to: isSchemaComponentUUID(to)
                 ? to
-                : { tag: 'Room', key: to },
+                : { key: to },
             description: props[0].children.length > 0 && isSchemaString(props[0].children[0].data) ? new StandardLiteral([props[0].children[0]]).toJSON() : undefined
         })
     }

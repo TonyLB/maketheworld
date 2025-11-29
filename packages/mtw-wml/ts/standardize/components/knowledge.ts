@@ -46,7 +46,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
-            this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map((node => (childReferenceFactory([node])))))
+            this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardKnowledge constructor')
@@ -98,7 +98,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain }))
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey }))
         ]
     }
 

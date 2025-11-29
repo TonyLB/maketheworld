@@ -33,7 +33,11 @@ export class StandardAuthorizationResource {
         }
         if (isStandardAuthorizationResourceData(props)) {
             const { component, grants } = props
-            this.component = component ? new StandardReference(component) : undefined
+            if (component) {
+                this.component = new StandardReference(component)
+            } else {
+                this.component = undefined
+            }
             this.grants = grants.map(grant => standardAuthorizationFactory(grant)).filter(excludeUndefined)
             return
         }
@@ -49,7 +53,10 @@ export class StandardAuthorizationResource {
         }
         else if (Array.isArray(props) && props.every(isStandardAuthorizationResourceNDJSON)) {
             const { component, grants } = props.reduce<{ component?: StandardReference; grants: StandardAuthorizationItem[] }>((previous, { component, grant }) => {
-                const tempComponent = component ? new StandardReference(component) : undefined
+                let tempComponent: StandardReference | undefined = undefined
+                if (component) {
+                    tempComponent = new StandardReference(component)
+                }
                 
                 // Only check consistency if we've already seen items (previous.grants.length > 0)
                 if (previous.grants.length > 0) {
@@ -89,14 +96,14 @@ export class StandardAuthorizationResource {
 
     toJSON(): StandardAuthorizationResourceData {
         return {
-            component: this.component?.toJSON() as StandardReferenceData | undefined,
+            component: this.component?.plain()?.payload.toJSON(),
             grants: this.grants.map(grant => grant.toJSON())
         }
     }
 
     toNDJSON(): StandardAuthorizationResourceNDJSON[] {
         return this.grants.map(grant => ({
-            component: this.component?.toJSON() as StandardReferenceData | undefined,
+            component: this.component?.plain()?.payload.toJSON(),
             grant: grant.toJSON()
         }))
     }

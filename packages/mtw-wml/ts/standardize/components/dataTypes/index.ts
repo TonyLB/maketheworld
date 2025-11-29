@@ -1,8 +1,8 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import type { SerializeNDJSONMixin, StandardComponentData, StandardComponentTag } from "../../baseClasses"
+import type { StandardComponentData, StandardComponentTag } from "../../baseClasses"
 import { isSchemaTreeNode } from "../../../schema"
-import { AssetUUID, isSchemaAssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
-import { StandardReferenceData } from "./reference"
+import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { StandardKeyData } from "./reference"
 
 import { isStandardCharacter, StandardCharacterData } from "./character"
 
@@ -32,9 +32,6 @@ export type StandardComponentNonEditData =
     StandardMapData |
     StandardMessageData |
     StandardMomentData |
-
-
-
     StandardImageData
 
 export type StandardRemoveData = {
@@ -42,7 +39,7 @@ export type StandardRemoveData = {
     universalKey?: string;
     tag: 'Remove';
     component: StandardComponentNonEditData;
-    implicitParent?: StandardReferenceData | ComponentUUID;  // Parent StandardKey (serialized as StandardReferenceData or ComponentUUID)
+    implicitParent?: StandardKeyData;  // Parent StandardKey (serialized as StandardKeyData, minimal identifier without tag)
 }
 
 export type StandardReplaceData = {
@@ -51,7 +48,7 @@ export type StandardReplaceData = {
     tag: 'Replace';
     match: StandardComponentNonEditData;
     payload: StandardComponentNonEditData;
-    implicitParent?: StandardReferenceData | ComponentUUID;  // Parent StandardKey (serialized as StandardReferenceData or ComponentUUID)
+    implicitParent?: StandardKeyData;  // Parent StandardKey (serialized as StandardKeyData, minimal identifier without tag)
 }
 
 export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (typeof value !== 'string' && value.tag === tag)
