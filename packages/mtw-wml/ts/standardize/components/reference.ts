@@ -824,7 +824,10 @@ export class StandardReference {
         if (!(other instanceof StandardReference)) {
             return false
         }
-        return this.plain().standardKey.equals(other.plain().standardKey)
+        const baseMatchPayload = this._payload instanceof StandardReferenceSimple
+            ? this._payload
+            : this._payload.match
+        return baseMatchPayload.standardKey.equals(other.plain().standardKey)
     }
 
     invert(): StandardReference {

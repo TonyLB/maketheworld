@@ -52,8 +52,8 @@ export const isStandardKeyData = (arg: any): arg is StandardKeyData => {
 
 export const isStandardReferencePayloadData = (arg: any): arg is StandardReferenceData => {
     // ComponentUUID form (string)
-    if (typeof arg === 'string' && isSchemaComponentUUID(arg)) {
-        return true
+    if (typeof arg === 'string') {
+        return isSchemaComponentUUID(arg)
     }
     // Object form: requires key and tag
     if (checkTypes({

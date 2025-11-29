@@ -22,8 +22,6 @@ const isSimpleExitData = (value: any): value is StandardExitData => {
     return (typeof value === 'object' && value !== null && 'to' in value && isStandardKeyData(value.to) && (!value.description || isStandardLiteralData(value.description)))
 }
 
-
-
 //
 // StandardExitBase holds the contents for a simple StandardExit
 //

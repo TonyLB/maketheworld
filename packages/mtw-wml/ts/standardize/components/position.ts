@@ -5,7 +5,6 @@ import { deepEqual } from "../../lib/objects";
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { isSimplePositionData, StandardPositionData } from "./dataTypes/position";
-import { StandardReferenceData } from "./dataTypes/reference";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
 import StandardReference, { StandardKey, standardReferenceDeserialize, standardReferenceSerialize, StandardReferenceSimple } from "./reference";
 

@@ -61,7 +61,7 @@ describe('StandardAuthorizationCollection', () => {
                     }]
                 },
                 {
-                    component: { key: 'Room1' },
+                    component: { key: 'Room1', tag: 'Room' },
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -73,7 +73,7 @@ describe('StandardAuthorizationCollection', () => {
                     }]
                 },
                 {
-                    component: { key: 'Room2' },
+                    component: { key: 'Room2', tag: 'Room' },
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -107,7 +107,7 @@ describe('StandardAuthorizationCollection', () => {
         `)
         expect(Object.keys(collection.byId)).toEqual(['Room1'])
         expect(collection.byId["Room1"].toJSON()).toEqual({
-            component: { key: 'Room1' },
+            component: { key: 'Room1', tag: 'Room' },
             grants: [{
                 tag: 'Grant',
                 player: 'Player1',
@@ -160,7 +160,7 @@ describe('StandardAuthorizationCollection', () => {
                     }]
                 },
                 {
-                    component: { key: 'Room1' },
+                    component: { key: 'Room1', tag: 'Room' },
                     grants: [{
                         tag: 'Grant',
                         player: 'Player1',
@@ -183,7 +183,7 @@ describe('StandardAuthorizationCollection', () => {
         expect(collection.toNDJSON()).toEqual([
             { tag: 'Asset', universalKey: 'ASSET#test' },
             { component: undefined, grant: { tag: 'Grant', player: 'Player1', actions: ['action0'] } },
-            { component: { key: 'Room1' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
+            { component: { key: 'Room1', tag: 'Room' }, grant: { tag: 'Grant', player: 'Player1', actions: ['action1'] } }
         ])
     })
 

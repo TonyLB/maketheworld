@@ -51,7 +51,7 @@ describe('StandardPosition', () => {
         const testPositionData = {
             tag: 'Remove',
             match: {
-                room: { key: 'test', tag: 'Room' },
+                room: { key: 'test' },
                 x: 1,
                 y: 2
             }
@@ -70,7 +70,7 @@ describe('diffStandardPositionList', () => {
     })
 
     it('should return all removes when incoming list is empty', () => {
-        const base = [new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test' }, x: 1, y: 2 }), new StandardPosition({ tag: 'Position', room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
+        const base = [new StandardPosition({ tag: 'Position', room: { key: 'test' }, x: 1, y: 2 }), new StandardPosition({ tag: 'Position', room: { key: 'test2' }, x: 3, y: 4 })]
         const incoming: StandardPosition[] = []
         const result = diffStandardPositionList({ base, incoming })
         // Position doesn't serialize redundant tag since it always refers to Room
@@ -82,22 +82,22 @@ describe('diffStandardPositionList', () => {
 
     it('should return all adds when base list is empty', () => {
         const base: StandardPosition[] = []
-        const incoming = [new StandardPosition({ room: { tag: 'Room', key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
+        const incoming = [new StandardPosition({ room: { key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ room: { key: 'test2' }, x: 3, y: 4 })]
         const result = diffStandardPositionList({ base, incoming })
         expect(result).toEqual(incoming)
     })
 
     it('should return correct diff when lists have different elements', () => {
-        const base = [new StandardPosition({ room: { tag: 'Room', key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
-        const incoming = [new StandardPosition({ room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 }), new StandardPosition({ room: { tag: 'Room', key: 'test3' }, x: 5, y: 6 })]
+        const base = [new StandardPosition({ room: { key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ room: { key: 'test2' }, x: 3, y: 4 })]
+        const incoming = [new StandardPosition({ room: { key: 'test2' }, x: 3, y: 4 }), new StandardPosition({ room: { key: 'test3' }, x: 5, y: 6 })]
         const result = diffStandardPositionList({ base, incoming })
         // Position doesn't serialize redundant tag since it always refers to Room
         expect(result.map((reference) => (reference.toJSON()))).toEqual([{ tag: 'Remove', match: { room: { key: 'test1' }, x: 1, y: 2 } }, { room: { key: 'test3' }, x: 5, y: 6 }])
     })
 
     it('should return empty array when lists are identical', () => {
-        const base = [new StandardPosition({ room: { tag: 'Room', key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
-        const incoming = [new StandardPosition({ room: { tag: 'Room', key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ room: { tag: 'Room', key: 'test2' }, x: 3, y: 4 })]
+        const base = [new StandardPosition({ room: { key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ room: { key: 'test2' }, x: 3, y: 4 })]
+        const incoming = [new StandardPosition({ room: { key: 'test1' }, x: 1, y: 2 }), new StandardPosition({ room: { key: 'test2' }, x: 3, y: 4 })]
         const result = diffStandardPositionList({ base, incoming })
         expect(result).toEqual([])
     })
