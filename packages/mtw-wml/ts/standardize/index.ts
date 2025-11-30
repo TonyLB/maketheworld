@@ -635,11 +635,14 @@ export class StandardForm {
         
         const returnValue = this._clone()
 
+        // Start with the original graph - we'll reconstruct it after each SCC
+        let currentGraph = graph
+
         // Reduce over topological sort (process parents before children)
         for (const scc of topologicalSort) {
 
             const externalParents = unique(scc.reduce<string[]>((previous, current) => {
-                const graphNode = graph.getNode(current)
+                const graphNode = currentGraph.getNode(current)
                 if (graphNode) {
                     const backEdges = graphNode.backEdges
                     return [
@@ -659,7 +662,7 @@ export class StandardForm {
             if (externalParents.some(parent => parent.startsWith('ASSET#'))) {
                 const keysToUpdate = scc
                     .filter(key => !isSchemaAssetUUID(key))
-                    .map((key) => (graph.nodes[key]?.standardKey))
+                    .map((key) => (currentGraph.nodes[key]?.standardKey))
                     .filter((key): key is StandardKey => key !== undefined)
 
                 returnValue._components = returnValue._components.map(component => {
@@ -668,6 +671,24 @@ export class StandardForm {
                     }
                     return component
                 })
+
+                // Step 1: Narrow the graph - Asset level components have edges from the ASSET node
+                // Extract edges, remove edges that originate outside the SCC and end inside
+                let narrowedEdges = currentGraph.edges.filter(edge => !(!scc.includes(edge.from) && scc.includes(edge.to)))
+                
+                // Add edges from the ASSET node to each node in SCC
+                const assetUUID = `ASSET#${this._universalKey}`
+                narrowedEdges = [...narrowedEdges, ...scc.map(nodeSyntheticUUID => ({
+                    from: assetUUID,
+                    to: nodeSyntheticUUID
+                }))]
+                
+                currentGraph = new Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>(
+                    currentGraph.nodes,
+                    narrowedEdges,
+                    {}, // defaultItem
+                    true // directional = true
+                )
                 continue
             }
             
@@ -691,8 +712,8 @@ export class StandardForm {
 
             const keysToUpdate = scc
                 .filter(key => !isSchemaAssetUUID(key))
-                .map((key) => (graph.nodes[key]?.standardKey))
-                .filter((key): key is StandardKey => key !== undefined)
+                .map((key) => (currentGraph.nodes[key]?.standardKey))
+                .filter(excludeUndefined)
 
             returnValue._components = returnValue._components.map(component => {
                 if (keysToUpdate.some(key => key.equals(component._key.plain))) {
@@ -700,8 +721,33 @@ export class StandardForm {
                 }
                 return component
             })
+
+            // Step 1: Narrow the graph by replacing all edges that end in nodes in this SCC
+            // with a single edge from their implicitParent to each node
+            // Extract edges, remove edges that originate outside the SCC and end inside
+            let narrowedEdges = currentGraph.edges.filter(edge => !(!scc.includes(edge.from) && scc.includes(edge.to)))
+            
+            // Then, add edges from the implicitParent (or ASSET) to each node in the SCC
+            const implicitParentSyntheticUUID = (implicitParentKey
+                ? Object.values(currentGraph.nodes)
+                    .filter(excludeUndefined)
+                    .find(({ standardKey }) => (standardKey && implicitParentKey.equals(standardKey)))
+                    ?.key
+                : undefined) ?? `ASSET#${this._universalKey}`
+            narrowedEdges = [...narrowedEdges, ...scc.map(nodeSyntheticUUID => ({
+                from: implicitParentSyntheticUUID,
+                to: nodeSyntheticUUID
+            }))]
+
+            // Create new graph with narrowed edges
+            currentGraph = new Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>(
+                currentGraph.nodes,
+                narrowedEdges,
+                {}, // defaultItem
+                true // directional = true
+            )
         }
-                
+
         return returnValue
     }
 
