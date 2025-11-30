@@ -524,7 +524,6 @@ export class StandardForm {
         graph: Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>;
         topologicalSort: string[][];
     } {
-        console.log(`this toJSON: ${JSON.stringify(this.toJSON(), null, 4)}`)
         const implicitEdges = this._getParentChildEdges()
         const explicitEdges = this._getExplicitParentEdges()
         const uuidGenerator = new UUIDGenerator()

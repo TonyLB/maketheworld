@@ -35,9 +35,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMap)(node)) {
-            console.log(`Node: ${JSON.stringify(node.children.map(child => child.data.tag), null, 4)}`)
             const tagTree = new SchemaTagTree(node.children)
-            console.log(`Tag Tree: ${JSON.stringify(tagTree.tree.map(node => node.data.tag), null, 4)}`)
             const nameItem = tagTree
                 .filter({ match: 'Name' })
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
@@ -59,7 +57,6 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
                     }
                 })
                 .filter(excludeUndefined)
-            console.log(`Positions: ${JSON.stringify(this._positions.map(position => position.toJSON()), null, 4)}`)
             return
         }
         throw new Error('Schema mismatch in StandardMap constructor')

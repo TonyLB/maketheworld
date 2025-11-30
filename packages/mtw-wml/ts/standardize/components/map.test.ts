@@ -63,14 +63,16 @@ describe('StandardMap class', () => {
     it('should construct StandardMap from StandardMapData with explicit parent', () => {
         const testMap = new StandardMap(deIndentWML(`
             <Map key=(testMap)>
-                <Name>Lobby</Name>
                 <Room key=(testRoom)>
                     <Parent />
                     <Position x="100" y="100" />
                 </Room>
+                <Room key=(testRoomTwo)>
+                    <Position x="100" y="100" />
+                </Room>
             </Map>
         `))
-        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { key: "testRoom" }, x: 100, y: 100 }])
+        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { key: "testRoom" }, x: 100, y: 100 }, { room: { key: "testRoomTwo" }, x: 100, y: 100 }])
     })
 
     it('should ignore non-position children of Room tags', () => {
