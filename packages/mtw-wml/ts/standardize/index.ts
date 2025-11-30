@@ -644,19 +644,16 @@ export class StandardForm {
             return graph.nodes[syntheticUUID]?.standardKey
         }
         
-        // Helper to find longest common prefix of multiple arrays
-        const longestCommonPrefix = (arrays: (StandardKey | AssetUUID)[][]): (StandardKey | AssetUUID)[] => {
+        // Helper to find longest common prefix of multiple arrays (works with syntheticUUIDs)
+        const longestCommonPrefix = (arrays: string[][]): string[] => {
             return arrays.reduce((previousPrefix, curr) => {
-                const { prefix } = curr.reduce<{ prefix: (StandardKey | AssetUUID)[]; matchFailed: boolean }>(({ prefix, matchFailed }, curr, index) => {
+                const { prefix } = curr.reduce<{ prefix: string[]; matchFailed: boolean }>(({ prefix, matchFailed }, curr, index) => {
                     if (matchFailed || index >= previousPrefix.length) {
                         return { prefix, matchFailed }
                     }
                     const previousKey = previousPrefix[index]
 
-                    if (
-                        (previousKey instanceof StandardKey && curr instanceof StandardKey && previousKey.equals(curr)) ||
-                        (typeof previousKey === 'string' && typeof curr === 'string' && previousKey === curr)
-                    ) {
+                    if (previousKey === curr) {
                         return { prefix: [...prefix, curr], matchFailed: false }
                     }
                     return { prefix, matchFailed: true }
@@ -723,27 +720,44 @@ export class StandardForm {
                 continue
             }
             
-            const getAncestryThread = (key: StandardKey): (StandardKey | AssetUUID)[] => {
-                const component = returnValue._lookup(key.toJSON())
-                if (component) {
-                    const ancestryChain = component.explicitParent && component.explicitParent._payload instanceof StandardExplicitParentSimple
-                        ? component.explicitParent._payload.payload.data instanceof StandardKey
-                            ? getAncestryThread(component.explicitParent._payload.payload.data)
-                            : [this._universalKey]
-                        : component.implicitParent ? getAncestryThread(component.implicitParent) : [this._universalKey] as const
-                    return [...ancestryChain, key]
+            // Get ancestry thread using graph traversal (works with syntheticUUIDs)
+            // The graph has been narrowed, so backEdges reflect explicit parent overrides
+            const getAncestryThread = (syntheticUUID: string): string[] => {
+                // If this is the Asset level, return just the Asset
+                if (syntheticUUID === this._universalKey || syntheticUUID.startsWith('ASSET#')) {
+                    return [this._universalKey]
                 }
-                return [this._universalKey]
+                
+                const graphNode = currentGraph.getNode(syntheticUUID)
+                if (!graphNode) {
+                    return [this._universalKey]
+                }
+                
+                // Get parent from backEdges (graph has been narrowed with explicit parent edges)
+                const backEdges = graphNode.backEdges
+                if (backEdges.length === 0) {
+                    // No parent, must be at Asset level
+                    return [this._universalKey, syntheticUUID]
+                }
+                
+                // Traverse up the ancestry chain
+                const parentSyntheticUUID = backEdges[0].from // Should only be one parent after narrowing
+                const ancestryChain = getAncestryThread(parentSyntheticUUID)
+                return [...ancestryChain, syntheticUUID]
             }
-            const ancestryThreads: (StandardKey | AssetUUID)[][] = externalParents.map(parentSyntheticUUID => {
-                const parentKeyOrAsset = getStandardKeyOrAsset(parentSyntheticUUID) as StandardKey
-                return getAncestryThread(parentKeyOrAsset)
+            
+            // Build ancestry threads from external parents (already syntheticUUIDs)
+            const ancestryThreads: string[][] = externalParents.map(parentSyntheticUUID => {
+                return getAncestryThread(parentSyntheticUUID)
             })
             
             const commonAncestry = longestCommonPrefix(ancestryThreads)
 
-            const implicitParentEntry = commonAncestry.length > 0 ? commonAncestry[commonAncestry.length - 1] : undefined
-            const implicitParentKey = implicitParentEntry instanceof StandardKey ? implicitParentEntry.plain : undefined
+            // Convert the final syntheticUUID back to StandardKey
+            const implicitParentSyntheticUUID = commonAncestry.length > 0 ? commonAncestry[commonAncestry.length - 1] : this._universalKey
+            const implicitParentKey = implicitParentSyntheticUUID.startsWith('ASSET#')
+                ? undefined
+                : currentGraph.nodes[implicitParentSyntheticUUID]?.standardKey?.plain
 
             const keysToUpdate = scc
                 .filter(key => !isSchemaAssetUUID(key))
@@ -761,14 +775,6 @@ export class StandardForm {
             // with a single edge from their parent (explicitParent if provided, else implicitParent) to each node
             // Extract edges, remove edges that originate outside the SCC and end inside
             let narrowedEdges = currentGraph.edges.filter(edge => !(!scc.includes(edge.from) && scc.includes(edge.to)))
-            
-            // Calculate implicitParentSyntheticUUID once for the whole SCC
-            const implicitParentSyntheticUUID = (implicitParentKey
-                ? Object.values(currentGraph.nodes)
-                    .filter(excludeUndefined)
-                    .find(({ standardKey }) => (standardKey && implicitParentKey.equals(standardKey)))
-                    ?.key
-                : undefined) ?? this._universalKey
             
             // Helper function to determine the parent edge for a node
             const edgeFrom = (explicitParent: StandardExplicitParent | undefined, to: string, fallback: string): { from: string; to: string } => {
