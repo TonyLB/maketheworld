@@ -487,21 +487,7 @@ export class StandardForm {
         }
         
         // Reverse to get order from Asset level (earliest) to direct parent (most proximate)
-        // This matches the old context array format: [earliest ancestor, ..., direct parent]
         return chain.reverse()
-    }
-
-    /**
-     * Extracts the direct parent from a context array (for migration/backward compatibility).
-     * 
-     * Helper function to extract the direct parent from the old context array format.
-     * Used when converting from old context-based code to implicitParent-based code.
-     * 
-     * @param context The context array (old format)
-     * @returns The direct parent StandardKey (last item in context), or undefined if empty
-     */
-    _extractParentFromContext(context: StandardKey[]): StandardKey | undefined {
-        return context.length > 0 ? context[context.length - 1] : undefined
     }
 
     /**
@@ -857,9 +843,8 @@ export class StandardForm {
     // StandardForm merge method accounts for component-level edits (like StandardRemove and StandardReplace)
     // and merges all contents in place
     //
-    // TODO: Revisit merge() logic after context removal - should use buildComponentGraph to determine
-    // proper parent relationships when components appear in multiple contexts. The current context
-    // intersection in StandardKey.merge() is a temporary measure that will be removed.
+    // TODO: Future enhancement - could use buildComponentGraph to better handle parent relationships
+    // when components appear in multiple contexts during merge operations.
     //
     merge(incoming: StandardForm): StandardForm {
         const mergedUniversalKeyMappings = mergeUniversalKeyMappings([...this._keys, ...incoming._keys])
@@ -1336,9 +1321,8 @@ export class StandardForm {
         // StandardReplace or StandardRemove form (so that you can match terms completely in the
         // final diff)
         //
-        // TODO: Revisit this logic after context removal - should use buildComponentGraph to determine
-        // cascade-delete behavior based on whether components appear with other parents that still have connections.
-        // For now, use implicitParent to find nested components (replaces context-based lookup).
+        // TODO: Future enhancement - could use buildComponentGraph to determine cascade-delete behavior
+        // based on whether components appear with other parents that still have connections.
         diffedValue._components = diffedComponents
             .filter((component) => (component instanceof StandardReplace || component instanceof StandardRemove))
             .reduce<StandardComponent[]>((previous, component) => {
