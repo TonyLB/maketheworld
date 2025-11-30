@@ -4004,6 +4004,143 @@ describe('StandardForm', () => {
                 
             })
         })
+
+        describe('explicitParent integration', () => {
+            it('should use explicitParent to override implicitParent in graph narrowing', () => {
+                // Room1 appears in both Map1 and Map2, but has explicitParent = Map1
+                // Room2 appears only in Map1
+                // Feature1 appears in both Room1 and Room2
+                // Expected: Feature1's implicitParent should be Map1 (both Room1 and Room2 have Map1 in
+                // ancestry, and Room1's explicit parent means it doesn't use its own (empty) implicitParent
+                // as part of future ancestry calculations)
+                const testWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Map key=(map1)>
+                            <Room key=(room1)>
+                                <Parent>map1</Parent>
+                                <Feature key=(feature1) />
+                                <Position x="10" y="10" />
+                            </Room>
+                            <Room key=(room2)>
+                                <Feature key=(feature1) />
+                                <Position x="20" y="20" />
+                            </Room>
+                        </Map>
+                        <Map key=(map2)>
+                            <Room key=(room1)>
+                                <Position x="10" y="10" />
+                            </Room>
+                        </Map>
+                    </Asset>
+                `)
+                const test = new StandardForm(testWML)
+
+                const room1 = test.byId.room1
+                const room2 = test.byId.room2
+                const feature1 = test.byId.feature1
+                const map1 = test.byId.map1
+
+                // Room1 has explicitParent = Map1, but implicitParent should be Asset (appears in both maps)
+                expect(room1?.explicitParent).toBeDefined()
+                console.log(`room1 implicitParent: ${JSON.stringify(room1?.implicitParent?.toJSON())}`)
+                expect(room1?.implicitParent).toBeUndefined() // Asset level
+
+                // Room2 should have Map1 as implicitParent
+                expect(room2?.implicitParent).toBeDefined()
+                if (room2?.implicitParent && map1?._key.plain) {
+                    expect(room2.implicitParent.equals(map1._key.plain)).toBe(true)
+                }
+
+                // Feature1 should have Map1 as implicitParent (both Room1 and Room2 have Map1 in ancestry)
+                // Room1 uses explicitParent=Map1, Room2 uses implicitParent=Map1
+                expect(feature1?.implicitParent).toBeDefined()
+                if (feature1?.implicitParent && map1?._key.plain) {
+                    expect(feature1.implicitParent.equals(map1._key.plain)).toBe(true)
+                }
+            })
+
+            it('should calculate implicitParent independently even when explicitParent exists', () => {
+                // Room appears in Map1, but has explicitParent = Map2
+                // implicitParent should be Map1, but hierarchy should use Map2
+                const testWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Map key=(map1)>
+                            <Room key=(room1)>
+                                <Position x="10" y="10" />
+                            </Room>
+                        </Map>
+                        <Map key=(map2)>
+                            <Room key=(room1)>
+                                <Parent>map2</Parent>
+                                <Feature key=(feature1) />
+                                <Position x="10" y="10" />
+                            </Room>
+                            <Room key=(room2)>
+                                <Feature key=(feature1) />
+                                <Position x="10" y="10" />
+                            </Room>
+                        </Map>
+                    </Asset>
+                `)
+                const test = new StandardForm(testWML)
+
+                const room1 = test.byId.room1
+                const feature1 = test.byId.feature1
+                const map2 = test.byId.map2
+
+                // Room1 has explicitParent = Map2
+                expect(room1?.explicitParent).toBeDefined()
+                expect(room1?.explicitParent?.toJSON()).toEqual({ key: 'map2' })
+
+                // Room1's implicitParent should be Asset (since it appears in both Map1 and Map2)
+                expect(room1?.implicitParent).toBeUndefined()
+
+                // Feature1 should have Map2 as implicitParent (uses Room1's explicitParent for ancestry)
+                expect(feature1?.implicitParent).toBeDefined()
+                if (feature1?.implicitParent && map2?._key.plain) {
+                    expect(feature1.implicitParent.equals(map2._key.plain)).toBe(true)
+                }
+            })
+
+            it('should handle explicitParent = ASSET correctly', () => {
+                // Room appears in Map, but has explicitParent = ASSET
+                // Feature in Room should be at Asset level (uses Room's explicitParent)
+                const testWML = deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Map key=(map1)>
+                            <Room key=(room1)>
+                                <Parent />
+                                <Feature key=(feature1) />
+                                <Position x="10" y="10" />
+                            </Room>
+                            <Room key=(room2)>
+                                <Feature key=(feature1) />
+                                <Position x="10" y="10" />
+                            </Room>
+                        </Map>
+                    </Asset>
+                `)
+                const test = new StandardForm(testWML)
+
+                const room1 = test.byId.room1
+                const feature1 = test.byId.feature1
+                const map1 = test.byId.map1
+
+                // Room1 has explicitParent = ASSET
+                expect(room1?.explicitParent).toBeDefined()
+                expect(room1?.explicitParent?.toJSON()).toBe('ASSET')
+
+                // Room1's implicitParent should still be Map1 (calculated independently)
+                expect(room1?.implicitParent).toBeDefined()
+                if (room1?.implicitParent && map1?._key.plain) {
+                    expect(room1.implicitParent.equals(map1._key.plain)).toBe(true)
+                }
+
+                // Feature1 should be at Asset level (uses Room1's explicitParent=ASSET for ancestry)
+                expect(feature1?.implicitParent).toBeUndefined()
+            })
+
+        })
     })
 
     it('should merge origin properties correctly in StandardForm merge', () => {
