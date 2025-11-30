@@ -1,23 +1,17 @@
 import { excludeUndefined } from "../../lib/lists"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
-import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
-import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { EditWrappedStandardNode } from "../baseClasses"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent } from "./baseClasses"
 import { StandardMapData } from "./dataTypes/map"
-import { standardFieldToOutputNode } from "./utils"
-import { outputNodeToStandardItem } from "./utils/constructor"
-import { applyTreeCallbackToNode } from "./utils/mapContents"
-import { combineTaggedChildren } from "./utils/merge"
 import { ReferenceFormat } from "./utils/references"
-import { isSchemaName, SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example"
-import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
 import StandardPosition, { mergeStandardPositionList, StandardPositionReplace, StandardPositionSimple } from "./position"
 import StandardReference, { StandardKey } from "./reference"
 import { StandardLiteral } from "../literal"
+import { StandardExplicitParent } from "../explicit"
 
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
     _name?: StandardLiteral;
@@ -47,11 +41,8 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
             const positionsTagTree = tagTree
-                .reordered([{ connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }])
-                .prune({ not: { or: [
-                    { connected: [{ match: 'If' }, { or: [{ match: 'Statement' }, { match: 'Fallthrough' }] }] }, { match: 'Room' }, { match: 'Position' }
-                ]}})
-                .reorderedSiblings([['Room', 'Position'], ['If']])
+                .reordered([{ match: 'Room' }, { match: 'Position' }])
+                .prune({ not: { or: [{ match: 'Room' }, { match: 'Position' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }]}})
             const imagesTagTree = tagTree.filter({ match: 'Image' })
 
             this._name = nameItem && nameItem.length > 0 ? new StandardLiteral(nameItem) : undefined
@@ -135,6 +126,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return returnValue as this
     }
 }
+
 export class StandardMap extends componentClassFactory(StandardMapPayload, 'StandardMap') {
     get name() { return this._payload.name }
     get images() { return this._payload.images }
@@ -176,6 +168,14 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
 
     override withChild(child: StandardReference): StandardComponent {
         return new StandardMap(super.withChild(child) as StandardMap)
+    }
+
+    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
+        return new StandardMap(super.withImplicitParent(implicitParent) as StandardMap)
+    }
+
+    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
+        return new StandardMap(super.withExplicitParent(explicitParent) as StandardMap)
     }
 
 }

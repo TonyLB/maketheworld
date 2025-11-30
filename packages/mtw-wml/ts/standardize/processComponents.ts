@@ -7,7 +7,6 @@ import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplaceP
 import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardKey, StandardReferenceSimple } from "./components/reference"
 import { ReferenceCollection } from "./components/utils/referenceCollection"
-import StandardRoom from "./components/room"
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists"
 
 export type ComponentProcessingTemplate = {

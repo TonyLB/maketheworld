@@ -21,6 +21,7 @@ import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { diffStandardExitList, mergeStandardExitList, StandardExit } from "./exit"
 import { StandardReplace } from "./edits"
+import { StandardExplicitParent } from "../explicit"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
@@ -294,6 +295,14 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
 
     override withChild(child: StandardReference): StandardComponent {
         return new StandardRoom(super.withChild(child) as StandardRoom)
+    }
+
+    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
+        return new StandardRoom(super.withImplicitParent(implicitParent) as StandardRoom)
+    }
+
+    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
+        return new StandardRoom(super.withExplicitParent(explicitParent) as StandardRoom)
     }
 
 }

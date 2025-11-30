@@ -15,6 +15,7 @@ import StandardReference, { StandardKey } from "./reference"
 import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
+import { StandardExplicitParent } from "../explicit"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
     _name?: StandardRender;
@@ -188,6 +189,14 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
 
     override withChild(child: StandardReference): StandardComponent {
         return new StandardCharacter(super.withChild(child) as StandardCharacter)
+    }
+
+    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
+        return new StandardCharacter(super.withImplicitParent(implicitParent) as StandardCharacter)
+    }
+
+    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
+        return new StandardCharacter(super.withExplicitParent(explicitParent) as StandardCharacter)
     }
 
 }

@@ -2,6 +2,7 @@ import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { ComponentUUID, SchemaTag, SchemaWithKey, AssetUUID } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardKeyData } from "./reference";
+import { StandardEditablePayload } from "../../../generics/editable";
 
 export type StandardBaseData = {
     key?: string;
@@ -10,6 +11,7 @@ export type StandardBaseData = {
     // context has been removed; hierarchical relationships are handled at the component level
     origin?: AssetUUID[];  // Array of ancestor asset UUIDs in inheritance chain
     implicitParent?: StandardKeyData;  // Parent StandardKey (serialized as StandardKeyData, minimal identifier without tag)
+    explicitParent?: StandardEditablePayload<StandardKeyData | 'ASSET'>;
 }
 
 export type EditInternalStandardNode<T extends SchemaTag, ChildType extends SchemaTag> = GenericTreeNodeFiltered<T, ChildType>

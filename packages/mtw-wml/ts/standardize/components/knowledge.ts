@@ -16,6 +16,7 @@ import { renderReference } from "./utils/schema"
 import { HasShortName } from "./abstract"
 import { StandardLiteral } from "../literal"
 import SchemaTagTree from "../../tagTree/schema"
+import { StandardExplicitParent } from "../explicit"
 
 export class StandardKnowledgePayload implements HasShortName, ComponentConstructorMethods<StandardKnowledgeData> {
     _shortName?: StandardLiteral;
@@ -195,6 +196,14 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
 
     override withChild(child: StandardReference): StandardComponent {
         return new StandardKnowledge(super.withChild(child) as StandardKnowledge)
+    }
+
+    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
+        return new StandardKnowledge(super.withImplicitParent(implicitParent) as StandardKnowledge)
+    }
+
+    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
+        return new StandardKnowledge(super.withExplicitParent(explicitParent) as StandardKnowledge)
     }
 
 }

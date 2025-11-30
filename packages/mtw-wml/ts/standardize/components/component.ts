@@ -121,14 +121,14 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                     this.explicitParent = new StandardExplicitParent(parentItem)
                 }
                 // Create a node without Parent tag for payload processing
+                // Use SchemaTagTree to filter out Parent tags (handles Remove/Replace wrapping automatically)
+                const childrenTagTree = new SchemaTagTree(node.children)
+                const childrenWithoutParent = childrenTagTree
+                    .filter({ not: { match: 'Parent' } })
+                    .tree
                 const nodeWithoutParent = {
                     ...node,
-                    children: node.children.filter(child => {
-                        // Filter out Parent tags (but keep them if wrapped in Remove/Replace for payload processing)
-                        const childTagTree = new SchemaTagTree([child])
-                        const hasParent = childTagTree.filter({ match: 'Parent' }).tree.length > 0
-                        return !hasParent
-                    })
+                    children: childrenWithoutParent
                 }
                 this._payload.fromSchema(nodeWithoutParent)
                 return
@@ -418,6 +418,12 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
             const returnValue = this.clone() as GeneratedComponentClass
             returnValue._implicitParent = implicitParent ? new StandardKey(implicitParent) : undefined
+            return returnValue
+        }
+
+        withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
+            const returnValue = this.clone() as GeneratedComponentClass
+            returnValue.explicitParent = explicitParent ? new StandardExplicitParent(explicitParent) : undefined
             return returnValue
         }
     }

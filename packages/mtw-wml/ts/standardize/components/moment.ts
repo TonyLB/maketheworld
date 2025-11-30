@@ -8,6 +8,7 @@ import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/comp
 import StandardReference, { ReferenceList, StandardKey } from "./reference"
 import { deepEqual } from "../../lib/objects"
 import { StandardReferenceData } from "./dataTypes/reference"
+import { StandardExplicitParent } from "../explicit"
 import { excludeUndefined } from "../../lib/lists"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
@@ -172,6 +173,14 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
 
     override withChild(child: StandardReference): StandardComponent {
         return new StandardMoment(super.withChild(child) as StandardMoment)
+    }
+
+    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
+        return new StandardMoment(super.withImplicitParent(implicitParent) as StandardMoment)
+    }
+
+    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
+        return new StandardMoment(super.withExplicitParent(explicitParent) as StandardMoment)
     }
 
 }

@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetCascadeCondition, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
+import { isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetCascadeCondition, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { isStandardComponentData, isStandardForm, StandardFormData } from "./components/dataTypes"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
@@ -11,7 +11,7 @@ import StandardKnowledge, { StandardKnowledgePayload } from "./components/knowle
 import StandardMap from "./components/map"
 import { wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
-import { ComponentTag, StandardBaseData } from "./components/dataTypes/abstract"
+import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import { StandardRemove, StandardReplace } from "./components/edits"
@@ -28,6 +28,7 @@ import { ReferenceListData, StandardReferenceData, StandardKeyData } from "./com
 import StandardReference, { ReferenceList, StandardKey } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
+import { StandardExplicitParent, StandardExplicitParentSimple } from "./explicit/parent"
 import StandardImage from "./components/image"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
@@ -410,39 +411,59 @@ export class StandardForm {
      * @returns Array of parent→child edge pairs, where each edge uses StandardKey | AssetUUID
      */
     _getParentChildEdges(): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
-        // Helper function to extract edges from an entity with StandardKey and referencedKeys
-        const getEdges = (
+        // Helper function to extract implicit edges from an entity with StandardKey and referencedKeys
+        const getImplicitEdges = (
             entity: { _key?: { plain: StandardKey }; universalKey?: ComponentUUID | AssetUUID; referencedKeys(): StandardComponentReferenceKey[] }
         ): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> => {
+            const edges: Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> = []
+            
             // For Asset-level, use AssetUUID; for components, use StandardKey
             const parentKey: StandardKey | AssetUUID | undefined = entity.universalKey?.startsWith('ASSET#')
                 ? entity.universalKey as AssetUUID
                 : entity._key?.plain
             
-            if (!parentKey) {
-                return []
+            if (parentKey) {
+                // Collect implicit edges (from component nesting)
+                const childReferences = entity.referencedKeys().filter(
+                    (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position'
+                )
+                
+                childReferences.forEach(childRef => {
+                    edges.push({ parent: parentKey, child: childRef.key })
+                })
             }
             
-            const childReferences = entity.referencedKeys().filter(
-                (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position'
-            )
-            
-            return childReferences.reduce<Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>>(
-                (childAcc, childRef) => {
-                    // Use the StandardKey directly from referencedKeys
-                    const childKey = childRef.key
-                    return [...childAcc, { parent: parentKey, child: childKey }]
-                },
-                []
-            )
+            return edges
         }
         
-        const edges = [this, ...this._components].reduce<Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>>(
-            (acc, entity) => ([...acc, ...getEdges(entity)]),
+        // Collect implicit edges from StandardForm and components
+        return [this, ...this._components].reduce<Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>>(
+            (acc, entity) => ([...acc, ...getImplicitEdges(entity)]),
             []
         )
-        
-        return edges
+    }
+
+    _getExplicitParentEdges(): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
+        // Collect explicitParent edges (from <Parent> tags) - only for components
+        return this._components.reduce<Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>>(
+            (acc, component) => {
+                const childKey = component._key?.plain
+                
+                if (childKey && component.explicitParent?._payload instanceof StandardExplicitParentSimple) {
+                    const explicitParentData = component.explicitParent._payload.payload.data
+                    
+                    if (explicitParentData === 'ASSET') {
+                        // Explicit parent is ASSET
+                        return [...acc, { parent: this._universalKey, child: childKey }]
+                    } else if (explicitParentData instanceof StandardKey) {
+                        // Explicit parent is a StandardKey
+                        return [...acc, { parent: explicitParentData, child: childKey }]
+                    }
+                }
+                return acc
+            },
+            []
+        )
     }
 
     /**
@@ -503,7 +524,8 @@ export class StandardForm {
         graph: Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>;
         topologicalSort: string[][];
     } {
-        const edges = this._getParentChildEdges()
+        const implicitEdges = this._getParentChildEdges()
+        const explicitEdges = this._getExplicitParentEdges()
         const uuidGenerator = new UUIDGenerator()
         
         // Array to track StandardKey → synthetic UUID
@@ -545,14 +567,15 @@ export class StandardForm {
             return syntheticUUID
         }
         
-        // Create nodes from all unique StandardKeys/AssetUUIDs in edges
+        // Build nodeKeys once from all edges (both graphs need the same nodes)
+        const allEdges = [...implicitEdges, ...explicitEdges]
         const nodeKeys = new Set<string>()
-        edges.forEach(edge => {
+        allEdges.forEach(edge => {
             nodeKeys.add(getSyntheticUUID(edge.parent))
             nodeKeys.add(getSyntheticUUID(edge.child))
         })
         
-        // Build node data with StandardKey information
+        // Build node data with StandardKey information (once, shared by both graphs)
         const nodes: Partial<Record<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }>> = {}
         nodeKeys.forEach(syntheticUUID => {
             const mapping = keyMappings.find(m => m.syntheticKey === syntheticUUID)
@@ -570,22 +593,31 @@ export class StandardForm {
             nodes[syntheticUUID] = nodeData
         })
         
-        // Convert edges to use synthetic UUIDs
-        const graphEdges = edges.map(({ parent, child }) => ({
-            from: getSyntheticUUID(parent),
-            to: getSyntheticUUID(child)
-        }))
+        // Helper to build a graph from edges (using pre-built nodes)
+        const buildGraphFromEdges = (edges: Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>): Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}> => {
+            // Convert edges to use synthetic UUIDs
+            const graphEdges = edges.map(({ parent, child }) => ({
+                from: getSyntheticUUID(parent),
+                to: getSyntheticUUID(child)
+            }))
+            
+            // Create directed graph
+            return new Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>(
+                nodes,
+                graphEdges,
+                {}, // defaultItem
+                true // directional = true
+            )
+        }
         
-        // Create directed graph
-        const graph = new Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>(
-            nodes,
-            graphEdges,
-            {}, // defaultItem
-            true // directional = true
-        )
+        // Build graph with only implicit edges (for implicit parent calculation)
+        const graph = buildGraphFromEdges(implicitEdges)
         
-        // Compute topological sort
-        const topologicalSort = graph.topologicalSort()
+        // Build graph with implicit + explicit edges (for topological sort to avoid cycles)
+        const graphWithExplicit = buildGraphFromEdges([...implicitEdges, ...explicitEdges])
+        
+        // Compute topological sort from the graph with explicit edges
+        const topologicalSort = graphWithExplicit.topologicalSort()
         
         return { graph, topologicalSort }
     }
@@ -612,34 +644,34 @@ export class StandardForm {
             return graph.nodes[syntheticUUID]?.standardKey
         }
         
-        // Helper to find longest common prefix of multiple arrays
-        const longestCommonPrefix = (arrays: (StandardKey | AssetUUID)[][]): (StandardKey | AssetUUID)[] => {
+        // Helper to find longest common prefix of multiple arrays (works with syntheticUUIDs)
+        const longestCommonPrefix = (arrays: string[][]): string[] => {
             return arrays.reduce((previousPrefix, curr) => {
-                const { prefix } = curr.reduce<{ prefix: (StandardKey | AssetUUID)[]; matchFailed: boolean }>(({ prefix, matchFailed }, curr, index) => {
+                const { prefix } = curr.reduce<{ prefix: string[]; matchFailed: boolean }>(({ prefix, matchFailed }, curr, index) => {
                     if (matchFailed || index >= previousPrefix.length) {
                         return { prefix, matchFailed }
                     }
-                    const previousKey = prefix[index]
+                    const previousKey = previousPrefix[index]
 
-                    if (
-                        (previousKey instanceof StandardKey && curr instanceof StandardKey && previousKey.equals(curr)) ||
-                        (typeof previousKey === 'string' && typeof curr === 'string' && previousKey === curr)
-                    ) {
+                    if (previousKey === curr) {
                         return { prefix: [...prefix, curr], matchFailed: false }
                     }
                     return { prefix, matchFailed: true }
-                }, { prefix: previousPrefix, matchFailed: false })
+                }, { prefix: [], matchFailed: false })
                 return prefix
             }, arrays[0] ?? [this._universalKey])
         }
         
         const returnValue = this._clone()
 
+        // Start with the original graph - we'll reconstruct it after each SCC
+        let currentGraph = graph
+
         // Reduce over topological sort (process parents before children)
         for (const scc of topologicalSort) {
 
             const externalParents = unique(scc.reduce<string[]>((previous, current) => {
-                const graphNode = graph.getNode(current)
+                const graphNode = currentGraph.getNode(current)
                 if (graphNode) {
                     const backEdges = graphNode.backEdges
                     return [
@@ -659,7 +691,7 @@ export class StandardForm {
             if (externalParents.some(parent => parent.startsWith('ASSET#'))) {
                 const keysToUpdate = scc
                     .filter(key => !isSchemaAssetUUID(key))
-                    .map((key) => (graph.nodes[key]?.standardKey))
+                    .map((key) => (currentGraph.nodes[key]?.standardKey))
                     .filter((key): key is StandardKey => key !== undefined)
 
                 returnValue._components = returnValue._components.map(component => {
@@ -668,31 +700,69 @@ export class StandardForm {
                     }
                     return component
                 })
+
+                // Step 1: Narrow the graph - Asset level components have edges from the ASSET node
+                // Extract edges, remove edges that originate outside the SCC and end inside
+                let narrowedEdges = currentGraph.edges.filter(edge => !(!scc.includes(edge.from) && scc.includes(edge.to)))
+                
+                // Add edges from the ASSET node to each node in SCC
+                narrowedEdges = [...narrowedEdges, ...scc.map(nodeSyntheticUUID => ({
+                    from: this._universalKey,
+                    to: nodeSyntheticUUID
+                }))]
+                
+                currentGraph = new Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>(
+                    currentGraph.nodes,
+                    narrowedEdges,
+                    {}, // defaultItem
+                    true // directional = true
+                )
                 continue
             }
             
-            const getAncestryThread = (key: StandardKey): StandardKey[] => {
-                const component = returnValue._lookup(key.toJSON())
-                if (component) {
-                    const ancestryChain = component.implicitParent ? getAncestryThread(component.implicitParent) : []
-                    return [...ancestryChain, key]
+            // Get ancestry thread using graph traversal (works with syntheticUUIDs)
+            // The graph has been narrowed, so backEdges reflect explicit parent overrides
+            const getAncestryThread = (syntheticUUID: string): string[] => {
+                // If this is the Asset level, return just the Asset
+                if (syntheticUUID === this._universalKey || syntheticUUID.startsWith('ASSET#')) {
+                    return [this._universalKey]
                 }
-                return []
+                
+                const graphNode = currentGraph.getNode(syntheticUUID)
+                if (!graphNode) {
+                    return [this._universalKey]
+                }
+                
+                // Get parent from backEdges (graph has been narrowed with explicit parent edges)
+                const backEdges = graphNode.backEdges
+                if (backEdges.length === 0) {
+                    // No parent, must be at Asset level
+                    return [this._universalKey, syntheticUUID]
+                }
+                
+                // Traverse up the ancestry chain
+                const parentSyntheticUUID = backEdges[0].from // Should only be one parent after narrowing
+                const ancestryChain = getAncestryThread(parentSyntheticUUID)
+                return [...ancestryChain, syntheticUUID]
             }
-            const ancestryThreads: StandardKey[][] = externalParents.map(parentSyntheticUUID => {
-                const parentKeyOrAsset = getStandardKeyOrAsset(parentSyntheticUUID) as StandardKey
-                return getAncestryThread(parentKeyOrAsset)
+            
+            // Build ancestry threads from external parents (already syntheticUUIDs)
+            const ancestryThreads: string[][] = externalParents.map(parentSyntheticUUID => {
+                return getAncestryThread(parentSyntheticUUID)
             })
             
             const commonAncestry = longestCommonPrefix(ancestryThreads)
 
-            const implicitParentEntry = commonAncestry.length > 0 ? commonAncestry[commonAncestry.length - 1] : undefined
-            const implicitParentKey = implicitParentEntry instanceof StandardKey ? implicitParentEntry.plain : undefined
+            // Convert the final syntheticUUID back to StandardKey
+            const implicitParentSyntheticUUID = commonAncestry.length > 0 ? commonAncestry[commonAncestry.length - 1] : this._universalKey
+            const implicitParentKey = implicitParentSyntheticUUID.startsWith('ASSET#')
+                ? undefined
+                : currentGraph.nodes[implicitParentSyntheticUUID]?.standardKey?.plain
 
             const keysToUpdate = scc
                 .filter(key => !isSchemaAssetUUID(key))
-                .map((key) => (graph.nodes[key]?.standardKey))
-                .filter((key): key is StandardKey => key !== undefined)
+                .map((key) => (currentGraph.nodes[key]?.standardKey))
+                .filter(excludeUndefined)
 
             returnValue._components = returnValue._components.map(component => {
                 if (keysToUpdate.some(key => key.equals(component._key.plain))) {
@@ -700,8 +770,71 @@ export class StandardForm {
                 }
                 return component
             })
-        }
+
+            // Step 2: Narrow the graph by replacing all edges that end in nodes in this SCC
+            // with a single edge from their parent (explicitParent if provided, else implicitParent) to each node
+            // Extract edges, remove edges that originate outside the SCC and end inside
+            //
+            // This ensures that we can use currentGraph to extract ancestry in a way that is informed by the
+            // decisions we have already made about previous SCCs.
+            let narrowedEdges = currentGraph.edges.filter(edge => !(!scc.includes(edge.from) && scc.includes(edge.to)))
+            
+            // Helper function to determine the parent edge for a node
+            const edgeFrom = (explicitParent: StandardExplicitParent | undefined, to: string, fallback: string): { from: string; to: string } => {
+                // Check if explicitParent exists and is a Simple (not Remove/Replace)
+                if (explicitParent?._payload instanceof StandardExplicitParentSimple) {
+                    const explicitParentData = explicitParent._payload.payload.data
+                    if (explicitParentData === 'ASSET') {
+                        // Explicit parent is ASSET
+                        return {
+                            from: this._universalKey,
+                            to
+                        }
+                    } else if (explicitParentData instanceof StandardKey) {
+                        // Find synthetic UUID for explicit parent
+                        const explicitParentSyntheticUUID = Object.values(currentGraph.nodes)
+                            .filter(excludeUndefined)
+                            .find(({ standardKey }) => (standardKey && explicitParentData.equals(standardKey)))
+                            ?.key
+                        if (explicitParentSyntheticUUID) {
+                            return {
+                                from: explicitParentSyntheticUUID,
+                                to
+                            }
+                        }
+                    }
+                }
                 
+                // Fallback to implicitParent if no explicitParent or couldn't resolve it
+                return {
+                    from: fallback,
+                    to
+                }
+            }
+            
+            // For each node in the SCC, determine which parent to use (explicitParent overrides implicitParent)
+            narrowedEdges = [...narrowedEdges, ...scc.map(nodeSyntheticUUID => {
+                // Get the component for this node
+                const nodeStandardKey = currentGraph.nodes[nodeSyntheticUUID]?.standardKey
+                if (!nodeStandardKey) {
+                    // Fallback to implicitParent if we can't find the component
+                    return edgeFrom(undefined, nodeSyntheticUUID, implicitParentSyntheticUUID)
+                }
+                
+                // Look up the component to get its explicitParent
+                const component = returnValue._lookup(nodeStandardKey.toJSON())
+                return edgeFrom(component?.explicitParent, nodeSyntheticUUID, implicitParentSyntheticUUID)
+            })]
+
+            // Create new graph with narrowed edges
+            currentGraph = new Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>(
+                currentGraph.nodes,
+                narrowedEdges,
+                {}, // defaultItem
+                true // directional = true
+            )
+        }
+
         return returnValue
     }
 
