@@ -774,6 +774,9 @@ export class StandardForm {
             // Step 2: Narrow the graph by replacing all edges that end in nodes in this SCC
             // with a single edge from their parent (explicitParent if provided, else implicitParent) to each node
             // Extract edges, remove edges that originate outside the SCC and end inside
+            //
+            // This ensures that we can use currentGraph to extract ancestry in a way that is informed by the
+            // decisions we have already made about previous SCCs.
             let narrowedEdges = currentGraph.edges.filter(edge => !(!scc.includes(edge.from) && scc.includes(edge.to)))
             
             // Helper function to determine the parent edge for a node
