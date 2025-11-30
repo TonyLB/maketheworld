@@ -483,7 +483,7 @@ describe('StandardRoom class', () => {
             expect(testRoom.explicitParent?.toJSON()).toBe('MAP#parent-map')
         })
 
-        it('should handle empty Parent tag (no parent)', () => {
+        it('should handle empty Parent tag (explicitly asset level)', () => {
             const testSource = deIndentWML(`
                 <Room key=(testRoom)>
                     <Parent />
@@ -492,7 +492,7 @@ describe('StandardRoom class', () => {
             const testRoom = new StandardRoom(testSource)
             expect(testRoom.key).toEqual('testRoom')
             expect(testRoom.explicitParent).toBeDefined()
-            expect(testRoom.explicitParent?.toJSON()).toBeUndefined()
+            expect(testRoom.explicitParent?.toJSON()).toBe('ASSET')
         })
 
         it('should clone explicitParent correctly', () => {
@@ -524,7 +524,7 @@ describe('StandardRoom class', () => {
             expect(merged.explicitParent?.toJSON()).toBe('ROOM#parent-room')
         })
 
-        it('should merge explicitParent correctly when replacing parent', () => {
+        it('should throw error when merging explicitParent with conflicting parent values', () => {
             const room1 = new StandardRoom(deIndentWML(`
                 <Room key=(testRoom)>
                     <Parent>ROOM#old-parent</Parent>
@@ -535,9 +535,7 @@ describe('StandardRoom class', () => {
                     <Parent>ROOM#new-parent</Parent>
                 </Room>
             `))
-            const merged = room1.merge(room2) as StandardRoom
-            expect(merged.explicitParent).toBeDefined()
-            expect(merged.explicitParent?.toJSON()).toBe('ROOM#new-parent')
+            expect(() => room1.merge(room2)).toThrow('Parent values can only be merged if they match exactly')
         })
 
         it('should merge explicitParent when only one has parent', () => {
@@ -606,14 +604,14 @@ describe('StandardRoom class', () => {
             expect(withParent.explicitParent?.toJSON()).toBe('ROOM#parent-room')
         })
 
-        it('should handle explicitParent with AssetUUID', () => {
+        it('should handle explicitParent with empty Parent tag (explicitly asset level)', () => {
             const testRoom = new StandardRoom(deIndentWML(`
                 <Room key=(testRoom)>
-                    <Parent>ASSET#parent-asset</Parent>
+                    <Parent />
                 </Room>
             `))
             expect(testRoom.explicitParent).toBeDefined()
-            expect(testRoom.explicitParent?.toJSON()).toBe('ASSET#parent-asset')
+            expect(testRoom.explicitParent?.toJSON()).toBe('ASSET')
         })
 
         it('should diff explicitParent correctly', () => {

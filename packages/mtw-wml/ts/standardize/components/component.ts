@@ -68,8 +68,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._from = props._from
                 this._origin = props._origin
                 this._mapping = props._mapping
-                // Clone explicitParent if it exists - use schema to clone (handles empty Parent tags)
-                this.explicitParent = props.explicitParent ? new StandardExplicitParent(props.explicitParent.schema) : undefined
+                // Clone explicitParent if it exists - use constructor to clone (preserves ASSET sentinel)
+                this.explicitParent = props.explicitParent ? new StandardExplicitParent(props.explicitParent) : undefined
                 this._implicitParent = props._implicitParent ? new StandardKey(props._implicitParent) : undefined
                 return
             }
@@ -202,6 +202,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 ...(this._from ? { from: this._from } : {}),
                 ...(this._origin ? { origin: this._origin } : {}),
                 ...(this.explicitParent ? { explicitParent: this.explicitParent.toJSON() } : {}),
+                // Note: explicitParent.toJSON() can return 'ASSET' for explicitly asset level, which is different from undefined (not set)
                 ...(this._implicitParent ? { implicitParent: this._implicitParent.toJSON() } : {}),
             } as D
         }
