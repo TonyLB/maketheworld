@@ -41,10 +41,10 @@ describe('StandardExplicitParent', () => {
             })
         })
 
-        it('should handle empty Parent tag (no parent)', () => {
+        it('should handle empty Parent tag (explicitly asset level)', () => {
             const parent = new StandardExplicitParent([])
-            expect(parent._payload).toBeUndefined()
-            expect(parent.toJSON()).toBeUndefined()
+            expect(parent._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(parent.toJSON()).toBe('ASSET')
             expect(parent.schema).toEqual([{ data: { tag: 'Parent' }, children: [] }])
         })
 
@@ -79,13 +79,11 @@ describe('StandardExplicitParent', () => {
             expect(merged?.toJSON()).toBe(validComponentUUID)
         })
 
-        it('should merge two different StandardExplicitParentSimple instances (replace)', () => {
+        it('should throw error when merging two different StandardExplicitParentSimple instances - conflicting values', () => {
             const parent1 = new StandardExplicitParent(validComponentUUID)
             const parent2 = new StandardExplicitParent(anotherComponentUUID)
-            const merged = parent1.merge(parent2)
-            expect(merged).toBeInstanceOf(StandardExplicitParent)
-            expect(merged?._payload).toBeInstanceOf(StandardExplicitParentSimple)
-            expect(merged?.toJSON()).toBe(anotherComponentUUID)
+            expect(() => parent1.merge(parent2)).toThrow(MergeConflictError)
+            expect(() => parent1.merge(parent2)).toThrow('Parent values can only be merged if they match exactly')
         })
 
         it('should merge two identical legalKey instances', () => {
@@ -97,22 +95,18 @@ describe('StandardExplicitParent', () => {
             expect(merged?.toJSON()).toEqual({ key: validLegalKey })
         })
 
-        it('should merge two different legalKey instances (replace)', () => {
+        it('should throw error when merging two different legalKey instances - conflicting values', () => {
             const parent1 = new StandardExplicitParent(validLegalKey)
             const parent2 = new StandardExplicitParent(anotherLegalKey)
-            const merged = parent1.merge(parent2)
-            expect(merged).toBeInstanceOf(StandardExplicitParent)
-            expect(merged?._payload).toBeInstanceOf(StandardExplicitParentSimple)
-            expect(merged?.toJSON()).toEqual({ key: anotherLegalKey })
+            expect(() => parent1.merge(parent2)).toThrow(MergeConflictError)
+            expect(() => parent1.merge(parent2)).toThrow('Parent values can only be merged if they match exactly')
         })
 
-        it('should merge ComponentUUID with legalKey (different values)', () => {
+        it('should throw error when merging ComponentUUID with legalKey (different values) - conflicting values', () => {
             const parent1 = new StandardExplicitParent(validComponentUUID)
             const parent2 = new StandardExplicitParent(validLegalKey)
-            const merged = parent1.merge(parent2)
-            expect(merged).toBeInstanceOf(StandardExplicitParent)
-            expect(merged?._payload).toBeInstanceOf(StandardExplicitParentSimple)
-            expect(merged?.toJSON()).toEqual({ key: validLegalKey })
+            expect(() => parent1.merge(parent2)).toThrow(MergeConflictError)
+            expect(() => parent1.merge(parent2)).toThrow('Parent values can only be merged if they match exactly')
         })
 
         it('should merge Remove with Simple (exact match)', () => {
@@ -130,27 +124,27 @@ describe('StandardExplicitParent', () => {
             expect(() => parent1.merge(parent2)).toThrow('Parent values can only be removed or replaced if they match exactly')
         })
 
-        it('should merge empty with Simple', () => {
-            const parent1 = new StandardExplicitParent([])
-            const parent2 = new StandardExplicitParent(validComponentUUID)
-            const merged = parent1.merge(parent2)
-            expect(merged).toBeInstanceOf(StandardExplicitParent)
-            expect(merged?.toJSON()).toBe(validComponentUUID)
-        })
 
-        it('should merge Simple with empty', () => {
+        it('should throw error when merging Simple with empty (ASSET) - conflicting values', () => {
             const parent1 = new StandardExplicitParent(validComponentUUID)
-            const parent2 = new StandardExplicitParent([])
-            const merged = parent1.merge(parent2)
-            expect(merged).toBeInstanceOf(StandardExplicitParent)
-            expect(merged?.toJSON()).toBe(validComponentUUID)
+            const parent2 = new StandardExplicitParent([]) // Empty = explicitly asset level
+            expect(() => parent1.merge(parent2)).toThrow(MergeConflictError)
+            expect(() => parent1.merge(parent2)).toThrow('Parent values can only be merged if they match exactly')
         })
 
-        it('should merge empty with empty', () => {
-            const parent1 = new StandardExplicitParent([])
-            const parent2 = new StandardExplicitParent([])
+        it('should throw error when merging empty (ASSET) with Simple - conflicting values', () => {
+            const parent1 = new StandardExplicitParent([]) // Empty = explicitly asset level
+            const parent2 = new StandardExplicitParent(validComponentUUID)
+            expect(() => parent1.merge(parent2)).toThrow(MergeConflictError)
+            expect(() => parent1.merge(parent2)).toThrow('Parent values can only be merged if they match exactly')
+        })
+
+        it('should merge empty (ASSET) with empty (ASSET)', () => {
+            const parent1 = new StandardExplicitParent([]) // Empty = explicitly asset level
+            const parent2 = new StandardExplicitParent([]) // Empty = explicitly asset level
             const merged = parent1.merge(parent2)
-            expect(merged).toBeUndefined()
+            expect(merged).toBeInstanceOf(StandardExplicitParent)
+            expect(merged?.toJSON()).toBe('ASSET')
         })
     })
 
@@ -195,46 +189,71 @@ describe('StandardExplicitParent', () => {
             })
         })
 
-        it('should diff legalKey with empty', () => {
+        it('should diff legalKey with empty (ASSET)', () => {
             const parent1 = new StandardExplicitParent(validLegalKey)
-            const parent2 = new StandardExplicitParent([])
+            const parent2 = new StandardExplicitParent([]) // Empty = explicitly asset level
             const diff = parent1.diff(parent2)
             expect(diff).toBeInstanceOf(StandardExplicitParent)
-            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentRemove)
-            expect(diff?.toJSON()).toEqual({ tag: 'Remove', match: { key: validLegalKey } })
+            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentReplace)
+            expect(diff?.toJSON()).toEqual({ 
+                tag: 'Replace', 
+                match: { key: validLegalKey }, 
+                payload: 'ASSET' 
+            })
         })
 
-        it('should diff empty with legalKey', () => {
-            const parent1 = new StandardExplicitParent([])
+        it('should diff empty (ASSET) with legalKey', () => {
+            const parent1 = new StandardExplicitParent([]) // Empty = explicitly asset level
             const parent2 = new StandardExplicitParent(validLegalKey)
             const diff = parent1.diff(parent2)
             expect(diff).toBeInstanceOf(StandardExplicitParent)
-            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentSimple)
-            expect(diff?.toJSON()).toEqual({ key: validLegalKey })
+            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentReplace)
+            expect(diff?.toJSON()).toEqual({ 
+                tag: 'Replace', 
+                match: 'ASSET', 
+                payload: { key: validLegalKey } 
+            })
         })
 
-        it('should diff Simple with empty', () => {
+        it('should diff Simple with empty (ASSET)', () => {
             const parent1 = new StandardExplicitParent(validComponentUUID)
-            const parent2 = new StandardExplicitParent([])
+            const parent2 = new StandardExplicitParent([]) // Empty = explicitly asset level
             const diff = parent1.diff(parent2)
             expect(diff).toBeInstanceOf(StandardExplicitParent)
-            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentRemove)
-            expect(diff?.toJSON()).toEqual({ tag: 'Remove', match: validComponentUUID })
+            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentReplace)
+            expect(diff?.toJSON()).toEqual({ 
+                tag: 'Replace', 
+                match: validComponentUUID, 
+                payload: 'ASSET' 
+            })
         })
 
-        it('should diff empty with Simple', () => {
-            const parent1 = new StandardExplicitParent([])
+        it('should diff empty (ASSET) with Simple', () => {
+            const parent1 = new StandardExplicitParent([]) // Empty = explicitly asset level
             const parent2 = new StandardExplicitParent(validComponentUUID)
             const diff = parent1.diff(parent2)
             expect(diff).toBeInstanceOf(StandardExplicitParent)
-            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentSimple)
-            expect(diff?.toJSON()).toBe(validComponentUUID)
+            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentReplace)
+            expect(diff?.toJSON()).toEqual({ 
+                tag: 'Replace', 
+                match: 'ASSET', 
+                payload: validComponentUUID 
+            })
         })
 
-        it('should diff empty with undefined', () => {
-            const parent1 = new StandardExplicitParent([])
-            const diff = parent1.diff(undefined)
+        it('should diff empty (ASSET) with empty (ASSET)', () => {
+            const parent1 = new StandardExplicitParent([]) // Empty = explicitly asset level
+            const parent2 = new StandardExplicitParent([]) // Empty = explicitly asset level
+            const diff = parent1.diff(parent2)
             expect(diff).toBeUndefined()
+        })
+
+        it('should diff empty (ASSET) with undefined', () => {
+            const parent1 = new StandardExplicitParent([]) // Empty = explicitly asset level
+            const diff = parent1.diff(undefined)
+            expect(diff).toBeInstanceOf(StandardExplicitParent)
+            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentRemove)
+            expect(diff?.toJSON()).toEqual({ tag: 'Remove', match: 'ASSET' })
         })
 
         it('should diff Simple with undefined', () => {
@@ -319,12 +338,13 @@ describe('StandardExplicitParent', () => {
             })
         })
 
-        it('should handle mapContents on empty Parent', () => {
-            const parent = new StandardExplicitParent([])
+        it('should handle mapContents on empty Parent (ASSET - no mapping)', () => {
+            const parent = new StandardExplicitParent([]) // Empty = explicitly asset level
             const mapped = parent.mapContents(data => 'FEATURE#mapped-feature' as ComponentUUID)
             expect(mapped).toBeInstanceOf(StandardExplicitParent)
-            expect(mapped._payload).toBeUndefined()
-            expect(mapped.toJSON()).toBeUndefined()
+            // ASSET sentinel should not be mapped
+            expect(mapped._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(mapped.toJSON()).toBe('ASSET')
         })
     })
 
