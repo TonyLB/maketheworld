@@ -6,30 +6,71 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { isRenderTree, RenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ComponentUUID, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { StandardKey } from "../components/reference"
+import { StandardKeyData } from "../components/dataTypes/reference"
+import { isLegalKey } from "../utils"
 
 //
 // StandardExplicitParentSimpleBase holds the contents for a simple StandardExplicitParent
+// Now stores a StandardKey instead of ComponentUUID, allowing both ComponentUUID and legalKey formats
 //
-export class StandardExplicitParentSimpleBase implements StandardEditablePayload<ComponentUUID> {
-    data: ComponentUUID
+export class StandardExplicitParentSimpleBase implements StandardEditablePayload<StandardKeyData> {
+    data: StandardKey
     get schema() {
-        return [{ data: { tag: 'String' as const, value: this.data }, children: [] }]
-    }
-    constructor(data: ComponentUUID) {
-        if (!isSchemaComponentUUID(data)) {
-            throw new Error(`Invalid ComponentUUID: ${data}`)
+        // Generate schema from StandardKey - use key if available, otherwise universalKey
+        if (this.data.key) {
+            // For local keys, generate a String tag with the key value
+            return [{ data: { tag: 'String' as const, value: this.data.key }, children: [] }]
         }
-        this.data = data
+        if (this.data.universalKey) {
+            // For universal keys, generate a String tag with the universalKey value
+            return [{ data: { tag: 'String' as const, value: this.data.universalKey }, children: [] }]
+        }
+        throw new Error('StandardExplicitParentSimpleBase must have either key or universalKey')
+    }
+    constructor(data: StandardKey | ComponentUUID | string | StandardKeyData) {
+        if (data instanceof StandardKey) {
+            this.data = data
+            return
+        }
+        // Handle string input - can be either ComponentUUID or legalKey
+        if (typeof data === 'string') {
+            if (isSchemaComponentUUID(data)) {
+                this.data = new StandardKey(data)
+                return
+            }
+            if (isLegalKey(data)) {
+                this.data = new StandardKey({ key: data })
+                return
+            }
+            throw new Error(`Invalid parent value: must be ComponentUUID or legalKey, got: ${data}`)
+        }
+        // Handle StandardKeyData object format
+        if (typeof data === 'object' && data !== null) {
+            this.data = new StandardKey(data)
+            return
+        }
+        throw new Error(`Invalid argument to StandardExplicitParentSimpleBase constructor: ${data}`)
     }
     clone() {
         return new StandardExplicitParentSimpleBase(this.data)
     }
-    toJSON: () => ComponentUUID = () => this.data
+    toJSON: () => StandardKeyData = () => this.data.toJSON()
 }
 
-const payloadFactory = (props: ComponentUUID | GenericTree<SchemaTag>): StandardExplicitParentSimpleBase | undefined => {
-    if (typeof props === 'string' && isSchemaComponentUUID(props)) {
-        return new StandardExplicitParentSimpleBase(props)
+const payloadFactory = (props: StandardKeyData | GenericTree<SchemaTag>): StandardExplicitParentSimpleBase | undefined => {
+    // Handle StandardKeyData (string ComponentUUID or object with key/universalKey)
+    if (typeof props === 'string') {
+        // Can be ComponentUUID or legalKey
+        if (isSchemaComponentUUID(props) || isLegalKey(props)) {
+            return new StandardExplicitParentSimpleBase(props)
+        }
+        throw new Error(`Invalid parent value: must be ComponentUUID or legalKey, got: ${props}`)
+    }
+    if (typeof props === 'object' && !Array.isArray(props)) {
+        // Handle StandardKeyData object format
+        const key = new StandardKey(props)
+        return new StandardExplicitParentSimpleBase(key)
     }
     // Handle schema tree - check if first element is a Parent tag
     if (Array.isArray(props) && props.length > 0) {
@@ -43,22 +84,24 @@ const payloadFactory = (props: ComponentUUID | GenericTree<SchemaTag>): Standard
                 .filter(isSchemaString)
                 .map(({ value }) => value)
                 .join('')
-            if (combinedValue && isSchemaComponentUUID(combinedValue)) {
-                return new StandardExplicitParentSimpleBase(combinedValue)
-            }
             // Empty Parent tag (self-closing)
             if (combinedValue === '') {
                 return undefined
             }
-            throw new Error(`Parent tag content must be a ComponentUUID, got: ${combinedValue}`)
+            // Can be ComponentUUID or legalKey
+            if (isSchemaComponentUUID(combinedValue) || isLegalKey(combinedValue)) {
+                return new StandardExplicitParentSimpleBase(combinedValue)
+            }
+            throw new Error(`Parent tag content must be a ComponentUUID or legalKey, got: ${combinedValue}`)
         }
         // Handle direct String tag (not wrapped in Parent)
         if (props.length === 1 && isSchemaString(props[0].data)) {
             const combinedValue = props[0].data.value
-            if (isSchemaComponentUUID(combinedValue)) {
+            // Can be ComponentUUID or legalKey
+            if (isSchemaComponentUUID(combinedValue) || isLegalKey(combinedValue)) {
                 return new StandardExplicitParentSimpleBase(combinedValue)
             }
-            throw new Error(`Parent tag content must be a ComponentUUID, got: ${combinedValue}`)
+            throw new Error(`Parent tag content must be a ComponentUUID or legalKey, got: ${combinedValue}`)
         }
     }
     // Handle empty Parent tag (self-closing) - return undefined to represent no parent
@@ -69,9 +112,11 @@ const payloadFactory = (props: ComponentUUID | GenericTree<SchemaTag>): Standard
 }
 
 // Parent values can only be added if they match exactly (no partial matches)
-const standardExplicitParentAdd = (base: ComponentUUID, incoming: ComponentUUID): ComponentUUID => {
+const standardExplicitParentAdd = (base: StandardKeyData, incoming: StandardKeyData): StandardKeyData => {
+    const baseKey = new StandardKey(base)
+    const incomingKey = new StandardKey(incoming)
     // For Parent, adding means replacing - they must match exactly
-    if (base === incoming) {
+    if (baseKey.equals(incomingKey)) {
         return base
     }
     // If they don't match, the incoming value replaces the base
@@ -79,9 +124,11 @@ const standardExplicitParentAdd = (base: ComponentUUID, incoming: ComponentUUID)
 }
 
 // Parent values can only be removed if they match exactly (no partial matches)
-const standardExplicitParentSubtract = (base: ComponentUUID, incoming: ComponentUUID): { add?: ComponentUUID, remove?: ComponentUUID } => {
+const standardExplicitParentSubtract = (base: StandardKeyData, incoming: StandardKeyData): { add?: StandardKeyData, remove?: StandardKeyData } => {
+    const baseKey = new StandardKey(base)
+    const incomingKey = new StandardKey(incoming)
     // Only allow exact matches - partial matches are error conditions
-    if (base === incoming) {
+    if (baseKey.equals(incomingKey)) {
         // Exact match: remove the value entirely
         return {}
     }
@@ -90,8 +137,10 @@ const standardExplicitParentSubtract = (base: ComponentUUID, incoming: Component
 }
 
 // Parent values can only be diffed if they match exactly (no partial matches)
-const standardExplicitParentDiff = (base: ComponentUUID, incoming: ComponentUUID): { add?: ComponentUUID, remove?: ComponentUUID } => {
-    if (base === incoming) {
+const standardExplicitParentDiff = (base: StandardKeyData, incoming: StandardKeyData): { add?: StandardKeyData, remove?: StandardKeyData } => {
+    const baseKey = new StandardKey(base)
+    const incomingKey = new StandardKey(incoming)
+    if (baseKey.equals(incomingKey)) {
         // No difference
         return {}
     }
@@ -100,7 +149,17 @@ const standardExplicitParentDiff = (base: ComponentUUID, incoming: ComponentUUID
 }
 
 export const { constructorDelta: factory, typeguard: isStandardExplicitParentData, merge, diff } = standardEditableFactory({
-    typeguard: (value: any): value is ComponentUUID => (typeof value === 'string' && isSchemaComponentUUID(value)),
+    typeguard: (value: any): value is StandardKeyData => {
+        // Accept ComponentUUID string, legalKey string, or StandardKeyData object
+        if (typeof value === 'string') {
+            return isSchemaComponentUUID(value) || !!isLegalKey(value)
+        }
+        // Check for StandardKeyData object format
+        if (typeof value === 'object' && value !== null) {
+            return ('key' in value || 'universalKey' in value) && !('tag' in value)
+        }
+        return false
+    },
     payloadFactory: payloadFactory,
     payload: StandardExplicitParentSimpleBase,
     add: standardExplicitParentAdd,
@@ -108,23 +167,28 @@ export const { constructorDelta: factory, typeguard: isStandardExplicitParentDat
     diff: standardExplicitParentDiff
 })
 
-const fromDelta = (delta: { add?: ComponentUUID, remove?: ComponentUUID }): StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined => {
+const fromDelta = (delta: { add?: StandardKeyData, remove?: StandardKeyData }): StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined => {
     const { add, remove } = delta
     if (add) {
         if (remove) {
-            return new StandardExplicitParentReplace(new StandardExplicitParentSimpleBase(remove), new StandardExplicitParentSimpleBase(add))
+            // Convert StandardKeyData to StandardKey for construction
+            const removeKey = typeof remove === 'string' ? remove : new StandardKey(remove)
+            const addKey = typeof add === 'string' ? add : new StandardKey(add)
+            return new StandardExplicitParentReplace(new StandardExplicitParentSimpleBase(removeKey), new StandardExplicitParentSimpleBase(addKey))
         }
-        return new StandardExplicitParentSimple(new StandardExplicitParentSimpleBase(add))
+        const addKey = typeof add === 'string' ? add : new StandardKey(add)
+        return new StandardExplicitParentSimple(new StandardExplicitParentSimpleBase(addKey))
     }
     if (remove) {
-        return new StandardExplicitParentRemove(new StandardExplicitParentSimpleBase(remove))
+        const removeKey = typeof remove === 'string' ? remove : new StandardKey(remove)
+        return new StandardExplicitParentRemove(new StandardExplicitParentSimpleBase(removeKey))
     }
     return undefined
 }
 
 export class StandardExplicitParentSimple implements StandardEditableWrapper<StandardExplicitParentSimpleBase> {
     payload: StandardExplicitParentSimpleBase
-    constructor(data: StandardExplicitParentSimpleBase | StandardEditableData<ComponentUUID> | RenderTree | GenericTree<SchemaTag> | ComponentUUID) {
+    constructor(data: StandardExplicitParentSimpleBase | StandardEditableData<StandardKeyData> | RenderTree | GenericTree<SchemaTag> | StandardKeyData) {
         if (data instanceof StandardExplicitParentSimpleBase) {
             this.payload = data
             return
@@ -142,13 +206,13 @@ export class StandardExplicitParentSimple implements StandardEditableWrapper<Sta
     nestedSchema(tag) {
         return [{ data: tag, children: this.schema }]
     }
-    get _delta(): StandardEditableDataDelta<ComponentUUID> {
+    get _delta(): StandardEditableDataDelta<StandardKeyData> {
         return { add: this.payload.toJSON() }
     }
     clone() {
         return new StandardExplicitParentSimple(this.payload)
     }
-    toJSON: () => StandardEditableData<ComponentUUID> = () => this.payload.toJSON()
+    toJSON: () => StandardEditableData<StandardKeyData> = () => this.payload.toJSON()
     get plain() { return this.payload }
     merge(other: StandardEditableWrapper<StandardExplicitParentSimpleBase>): StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined {
         return fromDelta(merge(this._delta, other._delta))
@@ -160,7 +224,7 @@ export class StandardExplicitParentSimple implements StandardEditableWrapper<Sta
 
 export class StandardExplicitParentRemove implements StandardEditableWrapper<StandardExplicitParentSimpleBase> {
     match: StandardExplicitParentSimpleBase
-    constructor(data: StandardExplicitParentSimpleBase | StandardEditableData<ComponentUUID> | RenderTree | GenericTree<SchemaTag> | ComponentUUID) {
+    constructor(data: StandardExplicitParentSimpleBase | StandardEditableData<StandardKeyData> | RenderTree | GenericTree<SchemaTag> | StandardKeyData) {
         if (data instanceof StandardExplicitParentSimpleBase) {
             this.match = data
             return
@@ -182,13 +246,13 @@ export class StandardExplicitParentRemove implements StandardEditableWrapper<Sta
             children: [{ data: tag, children: [{ data: { tag: 'Parent' as const }, children: this.match.schema }] }]
         }]
     }
-    get _delta(): StandardEditableDataDelta<ComponentUUID> {
+    get _delta(): StandardEditableDataDelta<StandardKeyData> {
         return { remove: this.match.toJSON() }
     }
     clone() {
         return new StandardExplicitParentRemove(this.match)
     }
-    toJSON: () => StandardEditableData<ComponentUUID> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
+    toJSON: () => StandardEditableData<StandardKeyData> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
     get plain() { return this.match }
     merge(other: StandardEditableWrapper<StandardExplicitParentSimpleBase>): StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined {
         return fromDelta(merge(this._delta, other._delta))
@@ -201,7 +265,7 @@ export class StandardExplicitParentRemove implements StandardEditableWrapper<Sta
 export class StandardExplicitParentReplace implements StandardEditableWrapper<StandardExplicitParentSimpleBase> {
     match: StandardExplicitParentSimpleBase
     payload: StandardExplicitParentSimpleBase
-    constructor(...args: [StandardEditableData<ComponentUUID> | RenderTree | GenericTree<SchemaTag> | ComponentUUID] | [StandardExplicitParentSimpleBase, StandardExplicitParentSimpleBase]) {
+    constructor(...args: [StandardEditableData<StandardKeyData> | RenderTree | GenericTree<SchemaTag> | StandardKeyData] | [StandardExplicitParentSimpleBase, StandardExplicitParentSimpleBase]) {
         if (args.length === 2) {
             this.match = args[0]
             this.payload = args[1]
@@ -236,13 +300,13 @@ export class StandardExplicitParentReplace implements StandardEditableWrapper<St
             ]
         }]
     }
-    get _delta(): StandardEditableDataDelta<ComponentUUID> {
+    get _delta(): StandardEditableDataDelta<StandardKeyData> {
         return { remove: this.match.toJSON(), add: this.payload.toJSON() }
     }
     clone() {
         return new StandardExplicitParentReplace(this.match, this.payload)
     }
-    toJSON: () => StandardEditableData<ComponentUUID> = () => ({ 
+    toJSON: () => StandardEditableData<StandardKeyData> = () => ({ 
         tag: 'Replace' as const,
         match: this.match.toJSON(),
         payload: this.payload.toJSON()
@@ -302,7 +366,7 @@ export class StandardExplicitParent {
         return this._payload.nestedSchema(tag)
     }
 
-    toJSON(): StandardEditableData<ComponentUUID> | undefined {
+    toJSON(): StandardEditableData<StandardKeyData> | undefined {
         if (!this._payload) {
             return undefined
         }
@@ -322,13 +386,21 @@ export class StandardExplicitParent {
         // Check for Remove + Add mismatch (Parent-specific constraint)
         const thisDelta = this._payload._delta
         const incomingDelta = incoming._payload._delta
-        if (thisDelta.remove && incomingDelta.add && thisDelta.remove !== incomingDelta.add) {
-            // For Parent values, Remove + Add with different values is an error
-            throw new MergeConflictError('Parent values can only be removed or replaced if they match exactly. Partial matches are not allowed.')
+        if (thisDelta.remove && incomingDelta.add) {
+            const removeKey = new StandardKey(thisDelta.remove)
+            const addKey = new StandardKey(incomingDelta.add)
+            if (!removeKey.equals(addKey)) {
+                // For Parent values, Remove + Add with different values is an error
+                throw new MergeConflictError('Parent values can only be removed or replaced if they match exactly. Partial matches are not allowed.')
+            }
         }
-        if (incomingDelta.remove && thisDelta.add && incomingDelta.remove !== thisDelta.add) {
-            // For Parent values, Remove + Add with different values is an error
-            throw new MergeConflictError('Parent values can only be removed or replaced if they match exactly. Partial matches are not allowed.')
+        if (incomingDelta.remove && thisDelta.add) {
+            const removeKey = new StandardKey(incomingDelta.remove)
+            const addKey = new StandardKey(thisDelta.add)
+            if (!removeKey.equals(addKey)) {
+                // For Parent values, Remove + Add with different values is an error
+                throw new MergeConflictError('Parent values can only be removed or replaced if they match exactly. Partial matches are not allowed.')
+            }
         }
         const merged = this._payload.merge(incoming._payload)
         if (merged) {
@@ -342,10 +414,12 @@ export class StandardExplicitParent {
                 const reversedDelta = this._payload._delta
                 if (reversedDelta) {
                     if (reversedDelta.add) {
-                        return new StandardExplicitParent(new StandardExplicitParentRemove(new StandardExplicitParentSimpleBase(reversedDelta.add)))
+                        const addKey = typeof reversedDelta.add === 'string' ? reversedDelta.add : new StandardKey(reversedDelta.add)
+                        return new StandardExplicitParent(new StandardExplicitParentRemove(new StandardExplicitParentSimpleBase(addKey)))
                     }
                     if (reversedDelta.remove) {
-                        return new StandardExplicitParent(new StandardExplicitParentSimple(new StandardExplicitParentSimpleBase(reversedDelta.remove)))
+                        const removeKey = typeof reversedDelta.remove === 'string' ? reversedDelta.remove : new StandardKey(reversedDelta.remove)
+                        return new StandardExplicitParent(new StandardExplicitParentSimple(new StandardExplicitParentSimpleBase(removeKey)))
                     }
                 }
             }
@@ -362,7 +436,8 @@ export class StandardExplicitParent {
             // This has a parent, incoming has no parent - return removal of this
             const reversedDelta = this._payload._delta
             if (reversedDelta && reversedDelta.add) {
-                return new StandardExplicitParent(new StandardExplicitParentRemove(new StandardExplicitParentSimpleBase(reversedDelta.add)))
+                const addKey = typeof reversedDelta.add === 'string' ? reversedDelta.add : new StandardKey(reversedDelta.add)
+                return new StandardExplicitParent(new StandardExplicitParentRemove(new StandardExplicitParentSimpleBase(addKey)))
             }
             return undefined
         }
@@ -372,21 +447,25 @@ export class StandardExplicitParent {
         }
         return undefined
     }
-    mapContents(callback: (incoming: ComponentUUID) => ComponentUUID): StandardExplicitParent {
+    mapContents(callback: (incoming: StandardKeyData) => StandardKeyData): StandardExplicitParent {
         if (!this._payload) {
             return this
         }
         if (this._payload instanceof StandardExplicitParentSimple) {
-            return new StandardExplicitParent(callback(this._payload.payload.data))
+            const mapped = callback(this._payload.payload.toJSON())
+            return new StandardExplicitParent(new StandardExplicitParentSimple(mapped))
         }
         if (this._payload instanceof StandardExplicitParentRemove) {
-            return new StandardExplicitParent(new StandardExplicitParentRemove(new StandardExplicitParentSimpleBase(callback(this._payload.match.data))))
+            const mapped = callback(this._payload.match.toJSON())
+            // Remove constructor expects StandardEditableData format or StandardExplicitParentSimpleBase
+            return new StandardExplicitParent(new StandardExplicitParentRemove({ tag: 'Remove', match: mapped }))
         }
         if (this._payload instanceof StandardExplicitParentReplace) {
-            return new StandardExplicitParent(new StandardExplicitParentReplace(
-                new StandardExplicitParentSimpleBase(callback(this._payload.match.data)),
-                new StandardExplicitParentSimpleBase(callback(this._payload.payload.data))
-            ))
+            const mappedMatch = callback(this._payload.match.toJSON())
+            const mappedPayload = callback(this._payload.payload.toJSON())
+            const matchBase = new StandardExplicitParentSimpleBase(mappedMatch)
+            const payloadBase = new StandardExplicitParentSimpleBase(mappedPayload)
+            return new StandardExplicitParent(new StandardExplicitParentReplace(matchBase, payloadBase))
         }
         throw new Error('Invalid StandardExplicitParent payload')
     }

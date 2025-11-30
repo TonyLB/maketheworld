@@ -89,7 +89,7 @@ describe('Parent tag', () => {
                     </Room>
                 </Asset>
             `))))
-            expect(() => schemaFromParse(testParse)).toThrow('Parent tag content must be a ComponentUUID, got: not-a-valid-uuid')
+            expect(() => schemaFromParse(testParse)).toThrow('Parent tag content must be a ComponentUUID or legalKey, got: not-a-valid-uuid')
         })
 
         it('should accept empty Parent tag (self-closing)', () => {

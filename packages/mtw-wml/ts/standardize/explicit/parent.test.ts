@@ -5,12 +5,20 @@ import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize'
 describe('StandardExplicitParent', () => {
     const validComponentUUID: ComponentUUID = 'ROOM#test-room'
     const anotherComponentUUID: ComponentUUID = 'FEATURE#test-feature'
+    const validLegalKey = 'parentRoom'
+    const anotherLegalKey = 'parentFeature'
 
     describe('construction', () => {
         it('should create a StandardExplicitParentSimple from ComponentUUID', () => {
             const parent = new StandardExplicitParent(validComponentUUID)
             expect(parent._payload).toBeInstanceOf(StandardExplicitParentSimple)
             expect(parent.toJSON()).toBe(validComponentUUID)
+        })
+
+        it('should create a StandardExplicitParentSimple from legalKey', () => {
+            const parent = new StandardExplicitParent(validLegalKey)
+            expect(parent._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(parent.toJSON()).toEqual({ key: validLegalKey })
         })
 
         it('should create a StandardExplicitParentRemove from Remove structure', () => {
@@ -40,7 +48,7 @@ describe('StandardExplicitParent', () => {
             expect(parent.schema).toEqual([{ data: { tag: 'Parent' }, children: [] }])
         })
 
-        it('should create from WML schema with Parent tag', () => {
+        it('should create from WML schema with Parent tag (ComponentUUID)', () => {
             const parent = new StandardExplicitParent([
                 { data: { tag: 'Parent' }, children: [
                     { data: { tag: 'String', value: validComponentUUID }, children: [] }
@@ -48,6 +56,16 @@ describe('StandardExplicitParent', () => {
             ])
             expect(parent._payload).toBeInstanceOf(StandardExplicitParentSimple)
             expect(parent.toJSON()).toBe(validComponentUUID)
+        })
+
+        it('should create from WML schema with Parent tag (legalKey)', () => {
+            const parent = new StandardExplicitParent([
+                { data: { tag: 'Parent' }, children: [
+                    { data: { tag: 'String', value: validLegalKey }, children: [] }
+                ]}
+            ])
+            expect(parent._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(parent.toJSON()).toEqual({ key: validLegalKey })
         })
     })
 
@@ -68,6 +86,33 @@ describe('StandardExplicitParent', () => {
             expect(merged).toBeInstanceOf(StandardExplicitParent)
             expect(merged?._payload).toBeInstanceOf(StandardExplicitParentSimple)
             expect(merged?.toJSON()).toBe(anotherComponentUUID)
+        })
+
+        it('should merge two identical legalKey instances', () => {
+            const parent1 = new StandardExplicitParent(validLegalKey)
+            const parent2 = new StandardExplicitParent(validLegalKey)
+            const merged = parent1.merge(parent2)
+            expect(merged).toBeInstanceOf(StandardExplicitParent)
+            expect(merged?._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(merged?.toJSON()).toEqual({ key: validLegalKey })
+        })
+
+        it('should merge two different legalKey instances (replace)', () => {
+            const parent1 = new StandardExplicitParent(validLegalKey)
+            const parent2 = new StandardExplicitParent(anotherLegalKey)
+            const merged = parent1.merge(parent2)
+            expect(merged).toBeInstanceOf(StandardExplicitParent)
+            expect(merged?._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(merged?.toJSON()).toEqual({ key: anotherLegalKey })
+        })
+
+        it('should merge ComponentUUID with legalKey (different values)', () => {
+            const parent1 = new StandardExplicitParent(validComponentUUID)
+            const parent2 = new StandardExplicitParent(validLegalKey)
+            const merged = parent1.merge(parent2)
+            expect(merged).toBeInstanceOf(StandardExplicitParent)
+            expect(merged?._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(merged?.toJSON()).toEqual({ key: validLegalKey })
         })
 
         it('should merge Remove with Simple (exact match)', () => {
@@ -130,6 +175,44 @@ describe('StandardExplicitParent', () => {
             })
         })
 
+        it('should diff two identical legalKey instances', () => {
+            const parent1 = new StandardExplicitParent(validLegalKey)
+            const parent2 = new StandardExplicitParent(validLegalKey)
+            const diff = parent1.diff(parent2)
+            expect(diff).toBeUndefined()
+        })
+
+        it('should diff two different legalKey instances', () => {
+            const parent1 = new StandardExplicitParent(validLegalKey)
+            const parent2 = new StandardExplicitParent(anotherLegalKey)
+            const diff = parent1.diff(parent2)
+            expect(diff).toBeInstanceOf(StandardExplicitParent)
+            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentReplace)
+            expect(diff?.toJSON()).toEqual({ 
+                tag: 'Replace', 
+                match: { key: validLegalKey }, 
+                payload: { key: anotherLegalKey } 
+            })
+        })
+
+        it('should diff legalKey with empty', () => {
+            const parent1 = new StandardExplicitParent(validLegalKey)
+            const parent2 = new StandardExplicitParent([])
+            const diff = parent1.diff(parent2)
+            expect(diff).toBeInstanceOf(StandardExplicitParent)
+            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentRemove)
+            expect(diff?.toJSON()).toEqual({ tag: 'Remove', match: { key: validLegalKey } })
+        })
+
+        it('should diff empty with legalKey', () => {
+            const parent1 = new StandardExplicitParent([])
+            const parent2 = new StandardExplicitParent(validLegalKey)
+            const diff = parent1.diff(parent2)
+            expect(diff).toBeInstanceOf(StandardExplicitParent)
+            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(diff?.toJSON()).toEqual({ key: validLegalKey })
+        })
+
         it('should diff Simple with empty', () => {
             const parent1 = new StandardExplicitParent(validComponentUUID)
             const parent2 = new StandardExplicitParent([])
@@ -161,15 +244,31 @@ describe('StandardExplicitParent', () => {
             expect(diff?._payload).toBeInstanceOf(StandardExplicitParentRemove)
             expect(diff?.toJSON()).toEqual({ tag: 'Remove', match: validComponentUUID })
         })
+
+        it('should diff legalKey with undefined', () => {
+            const parent1 = new StandardExplicitParent(validLegalKey)
+            const diff = parent1.diff(undefined)
+            expect(diff).toBeInstanceOf(StandardExplicitParent)
+            expect(diff?._payload).toBeInstanceOf(StandardExplicitParentRemove)
+            expect(diff?.toJSON()).toEqual({ tag: 'Remove', match: { key: validLegalKey } })
+        })
     })
 
     describe('mapContents operations', () => {
-        it('should map contents of StandardExplicitParentSimple', () => {
+        it('should map contents of StandardExplicitParentSimple (ComponentUUID)', () => {
             const parent = new StandardExplicitParent(validComponentUUID)
             const mapped = parent.mapContents(data => 'FEATURE#mapped-feature' as ComponentUUID)
             expect(mapped).toBeInstanceOf(StandardExplicitParent)
             expect(mapped._payload).toBeInstanceOf(StandardExplicitParentSimple)
             expect(mapped.toJSON()).toBe('FEATURE#mapped-feature')
+        })
+
+        it('should map contents of StandardExplicitParentSimple (legalKey)', () => {
+            const parent = new StandardExplicitParent(validLegalKey)
+            const mapped = parent.mapContents(data => ({ key: 'mappedKey' }))
+            expect(mapped).toBeInstanceOf(StandardExplicitParent)
+            expect(mapped._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(mapped.toJSON()).toEqual({ key: 'mappedKey' })
         })
 
         it('should map contents of StandardExplicitParentRemove', () => {
@@ -178,6 +277,14 @@ describe('StandardExplicitParent', () => {
             expect(mapped).toBeInstanceOf(StandardExplicitParent)
             expect(mapped._payload).toBeInstanceOf(StandardExplicitParentRemove)
             expect(mapped.toJSON()).toEqual({ tag: 'Remove', match: 'FEATURE#mapped-feature' })
+        })
+
+        it('should map contents of StandardExplicitParentRemove (legalKey)', () => {
+            const parent = new StandardExplicitParent({ tag: 'Remove', match: validLegalKey })
+            const mapped = parent.mapContents(data => ({ key: 'mappedKey' }))
+            expect(mapped).toBeInstanceOf(StandardExplicitParent)
+            expect(mapped._payload).toBeInstanceOf(StandardExplicitParentRemove)
+            expect(mapped.toJSON()).toEqual({ tag: 'Remove', match: { key: 'mappedKey' } })
         })
 
         it('should map contents of StandardExplicitParentReplace', () => {
@@ -196,6 +303,22 @@ describe('StandardExplicitParent', () => {
             })
         })
 
+        it('should map contents of StandardExplicitParentReplace (legalKey)', () => {
+            const parent = new StandardExplicitParent({ 
+                tag: 'Replace', 
+                match: validLegalKey, 
+                payload: anotherLegalKey 
+            })
+            const mapped = parent.mapContents(data => ({ key: 'mappedKey' }))
+            expect(mapped).toBeInstanceOf(StandardExplicitParent)
+            expect(mapped._payload).toBeInstanceOf(StandardExplicitParentReplace)
+            expect(mapped.toJSON()).toEqual({ 
+                tag: 'Replace', 
+                match: { key: 'mappedKey' }, 
+                payload: { key: 'mappedKey' } 
+            })
+        })
+
         it('should handle mapContents on empty Parent', () => {
             const parent = new StandardExplicitParent([])
             const mapped = parent.mapContents(data => 'FEATURE#mapped-feature' as ComponentUUID)
@@ -206,7 +329,7 @@ describe('StandardExplicitParent', () => {
     })
 
     describe('schema generation', () => {
-        it('should generate correct schema for Simple', () => {
+        it('should generate correct schema for Simple (ComponentUUID)', () => {
             const parent = new StandardExplicitParent(validComponentUUID)
             const schema = parent.schema
             expect(schema).toEqual([
@@ -214,6 +337,19 @@ describe('StandardExplicitParent', () => {
                     data: { tag: 'Parent' }, 
                     children: [
                         { data: { tag: 'String', value: validComponentUUID }, children: [] }
+                    ]
+                }
+            ])
+        })
+
+        it('should generate correct schema for Simple (legalKey)', () => {
+            const parent = new StandardExplicitParent(validLegalKey)
+            const schema = parent.schema
+            expect(schema).toEqual([
+                { 
+                    data: { tag: 'Parent' }, 
+                    children: [
+                        { data: { tag: 'String', value: validLegalKey }, children: [] }
                     ]
                 }
             ])
@@ -283,7 +419,7 @@ describe('StandardExplicitParent', () => {
             ])
         })
 
-        it('should generate correct nestedSchema', () => {
+        it('should generate correct nestedSchema (ComponentUUID)', () => {
             const parent = new StandardExplicitParent(validComponentUUID)
             const nested = parent.nestedSchema({ tag: 'Room', key: 'test' })
             expect(nested).toEqual([
@@ -300,15 +436,39 @@ describe('StandardExplicitParent', () => {
                 }
             ])
         })
+
+        it('should generate correct nestedSchema (legalKey)', () => {
+            const parent = new StandardExplicitParent(validLegalKey)
+            const nested = parent.nestedSchema({ tag: 'Room', key: 'test' })
+            expect(nested).toEqual([
+                { 
+                    data: { tag: 'Room', key: 'test' }, 
+                    children: [
+                        { 
+                            data: { tag: 'Parent' }, 
+                            children: [
+                                { data: { tag: 'String', value: validLegalKey }, children: [] }
+                            ]
+                        }
+                    ]
+                }
+            ])
+        })
     })
 
     describe('error cases', () => {
-        it('should throw error when payloadFactory receives invalid ComponentUUID', () => {
+        it('should throw error when payloadFactory receives invalid value (not ComponentUUID or legalKey)', () => {
             expect(() => {
                 new StandardExplicitParent([
-                    { data: { tag: 'String', value: 'not-a-valid-uuid' }, children: [] }
+                    { data: { tag: 'String', value: 'not-a-valid-uuid-or-key' }, children: [] }
                 ])
-            }).toThrow('Parent tag content must be a ComponentUUID')
+            }).toThrow('Parent tag content must be a ComponentUUID or legalKey')
+        })
+
+        it('should throw error when constructing with invalid string', () => {
+            expect(() => {
+                new StandardExplicitParent('invalid-value-123')
+            }).toThrow('Parent tag content must be a ComponentUUID or legalKey')
         })
     })
 })

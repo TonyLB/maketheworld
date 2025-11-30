@@ -11,6 +11,7 @@ import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
 import { PrintMode, PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
+import { isLegalKey } from "../../standardize/utils"
 
 const componentTemplates = {
     Exit: {
@@ -20,6 +21,7 @@ const componentTemplates = {
     Summary: {},
     Name: {},
     ShortName: {},
+    Parent: {},
     Room: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
@@ -106,13 +108,8 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             if (!hasComponentContext) {
                 throw new Error(`Parent tag can only be used inside a ComponentUUID (Room, Feature, etc.)`)
             }
-            if (!(parseOpen && typeof parseOpen === 'object' && 'properties' in parseOpen && Array.isArray(parseOpen.properties))) {
-                throw new Error('Invalid parseOpen object')
-            }
-            const unmatchedKey = parseOpen.properties[0]
-            if (unmatchedKey) {
-                throw new Error(`Property '${unmatchedKey.key}' is not allowed in 'Parent' items.`)
-            }
+            // Validate properties using componentTemplates (Parent has no properties)
+            validateProperties(componentTemplates.Parent)(parseOpen)
             return { tag: 'Parent' }
         },
         typeCheckContents: (item: SchemaTag): boolean => {
@@ -131,14 +128,14 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                     children: []
                 }
             }
-            // If not empty, validate that the combined string content is a ComponentUUID
+            // If not empty, validate that the combined string content is a ComponentUUID or legalKey
             const textValue = children
                 .map(({ data }) => data)
                 .filter(isSchemaString)
                 .map(({ value }) => value)
                 .join('')
-            if (!isSchemaComponentUUID(textValue)) {
-                throw new Error(`Parent tag content must be a ComponentUUID, got: ${textValue}`)
+            if (!isSchemaComponentUUID(textValue) && !isLegalKey(textValue)) {
+                throw new Error(`Parent tag content must be a ComponentUUID or legalKey, got: ${textValue}`)
             }
             return {
                 data: { tag: 'Parent' },
