@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetCascadeCondition, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
+import { isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetCascadeCondition, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { isStandardComponentData, isStandardForm, StandardFormData } from "./components/dataTypes"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
@@ -11,7 +11,7 @@ import StandardKnowledge, { StandardKnowledgePayload } from "./components/knowle
 import StandardMap from "./components/map"
 import { wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasName, HasShortName } from "./components/abstract"
-import { ComponentTag, StandardBaseData } from "./components/dataTypes/abstract"
+import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import { StandardRemove, StandardReplace } from "./components/edits"
@@ -411,9 +411,9 @@ export class StandardForm {
      * @returns Array of parent→child edge pairs, where each edge uses StandardKey | AssetUUID
      */
     _getParentChildEdges(): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
-        // Helper function to extract edges from an entity with StandardKey and referencedKeys
-        const getEdges = (
-            entity: { _key?: { plain: StandardKey }; universalKey?: ComponentUUID | AssetUUID; referencedKeys(): StandardComponentReferenceKey[]; explicitParent?: StandardExplicitParent }
+        // Helper function to extract implicit edges from an entity with StandardKey and referencedKeys
+        const getImplicitEdges = (
+            entity: { _key?: { plain: StandardKey }; universalKey?: ComponentUUID | AssetUUID; referencedKeys(): StandardComponentReferenceKey[] }
         ): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> => {
             const edges: Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> = []
             
@@ -433,9 +433,20 @@ export class StandardForm {
                 })
             }
             
-            // Collect explicitParent edges (from <Parent> tags) - only for components
-            if ('explicitParent' in entity && entity.explicitParent) {
-                const component = entity as StandardComponent
+            return edges
+        }
+        
+        // Collect implicit edges from StandardForm and components
+        return [this, ...this._components].reduce<Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>>(
+            (acc, entity) => ([...acc, ...getImplicitEdges(entity)]),
+            []
+        )
+    }
+
+    _getExplicitParentEdges(): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
+        // Collect explicitParent edges (from <Parent> tags) - only for components
+        return this._components.reduce<Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>>(
+            (acc, component) => {
                 const childKey = component._key?.plain
                 
                 if (childKey && component.explicitParent?._payload instanceof StandardExplicitParentSimple) {
@@ -443,20 +454,14 @@ export class StandardForm {
                     
                     if (explicitParentData === 'ASSET') {
                         // Explicit parent is ASSET
-                        edges.push({ parent: this._universalKey, child: childKey })
+                        return [...acc, { parent: this._universalKey, child: childKey }]
                     } else if (explicitParentData instanceof StandardKey) {
                         // Explicit parent is a StandardKey
-                        edges.push({ parent: explicitParentData, child: childKey })
+                        return [...acc, { parent: explicitParentData, child: childKey }]
                     }
                 }
-            }
-            
-            return edges
-        }
-        
-        // Collect all edges (implicit + explicit) from StandardForm and components
-        return [this, ...this._components].reduce<Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>>(
-            (acc, entity) => ([...acc, ...getEdges(entity)]),
+                return acc
+            },
             []
         )
     }
@@ -519,7 +524,9 @@ export class StandardForm {
         graph: Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>;
         topologicalSort: string[][];
     } {
-        const edges = this._getParentChildEdges()
+        console.log(`this toJSON: ${JSON.stringify(this.toJSON(), null, 4)}`)
+        const implicitEdges = this._getParentChildEdges()
+        const explicitEdges = this._getExplicitParentEdges()
         const uuidGenerator = new UUIDGenerator()
         
         // Array to track StandardKey → synthetic UUID
@@ -561,14 +568,15 @@ export class StandardForm {
             return syntheticUUID
         }
         
-        // Create nodes from all unique StandardKeys/AssetUUIDs in edges
+        // Build nodeKeys once from all edges (both graphs need the same nodes)
+        const allEdges = [...implicitEdges, ...explicitEdges]
         const nodeKeys = new Set<string>()
-        edges.forEach(edge => {
+        allEdges.forEach(edge => {
             nodeKeys.add(getSyntheticUUID(edge.parent))
             nodeKeys.add(getSyntheticUUID(edge.child))
         })
         
-        // Build node data with StandardKey information
+        // Build node data with StandardKey information (once, shared by both graphs)
         const nodes: Partial<Record<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }>> = {}
         nodeKeys.forEach(syntheticUUID => {
             const mapping = keyMappings.find(m => m.syntheticKey === syntheticUUID)
@@ -586,22 +594,31 @@ export class StandardForm {
             nodes[syntheticUUID] = nodeData
         })
         
-        // Convert edges to use synthetic UUIDs
-        const graphEdges = edges.map(({ parent, child }) => ({
-            from: getSyntheticUUID(parent),
-            to: getSyntheticUUID(child)
-        }))
+        // Helper to build a graph from edges (using pre-built nodes)
+        const buildGraphFromEdges = (edges: Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>): Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}> => {
+            // Convert edges to use synthetic UUIDs
+            const graphEdges = edges.map(({ parent, child }) => ({
+                from: getSyntheticUUID(parent),
+                to: getSyntheticUUID(child)
+            }))
+            
+            // Create directed graph
+            return new Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>(
+                nodes,
+                graphEdges,
+                {}, // defaultItem
+                true // directional = true
+            )
+        }
         
-        // Create directed graph
-        const graph = new Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>(
-            nodes,
-            graphEdges,
-            {}, // defaultItem
-            true // directional = true
-        )
+        // Build graph with only implicit edges (for implicit parent calculation)
+        const graph = buildGraphFromEdges(implicitEdges)
         
-        // Compute topological sort
-        const topologicalSort = graph.topologicalSort()
+        // Build graph with implicit + explicit edges (for topological sort to avoid cycles)
+        const graphWithExplicit = buildGraphFromEdges([...implicitEdges, ...explicitEdges])
+        
+        // Compute topological sort from the graph with explicit edges
+        const topologicalSort = graphWithExplicit.topologicalSort()
         
         return { graph, topologicalSort }
     }

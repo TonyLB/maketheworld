@@ -15,6 +15,7 @@ import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "./reference"
 import StandardReference from "./reference"
+import { StandardExplicitParent } from "../explicit"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
@@ -220,6 +221,14 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
 
     override withChild(child: StandardReference): StandardComponent {
         return new StandardExample(super.withChild(child) as StandardExample)
+    }
+
+    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
+        return new StandardExample(super.withImplicitParent(implicitParent) as StandardExample)
+    }
+
+    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
+        return new StandardExample(super.withExplicitParent(explicitParent) as StandardExample)
     }
 
 }

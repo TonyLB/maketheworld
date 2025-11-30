@@ -17,6 +17,7 @@ import StandardReference, { ReferenceList, StandardKey } from "./reference"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { deepEqual } from "../../lib/objects"
+import { StandardExplicitParent } from "../explicit"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
     _description?: StandardRender;
@@ -192,6 +193,14 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
     
     override withChild(child: StandardReference): StandardComponent {
         return new StandardMessage(super.withChild(child) as StandardMessage)
+    }
+
+    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
+        return new StandardMessage(super.withImplicitParent(implicitParent) as StandardMessage)
+    }
+
+    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
+        return new StandardMessage(super.withExplicitParent(explicitParent) as StandardMessage)
     }
 
 }

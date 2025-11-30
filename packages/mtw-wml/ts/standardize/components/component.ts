@@ -420,5 +420,11 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             returnValue._implicitParent = implicitParent ? new StandardKey(implicitParent) : undefined
             return returnValue
         }
+
+        withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
+            const returnValue = this.clone() as GeneratedComponentClass
+            returnValue.explicitParent = explicitParent ? new StandardExplicitParent(explicitParent) : undefined
+            return returnValue
+        }
     }
 }
