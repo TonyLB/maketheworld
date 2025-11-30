@@ -94,8 +94,13 @@ export class StandardExamplePayload {
 #### **StandardBaseData** (`abstract.ts`)
 Common properties shared by all component data types. Contains `key`, `universalKey`, `update` flag, and `context` references.
 
+#### **StandardKeyData** (`reference.ts`)
+Serialization format for `StandardKey` - minimal identifier format. Can be a `ComponentUUID` string or an object with `key` and optional `universalKey` (no `tag` stored). Used for internal component identification and minimal references when full context is available.
+
 #### **StandardReferenceData** (`reference.ts`)
-Represents references to other components. Can be a simple string or structured object with `key`, `universalKey`, and `tag` properties.
+Serialization format for `StandardReference` - standalone reference format. Can be a `ComponentUUID` string or an object with `key`, optional `universalKey`, and **required `tag`** property. The stored `tag` makes references self-contained and enables independent schema generation. Used for ReferenceList items and standalone reference operations.
+
+**See [`../AGENT.md`](../AGENT.md)** for detailed explanation of the semantic separation between `StandardKey` and `StandardReference`.
 
 ### **Component Data Types**
 
