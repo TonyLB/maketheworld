@@ -675,6 +675,57 @@ describe('StandardRoom class', () => {
             expect(replace.explicitParent).toBeDefined()
             expect(replace.explicitParent?.toJSON()).toBe('ROOM#old-parent')
         })
+
+        it('should accept legalKey format in Parent tag', () => {
+            const testSource = deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>parentRoom</Parent>
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource)
+            expect(testRoom.explicitParent).toBeDefined()
+            const parentJSON = testRoom.explicitParent?.toJSON()
+            // Should return StandardKeyData object with key property
+            expect(parentJSON).toEqual({ key: 'parentRoom' })
+        })
+
+        it('should accept ComponentUUID format in Parent tag', () => {
+            const testSource = deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>ROOM#parent-room</Parent>
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource)
+            expect(testRoom.explicitParent).toBeDefined()
+            // ComponentUUID format should return string for backward compatibility
+            expect(testRoom.explicitParent?.toJSON()).toBe('ROOM#parent-room')
+        })
+
+        it('should merge explicitParent correctly with legalKey format', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>parentRoom</Parent>
+                </Room>
+            `))
+            const room2 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>parentRoom</Parent>
+                </Room>
+            `))
+            const merged = room1.merge(room2) as StandardRoom
+            expect(merged.explicitParent).toBeDefined()
+            expect(merged.explicitParent?.toJSON()).toEqual({ key: 'parentRoom' })
+        })
+
+        it('should generate schema correctly for legalKey format', () => {
+            const testRoom = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <Parent>parentRoom</Parent>
+                </Room>
+            `))
+            const schemaOutput = schemaToWML([testRoom.schema])
+            expect(schemaOutput).toContain('<Parent>parentRoom</Parent>')
+        })
     })
 
 })
