@@ -4,6 +4,43 @@
 
 The `standardize` directory contains the `StandardForm` class, which represents an Asset as a whole, first-class object. StandardForm handles aggregate operations on WML assets by orchestrating the known operations of the `StandardComponent` interface to make changes on each of the children components.
 
+## Getting Started
+
+1. **Build fluency in WML and the WML schema**
+   - **Why**: StandardForm, components, and most tests assume you can read and write WML comfortably; without that, you can’t interpret test setup, asset shapes, or expected results.
+   - **Read**: [`../AGENT.md`](../AGENT.md) for the WML language and schema overview, plus WML-focused sections of `packages/mtw-wml/ts/AGENT.md`.
+   - **Focus**: How `<Asset>`, `<Room>`, `<Feature`, `<Example>`, and other tags map to schema types and StandardComponent shapes, and how unit tests use WML snippets to express both initial state and expectations.
+
+2. **Understand the role of StandardForm in the WML ecosystem**
+   - **Why**: StandardForm is the asset-level abstraction for WML; using it correctly depends on seeing it as “the whole asset” wrapper, not as an isolated data class.
+   - **Read**: This file’s **Overview**, **Semantic Modes**, and **Core Purpose** sections.
+   - **Focus**: The three semantic modes (direct asset, edits, aggregation) and how they describe *when* you should construct or operate on a StandardForm.
+
+3. **Connect StandardForm to StandardComponent types**
+   - **Why**: Almost everything StandardForm does (`merge()`, `diff()`, `subset()`) is delegated to `StandardComponent` implementations; understanding those makes asset-level behavior predictable.
+   - **Read**: [`./components/AGENT.md`](./components/AGENT.md) for the StandardComponent family (Room, Feature, Example, etc.).
+   - **Focus**: How components expose `merge()`, `referencedKeys()`, and other operations that StandardForm orchestrates across the asset.
+
+4. **Anchor on the core StandardForm implementation**
+   - **Why**: The public API described here is implemented in a small number of files; reading them shows the real control flow and edge‑case handling.
+   - **Read**: `index.ts` for StandardForm construction and the main `merge()/diff()/subset()` logic, and `baseClasses.ts` for `StandardFormSubsetRequest` and related types.
+   - **Focus**: How different semantic modes all use the same methods, and how subset traversal is driven by request types and the cascade graph.
+
+5. **Use subset to understand layered assets and imports**
+   - **Why**: `subset()` is how the system builds focused “views” of an asset—especially when importing content from ancestor assets—so it’s a good way to internalize how complex worlds are assembled from layered WML assets.
+   - **Read**: The `subset()` implementation in `index.ts`, and its usage in `lambda/assets/fetchImportDefaults/recursiveFetchImports.ts` (for import graphs) and `charcoal-client/src/components/Maps/Controller/index.tsx` (for map-focused views).
+   - **Focus**: How request types and cascade graphs decide which components and references to pull into a subset, and how those subsets let the system compose rich maps and imported content from many smaller assets.
+
+6. **Use tests as executable documentation**
+   - **Why**: Tests capture real-world calling patterns and clarify how merge/diff/subset should behave across many components and edge cases.
+   - **Read**: `index.test.ts`, `baseClasses.test.ts`, `processComponents.test.ts`, and representative component tests under `components/*.test.ts` (especially `room.test.ts`, `example.test.ts`, and `edits.test.ts`).
+   - **Focus**: Concrete examples of asset-level merges, edit components (`Replace`, `Remove`), subset extraction for maps/positions, and how reference changes are expected to appear in diffs.
+
+7. **Check integration points and known wrinkles before extending behavior**
+   - **Why**: StandardForm sits at the intersection of schema, components, render, and authorization; changes in one place often have subtle effects elsewhere.
+   - **Read**: This file’s **Integration Points** and **Technical Debt** notes (for example, the diff-system reference-change issue and the proposed explicit `<Parent>` tag behavior), plus `processComponents.ts`, `example.ts`, and `render/AGENT.md` as needed.
+   - **Focus**: Where parent/child relationships are resolved, how examples/features/knowledge get positioned, and how known limitations might affect new work.
+
 ## Semantic Modes
 
 StandardForm can operate in three distinct semantic modes, each serving different purposes in the asset management lifecycle:
