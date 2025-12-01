@@ -1475,6 +1475,9 @@ export class StandardForm {
         diffedValue._summary = this._summary
             ? this._summary.diff(incoming._summary)
             : incoming._summary
+        diffedValue._topLevel = this._topLevel
+            ? (incoming._topLevel ? this._topLevel.diff(incoming._topLevel) : this._topLevel.diff(new ReferenceList([])))
+            : incoming._topLevel
 
         return diffedValue.generateImplicitParents()
     }
