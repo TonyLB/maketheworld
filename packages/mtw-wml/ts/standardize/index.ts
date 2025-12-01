@@ -344,7 +344,7 @@ export class StandardForm {
             header.summary = this._summary.toJSON()
         }
         if (this._topLevel) {
-            header.topLevel = this._topLevel.toJSON()
+            header.topLevel = this._topLevel.toFormat('universal').toJSON()
         }
         return header
     }
@@ -893,7 +893,7 @@ export class StandardForm {
             result.summary = this._summary.toJSON()
         }
         if (this._topLevel) {
-            result.topLevel = this._topLevel.toJSON()
+            result.topLevel = this._topLevel.toFormat('universal').toJSON()
         }
         return result
     }
@@ -930,7 +930,7 @@ export class StandardForm {
             }
         }
         const sortedChildren = this._components
-            .filter((component) => (!component.implicitParent))
+            .filter((component) => ((component.explicitParent && component.explicitParent._payload?.plain?.data === 'ASSET') || component.implicitParent === undefined))
             .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, lookup)))
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
         const lookupWrapper = (key: string | StandardKey): StandardComponent | undefined => {
