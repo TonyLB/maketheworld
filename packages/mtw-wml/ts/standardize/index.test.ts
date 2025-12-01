@@ -789,9 +789,9 @@ describe('StandardForm', () => {
             universalKey: 'ASSET#Test',
             metaData: [],
             topLevel: [
-                { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' },
-                { key: 'testRoomRemove', tag: 'Room', universalKey: 'ROOM#testRoomRemove' },
-                { key: 'testRoomReplace', tag: 'Room', universalKey: 'ROOM#testRoomReplace' }
+                'ROOM#testRoom',
+                'ROOM#testRoomRemove',
+                'ROOM#testRoomReplace'
             ],
             components: [
                 {
@@ -881,7 +881,7 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             universalKey: 'ASSET#Test',
             metaData: [{ data: { tag: 'Meta', key: 'ABC', time: 1234 }, children: [] }],
-            topLevel: [{ key: 'testRoom', tag: 'Room', universalKey: 'ROOM#testRoom' }],
+            topLevel: ['ROOM#testRoom'],
             components: [
                 {
                     tag: 'Room',
@@ -1101,9 +1101,9 @@ describe('StandardForm', () => {
             universalKey: 'ASSET#Test',
             metaData: [],
             topLevel: [
-                { key: 'testGlobal', tag: 'Feature', universalKey: 'FEATURE#testGlobal' },
-                { key: 'test', tag: 'Room', universalKey: 'ROOM#testRoom' },
-                { key: 'testTwo', tag: 'Room', universalKey: 'ROOM#testTwo' }
+                'FEATURE#testGlobal',
+                'ROOM#testRoom',
+                'ROOM#testTwo'
             ],
             components: [{
                 tag: 'Feature',
@@ -1164,8 +1164,8 @@ describe('StandardForm', () => {
             universalKey: 'ASSET#Test',
             metaData: [],
             topLevel: [
-                { key: 'test', tag: 'Room', universalKey: 'ROOM#test' },
-                { key: 'testTwo', tag: 'Room', universalKey: 'ROOM#testTwo' }
+                'ROOM#test',
+                'ROOM#testTwo'
             ],
             components: [{
                 tag: 'Room',
@@ -1198,7 +1198,7 @@ describe('StandardForm', () => {
         expect(test.toJSON()).toEqual({
             universalKey: 'ASSET#Test',
             metaData: [],
-            topLevel: [{ key: 'test', tag: 'Knowledge', universalKey: 'KNOWLEDGE#test' }],
+            topLevel: ['KNOWLEDGE#test'],
             components: [{
                 tag: 'Knowledge',
                 key: 'test',
@@ -1229,8 +1229,8 @@ describe('StandardForm', () => {
             universalKey: 'ASSET#Test',
             metaData: [],
             topLevel: [
-                { key: 'test', tag: 'Room', universalKey: 'ROOM#test' },
-                { key: 'testTwo', tag: 'Room', universalKey: 'ROOM#testTwo' }
+                'ROOM#test',
+                'ROOM#testTwo'
             ],
             components: [{
                 tag: 'Room',
@@ -3292,9 +3292,9 @@ describe('StandardForm', () => {
                 tag: 'Asset',
                 universalKey: 'ASSET#test',
                 topLevel: [
-                    { key: 'testGlobal', tag: 'Feature', universalKey: 'FEATURE#003' },
-                    { key: 'testRoom', tag: 'Room', universalKey: 'ROOM#001' },
-                    { key: 'testRoomTwo', tag: 'Room', universalKey: 'ROOM#002' }
+                    'FEATURE#003',
+                    'ROOM#001',
+                    'ROOM#002'
                 ]
             },
             {
@@ -4705,7 +4705,7 @@ describe('StandardForm', () => {
                 tag: 'Asset',
                 universalKey: 'ASSET#test',
                 shortName: 'Test Asset Name',
-                topLevel: [{ key: 'room1', tag: 'Room', universalKey: 'ROOM#room1' }]
+                topLevel: ['ROOM#room1']
             })
             
             // Round-trip through NDJSON
@@ -4730,7 +4730,7 @@ describe('StandardForm', () => {
                 tag: 'Asset',
                 universalKey: 'ASSET#test',
                 summary: ['This is a test summary'],
-                topLevel: [{ key: 'room1', tag: 'Room', universalKey: 'ROOM#room1' }]
+                topLevel: ['ROOM#room1']
             })
             
             // Round-trip through NDJSON
@@ -4762,7 +4762,7 @@ describe('StandardForm', () => {
                 universalKey: 'ASSET#nakatomiPlaza',
                 shortName: 'Nakatomi Plaza',
                 summary: ['A high-rise office building in downtown Los Angeles'],
-                topLevel: [{ key: 'lobby', tag: 'Room', universalKey: 'ROOM#lobby' }]
+                topLevel: ['ROOM#lobby']
             })
             
             // Round-trip through NDJSON
@@ -4785,7 +4785,7 @@ describe('StandardForm', () => {
             expect(ndjson[0]).toEqual({
                 tag: 'Asset',
                 universalKey: 'ASSET#test',
-                topLevel: [{ key: 'room1', tag: 'Room', universalKey: 'ROOM#room1' }]
+                topLevel: ['ROOM#room1']
             })
             
             // Round-trip through NDJSON
