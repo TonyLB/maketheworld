@@ -26,10 +26,10 @@ The `standardize` directory contains the `StandardForm` class, which represents 
    - **Read**: `index.ts` for StandardForm construction and the main `merge()/diff()/subset()` logic, and `baseClasses.ts` for `StandardFormSubsetRequest` and related types.
    - **Focus**: How different semantic modes all use the same methods, and how subset traversal is driven by request types and the cascade graph.
 
-5. **Study subset and reference traversal in practice**
-   - **Why**: The subset/cascade system is the main “gotcha” when extending behavior; it encodes a directed graph of relationships (map → room → exitTarget, etc.) that you need to respect.
-   - **Read**: The `subset()` implementation in `index.ts`, plus the cascade graph and `StandardFormSubsetCascadeGraphNode` types referenced in this file.
-   - **Focus**: How `referencedKeys()` from components feeds traversal, how request types determine output detail (Full vs Stub), and how this supports imports, map editing, and minimal subsets.
+5. **Use subset to understand layered assets and imports**
+   - **Why**: `subset()` is how the system builds focused “views” of an asset—especially when importing content from ancestor assets—so it’s a good way to internalize how complex worlds are assembled from layered WML assets.
+   - **Read**: The `subset()` implementation in `index.ts`, and its usage in `lambda/assets/fetchImportDefaults/recursiveFetchImports.ts` (for import graphs) and `charcoal-client/src/components/Maps/Controller/index.tsx` (for map-focused views).
+   - **Focus**: How request types and cascade graphs decide which components and references to pull into a subset, and how those subsets let the system compose rich maps and imported content from many smaller assets.
 
 6. **Use tests as executable documentation**
    - **Why**: Tests capture real-world calling patterns and clarify how merge/diff/subset should behave across many components and edge cases.
