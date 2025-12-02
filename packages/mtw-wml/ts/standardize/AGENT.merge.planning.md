@@ -41,7 +41,7 @@ When diffing nested components, the current system:
 <Asset uuid=(Test) />
 ```
 
-**Expected Diff Output**: Preserve nesting structure
+**Current Expected Diff Output** (nested structure preserved - though bugs currently prevent this):
 ```wml
 <Asset uuid=(Test)>
     <Room uuid=(testRoom) key=(testRoom)>
@@ -52,6 +52,8 @@ When diffing nested components, the current system:
     </Room>
 </Asset>
 ```
+
+**Note**: While this nested structure format is the current expected output, bugs in the diff system currently prevent it from being generated correctly. This document proposes migrating to a minimal diff format (see Case 1 below) for better merge behavior.
 
 ### Current Merge Behavior
 
@@ -82,14 +84,15 @@ When merging components, the system uses `implicitParent` relationships determin
     <Example uuid=(ex1) key=(ex1)>
         <Name>Updated</Name>
     </Example>
-    <Room uuid=(room1) key=(room1) />
+    <Room uuid=(room1) key=(room1)>
+        <Example key=(ex1) />
+    </Room>
 </Asset>
 ```
 
 This is problematic because:
-- The nested structure is lost
-- The Example is no longer associated with the Room
 - `topLevel` incorrectly includes the Example
+- The sense of Example being a _subtag_ of Room is muddied
 
 ## Proposed Solution
 
@@ -97,22 +100,25 @@ This is problematic because:
 
 The key insight is that we need to distinguish between:
 
-1. **In-place nested changes**: A component that exists in a nested position is being modified → diff should preserve nesting, merge should apply in-place
+1. **In-place nested changes**: A component that exists in a nested position is being modified → diff outputs minimal component-only change, merge applies changes and parent relationship is naturally recreated (since `explicitParent` and `referencedKeys` in other components are unchanged)
 2. **Explicit top-level changes**: A component is intentionally being moved to/created at Asset-level → diff/merge should handle at Asset-level
 
 The `<Parent>` tag provides the mechanism to make this distinction explicit.
 
 ### Enhanced Diff Behavior
 
-#### Case 1: Nested Component Change (In-Place)
+#### Case 1: Nested Component Change (In-Place) - Default Behavior (NEW)
 
-When a nested component changes, the diff should:
+**Migration Note**: Currently, diffs preserve nested structure (see "Current Expected Diff Output" above). We propose migrating to a minimal diff format for better merge behavior.
 
-1. **Preserve the nesting structure** by including parent components in the diff output
-2. **Use `<Parent>` tags** to explicitly indicate where the changed component belongs
+When a nested component changes while the hierarchy remains the same, the NEW diff format should:
+
+1. **Output minimal diff** - only the changed component appears, no parent components
+2. **Not use `<Parent>` tags** - this is the default behavior for in-place changes
 3. **Not include the component in `topLevel`** since it's a nested change
+4. Merge will naturally recreate the parent relationship during `generateImplicitParents()` since structural relationships (explicitParent, referencedKeys) remain unchanged
 
-**Example 3: Proposed Diff Output for Nested Change**
+**Example 3: NEW Proposed Diff Output for Nested Change** (replacing current nested structure format)
 ```wml
 <!-- Base -->
 <Asset uuid=(Test)>
@@ -135,7 +141,6 @@ When a nested component changes, the diff should:
 <!-- Proposed Diff Output -->
 <Asset uuid=(Test)>
     <Example uuid=(ex1) key=(ex1)>
-        <Parent>ROOM#room1</Parent>
         <Replace><Name>Old Name</Name></Replace>
         <With><Name>New Name</Name></With>
     </Example>
@@ -143,10 +148,11 @@ When a nested component changes, the diff should:
 ```
 
 **Key points**:
-- The diff output is a **minimal representation** - only the changed component appears
-- The `<Parent>` tag explicitly indicates where it belongs
+- The NEW diff output is **minimal** - only the changed component appears (vs. current nested structure format)
+- **No `<Parent>` tag** - this is the default for in-place changes
 - No `topLevel` entry for this component (it's nested, not at Asset-level)
-- The parent (`Room`) doesn't need to appear in the diff if it hasn't changed
+- Merge applies changes in-place; parent relationship is naturally recreated during `generateImplicitParents()` since structural relationships remain unchanged
+- **Migration**: This replaces the current nested structure format shown in "Current Expected Diff Output" above
 
 #### Case 2: Explicit Top-Level Component
 
@@ -156,7 +162,11 @@ When a component is intentionally at Asset-level:
 ```wml
 <!-- Base -->
 <Asset uuid=(Test)>
-    <Room uuid=(room1) key=(room1) />
+    <Room uuid=(room1) key=(room1)>
+        <Example uuid=(ex1) key=(ex1)>
+            <Name>Old Example</Name>
+        </Example>
+    </Room>
 </Asset>
 
 <!-- Incoming -->
@@ -170,14 +180,15 @@ When a component is intentionally at Asset-level:
 <!-- Proposed Diff Output -->
 <Asset uuid=(Test)>
     <Example uuid=(ex1) key=(ex1)>
-        <Parent>ASSET</Parent>
-        <Name>New Example</Name>
+        <Parent />
+        <Replace><Name>Old Example</Name></Replace>
+        <With><Name>New Example</Name></With>
     </Example>
 </Asset>
 ```
 
 **Key points**:
-- `<Parent>ASSET</Parent>` explicitly marks this as Asset-level
+- `<Parent />` (empty/self-closing) explicitly marks this as Asset-level
 - `topLevel` should include this component's reference
 - This is a new component at Asset-level, not an in-place change
 
@@ -207,34 +218,44 @@ When a component moves from nested to Asset-level:
 <!-- Proposed Diff Output -->
 <Asset uuid=(Test)>
     <Example uuid=(ex1) key=(ex1)>
-        <Replace>
-            <Parent>ROOM#room1</Parent>
-            <Name>Nested Example</Name>
-        </Replace>
-        <With>
-            <Parent>ASSET</Parent>
-            <Name>Top-Level Example</Name>
-        </With>
+        <Parent />
+        <Replace><Name>Nested Example</Name></Replace>
+        <With><Name>Top-Level Example</Name></With>
     </Example>
+    <Room uuid=(room1) key=(room1)>
+        <Remove><Example key=(ex1) /></Remove>
+    </Room>
 </Asset>
 ```
 
 **Key points**:
-- Parent change is explicitly represented
-- Diff shows both old parent (in `<Replace>`) and new parent (in `<With>`)
-- `topLevel` diff should show addition of this component
+- `<Parent />` (empty) indicates the component should be at Asset-level
+- The component shows the content change with Replace/With
+- The **parent Room** explicitly shows removal of the *reference* to the Example (not the component itself) via `<Remove>`
+- `topLevel` diff should show addition of this component (moving from nested to Asset-level)
+- **Important distinction**: Removing the reference from Room means the Example is no longer nested under Room, but the Example component itself still exists (now at Asset-level)
 
 ### Enhanced Merge Behavior
 
-The merge system should respect `<Parent>` tags to determine placement:
+The merge algorithm works as follows:
 
-#### Rule 1: Explicit Parent Takes Precedence
+1. **Calculate `implicitParent`**: From the merged result by finding the longest common thread of ancestry that all appearances of the merged component share (appearances in the incoming diff are handled specially)
 
-If a component has an explicit `<Parent>` tag in the incoming/merge asset:
-- Use that parent for positioning, regardless of where the component appears in the merge asset's structure
-- This allows edit assets to use convenient top-level placement while maintaining correct nesting
+2. **Calculate `explicitParent`**: By the normal edit rules for `StandardExplicitParent` (empty `<Parent />` = ASSET, otherwise the referenced component)
 
-**Example 6: Merge with Explicit Parent**
+3. **Determine Final Parent**: Use `explicitParent` if present, otherwise fall back to `implicitParent`. If `explicitParent` matches `implicitParent`, remove `explicitParent` (redundant)
+
+4. **Ensure Reference Consistency**: 
+   - If component's parent is another component and that parent doesn't have a reference to the child → add the reference
+   - If component's parent is ASSET and `topLevel` doesn't have a reference → add reference to `topLevel`
+
+5. **Render Hierarchy**: According to existing `StandardForm` rules
+
+This algorithm naturally handles all three diff cases without special-case logic.
+
+#### Example 6: Merge with Minimal Diff (Case 1)
+
+**Example 6: Merge with Minimal Diff (Case 1)**
 ```wml
 <!-- Base Asset -->
 <Asset uuid=(Test)>
@@ -244,12 +265,13 @@ If a component has an explicit `<Parent>` tag in the incoming/merge asset:
         </Example>
     </Room>
 </Asset>
+<!-- Example has implicitParent = ROOM#room1 -->
 
-<!-- Edit Asset (convenient top-level placement) -->
+<!-- Diff Asset (Case 1 format - minimal component-only diff) -->
 <Asset uuid=(Test)>
     <Example uuid=(ex1) key=(ex1)>
-        <Parent>ROOM#room1</Parent>
-        <Name>Updated</Name>
+        <Replace><Name>Original</Name></Replace>
+        <With><Name>Updated</Name></With>
     </Example>
 </Asset>
 
@@ -263,65 +285,97 @@ If a component has an explicit `<Parent>` tag in the incoming/merge asset:
 </Asset>
 ```
 
-**Key points**:
-- Edit asset places Example at top-level for convenience
-- `<Parent>` tag overrides and ensures correct nesting
-- Example remains nested in Room after merge
-- No change to `topLevel` (Example was already nested, still nested)
+**How Algorithm Applies**:
+- No `explicitParent` → uses `implicitParent`
+- `implicitParent` calculated from merged graph → Room (unchanged since structural relationships remain)
+- Final parent = Room
+- Room already has reference → no change needed
+- Component not at Asset-level → not added to `topLevel`
+- Result: Component stays nested under Room
 
-#### Rule 2: In-Place Merge Recognition
+#### Example 7a: Merge with Empty `<Parent />` - New Asset-Level Component (Case 2 Diff)
+```wml
+<!-- Base Asset -->
+<Asset uuid=(Test)>
+    <Room uuid=(room1) key=(room1)>
+        <Example uuid=(ex1) key=(ex1) />
+    </Room>
+</Asset>
 
-When merging, if a component:
-- Has the same `universalKey` as an existing component in the base asset
-- Has an explicit `<Parent>` that matches the existing component's parent (or no parent if Asset-level)
-- Then: Merge **in-place** rather than creating a duplicate or promoting to top-level
+<!-- Diff Asset (Case 2 format - new Asset-level) -->
+<Asset uuid=(Test)>
+    <Example uuid=(ex1) key=(ex1)>
+        <Parent />
+        <Name>New Example</Name>
+    </Example>
+</Asset>
 
-**Example 7: In-Place Merge Detection**
+<!-- Merge Result -->
+<Asset uuid=(Test)>
+    <Example uuid=(ex1) key=(ex1)>
+        <Name>New Example</Name>
+    </Example>
+    <Room uuid=(room1) key=(room1)>
+        <Example key=(ex1) />
+    </Room>
+</Asset>
+<!-- topLevel: [ROOM#room1, EXAMPLE#ex1] -->
+```
+
+**How Algorithm Applies**:
+- `explicitParent` = ASSET (from `<Parent />`)
+- `implicitParent` calculated from merged graph → ASSET (component at top-level)
+- `explicitParent` matches `implicitParent` → remove `explicitParent` (redundant)
+- Final parent = ASSET
+- `topLevel` doesn't have reference → add it
+- Result: Component at Asset-level, in `topLevel`
+- **Note**: Previous parent references persist unless explicitly removed (see Example 8)
+
+#### Example 8: Merge with Reference Removal (Case 3)
 ```wml
 <!-- Base Asset -->
 <Asset uuid=(Test)>
     <Room uuid=(room1) key=(room1)>
         <Example uuid=(ex1) key=(ex1)>
-            <Name>Base Name</Name>
-            <Description>Base Description</Description>
+            <Name>Nested Example</Name>
         </Example>
     </Room>
 </Asset>
+<!-- Room has Example in its examples reference list -->
 
-<!-- Edit Asset -->
+<!-- Diff Asset (Case 3) -->
 <Asset uuid=(Test)>
     <Example uuid=(ex1) key=(ex1)>
-        <Parent>ROOM#room1</Parent>
-        <Replace><Name>Base Name</Name></Replace>
-        <With><Name>Updated Name</Name></With>
+        <Parent />
+        <Replace><Name>Nested Example</Name></Replace>
+        <With><Name>Top-Level Example</Name></With>
     </Example>
-</Asset>
-
-<!-- Merge Result (in-place) -->
-<Asset uuid=(Test)>
     <Room uuid=(room1) key=(room1)>
-        <Example uuid=(ex1) key=(ex1)>
-            <Name>Updated Name</Name>
-            <Description>Base Description</Description>
-        </Example>
+        <Remove><Example key=(ex1) /></Remove>
     </Room>
 </Asset>
+
+<!-- Merge Result -->
+<Asset uuid=(Test)>
+    <Room uuid=(room1) key=(room1) />
+    <!-- Room's examples reference list no longer contains ex1 -->
+    <Example uuid=(ex1) key=(ex1)>
+        <Name>Top-Level Example</Name>
+    </Example>
+</Asset>
+<!-- topLevel: [ROOM#room1, EXAMPLE#ex1] -->
 ```
 
-**Key points**:
-- Component with matching `universalKey` and matching parent → in-place merge
-- Existing nested structure preserved
-- No change to `topLevel`
+**How Algorithm Applies**:
+- `explicitParent` = ASSET (from `<Parent />`)
+- Room's reference removed via `<Remove>` tag during merge
+- `implicitParent` calculated from merged graph → ASSET (no Room connection anymore)
+- `explicitParent` matches `implicitParent` → remove `explicitParent` (redundant)
+- Final parent = ASSET
+- `topLevel` doesn't have reference → add it
+- Result: Component at Asset-level, in `topLevel`, Room's reference removed
 
-#### Rule 3: topLevel Handling in Merge
-
-The `topLevel` reference list should only include components that are actually at Asset-level:
-
-- If a component has `<Parent>ASSET</Parent>` or no parent → include in `topLevel`
-- If a component has `<Parent>ROOM#room1</Parent>` or similar → do NOT include in `topLevel`
-- When merging, `topLevel` should be merged using `ReferenceList.diff()` logic, considering parent relationships
-
-**Example 8: topLevel Merge**
+#### Example 9: Component Moving from Asset-Level to Nested
 ```wml
 <!-- Base Asset -->
 <Asset uuid=(Test)>
@@ -330,14 +384,17 @@ The `topLevel` reference list should only include components that are actually a
 </Asset>
 <!-- topLevel: [ROOM#room1, EXAMPLE#ex1] -->
 
-<!-- Incoming Asset -->
+<!-- Diff Asset (component moving to nested) -->
 <Asset uuid=(Test)>
-    <Example uuid=(ex1) key=(ex1)>
-        <Parent>ROOM#room1</Parent>
-        <Name>Now nested</Name>
-    </Example>
+    <Remove><Example key=(ex1) /></Remove>
+    <Room uuid=(room1) key=(room1)>
+        <Example uuid=(ex1) key=(ex1)>
+            <Parent>room1</Parent>
+            <Replace><Name>Top-level</Name></Replace>
+            <With><Name>Now nested</Name></With>
+        </Example>
+    </Room>
 </Asset>
-<!-- topLevel: [] (no Asset-level components) -->
 
 <!-- Merge Result -->
 <Asset uuid=(Test)>
@@ -348,45 +405,107 @@ The `topLevel` reference list should only include components that are actually a
 <!-- topLevel: [ROOM#room1] (ex1 removed from topLevel, now nested) -->
 ```
 
+**How Algorithm Applies**:
+- `explicitParent` = room1 (from `<Parent>room1</Parent>`)
+- Remove tag at Asset-level removes Example from topLevel during merge
+- `implicitParent` calculated from merged graph → room1 (Room has Example nested)
+- `explicitParent` matches `implicitParent` → remove `explicitParent` (redundant)
+- Final parent = room1
+- Room needs reference to Example → add it (if not already present)
+- Example not at Asset-level → remove from `topLevel`
+- Result: Component nested under Room, removed from `topLevel`
+
+### Summary: Key Merge Behavior Algorithm
+
+The merge algorithm works as follows:
+
+1. **Calculate `implicitParent`**:
+   - Calculated from the merged result by finding the longest common thread of ancestry that all appearances of the merged component share
+   - Appearances in the incoming diff are handled specially: for instance, a Room appearing in the diff with an Example nested in it implies a parent-child connection between that Room and that Example
+
+2. **Calculate `explicitParent`**:
+   - Calculated by the normal edit rules for `StandardExplicitParent` (merge/diff logic)
+   - If `<Parent />` is empty → `explicitParent` = ASSET
+   - If `<Parent>` contains a reference → `explicitParent` = that component reference
+
+3. **Determine Final Parent**:
+   - Use `explicitParent` if present, otherwise fall back to `implicitParent`
+   - If `explicitParent` matches `implicitParent` (both resolve to same parent), remove `explicitParent` (it's redundant)
+
+4. **Ensure Reference Consistency**:
+   - If component's parent (explicit or implicit) is another component, and that parent component does not have a reference to the child → add the reference
+   - If component's parent is ASSET, and `topLevel` does not have a reference to the child → add reference to `topLevel`
+
+5. **Render Hierarchy**:
+   - Hierarchy is rendered according to the existing rules for `StandardForm`
+   - Components appear nested under their parent (as determined above)
+   - `topLevel` contains references to Asset-level components
+
+This algorithm naturally handles all three diff cases:
+- **Case 1**: No explicitParent → uses implicitParent from graph → maintains nested structure
+- **Case 2**: explicitParent = ASSET → component at Asset-level → added to topLevel
+- **Case 3**: explicitParent = ASSET + parent removes reference → implicitParent recalculates to ASSET → explicitParent removed (redundant) → component at Asset-level → added to topLevel
+
 ## Implementation Considerations
 
 ### Diff Generation Changes
 
-1. **Preserve Nesting Context in Diff**:
-   - When generating diff for nested components, include `<Parent>` tags
-   - Detect if component's parent relationship has changed
-   - Output minimal diffs that preserve structural context
+1. **Nested Component Diff (Case 1 - Default)**:
+   - When generating diff for nested components that remain nested, output minimal diff
+   - Only the changed component appears - no parent components included
+   - **No `<Parent>` tag needed** - merge will naturally recreate the parent relationship during `generateImplicitParents()`
+   - This is the default behavior for in-place changes
 
-2. **topLevel Diff Processing**:
+2. **Asset-Level Component Diff (Case 2)**:
+   - When component is at Asset-level, use empty `<Parent />` tag
+   - Component appears at top-level in diff
+   - `topLevel` should include component reference
+
+3. **Component Relocation Diff (Case 3)**:
+   - When component moves from nested → Asset-level:
+     - Component appears with `<Parent />` tag (empty = Asset-level)
+     - Parent component shows `<Remove><ChildComponent /></Remove>` to remove the reference
+     - `topLevel` diff should show addition of component
+   - **Important**: Parent's `<Remove>` removes the *reference*, not the component itself
+
+4. **topLevel Diff Processing**:
    - When diffing `topLevel`, consider parent relationships
-   - A component moving from nested → Asset-level should add to `topLevel` diff
-   - A component moving from Asset-level → nested should remove from `topLevel` diff
+   - Case 1 (nested changes): No change to `topLevel`
+   - Case 2 (new Asset-level): Add to `topLevel`
+   - Case 3 (moving to Asset-level): Add to `topLevel` (remove from parent's references only if explicitly shown in diff)
+   - Component moving from Asset-level → nested: Remove from `topLevel`
 
-3. **Component Diff Output Format**:
-   - Nested component diffs should include `<Parent>` tag
-   - This makes the diff self-contained and mergeable
+5. **Component Diff Output Format**:
+   - Case 1: Nested structure (no `<Parent />` tag needed)
+   - Cases 2 & 3: Empty `<Parent />` tag to indicate Asset-level
+   - Makes diffs self-contained and mergeable
 
 ### Merge Processing Changes
 
-1. **Explicit Parent Resolution**:
-   - Check for `<Parent>` tags before determining component placement
-   - Use explicit parent over implicit parent when present
-   - Validate that referenced parent components exist
+The merge behavior follows the algorithm described in "Summary: Key Merge Behavior Algorithm" above. Key implementation points:
 
-2. **In-Place Merge Detection**:
-   - Before merging, check if incoming component matches existing component (same `universalKey`)
-   - Check if parent relationship matches (both have same parent or both Asset-level)
-   - If match found → in-place merge, preserve nesting structure
-   - If no match → treat as new component, use parent to determine placement
+1. **Algorithm Implementation**:
+   - Calculate `implicitParent` from merged graph (considering diff appearances for parent-child connections)
+   - Calculate `explicitParent` from edit rules (empty `<Parent />` = ASSET, `<Parent>ref</Parent>` = that component)
+   - Determine final parent: use `explicitParent` if present, else `implicitParent`
+   - If `explicitParent` matches `implicitParent`, remove `explicitParent` (redundant)
+   - Ensure reference consistency:
+     - If parent is a component and doesn't have reference to child → add reference
+     - If parent is ASSET and `topLevel` doesn't have reference → add to `topLevel`
+   - Render hierarchy according to existing `StandardForm` rules
 
-3. **topLevel Update During Merge**:
-   - After component placement is determined, update `topLevel`
-   - Components with `<Parent>ASSET</Parent>` or no parent → add to `topLevel`
-   - Components with explicit nested parent → remove from `topLevel` if previously there
-   - Merge `topLevel` references using `ReferenceList.merge()` logic
+2. **Diff Format Handling**:
+   - **Case 1 (Minimal Diff)**: No `<Parent />` → no `explicitParent` → uses `implicitParent` → maintains nested structure
+   - **Case 2 (New Asset-Level)**: `<Parent />` → `explicitParent` = ASSET → component at Asset-level → added to `topLevel`
+   - **Case 3 (Component Moving)**: `<Parent />` + parent removes reference → `explicitParent` = ASSET → `implicitParent` recalculates to ASSET → component at Asset-level → added to `topLevel`
 
-4. **Backward Compatibility**:
-   - If no `<Parent>` tag present, use current implicit parent logic
+3. **Reference Updates**:
+   - References are updated during merge according to normal edit rules (`<Remove>`, `<Replace>`, etc.)
+   - Reference consistency step ensures parent-child relationships are reflected in reference lists
+   - `topLevel` is updated based on final component placement (Asset-level components added to `topLevel`)
+
+7. **Backward Compatibility**:
+   - If diff has no `<Parent />` tag and no nested structure → use current implicit parent logic
    - This ensures existing code continues to work
 
 ### Schema Considerations
@@ -409,10 +528,11 @@ The `topLevel` reference list should only include components that are actually a
 
 ## Migration Path
 
-1. **Phase 1**: Implement diff generation with `<Parent>` tags (output-only)
-2. **Phase 2**: Implement merge processing that respects `<Parent>` tags
-3. **Phase 3**: Add validation and error handling for invalid parent references
-4. **Phase 4**: Update tooling to generate `<Parent>` tags when creating edit assets
+1. **Phase 1**: Implement minimal diff format (Case 1) - migrate from nested structure format to component-only diffs
+2. **Phase 2**: Implement diff generation with `<Parent />` tags for Asset-level components (Cases 2 & 3)
+3. **Phase 3**: Implement merge processing that respects `<Parent />` tags and handles minimal diffs correctly
+4. **Phase 4**: Add validation and error handling for invalid parent references
+5. **Phase 5**: Update tooling to generate minimal diffs and `<Parent />` tags when creating edit assets
 
 ## Open Questions
 
