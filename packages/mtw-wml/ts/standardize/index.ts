@@ -25,7 +25,7 @@ import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
 import { ReferenceListData, StandardReferenceData, StandardKeyData } from "./components/dataTypes/reference"
-import StandardReference, { ReferenceList, StandardKey } from "./components/reference"
+import StandardReference, { ReferenceList, StandardKey, StandardReferenceSimple, StandardReferenceRemove, StandardReferenceReplace } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
 import { StandardExplicitParent, StandardExplicitParentSimple } from "./explicit/parent"
@@ -1422,10 +1422,11 @@ export class StandardForm {
         //
 
         const diffedValue = this._clone()
+        diffedValue._topLevel = new ReferenceList([])
         const diffedComponents: StandardComponent[] = zipperedComponents
             .reduce<StandardComponent[]>((previous, { previous: previousComponent, incoming: incomingComponent }) => {
                 if (previousComponent && incomingComponent) {
-                    const diffedComponent = previousComponent.diff(incomingComponent, {})
+                    const diffedComponent = previousComponent.diff(incomingComponent, {})?.withImplicitParent(undefined)
                     if (diffedComponent) {
                         return [...previous, diffedComponent]
                     } else {
@@ -1434,15 +1435,16 @@ export class StandardForm {
                 }
                 else {
                     if (previousComponent) {
+                        const removedComponent = new StandardRemove(previousComponent)
                         return [
                             ...previous,
-                            new StandardRemove(previousComponent)
+                            removedComponent.withImplicitParent(undefined)
                         ]
                     }
                     if (incomingComponent) {
                         return [
                             ...previous,
-                            incomingComponent
+                            incomingComponent.withImplicitParent(undefined)
                         ]
                     }
                     throw new Error('diff error')
@@ -1475,11 +1477,64 @@ export class StandardForm {
         diffedValue._summary = this._summary
             ? this._summary.diff(incoming._summary)
             : incoming._summary
-        diffedValue._topLevel = this._topLevel
-            ? (incoming._topLevel ? this._topLevel.diff(incoming._topLevel) : this._topLevel.diff(new ReferenceList([])))
-            : incoming._topLevel
 
-        return diffedValue.generateImplicitParents()
+        // Calculate topLevelDiff, then use it to:
+        // 1. Set explicitParent on components being added to topLevel
+        // 2. Serve as a base for the final topLevel calculation, which will be supplemented by all in-place edit
+        // items that don't have a component parent in the diff
+        const topLevelDiff = (this._topLevel ?? new ReferenceList([])).diff(incoming._topLevel ?? new ReferenceList([]))
+
+        if (topLevelDiff) {
+            const baseTopLevelKeys = this._topLevel?.payload.map((ref) => {
+                if (ref._payload instanceof StandardReferenceSimple) {
+                    return ref._payload.standardKey
+                }
+                return undefined
+            }).filter((key): key is StandardKey => key !== undefined) ?? []
+
+            topLevelDiff.payload.forEach((ref) => {
+                // Only process additions (StandardReferenceSimple) that weren't in base topLevel
+                if (ref._payload instanceof StandardReferenceSimple) {
+                    const refKey = ref._payload.standardKey
+                    const wasInBase = this._lookup(refKey.toJSON()) !== undefined
+                    if (wasInBase) {
+                        const wasInBaseTopLevel = baseTopLevelKeys.some((baseKey) => baseKey.equals(refKey))
+                        if (!wasInBaseTopLevel) {
+                            const component = diffedValue._lookup(refKey.toJSON())
+                            if (component) {
+                                component.explicitParent = new StandardExplicitParent('ASSET')
+                            }
+                        }
+                    }
+                }
+            })
+        }
+
+        // Generate implicit parents first
+        const diffedWithImplicitParents = diffedValue.generateImplicitParents()
+
+        // Calculate topLevel from the diffed components' graph structure
+        // Components with no non-Asset parent (explicitParent = ASSET or implicitParent = undefined) should be in topLevel
+        const inPlaceEditComponents = diffedWithImplicitParents._components.filter((component) => {
+            // Check if component has explicitParent = ASSET
+            const hasExplicitAssetParent = component.explicitParent?._payload instanceof StandardExplicitParentSimple &&
+                component.explicitParent._payload.payload.data === 'ASSET'
+            
+            // Check if component has no implicit parent (Asset-level)
+            const hasNoImplicitParent = component.implicitParent === undefined
+            
+            return hasExplicitAssetParent || hasNoImplicitParent
+        })
+
+        // Add components from graph structure (no implicit parent or explicitParent = ASSET)
+        const combinedTopLevel = inPlaceEditComponents.reduce<ReferenceList>((previous, component) => {
+            return previous.assureItem(new StandardReference(component.referenceData))
+        }, topLevelDiff ?? new ReferenceList([]))
+        
+        // Create final result with calculated topLevel
+        const result = diffedWithImplicitParents._clone()
+        result._topLevel = combinedTopLevel
+        return result
     }
 
     /**
