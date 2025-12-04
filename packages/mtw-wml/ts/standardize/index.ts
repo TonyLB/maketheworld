@@ -1532,8 +1532,9 @@ export class StandardForm {
         }, topLevelDiff ?? new ReferenceList([]))
         
         // Create final result with calculated topLevel
-        const result = diffedWithImplicitParents._clone()
-        result._topLevel = combinedTopLevel
+        const combined = diffedWithImplicitParents._clone()
+        combined._topLevel = combinedTopLevel
+        const result = combined.generateImplicitParents()
         return result
     }
 
