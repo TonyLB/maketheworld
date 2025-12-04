@@ -534,10 +534,21 @@ The merge behavior follows the algorithm described in "Summary: Key Merge Behavi
 4. **Phase 4**: Add validation and error handling for invalid parent references
 5. **Phase 5**: Update tooling to generate minimal diffs and `<Parent />` tags when creating edit assets
 
-## Open Questions
+## Open Questions - Resolved
 
-1. Should diff always include `<Parent>` tags, or only when parent differs from implicit parent?
-2. How should we handle components that exist in multiple nested locations (e.g., same Example in multiple Rooms)?
-3. Should `topLevel` be automatically maintained, or should it be explicitly managed by merge/diff operations?
-4. What happens if a `<Parent>` tag references a component that doesn't exist in the base asset?
+1. **Should diff always include `<Parent>` tags, or only when parent differs from implicit parent?**
+   - Diff should only include a `<Parent>` add or edit tag when needed to generate the needed result:
+     - (a) When a component's content change *includes* explicit changes to `<Parent>`, or
+     - (b) When a component needs a `topLevel` appearance (since simply *placing* it at the top level is by default read as minimal component-only change).
+
+2. **How should we handle components that exist in multiple nested locations (e.g., same Example in multiple Rooms)?**
+   - Components existing in multiple nested locations are (already) handled as references. Their content is aggregated by `StandardComponent.merge`, and the `generateImplicitParent` function determines where (if they are not explicitly parented) they should be displayed in standard format. Neither diff nor merge should need to worry about recreating a non-standard structure where *content* is displayed in two places: That is a valid input structure, but gets standardized away.
+
+3. **Should `topLevel` be automatically maintained, or should it be explicitly managed by merge/diff operations?**
+   - `topLevel` should be automatically maintained:
+     - (a) If a genuinely *new* component is added at asset level, it should be added to `topLevel`
+     - (b) If `<Parent />` is passed to a component then that component should be added to topLevel
+
+4. **What happens if a `<Parent>` tag references a component that doesn't exist in the base asset?**
+   - Referencing a component that doesn't exist in the base asset generates a Merge Conflict (or diff) error.
 

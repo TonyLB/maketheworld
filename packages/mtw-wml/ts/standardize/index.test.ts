@@ -2593,18 +2593,16 @@ describe('StandardForm', () => {
             `))
         })
 
-        it('should return the diff for modified components', () => {
+        it('should return a minimal in-place edit diff for modified nested components', () => {
             const base = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom)><Example uuid=(base) key=(base)><Name>Old Name</Name></Example></Room></Asset>`)
             const incoming = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom)><Example uuid=(base) key=(base)><Name>New Name</Name></Example></Room></Asset>`)
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(Test)>
-                    <Room uuid=(testRoom) key=(testRoom)>
-                        <Example uuid=(base) key=(base)>
-                            <Replace><Name>Old Name</Name></Replace>
-                            <With><Name>New Name</Name></With>
-                        </Example>
-                    </Room>
+                    <Example uuid=(base) key=(base)>
+                        <Replace><Name>Old Name</Name></Replace>
+                        <With><Name>New Name</Name></With>
+                    </Example>
                 </Asset>
             `))
         })
