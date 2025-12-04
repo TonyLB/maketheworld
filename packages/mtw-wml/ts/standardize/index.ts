@@ -1238,6 +1238,7 @@ export class StandardForm {
                 }, previous)
             }, [])
 
+        console.log(`returnValue: ${JSON.stringify(returnValue.toJSON(), null, 2)}`)
         return returnValue.generateImplicitParents()
     }
 

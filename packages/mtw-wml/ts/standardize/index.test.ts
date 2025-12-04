@@ -2824,11 +2824,15 @@ describe('StandardForm', () => {
             expect(results.byUniversalId['ROOM#room1']).toBeInstanceOf(StandardRoom)
             expect(schemaToWML([results.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room uuid=(room1)><Exit to=(ROOM#room2)>room2</Exit></Room>
-                    <Room uuid=(room2)><Exit to=(ROOM#room1)>room1</Exit></Room>
                     <Map uuid=(testMap)>
-                        <Room uuid=(room1)><Position x="0" y="0" /></Room>
-                        <Room uuid=(room2)><Position x="100" y="100" /></Room>
+                        <Room uuid=(room1)>
+                            <Position x="0" y="0" />
+                            <Exit to=(ROOM#room2)>room2</Exit>
+                        </Room>
+                        <Room uuid=(room2)>
+                            <Position x="100" y="100" />
+                            <Exit to=(ROOM#room1)>room1</Exit>
+                        </Room>
                     </Map>
                 </Asset>
             `))
