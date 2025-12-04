@@ -3,12 +3,12 @@ import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent } from "./baseClasses"
+import { StandardComponent, NestedSchemaOptions } from "./baseClasses"
 import { StandardMapData } from "./dataTypes/map"
 import { ReferenceFormat } from "./utils/references"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
-import StandardPosition, { mergeStandardPositionList, StandardPositionReplace, StandardPositionSimple } from "./position"
+import { isSchemaMap, isSchemaRoom, isSchemaPosition } from "@tonylb/mtw-base/ts/schema/components"
+import StandardPosition, { mergeStandardPositionList, StandardPositionReplace, StandardPositionRemove, StandardPositionSimple } from "./position"
 import StandardReference, { StandardKey } from "./reference"
 import { StandardLiteral } from "../literal"
 import { StandardExplicitParent } from "../explicit"
@@ -82,6 +82,72 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
                 ...this.name ? this.name.nestedSchema({ tag: 'Name' }) : [],
                 ...this.images,
                 ...this.positions.map((position) => position.schema).filter(excludeUndefined).flat(1)
+            ]
+        }
+    }
+
+    nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+        const { key: mapKey } = options
+        const mapKeyPlain = mapKey.plain
+        
+        // Process each position
+        const positionSchemas = this.positions.map((position) => {
+            // Get the position schema (Room node with Position child)
+            const positionSchema = position.schema
+            if (positionSchema.length === 0) {
+                return undefined
+            }
+            
+            const positionRoomNode = positionSchema[0]
+            if (!treeNodeTypeguard(isSchemaRoom)(positionRoomNode)) {
+                return positionRoomNode
+            }
+            
+            // NOTE: This assumes a simple (non-edit) StandardPosition schema shape. It is probably
+            //       in need of tuning for more complex edit scenarios (Remove/Replace with nested Position).
+            const roomKey = position._payload.plain.room
+            const roomComponent = lookup(roomKey)
+            
+            // Check if room is implicitly parented to this map
+            if (roomComponent && roomComponent.implicitParent?.equals(mapKeyPlain)) {
+                // Room is implicitly parented to map - get full room schema with all content
+                const roomNestedSchema = roomComponent.nestedSchema(lookup, { 
+                    ...options, 
+                    key: roomKey, 
+                    parent: mapKeyPlain 
+                })
+                
+                // Merge position into room schema
+                // The position schema has a Position child that needs to be added to the room's children
+                const positionChild = positionRoomNode.children.find(treeNodeTypeguard(isSchemaPosition))
+                
+                if (positionChild) {
+                    // Add Position to room's children if not already present
+                    const hasPosition = roomNestedSchema.children.some(treeNodeTypeguard(isSchemaPosition))
+                    if (!hasPosition) {
+                        return {
+                            ...roomNestedSchema,
+                            children: [
+                                positionChild,
+                                ...roomNestedSchema.children
+                            ]
+                        }
+                    }
+                }
+                
+                return roomNestedSchema
+            } else {
+                // Room is not implicitly parented to map - use position-only schema
+                return positionRoomNode
+            }
+        }).filter(excludeUndefined)
+        
+        return {
+            data: { tag: 'Map', key: mapKey.key ?? '', uuid: mapKey.universalKey },
+            children: [
+                ...this.name ? this.name.nestedSchema({ tag: 'Name' }) : [],
+                ...this.images,
+                ...positionSchemas
             ]
         }
     }
