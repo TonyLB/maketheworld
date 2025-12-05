@@ -287,4 +287,36 @@ describe('ReferenceList', () => {
         ])
         expect(callback).toHaveBeenCalledTimes(3)
     })
+
+    it('should render Remove tags correctly in schemaToWML', () => {
+        // Create a ReferenceList with a Remove tag (like when a Room removes an Example reference)
+        const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
+        const removedExample = new StandardReferenceRemove(exampleKey, 'Example')
+        const removedReference = new StandardReference(removedExample)
+        const referenceListWithRemove = new ReferenceList([removedReference])
+        
+        // Test that schemaToWML correctly renders the Remove tag
+        const wml = schemaToWML(referenceListWithRemove.schema)
+        expect(wml).toEqual(deIndentWML(`
+            <Remove><Example key=(ex1) /></Remove>
+        `))
+    })
+
+    it('should render ReferenceList with mixed Remove and regular references correctly', () => {
+        // Create a ReferenceList with both regular references and Remove tags
+        const room1Ref = new StandardReference({ key: 'room1', tag: 'Room' })
+        
+        const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
+        const removedExample = new StandardReferenceRemove(exampleKey, 'Example')
+        const removedRef = new StandardReference(removedExample)
+        
+        const referenceList = new ReferenceList([room1Ref, removedRef])
+        
+        // Test that schemaToWML correctly renders both
+        const wml = schemaToWML(referenceList.schema)
+        expect(wml).toEqual(deIndentWML(`
+            <Room key=(room1) />
+            <Remove><Example key=(ex1) /></Remove>
+        `))
+    })
 })

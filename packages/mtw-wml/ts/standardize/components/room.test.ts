@@ -3,7 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardRoomData } from "./dataTypes/room"
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
-import StandardReference, { StandardKey, StandardReferenceSimple } from "./reference"
+import StandardReference, { StandardKey, StandardReferenceSimple, StandardReferenceRemove } from "./reference"
 import { StandardExplicitParent } from "../explicit"
 import { StandardRemove, StandardReplace } from "./edits"
 
@@ -94,6 +94,19 @@ describe('StandardRoom class', () => {
         // The JSON output should omit exits when empty (omission-over-empty pattern)
         const outputJSON = testRoom.toJSON() as StandardRoomData
         expect(outputJSON.exits).toBeUndefined()
+    })
+
+    it('should correctly render a removed example reference', () => {
+        const test = new StandardRoom(`
+            <Room key=(testRoomOne)>
+                <Remove><Example key=(base) /></Remove>
+            </Room>
+        `)
+
+        console.log(`test.toJSON: ${JSON.stringify(test.toJSON(), null, 2)}`)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Room key=(testRoomOne)><Remove><Example key=(base) /></Remove></Room>
+        `))
     })
 
     it('should merge correctly', () => {
