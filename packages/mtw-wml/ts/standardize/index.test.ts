@@ -968,6 +968,23 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(testWML)
     })
 
+    it('should correctly round-trip a removed example reference in a room', () => {
+        const test = new StandardForm(`
+            <Asset uuid=(Test)>
+                <Example uuid=(base) key=(base) />
+                <Room uuid=(testRoom) key=(testRoom)>
+                    <Remove><Example key=(base) /></Remove>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Example uuid=(base) key=(base) />
+                <Room uuid=(testRoom) key=(testRoom)><Remove><Example key=(base) /></Remove></Room>
+            </Asset>
+        `))
+    })
+
     it('should correctly construct classes', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
@@ -2671,6 +2688,372 @@ describe('StandardForm', () => {
                     </Remove>
                 </Asset>
             `))
+        })
+
+        describe('Case 1: Nested Component Change (In-Place) - Minimal Diff Format', () => {
+            it('should generate minimal diff for nested component change (no Parent tag, no topLevel)', () => {
+                const base = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <Name>Old Name</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `))
+                const incoming = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <Name>New Name</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `))
+                const diff = base.diff(incoming)
+                
+                // Expected: Minimal diff - only the changed component, no parent components
+                expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Replace><Name>Old Name</Name></Replace>
+                            <With><Name>New Name</Name></With>
+                        </Example>
+                    </Asset>
+                `))
+                
+                // Verify no Parent tag
+                const exampleComponent = diff.byId['ex1']
+                expect(exampleComponent?.explicitParent).toBeUndefined()
+                
+                // Verify not in topLevel (nested change)
+                expect(diff.header.topLevel).toEqual(['EXAMPLE#ex1'])
+            })
+
+            it('should merge minimal diff correctly, maintaining nested structure', () => {
+                const base = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <Name>Original</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `))
+                const diff = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Replace><Name>Original</Name></Replace>
+                            <With><Name>Updated</Name></With>
+                        </Example>
+                    </Asset>
+                `))
+                const merged = base.merge(diff)
+                
+                // Expected: Component stays nested under Room
+                expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <Name>Updated</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `))
+                
+                // Verify implicitParent is Room (not Asset-level)
+                const exampleComponent = merged.byId['ex1']
+                expect(exampleComponent?.implicitParent?.equals(new StandardKey({ key: 'room1', tag: 'Room' }))).toBe(true)
+                
+                // Verify not in topLevel
+                expect(merged.header.topLevel).toBeUndefined()
+            })
+        })
+
+        it('should generate diff with Parent tag when component is moved to Asset-level', () => {
+            const base = new StandardForm(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Name>Old Example</Name>
+                        </Example>
+                    </Room>
+                </Asset>
+            `))
+            const incoming = new StandardForm(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Example uuid=(ex1) key=(ex1)>
+                        <Name>New Example</Name>
+                    </Example>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `))
+            const diff = base.diff(incoming)
+            
+            // Expected: Diff with empty Parent tag and topLevel entry
+            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Example uuid=(ex1) key=(ex1)>
+                        <Parent />
+                        <Replace><Name>Old Example</Name></Replace>
+                        <With><Name>New Example</Name></With>
+                    </Example>
+                    <Room uuid=(room1) key=(room1)>
+                        <Remove><Example key=(ex1) /></Remove>
+                    </Room>
+                </Asset>
+            `))
+            
+            // Verify explicitParent = ASSET
+            const exampleComponent = diff.byId['ex1']
+            expect(exampleComponent?.explicitParent?.toJSON()).toBe('ASSET')
+            
+            // Verify in topLevel
+            expect(diff.header.topLevel).toBeDefined()
+            // @ts-ignore - accessing private for test
+            const topLevelRefs = diff._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
+            expect(topLevelRefs).toContainEqual({ key: 'ex1', tag: 'Example' })
+        })
+
+        describe('Case 2: Explicit Top-Level Component', () => {
+
+            it('should merge diff with Parent tag correctly, placing component at Asset-level', () => {
+                const base = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example uuid=(ex1) key=(ex1) />
+                        </Room>
+                    </Asset>
+                `))
+                const diff = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Parent />
+                            <Name>New Example</Name>
+                        </Example>
+                    </Asset>
+                `))
+                const merged = base.merge(diff)
+                
+                // Expected: Component at Asset-level, in topLevel
+                expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Name>New Example</Name>
+                        </Example>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example key=(ex1) />
+                        </Room>
+                    </Asset>
+                `))
+                
+                // Verify implicitParent is undefined (Asset-level)
+                const exampleComponent = merged.byId['ex1']
+                expect(exampleComponent?.implicitParent).toBeUndefined()
+                
+                // Verify explicitParent was removed (redundant with implicitParent = ASSET)
+                expect(exampleComponent?.explicitParent).toBeUndefined()
+                
+                // Verify in topLevel
+                expect(merged.header.topLevel).toBeDefined()
+                // @ts-ignore - accessing private for test
+                const topLevelRefs = merged._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
+                expect(topLevelRefs).toContainEqual({ key: 'ex1', tag: 'Example' })
+            })
+        })
+
+        describe('Case 3: Component Moving from Nested to Top-Level', () => {
+            it('should generate diff with Parent tag and reference removal when component moves to Asset-level', () => {
+                const base = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <Name>Nested Example</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `))
+                const incoming = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Name>Top-Level Example</Name>
+                        </Example>
+                        <Room uuid=(room1) key=(room1) />
+                    </Asset>
+                `))
+                const diff = base.diff(incoming)
+                
+                // Expected: Diff with Parent tag, Replace/With, and Room removes Example reference
+                expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Parent />
+                            <Replace><Name>Nested Example</Name></Replace>
+                            <With><Name>Top-Level Example</Name></With>
+                        </Example>
+                        <Room uuid=(room1) key=(room1)>
+                            <Remove><Example key=(ex1) /></Remove>
+                        </Room>
+                    </Asset>
+                `))
+                
+                // Verify explicitParent = ASSET
+                const exampleComponent = diff.byId['ex1']
+                expect(exampleComponent?.explicitParent?.toJSON()).toBe('ASSET')
+                
+                // Verify in topLevel
+                expect(diff.header.topLevel).toBeDefined()
+                // @ts-ignore - accessing private for test
+                const topLevelRefs = diff._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
+                expect(topLevelRefs).toContainEqual({ key: 'ex1', tag: 'Example' })
+            })
+
+            it('should merge diff with Parent tag and reference removal correctly', () => {
+                const base = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <Name>Nested Example</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `))
+                const diff = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Parent />
+                            <Replace><Name>Nested Example</Name></Replace>
+                            <With><Name>Top-Level Example</Name></With>
+                        </Example>
+                        <Room uuid=(room1) key=(room1)>
+                            <Remove><Example key=(ex1) /></Remove>
+                        </Room>
+                    </Asset>
+                `))
+                const merged = base.merge(diff)
+                
+                // Expected: Component at Asset-level, Room's reference removed, in topLevel
+                expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1) />
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Name>Top-Level Example</Name>
+                        </Example>
+                    </Asset>
+                `))
+                
+                // Verify implicitParent is undefined (Asset-level)
+                const exampleComponent = merged.byId['ex1']
+                expect(exampleComponent?.implicitParent).toBeUndefined()
+                
+                // Verify explicitParent was removed (redundant with implicitParent = ASSET)
+                expect(exampleComponent?.explicitParent).toBeUndefined()
+                
+                // Verify Room no longer has Example reference
+                const roomComponent = merged.byId['room1']
+                const roomExamples = (roomComponent as any)?.examples?.payload || []
+                expect(roomExamples.some((ref: any) => ref.plain().standardKey.key === 'ex1')).toBe(false)
+                
+                // Verify in topLevel
+                expect(merged.header.topLevel).toBeDefined()
+                // @ts-ignore - accessing private for test
+                const topLevelRefs = merged._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
+                expect(topLevelRefs).toContainEqual({ key: 'ex1', tag: 'Example' })
+            })
+        })
+
+        describe('Case 4: Component Moving from Asset-Level to Nested', () => {
+            it('should generate diff with Parent tag and topLevel removal when component moves to nested', () => {
+                const base = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1) />
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Name>Top-level</Name>
+                        </Example>
+                    </Asset>
+                `))
+                const incoming = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <Name>Now nested</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `))
+                const diff = base.diff(incoming)
+                
+                // Expected: Diff with Parent tag pointing to room1, Remove from topLevel
+                expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Remove><Example key=(ex1) /></Remove>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <Parent>room1</Parent>
+                                <Replace><Name>Top-level</Name></Replace>
+                                <With><Name>Now nested</Name></With>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `))
+                
+                // Verify explicitParent = room1
+                const exampleComponent = diff.byId['ex1']
+                const explicitParentData = exampleComponent?.explicitParent?.toJSON()
+                expect(explicitParentData).toEqual({ key: 'room1', tag: 'Room' })
+            })
+
+            it('should merge diff with Parent tag correctly, moving component to nested', () => {
+                const base = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1) />
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Name>Top-level</Name>
+                        </Example>
+                    </Asset>
+                `))
+                const diff = new StandardForm(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Remove><Example key=(ex1) /></Remove>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <Parent>room1</Parent>
+                                <Replace><Name>Top-level</Name></Replace>
+                                <With><Name>Now nested</Name></With>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `))
+                const merged = base.merge(diff)
+                
+                // Expected: Component nested under Room, removed from topLevel
+                expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Room uuid=(room1) key=(room1)>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <Name>Now nested</Name>
+                            </Example>
+                        </Room>
+                    </Asset>
+                `))
+                
+                // Verify implicitParent is Room
+                const exampleComponent = merged.byId['ex1']
+                expect(exampleComponent?.implicitParent?.equals(new StandardKey({ key: 'room1', tag: 'Room' }))).toBe(true)
+                
+                // Verify explicitParent was removed (redundant with implicitParent = room1)
+                expect(exampleComponent?.explicitParent).toBeUndefined()
+                
+                // Verify Room has Example reference
+                const roomComponent = merged.byId['room1']
+                const roomExamples = (roomComponent as any)?.examples?.payload || []
+                expect(roomExamples.some((ref: any) => ref.plain().standardKey.key === 'ex1')).toBe(true)
+                
+                // Verify not in topLevel
+                // @ts-ignore - accessing private for test
+                const topLevelRefs = merged._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
+                expect(topLevelRefs).not.toContainEqual({ key: 'ex1', tag: 'Example' })
+            })
         })
 
     })

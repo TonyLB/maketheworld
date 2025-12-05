@@ -211,14 +211,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
                 throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
             }
-            // Add Parent tag to children if explicitParent is defined
-            const children = [...payload.children]
-            if (this.explicitParent) {
-                const parentSchema = this.explicitParent.schema
-                if (parentSchema.length > 0) {
-                    children.push(parentSchema[0])
-                }
-            }
+            // Add Parent tag to children if explicitParent is defined (at the beginning)
+            const children = this.explicitParent && this.explicitParent.schema.length > 0
+                ? [this.explicitParent.schema[0], ...payload.children]
+                : [...payload.children]
             return { ...payload, data: { ...payload.data, from: this._from, origin: this._origin }, children }
         }
 
@@ -253,14 +249,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
                 throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
             }
-            // Add Parent tag to children if explicitParent is defined
-            const children = [...payload.children]
-            if (this.explicitParent) {
-                const parentSchema = this.explicitParent.schema
-                if (parentSchema.length > 0) {
-                    children.push(parentSchema[0])
-                }
-            }
+            // Add Parent tag to children if explicitParent is defined (at the beginning)
+            const children = this.explicitParent && this.explicitParent.schema.length > 0
+                ? [this.explicitParent.schema[0], ...payload.children]
+                : [...payload.children]
             return { ...payload, data: { ...payload.data, from: this._from, origin: this._origin }, children }
         }
 
