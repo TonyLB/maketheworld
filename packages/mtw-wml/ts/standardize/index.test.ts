@@ -971,7 +971,9 @@ describe('StandardForm', () => {
     it('should correctly round-trip a removed example reference in a room', () => {
         const test = new StandardForm(`
             <Asset uuid=(Test)>
-                <Example uuid=(base) key=(base) />
+                <Example uuid=(base) key=(base)>
+                    <Description>Test Example</Description>
+                </Example>
                 <Room uuid=(testRoom) key=(testRoom)>
                     <Remove><Example key=(base) /></Remove>
                 </Room>
@@ -979,8 +981,35 @@ describe('StandardForm', () => {
         `)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset uuid=(Test)>
-                <Example uuid=(base) key=(base) />
+                <Example uuid=(base) key=(base)>
+                    <Description>Test Example</Description>
+                </Example>
                 <Room uuid=(testRoom) key=(testRoom)><Remove><Example key=(base) /></Remove></Room>
+            </Asset>
+        `))
+    })
+
+    it('should correctly round-trip a removed example nested in a room', () => {
+        const test = new StandardForm(`
+            <Asset uuid=(Test)>
+                <Room uuid=(testRoom) key=(testRoom)>
+                    <Remove>
+                        <Example uuid=(base)>
+                            <Description>Test Example</Description>
+                        </Example>
+                    </Remove>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room uuid=(testRoom) key=(testRoom)>
+                    <Remove>
+                        <Example uuid=(base)>
+                            <Description>Test Example</Description>
+                        </Example>
+                    </Remove>
+                </Room>
             </Asset>
         `))
     })
