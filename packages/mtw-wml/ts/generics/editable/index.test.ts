@@ -1064,4 +1064,72 @@ describe('v2StandardEditableFactory', () => {
             expect(diffed!.toJSON()).toEqual({ id: 1, name: 'One' });
         });
     });
+
+    describe('invert method', () => {
+        it('should invert Plain (Add) to Remove', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const plain = EditableClass.create(data);
+            expect(plain).toBeInstanceOf(PlainClass);
+            
+            const inverted = plain.invert();
+            expect(inverted).toBeInstanceOf(RemoveClass);
+            expect(inverted.toJSON()).toEqual({ tag: 'Remove', match: data });
+        });
+
+        it('should invert Remove to Plain (Add)', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const remove = RemoveClass.create({ tag: 'Remove', match: data });
+            expect(remove).toBeInstanceOf(RemoveClass);
+            
+            const inverted = remove.invert();
+            expect(inverted).toBeInstanceOf(PlainClass);
+            expect(inverted.toJSON()).toEqual(data);
+        });
+
+        it('should invert Replace by swapping match and payload', () => {
+            const matchData: TestData = { id: 1, name: 'Old' };
+            const payloadData: TestData = { id: 2, name: 'New' };
+            const replace = EditableClass.create({ tag: 'Replace', match: matchData, payload: payloadData });
+            expect(replace).toBeInstanceOf(ReplaceClass);
+            
+            const inverted = replace.invert();
+            expect(inverted).toBeInstanceOf(ReplaceClass);
+            expect(inverted.toJSON()).toEqual({ 
+                tag: 'Replace', 
+                match: payloadData, 
+                payload: matchData 
+            });
+        });
+
+        it('should satisfy double-inversion property (invert.invert returns equivalent)', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const plain = EditableClass.create(data);
+            
+            // Double inversion should return to original
+            const doubleInverted = plain.invert().invert();
+            expect(doubleInverted).toBeInstanceOf(PlainClass);
+            expect(doubleInverted.toJSON()).toEqual(plain.toJSON());
+        });
+
+        it('should satisfy double-inversion property for Remove', () => {
+            const data: TestData = { id: 1, name: 'Test' };
+            const remove = RemoveClass.create({ tag: 'Remove', match: data });
+            
+            // Double inversion should return to original
+            const doubleInverted = remove.invert().invert();
+            expect(doubleInverted).toBeInstanceOf(RemoveClass);
+            expect(doubleInverted.toJSON()).toEqual(remove.toJSON());
+        });
+
+        it('should satisfy double-inversion property for Replace', () => {
+            const matchData: TestData = { id: 1, name: 'Old' };
+            const payloadData: TestData = { id: 2, name: 'New' };
+            const replace = EditableClass.create({ tag: 'Replace', match: matchData, payload: payloadData });
+            
+            // Double inversion should return to original
+            const doubleInverted = replace.invert().invert();
+            expect(doubleInverted).toBeInstanceOf(ReplaceClass);
+            expect(doubleInverted.toJSON()).toEqual(replace.toJSON());
+        });
+    });
 })

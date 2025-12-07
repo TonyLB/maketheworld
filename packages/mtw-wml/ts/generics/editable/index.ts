@@ -263,6 +263,23 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             throw new Error('remapReferences() must be implemented by concrete subclass');
         }
         
+        // Invert method implemented in abstract class using delta
+        invert(): GeneratedV2EditableClass {
+            const delta = this._delta;
+            // Swap add and remove: inversion of {add: X} is {remove: X}, inversion of {remove: Y} is {add: Y}
+            const invertedDelta: StandardEditableDataDelta<PayloadDataType<FinalType>> = {
+                add: delta.remove,
+                remove: delta.add
+            };
+            const inverted = GeneratedV2EditableClass.fromDelta(invertedDelta);
+            // fromDelta can return undefined for empty deltas, but inversion of empty should also be empty/undefined
+            // However, we should never have an empty delta in practice - all instances should have either add or remove
+            if (!inverted) {
+                throw new Error('Inversion produced undefined result - this should not happen with valid edit operations');
+            }
+            return inverted;
+        }
+        
         // Nested schema method that returns the schema (same as schema getter for compatibility)
         nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
             return this.schema;
