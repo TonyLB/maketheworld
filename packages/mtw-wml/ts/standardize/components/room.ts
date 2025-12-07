@@ -62,15 +62,15 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 .filter({ and: [{ match: 'ShortName' }, { not: { or: [{ match: 'Character'}, { match: 'Feature' }] } }] })
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
-            const exitTagTree = tagTree
-                .filter({ match: 'Exit' })
+            const filteredTagTree = (tag: SchemaTag["tag"]) => tagTree
+                .filter({ match: tag })
                 .prune({ match: 'Room' })
-                .reorderedSiblings([['Exit'], ['If']])
+                .tree
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
-            this._exits = exitTagTree.tree.map((exitData) => (StandardExit.create([exitData])))
-            this._features = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaFeature)).map(childReferenceFactory))
-            this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(childReferenceFactory))
-            this._characters = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaCharacter)).map(childReferenceFactory))
+            this._exits = filteredTagTree('Exit').map((exitData) => (StandardExit.create([exitData])))
+            this._features = new ReferenceList(filteredTagTree('Feature').map(childReferenceFactory))
+            this._examples = new ReferenceList(filteredTagTree('Example').map(childReferenceFactory))
+            this._characters = new ReferenceList(filteredTagTree('Character').map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')
@@ -132,6 +132,21 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._features = this._features.merge(incoming._features) ?? new ReferenceList([])
         returnValue._examples = this._examples.merge(incoming._examples) ?? new ReferenceList([])
         returnValue._characters = this._characters.merge(incoming._characters) ?? new ReferenceList([])
+        return returnValue as this
+    }
+
+    invert(): this {
+        const returnValue = new StandardRoomPayload()
+        // Invert shortName if it exists (StandardLiteral has invert() from v2StandardEditableFactory)
+        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
+        // Invert each exit (StandardExit has invert() from v2StandardEditableFactory)
+        returnValue._exits = this._exits.map((exit) => exit.invert() as StandardExit)
+        // Invert each ReferenceList
+        console.log(`Features before inversion: ${JSON.stringify(this._features.toJSON(), null, 4)}`)
+        returnValue._features = this._features.invert()
+        console.log(`Features inverted: ${JSON.stringify(returnValue._features.toJSON(), null, 4)}`)
+        returnValue._examples = this._examples.invert()
+        returnValue._characters = this._characters.invert()
         return returnValue as this
     }
 

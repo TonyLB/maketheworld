@@ -332,4 +332,17 @@ export class StandardLiteral {
         throw new Error('Invalid StandardLiteral payload')
     }
 
+    invert(): StandardLiteral {
+        if (this._payload instanceof StandardLiteralSimple) {
+            return new StandardLiteral(new StandardLiteralRemove(this._payload.payload))
+        }
+        if (this._payload instanceof StandardLiteralRemove) {
+            return new StandardLiteral(new StandardLiteralSimple(this._payload.match))
+        }
+        if (this._payload instanceof StandardLiteralReplace) {
+            return new StandardLiteral(new StandardLiteralReplace(this._payload.payload, this._payload.match))
+        }
+        throw new Error('Invalid StandardLiteral payload for invert')
+    }
+
 }
