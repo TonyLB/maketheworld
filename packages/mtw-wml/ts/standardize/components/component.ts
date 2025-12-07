@@ -49,6 +49,7 @@ export interface ComponentConstructorMethods<D> {
     remapReferences?: (props: { mappings: StandardKey[], mapTo: ReferenceFormat }) => this;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
     withChild?(child: StandardReference): this;
+    invert?(): this;
 }
 
 export const componentClassFactory = <D extends StandardComponentData, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
