@@ -25,10 +25,10 @@ This migration should proceed incrementally, starting with a single component ty
 ### 1.1 Create Inversion Infrastructure
 
 **Tasks:**
-- Create `invert()` method on `ReferenceList`
-  - Implement the algebraic inversion: `{+ref1, -ref2}` → `{-ref1, +ref2}`
-  - Add unit tests validating inversion distributes correctly across all references
-  - Verify that `list.invert().invert()` returns a list equal to the original
+- ✅ Create `invert()` method on `ReferenceList`
+  - ✅ Implement the algebraic inversion: `{+ref1, -ref2}` → `{-ref1, +ref2}`
+  - ✅ Add unit tests validating inversion distributes correctly across all references
+  - ✅ Verify that `list.invert().invert()` returns a list equal to the original
 
 - Create optional `invert()` method on `StandardComponent` interface
   - Define the interface method signature
@@ -42,7 +42,7 @@ This migration should proceed incrementally, starting with a single component ty
   - Add comprehensive unit tests
 
 **Success Criteria:**
-- All ReferenceList instances can be inverted
+- ✅ All ReferenceList instances can be inverted
 - StandardRoomPayload can be inverted
 - `room.invert().invert()` produces a room equivalent to the original (within merge equivalence)
 

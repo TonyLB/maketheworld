@@ -1014,6 +1014,10 @@ export class ReferenceList extends editableListClassFactory<StandardEditablePayl
         return new ReferenceList(this.payload.map((item) => item.lookup(arg)))
     }
 
+    invert(): ReferenceList {
+        return new ReferenceList(this.payload.map((item) => item.invert()))
+    }
+
 }
 
 
