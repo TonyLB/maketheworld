@@ -6,82 +6,66 @@ This document describes the **mathematical properties and relationships** of edi
 
 **⚠️ IMPORTANT**: This document describes the **target architecture and design goals** for Component edit operations in WML. The current implementation in this directory may not fully match all concepts described here, as the system is in active migration toward these requirements. For current implementation details, see [`AGENT.implementation.md`](./AGENT.implementation.md). For conceptual overview of Components, see [`AGENT.md`](./AGENT.md).
 
-## Edit Model: Add and Remove
+## Core Concepts
 
-Each data type and reference collection supports edit operations, specifically **Remove** events:
+### Notation
 
-- **Data Tags**: A data field like `ShortName` can be modified, removed, or replaced. The underlying type (e.g., `StandardLiteral`) supports edit operations that allow content to be marked for removal.
-- **Reference Lists**: References can be added to or removed from a `ReferenceList`. The `ReferenceList` type supports `StandardReferenceRemove` objects that mark specific references for removal.
+To discuss component data algebra concisely, we use a local notation:
 
-This edit model enables precise control over what content is added to or removed from a component, supporting incremental updates and modifications.
+- **Data Tags**: `fieldName:+value` indicates a value is added/set, `fieldName:-value` indicates a value is removed, `fieldName:old->new` indicates a replace operation
+- **Reference Lists**: Use the notation from [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md): `{+ref1, -ref2}` for references added/removed
 
-## Component Data as a Two-Tuple
+For example, component data can be expressed as:
+- `{shortName:+new, features:{+feat1, -feat2}}` for a room with a ShortName added and features list containing feat1 added and feat2 removed
 
-A component's data can be conceptually understood as a **two-tuple** of:
-1. **Data being added**: Content and references that are being added or modified
-2. **Data being removed**: Content and references that are being removed
+### Inverse
 
-Each entry in this tuple is a set of component-data **without any Remove elements** - representing the "plain" component state. The component's current state is then the result of applying the remove set to the add set:
+The inverse of a component data payload is the payload constructed of the inverse of each of the independent data sections:
+- **Data Tags**: A data field like `ShortName` has its own bespoke inversion (`+value` ↔ `-value`, `old->new` ↔ `new->old`)
+- **Reference Lists**: `ReferenceList` inversion is described in [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md)
 
-```
-Component State = (Data Added) - (Data Removed)
-```
+Example: Inverting component data `{shortName:old->new, features:{+feat1, -feat2}}` produces `{shortName:new->old, features:{-feat1, +feat2}}`.
 
-This model allows the system to:
-- Track both positive and negative changes independently
-- Merge multiple edits together by combining their add/remove sets
-- Resolve conflicts when the same data is both added and removed
-- Generate diffs by comparing the two-tuple representations
+### Non-associative and non-idempotent
 
-For example, if a component has `ShortName` added in one appearance and removed in another, the merge process can detect this conflict and resolve it according to the standardization rules for the particular element type (e.g. `StandardLiteral`).
+As with `ReferenceList` mergers, we cannot count on component merges to be _either_ associative (i.e. order independent) _or_ idempotent. See [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md) for a more in-depth discussion.
 
-## Distributive Property of Component Changes
+## Component Appearance: Reference and Data Duality
 
-Component-level Remove operations exhibit a **distributive property**: a `Remove` operation applied to an entire component has the same content impact as distributing that `Remove` operation down into individual Remove operations on each data field and reference within that component.
+A component appearance in WML has a **dual nature**: it simultaneously represents both a **reference** (indicating the component appears in a parent context) and a **data payload** (content being added to that component).
 
-For example, a component-level Remove:
+Using our notation, we can express this as:
+- `{reference: {+room1}, data: {shortName:+name, features:{+feat1}}}` represents a Room reference with content additions
 
-```xml
-<Remove>
-    <Room key=(room1)>
-        <ShortName>Name</ShortName>
-        <Feature key=(feature1) />
-    </Room>
-</Remove>
-```
+### Remove Operations: Reference vs. Data Impact
 
-... has the same impact **on content** (when merged) as distributing the Remove operations:
+The `Remove` operation interacts differently with the reference and data aspects of a component appearance:
 
-```xml
-<Room key=(room1)>
-    <Remove><ShortName>Name</ShortName></Remove>
-    <Remove><Feature key=(feature1) /></Remove>
-</Room>
-```
+#### Data Payload Perspective
 
-**Content Impact**: Both approaches have the same impact on the component's content when merged - they result in removing the `ShortName` data and removing the `Feature` reference from the room's content. The merged result for the component's data fields is identical.
+From the perspective of the **data payload**, removing data is algebraically equivalent to adding its inverse:
+- Removing `data: {shortName:+old, features:{-feat1} }` is equivalent to adding `data: {shortName:-old, features:{+feat1} }`
 
-**Reference Impact**: However, the impact on references is fundamentally different when the Remove is nested within a parent component:
+This follows from invertibility: removing an item is the same as adding its inverse.
 
-- The component-level `Remove` nested in a parent removes the reference **from that parent context** in which it's nested. For example, `<Map><Remove><Room key=(room1) /></Remove></Map>` removes the Room reference from the Map - the Room will not appear in the Map's room list. Note that a standalone `<Remove><Room /></Remove>` at the top level does not side-effect references elsewhere.
-- The distributed `Remove` operations allow the reference to be established first, then remove the content. For example, `<Map><Room key=(room1)><Remove><ShortName /></Remove></Room></Map>` establishes the Room reference in the Map (the Room appears in the Map's room list), but removes the ShortName content within the Room.
+#### Reference Perspective
 
-This distinction is crucial: when nested in a parent, component-level Remove operations prevent the reference from being established in that specific parent context (removing it from that parent's reference list), while distributed Remove operations allow the reference to be established in the parent and then remove only the content within.
+However, from the perspective of the **reference**, there is a fundamental difference between component-level Remove and adding inverted data:
 
-This distributive property means that component-level operations can be understood in terms of their equivalent field-level operations, providing a consistent model for how edits propagate through component structure. It also enables the standardization system to normalize component-level Removes into field-level operations when appropriate, ensuring consistent merge behavior.
+- `{reference: {-room1}, data: {shortName:+name, features:{+feat1}}}` (component-level Remove) - removes the Room reference from the parent (the Room does not appear in the parent's reference list)
+- `{reference: {+room1}, data: {shortName:-name, features:{-feat1}}}` (inverted Add) - keeps the Room reference in the parent, but removes the Feature reference within the Room's data
 
-### Implications for Replace Operations
+**Data Impact**: From a data payload perspective, both approaches produce the same merged data result. This follows from inversion: `-{shortName:+name, features:{+feat1}}` equals `{shortName:-name, features:{-feat1}}` (inverting the component's data is equivalent to inverting each field individually).
 
-Because of this distributive property, components **do not require** (and will not support) a `<Replace>` operation at the component level. Any edit that would replace some content with different content can always be expressed as a combination of individual `Add` and `Remove` operations on the relevant fields, distributed down to the data level.
+**Reference Impact**: The reference impact is fundamentally different and cannot be equated through inversion:
+- Component-level Remove: The reference is removed from the parent context (`reference: {-room1}`)
+- Distributed Remove: The reference remains in the parent context (`reference: {+room1}`)
 
-For example, replacing a `ShortName` from "Old Name" to "New Name" can be expressed as:
-- Remove the old value: `<Remove><ShortName>Old Name</ShortName></Remove>`
-- Add the new value: `<ShortName>New Name</ShortName>`
-
-This approach maintains consistency with the two-tuple model and ensures all edits can be represented in the add/remove algebra.
+This distinction is crucial: component-level Remove operations affect the reference relationship itself, while distributed Remove operations affect only the data payload within an established reference. The reference behavior cannot be "distributed" - it's an inherent property of the component appearance level.
 
 ## Related Documentation
 
+- [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md) - Mathematical properties of ReferenceList merge and diff operations
 - [`AGENT.md`](./AGENT.md) - Conceptual overview and navigation guide
 - [`AGENT.usage.md`](./AGENT.usage.md) - Practical code examples and usage patterns
 - [`AGENT.implementation.md`](./AGENT.implementation.md) - Component types, architectural patterns, and testing details
