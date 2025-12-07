@@ -1,8 +1,6 @@
 import { deIndentWML, filterEditableTree } from '.'
 import { treeFromWML, schemaToWML } from '../index'
-import { wrappedNodeTypeGuard } from '.'
 import { isSchemaFeature, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
-import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 
 describe('deIndentWML', () => {

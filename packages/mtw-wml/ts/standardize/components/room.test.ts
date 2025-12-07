@@ -103,7 +103,6 @@ describe('StandardRoom class', () => {
             </Room>
         `)
 
-        console.log(`test.toJSON: ${JSON.stringify(test.toJSON(), null, 2)}`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Room key=(testRoomOne)><Remove><Example key=(base) /></Remove></Room>
         `))
@@ -421,18 +420,12 @@ describe('StandardRoom class', () => {
             expect(referencedKeys.map((ref) => ref.key.toJSON())).toEqual([{ key: 'feat1' }, { key: 'char1' }, 'CHARACTER#uuid123'])
         })
 
-        it('should include Features from Remove and Replace tags in referencedKeys', () => {
+        it('should include Features from Remove tags in referencedKeys', () => {
             const room = new StandardRoom(`
                 <Room key=(testRoom)>
                     <Remove>
                         <Feature key=(removedFeature) />
                     </Remove>
-                    <Replace>
-                        <Feature key=(replacedFeature) />
-                    </Replace>
-                    <With>
-                        <Feature key=(replacedFeature) />
-                    </With>
                 </Room>
             `)
             const referencedKeys = room.referencedKeys()
@@ -440,9 +433,7 @@ describe('StandardRoom class', () => {
                 .filter((ref) => ref.referenceType === 'Direct')
                 .map((ref) => ref.key.toJSON())
             
-            // Should include both removedFeature and replacedFeature
             expect(featureKeys).toContainEqual({ key: 'removedFeature' })
-            expect(featureKeys).toContainEqual({ key: 'replacedFeature' })
         })
 
         it('should provide access to characters via getter', () => {

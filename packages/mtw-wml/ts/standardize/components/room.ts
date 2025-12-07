@@ -1,5 +1,5 @@
 import { excludeUndefined } from "../../lib/lists"
-import { wrappedNodeTypeGuard } from "../../schema/utils"
+import { filterEditableTree, stripTagFromTree, wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { HasShortName } from "./abstract"
@@ -11,7 +11,7 @@ import { StandardToJSONOptions } from "./baseClasses"
 import StandardReference, { ReferenceList, StandardKey } from "./reference"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { AssetUUID, ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaFeature, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit, isSchemaFeature, isSchemaRoom, isSchemaShortName } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaCharacter } from "@tonylb/mtw-base/ts/schema"
 import { deepEqual } from "../../lib/objects"
@@ -57,20 +57,12 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
-            const tagTree = new SchemaTagTree(node.children)
-            const shortNameItem = tagTree
-                .filter({ and: [{ match: 'ShortName' }, { not: { or: [{ match: 'Character'}, { match: 'Feature' }] } }] })
-                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                .tree
-            const filteredTagTree = (tag: SchemaTag["tag"]) => tagTree
-                .filter({ match: tag })
-                .prune({ match: 'Room' })
-                .tree
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
-            this._exits = filteredTagTree('Exit').map((exitData) => (StandardExit.create([exitData])))
-            this._features = new ReferenceList(filteredTagTree('Feature').map(childReferenceFactory))
-            this._examples = new ReferenceList(filteredTagTree('Example').map(childReferenceFactory))
-            this._characters = new ReferenceList(filteredTagTree('Character').map(childReferenceFactory))
+            const shortNameNode = stripTagFromTree(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaShortName) }), 'ShortName')
+            this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode) : undefined
+            this._exits = filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaExit) }).map((exitData) => (StandardExit.create([exitData])))
+            this._features = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaFeature) }).map(childReferenceFactory))
+            this._examples = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaExample) }).map(childReferenceFactory))
+            this._characters = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaCharacter) }).map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')
@@ -142,9 +134,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         // Invert each exit (StandardExit has invert() from v2StandardEditableFactory)
         returnValue._exits = this._exits.map((exit) => exit.invert() as StandardExit)
         // Invert each ReferenceList
-        console.log(`Features before inversion: ${JSON.stringify(this._features.toJSON(), null, 4)}`)
         returnValue._features = this._features.invert()
-        console.log(`Features inverted: ${JSON.stringify(returnValue._features.toJSON(), null, 4)}`)
         returnValue._examples = this._examples.invert()
         returnValue._characters = this._characters.invert()
         return returnValue as this

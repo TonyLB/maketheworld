@@ -115,3 +115,15 @@ export const filterEditableTree = <V extends SchemaTag>({ tree, typeguard }: { t
     
     return result
 }
+
+export const stripTagFromTree = (tree: GenericTree<SchemaTag>, tag: SchemaTag["tag"]): GenericTree<SchemaTag> => {
+    return tree.map((node) => {
+        if (node.data.tag === tag) {
+            return stripTagFromTree(node.children, tag)
+        }
+        return [{
+            data: node.data,
+            children: stripTagFromTree(node.children, tag)
+        }]
+    }).flat(1)
+}
