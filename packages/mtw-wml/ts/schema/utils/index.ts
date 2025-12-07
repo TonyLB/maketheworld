@@ -2,7 +2,7 @@ import { isSchemaTaggedMessageLegalContents, SchemaTag, SchemaTaggedMessageLegal
 import { EditWrappedStandardNode } from "../../standardize/baseClasses"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaDescription, isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaEdit, isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaEdit, isSchemaRemove, isSchemaReplace, SchemaRemoveTag } from "@tonylb/mtw-base/ts/schema/edit"
 
 export const extractNameFromContents = (contents: GenericTree<SchemaTag>): GenericTree<SchemaTag> => {
     return contents.map((item) => {
@@ -80,4 +80,50 @@ export const ignoreWrapped = <F extends SchemaTag, C extends SchemaTag>(node: Ed
         return { data: subject.data as F, children: [] }
     }
     return node as unknown as GenericTreeNodeFiltered<F, C>
+}
+
+//
+// RecursiveRemoveWrapped represents a node that may be recursively wrapped in Remove tags
+//
+export type RecursiveRemoveWrapped<V extends SchemaTag> = 
+    | GenericTreeNodeFiltered<V, SchemaTag>
+    | { data: SchemaRemoveTag, children: RecursiveRemoveWrapped<V>[] }
+
+//
+// filterEditableTree filters a schema tree to find nodes matching a typeguard,
+// preserving any Remove wrappers around those nodes
+//
+export const filterEditableTree = <V extends SchemaTag>({ tree, typeguard }: { tree: GenericTree<SchemaTag>; typeguard: (node: GenericTreeNode<SchemaTag>) => node is GenericTreeNodeFiltered<V, SchemaTag> }): RecursiveRemoveWrapped<V>[] => {
+    const result: RecursiveRemoveWrapped<V>[] = []
+    
+    for (const node of tree) {
+        // If this is a Remove node, recursively process its children
+        if (treeNodeTypeguard(isSchemaRemove)(node)) {
+            const filteredChildren = filterEditableTree({ tree: node.children, typeguard })
+            if (filteredChildren.length > 0) {
+                result.push({
+                    data: { tag: 'Remove' as const },
+                    children: filteredChildren
+                })
+            }
+        }
+        // If this node matches the typeguard directly, include it
+        else if (typeguard(node)) {
+            result.push(node)
+        }
+    }
+    
+    return result
+}
+
+export const stripTagFromTree = (tree: GenericTree<SchemaTag>, tag: SchemaTag["tag"]): GenericTree<SchemaTag> => {
+    return tree.map((node) => {
+        if (node.data.tag === tag) {
+            return stripTagFromTree(node.children, tag)
+        }
+        return [{
+            data: node.data,
+            children: stripTagFromTree(node.children, tag)
+        }]
+    }).flat(1)
 }
