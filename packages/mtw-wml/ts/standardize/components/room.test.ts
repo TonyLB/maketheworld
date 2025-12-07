@@ -739,4 +739,97 @@ describe('StandardRoom class', () => {
         })
     })
 
+    describe('invert method', () => {
+        it('should invert a room with shortName, exits, and reference lists', () => {
+            const roomData: StandardRoomData = {
+                key: 'test',
+                tag: 'Room',
+                shortName: 'Test Room',
+                exits: [{ to: { key: 'target' }, description: 'Exit description' }],
+                features: [{ tag: 'Feature', key: 'feat1' }],
+                examples: [{ tag: 'Example', key: 'ex1' }],
+                characters: [{ tag: 'Character', key: 'char1' }]
+            }
+            const room = new StandardRoom(roomData)
+            const inverted = room._payload.invert()
+            
+            // All fields should be inverted (Add → Remove)
+            expect(schemaToWML([inverted.schema('test')])).toEqual(deIndentWML(`
+                <Room key=(test)>
+                    <Remove><ShortName>Test Room</ShortName></Remove>
+                    <Remove><Feature key=(feat1) /></Remove>
+                    <Remove><Example key=(ex1) /></Remove>
+                    <Remove><Character key=(char1) /></Remove>
+                    <Remove><Exit to=(target)>Exit description</Exit></Remove>
+                </Room>
+            `))
+        })
+
+        it('should invert a room with removed references', () => {
+            const roomWithRemoves = new StandardRoom(deIndentWML(`
+                <Room key=(test)>
+                    <ShortName>Test</ShortName>
+                    <Remove><Feature key=(feat1) /></Remove>
+                    <Remove><Example key=(ex1) /></Remove>
+                </Room>
+            `))
+            const inverted = roomWithRemoves._payload.invert()
+            
+            // Inverted room: ShortName becomes Remove, removed references become added
+            expect(schemaToWML([inverted.schema('test')])).toEqual(deIndentWML(`
+                <Room key=(test)>
+                    <Remove><ShortName>Test</ShortName></Remove>
+                    <Feature key=(feat1) />
+                    <Example key=(ex1) />
+                </Room>
+            `))
+        })
+
+        it('should satisfy double-inversion property (invert.invert returns equivalent)', () => {
+            const roomData: StandardRoomData = {
+                key: 'test',
+                tag: 'Room',
+                shortName: 'Test Room',
+                exits: [{ to: { key: 'target' }, description: 'Exit' }],
+                features: [{ tag: 'Feature', key: 'feat1' }],
+                examples: [{ tag: 'Remove', match: { tag: 'Example', key: 'ex1' } }]
+            }
+            const room = new StandardRoom(roomData)
+            const doubleInverted = room._payload.invert().invert()
+            
+            // Double inversion should return to original (within merge equivalence)
+            // We compare JSON output since the objects may not be strictly equal
+            expect(doubleInverted.shortName?.toJSON()).toEqual(room._payload.shortName?.toJSON())
+            expect(doubleInverted.exits.map(e => e.toJSON())).toEqual(room._payload.exits.map(e => e.toJSON()))
+            expect(doubleInverted.features.toJSON()).toEqual(room._payload.features.toJSON())
+            expect(doubleInverted.examples.toJSON()).toEqual(room._payload.examples.toJSON())
+        })
+
+        it('should invert an empty room', () => {
+            const emptyRoom = new StandardRoom(deIndentWML(`<Room key=(test) />`))
+            const inverted = emptyRoom._payload.invert()
+            
+            expect(inverted.shortName).toBeUndefined()
+            expect(inverted.exits).toEqual([])
+            expect(inverted.features.toJSON()).toEqual([])
+            expect(inverted.examples.toJSON()).toEqual([])
+            expect(inverted.characters.toJSON()).toEqual([])
+        })
+
+        it('should invert only the fields that are present', () => {
+            const roomWithOnlyFeatures = new StandardRoom(deIndentWML(`
+                <Room key=(test)>
+                    <Feature key=(feat1) />
+                </Room>
+            `))
+            const inverted = roomWithOnlyFeatures._payload.invert()
+            
+            expect(inverted.shortName).toBeUndefined()
+            expect(inverted.exits).toEqual([])
+            expect(inverted.features.toJSON()).toEqual([{ tag: 'Remove', match: { tag: 'Feature', key: 'feat1' } }])
+            expect(inverted.examples.toJSON()).toEqual([])
+            expect(inverted.characters.toJSON()).toEqual([])
+        })
+    })
+
 })
