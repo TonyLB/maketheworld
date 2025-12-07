@@ -319,4 +319,65 @@ describe('ReferenceList', () => {
             <Remove><Example key=(ex1) /></Remove>
         `))
     })
+    // Reference: See AGENT.referenceList.editAlgebra.md, "ReferenceList Inversion and Algebraic Properties"
+
+    it('should invert a ReferenceList with added references', () => {
+        const room1Ref = new StandardReference({ key: 'room1', tag: 'Room' })
+        const room2Ref = new StandardReference({ key: 'room2', tag: 'Room' })
+        const testList = new ReferenceList([room1Ref, room2Ref])
+        const inverted = testList.invert()
+        
+        // Inverted should have Remove operations for both
+        expect(inverted.toJSON()).toEqual([
+            { tag: 'Remove', match: { key: 'room1', tag: 'Room' } },
+            { tag: 'Remove', match: { key: 'room2', tag: 'Room' } }
+        ])
+    })
+
+    it('should invert a ReferenceList with removed references', () => {
+        const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
+        const removedExample = new StandardReferenceRemove(exampleKey, 'Example')
+        const removedRef = new StandardReference(removedExample)
+        const testList = new ReferenceList([removedRef])
+        const inverted = testList.invert()
+        
+        // Inverted should have Simple (Add) operations
+        expect(inverted.toJSON()).toEqual([
+            { key: 'ex1', tag: 'Example' }
+        ])
+    })
+
+    it('should invert a ReferenceList with mixed references', () => {
+        const room1Ref = new StandardReference({ key: 'room1', tag: 'Room' })
+        const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
+        const removedExample = new StandardReferenceRemove(exampleKey, 'Example')
+        const removedRef = new StandardReference(removedExample)
+        const testList = new ReferenceList([room1Ref, removedRef])
+        const inverted = testList.invert()
+        
+        // Inverted should swap Add and Remove
+        expect(inverted.toJSON()).toEqual([
+            { tag: 'Remove', match: { key: 'room1', tag: 'Room' } },
+            { key: 'ex1', tag: 'Example' }
+        ])
+    })
+
+    it('should satisfy double-inversion property (invert.invert returns equivalent)', () => {
+        const room1Ref = new StandardReference({ key: 'room1', tag: 'Room' })
+        const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
+        const removedExample = new StandardReferenceRemove(exampleKey, 'Example')
+        const removedRef = new StandardReference(removedExample)
+        const testList = new ReferenceList([room1Ref, removedRef])
+        
+        // Double inversion should return to original state
+        const doubleInverted = testList.invert().invert()
+        expect(doubleInverted.toJSON()).toEqual(testList.toJSON())
+    })
+
+    it('should invert an empty ReferenceList to an empty list', () => {
+        const emptyList = new ReferenceList([])
+        const inverted = emptyList.invert()
+        expect(inverted.toJSON()).toEqual([])
+        expect(inverted.payload.length).toBe(0)
+    })
 })
