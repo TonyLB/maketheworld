@@ -6,6 +6,30 @@ This document describes the **abstract concept** of Component types in WML and t
 
 **⚠️ IMPORTANT**: This document describes the **target architecture and design goals** for Components in WML. The current implementation in this directory may not fully match all concepts described here, as the system is in active migration toward these requirements. For current implementation details, see [`AGENT.implementation.md`](./AGENT.implementation.md). For practical usage examples, see [`AGENT.usage.md`](./AGENT.usage.md).
 
+## Getting Started
+
+1. **Start with core component concepts**
+   - **Why**: Understanding what a Component is and how it differs from other WML elements is fundamental to working with the standardization system.
+   - **Read**: The **What is a Component?** and **Core Concepts** sections of this document.
+   - **Focus**: How components have unique identity, support additive merging, and serve dual roles as both references and content definitions.
+
+2. **Understand edit operations and their mathematical properties**
+   - **Why**: Components support invertible edit operations (`Add`, `Remove`, `Replace`), and understanding how these operations merge and interact is crucial for implementing or modifying component behavior.
+   - **Read**: 
+     - [`AGENT.editAlgebra.md`](./AGENT.editAlgebra.md) - Mathematical properties of component edit operations (inversion, reference vs. data payload distinction, non-associativity)
+     - [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md) - Mathematical properties of ReferenceList merge and diff operations (non-associativity, non-idempotency, inversion)
+   - **Focus**: How edits are invertible, how merging works algebraically, and how reference list operations differ from standard algebraic operations.
+
+3. **Review component implementation patterns**
+   - **Why**: Components follow specific architectural patterns for serialization, manipulation, and edit operations.
+   - **Read**: [`AGENT.implementation.md`](./AGENT.implementation.md) for component types, architectural patterns, and testing details.
+   - **Focus**: How StandardComponent classes are structured, how ReferenceList is used, and how components handle serialization vs. manipulation types.
+
+4. **Explore practical usage examples**
+   - **Why**: Concrete examples show how to create, manipulate, and work with components in practice.
+   - **Read**: [`AGENT.usage.md`](./AGENT.usage.md) for practical code examples and usage patterns.
+   - **Focus**: Creating components from WML and JSON, accessing content properties, and character reference patterns.
+
 ## What is a Component?
 
 In WML, a **Component** is a first-class entity that represents a piece of world content. Components have a unique identity (established through `key` and/or `universalKey`) and can appear multiple times throughout a WML asset. All appearances of the same component are automatically merged during standardization, with changes being additive across the entire asset.

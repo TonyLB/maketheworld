@@ -20,6 +20,9 @@ The `standardize` directory contains the `StandardForm` class, which represents 
    - **Why**: Almost everything StandardForm does (`merge()`, `diff()`, `subset()`) is delegated to `StandardComponent` implementations; understanding those makes asset-level behavior predictable.
    - **Read**: [`./components/AGENT.md`](./components/AGENT.md) for the StandardComponent family (Room, Feature, Example, etc.).
    - **Focus**: How components expose `merge()`, `referencedKeys()`, and other operations that StandardForm orchestrates across the asset.
+   - **For edit operations**: If your work involves understanding or modifying how edits (Remove, Replace, Add operations) work, their mathematical properties, or how merging/diffing operates at the component or reference list level, read:
+     - [`./components/AGENT.editAlgebra.md`](./components/AGENT.editAlgebra.md) - Mathematical properties of component edit operations (inversion, reference vs. data payload distinction)
+     - [`./components/AGENT.referenceList.editAlgebra.md`](./components/AGENT.referenceList.editAlgebra.md) - Mathematical properties of ReferenceList merge and diff operations (non-associativity, non-idempotency, inversion)
 
 4. **Anchor on the core StandardForm implementation**
    - **Why**: The public API described here is implemented in a small number of files; reading them shows the real control flow and edge‑case handling.
@@ -35,6 +38,7 @@ The `standardize` directory contains the `StandardForm` class, which represents 
    - **Why**: Tests capture real-world calling patterns and clarify how merge/diff/subset should behave across many components and edge cases.
    - **Read**: `index.test.ts`, `baseClasses.test.ts`, `processComponents.test.ts`, and representative component tests under `components/*.test.ts` (especially `room.test.ts`, `example.test.ts`, and `edits.test.ts`).
    - **Focus**: Concrete examples of asset-level merges, edit components (`Replace`, `Remove`), subset extraction for maps/positions, and how reference changes are expected to appear in diffs.
+   - **For edit operations**: When examining test cases involving `Remove`, `Replace`, or merge/diff operations, refer to [`./components/AGENT.editAlgebra.md`](./components/AGENT.editAlgebra.md) and [`./components/AGENT.referenceList.editAlgebra.md`](./components/AGENT.referenceList.editAlgebra.md) to understand the mathematical properties that govern these operations.
 
 7. **Check integration points and known wrinkles before extending behavior**
    - **Why**: StandardForm sits at the intersection of schema, components, render, and authorization; changes in one place often have subtle effects elsewhere.
