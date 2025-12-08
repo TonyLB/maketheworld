@@ -37,31 +37,24 @@ A component appearance in WML has a **dual nature**: it simultaneously represent
 Using our notation, we can express this as:
 - `{reference: {+room1}, data: {shortName:+name, features:{+feat1}}}` represents a Room reference with content additions
 
-### Remove Operations: Reference vs. Data Impact
+### Component Storage Architecture
 
-The `Remove` operation interacts differently with the reference and data aspects of a component appearance:
+Because component data is architected as independent, invertible, and mergeable properties, we can simplify how component edits are stored:
 
-#### Data Payload Perspective
+#### Storage Principle
 
-From the perspective of the **data payload**, removing data is algebraically equivalent to adding its inverse:
-- Removing `data: {shortName:+old, features:{-feat1} }` is equivalent to adding `data: {shortName:-old, features:{+feat1} }`
+**We do not store `Remove` or `Replace` versions of `StandardComponent` instances.** Instead:
+- Components are always stored as **plain components** with edits applied internally
+- Any `Remove` or `Replace` operations on component content are distributed into the component's individual fields (data tags and reference lists)
+- The only place `Remove` tags are stored in association with components is in the **reference** to the component (within a `ReferenceList`)
 
-This follows from invertibility: removing an item is the same as adding its inverse.
+#### Example: Component-Level Remove
 
-#### Reference Perspective
+When WML contains `<Remove><Room key=(room1)><ShortName>Name</ShortName></Room></Remove>`, we store this as:
+- **Reference**: `{-room1}` in the parent's `ReferenceList` (the Remove tag is stored at the reference level)
+- **Component Data**: A plain `StandardRoom` instance with `{shortName:-name}` (the Remove action is distributed into the ShortName field by inverting the component)
 
-However, from the perspective of the **reference**, there is a fundamental difference between component-level Remove and adding inverted data:
-
-- `{reference: {-room1}, data: {shortName:+name, features:{+feat1}}}` (component-level Remove) - removes the Room reference from the parent (the Room does not appear in the parent's reference list)
-- `{reference: {+room1}, data: {shortName:-name, features:{-feat1}}}` (inverted Add) - keeps the Room reference in the parent, but removes the Feature reference within the Room's data
-
-**Data Impact**: From a data payload perspective, both approaches produce the same merged data result. This follows from inversion: `-{shortName:+name, features:{+feat1}}` equals `{shortName:-name, features:{-feat1}}` (inverting the component's data is equivalent to inverting each field individually).
-
-**Reference Impact**: The reference impact is fundamentally different and cannot be equated through inversion:
-- Component-level Remove: The reference is removed from the parent context (`reference: {-room1}`)
-- Distributed Remove: The reference remains in the parent context (`reference: {+room1}`)
-
-This distinction is crucial: component-level Remove operations affect the reference relationship itself, while distributed Remove operations affect only the data payload within an established reference. The reference behavior cannot be "distributed" - it's an inherent property of the component appearance level.
+This storage approach is algebraically equivalent: removing component data `{shortName:+name}` is equivalent to storing a plain component with `{shortName:-name}`. The key insight is that we normalize to plain components with distributed edits rather than storing wrapper edit operations.
 
 ## Related Documentation
 
