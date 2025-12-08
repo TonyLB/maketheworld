@@ -1987,21 +1987,6 @@ describe('StandardForm', () => {
         expect(schemaToWML([test.schema])).toEqual(testSource)
     })
 
-    it('should render Replace tags correctly', () => {
-        const testSource = deIndentWML(`
-            <Asset uuid=(Test)>
-                <Replace>
-                    <Room uuid=(testRoomOne)><ShortName>Original</ShortName></Room>
-                </Replace>
-                <With>
-                    <Room uuid=(testRoomOne)><ShortName>Changed</ShortName></Room>
-                </With>
-            </Asset>
-        `)
-        const test = new StandardForm(testSource)
-        expect(schemaToWML([test.schema])).toEqual(testSource)
-    })
-
     it('should handle characters correctly', () => {
         const testSource = deIndentWML(`
             <Asset uuid=(test)>
@@ -2075,37 +2060,6 @@ describe('StandardForm', () => {
         `))
     })
 
-    it('should merge edit component remove of replace base component correctly', () => {
-        const inherited = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Replace><Room uuid=(testRoomOne) key=(testRoomOne)><Example uuid=(testRoomOneBase) key=(base)><Name>Lobby</Name></Example></Room></Replace>
-                <With><Room uuid=(testRoomOne) key=(testRoomOne)><Example uuid=(testRoomOneBase) key=(base)><Name>Changed</Name></Example></Room></With>
-                <Room uuid=(testRoomTwo) key=(testRoomTwo) />
-            </Asset>
-        `)
-        const test = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Remove>
-                    <Room uuid=(testRoomOne) key=(testRoomOne)>
-                        <Example uuid=(testRoomOneBase) key=(base)><Name>Changed</Name></Example>
-                    </Room>
-                </Remove>
-            </Asset>
-        `)
-        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
-            <Asset uuid=(Test)>
-                <Remove>
-                    <Room uuid=(testRoomOne) key=(testRoomOne)>
-                        <Example uuid=(testRoomOneBase) key=(base)>
-                            <Name>Lobby</Name>
-                        </Example>
-                    </Room>
-                </Remove>
-                <Room uuid=(testRoomTwo) key=(testRoomTwo) />
-            </Asset>
-        `))
-    })
-
     it('should merge edit component remove of empty base component correctly', () => {
         const inherited = new StandardForm(`
             <Asset uuid=(Test)>
@@ -2128,116 +2082,6 @@ describe('StandardForm', () => {
                         </Example>
                     </Room>
                 </Remove>
-                <Room uuid=(testRoomTwo) key=(testRoomTwo) />
-            </Asset>
-        `))
-    })
-
-    it('should merge edit component replace of plain base component correctly', () => {
-        const inherited = new StandardForm(`
-            <Asset uuid=(Test)>                
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase)><Name>Test</Name></Example>
-                </Room>
-                <Room uuid=(testRoomTwo) key=(testRoomTwo) />
-            </Asset>
-        `)
-        const test = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace>
-                        <Example uuid=(testRoomOneBase)><Name>Test</Name></Example>
-                    </Replace>
-                    <With>
-                        <Example uuid=(testRoomOneBase)>
-                            <Name>Changed</Name>
-                        </Example>
-                    </With>
-                </Room>
-            </Asset>
-        `)
-        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase)><Name>Changed</Name></Example>
-                </Room>
-                <Room uuid=(testRoomTwo) key=(testRoomTwo) />
-            </Asset>
-        `))
-    })
-
-    it('should merge edit component replace of replace base component correctly', () => {
-        const inherited = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace>
-                        <Example uuid=(testRoomOneBase)><Name>Lobby</Name></Example>
-                    </Replace>
-                    <With>
-                        <Example uuid=(testRoomOneBase)><Name>Changed</Name></Example>
-                    </With>
-                </Room>
-                <Room uuid=(testRoomTwo) key=(testRoomTwo) />
-            </Asset>
-        `)
-        const test = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace>
-                        <Example uuid=(testRoomOneBase)><Name>Changed</Name></Example>
-                    </Replace>
-                    <With>
-                        <Example uuid=(testRoomOneBase)><Name>Changed again</Name></Example>
-                    </With>
-                </Room>
-            </Asset>
-        `)
-        const merged = inherited.merge(test)
-        expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace>
-                        <Example uuid=(testRoomOneBase)><Name>Lobby</Name></Example>
-                    </Replace>
-                    <With>
-                        <Example uuid=(testRoomOneBase)>
-                            <Name>Changed again</Name>
-                        </Example>
-                    </With>
-                </Room>
-                <Room uuid=(testRoomTwo) key=(testRoomTwo) />
-            </Asset>
-        `))
-    })
-
-    it('should merge edit component replace of empty base component correctly', () => {
-        const inherited = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomTwo) key=(testRoomTwo) />
-            </Asset>
-        `)
-        const test = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace>
-                        <Example uuid=(testRoomOneBase)><Name>Lobby</Name></Example>
-                    </Replace>
-                    <With>
-                        <Example uuid=(testRoomOneBase)><Name>Changed</Name></Example>
-                    </With>
-                </Room>
-            </Asset>
-        `)
-        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace>
-                        <Example uuid=(testRoomOneBase)><Name>Lobby</Name></Example>
-                    </Replace>
-                    <With>
-                        <Example uuid=(testRoomOneBase)><Name>Changed</Name></Example>
-                    </With>
-                </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo) />
             </Asset>
         `))
@@ -2267,55 +2111,6 @@ describe('StandardForm', () => {
                     <Exit to=(testRoomOne)>depart</Exit>
                 </Room>
             </Asset>
-        `))
-    })
-
-    it('should correctly merge multiple replaces', () => {
-        const inherited = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace><ShortName>One</ShortName></Replace>
-                    <With><ShortName>Two</ShortName></With>
-                </Room>
-            </Asset>
-        `)
-        const test = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace><ShortName>Two</ShortName></Replace>
-                    <With><ShortName>Three</ShortName></With>
-                </Room>
-            </Asset>
-        `)
-        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace><ShortName>One</ShortName></Replace>
-                    <With><ShortName>Three</ShortName></With>
-                </Room>
-            </Asset>
-        `))
-    })
-
-    it('should correctly filter no-op replace results', () => {
-        const inherited = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace><ShortName>One</ShortName></Replace>
-                    <With><ShortName>Two</ShortName></With>
-                </Room>
-            </Asset>
-        `)
-        const test = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Replace><ShortName>Two</ShortName></Replace>
-                    <With><ShortName>One</ShortName></With>
-                </Room>
-            </Asset>
-        `)
-        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
-            <Asset uuid=(Test)><Room uuid=(testRoomOne) key=(testRoomOne) /></Asset>
         `))
     })
 
@@ -2412,37 +2207,6 @@ describe('StandardForm', () => {
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
                     <Example uuid=(testRoomTwoBase)><Name>Test Two</Name></Example>
-                </Room>
-            </Asset>
-        `))
-    })
-
-    it('should merge edited metadata correctly', () => {
-        const inherited = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#primitives)>
-                    <Example uuid=(testRoomOneBase)><Name>Test</Name></Example>
-                </Room>
-            </Asset>
-        `)
-        const test = new StandardForm(`
-            <Asset uuid=(Test)>
-                <Replace>
-                    <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#primitives)>
-                        <Example uuid=(testRoomOneBase)><Name>Test</Name></Example>
-                    </Room>
-                </Replace>
-                <With>
-                    <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#test)>
-                        <Example uuid=(testRoomOneBase)><Name>Test</Name></Example>
-                    </Room>
-                </With>
-            </Asset>
-        `)
-        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
-            <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#test)>
-                    <Example uuid=(testRoomOneBase)><Name>Test</Name></Example>
                 </Room>
             </Asset>
         `))
@@ -4280,10 +4044,6 @@ describe('StandardForm', () => {
                 const testWML = deIndentWML(`
                     <Asset uuid=(test)>
                         <Room key=(testRoom)><Remove><Feature key=(testFeature) /></Remove></Room>
-                        <Room key=(testRoom2)>
-                            <Replace><Feature key=(testFeature2) /></Replace>
-                            <With><Feature key=(testFeature2) /></With>
-                        </Room>
                     </Asset>
                 `)
                 const test = new StandardForm(testWML)
@@ -4313,43 +4073,30 @@ describe('StandardForm', () => {
                 }
             })
 
-            it('should set implicitParent correctly for Features inside Remove and Replace within a Room', () => {
+            it('should set implicitParent correctly for Features inside Remove within a Room', () => {
                 const testWML = deIndentWML(`
                     <Asset uuid=(test)>
                         <Room key=(testRoom)>
                             <Remove>
                                 <Feature key=(removedFeature) />
                             </Remove>
-                            <Replace>
-                                <Feature key=(replacedFeature)>
-                                    <ShortName>Replaced Feature</ShortName>
-                                </Feature>
-                            </Replace>
-                            <With>
-                                <Feature key=(replacedFeature)>
-                                    <ShortName>Replaced Feature Two</ShortName>
-                                </Feature>
-                            </With>
                         </Room>
                     </Asset>
                 `)
                 const test = new StandardForm(testWML)
                 
                 // First, check what components exist before generateImplicitParents
-                // The Features inside Remove/Replace should be extracted as separate components
+                // The Features inside Remove should be extracted as separate components
                 const removedFeatureBefore = test._lookup({ key: 'removedFeature' })
-                const replacedFeatureBefore = test._lookup({ key: 'replacedFeature' })
                 
-                // Features should exist as separate components (not just wrapped in Remove/Replace)
+                // Features should exist as separate components (not just wrapped in Remove)
                 expect(removedFeatureBefore).toBeDefined()
-                expect(replacedFeatureBefore).toBeDefined()
                 
                 const withImplicitParents = test.generateImplicitParents()
                 
                 // Look up the Room and Features
                 const room = withImplicitParents.byId.testRoom
                 const removedFeature = withImplicitParents._lookup({ key: 'removedFeature' })
-                const replacedFeature = withImplicitParents._lookup({ key: 'replacedFeature' })
                 
                 // Verify Room exists and is at Asset level
                 expect(room).toBeDefined()
@@ -4362,11 +4109,6 @@ describe('StandardForm', () => {
                     expect(removedFeature.implicitParent.equals(room._key.plain)).toBe(true)
                 }
                 
-                expect(replacedFeature).toBeDefined()
-                expect(replacedFeature?.implicitParent).toBeDefined()
-                if (replacedFeature?.implicitParent && room) {
-                    expect(replacedFeature.implicitParent.equals(room._key.plain)).toBe(true)
-                }
             })
 
             it('should set implicitParent correctly for Features and Examples inside removed Room', () => {

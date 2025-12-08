@@ -493,6 +493,7 @@ export const mergeWithEdits = (base: StandardComponent, incomingComponent: Stand
                 //
                 if (incomingComponent instanceof StandardReplace) {
                     if (!base.equals(incomingComponent._match)) {
+                        console.log(`Merge conflict in mergeWithEdits: base=${JSON.stringify(base.toJSON(), null, 2)}, incoming=${JSON.stringify(incomingComponent.toJSON(), null, 2)}`)
                         throw new MergeConflictError()
                     }
                     return incomingComponent._payload
