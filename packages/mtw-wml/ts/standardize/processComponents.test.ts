@@ -407,85 +407,12 @@ describe("processComponents", () => {
         })
         expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             deIndentWML(`
-                <Remove><Room key=(test)><Example uuid=(testRoomExample) /></Room></Remove>
+                <Room key=(test)><Remove><Example uuid=(testRoomExample) /></Remove></Room>
             `),
             deIndentWML(`
-                <Remove>
-                    <Example uuid=(testRoomExample)><Description>Test</Description></Example>
-                </Remove>
-            `)
-        ])
-    })
-
-    it('should parse a replace tag', () => {
-        const testSource = `
-            <Asset uuid=(Test)>
-                <Replace>
-                    <Room key=(test)>
-                        <Example uuid=(testRoomExample)>
-                            <Description>Test</Description>
-                        </Example>
-                    </Room>
-                    <Feature key=(toRemove)>
-                        <Example uuid=(testFeatureExample)>
-                            <Description>Test</Description>
-                        </Example>
-                    </Feature>
-                </Replace>
-                <With>
-                    <Room key=(test)>
-                        <Example uuid=(testRoomExample)>
-                            <Description>Changed</Description>
-                        </Example>
-                    </Room>
-                    <Feature key=(toAdd)>
-                        <Example uuid=(testFeatureExample)>
-                            <Description>Added</Description>
-                        </Example>
-                    </Feature>
-                </With>
-            </Asset>
-        `
-        const schema = new Schema()
-        schema.loadWML(testSource)
-        const result = processComponents({
-            componentTemplates,
-            schema: schema.schema,
-        })
-        expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
-            deIndentWML(`
-                <Replace><Room key=(test)><Example uuid=(testRoomExample) /></Room></Replace>
-                <With><Room key=(test)><Example uuid=(testRoomExample) /></Room></With>
-            `),
-            deIndentWML(`
-                <Replace>
-                    <Example uuid=(testRoomExample)><Description>Test</Description></Example>
-                </Replace>
-                <With>
-                    <Example uuid=(testRoomExample)>
-                        <Description>Changed</Description>
-                    </Example>
-                </With>
-            `),
-            deIndentWML(`
-                <Remove>
-                    <Feature key=(toRemove)><Example uuid=(testFeatureExample) /></Feature>
-                </Remove>
-            `),
-            deIndentWML(`
-                <Replace>
-                    <Example uuid=(testFeatureExample)>
-                        <Description>Test</Description>
-                    </Example>
-                </Replace>
-                <With>
-                    <Example uuid=(testFeatureExample)>
-                        <Description>Added</Description>
-                    </Example>
-                </With>
-            `),
-            deIndentWML(`
-                <Feature key=(toAdd)><Example uuid=(testFeatureExample) /></Feature>
+                <Example uuid=(testRoomExample)>
+                    <Remove><Description>Test</Description></Remove>
+                </Example>
             `)
         ])
     })

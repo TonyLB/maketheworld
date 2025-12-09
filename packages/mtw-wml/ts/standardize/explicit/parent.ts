@@ -570,4 +570,21 @@ export class StandardExplicitParent {
         }
         throw new Error('Invalid StandardExplicitParent payload')
     }
+
+    invert(): StandardExplicitParent {
+        if (!this._payload) {
+            // Undefined/empty parent - return as-is (no inversion needed)
+            return new StandardExplicitParent(this)
+        }
+        if (this._payload instanceof StandardExplicitParentSimple) {
+            return new StandardExplicitParent(new StandardExplicitParentRemove(this._payload.payload))
+        }
+        if (this._payload instanceof StandardExplicitParentRemove) {
+            return new StandardExplicitParent(new StandardExplicitParentSimple(this._payload.match))
+        }
+        if (this._payload instanceof StandardExplicitParentReplace) {
+            return new StandardExplicitParent(new StandardExplicitParentReplace(this._payload.payload, this._payload.match))
+        }
+        throw new Error('Invalid StandardExplicitParent payload for invert')
+    }
 }

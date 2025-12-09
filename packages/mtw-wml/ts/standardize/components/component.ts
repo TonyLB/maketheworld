@@ -419,5 +419,18 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             returnValue.explicitParent = explicitParent ? new StandardExplicitParent(explicitParent) : undefined
             return returnValue
         }
+
+        invert(): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this)
+            // Invert payload if it has an invert method
+            if (this._payload.invert) {
+                returnValue._payload = this._payload.invert() as InstanceType<typeof Base>
+            }
+            // Invert explicitParent if it exists
+            if (this.explicitParent) {
+                returnValue.explicitParent = this.explicitParent.invert()
+            }
+            return returnValue as StandardComponent
+        }
     }
 }
