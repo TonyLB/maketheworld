@@ -134,9 +134,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._exits = this._exits.map((exit) => exit.invert() as StandardExit)
         // Invert each ReferenceList
         returnValue._features = this._features.invert()
-        console.log(`examples before invert: ${JSON.stringify(this._examples.toJSON(), null, 4)}`)
         returnValue._examples = this._examples.invert()
-        console.log(`examples after invert: ${JSON.stringify(returnValue._examples.toJSON(), null, 4)}`)
         returnValue._characters = this._characters.invert()
         return returnValue as this
     }

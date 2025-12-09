@@ -4198,7 +4198,6 @@ describe('StandardForm', () => {
 
                 // Room1 has explicitParent = Map1, but implicitParent should be Asset (appears in both maps)
                 expect(room1?.explicitParent).toBeDefined()
-                console.log(`room1 implicitParent: ${JSON.stringify(room1?.implicitParent?.toJSON())}`)
                 expect(room1?.implicitParent).toBeUndefined() // Asset level
 
                 // Room2 should have Map1 as implicitParent

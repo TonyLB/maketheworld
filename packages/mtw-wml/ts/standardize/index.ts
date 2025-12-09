@@ -1225,7 +1225,6 @@ export class StandardForm {
                 }, previous)
             }, [])
 
-        console.log(`returnValue: ${JSON.stringify(returnValue.toJSON(), null, 2)}`)
         return returnValue.generateImplicitParents()
     }
 
@@ -1439,8 +1438,6 @@ export class StandardForm {
                 }
             }, [])
 
-        console.log(`diffedComponents: ${JSON.stringify(diffedComponents.map((component) => (component.toJSON())), null, 2)}`)
-
         //
         // Find components that are not diffed, but appear nested inside of diff components of
         // StandardReplace or StandardRemove form (so that you can match terms completely in the
@@ -1456,8 +1453,6 @@ export class StandardForm {
                     .filter(({ universalKey }) => (!Boolean(previous.find(({ universalKey: existingUniversalKey }) => (existingUniversalKey === universalKey)))))
                 return [...previous, ...nestedComponents]
             }, diffedComponents)
-
-        console.log(`diffedValue.toJSON: ${JSON.stringify(diffedValue.toJSON(), null, 2)}`)
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         diffedValue._metaData = applyEdits(combinedMetaData.tree)
@@ -1504,7 +1499,6 @@ export class StandardForm {
 
         // Generate implicit parents first
         const diffedWithImplicitParents = diffedValue.generateImplicitParents()
-        console.log(`diffedWithImplicitParents.toJSON: ${JSON.stringify(diffedWithImplicitParents.toJSON(), null, 2)}`)
 
         // Calculate topLevel from the diffed components' graph structure
         // Components with no non-Asset parent (explicitParent = ASSET or implicitParent = undefined) should be in topLevel
@@ -1528,7 +1522,6 @@ export class StandardForm {
         const combined = diffedWithImplicitParents._clone()
         combined._topLevel = combinedTopLevel
         const result = combined.generateImplicitParents()
-        console.log(`result.toJSON: ${JSON.stringify(result.toJSON(), null, 2)}`)
         return result
     }
 
