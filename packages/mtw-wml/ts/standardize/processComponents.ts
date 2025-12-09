@@ -2,7 +2,7 @@ import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/baseClasses"
 import { isSchemaComponent, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardKey, StandardReferenceSimple } from "./components/reference"
 import { ReferenceCollection } from "./components/utils/referenceCollection"
@@ -63,10 +63,34 @@ export const processComponents = (props: {
         }
 
         //
-        // Replace tags are not permitted at component level, so we throw an error
+        // Replace tags: Only throw error if they contain component-type tags
+        // Non-component Replace tags (like asset Summary) can be ignored
         //
         if (treeNodeTypeguard(isSchemaReplace)(item)) {
-            throw new Error('Replace tags are not permitted at component level')
+            const match = item.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
+            const payload = item.children.find(treeNodeTypeguard(isSchemaReplacePayload))
+            
+            // Helper function to recursively check if any component tags exist in a tree
+            const hasComponentTag = (nodes: GenericTree<SchemaTag>): boolean => {
+                return nodes.some(node => {
+                    // Check if this node is a component tag
+                    if (componentTemplates.some(template => template.key === node.data.tag)) {
+                        return true
+                    }
+                    // Recursively check children
+                    return hasComponentTag(node.children)
+                })
+            }
+            
+            // Check if either match or payload contains component-type tags
+            const hasComponentInMatch = match ? hasComponentTag(match.children) : false
+            const hasComponentInPayload = payload ? hasComponentTag(payload.children) : false
+            
+            if (hasComponentInMatch || hasComponentInPayload) {
+                throw new Error('Replace tags are not permitted at component level')
+            }
+            // If no component tags found, return empty (non-component Replace tags are ignored)
+            return previous
         }
 
         if (treeNodeTypeguard(isSchemaComponent)(item)) {

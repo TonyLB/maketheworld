@@ -1829,17 +1829,17 @@ describe('StandardForm', () => {
                     <Name>Charlie</Name>
                 </Character>
                 <Room uuid=(room1) key=(room1)>
+                    <Character uuid=(local2) key=(local2)>
+                        <ShortName>Local2</ShortName>
+                        <Name>Local Character 2</Name>
+                    </Character>
+                    <Character key=(char3) />
                     <Remove>
                         <Character uuid=(local1) key=(local1)>
                             <ShortName>Local1</ShortName>
                             <Name>Local Character 1</Name>
                         </Character>
                     </Remove>
-                    <Character uuid=(local2) key=(local2)>
-                        <ShortName>Local2</ShortName>
-                        <Name>Local Character 2</Name>
-                    </Character>
-                    <Character key=(char3) />
                 </Room>
             </Asset>
         `))
@@ -2605,7 +2605,7 @@ describe('StandardForm', () => {
             expect(diff.header.topLevel).toBeDefined()
             // @ts-ignore - accessing private for test
             const topLevelRefs = diff._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
-            expect(topLevelRefs).toContainEqual({ key: 'ex1', tag: 'Example' })
+            expect(topLevelRefs).toContainEqual({ key: 'ex1', universalKey: 'EXAMPLE#ex1' })
         })
 
         describe('Case 2: Explicit Top-Level Component', () => {

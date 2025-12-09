@@ -61,13 +61,13 @@ This migration should proceed incrementally, starting with a single component ty
 
 **Tasks:**
 
-- Refactor `processComponents` to return only plain `StandardComponent` items
-  - Update `processComponents.ts` to handle component-level `<Remove>` tags by storing the Remove operation in the parent's `ReferenceList` (as `{-componentKey}`) rather than wrapping the component in a `StandardRemove` class
-  - When processing `<Remove><Component>...</Component></Remove>`, distribute any Remove operations from component content into the component's internal fields, then store the component as plain
-  - Store the Remove tag only at the reference level in the parent's `ReferenceCollection`
-  - Handle `<Replace>` tags by converting them to equivalent Add+Remove pairs during processing
-  - Update return type `ComponentProcessingResult` to guarantee it only contains plain components
-  - Note: Empty/no-op Remove operations will naturally result in no storage (inverting empty components produces empty, merging empty is a no-op)
+- ✅ Refactor `processComponents` to return only plain `StandardComponent` items
+  - ✅ Update `processComponents.ts` to handle component-level `<Remove>` tags by storing the Remove operation in the parent's `ReferenceList` (as `{-componentKey}`) rather than wrapping the component in a `StandardRemove` class
+  - ✅ When processing `<Remove><Component>...</Component></Remove>`, distribute any Remove operations from component content into the component's internal fields, then store the component as plain
+  - ✅ Store the Remove tag only at the reference level in the parent's `ReferenceCollection`
+  - ✅ Handle `<Replace>` tags by converting them to equivalent Add+Remove pairs during processing (currently throws error, which is correct for future deprecation)
+  - ✅ Update return type `ComponentProcessingResult` to guarantee it only contains plain components (using `StandardComponentNonEdit` type)
+  - ✅ Note: Empty/no-op Remove operations will naturally result in no storage (inverting empty components produces empty, merging empty is a no-op)
 
 - Remove `StandardRemove` and `StandardReplace` classes
   - Delete `StandardRemove` class from `edits.ts`

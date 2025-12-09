@@ -20,7 +20,6 @@ import { StandardLiteral } from "../literal"
 import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { diffStandardExitList, mergeStandardExitList, StandardExit } from "./exit"
-import { StandardReplace } from "./edits"
 import { StandardExplicitParent } from "../explicit"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
@@ -238,42 +237,11 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     }
 
     override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        if (!(incoming instanceof StandardRoom)) {
-            throw new Error('Mismatched component types in diff')
+        const diff = super.diff(incoming)
+        if (diff) {
+            return new StandardRoom(diff as StandardRoom)
         }
-        if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
-            throw new Error('Mismatched universal keys in diff')
-        }
-        if (incoming.key !== this.key) {
-            return new StandardReplace(this, incoming)
-        }
-        // Check explicitParent differences separately
-        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
-        const hasExplicitParentDiff = explicitParentDiff !== undefined
-        const featuresDiff = this.features.diff(incoming.features) ?? new ReferenceList([])
-        const examplesDiff = this.examples.diff(incoming.examples) ?? new ReferenceList([])
-        const charactersDiff = this.characters.diff(incoming.characters) ?? new ReferenceList([])
-        if (deepEqual(this._payload.shortName?.toJSON(), incoming._payload.shortName?.toJSON()) &&
-            !featuresDiff.payload.length &&
-            !examplesDiff.payload.length &&
-            !charactersDiff.payload.length &&
-            !diffStandardExitList(this.exits, incoming.exits).length &&
-            !hasExplicitParentDiff
-        ) {
-            return undefined
-        }
-        const base = this.clone()
-        base._payload = new StandardRoomPayload()
-        base._payload._shortName = this._payload._shortName
-            ? this._payload._shortName.diff(incoming._payload._shortName)
-            : incoming._payload._shortName
-        base._payload._features = featuresDiff
-        base._payload._examples = examplesDiff
-        base._payload._characters = charactersDiff
-        base._payload._exits = diffStandardExitList(this.exits, incoming.exits)
-        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
-        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
-        return base
+        return undefined
     }
 
     override withKey(key: string): StandardComponent {

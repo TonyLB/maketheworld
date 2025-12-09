@@ -988,21 +988,8 @@ export class StandardForm {
         returnValue._metaData = applyEdits(combinedMetaData.tree)
 
         // Merge Asset-level metadata
-        if (this._shortName && incoming._shortName) {
-            returnValue._shortName = this._shortName.merge(incoming._shortName)
-        } else if (incoming._shortName) {
-            returnValue._shortName = incoming._shortName
-        }
-        // Note: if this._shortName exists but incoming._shortName is undefined, 
-        // we keep this._shortName (already set by _clone())
-
-        if (this._summary && incoming._summary) {
-            returnValue._summary = this._summary.merge(incoming._summary)
-        } else if (incoming._summary) {
-            returnValue._summary = incoming._summary
-        }
-        // Note: if this._summary exists but incoming._summary is undefined,
-        // we keep this._summary (already set by _clone())
+        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._summary = (this._summary && incoming._summary) ? this._summary.merge(incoming._summary) : this._summary ?? incoming._summary
 
         return returnValue.generateImplicitParents()
     }

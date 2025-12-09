@@ -21,7 +21,6 @@ import { isSchemaTreeNode, nodeFromWML } from "../../schema";
 import { AssetUUID, ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
-import { StandardReplace } from "./edits";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
@@ -220,6 +219,13 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         }
 
         nestedSchema(lookup: (value: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+
+            const { removeContext } = options
+
+            if (removeContext) {
+                return this.invert()?.nestedSchema(lookup, { ...options, key: this._key, parent: options.parent, removeContext: false })
+            }
+            
             // Check if component should be rendered based on implicitParent
             // Component should be rendered if:
             //   (a) It has no implicitParent and we are rendering the asset (expectedParent === undefined), OR
@@ -337,6 +343,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
                 throw new Error(`Mismatched universalKeys in StandardComponent diff (${this.key} vs ${incoming.key})`)
             }
+            // Keys must match for diff to be meaningful
+            if (this.key && incoming.key && this.key !== incoming.key) {
+                throw new Error(`Mismatched keys in StandardComponent diff (${this.key} vs ${incoming.key})`)
+            }
             // Check explicitParent differences separately
             const explicitParentDiff = this.explicitParent?.diff((incoming as any).explicitParent)
             const hasExplicitParentDiff = explicitParentDiff !== undefined
@@ -352,15 +362,26 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (otherDiff && !hasExplicitParentDiff) {
                 return undefined
             }
-            // Otherwise create a diff
-            // TODO: Future enhancement - could use buildComponentGraph to determine cascade-delete behavior
-            // based on whether components appear with other parents that still have connections.
-            const diffComponent = new StandardReplace(this, incoming)
-            // Apply explicitParent diff to the diff component (pass pre-computed diff to avoid recalculation)
-            if (diffComponent) {
-                this._applyExplicitParentDiffToComponent(diffComponent, incoming, explicitParentDiff)
+            // Otherwise create a diff using edit algebra: diff(a, b) = b.merge(a.invert())
+            // Create a new plain component with diffed payload
+            const base = this.clone() as GeneratedComponentClass
+            // Use merge/invert approach if invert() is available, otherwise fall back to incoming component
+            if (this.invert && incoming.merge) {
+                const inverted = this.invert()
+                const merged = incoming.merge(inverted)
+                if (merged) {
+                    base._payload = (merged as any)._payload
+                } else {
+                    // Merge resulted in no-op, return undefined
+                    return undefined
+                }
+            } else {
+                // Fallback: use incoming component's payload (this is a simple diff approximation)
+                base._payload = (incoming as any)._payload
             }
-            return diffComponent
+            // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
+            this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
+            return base as StandardComponent
         }
 
         subset(options: StandardFormSubsetRequest): StandardComponent {
