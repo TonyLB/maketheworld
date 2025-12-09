@@ -27,6 +27,7 @@ import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTyp
 import StandardReference, { StandardKey, StandardReferenceSimple } from "./reference";
 import { StandardExplicitParent } from "../explicit";
 import SchemaTagTree from "../../tagTree/schema";
+import { StandardExplicitParentSimpleBase } from "../explicit/parent";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -223,24 +224,24 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             const { removeContext } = options
 
             if (removeContext) {
-                return this.invert()?.nestedSchema(lookup, { ...options, key: this._key, parent: options.parent, removeContext: false })
+                return this.invert()?.nestedSchema(lookup, { ...options, removeContext: false })
             }
             
-            // Check if component should be rendered based on implicitParent
-            // Component should be rendered if:
-            //   (a) It has no implicitParent and we are rendering the asset (expectedParent === undefined), OR
-            //   (b) It has an implicitParent and we're rendering in the context of that parent (implicitParent matches expectedParent)
-            const expectedParent = options.parent
+            // Check if component should be rendered based on its explicit and implicit parents:
+            //   (a) It has no ex/implicitParent and we are rendering the asset (expectedParent === undefined), OR
+            //   (b) It has an ex/implicitParent and we're rendering in the context of that parent (ex/implicitParent matches expectedParent)
+            const renderingParent = options.parent
             
+            const explicitParentKey = this.explicitParent?.standardKey
             // Get implicit parent as StandardKey (works both before and after finalize)
-            const implicitParentKey: StandardKey | undefined = this._implicitParent
+            const positionalParentKey: StandardKey | undefined = explicitParentKey ? explicitParentKey === 'ASSET' ? undefined : new StandardKey(explicitParentKey) : this._implicitParent
             
             // Determine if we should render:
             // - If expectedParent is undefined, render only if component is Asset-level (no implicit parent)
             // - If expectedParent is set, render only if component has implicitParent and it matches expectedParent
-            const shouldRender = typeof expectedParent === 'undefined'
-                ? typeof implicitParentKey === 'undefined'  // Asset-level rendering: only render if component is also Asset-level
-                : implicitParentKey?.equals(expectedParent)  // Nested rendering: only render if parent matches
+            const shouldRender = typeof renderingParent === 'undefined'
+                ? typeof positionalParentKey === 'undefined'  // Asset-level rendering: only render if component is also Asset-level
+                : positionalParentKey?.equals(renderingParent)  // Nested rendering: only render if parent matches
             
             if (!shouldRender) {
                 const reference = new StandardReference(new StandardReferenceSimple(this._key, this.tag)).toFormat('key')
