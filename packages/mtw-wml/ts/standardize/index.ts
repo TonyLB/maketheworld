@@ -1241,7 +1241,10 @@ export class StandardForm {
                 }, previous)
             }, [])
 
-        return returnValue.generateImplicitParents()
+        const withImplicitParents = returnValue.generateImplicitParents()
+        withImplicitParents._topLevel = new ReferenceList((withImplicitParents._topLevel?.payload ?? [])
+            .filter((reference) => (withImplicitParents._lookup(reference.plain().standardKey.toJSON()) !== undefined)))
+        return withImplicitParents
     }
 
     renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }[]): StandardForm {
