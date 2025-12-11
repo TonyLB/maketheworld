@@ -97,7 +97,6 @@ export const processComponents = (props: {
             const template = componentTemplates.find(({ key }) => (key === item.data.tag))
             if (template) {
 
-                console.log(`item: ${JSON.stringify(item, null, 4)}`)
                 const component = standardComponentFactory(item)
 
                 //
@@ -127,9 +126,7 @@ export const processComponents = (props: {
                 //
                 // Track if this component is at Asset level (topLevel)
                 //
-                console.log(`ancestorTags(${JSON.stringify(component.toJSON(), null, 4)}): ${JSON.stringify(ancestorTags, null, 4)}`)
                 const isTopLevel = ancestorTags.length === 0 && assetUUID
-                console.log(`isTopLevel: ${isTopLevel}`)
 
                 // Process children recursively
                 // Component tag is always a ComponentTag (not 'Remove' or 'Replace') since we only store plain components

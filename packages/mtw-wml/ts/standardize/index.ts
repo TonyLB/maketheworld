@@ -370,7 +370,7 @@ export class StandardForm {
                     const findComponentIndex = target._components.findIndex((component) => (component.key === prop))
                     if (findComponentIndex === -1) {
                         target._components.push(value)
-                        target._topLevel = new ReferenceList([...(target._topLevel?.payload ?? []), new StandardReference({ key: prop, tag: value.universalKey })])
+                        target._topLevel = new ReferenceList([...(target._topLevel?.payload ?? []), new StandardReference({ key: prop, universalKey: value.universalKey, tag: value.tag })])
                     }
                     else {
                         target._components = [
@@ -939,10 +939,14 @@ export class StandardForm {
             return this._lookup(key.toJSON())
         }
 
-        const children = (this._topLevel?.payload ?? [])
-            .sort((referenceA, referenceB) => (standardComponentSortOrder(referenceA.plain().standardKey, referenceB.plain().standardKey, lookup)))
+        const remapped = this._clone()
+        const mapKeys = remapped._components.map((component) => (component._key))
+        remapped._components = remapped._components.map((component) => (component.withMapping(mapKeys).remapReferences('key')))
+
+        const children = (remapped._topLevel?.payload ?? [])
+            .sort((referenceA, referenceB) => (standardComponentSortOrder(referenceA.plain(), referenceB.plain(), lookup)))
             .map((reference) => {
-                const component = this._lookup(reference.plain().standardKey.toJSON())
+                const component = remapped._lookup(reference.plain().standardKey.toJSON())
                 if (!component) return []
                 const schema = component.nestedSchema(lookupWrapper, { parent: undefined })
                 if (reference._payload instanceof StandardReferenceRemove) {
