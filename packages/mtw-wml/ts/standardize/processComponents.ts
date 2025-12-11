@@ -4,7 +4,7 @@ import { StandardComponent } from "./components/baseClasses"
 import { isSchemaComponent, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { ComponentTag } from "./components/dataTypes/abstract"
-import { StandardKey, StandardReferenceSimple } from "./components/reference"
+import { StandardReferenceSimple, StandardReferenceRemove, ReferenceList } from "./components/reference"
 import { ReferenceCollection } from "./components/utils/referenceCollection"
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists"
 
@@ -24,7 +24,7 @@ export type StandardComponentNonEdit = StandardComponent & {
 
 export type ComponentProcessingResult = {
     components: StandardComponentNonEdit[];
-    topLevel: StandardKey[];
+    topLevel: ReferenceList;
     referenceCollection: ReferenceCollection;
 }
 
@@ -58,7 +58,7 @@ export const processComponents = (props: {
             const removeResult = processComponents({ ...props, schema: item.children, inContextOfRemove: !(inContextOfRemove ?? false) })
             return {
                 components: [...previous.components, ...removeResult.components],
-                topLevel: [...previous.topLevel, ...removeResult.topLevel]
+                topLevel: previous.topLevel.merge(removeResult.topLevel) ?? new ReferenceList([])
             }
         }
 
@@ -97,6 +97,7 @@ export const processComponents = (props: {
             const template = componentTemplates.find(({ key }) => (key === item.data.tag))
             if (template) {
 
+                console.log(`item: ${JSON.stringify(item, null, 4)}`)
                 const component = standardComponentFactory(item)
 
                 //
@@ -126,7 +127,9 @@ export const processComponents = (props: {
                 //
                 // Track if this component is at Asset level (topLevel)
                 //
+                console.log(`ancestorTags(${JSON.stringify(component.toJSON(), null, 4)}): ${JSON.stringify(ancestorTags, null, 4)}`)
                 const isTopLevel = ancestorTags.length === 0 && assetUUID
+                console.log(`isTopLevel: ${isTopLevel}`)
 
                 // Process children recursively
                 // Component tag is always a ComponentTag (not 'Remove' or 'Replace') since we only store plain components
@@ -137,20 +140,34 @@ export const processComponents = (props: {
                     componentContext: [...componentContext, componentTag]
                 })
 
+                // Build topLevel ReferenceList
+                let updatedTopLevel = previous.topLevel
+                if (isTopLevel) {
+                    // Create appropriate reference based on Remove context
+                    const referenceData = plainComponent.referenceData
+                    const reference = inContextOfRemove
+                        ? new StandardReferenceRemove({ tag: 'Remove', match: referenceData })
+                        : new StandardReferenceSimple(referenceData)
+                    
+                    const topLevelReferenceList = new ReferenceList([reference])
+                    const merged = previous.topLevel.merge(topLevelReferenceList)
+                    updatedTopLevel = merged ?? new ReferenceList([])
+                }
+
+                const finalTopLevel = updatedTopLevel.merge(childrenResult.topLevel) ?? new ReferenceList([])
+
                 return {
                     components: [...previous.components, plainComponent, ...childrenResult.components],
-                    topLevel: isTopLevel 
-                        ? [...previous.topLevel, localizedComponent._key.plain]
-                        : previous.topLevel
+                    topLevel: finalTopLevel
                 }
             }
         }
         const childrenResult = processComponents({ ...props, schema: item.children })
         return {
             components: [...previous.components, ...childrenResult.components],
-            topLevel: [...previous.topLevel, ...childrenResult.topLevel]
+            topLevel: previous.topLevel.merge(childrenResult.topLevel) ?? new ReferenceList([])
         }
-    }, { components: [], topLevel: [] })
+    }, { components: [], topLevel: new ReferenceList([]) })
 
     // Build ReferenceCollection from all components
     const references = recursiveResult.components

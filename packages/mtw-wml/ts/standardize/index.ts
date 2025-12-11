@@ -270,10 +270,10 @@ export class StandardForm {
                     .reduce<StandardComponent[]>(mergeToComponentList(universalKeyMappings), [])
                     
                 // Populate topLevel from processComponents result
-                if (topLevelKeys.length > 0) {
-                    // Convert StandardKeys to reference format
-                    const topLevelReferences = topLevelKeys.map(key => {
-                        const component = this._lookup(key.toJSON())
+                if (topLevelKeys.payload.length > 0) {
+                    // Match topLevelKeys to component keys
+                    const topLevelReferences = topLevelKeys.payload.map(key => {
+                        const component = this._lookup(key.plain().standardKey.toJSON())
                         if (component) {
                             return component.referenceData
                         }
@@ -370,6 +370,7 @@ export class StandardForm {
                     const findComponentIndex = target._components.findIndex((component) => (component.key === prop))
                     if (findComponentIndex === -1) {
                         target._components.push(value)
+                        target._topLevel = new ReferenceList([...(target._topLevel?.payload ?? []), new StandardReference({ key: prop, tag: value.universalKey })])
                     }
                     else {
                         target._components = [
@@ -859,6 +860,7 @@ export class StandardForm {
                     const findComponentIndex = target._components.findIndex((component) => (component.universalKey === prop))
                     if (findComponentIndex === -1) {
                         target._components.push(value)
+                        target._topLevel = new ReferenceList([...(target._topLevel?.payload ?? []), new StandardReference({ key: value.key, universalKey: prop })])
                     }
                     else {
                         target._components = [
@@ -929,10 +931,6 @@ export class StandardForm {
                 implicitParent: component.implicitParent
             }
         }
-        const sortedChildren = this._components
-            .filter((component) => ((component.explicitParent && component.explicitParent._payload?.plain?.data === 'ASSET') || component.implicitParent === undefined))
-            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, lookup)))
-        const mapKeys = this._components.map(({ _key }) => (_key.plain))
         const lookupWrapper = (key: string | StandardKey): StandardComponent | undefined => {
             if (typeof key === 'string') {
                 // String is assumed to be ComponentUUID (part of StandardKeyData)
@@ -940,8 +938,22 @@ export class StandardForm {
             }
             return this._lookup(key.toJSON())
         }
-        const children = sortedChildren
-            .map((component) => (component.withMapping(mapKeys).remapReferences('key').nestedSchema(lookupWrapper, { parent: undefined })))
+
+        const children = (this._topLevel?.payload ?? [])
+            .sort((referenceA, referenceB) => (standardComponentSortOrder(referenceA.plain().standardKey, referenceB.plain().standardKey, lookup)))
+            .map((reference) => {
+                const component = this._lookup(reference.plain().standardKey.toJSON())
+                if (!component) return []
+                const schema = component.nestedSchema(lookupWrapper, { parent: undefined })
+                if (reference._payload instanceof StandardReferenceRemove) {
+                    return [{
+                        data: { tag: 'Remove' as const },
+                        children: [schema]
+                    }]
+                }
+                return [schema]
+            }).flat(1)
+
         return {
             data: { tag: 'Asset', uuid: this._universalKey, Story: undefined },
             children: [

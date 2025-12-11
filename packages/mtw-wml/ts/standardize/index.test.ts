@@ -5,7 +5,7 @@ import { GenericTree, GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag, AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from './components/room'
 import StandardCharacter from './components/character'
-import { StandardKey, ReferenceList } from './components/reference'
+import StandardReference, { StandardKey, ReferenceList } from './components/reference'
 import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 import StandardFeature from './components/feature'
 import StandardExample from './components/example'
@@ -2698,7 +2698,7 @@ describe('StandardForm', () => {
                 expect(diff.header.topLevel).toBeDefined()
                 // @ts-ignore - accessing private for test
                 const topLevelRefs = diff._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
-                expect(topLevelRefs).toContainEqual({ key: 'ex1', tag: 'Example' })
+                expect(topLevelRefs).toContainEqual({ key: 'ex1', universalKey: 'EXAMPLE#ex1' })
             })
 
             it('should merge diff with Parent tag and reference removal correctly', () => {
@@ -2728,10 +2728,10 @@ describe('StandardForm', () => {
                 // Expected: Component at Asset-level, Room's reference removed, in topLevel
                 expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
-                        <Room uuid=(room1) key=(room1) />
                         <Example uuid=(ex1) key=(ex1)>
                             <Name>Top-Level Example</Name>
                         </Example>
+                        <Room uuid=(room1) key=(room1) />
                     </Asset>
                 `))
                 
@@ -2818,6 +2818,7 @@ describe('StandardForm', () => {
                     </Asset>
                 `))
                 const merged = base.merge(diff)
+                console.log(`merged: ${JSON.stringify(merged.toJSON(), null, 4)}`)
                 
                 // Expected: Component nested under Room, removed from topLevel
                 expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`

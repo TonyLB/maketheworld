@@ -1,9 +1,8 @@
-import { objectMap } from "../lib/objects"
 import { Schema, schemaToWML } from "../schema"
 import { deIndentWML } from "../schema/utils"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import StandardRoom from "./components/room"
-import { StandardKey } from "./components/reference"
+import { StandardKey, StandardReferenceSimple, StandardReferenceRemove } from "./components/reference"
 
 const componentTemplates: ComponentProcessingTemplate[] = [
     { 
@@ -41,7 +40,7 @@ describe("processComponents", () => {
             schema: schema.schema,
         })
         expect(result.components).toEqual([])
-        expect(result.topLevel).toEqual([])
+        expect(result.topLevel.payload).toEqual([])
     })
 
     it('should parse a provided schema', () => {
@@ -437,6 +436,106 @@ describe("processComponents", () => {
         const roomComponent = result.components.find(({ key }) => (key === 'testRoom'))
         expect(roomComponent).toBeDefined()        
         expect(schemaToWML([roomComponent!.schema])).toBe('<Room key=(testRoom)><Character key=(testCharacter) /></Room>')
+    })
+
+    describe('topLevel ReferenceList', () => {
+        it('should populate topLevel with asset-level components', () => {
+            const testSource = `
+                <Asset uuid=(Test)>
+                    <Room key=(room1) />
+                    <Room key=(room2) />
+                    <Feature key=(feature1) />
+                </Asset>
+            `
+            const schema = new Schema()
+            schema.loadWML(testSource)
+            const result = processComponents({
+                componentTemplates,
+                schema: schema.schema,
+                assetUUID: 'ASSET#Test'
+            })
+            
+            // Should have 3 top-level components
+            expect(result.topLevel.payload.length).toBe(3)
+            
+            // Check that all are StandardReferenceSimple (not Remove)
+            const topLevelKeys = result.topLevel.payload.map(ref => {
+                expect(ref._payload).toBeInstanceOf(StandardReferenceSimple)
+                return ref.plain().standardKey.toJSON()
+            })
+            
+            expect(topLevelKeys).toContainEqual({ key: 'room1' })
+            expect(topLevelKeys).toContainEqual({ key: 'room2' })
+            expect(topLevelKeys).toContainEqual({ key: 'feature1' })
+        })
+
+        it('should not include nested components in topLevel', () => {
+            const testSource = `
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Feature key=(feature1) />
+                        <Example uuid=(example1) />
+                    </Room>
+                </Asset>
+            `
+            const schema = new Schema()
+            schema.loadWML(testSource)
+            const result = processComponents({
+                componentTemplates,
+                schema: schema.schema,
+                assetUUID: 'ASSET#Test'
+            })
+            
+            // Should only have Room in topLevel, not Feature or Example
+            expect(result.topLevel.payload.length).toBe(1)
+            const topLevelKey = result.topLevel.payload[0].plain().standardKey.toJSON()
+            expect(topLevelKey).toEqual({ key: 'room1' })
+        })
+
+        it('should create Remove references in topLevel for components in Remove context', () => {
+            const testSource = `
+                <Asset uuid=(Test)>
+                    <Room key=(room1) />
+                    <Remove>
+                        <Room key=(room2) />
+                    </Remove>
+                </Asset>
+            `
+            const schema = new Schema()
+            schema.loadWML(testSource)
+            const result = processComponents({
+                componentTemplates,
+                schema: schema.schema,
+                assetUUID: 'ASSET#Test'
+            })
+            
+            // Should have room1 as Simple and room2 as Remove
+            expect(result.topLevel.payload.length).toBe(2)
+            
+            const room1Ref = result.topLevel.payload.find(ref => ref.plain().key === 'room1')
+            expect(room1Ref?._payload).toBeInstanceOf(StandardReferenceSimple)
+            
+            const room2Ref = result.topLevel.payload.find(ref => ref.plain().key === 'room2')
+            expect(room2Ref?._payload).toBeInstanceOf(StandardReferenceRemove)
+        })
+
+        it('should return empty ReferenceList when no assetUUID provided', () => {
+            const testSource = `
+                <Asset uuid=(Test)>
+                    <Room key=(room1) />
+                </Asset>
+            `
+            const schema = new Schema()
+            schema.loadWML(testSource)
+            const result = processComponents({
+                componentTemplates,
+                schema: schema.schema
+                // No assetUUID
+            })
+            
+            // Should be empty since no assetUUID means components aren't top-level
+            expect(result.topLevel.payload.length).toBe(0)
+        })
     })
 
     describe('referenceCollection', () => {
