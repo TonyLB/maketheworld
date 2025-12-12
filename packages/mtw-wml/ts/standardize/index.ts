@@ -842,7 +842,16 @@ export class StandardForm {
 
             returnValue._components = returnValue._components.map(component => {
                 if (keysToUpdate.some(key => key.equals(component._key.plain))) {
-                    return component.withImplicitParent(implicitParentKey)
+                    const returnComponent = component.withImplicitParent(implicitParentKey)
+                    const explicitParentKeyRedundant = component.explicitParent?._payload instanceof StandardExplicitParentSimple &&
+                        (
+                            (implicitParentKey === undefined && component.explicitParent?._payload.payload.data === 'ASSET') ||
+                            (implicitParentKey !== undefined && component.explicitParent?._payload.payload.data instanceof StandardKey && component.explicitParent?._payload.payload.data.equals(implicitParentKey))
+                        )
+                    if (explicitParentKeyRedundant) {
+                        returnComponent.explicitParent = undefined
+                    }
+                    return returnComponent
                 }
                 return component
             })

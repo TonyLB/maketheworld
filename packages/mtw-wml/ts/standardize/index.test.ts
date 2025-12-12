@@ -708,36 +708,18 @@ describe('StandardForm', () => {
             metaData: [],
             components: [
                 {
-                    tag: 'Replace',
-                    key: 'testRoom',
-                    universalKey: 'ROOM#testRoom',
-                    match: {
-                        tag: 'Room',
-                        key: 'testRoom',
-                        universalKey: 'ROOM#testRoom',
-                    },
-                    payload: {
-                        tag: 'Room',
-                        key: 'testRoom',
-                        exits: [{ to: { key: 'testRoomTwo' }, description: 'out' }],
-                    }
-                },
-                {
-                    tag: 'Remove',
+                    tag: 'Room',
                     key: 'testRoomTwo',
                     universalKey: 'ROOM#testRoomTwo',
-                    component: {
-                        tag: 'Room',
-                        key: 'testRoomTwo',
-                        universalKey: 'ROOM#testRoomTwo',
-                    }
                 }
-            ]
+            ],
+            topLevel: [{
+                tag: 'Remove',
+                match: 'ROOM#testRoomTwo'
+            }]
         })
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
             <Asset uuid=(test)>
-                <Replace><Room uuid=(testRoom) key=(testRoom) /></Replace>
-                <With><Room key=(testRoom)><Exit to=(testRoomTwo)>out</Exit></Room></With>
                 <Remove><Room uuid=(testRoomTwo) key=(testRoomTwo) /></Remove>
             </Asset>
         `))
@@ -2682,9 +2664,7 @@ describe('StandardForm', () => {
                 // Expected: Component at Asset-level, Room's reference removed, in topLevel
                 expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
-                        <Example uuid=(ex1) key=(ex1)>
-                            <Name>Top-Level Example</Name>
-                        </Example>
+                        <Example uuid=(ex1) key=(ex1)><Name>Top-Level Example</Name></Example>
                         <Room uuid=(room1) key=(room1) />
                     </Asset>
                 `))
@@ -2705,7 +2685,7 @@ describe('StandardForm', () => {
                 expect(merged.header.topLevel).toBeDefined()
                 // @ts-ignore - accessing private for test
                 const topLevelRefs = merged._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
-                expect(topLevelRefs).toContainEqual({ key: 'ex1', tag: 'Example' })
+                expect(topLevelRefs).toContainEqual({ key: 'ex1', universalKey: 'EXAMPLE#ex1' })
             })
         })
 
@@ -2778,9 +2758,7 @@ describe('StandardForm', () => {
                 expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1)>
-                            <Example uuid=(ex1) key=(ex1)>
-                                <Name>Now nested</Name>
-                            </Example>
+                            <Example uuid=(ex1) key=(ex1)><Name>Now nested</Name></Example>
                         </Room>
                     </Asset>
                 `))
