@@ -20,7 +20,7 @@ export type StandardComponentReferenceKey = {
 export type NestedSchemaOptions = {
     key: StandardKey;
     parent?: StandardKey;  // Parent component StandardKey (undefined for Asset-level rendering)
-    removeContext?: boolean;  // If true, return nestedSchema without Remove wrapper
+    removeContext?: boolean;  // If true, nestedSchema will invert its contents for display in a remove context
 }
 
 export type StandardDiffOptions = {

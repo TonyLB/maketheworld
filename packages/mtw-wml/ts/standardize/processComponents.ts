@@ -1,11 +1,10 @@
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardComponent } from "./components/baseClasses"
-import { StandardRemove, StandardReplace } from "./components/edits"
 import { isSchemaComponent, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { ComponentTag } from "./components/dataTypes/abstract"
-import { StandardKey, StandardReferenceSimple } from "./components/reference"
+import { StandardReferenceSimple, StandardReferenceRemove, ReferenceList } from "./components/reference"
 import { ReferenceCollection } from "./components/utils/referenceCollection"
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists"
 
@@ -14,9 +13,18 @@ export type ComponentProcessingTemplate = {
     legalParents?: (ComponentTag | 'Asset')[];
 }
 
+// Non-edit component type - excludes components wrapped in Remove or Replace
+// Matches the pattern of StandardComponentNonEditData for data types
+//
+// TEMPORARY: This is a temporary type to allow us to store non-edit components in the ComponentProcessingResult,
+// pending the removal of component-level edit as an option.
+export type StandardComponentNonEdit = StandardComponent & {
+    tag: ComponentTag;
+}
+
 export type ComponentProcessingResult = {
-    components: StandardComponent[];
-    topLevel: StandardKey[];
+    components: StandardComponentNonEdit[];
+    topLevel: ReferenceList;
     referenceCollection: ReferenceCollection;
 }
 
@@ -44,61 +52,45 @@ export const processComponents = (props: {
 
     const recursiveResult = schema.reduce<Omit<ComponentProcessingResult, 'referenceCollection'>>((previous, item) => {
         //
-        // If the item is a remove, set inContextOfRemove to true
+        // If the item is a remove, invert inContextOfRemove
         //
         if (treeNodeTypeguard(isSchemaRemove)(item)) {
-            const removeResult = processComponents({ ...props, schema: item.children, inContextOfRemove: true })
+            const removeResult = processComponents({ ...props, schema: item.children, inContextOfRemove: !(inContextOfRemove ?? false) })
             return {
                 components: [...previous.components, ...removeResult.components],
-                topLevel: [...previous.topLevel, ...removeResult.topLevel]
+                topLevel: previous.topLevel.merge(removeResult.topLevel) ?? new ReferenceList([])
             }
         }
 
         //
-        // If the item is a replace, manually create byId entries for the ReplaceMatch and ReplacePayload entries,
-        // then use objectMerge to generate a key-by-key comparison of the two:
-        //    - If the key is present in both, merge a StandardReplace entry
-        //    - If the key is present only in the ReplaceMatch, merge a StandardRemove entry
-        //    - If the key is present only in the ReplacePayload, merge the StandardComponent entry
+        // Replace tags: Only throw error if they contain component-type tags
+        // Non-component Replace tags (like asset Summary) can be ignored
         //
         if (treeNodeTypeguard(isSchemaReplace)(item)) {
-            const replaceMatch = item.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
-            const replacePayload = item.children.find(treeNodeTypeguard(isSchemaReplacePayload))
-            if (replaceMatch && replacePayload) {
-                const matchResult = processComponents({ ...props, schema: replaceMatch.children })
-                const payloadResult = processComponents({ ...props, schema: replacePayload.children })
-                //
-                // TODO: In order to merge the two lists, we need to create a zippered list of the two,
-                // matching by StandardKey.
-                //
-                const mergedComponents = [
-                    ...(matchResult.components.map((item) => {
-                        const payloadMatch = payloadResult.components.find(({ _key }) => (_key.equals(item._key)))
-                        return { matchComponent: item, payloadComponent: payloadMatch }
-                    })),
-                    ...(payloadResult.components
-                        .filter(({ _key }) => (!matchResult.components.some(({ _key: matchKey }) => (matchKey.equals(_key)))))
-                        .map((item) => ({ matchComponent: undefined, payloadComponent: item }))
-                    )
-                ]
-                const replaceComponents = mergedComponents.reduce<StandardComponent[]>((previous, { matchComponent, payloadComponent }) => {
-                    if (matchComponent && payloadComponent) {
-                        return [...previous, new StandardReplace(matchComponent, payloadComponent)]
+            const match = item.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
+            const payload = item.children.find(treeNodeTypeguard(isSchemaReplacePayload))
+            
+            // Helper function to recursively check if any component tags exist in a tree
+            const hasComponentTag = (nodes: GenericTree<SchemaTag>): boolean => {
+                return nodes.some(node => {
+                    // Check if this node is a component tag
+                    if (componentTemplates.some(template => template.key === node.data.tag)) {
+                        return true
                     }
-                    if (matchComponent) {
-                        return [...previous, new StandardRemove(matchComponent)]
-                    }
-                    if (payloadComponent) {
-                        return [...previous, payloadComponent]
-                    }
-                    return previous
-                }, [])
-                return {
-                    components: [...previous.components, ...replaceComponents],
-                    topLevel: [...previous.topLevel, ...matchResult.topLevel, ...payloadResult.topLevel]
-                }
+                    // Recursively check children
+                    return hasComponentTag(node.children)
+                })
             }
-            throw new Error('Replace must have both a ReplaceMatch and a ReplacePayload')
+            
+            // Check if either match or payload contains component-type tags
+            const hasComponentInMatch = match ? hasComponentTag(match.children) : false
+            const hasComponentInPayload = payload ? hasComponentTag(payload.children) : false
+            
+            if (hasComponentInMatch || hasComponentInPayload) {
+                throw new Error('Replace tags are not permitted at component level')
+            }
+            // If no component tags found, return empty (non-component Replace tags are ignored)
+            return previous
         }
 
         if (treeNodeTypeguard(isSchemaComponent)(item)) {
@@ -125,7 +117,11 @@ export const processComponents = (props: {
                 //
                 const localizedComponent = component
 
-                const editWrappedComponent = inContextOfRemove ? new StandardRemove(localizedComponent) : localizedComponent
+                // Invert component if in Remove context - this distributes Remove operations into component fields
+                // Result is always a non-edit component (not wrapped in Remove/Replace)
+                const plainComponent: StandardComponentNonEdit = (inContextOfRemove && localizedComponent.invert) 
+                    ? localizedComponent.invert() as StandardComponentNonEdit 
+                    : localizedComponent as StandardComponentNonEdit
 
                 //
                 // Track if this component is at Asset level (topLevel)
@@ -133,30 +129,42 @@ export const processComponents = (props: {
                 const isTopLevel = ancestorTags.length === 0 && assetUUID
 
                 // Process children recursively
-                // Get tag from component (filter out 'Remove' and 'Replace' for edit-wrapped components)
-                const componentTag = editWrappedComponent.tag && editWrappedComponent.tag !== 'Remove' && editWrappedComponent.tag !== 'Replace'
-                    ? editWrappedComponent.tag
-                    : localizedComponent.tag as ComponentTag
+                // Component tag is always a ComponentTag (not 'Remove' or 'Replace') since we only store plain components
+                const componentTag = plainComponent.tag as ComponentTag
                 const childrenResult = processComponents({ 
                     ...props, 
                     schema: item.children,
                     componentContext: [...componentContext, componentTag]
                 })
 
+                // Build topLevel ReferenceList
+                let updatedTopLevel = previous.topLevel
+                if (isTopLevel) {
+                    // Create appropriate reference based on Remove context
+                    const referenceData = plainComponent.referenceData
+                    const reference = inContextOfRemove
+                        ? new StandardReferenceRemove({ tag: 'Remove', match: referenceData })
+                        : new StandardReferenceSimple(referenceData)
+                    
+                    const topLevelReferenceList = new ReferenceList([reference])
+                    const merged = previous.topLevel.merge(topLevelReferenceList)
+                    updatedTopLevel = merged ?? new ReferenceList([])
+                }
+
+                const finalTopLevel = updatedTopLevel.merge(childrenResult.topLevel) ?? new ReferenceList([])
+
                 return {
-                    components: [...previous.components, editWrappedComponent, ...childrenResult.components],
-                    topLevel: isTopLevel 
-                        ? [...previous.topLevel, localizedComponent._key.plain]
-                        : previous.topLevel
+                    components: [...previous.components, plainComponent, ...childrenResult.components],
+                    topLevel: finalTopLevel
                 }
             }
         }
         const childrenResult = processComponents({ ...props, schema: item.children })
         return {
             components: [...previous.components, ...childrenResult.components],
-            topLevel: [...previous.topLevel, ...childrenResult.topLevel]
+            topLevel: previous.topLevel.merge(childrenResult.topLevel) ?? new ReferenceList([])
         }
-    }, { components: [], topLevel: [] })
+    }, { components: [], topLevel: new ReferenceList([]) })
 
     // Build ReferenceCollection from all components
     const references = recursiveResult.components

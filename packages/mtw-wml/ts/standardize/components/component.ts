@@ -21,13 +21,13 @@ import { isSchemaTreeNode, nodeFromWML } from "../../schema";
 import { AssetUUID, ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
-import { StandardReplace } from "./edits";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
 import StandardReference, { StandardKey, StandardReferenceSimple } from "./reference";
 import { StandardExplicitParent } from "../explicit";
 import SchemaTagTree from "../../tagTree/schema";
+import { StandardExplicitParentSimpleBase } from "../explicit/parent";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -220,21 +220,28 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         }
 
         nestedSchema(lookup: (value: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
-            // Check if component should be rendered based on implicitParent
-            // Component should be rendered if:
-            //   (a) It has no implicitParent and we are rendering the asset (expectedParent === undefined), OR
-            //   (b) It has an implicitParent and we're rendering in the context of that parent (implicitParent matches expectedParent)
-            const expectedParent = options.parent
+
+            const { removeContext } = options
+
+            if (removeContext) {
+                return this.invert()?.nestedSchema(lookup, { ...options, removeContext: false })
+            }
             
+            // Check if component should be rendered based on its explicit and implicit parents:
+            //   (a) It has no ex/implicitParent and we are rendering the asset (expectedParent === undefined), OR
+            //   (b) It has an ex/implicitParent and we're rendering in the context of that parent (ex/implicitParent matches expectedParent)
+            const renderingParent = options.parent
+            
+            const explicitParentKey = this.explicitParent?.standardKey
             // Get implicit parent as StandardKey (works both before and after finalize)
-            const implicitParentKey: StandardKey | undefined = this._implicitParent
+            const positionalParentKey: StandardKey | undefined = explicitParentKey ? explicitParentKey === 'ASSET' ? undefined : new StandardKey(explicitParentKey) : this._implicitParent
             
             // Determine if we should render:
             // - If expectedParent is undefined, render only if component is Asset-level (no implicit parent)
             // - If expectedParent is set, render only if component has implicitParent and it matches expectedParent
-            const shouldRender = typeof expectedParent === 'undefined'
-                ? typeof implicitParentKey === 'undefined'  // Asset-level rendering: only render if component is also Asset-level
-                : implicitParentKey?.equals(expectedParent)  // Nested rendering: only render if parent matches
+            const shouldRender = typeof renderingParent === 'undefined'
+                ? typeof positionalParentKey === 'undefined'  // Asset-level rendering: only render if component is also Asset-level
+                : positionalParentKey?.equals(renderingParent)  // Nested rendering: only render if parent matches
             
             if (!shouldRender) {
                 const reference = new StandardReference(new StandardReferenceSimple(this._key, this.tag)).toFormat('key')
@@ -337,6 +344,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
                 throw new Error(`Mismatched universalKeys in StandardComponent diff (${this.key} vs ${incoming.key})`)
             }
+            // Keys must match for diff to be meaningful
+            if (this.key && incoming.key && this.key !== incoming.key) {
+                throw new Error(`Mismatched keys in StandardComponent diff (${this.key} vs ${incoming.key})`)
+            }
             // Check explicitParent differences separately
             const explicitParentDiff = this.explicitParent?.diff((incoming as any).explicitParent)
             const hasExplicitParentDiff = explicitParentDiff !== undefined
@@ -352,15 +363,26 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (otherDiff && !hasExplicitParentDiff) {
                 return undefined
             }
-            // Otherwise create a diff
-            // TODO: Future enhancement - could use buildComponentGraph to determine cascade-delete behavior
-            // based on whether components appear with other parents that still have connections.
-            const diffComponent = new StandardReplace(this, incoming)
-            // Apply explicitParent diff to the diff component (pass pre-computed diff to avoid recalculation)
-            if (diffComponent) {
-                this._applyExplicitParentDiffToComponent(diffComponent, incoming, explicitParentDiff)
+            // Otherwise create a diff using edit algebra: diff(a, b) = b.merge(a.invert())
+            // Create a new plain component with diffed payload
+            const base = this.clone() as GeneratedComponentClass
+            // Use merge/invert approach if invert() is available, otherwise fall back to incoming component
+            if (this.invert && incoming.merge) {
+                const inverted = this.invert()
+                const merged = incoming.merge(inverted)
+                if (merged) {
+                    base._payload = (merged as any)._payload
+                } else {
+                    // Merge resulted in no-op, return undefined
+                    return undefined
+                }
+            } else {
+                // Fallback: use incoming component's payload (this is a simple diff approximation)
+                base._payload = (incoming as any)._payload
             }
-            return diffComponent
+            // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
+            this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
+            return base as StandardComponent
         }
 
         subset(options: StandardFormSubsetRequest): StandardComponent {
@@ -418,6 +440,19 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             const returnValue = this.clone() as GeneratedComponentClass
             returnValue.explicitParent = explicitParent ? new StandardExplicitParent(explicitParent) : undefined
             return returnValue
+        }
+
+        invert(): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this)
+            // Invert payload if it has an invert method
+            if (this._payload.invert) {
+                returnValue._payload = this._payload.invert() as InstanceType<typeof Base>
+            }
+            // Invert explicitParent if it exists
+            if (this.explicitParent) {
+                returnValue.explicitParent = this.explicitParent.invert()
+            }
+            return returnValue as StandardComponent
         }
     }
 }

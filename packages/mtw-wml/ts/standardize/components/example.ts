@@ -139,6 +139,14 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
+    invert(): this {
+        const returnValue = new StandardExamplePayload()
+        returnValue._name = this._name ? this._name.invert() : undefined
+        returnValue._summary = this._summary ? this._summary.invert() : undefined
+        returnValue._description = this._description ? this._description.invert() : undefined
+        return returnValue as this
+    }
+
 }
 
 export class StandardExample extends componentClassFactory(StandardExamplePayload, 'StandardExample') {
@@ -229,6 +237,10 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardExample(super.withExplicitParent(explicitParent) as StandardExample)
+    }
+
+    override invert(): StandardExample {
+        return new StandardExample(super.invert() as StandardExample)
     }
 
 }

@@ -269,18 +269,8 @@ export class StandardForm {
                 this._components = componentFragments
                     .reduce<StandardComponent[]>(mergeToComponentList(universalKeyMappings), [])
                     
-                // Populate topLevel from processComponents result
-                if (topLevelKeys.length > 0) {
-                    // Convert StandardKeys to reference format
-                    const topLevelReferences = topLevelKeys.map(key => {
-                        const component = this._lookup(key.toJSON())
-                        if (component) {
-                            return component.referenceData
-                        }
-                        return key.toJSON() // Fallback to key JSON if component not found
-                    })
-                    this._topLevel = new ReferenceList(topLevelReferences)
-                }
+                // Populate topLevel from processComponents result (already a ReferenceList)
+                this._topLevel = topLevelKeys
                 
                 // Generate implicit parents using StandardKey (works before finalize)
                 const withImplicitParents = this.generateImplicitParents()
@@ -378,6 +368,9 @@ export class StandardForm {
                             ...target._components.slice(findComponentIndex + 1)
                         ]
                     }
+                    // Update topLevel after component changes (requires generateImplicitParents to have been run)
+                    const updated = target._updateTopLevelFromComponents()
+                    target._topLevel = updated._topLevel
                     return true
                 }
                 throw new Error('Invalid value in StandardForm byId setter')
@@ -620,6 +613,89 @@ export class StandardForm {
         const topologicalSort = graphWithExplicit.topologicalSort()
         
         return { graph, topologicalSort }
+    }
+
+    /**
+     * Updates _topLevel based on current component state, preserving existing Remove references.
+     * 
+     * This method:
+     * - Adds components that are top-level (explicitParent = ASSET or implicitParent = undefined) as Simple references if not already present
+     * - Preserves existing Remove references (they indicate components should be removed from topLevel)
+     * - Removes references (both Simple and Remove) only when the component they refer to no longer exists in _components
+     * 
+     * Note: References are NOT removed when components are no longer top-level (e.g., when explicit parent changes).
+     * The existence of a reference in topLevel is still valid, even when explicitParent sets the _parentage_ of the
+     * component somewhere else in the hierarchy.
+     * 
+     * Important: This method assumes `generateImplicitParents()` has been run on the form, as it relies on
+     * `implicitParent` being properly calculated. Components with `implicitParent === undefined` are treated
+     * as top-level, which is only valid after implicit parents have been calculated.
+     * 
+     * @returns Updated StandardForm with _topLevel synchronized to component state
+     */
+    _updateTopLevelFromComponents(): StandardForm {
+        const returnValue = this._clone()
+        const existingTopLevel = returnValue._topLevel ?? new ReferenceList([])
+        
+        // Helper to check if a component is top-level
+        const isComponentTopLevel = (component: StandardComponent): boolean => {
+            const hasExplicitAssetParent = component.explicitParent?._payload instanceof StandardExplicitParentSimple &&
+                component.explicitParent._payload.payload.data === 'ASSET'
+            const hasNoImplicitParent = component.implicitParent === undefined
+            return hasExplicitAssetParent || hasNoImplicitParent
+        }
+        
+        // Process existing references - preserve all references to components that still exist
+        const { updatedRefs, processedKeys } = existingTopLevel.payload.reduce<{
+            updatedRefs: StandardReference[];
+            processedKeys: StandardKey[];
+        }>((acc, existingRef) => {
+            const refKey = existingRef.plain().standardKey
+            
+            // Find matching component
+            const component = returnValue._lookup(refKey.toJSON())
+            
+            // Remove references to components that no longer exist
+            if (!component) {
+                return acc
+            }
+            
+            // Component exists - preserve the reference (both Simple and Remove)
+            const componentKey = component._key.plain
+            return {
+                updatedRefs: [...acc.updatedRefs, existingRef],
+                processedKeys: [...acc.processedKeys, componentKey]
+            }
+        }, { updatedRefs: [], processedKeys: [] })
+        
+        // Add new top-level components that aren't already referenced
+        const finalRefs = returnValue._components.reduce<StandardReference[]>((acc, component) => {
+            const componentKey = component._key.plain
+            
+            // Skip if already processed (was in existing topLevel)
+            if (processedKeys.some(key => key.equals(componentKey))) {
+                return acc
+            }
+            
+            // Check if already in topLevel by checking if any reference matches this component's key
+            const alreadyReferenced = existingTopLevel.payload.some(ref => 
+                ref.plain().standardKey.equals(componentKey)
+            )
+            if (alreadyReferenced) {
+                // Already referenced (should have been handled above, but double-check)
+                return acc
+            }
+            
+            // Only add if component is top-level
+            if (isComponentTopLevel(component)) {
+                return [...acc, new StandardReference(component.referenceData)]
+            }
+            
+            return acc
+        }, updatedRefs)
+        
+        returnValue._topLevel = new ReferenceList(finalRefs)
+        return returnValue
     }
 
     /**
@@ -867,6 +943,9 @@ export class StandardForm {
                             ...target._components.slice(findComponentIndex + 1)
                         ]
                     }
+                    // Update topLevel after component changes (requires generateImplicitParents to have been run)
+                    const updated = target._updateTopLevelFromComponents()
+                    target._topLevel = updated._topLevel
                     return true
                 }
                 throw new Error('Invalid value in StandardForm byUniversalId setter')
@@ -929,10 +1008,6 @@ export class StandardForm {
                 implicitParent: component.implicitParent
             }
         }
-        const sortedChildren = this._components
-            .filter((component) => ((component.explicitParent && component.explicitParent._payload?.plain?.data === 'ASSET') || component.implicitParent === undefined))
-            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, lookup)))
-        const mapKeys = this._components.map(({ _key }) => (_key.plain))
         const lookupWrapper = (key: string | StandardKey): StandardComponent | undefined => {
             if (typeof key === 'string') {
                 // String is assumed to be ComponentUUID (part of StandardKeyData)
@@ -940,8 +1015,26 @@ export class StandardForm {
             }
             return this._lookup(key.toJSON())
         }
-        const children = sortedChildren
-            .map((component) => (component.withMapping(mapKeys).remapReferences('key').nestedSchema(lookupWrapper, { parent: undefined })))
+
+        const remapped = this._clone()
+        const mapKeys = remapped._components.map((component) => (component._key))
+        remapped._components = remapped._components.map((component) => (component.withMapping(mapKeys).remapReferences('key')))
+
+        const children = (remapped._topLevel?.payload ?? [])
+            .sort((referenceA, referenceB) => (standardComponentSortOrder(referenceA.plain(), referenceB.plain(), lookup)))
+            .map((reference) => {
+                const component = remapped._lookup(reference.plain().standardKey.toJSON())
+                if (!component) return []
+                const schema = component.nestedSchema(lookupWrapper, { parent: undefined })
+                if (reference._payload instanceof StandardReferenceRemove) {
+                    return [{
+                        data: { tag: 'Remove' as const },
+                        children: [schema]
+                    }]
+                }
+                return [schema]
+            }).flat(1)
+
         return {
             data: { tag: 'Asset', uuid: this._universalKey, Story: undefined },
             children: [
@@ -988,23 +1081,12 @@ export class StandardForm {
         returnValue._metaData = applyEdits(combinedMetaData.tree)
 
         // Merge Asset-level metadata
-        if (this._shortName && incoming._shortName) {
-            returnValue._shortName = this._shortName.merge(incoming._shortName)
-        } else if (incoming._shortName) {
-            returnValue._shortName = incoming._shortName
-        }
-        // Note: if this._shortName exists but incoming._shortName is undefined, 
-        // we keep this._shortName (already set by _clone())
+        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
+        returnValue._summary = (this._summary && incoming._summary) ? this._summary.merge(incoming._summary) : this._summary ?? incoming._summary
 
-        if (this._summary && incoming._summary) {
-            returnValue._summary = this._summary.merge(incoming._summary)
-        } else if (incoming._summary) {
-            returnValue._summary = incoming._summary
-        }
-        // Note: if this._summary exists but incoming._summary is undefined,
-        // we keep this._summary (already set by _clone())
-
-        return returnValue.generateImplicitParents()
+        // Generate implicit parents and update topLevel to reflect current component state
+        const withImplicitParents = returnValue.generateImplicitParents()
+        return withImplicitParents._updateTopLevelFromComponents()
     }
 
     subset(requests: StandardFormSubsetRequest[]): StandardForm {
@@ -1238,8 +1320,9 @@ export class StandardForm {
                 }, previous)
             }, [])
 
-        console.log(`returnValue: ${JSON.stringify(returnValue.toJSON(), null, 2)}`)
-        return returnValue.generateImplicitParents()
+        const withImplicitParents = returnValue.generateImplicitParents()
+        // Update topLevel to reflect current component state (remove references to components that no longer exist)
+        return withImplicitParents._updateTopLevelFromComponents()
     }
 
     renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }[]): StandardForm {
@@ -1452,8 +1535,6 @@ export class StandardForm {
                 }
             }, [])
 
-        console.log(`diffedComponents: ${JSON.stringify(diffedComponents.map((component) => (component.toJSON())), null, 2)}`)
-
         //
         // Find components that are not diffed, but appear nested inside of diff components of
         // StandardReplace or StandardRemove form (so that you can match terms completely in the
@@ -1469,8 +1550,6 @@ export class StandardForm {
                     .filter(({ universalKey }) => (!Boolean(previous.find(({ universalKey: existingUniversalKey }) => (existingUniversalKey === universalKey)))))
                 return [...previous, ...nestedComponents]
             }, diffedComponents)
-
-        console.log(`diffedValue.toJSON: ${JSON.stringify(diffedValue.toJSON(), null, 2)}`)
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         diffedValue._metaData = applyEdits(combinedMetaData.tree)
@@ -1517,7 +1596,6 @@ export class StandardForm {
 
         // Generate implicit parents first
         const diffedWithImplicitParents = diffedValue.generateImplicitParents()
-        console.log(`diffedWithImplicitParents.toJSON: ${JSON.stringify(diffedWithImplicitParents.toJSON(), null, 2)}`)
 
         // Calculate topLevel from the diffed components' graph structure
         // Components with no non-Asset parent (explicitParent = ASSET or implicitParent = undefined) should be in topLevel
@@ -1541,7 +1619,6 @@ export class StandardForm {
         const combined = diffedWithImplicitParents._clone()
         combined._topLevel = combinedTopLevel
         const result = combined.generateImplicitParents()
-        console.log(`result.toJSON: ${JSON.stringify(result.toJSON(), null, 2)}`)
         return result
     }
 

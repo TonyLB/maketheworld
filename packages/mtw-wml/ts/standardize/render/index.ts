@@ -575,4 +575,17 @@ export class StandardRender {
         return new StandardRender(this._payload.remapReferences(props))
     }
 
+    invert(): StandardRender {
+        if (this._payload instanceof StandardRenderSimple) {
+            return new StandardRender(new StandardRenderRemove(this._payload.payload))
+        }
+        if (this._payload instanceof StandardRenderRemove) {
+            return new StandardRender(new StandardRenderSimple(this._payload.match))
+        }
+        if (this._payload instanceof StandardRenderReplace) {
+            return new StandardRender(new StandardRenderReplace(this._payload.payload, this._payload.match))
+        }
+        throw new Error('Invalid StandardRender payload for invert')
+    }
+
 }
