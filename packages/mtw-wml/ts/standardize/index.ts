@@ -360,7 +360,6 @@ export class StandardForm {
                     const findComponentIndex = target._components.findIndex((component) => (component.key === prop))
                     if (findComponentIndex === -1) {
                         target._components.push(value)
-                        target._topLevel = new ReferenceList([...(target._topLevel?.payload ?? []), new StandardReference({ key: prop, universalKey: value.universalKey, tag: value.tag })])
                     }
                     else {
                         target._components = [
@@ -369,6 +368,9 @@ export class StandardForm {
                             ...target._components.slice(findComponentIndex + 1)
                         ]
                     }
+                    // Update topLevel after component changes (requires generateImplicitParents to have been run)
+                    const updated = target._updateTopLevelFromComponents()
+                    target._topLevel = updated._topLevel
                     return true
                 }
                 throw new Error('Invalid value in StandardForm byId setter')
@@ -933,7 +935,6 @@ export class StandardForm {
                     const findComponentIndex = target._components.findIndex((component) => (component.universalKey === prop))
                     if (findComponentIndex === -1) {
                         target._components.push(value)
-                        target._topLevel = new ReferenceList([...(target._topLevel?.payload ?? []), new StandardReference({ key: value.key, universalKey: prop })])
                     }
                     else {
                         target._components = [
@@ -942,6 +943,9 @@ export class StandardForm {
                             ...target._components.slice(findComponentIndex + 1)
                         ]
                     }
+                    // Update topLevel after component changes (requires generateImplicitParents to have been run)
+                    const updated = target._updateTopLevelFromComponents()
+                    target._topLevel = updated._topLevel
                     return true
                 }
                 throw new Error('Invalid value in StandardForm byUniversalId setter')
@@ -1080,7 +1084,9 @@ export class StandardForm {
         returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         returnValue._summary = (this._summary && incoming._summary) ? this._summary.merge(incoming._summary) : this._summary ?? incoming._summary
 
-        return returnValue.generateImplicitParents()
+        // Generate implicit parents and update topLevel to reflect current component state
+        const withImplicitParents = returnValue.generateImplicitParents()
+        return withImplicitParents._updateTopLevelFromComponents()
     }
 
     subset(requests: StandardFormSubsetRequest[]): StandardForm {
@@ -1315,9 +1321,8 @@ export class StandardForm {
             }, [])
 
         const withImplicitParents = returnValue.generateImplicitParents()
-        withImplicitParents._topLevel = new ReferenceList((withImplicitParents._topLevel?.payload ?? [])
-            .filter((reference) => (withImplicitParents._lookup(reference.plain().standardKey.toJSON()) !== undefined)))
-        return withImplicitParents
+        // Update topLevel to reflect current component state (remove references to components that no longer exist)
+        return withImplicitParents._updateTopLevelFromComponents()
     }
 
     renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }[]): StandardForm {
