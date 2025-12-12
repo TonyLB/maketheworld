@@ -50,7 +50,7 @@ describe('StandardForm', () => {
 
     it('should return an empty wrapper unchanged', () => {
         const test = new StandardForm(`<Asset uuid=(Test) />`)
-        expect(test.header).toEqual({ tag: 'Asset', universalKey: 'ASSET#Test' })
+        expect(test.header).toEqual({ tag: 'Asset', universalKey: 'ASSET#Test', topLevel: [] })
         expect(schemaToWML([test.schema])).toEqual(`<Asset uuid=(Test) />`)
     })
 
@@ -775,13 +775,6 @@ describe('StandardForm', () => {
                     }]
                 },
                 { data: { tag: 'Remove' }, children: [{ data: { tag: 'Room', key: 'testRoomRemove', uuid: 'ROOM#testRoomRemove' }, children: [] }] },
-                {
-                    data: { tag: 'Replace' },
-                    children: [
-                        { data: { tag: 'ReplaceMatch' }, children: [{ data: { tag: 'Room', key: 'testRoomReplace', uuid: 'ROOM#testRoomReplace' }, children: [{ data: { tag: 'Example', uuid: 'EXAMPLE#testRoomReplaceBase' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Test' }, children: [] }] }] }] }] },
-                        { data: { tag: 'ReplacePayload' }, children: [{ data: { tag: 'Room', key: 'testRoomReplace', uuid: 'ROOM#testRoomReplace' }, children: [{ data: { tag: 'Example', uuid: 'EXAMPLE#testRoomReplaceBase' }, children: [{ data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Name Changed' }, children: [] }] }] }] }] }
-                    ]
-                }
             ]
         }
 
@@ -791,8 +784,7 @@ describe('StandardForm', () => {
             metaData: [],
             topLevel: [
                 'ROOM#testRoom',
-                'ROOM#testRoomRemove',
-                'ROOM#testRoomReplace'
+                { tag: 'Remove', match: 'ROOM#testRoomRemove' }
             ],
             components: [
                 {
@@ -822,48 +814,9 @@ describe('StandardForm', () => {
                     }]
                 },
                 {
-                    tag: 'Remove',
+                    tag: 'Room',
                     key: 'testRoomRemove',
                     universalKey: 'ROOM#testRoomRemove',
-                    component: {
-                        tag: 'Room',
-                        key: 'testRoomRemove',
-                        universalKey: 'ROOM#testRoomRemove',
-                    }
-                },
-                {
-                    tag: 'Replace',
-                    key: 'testRoomReplace',
-                    universalKey: 'ROOM#testRoomReplace',
-                    match: {
-                        tag: 'Room',
-                        key: 'testRoomReplace',
-                        universalKey: 'ROOM#testRoomReplace',
-                        examples: ['EXAMPLE#testRoomReplaceBase'],
-                    },
-                    payload: {
-                        tag: 'Room',
-                        key: 'testRoomReplace',
-                        universalKey: 'ROOM#testRoomReplace',
-                        examples: ['EXAMPLE#testRoomReplaceBase'],
-                    }
-                },
-                {
-                    tag: 'Replace',
-                    universalKey: 'EXAMPLE#testRoomReplaceBase',
-                    implicitParent: 'ROOM#testRoomReplace',
-                    match: {
-                        tag: 'Example',
-                        universalKey: 'EXAMPLE#testRoomReplaceBase',
-                        implicitParent: 'ROOM#testRoomReplace',
-                        name: ['Name Test']
-                    },
-                    payload: {
-                        tag: 'Example',
-                        universalKey: 'EXAMPLE#testRoomReplaceBase',
-                        implicitParent: 'ROOM#testRoomReplace',
-                        name: ['Name Changed']
-                    }
                 }
             ]
         })
@@ -985,7 +938,9 @@ describe('StandardForm', () => {
                 <Example uuid=(base) key=(base)>
                     <Description>Test Example</Description>
                 </Example>
-                <Room uuid=(testRoom) key=(testRoom)><Remove><Example key=(base) /></Remove></Room>
+                <Room uuid=(testRoom) key=(testRoom)>
+                    <Remove><Example key=(base) /></Remove>
+                </Room>
             </Asset>
         `))
     })
@@ -2548,9 +2503,7 @@ describe('StandardForm', () => {
                 expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1)>
-                            <Example uuid=(ex1) key=(ex1)>
-                                <Name>Updated</Name>
-                            </Example>
+                            <Example uuid=(ex1) key=(ex1)><Name>Updated</Name></Example>
                         </Room>
                     </Asset>
                 `))
@@ -2560,7 +2513,7 @@ describe('StandardForm', () => {
                 expect(exampleComponent?.implicitParent?.equals(new StandardKey({ key: 'room1', tag: 'Room' }))).toBe(true)
                 
                 // Verify not in topLevel
-                expect(merged.header.topLevel).toBeUndefined()
+                expect(merged.header.topLevel).toEqual(['ROOM#room1'])
             })
         })
 
