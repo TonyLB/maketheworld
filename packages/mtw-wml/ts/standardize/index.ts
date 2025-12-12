@@ -1025,14 +1025,12 @@ export class StandardForm {
             .map((reference) => {
                 const component = remapped._lookup(reference.plain().standardKey.toJSON())
                 if (!component) return []
-                const schema = component.nestedSchema(lookupWrapper, { parent: undefined })
-                if (reference._payload instanceof StandardReferenceRemove) {
-                    return [{
-                        data: { tag: 'Remove' as const },
-                        children: [schema]
-                    }]
-                }
-                return [schema]
+                const isRemoveReference = reference._payload instanceof StandardReferenceRemove
+                const schema = component.nestedSchema(lookupWrapper, { parent: undefined, removeContext: isRemoveReference })
+                return isRemoveReference ? [{
+                    data: { tag: 'Remove' as const },
+                    children: [schema]
+                }] : [schema]
             }).flat(1)
 
         return {
@@ -1083,6 +1081,13 @@ export class StandardForm {
         // Merge Asset-level metadata
         returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         returnValue._summary = (this._summary && incoming._summary) ? this._summary.merge(incoming._summary) : this._summary ?? incoming._summary
+
+        // Toplevel Simple references in incoming are assumed to be in-place edits, so we merge only Remove references
+        // If the incoming topLevel Simple has no other appearance in the hierarchy then it will be re-added by
+        // _updateTopLevelFromComponents()
+        const incomingTopLevelRemoveReferencesPayload = incoming._topLevel?.payload.filter((ref) => (ref._payload instanceof StandardReferenceRemove)) ?? []
+        const incomingTopLevelRemoveReferences = incomingTopLevelRemoveReferencesPayload.length > 0 ? new ReferenceList(incomingTopLevelRemoveReferencesPayload) : undefined
+        returnValue._topLevel = (this._topLevel && incomingTopLevelRemoveReferences) ? this._topLevel.merge(incomingTopLevelRemoveReferences) : this._topLevel ?? incomingTopLevelRemoveReferences
 
         // Generate implicit parents and update topLevel to reflect current component state
         const withImplicitParents = returnValue.generateImplicitParents()

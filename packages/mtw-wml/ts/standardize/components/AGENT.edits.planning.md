@@ -77,8 +77,11 @@ This migration should proceed incrementally, starting with a single component ty
   - Remove imports of `StandardRemove` and `StandardReplace` throughout the codebase
 
 - Update merge and diff operations accordingly
-  - Update `StandardForm.merge()` to handle only plain components (no `StandardRemove` or `StandardReplace` input)
-  - Update merge logic to handle reference-level Remove operations (from `ReferenceList`) correctly
+  - ✅ Update `StandardForm.merge()` to handle only plain components (no `StandardRemove` or `StandardReplace` input)
+  - ✅ Update merge logic to handle reference-level Remove operations (from `ReferenceList`) correctly
+    - ✅ Merge method now filters incoming `topLevel` to only preserve `StandardReferenceRemove` references
+    - ✅ Simple references in incoming are treated as in-place edits and will be re-added by `_updateTopLevelFromComponents()` if needed
+    - ✅ Integrated `_updateTopLevelFromComponents()` after `generateImplicitParents()` to synchronize `topLevel` with component state
   - Update diff operations to return only plain components with reference-level edits stored in `ReferenceCollection`
   - Update cascade graph handling to work with the new storage model
   - Note: Merging plain components using inversion/merge approach will naturally produce only plain components (no Replace operations possible)
