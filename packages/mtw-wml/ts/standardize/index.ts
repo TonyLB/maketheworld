@@ -269,18 +269,8 @@ export class StandardForm {
                 this._components = componentFragments
                     .reduce<StandardComponent[]>(mergeToComponentList(universalKeyMappings), [])
                     
-                // Populate topLevel from processComponents result
-                if (topLevelKeys.payload.length > 0) {
-                    // Match topLevelKeys to component keys
-                    const topLevelReferences = topLevelKeys.payload.map(key => {
-                        const component = this._lookup(key.plain().standardKey.toJSON())
-                        if (component) {
-                            return component.referenceData
-                        }
-                        return key.toJSON() // Fallback to key JSON if component not found
-                    })
-                    this._topLevel = new ReferenceList(topLevelReferences)
-                }
+                // Populate topLevel from processComponents result (already a ReferenceList)
+                this._topLevel = topLevelKeys
                 
                 // Generate implicit parents using StandardKey (works before finalize)
                 const withImplicitParents = this.generateImplicitParents()
@@ -621,6 +611,89 @@ export class StandardForm {
         const topologicalSort = graphWithExplicit.topologicalSort()
         
         return { graph, topologicalSort }
+    }
+
+    /**
+     * Updates _topLevel based on current component state, preserving existing Remove references.
+     * 
+     * This method:
+     * - Adds components that are top-level (explicitParent = ASSET or implicitParent = undefined) as Simple references if not already present
+     * - Preserves existing Remove references (they indicate components should be removed from topLevel)
+     * - Removes references (both Simple and Remove) only when the component they refer to no longer exists in _components
+     * 
+     * Note: References are NOT removed when components are no longer top-level (e.g., when explicit parent changes).
+     * The existence of a reference in topLevel is still valid, even when explicitParent sets the _parentage_ of the
+     * component somewhere else in the hierarchy.
+     * 
+     * Important: This method assumes `generateImplicitParents()` has been run on the form, as it relies on
+     * `implicitParent` being properly calculated. Components with `implicitParent === undefined` are treated
+     * as top-level, which is only valid after implicit parents have been calculated.
+     * 
+     * @returns Updated StandardForm with _topLevel synchronized to component state
+     */
+    _updateTopLevelFromComponents(): StandardForm {
+        const returnValue = this._clone()
+        const existingTopLevel = returnValue._topLevel ?? new ReferenceList([])
+        
+        // Helper to check if a component is top-level
+        const isComponentTopLevel = (component: StandardComponent): boolean => {
+            const hasExplicitAssetParent = component.explicitParent?._payload instanceof StandardExplicitParentSimple &&
+                component.explicitParent._payload.payload.data === 'ASSET'
+            const hasNoImplicitParent = component.implicitParent === undefined
+            return hasExplicitAssetParent || hasNoImplicitParent
+        }
+        
+        // Process existing references - preserve all references to components that still exist
+        const { updatedRefs, processedKeys } = existingTopLevel.payload.reduce<{
+            updatedRefs: StandardReference[];
+            processedKeys: StandardKey[];
+        }>((acc, existingRef) => {
+            const refKey = existingRef.plain().standardKey
+            
+            // Find matching component
+            const component = returnValue._lookup(refKey.toJSON())
+            
+            // Remove references to components that no longer exist
+            if (!component) {
+                return acc
+            }
+            
+            // Component exists - preserve the reference (both Simple and Remove)
+            const componentKey = component._key.plain
+            return {
+                updatedRefs: [...acc.updatedRefs, existingRef],
+                processedKeys: [...acc.processedKeys, componentKey]
+            }
+        }, { updatedRefs: [], processedKeys: [] })
+        
+        // Add new top-level components that aren't already referenced
+        const finalRefs = returnValue._components.reduce<StandardReference[]>((acc, component) => {
+            const componentKey = component._key.plain
+            
+            // Skip if already processed (was in existing topLevel)
+            if (processedKeys.some(key => key.equals(componentKey))) {
+                return acc
+            }
+            
+            // Check if already in topLevel by checking if any reference matches this component's key
+            const alreadyReferenced = existingTopLevel.payload.some(ref => 
+                ref.plain().standardKey.equals(componentKey)
+            )
+            if (alreadyReferenced) {
+                // Already referenced (should have been handled above, but double-check)
+                return acc
+            }
+            
+            // Only add if component is top-level
+            if (isComponentTopLevel(component)) {
+                return [...acc, new StandardReference(component.referenceData)]
+            }
+            
+            return acc
+        }, updatedRefs)
+        
+        returnValue._topLevel = new ReferenceList(finalRefs)
+        return returnValue
     }
 
     /**
