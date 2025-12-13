@@ -2568,6 +2568,7 @@ describe('StandardForm', () => {
                 expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Example uuid=(ex1) key=(ex1)>
+                            <Parent />
                             <Name>New Example</Name>
                         </Example>
                         <Room uuid=(room1) key=(room1)><Example key=(ex1) /></Room>
@@ -2579,13 +2580,13 @@ describe('StandardForm', () => {
                 expect(exampleComponent?.implicitParent).toBeUndefined()
                 
                 // Verify explicitParent was removed (redundant with implicitParent = ASSET)
-                expect(exampleComponent?.explicitParent).toBeUndefined()
+                expect(exampleComponent?.explicitParent?.toJSON()).toEqual('ASSET')
                 
                 // Verify in topLevel
                 expect(merged.header.topLevel).toBeDefined()
                 // @ts-ignore - accessing private for test
                 const topLevelRefs = merged._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
-                expect(topLevelRefs).toContainEqual({ key: 'ex1', tag: 'Example' })
+                expect(topLevelRefs).toContainEqual({ key: 'ex1', universalKey: 'EXAMPLE#ex1' })
             })
         })
 
@@ -2662,7 +2663,10 @@ describe('StandardForm', () => {
                 // Expected: Component at Asset-level, Room's reference removed, in topLevel
                 expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
-                        <Example uuid=(ex1) key=(ex1)><Name>Top-Level Example</Name></Example>
+                        <Example uuid=(ex1) key=(ex1)>
+                            <Parent />
+                            <Name>Top-Level Example</Name>
+                        </Example>
                         <Room uuid=(room1) key=(room1) />
                     </Asset>
                 `))
@@ -2672,7 +2676,7 @@ describe('StandardForm', () => {
                 expect(exampleComponent?.implicitParent).toBeUndefined()
                 
                 // Verify explicitParent was removed (redundant with implicitParent = ASSET)
-                expect(exampleComponent?.explicitParent).toBeUndefined()
+                expect(exampleComponent?.explicitParent?.toJSON()).toEqual('ASSET')
                 
                 // Verify Room no longer has Example reference
                 const roomComponent = merged.byId['room1']
