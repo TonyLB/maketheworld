@@ -89,7 +89,7 @@ export const standardComponentSortOrder = (
         const elementToCompareA = fullChainA[differingIndex]
         const elementToCompareB = fullChainB[differingIndex]
         
-        const componentKeys: ComponentTag[] = ['Character', 'Image', 'Feature', 'Knowledge', 'Room', 'Map', 'Message', 'Moment']
+        const componentKeys: ComponentTag[] = ['Character', 'Image', 'Example', 'Feature', 'Knowledge', 'Room', 'Map', 'Message', 'Moment']
         const tagA = elementToCompareA.tag
         const tagB = elementToCompareB.tag
         const indexA = componentKeys.indexOf(tagA)
