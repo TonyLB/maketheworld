@@ -773,6 +773,12 @@ export class StandardForm {
 
                 returnValue._components = returnValue._components.map(component => {
                     if (keysToUpdate.some(key => key.equals(component._key.plain))) {
+                        // Note: We do NOT remove redundant explicitParent entries here, even when explicitParent = 'ASSET'
+                        // and implicitParent = undefined. This is intentional because:
+                        // - In edit semantic mode, the <Parent /> tag is needed to differentiate a top-level addition
+                        //   from an in-line edit. Removing it would lose this semantic distinction.
+                        // - generateImplicitParents() doesn't have access to semantic mode information, so we preserve
+                        //   explicitParent entries and let the caller handle removal if appropriate for their use case.
                         return component.withImplicitParent(undefined)
                     }
                     return component
@@ -845,10 +851,9 @@ export class StandardForm {
                 if (keysToUpdate.some(key => key.equals(component._key.plain))) {
                     const returnComponent = component.withImplicitParent(implicitParentKey)
                     const explicitParentKeyRedundant = component.explicitParent?._payload instanceof StandardExplicitParentSimple &&
-                        (
-                            (implicitParentKey === undefined && component.explicitParent?._payload.payload.data === 'ASSET') ||
-                            (implicitParentKey !== undefined && component.explicitParent?._payload.payload.data instanceof StandardKey && component.explicitParent?._payload.payload.data.equals(implicitParentKey))
-                        )
+                        implicitParentKey !== undefined &&
+                        component.explicitParent?._payload.payload.data instanceof StandardKey &&
+                        component.explicitParent?._payload.payload.data.equals(implicitParentKey)
                     if (explicitParentKeyRedundant) {
                         returnComponent.explicitParent = undefined
                     }
