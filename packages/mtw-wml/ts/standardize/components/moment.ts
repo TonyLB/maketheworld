@@ -106,6 +106,11 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         return returnValue as this
     }
 
+    isEmpty(): boolean {
+        // A moment is empty if it has no messages
+        return this._messages.payload.length === 0
+    }
+
 }
 
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {

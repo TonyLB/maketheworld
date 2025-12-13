@@ -117,6 +117,13 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         }
         return returnValue as this
     }
+
+    isEmpty(): boolean {
+        // A message is empty if it has no description and no rooms
+        const hasDescription = Boolean(this._description)
+        const hasRooms = this._rooms.payload.length > 0
+        return !(hasDescription || hasRooms)
+    }
 }
 
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {

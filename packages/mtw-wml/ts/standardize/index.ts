@@ -1101,8 +1101,6 @@ export class StandardForm {
             .filter((component) => (!Object.values(graph.nodes).some((node) => (node?.standardKey && component._key.equals(node.standardKey)))))
             .filter((component) => (!returnValue._topLevel?.payload.some((ref) => (ref.plain().standardKey.equals(component._key)))))
 
-        console.log(`componentsWithNoReferences = ${JSON.stringify(priorComponentsWithNoReferences.map((component) => (component._key.toJSON())), null, 2)}`)
-
         // Implement StandardComponent.isEmpty() to test whether any of the components are non-empty
         const nonEmptyComponents = priorComponentsWithNoReferences.filter((component) => (!component.isEmpty()))
         if (nonEmptyComponents.length > 0) {
