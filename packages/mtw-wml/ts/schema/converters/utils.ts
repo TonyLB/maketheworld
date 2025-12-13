@@ -3,6 +3,29 @@ import { ParsePropertyTypes, ParseTagOpen, ParseTagSelfClosure } from "../../sim
 import { ConverterMapValidateProperties, PrintMapOptionsChange, PrintMapOptionsFactory, ValidationTemplate, ValidationTemplateOutput } from "./baseClasses"
 import { AssetUUID, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
+/**
+ * Validates and converts an Expression property value to a positive integer.
+ * Throws an error if the value cannot be parsed as a positive integer.
+ */
+export const validateExpressionAsPositiveInteger = (value: string, propertyName: string, tagName: string): number => {
+    const trimmed = value.trim()
+    if (!trimmed) {
+        throw new Error(`Property '${propertyName}' must be a positive integer in '${tagName}' items, but received empty value.`)
+    }
+    const parsed = Number.parseInt(trimmed, 10)
+    if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
+        throw new Error(`Property '${propertyName}' must be a positive integer in '${tagName}' items, but received '${value}'.`)
+    }
+    if (parsed <= 0) {
+        throw new Error(`Property '${propertyName}' must be a positive integer in '${tagName}' items, but received '${value}' (must be > 0).`)
+    }
+    // Check that the string representation matches exactly (prevents "42abc" from being accepted)
+    if (parsed.toString() !== trimmed) {
+        throw new Error(`Property '${propertyName}' must be a positive integer in '${tagName}' items, but received '${value}' (contains non-numeric characters).`)
+    }
+    return parsed
+}
+
 export const validateProperties = <V extends ValidationTemplate>(template: V) => (parse: ParseTagOpen | ParseTagSelfClosure): ValidationTemplateOutput<V> => {
     const unmatchedKey = parse.properties.find(({ key }) => (!((key ?? 'DEFAULT') in template)))
     if (unmatchedKey) {

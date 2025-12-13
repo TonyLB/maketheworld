@@ -7,12 +7,13 @@ export type SchemaImageTag = {
     key: string;
     uuid?: ComponentUUID;
     fileURL?: string;
+    apply?: number;
 } & SchemaImportableBase
 
 export const isSchemaImage = (schema: any): schema is SchemaImageTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING, key: CheckTypes.STRING },
-        optional: { as: CheckTypes.STRING, fileURL: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING },
+        optional: { as: CheckTypes.STRING, fileURL: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, apply: CheckTypes.NUMBER },
         values: { 
             tag: 'Image', 
             from: isSchemaAssetUUID,

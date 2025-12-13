@@ -3,7 +3,7 @@ import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties } from "./utils"
+import { validateProperties, validateExpressionAsPositiveInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
@@ -15,23 +15,27 @@ const messagingTemplates = {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
-        origin: { type: ParsePropertyTypes.AssetList }
+        origin: { type: ParsePropertyTypes.AssetList },
+        apply: { type: ParsePropertyTypes.Expression }
     },
     Moment: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
-        origin: { type: ParsePropertyTypes.AssetList }
+        origin: { type: ParsePropertyTypes.AssetList },
+        apply: { type: ParsePropertyTypes.Expression }
     },
 } as const
 
 export const messagingConverters: Record<string, ConverterMapEntry> = {
     Message: {
         initialize: ({ parseOpen }): SchemaMessageTag => {
-            const { uuid, ...rest } = validateProperties(messagingTemplates.Message)(parseOpen)
+            const { uuid, apply, ...rest } = validateProperties(messagingTemplates.Message)(parseOpen)
+            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
             return {
                 tag: 'Message',
                 uuid: uuid ? enforceTypedKey('MESSAGE')(uuid) : undefined,
+                ...(applyValue !== undefined ? { apply: applyValue } : {}),
                 ...rest
             }
         },
@@ -47,10 +51,12 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
     },
     Moment: {
         initialize: ({ parseOpen }): SchemaMomentTag => {
-            const { uuid, ...rest } = validateProperties(messagingTemplates.Moment)(parseOpen)
+            const { uuid, apply, ...rest } = validateProperties(messagingTemplates.Moment)(parseOpen)
+            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
             return {
                 tag: 'Moment',
                 uuid: uuid ? enforceTypedKey('MOMENT')(uuid) : undefined,
+                ...(applyValue !== undefined ? { apply: applyValue } : {}),
                 ...rest
             }
         },
@@ -68,7 +74,8 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MESSAGE')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'from', type: 'key', value: tag.from ?? '' },
-                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
+                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
+                    ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
                 ],
                 node: { data: tag, children }
             })
@@ -83,7 +90,8 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MOMENT')(tag.uuid) : '' },
                     { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'from', type: 'key', value: tag.from ?? '' },
-                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
+                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
+                    ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
                 ],
                 node: { data: tag, children }
             })
