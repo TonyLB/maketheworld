@@ -109,7 +109,13 @@ being referenced in. The key is a **local** identifier, which provides a more hu
 to refer to the component within the scope of a specific asset.
 
 #### **Properties**: In addition to key and uuid, tags can have other properties to convey short snippets of
-information about them. For instance, in the following:
+information about them. WML supports several property value syntaxes:
+
+- **Parentheses `(value)`**: Used for key references to components or other identifiers
+- **Quoted Strings `"value"`**: Used for literal string values
+- **Curly Braces `{value}`**: Used for typed and validated values (integers, floats, or other structured data types)
+
+For instance, in the following:
 
 ```xml
 <Map key=(dungeonMap)>
@@ -117,7 +123,9 @@ information about them. For instance, in the following:
 </Map>
 ```
 
-... the `Position` tag has `x` and `y` string properties (which, in this context, represent coordinates).
+... the `Position` tag has `x` and `y` string properties (using quoted string syntax). The `key` and `to` properties use parentheses for key references.
+
+Properties using curly braces `{value}` are validated during parsing and converted to the appropriate data type. The specific validation rules and target type depend on the tag and property definition. Invalid values will result in parsing errors, ensuring type safety.
 
 #### **References**: WML allows components to be connected to each other in several ways. The simplest is
 to put a reference to a child component (just the tag) nested inside of a parent component. This can be
@@ -237,8 +245,9 @@ The tokenizer recognizes these token types:
 - **Description**: Text content within tags
 - **Whitespace**: Spaces, tabs, newlines
 - **Comment**: WML comments
-- **LiteralValue**: Quoted string values
-- **KeyValue**: Key references
+- **LiteralValue**: Quoted string values like `"text"`
+- **KeyValue**: Key references like `(roomKey)`
+- **ExpressionValue**: Typed and validated values like `{42}` or `{3.14}` (used for integers, floats, and other structured data types)
 
 ## Integration Points
 

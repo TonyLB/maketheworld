@@ -51,6 +51,35 @@ For some relationship, there is nothing associated with the relationship ... the
 
 This defines a message, including its text (see *Content Tags*, below) and its relationship with the two rooms in which it will be emitted.
 
+## Property Values
+
+Tags can have properties that convey information about them. WML supports several syntaxes for property values, each serving different purposes:
+
+### Parentheses `(value)` - Key References
+Used for references to components or other keys. The value is treated as a key identifier.
+
+```
+<Room key=(mainHall)>
+<Exit to=(kitchen)>kitchen</Exit>
+```
+
+### Quoted Strings `"value"` - Literal Strings
+Used for string values that should be preserved exactly as written.
+
+```
+<Position x="0" y="250" />
+```
+
+### Curly Braces `{value}` - Typed and Validated Values
+Used for values that conform to a specific data type (such as integers, floats, or other structured data). The value is validated and converted to the appropriate type during parsing. The validation rules and target type are determined by the specific tag and property being used.
+
+```
+<Tag count={42} />
+<Tag weight={3.14} />
+```
+
+The curly brace syntax indicates that the value must match a specific format or type. Invalid values will cause parsing errors, ensuring type safety and data integrity.
+
 ## Content Tags
 
 Tags *without* keys are generally some manner of content definine the details of things. So, for instance, in
