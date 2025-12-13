@@ -2570,9 +2570,7 @@ describe('StandardForm', () => {
                         <Example uuid=(ex1) key=(ex1)>
                             <Name>New Example</Name>
                         </Example>
-                        <Room uuid=(room1) key=(room1)>
-                            <Example key=(ex1) />
-                        </Room>
+                        <Room uuid=(room1) key=(room1)><Example key=(ex1) /></Room>
                     </Asset>
                 `))
                 

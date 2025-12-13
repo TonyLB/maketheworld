@@ -695,7 +695,8 @@ export class StandardForm {
         }, updatedRefs)
         
         returnValue._topLevel = new ReferenceList(finalRefs)
-        return returnValue
+        // We run generateImplicitParents *again* to assure that we have accounted for any new topLevel references
+        return returnValue.generateImplicitParents()
     }
 
     /**
