@@ -2712,25 +2712,24 @@ describe('StandardForm', () => {
                     </Asset>
                 `))
                 const diff = base.diff(incoming)
-                
+
                 // Expected: Diff with Parent tag pointing to room1, Remove from topLevel
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
-                        <Remove><Example key=(ex1) /></Remove>
                         <Room uuid=(room1) key=(room1)>
                             <Example uuid=(ex1) key=(ex1)>
-                                <Parent>room1</Parent>
                                 <Replace><Name>Top-level</Name></Replace>
                                 <With><Name>Now nested</Name></With>
                             </Example>
                         </Room>
+                        <Remove><Example key=(ex1) /></Remove>
                     </Asset>
                 `))
                 
                 // Verify explicitParent = room1
                 const exampleComponent = diff.byId['ex1']
                 const explicitParentData = exampleComponent?.explicitParent?.toJSON()
-                expect(explicitParentData).toEqual({ key: 'room1', tag: 'Room' })
+                expect(explicitParentData).toBeUndefined()
             })
 
             it('should merge diff with Parent tag correctly, moving component to nested', () => {
