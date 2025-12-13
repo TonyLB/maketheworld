@@ -2,7 +2,7 @@ import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties } from "./utils"
+import { validateProperties, validateExpressionAsPositiveInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaExampleTag, SchemaNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -17,7 +17,8 @@ const exampleTemplates = {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
-        origin: { type: ParsePropertyTypes.AssetList }
+        origin: { type: ParsePropertyTypes.AssetList },
+        apply: { type: ParsePropertyTypes.Expression }
     },
 } as const
 
@@ -72,10 +73,12 @@ export const exampleConverters: Record<string, ConverterMapEntry> = {
     },
     Example: {
         initialize: ({ parseOpen }): SchemaExampleTag => {
-            const { uuid, ...rest } = validateProperties(exampleTemplates.Example)(parseOpen)
+            const { uuid, apply, ...rest } = validateProperties(exampleTemplates.Example)(parseOpen)
+            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
             return {
                 tag: 'Example',
                 uuid: uuid ? enforceTypedKey('EXAMPLE')(uuid) : undefined,
+                ...(applyValue !== undefined ? { apply: applyValue } : {}),
                 ...rest
             }
         }
@@ -121,7 +124,8 @@ export const examplePrintMap: Record<string, PrintMapEntry> = {
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('EXAMPLE')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'from', type: 'key', value: tag.from ?? '' },
-                ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
+                ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
+                ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
             ],
             node: { data: tag, children }
         })

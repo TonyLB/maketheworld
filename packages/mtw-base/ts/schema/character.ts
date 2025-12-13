@@ -17,6 +17,7 @@ export type SchemaCharacterTag = {
     key?: string;
     uuid?: ComponentUUID;
     update?: boolean;
+    apply?: number;
 } & SchemaImportableBase
 
 export const { typeGuard: isSchemaPronouns } = literalTagFactory('Pronouns')
@@ -31,6 +32,7 @@ export const isSchemaCharacter = (schema: any): schema is SchemaCharacterTag => 
             uuid: CheckTypes.STRING,
             update: CheckTypes.BOOLEAN,
             from: CheckTypes.STRING,
+            apply: CheckTypes.NUMBER,
         },
         values: {
             tag: 'Character',

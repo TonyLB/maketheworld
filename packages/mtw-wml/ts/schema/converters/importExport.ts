@@ -2,7 +2,7 @@ import { isSchemaImport, isSchemaMeta, SchemaImportTag, SchemaMetaTag } from "@t
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties } from "./utils"
+import { validateProperties, validateExpressionAsPositiveInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
@@ -19,7 +19,8 @@ const importExportTemplates = {
     },
     Image: {
         key: { required: true, type: ParsePropertyTypes.Key },
-        origin: { type: ParsePropertyTypes.AssetList }
+        origin: { type: ParsePropertyTypes.AssetList },
+        apply: { type: ParsePropertyTypes.Expression }
     },
     Selected: {}
 } as const
@@ -62,10 +63,15 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
         }
     },
     Image: {
-        initialize: ({ parseOpen }): SchemaImageTag => ({
-            tag: 'Image',
-            ...validateProperties(importExportTemplates.Image)(parseOpen)
-        })
+        initialize: ({ parseOpen }): SchemaImageTag => {
+            const { apply, ...rest } = validateProperties(importExportTemplates.Image)(parseOpen)
+            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
+            return {
+                tag: 'Image',
+                ...(applyValue !== undefined ? { apply: applyValue } : {}),
+                ...rest
+            }
+        }
     }
 }
 
@@ -102,7 +108,8 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 tag: 'Image',
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
-                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
+                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
+                    ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
                 ],
                 node: { data: tag, children }
             })

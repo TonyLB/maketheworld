@@ -2,7 +2,7 @@ import { isSchemaPronouns, SchemaCharacterTag, SchemaPronounsTag } from "@tonylb
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties } from "./utils"
+import { validateProperties, validateExpressionAsPositiveInteger } from "./utils"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaCharacter, isSchemaCharacterContents, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
@@ -16,7 +16,8 @@ const characterTemplates = {
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
         update: { type: ParsePropertyTypes.Boolean },
-        origin: { type: ParsePropertyTypes.AssetList }
+        origin: { type: ParsePropertyTypes.AssetList },
+        apply: { type: ParsePropertyTypes.Expression }
     }
 } as const
 
@@ -26,10 +27,12 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     Pronouns: pronounsConverter,
     Character: {
         initialize: ({ parseOpen }): SchemaCharacterTag => {
-            const { uuid, ...rest } = validateProperties(characterTemplates.Character)(parseOpen)
+            const { uuid, apply, ...rest } = validateProperties(characterTemplates.Character)(parseOpen)
+            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
             return {
                 tag: 'Character',
                 uuid: uuid ? enforceTypedKey('CHARACTER')(uuid) : undefined,
+                ...(applyValue !== undefined ? { apply: applyValue } : {}),
                 ...rest
             }
         },
@@ -48,7 +51,8 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'update', type: 'boolean', value: tag.update ?? false },
-                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : [])
+                    ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
+                    ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
                 ],
                 node: { data: tag, children }
             })
