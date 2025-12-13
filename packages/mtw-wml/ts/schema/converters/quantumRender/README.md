@@ -16,36 +16,36 @@ Quantum rendering adds a challenging amount of complexity to the render process.
 The main driver is the rules of adjacency and whitespace in free text (such as that in Descriptions).
 Consider a simple schema of this form:
 ```
-    <If {var1}>TestOne</If><If {var2}>TestTwo</If>
+    <Link to=(room1)>First</Link><Link to=(room2)>Second</Link>
 ```
 Inside of a description tag, rendering this on two lines would be flatly *wrong*.  The line break
-would imply whitespace between the two conditionals where none exists. If both variables were true,
-the result would be `TestOne TestTwo` rather than `TestOneTestTwo` (as it should be).
+would imply whitespace between the two links where none exists. The result would be `First Second`
+rather than `FirstSecond` (as it should be when tags are adjacent without whitespace).
 
-Therefore, the end of one conditional must be kept adjacent to the beginning of the next. When the
-entire tags fit on the same line that is easy, but if their contents are large it is possible that
-*each* tag (individually) would be small enough to render on an unwrapped line, but the *entangled
-group* is too large.
+Therefore, the end of one tag must be kept adjacent to the beginning of the next when they are meant
+to be rendered without spacing. When the entire tags fit on the same line that is easy, but if their
+contents are large it is possible that *each* tag (individually) would be small enough to render on
+an unwrapped line, but the *entangled group* is too large.
 
 ### How the wave-form addresses entangled groups
 
 To address this problem smoothly, each individual tag renders out with *multiple possibilities*:
 ```
-<If {var1}>TestOne</If>
+<Link to=(room1)>First</Link>
 ```
 ... and also ...
 ```
-<If {var1}>
-    TestOne
-</If>
+<Link to=(room1)>
+    First
+</Link>
 ```
 ... **and also** ...
 ```
-<If
-    {var1}
+<Link
+    to=(room1)
 >
-    TestOne
-</If>
+    First
+</Link>
 ```
 These are referred to as the *naive* (single-line) render, the *nested* (multi-line) render, and
 the *property nested* render (with contents shown on multiple lines, and the opening tag itself ALSO
@@ -57,46 +57,45 @@ A simple way to minimize the impact of this on the programming would be to colla
 render before ever combining or altering data. But the results are ugly and counter-intuitive for
 programmers. It leads to lines like this:
 ```
-<If {var1}>First description</If><If {var2}>
-    Second description on its own line purely by chance
-</If><If {var3}>Third description</If>
+<Link to=(room1)>First</Link><Link to=(room2)>
+    Second link on its own line purely by chance
+</Link><Link to=(room3)>Third</Link>
 ```
 It is much more readable to keep all items in an entangled group render at the same level of
 nesting, so that you get something like this:
 ```
-<If {var1}>
-    First description
-</If><If {var2}>
-    Second description
-</If><If {var3}>
-    Third description
-</If>
+<Link to=(room1)>
+    First
+</Link><Link to=(room2)>
+    Second
+</Link><Link to=(room3)>
+    Third
+</Link>
 ```
 
 ### But you only need one render per level (max of three), right?
 
-Sorry, but no. Things get even *more* complicated when one considers wrapped tag-groups (like Conditionals).
+Sorry, but no. Things get even *more* complicated when one considers wrapped tag-groups.
 Consider a schema like this:
 ```
-<If {var1}>First description (true)</If><Else>First description(false)</Else><If {var2}>Second description</If>
+<Link to=(room1)>First</Link><Link to=(room2)>Second</Link><Link to=(room3)>Third</Link>
 ```
-While the If and Else items are (technically) a single conditional statement with multiple tag pairs included
-in it, those tag-pairs *themselves* can be rendered at different levels of nesting. So one could consider two
-different "nested" version of the above:
+Adjacent tags *themselves* can be rendered at different levels of nesting. So one could consider two
+different "nested" versions of the above:
 ```
-<If {var1}>First description (true)</If>
-<Else>First description(false)</Else><If {var2}>Second description</If>
+<Link to=(room1)>First</Link>
+<Link to=(room2)>Second</Link><Link to=(room3)>Third</Link>
 ```
 ... and ...
 ```
-<If {var1}>
-    First description (true)
-</If>
-<Else>
-    First description(false)
-</Else><If {var2}>
-    Second description
-</If>
+<Link to=(room1)>
+    First
+</Link>
+<Link to=(room2)>
+    Second
+</Link><Link to=(room3)>
+    Third
+</Link>
 ```
 The first is more compact, *if there is room* to print it without exceeding line limits, while the second
 wraps more effectively. Either could be useful, so both must be saved.

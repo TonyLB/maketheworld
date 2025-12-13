@@ -238,7 +238,6 @@ The tokenizer recognizes these token types:
 - **Whitespace**: Spaces, tabs, newlines
 - **Comment**: WML comments
 - **LiteralValue**: Quoted string values
-- **ExpressionValue**: Computed expressions
 - **KeyValue**: Key references
 
 ## Integration Points
