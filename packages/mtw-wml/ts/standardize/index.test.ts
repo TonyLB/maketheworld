@@ -2217,7 +2217,8 @@ describe('StandardForm', () => {
                     }
                 }
             ],
-            metaData: []
+            metaData: [],
+            topLevel: ['ROOM#testRoomOne']
         })
         const standardizer = inherited.merge(testStandard)
         expect(schemaToWML([standardizer.schema])).toEqual(deIndentWML(`

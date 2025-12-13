@@ -39,6 +39,7 @@ import { excludeUndefined } from "../lib/lists"
 import { rebuildSchemaFromStandardRender } from "./components/utils/extractStandardRender"
 import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
 import { unique } from "../list"
+import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
     return (value instanceof StandardRemove) ||
@@ -1092,9 +1093,27 @@ export class StandardForm {
         const incomingTopLevelRemoveReferences = incomingTopLevelRemoveReferencesPayload.length > 0 ? new ReferenceList(incomingTopLevelRemoveReferencesPayload) : undefined
         returnValue._topLevel = (this._topLevel && incomingTopLevelRemoveReferences) ? this._topLevel.merge(incomingTopLevelRemoveReferences) : this._topLevel ?? incomingTopLevelRemoveReferences
 
+        // Check for components that have had all references removed, and then test whether they are empty
+        // (in which case remove them) or have content (in which case raise a merge conflict)
+        const { graph } = returnValue._buildComponentGraph()
+
+        const priorComponentsWithNoReferences = this._components
+            .filter((component) => (!Object.values(graph.nodes).some((node) => (node?.standardKey && component._key.equals(node.standardKey)))))
+            .filter((component) => (!returnValue._topLevel?.payload.some((ref) => (ref.plain().standardKey.equals(component._key)))))
+
+        console.log(`componentsWithNoReferences = ${JSON.stringify(priorComponentsWithNoReferences.map((component) => (component._key.toJSON())), null, 2)}`)
+
+        // Implement StandardComponent.isEmpty() to test whether any of the components are non-empty
+        const nonEmptyComponents = priorComponentsWithNoReferences.filter((component) => (!component.isEmpty()))
+        if (nonEmptyComponents.length > 0) {
+            throw new MergeConflictError('Merge conflict: components with no references but non-empty content')
+        }
+
+        // Remove components that have had all references removed
+        returnValue._components = returnValue._components.filter((component) => (!priorComponentsWithNoReferences.some((checkComponent) => (checkComponent._key.equals(component._key)))))
+        
         // Generate implicit parents and update topLevel to reflect current component state
-        const withImplicitParents = returnValue.generateImplicitParents()
-        return withImplicitParents._updateTopLevelFromComponents()
+        return returnValue.generateImplicitParents()._updateTopLevelFromComponents().generateImplicitParents()
     }
 
     subset(requests: StandardFormSubsetRequest[]): StandardForm {
