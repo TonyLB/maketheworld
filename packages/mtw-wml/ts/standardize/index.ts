@@ -1079,11 +1079,7 @@ export class StandardForm {
     }
 
     //
-    // StandardForm merge method accounts for component-level edits (like StandardRemove and StandardReplace)
-    // and merges all contents in place
-    //
-    // TODO: Future enhancement - could use buildComponentGraph to better handle parent relationships
-    // when components appear in multiple contexts during merge operations.
+    // StandardForm merge method accounts for component-level edits and merges all contents in place
     //
     merge(incoming: StandardForm): StandardForm {
         const mergedUniversalKeyMappings = mergeUniversalKeyMappings([...this._keys, ...incoming._keys])
@@ -1538,8 +1534,8 @@ export class StandardForm {
                     }
                 }
                 else {
-                    if (previousComponent) {
-                        const removedComponent = new StandardRemove(previousComponent)
+                    if (previousComponent && previousComponent.invert) {
+                        const removedComponent = previousComponent.invert()
                         return [
                             ...previous,
                             removedComponent.withImplicitParent(undefined)
