@@ -51,6 +51,35 @@ For some relationship, there is nothing associated with the relationship ... the
 
 This defines a message, including its text (see *Content Tags*, below) and its relationship with the two rooms in which it will be emitted.
 
+## Property Values
+
+Tags can have properties that convey information about them. WML supports several syntaxes for property values, each serving different purposes:
+
+### Parentheses `(value)` - Key References
+Used for references to components or other keys. The value is treated as a key identifier.
+
+```
+<Room key=(mainHall)>
+<Exit to=(kitchen)>kitchen</Exit>
+```
+
+### Quoted Strings `"value"` - Literal Strings
+Used for string values that should be preserved exactly as written.
+
+```
+<Position x="0" y="250" />
+```
+
+### Curly Braces `{value}` - Typed and Validated Values
+Used for values that conform to a specific data type (such as integers, floats, or other structured data). The value is validated and converted to the appropriate type during parsing. The validation rules and target type are determined by the specific tag and property being used.
+
+```
+<Tag count={42} />
+<Tag weight={3.14} />
+```
+
+The curly brace syntax indicates that the value must match a specific format or type. Invalid values will cause parsing errors, ensuring type safety and data integrity.
+
 ## Content Tags
 
 Tags *without* keys are generally some manner of content definine the details of things. So, for instance, in
@@ -95,92 +124,6 @@ is the same as:
     </Room>
 ```
 
-This aggregating behavior is particularly important when using *Conditional Tags* (see below).
-
-## Conditional Tags
-
-The things in the Make The World spaces react to changes in their underlying variables. The main way they do this is
-by making some sections of their names, descriptions, etc., *conditional*. Anything placed withing an `<If>` tag only
-appears in the world when that condition is met. So, for instance:
-```
-<Asset uuid=(testAsset)>
-    <Variable key=(dayTime) default={true} />
-    <Room key=(lobby)>
-        <Example uuid=(lobby-example)>
-            <Name>Lobby</Name>
-            <Description>A corporate lobby<Space /></Description>
-        </Example>
-    </Room>
-    <If (dayTime)>
-        <Room key=(lobby)>
-            <Example uuid=(lobby-day-example)>
-                <Description>with sunlight streaming in the windows.</Description>
-            </Example>
-        </Room>
-    </If>
-    <Else>
-        <Room key=(lobby)>
-            <Example uuid=(lobby-night-example)>
-                <Name>: at night</Name>
-                <Description>with shadows crowding the corners.</Description>
-            </Example>
-        </Room>
-    </Else>
-</Asset>
-```
-When the `dayTime` variable is set to true, this will render as if it were the following:
-```
-<Asset uuid=(testAsset)>
-    <Variable key=(dayTime) default={true} />
-    <Room key=(lobby)>
-        <Example uuid=(lobby-example)>
-            <Name>Lobby</Name>
-            <Description>A corporate lobby<Space /></Description>
-        </Example>
-    </Room>
-    <Room key=(lobby)>
-        <Example uuid=(lobby-day-example)>
-            <Description>with sunlight streaming in the windows.</Description>
-        </Example>
-    </Room>
-</Asset>
-```
-... and if the `dayTime` variable is not set to true, it will render as the following:
-```
-<Asset uuid=(testAsset)>
-    <Variable key=(dayTime) default={true} />
-    <Room key=(lobby)>
-        <Example uuid=(lobby-example)>
-            <Name>Lobby</Name>
-            <Description>A corporate lobby<Space /></Description>
-        </Example>
-    </Room>
-    <Room key=(lobby)>
-        <Example uuid=(lobby-night-example)>
-            <Name>: at night</Name>
-            <Description>with shadows crowding the corners.</Description>
-        </Example>
-    </Room>
-</Asset>
-```
-As with other context tags, `If` tags can be reordered in their position in the tree, so the first text could be
-rewritten more compactly (and perhaps more readably) as:
-```
-<Asset uuid=(testAsset)>
-    <Variable key=(dayTime) default={true} />
-    <Room key=(lobby)>
-        <Name>
-            Lobby<If {dayTime}></If><Else>: at night</Else>
-        </Name>
-        <Description>
-            A corporate lobby
-            <If {dayTime}>with sunlight streaming in the windows.</If>
-            <Else>with shadows crowding the corners.</Else>
-        </Description>
-    </Room>
-</Asset>
-```
-
 ## Whitespace
 
 WML has two different approaches to *whitespace*, in different contexts. Between **context tags** (like Room and
@@ -209,18 +152,3 @@ Therefore, the following three items render exactly the same:
 ```
 <Description>Test<Space />One<Space /> <Space /> Two Three</Description>
 ```
-However, the following two are not the same:
-```
-<Description>
-    Test
-    <If {true}>One</If>
-</Description>
-```
-... vs. ...
-```
-<Description>
-    Test<If {true}>One</If>
-</Description>
-```
-The former will render as `Test One` while the latter will render as `TestOne` (since the `<If>` statement
-is wrapped directly up against the prior text, with no whitespace).
