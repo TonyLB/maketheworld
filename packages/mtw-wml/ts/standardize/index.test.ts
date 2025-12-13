@@ -2011,7 +2011,8 @@ describe('StandardForm', () => {
                 </Remove>
             </Asset>
         `)
-        expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
+        const merged = inherited.merge(test)
+        expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
             <Asset uuid=(Test)>
                 <Remove>
                     <Room uuid=(testRoomOne) key=(testRoomOne)>
@@ -2754,7 +2755,6 @@ describe('StandardForm', () => {
                     </Asset>
                 `))
                 const merged = base.merge(diff)
-                console.log(`merged: ${JSON.stringify(merged.toJSON(), null, 4)}`)
                 
                 // Expected: Component nested under Room, removed from topLevel
                 expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`

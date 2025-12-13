@@ -223,18 +223,16 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
             const { removeContext } = options
 
-            if (removeContext) {
-                return this.invert()?.nestedSchema(lookup, { ...options, removeContext: false })
-            }
+            const target = removeContext ? this.invert() as this : this
             
             // Check if component should be rendered based on its explicit and implicit parents:
             //   (a) It has no ex/implicitParent and we are rendering the asset (expectedParent === undefined), OR
             //   (b) It has an ex/implicitParent and we're rendering in the context of that parent (ex/implicitParent matches expectedParent)
             const renderingParent = options.parent
             
-            const explicitParentKey = this.explicitParent?.standardKey
+            const explicitParentKey = target.explicitParent?.standardKey
             // Get implicit parent as StandardKey (works both before and after finalize)
-            const positionalParentKey: StandardKey | undefined = explicitParentKey ? explicitParentKey === 'ASSET' ? undefined : new StandardKey(explicitParentKey) : this._implicitParent
+            const positionalParentKey: StandardKey | undefined = explicitParentKey ? explicitParentKey === 'ASSET' ? undefined : new StandardKey(explicitParentKey) : target._implicitParent
             
             // Determine if we should render:
             // - If expectedParent is undefined, render only if component is Asset-level (no implicit parent)
@@ -244,24 +242,24 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 : positionalParentKey?.equals(renderingParent)  // Nested rendering: only render if parent matches
             
             if (!shouldRender) {
-                const reference = new StandardReference(new StandardReferenceSimple(this._key, this.tag)).toFormat('key')
+                const reference = new StandardReference(new StandardReferenceSimple(target._key, target.tag)).toFormat('key')
                 return reference.schema[0]
             }
             
             // Pass the current component's StandardKey to children
             // Children should render if their implicitParent matches this component's StandardKey
-            const contextKey = this._key.plain
-            const payload = this._payload.nestedSchema
-                ? this._payload.nestedSchema(lookup, { ...options, key: contextKey, parent: contextKey })
-                : this._payload.schema(this.key, this.universalKey)
+            const contextKey = target._key.plain
+            const payload = target._payload.nestedSchema
+                ? target._payload.nestedSchema(lookup, { ...options, key: contextKey, parent: contextKey })
+                : target._payload.schema(target.key, target.universalKey)
             if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
                 throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
             }
             // Add Parent tag to children if explicitParent is defined (at the beginning)
-            const children = this.explicitParent && this.explicitParent.schema.length > 0
-                ? [this.explicitParent.schema[0], ...payload.children]
+            const children = target.explicitParent && target.explicitParent.schema.length > 0
+                ? [target.explicitParent.schema[0], ...payload.children]
                 : [...payload.children]
-            return { ...payload, data: { ...payload.data, from: this._from, origin: this._origin }, children }
+            return { ...payload, data: { ...payload.data, from: target._from, origin: target._origin }, children }
         }
 
         referencedKeys(): StandardComponentReferenceKey[] {
