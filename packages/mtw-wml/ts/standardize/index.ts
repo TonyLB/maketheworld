@@ -385,10 +385,12 @@ export class StandardForm {
             return []
         }
         // Convert topLevel references to StandardComponentReferenceKey format
-        return this._topLevel.payload.map(ref => ({
-            key: ref.plain().standardKey,
-            referenceType: 'Direct' as const
-        }))
+        return this._topLevel.payload
+            .filter(ref => ref._payload instanceof StandardReferenceSimple)
+            .map(ref => ({
+                key: ref.plain().standardKey,
+                referenceType: 'Direct' as const
+            }))
     }
 
     /**
@@ -710,16 +712,6 @@ export class StandardForm {
      */
     generateImplicitParents(): StandardForm {
         const { graph, topologicalSort } = this._buildComponentGraph()
-        
-        // Helper to get StandardKey or AssetUUID from a synthetic UUID
-        const getStandardKeyOrAsset = (syntheticUUID: string): StandardKey | AssetUUID | undefined => {
-            // AssetUUID synthetic UUIDs are the AssetUUID itself
-            if (syntheticUUID.startsWith('ASSET#')) {
-                return syntheticUUID as AssetUUID
-            }
-            // For components, get StandardKey from node data
-            return graph.nodes[syntheticUUID]?.standardKey
-        }
         
         // Helper to find longest common prefix of multiple arrays (works with syntheticUUIDs)
         const longestCommonPrefix = (arrays: string[][]): string[] => {
@@ -1610,31 +1602,12 @@ export class StandardForm {
             })
         }
 
+        diffedValue._topLevel = topLevelDiff
+
         // Generate implicit parents first
         const diffedWithImplicitParents = diffedValue.generateImplicitParents()
 
-        // Calculate topLevel from the diffed components' graph structure
-        // Components with no non-Asset parent (explicitParent = ASSET or implicitParent = undefined) should be in topLevel
-        const inPlaceEditComponents = diffedWithImplicitParents._components.filter((component) => {
-            // Check if component has explicitParent = ASSET
-            const hasExplicitAssetParent = component.explicitParent?._payload instanceof StandardExplicitParentSimple &&
-                component.explicitParent._payload.payload.data === 'ASSET'
-            
-            // Check if component has no implicit parent (Asset-level)
-            const hasNoImplicitParent = component.implicitParent === undefined
-            
-            return hasExplicitAssetParent || hasNoImplicitParent
-        })
-
-        // Add components from graph structure (no implicit parent or explicitParent = ASSET)
-        const combinedTopLevel = inPlaceEditComponents.reduce<ReferenceList>((previous, component) => {
-            return previous.assureItem(new StandardReference(component.referenceData))
-        }, topLevelDiff ?? new ReferenceList([]))
-        
-        // Create final result with calculated topLevel
-        const combined = diffedWithImplicitParents._clone()
-        combined._topLevel = combinedTopLevel
-        const result = combined.generateImplicitParents()
+        const result = diffedWithImplicitParents._updateTopLevelFromComponents().generateImplicitParents()
         return result
     }
 
