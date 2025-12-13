@@ -123,6 +123,13 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         }
         return returnValue as this
     }
+
+    isEmpty(): boolean {
+        // A feature is empty if it has no shortName and no examples
+        const hasShortName = Boolean(this._shortName)
+        const hasExamples = this._examples.payload.length > 0
+        return !(hasShortName || hasExamples)
+    }
 }
 
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {

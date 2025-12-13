@@ -147,6 +147,14 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
+    isEmpty(): boolean {
+        // An example is empty if it has no name, summary, or description
+        const hasName = Boolean(this._name)
+        const hasSummary = Boolean(this._summary)
+        const hasDescription = Boolean(this._description)
+        return !(hasName || hasSummary || hasDescription)
+    }
+
 }
 
 export class StandardExample extends componentClassFactory(StandardExamplePayload, 'StandardExample') {

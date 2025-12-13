@@ -50,6 +50,7 @@ export interface ComponentConstructorMethods<D> {
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
     withChild?(child: StandardReference): this;
     invert?(): this;
+    isEmpty?(): boolean;
 }
 
 export const componentClassFactory = <D extends StandardComponentData, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
@@ -451,6 +452,14 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 returnValue.explicitParent = this.explicitParent.invert()
             }
             return returnValue as StandardComponent
+        }
+
+        isEmpty(): boolean {
+            // Check if payload has isEmpty method, otherwise return false
+            if (this._payload.isEmpty && typeof this._payload.isEmpty === 'function') {
+                return this._payload.isEmpty()
+            }
+            return false
         }
     }
 }

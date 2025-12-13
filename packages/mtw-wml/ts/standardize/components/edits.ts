@@ -198,6 +198,11 @@ export class StandardRemove implements StandardComponent {
         return returnValue
     }
 
+    isEmpty(): boolean {
+        // A Remove component is never empty - it always represents a removal operation
+        return false
+    }
+
 }
 
 //
@@ -429,6 +434,11 @@ export class StandardReplace implements StandardComponent {
         returnValue._match = returnValue._match.withImplicitParent(implicitParent)
         returnValue._payload = returnValue._payload.withImplicitParent(implicitParent)
         return returnValue
+    }
+
+    isEmpty(): boolean {
+        // A Replace component is empty if its payload is empty
+        return this._payload.isEmpty()
     }
 }
 

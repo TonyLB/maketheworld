@@ -191,6 +191,14 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         //
         return returnValue as this
     }
+
+    isEmpty(): boolean {
+        // A map is empty if it has no name, images, or positions
+        const hasName = Boolean(this._name)
+        const hasImages = this._images.length > 0
+        const hasPositions = this._positions.length > 0
+        return !(hasName || hasImages || hasPositions)
+    }
 }
 
 export class StandardMap extends componentClassFactory(StandardMapPayload, 'StandardMap') {

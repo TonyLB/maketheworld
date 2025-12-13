@@ -114,6 +114,15 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         return this
     }
+
+    isEmpty(): boolean {
+        // A character is empty if it has no name, shortName, pronouns, or image
+        const hasName = Boolean(this._name)
+        const hasShortName = Boolean(this._shortName)
+        const hasPronouns = Boolean(this._pronouns)
+        const hasImage = Boolean(this._image)
+        return !(hasName || hasShortName || hasPronouns || hasImage)
+    }
 }
 
 export class StandardCharacter extends componentClassFactory(StandardCharacterPayload, 'StandardCharacter') {

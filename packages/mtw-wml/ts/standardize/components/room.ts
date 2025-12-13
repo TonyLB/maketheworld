@@ -200,6 +200,16 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }
         return returnValue as this
     }
+
+    isEmpty(): boolean {
+        // A room is empty if it has no shortName, no exits, and no references (features, examples, characters)
+        const hasShortName = Boolean(this._shortName)
+        const hasExits = this._exits.length > 0
+        const hasFeatures = this._features.payload.length > 0
+        const hasExamples = this._examples.payload.length > 0
+        const hasCharacters = this._characters.payload.length > 0
+        return !(hasShortName || hasExits || hasFeatures || hasExamples || hasCharacters)
+    }
 }
 
 export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {

@@ -52,6 +52,12 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         return this
     }
+
+    isEmpty(): boolean {
+        // An image component has no content fields, so it's always considered empty
+        // (though the component itself may still exist for reference purposes)
+        return true
+    }
 }
 
 export class StandardImage extends componentClassFactory(StandardImagePayload, 'StandardImage') {
