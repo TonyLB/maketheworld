@@ -3,6 +3,7 @@ import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { isStandardNDJSONLine, StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/reference'
 
 type AssetDataCache = {
     AssetId: `ASSET#${string}`;
@@ -40,12 +41,12 @@ export class AssetData {
                         IndexName: 'DataCategoryIndex',
                         allFields: true
                     }).then((lines) => lines || []),
-                    assetDB.getItem<{ shortName?: string; summary?: any[] }>({
+                    assetDB.getItem<{ shortName?: string; summary?: any[]; topLevel?: StandardReferenceData[] }>({
                         Key: {
                             AssetId,
                             DataCategory: 'Meta::Asset'
                         },
-                        ProjectionFields: ['shortName', 'summary']
+                        ProjectionFields: ['shortName', 'summary', 'topLevel']
                     })
                 ])
                 
@@ -61,6 +62,9 @@ export class AssetData {
                 }
                 if (assetMeta?.summary) {
                     assetHeader.summary = assetMeta.summary
+                }
+                if (assetMeta?.topLevel) {
+                    assetHeader.topLevel = assetMeta.topLevel
                 }
                 
                 const standardForm = new StandardForm([

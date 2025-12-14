@@ -1,5 +1,10 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
+    return {
+        ...jest.requireActual('@tonylb/mtw-utilities/ts/uuid/___mocks___/index')
+    }
+})
 
 const assetDBMock = jest.mocked(assetDB)
 
@@ -35,7 +40,7 @@ describe('AssetData cache class', () => {
             { tag: 'Example', AssetId: 'EXAMPLE#GHIJKL', DataCategory: 'ASSET#Test', context: ['ROOM#ABCDEF'], name: ['Plain lobby'], description: ['A featureless lobby'], summary: [] }
         ]
         assetDBMock.query.mockResolvedValue(mockData)
-        assetDBMock.getItem.mockResolvedValue({})
+        assetDBMock.getItem.mockResolvedValue({ topLevel: ['ROOM#ABCDEF'] })
         const result = await assetData.get([assetId])
         expect(result).toEqual([
             {
@@ -63,7 +68,8 @@ describe('AssetData cache class', () => {
         ]
         const mockMetaData = {
             shortName: 'Nakatomi Plaza',
-            summary: ['A high-rise office building in downtown Los Angeles']
+            summary: ['A high-rise office building in downtown Los Angeles'],
+            topLevel: ['ROOM#ABC123']
         }
         
         assetDBMock.query.mockResolvedValue(mockComponentData)
@@ -97,7 +103,7 @@ describe('AssetData cache class', () => {
         const mockComponentData = [
             { tag: 'Room', key: 'room1', AssetId: `ROOM#DEF456`, DataCategory: 'ASSET#TestNoMetadata', exits: [], examples: [] }
         ]
-        const mockMetaData = {}  // No shortName or summary
+        const mockMetaData = { topLevel: ['ROOM#DEF456'] }  // No shortName or summary
         
         assetDBMock.query.mockResolvedValue(mockComponentData)
         assetDBMock.getItem.mockResolvedValue(mockMetaData)
