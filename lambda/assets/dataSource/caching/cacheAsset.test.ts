@@ -239,7 +239,7 @@ describe('Cache Asset (Data Source)', () => {
             const removalCall = mockStreamEvent.mock.calls.find(([arg]) => arg.update?.type === 'Component Updated' && arg.streamKey === 'primitives')?.[0]
             expect(removalCall).toBeTruthy()
             expect(removalCall.update.type).toBe('Component Updated')
-            expect(removalCall.update.component?.tag).toBe('Remove')
+            expect(removalCall.update.component?.tag).toBe('Knowledge')
             expect(removalCall.update.component?.universalKey).toBe('KNOWLEDGE#knowledgeRoot')
         })
     })
