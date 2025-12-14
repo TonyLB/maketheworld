@@ -3,7 +3,6 @@ import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfa
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import internalCache from "../../internalCache"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
-import { StandardRemove } from "@tonylb/mtw-wml/ts/standardize/components/edits"
 
 /**
  * Remove asset content from DynamoDB storage
@@ -35,7 +34,7 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
     if (diff) {
         // For each removal in the diff, delete DB record, update metadata, and emit as Component Updated with StandardRemove
         await Promise.all(diff._components.map(async (component) => {
-            if (!(component instanceof StandardRemove) || !component.universalKey) {
+            if (!component.universalKey) {
                 return
             }
             const universalKey = component.universalKey
