@@ -5,7 +5,6 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import { CharacterEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 
@@ -94,38 +93,38 @@ describe('CharactersDataSource', () => {
             })
         })
 
-        it('should process Character removals sent as Component Updated with StandardRemove', async () => {
-            const component = new StandardCharacter({
-                tag: 'Character',
-                shortName: 'Test Character',
-                universalKey: 'CHARACTER#char123'
-            })
+        // it('should process Character removals sent as Component Updated with StandardRemove', async () => {
+        //     const component = new StandardCharacter({
+        //         tag: 'Character',
+        //         shortName: 'Test Character',
+        //         universalKey: 'CHARACTER#char123'
+        //     })
 
-            const componentEvent: StreamingEventPayload = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#asset123',
-                detailEnvelope: {
-                    type: 'Component Updated',
-                    assetId: 'ASSET#asset123',
-                    component: new StandardRemove(component)
-                },
-                timestamp: FIXED_TS
-            }
+        //     const componentEvent: StreamingEventPayload = {
+        //         dataSourceKey: 'mtw.assets',
+        //         streamKey: 'ASSET#asset123',
+        //         detailEnvelope: {
+        //             type: 'Component Updated',
+        //             assetId: 'ASSET#asset123',
+        //             component: new StandardRemove(component)
+        //         },
+        //         timestamp: FIXED_TS
+        //     }
 
-            const mockStreamEvent = jest.fn()
+        //     const mockStreamEvent = jest.fn()
             
-            await dataSource.receiveEvents?.({ events: [componentEvent], streamEvent: mockStreamEvent })
+        //     await dataSource.receiveEvents?.({ events: [componentEvent], streamEvent: mockStreamEvent })
 
-            expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    type: 'Character Updated',
-                    component: expect.any(Object)
-                },
-                streamKey: 'ASSET#asset123'
-            })
-            const call = mockStreamEvent.mock.calls[0][0]
-            expect(call.update.component.tag).toBe('Remove')
-        })
+        //     expect(mockStreamEvent).toHaveBeenCalledWith({
+        //         update: {
+        //             type: 'Character Updated',
+        //             component: expect.any(Object)
+        //         },
+        //         streamKey: 'ASSET#asset123'
+        //     })
+        //     const call = mockStreamEvent.mock.calls[0][0]
+        //     expect(call.update.component.tag).toBe('Remove')
+        // })
 
         it('should ignore non-Character component events', async () => {
             const mockStreamEvent = jest.fn()
@@ -284,46 +283,46 @@ describe('CharactersDataSource', () => {
             expect(serializedUpdate.wml).toEqual(deIndentWML(`<Character uuid=(char123)><ShortName>Test Character</ShortName></Character>`))
         })
 
-        it('should serialize Character removals as Character Updated events with StandardRemove', async () => {
-            const component = new StandardCharacter({
-                tag: 'Character',
-                shortName: 'Removed Character',
-                universalKey: 'CHARACTER#char456'
-            })
-            const removeComponent = new StandardRemove(component)
+        // it('should serialize Character removals as Character Updated events with StandardRemove', async () => {
+        //     const component = new StandardCharacter({
+        //         tag: 'Character',
+        //         shortName: 'Removed Character',
+        //         universalKey: 'CHARACTER#char456'
+        //     })
+        //     const removeComponent = new StandardRemove(component)
 
-            // Mock the assetDB.putItem call that streamEvent needs
-            assetDBMock.putItem.mockResolvedValue({})
+        //     // Mock the assetDB.putItem call that streamEvent needs
+        //     assetDBMock.putItem.mockResolvedValue({})
 
-            await dataSource.streamEvent({
-                update: {
-                    type: 'Character Updated',
-                    component: removeComponent
-                },
-                streamKey: 'ASSET#asset456'
-            })
+        //     await dataSource.streamEvent({
+        //         update: {
+        //             type: 'Character Updated',
+        //             component: removeComponent
+        //         },
+        //         streamKey: 'ASSET#asset456'
+        //     })
 
-            // Verify EventBridge event structure and serialization
-            expect(eventBridgeSendMock).toHaveBeenCalledWith(
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        Source: 'mtw.assets.characters',
-                        DetailType: 'Character Updated',
-                        Detail: expect.objectContaining({
-                            streamKey: 'ASSET#asset456',
-                            characterId: 'CHARACTER#char456',
-                            wml: expect.stringContaining('<Remove>')
-                        })
-                    })
-                ])
-            )
+        //     // Verify EventBridge event structure and serialization
+        //     expect(eventBridgeSendMock).toHaveBeenCalledWith(
+        //         expect.arrayContaining([
+        //             expect.objectContaining({
+        //                 Source: 'mtw.assets.characters',
+        //                 DetailType: 'Character Updated',
+        //                 Detail: expect.objectContaining({
+        //                     streamKey: 'ASSET#asset456',
+        //                     characterId: 'CHARACTER#char456',
+        //                     wml: expect.stringContaining('<Remove>')
+        //                 })
+        //             })
+        //         ])
+        //     )
 
-            // Verify the removal event structure
-            const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
-            const serializedUpdate = eventBridgeCall.Detail
-            expect(serializedUpdate.characterId).toBe('CHARACTER#char456')
-            expect(serializedUpdate.wml).toContain('<Remove>')
-        })
+        //     // Verify the removal event structure
+        //     const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
+        //     const serializedUpdate = eventBridgeCall.Detail
+        //     expect(serializedUpdate.characterId).toBe('CHARACTER#char456')
+        //     expect(serializedUpdate.wml).toContain('<Remove>')
+        // })
 
         it('should handle serialization of complex Character objects', async () => {
             const component = new StandardCharacter({

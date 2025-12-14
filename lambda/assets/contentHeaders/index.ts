@@ -15,10 +15,10 @@ import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../internalCache'
-import { extractHeader } from './extractHeader'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { WMLZoneEvent, isWMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
+import { Zone } from '@tonylb/mtw-asset-workspace'
 
 //
 // Replayable DataSource singleton for mtw.assets.contentHeaders
@@ -107,7 +107,6 @@ const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot>
                 // Transform the asset's StandardForm to contain only header information for all components
                 const headersAsset = assetCache.standardForm._clone()
                 headersAsset._components = headersAsset._components
-                    .map(component => extractHeader(component))
                     .filter(excludeUndefined)
                 
                 if (headersAsset._components.length > 0) {
@@ -240,10 +239,10 @@ export default contentHeadersDataSource
 /**
  * Get the zone for a given asset ID
  */
-async function getAssetZone(assetId: AssetUUID): Promise<'Canon' | 'Library' | 'Personal' | null> {
+async function getAssetZone(assetId: AssetUUID): Promise<Zone | null> {
     try {
         const [assetMeta] = await internalCache.AssetMetaData.get([assetId])
-        return assetMeta?.zone || null
+        return assetMeta?.zone as Zone || null
     } catch (error) {
         console.error(`Error getting zone for asset ${assetId}:`, error)
         return null
@@ -255,7 +254,7 @@ async function getAssetZone(assetId: AssetUUID): Promise<'Canon' | 'Library' | '
  */
 function createAggregatedContentHeadersUpdate(
     assetId: AssetUUID,
-    zone: 'Canon' | 'Library' | 'Personal',
+    zone: Zone,
     events: SubscribedEvent[]
 ): ContentHeadersUpdate | null {
     try {
@@ -274,11 +273,7 @@ function createAggregatedContentHeadersUpdate(
                     continue
                 }
                 
-                // Extract header information from the component
-                const headerComponent = extractHeader(component)
-                if (headerComponent) {
-                    headerComponents.push(headerComponent)
-                }
+                headerComponents.push(component)
             } else if (event.detailEnvelope.type === 'Asset Updated') {
                 const assetUpdated = event.detailEnvelope as AssetUpdatedEventUpdate
                 // Consume the provided StandardForm directly

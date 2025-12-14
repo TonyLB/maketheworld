@@ -1,7 +1,6 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import internalCache from "../../internalCache";
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly";
-import { StandardRemove } from "@tonylb/mtw-wml/ts/standardize/components/edits";
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
 import { AssetsEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets';
@@ -75,46 +74,43 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
         const [metaResult] = await Promise.all([
             metaAssetWrite as Promise<{ zone?: string; player?: string }>,
             ...diff._components
-            .map(async (component) => {
-                if (!component.universalKey) {
-                    return
-                }
-                if (component instanceof StandardRemove) {
-                    await assetDB.deleteItem({
-                        AssetId: component.universalKey,
-                        DataCategory: assetUUID
-                    })
-                }
-                else {
-                    const fileComponent = fileAsset._lookup(component._key)
-                    if (!fileComponent) {
-                        console.warn(`Component ${component.universalKey} not found in file asset`)
+                .map(async (component) => {
+                    const universalKey = component.universalKey
+                    if (!universalKey) {
                         return
                     }
-                    await Promise.all([
-                        assetDB.putItem({
-                            ...(fileComponent.toJSON()),
-                            AssetId: component.universalKey,
-                            DataCategory: assetUUID,
-                        }),
-                        assetDB.optimisticUpdate({
-                            Key: {
-                                AssetId: component.universalKey,
-                                DataCategory: `Meta::${component.tag}`,    
-                            },
-                            updateKeys: ['cached'],
-                            updateReducer: (draft) => {
-                                if (!('cached' in draft)) {
-                                    draft.cached = []
-                                }
-                                if (!draft.cached.includes(assetId)) {
-                                    draft.cached = [...draft.cached, assetId]
-                                }
-                            },
+                    const fileComponent = fileAsset._lookup(universalKey)
+                    if (!fileComponent) {
+                        await assetDB.deleteItem({
+                            AssetId: universalKey,
+                            DataCategory: assetUUID
                         })
-                    ])
-                }
-            })
+                    }
+                    else {
+                        await Promise.all([
+                            assetDB.putItem({
+                                ...(fileComponent.toJSON()),
+                                AssetId: universalKey,
+                                DataCategory: assetUUID,
+                            }),
+                            assetDB.optimisticUpdate({
+                                Key: {
+                                    AssetId: universalKey,
+                                    DataCategory: `Meta::${component.tag}`,    
+                                },
+                                updateKeys: ['cached'],
+                                updateReducer: (draft) => {
+                                    if (!('cached' in draft)) {
+                                        draft.cached = []
+                                    }
+                                    if (!draft.cached.includes(assetId)) {
+                                        draft.cached = [...draft.cached, assetId]
+                                    }
+                                },
+                            })
+                        ])
+                    }
+                })
         ])
 
         // Prepare component-level events with StandardComponent objects (same for removes and updates)

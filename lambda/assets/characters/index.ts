@@ -3,14 +3,13 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import { isStandardComponentData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { ComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { StandardRemove, StandardReplace } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { CharacterEventSerializer, CharacterEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
-import { ComponentEventUpdate, isAssetsComponentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+import { isAssetsComponentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Types for the characters data source
@@ -31,6 +30,10 @@ export type CharacterSnapshotPayload = {
 // Helper functions for character data source functionality
 
 const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnapshotPayload> => {
+    if (!isSchemaAssetUUID(assetId)) {
+        console.warn(`Invalid asset ID: ${assetId}`)
+        throw new Error(`Invalid asset ID: ${assetId}`)
+    }
     // Query for all character components in this asset
     const queryResult = await assetDB.query({
         IndexName: 'DataCategoryIndex',
@@ -95,11 +98,7 @@ const processComponentEvent = async (
 
     if (update.type === 'Component Updated') {
         // Check if this is a character component or an edit referring to a character
-        const isCharacterComponent = (
-            update.component instanceof StandardCharacter ||
-            (update.component instanceof StandardRemove && update.component._match instanceof StandardCharacter) ||
-            (update.component instanceof StandardReplace && update.component._match instanceof StandardCharacter)
-        )
+        const isCharacterComponent = update.component instanceof StandardCharacter
         if (!isCharacterComponent) {
             return
         }
