@@ -17,7 +17,7 @@ import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardKey } from "./components/reference";
-import { StandardKeyData } from "./components/dataTypes/reference";
+import { ReferenceListData, StandardKeyData } from "./components/dataTypes/reference";
 import { StandardComponentReferenceKey } from "./components/baseClasses";
 
 /**
@@ -126,7 +126,7 @@ export type SerializeNDJSONMixin = {
     fileName?: string;
 }
 
-export type StandardNDJSON = (({ tag: 'Asset' } & StandardBaseData) | (StandardComponentData & SerializeNDJSONMixin))[]
+export type StandardNDJSON = (({ tag: 'Asset', topLevel?: ReferenceListData } & StandardBaseData) | (StandardComponentData & SerializeNDJSONMixin))[]
 
 export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] => {
     if (!(typeof line === 'object')) {
