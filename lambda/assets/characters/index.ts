@@ -11,6 +11,7 @@ import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { CharacterEventSerializer, CharacterEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
 import { isAssetsComponentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/components/reference'
 
 // Types for the characters data source
 export type CharacterEventPayload = {
@@ -70,7 +71,7 @@ const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnap
 
     // Create a StandardForm with the asset and all character components
     const standardForm = new StandardForm([
-        { tag: 'Asset', universalKey: assetId },
+        { tag: 'Asset', universalKey: assetId, topLevel: new ReferenceList(characterComponents.map(component => component.reference)).toJSON() },
         ...characterComponents.map(component => component.toJSON())
     ])
 
