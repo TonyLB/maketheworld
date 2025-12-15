@@ -58,6 +58,7 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
                 returnValue._key = mapKeyToFormat('universal')(returnValue._key)
                 return returnValue.withMapping(allKeys).remapReferences('universal')
             })
+        newStandard._topLevel = newStandard._topLevel?.toFormat('universal')
     }
     const allStubKeys = standard._components
         .filter((component) => (!fullKeys.find((checkKey) => (new StandardKey(checkKey).equals(component._key)))))

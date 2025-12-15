@@ -1,3 +1,8 @@
+jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
+    return {
+        ...jest.requireActual('@tonylb/mtw-utilities/ts/uuid/___mocks___/index')
+    }
+})
 import recursiveFetchImports from './recursiveFetchImports'
 
 import { FetchImportsJSONHelper } from './baseClasses'
