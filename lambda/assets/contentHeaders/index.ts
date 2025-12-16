@@ -16,9 +16,12 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../internalCache'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { hasShortName, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { WMLZoneEvent, isWMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { Zone } from '@tonylb/mtw-asset-workspace'
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
+import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/components/reference'
 
 //
 // Replayable DataSource singleton for mtw.assets.contentHeaders
@@ -258,7 +261,6 @@ function createAggregatedContentHeadersUpdate(
     events: SubscribedEvent[]
 ): ContentHeadersUpdate | null {
     try {
-        const assetKey = assetId.split('#')[1]
         const headerComponents: any[] = []
         let metadataAsset: StandardForm | null = null
         
@@ -273,7 +275,17 @@ function createAggregatedContentHeadersUpdate(
                     continue
                 }
                 
-                headerComponents.push(component)
+                const minimalJson = {
+                    tag: component.tag as any,
+                    key: component.key,
+                    universalKey: component.universalKey,
+                    shortName: hasShortName(component) ? component.shortName?.toJSON() : undefined
+                } as any
+            
+                const headerComponent = standardComponentFactory(minimalJson)
+                if (headerComponent) {   
+                    headerComponents.push(headerComponent)
+                }
             } else if (event.detailEnvelope.type === 'Asset Updated') {
                 const assetUpdated = event.detailEnvelope as AssetUpdatedEventUpdate
                 // Consume the provided StandardForm directly
@@ -289,6 +301,7 @@ function createAggregatedContentHeadersUpdate(
         // Build a StandardForm from header metadata, then assign component instances
         const standardForm = metadataAsset ? metadataAsset._clone() : new StandardForm(assetId)
         standardForm._components = headerComponents
+        standardForm._topLevel = new ReferenceList(headerComponents.map((component) => (component.referenceData)))
         
         return {
             type: 'Headers Updated',

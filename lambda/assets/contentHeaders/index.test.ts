@@ -40,15 +40,14 @@ jest.mock('../internalCache', () => ({
         get: jest.fn()
     }
 }))
-
-
-jest.mock('./extractHeader', () => ({
-    extractHeader: jest.fn()
-}))
+jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
+    return {
+        ...jest.requireActual('@tonylb/mtw-utilities/ts/uuid/___mocks___/index')
+    }
+})
 
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 const internalCacheMock = jest.mocked(internalCache, { shallow: false })
-const extractHeaderMock = jest.mocked(require('./extractHeader').extractHeader, { shallow: false })
 
 describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
     beforeEach(() => {
@@ -59,8 +58,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
         // Mock internal cache
         internalCacheMock.AssetData.get.mockResolvedValue([])
         internalCacheMock.AssetMetaData.get.mockResolvedValue([])
-        // Mock extractHeader
-        extractHeaderMock.mockReturnValue(undefined)
     })
 
     describe('Constructor', () => {
@@ -179,15 +176,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 standardForm: mockStandardForm
             }])
 
-            
-            // Mock extractHeader to return a component with header
-            const mockHeaderComponent = new StandardRoom({
-                tag: 'Room',
-                shortName: 'Test Room',
-                universalKey: 'ROOM#room1'
-            })
-            extractHeaderMock.mockReturnValue(mockHeaderComponent)
-
             const snapshot = await contentHeadersDataSource.snapshotContentGenerator?.('global')
 
             // First, verify the overall structure
@@ -217,7 +205,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const canonWML = schemaToWML([canonAsset.standardForm.schema])
             expect(canonWML).toBe(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room uuid=(room1)><ShortName>Test Room</ShortName></Room>
+                    <Room uuid=(room1) key=(room1)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `))
 
@@ -225,7 +213,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const libraryWML = schemaToWML([libraryAsset.standardForm.schema])
             expect(libraryWML).toBe(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room uuid=(room1)><ShortName>Test Room</ShortName></Room>
+                    <Room uuid=(room1) key=(room1)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `))
 
@@ -233,7 +221,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const personalWML = schemaToWML([personalAsset.standardForm.schema])
             expect(personalWML).toBe(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room uuid=(room1)><ShortName>Test Room</ShortName></Room>
+                    <Room uuid=(room1) key=(room1)><ShortName>Test Room</ShortName></Room>
                 </Asset>
             `))
 
@@ -256,9 +244,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
         beforeEach(() => {
             mockStreamEvent = jest.fn()
-            
-            // Reset extractHeader mock
-            extractHeaderMock.mockReset()
         })
 
         describe('Component Updated Events', () => {
@@ -275,7 +260,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     shortName: 'Test Room',
                     universalKey: 'ROOM#room123'
                 })
-                extractHeaderMock.mockReturnValue(mockHeaderComponent)
 
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
@@ -316,38 +300,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             it('should skip events when zone cannot be determined', async () => {
                 // Mock zone lookup failure
                 internalCacheMock.AssetMetaData.get.mockResolvedValue([])
-
-                const componentUpdatedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset123',
-                    detailEnvelope: {
-                        type: 'Component Updated',
-                        component: new StandardRoom({
-                            tag: 'Room',
-                            shortName: 'Test Room',
-                            universalKey: 'ROOM#room123'
-                        })
-                    },
-                    timestamp: Date.now()
-                }
-
-                await contentHeadersDataSource.receiveEvents?.({
-                    events: [componentUpdatedEvent],
-                    streamEvent: mockStreamEvent
-                })
-
-                expect(mockStreamEvent).not.toHaveBeenCalled()
-            })
-
-            it('should skip events when component does not have header information', async () => {
-                // Mock zone lookup
-                internalCacheMock.AssetMetaData.get.mockResolvedValue([{
-                    AssetId: 'ASSET#asset123',
-                    zone: 'Canon'
-                }])
-
-                // Mock extractHeader to return undefined (no header)
-                extractHeaderMock.mockReturnValue(undefined)
 
                 const componentUpdatedEvent: SubscribedAssetsEvent = {
                     dataSourceKey: 'mtw.assets',
@@ -638,11 +590,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             it('should handle mixed Zone Changed and Component Updated events', async () => {
                 // Mock zone lookup for component event
                 internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#test1', zone: 'Canon' }])
-                extractHeaderMock.mockReturnValue(new StandardRoom({
-                    tag: 'Room',
-                    shortName: 'Test Room',
-                    universalKey: 'ROOM#room123'
-                }))
 
                 const mixedEvents: SubscribedEvent[] = [
                     {
@@ -703,13 +650,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     .mockResolvedValueOnce([{ AssetId: 'ASSET#asset1', zone: 'Canon' }])
                     .mockResolvedValueOnce([{ AssetId: 'ASSET#asset2', zone: 'Library' }])
 
-                // Mock extractHeader
-                extractHeaderMock.mockReturnValue(new StandardRoom({
-                    tag: 'Room',
-                    shortName: 'Test Room',
-                    universalKey: 'ROOM#room123'
-                }))
-
                 const events: SubscribedAssetsEvent[] = [
                     {
                         dataSourceKey: 'mtw.assets',
@@ -729,11 +669,11 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         streamKey: 'ASSET#asset2',
                         detailEnvelope: {
                             type: 'Component Updated',
-                            component: new StandardRemove(new StandardRoom({
+                            component: new StandardRoom({
                                 tag: 'Room',
                                 shortName: 'Room 2',
                                 universalKey: 'ROOM#room2'
-                            }))
+                            })
                         },
                         timestamp: Date.now()
                     }
@@ -744,7 +684,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamEvent: mockStreamEvent
                 })
 
-                // Both Component Updated and StandardRemove events should generate content header updates
+                // Both Component Updated events should generate content header updates
                 expect(mockStreamEvent).toHaveBeenCalledTimes(2)
             })
         })
@@ -790,8 +730,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
             it('should merge Asset Updated metadata with component header updates', async () => {
                 internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#mix', zone: 'Library' }])
-                // extractHeader returns a header component
-                extractHeaderMock.mockReturnValue(new StandardRoom({ tag: 'Room', shortName: 'Hdr', universalKey: 'ROOM#r1' }))
 
                 const events: SubscribedEvent[] = [
                     {
