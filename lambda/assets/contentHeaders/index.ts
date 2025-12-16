@@ -16,9 +16,12 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../internalCache'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { hasShortName, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { WMLZoneEvent, isWMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { Zone } from '@tonylb/mtw-asset-workspace'
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
+import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/components/reference'
 
 //
 // Replayable DataSource singleton for mtw.assets.contentHeaders
@@ -81,6 +84,25 @@ const isSubscribedEvent = (event: StreamingEventPayload): event is SubscribedEve
     return isSubscribedAssetsEvent(event) || isSubscribedWMLEvent(event)
 }
 
+//
+// Helper to project a full component down to its "header" representation:
+// tag, keys, and shortName (if present), with all other payload stripped.
+//
+function extractHeaderComponent(component: any) {
+    if (!component) {
+        return undefined
+    }
+
+    const minimalJson = {
+        tag: component.tag as any,
+        key: component.key,
+        universalKey: component.universalKey,
+        shortName: hasShortName(component) ? component.shortName?.toJSON() : undefined
+    } as any
+
+    return standardComponentFactory(minimalJson) ?? undefined
+}
+
 const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot> => {
     try {
         // Query all assets from the DynamoDB table using DataCategoryIndex
@@ -103,20 +125,28 @@ const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot>
                 if (!assetCache?.standardForm) {
                     return undefined
                 }
-                
-                // Transform the asset's StandardForm to contain only header information for all components
+
+                // Start from a clone so we preserve asset-level metadata (e.g., ShortName)
                 const headersAsset = assetCache.standardForm._clone()
-                headersAsset._components = headersAsset._components
+
+                // Project each component down to its header representation
+                const headerComponents = (headersAsset._components ?? [])
                     .filter(excludeUndefined)
-                
-                if (headersAsset._components.length > 0) {
-                    return {
-                        assetId,
-                        zone,
-                        standardForm: headersAsset
-                    }
+                    .map((component) => extractHeaderComponent(component))
+                    .filter(excludeUndefined)
+
+                if (headerComponents.length === 0) {
+                    return undefined
                 }
-                return undefined
+
+                headersAsset._components = headerComponents
+                headersAsset._topLevel = new ReferenceList(headerComponents.map((component) => (component.referenceData)))
+
+                return {
+                    assetId,
+                    zone,
+                    standardForm: headersAsset
+                }
             })
         ).then(results => results.filter(excludeUndefined))
         
@@ -258,7 +288,6 @@ function createAggregatedContentHeadersUpdate(
     events: SubscribedEvent[]
 ): ContentHeadersUpdate | null {
     try {
-        const assetKey = assetId.split('#')[1]
         const headerComponents: any[] = []
         let metadataAsset: StandardForm | null = null
         
@@ -272,8 +301,11 @@ function createAggregatedContentHeadersUpdate(
                     console.warn(`Component Updated event for asset ${assetId} missing component data, skipping`)
                     continue
                 }
-                
-                headerComponents.push(component)
+
+                const headerComponent = extractHeaderComponent(component)
+                if (headerComponent) {
+                    headerComponents.push(headerComponent)
+                }
             } else if (event.detailEnvelope.type === 'Asset Updated') {
                 const assetUpdated = event.detailEnvelope as AssetUpdatedEventUpdate
                 // Consume the provided StandardForm directly
@@ -289,6 +321,7 @@ function createAggregatedContentHeadersUpdate(
         // Build a StandardForm from header metadata, then assign component instances
         const standardForm = metadataAsset ? metadataAsset._clone() : new StandardForm(assetId)
         standardForm._components = headerComponents
+        standardForm._topLevel = new ReferenceList(headerComponents.map((component) => (component.referenceData)))
         
         return {
             type: 'Headers Updated',

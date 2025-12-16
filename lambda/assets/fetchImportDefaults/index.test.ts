@@ -7,6 +7,11 @@ import internalCache from '../internalCache'
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('./baseClasses')
+jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
+    return {
+        ...jest.requireActual('@tonylb/mtw-utilities/ts/uuid/___mocks___/index')
+    }
+})
 import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 import { FetchImportsJSONHelper } from './baseClasses'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'

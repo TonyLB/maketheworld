@@ -2,16 +2,29 @@
 
 ## Overview
 
-The Content Headers data source provides filtered asset and component metadata for the content authoring UI, enabling content discovery and import workflows especially during the Bootstrapping phase. This data source aggregates asset information by zone and publishes real-time updates as assets are created, modified, or moved between zones.
+The Content Headers data source provides a **minimal, header-only projection** of asset components for the content authoring UI, enabling content discovery and import workflows especially during the Bootstrapping phase. This data source aggregates asset information by zone and publishes real-time updates as assets are created, modified, or moved between zones.
+
+## What is “Content Header” information?
+
+At a high level, **content header information is a stripped-down view of every component in an asset**, containing only the fields needed for navigation and identification in the Import Navigator:
+
+- **Per-component skeleton**:
+  - `tag`
+  - identifying keys: `key`, `universalKey`
+  - `shortName` (when present)
+- **No other component payload**: rich content, configuration, and children are intentionally omitted.
+- **Asset-level container**: these minimal components are wrapped in a `StandardForm` per asset, with a top-level `ReferenceList` pointing at each header component.
+
+This means the data source answers the question: **“What identifiable components exist in this asset, and what are their display names?”**, without exposing the full content of those components.
 
 ## Core Purpose
 
 The Content Headers data source serves as a specialized view of the assets system, providing:
 
 - **Zone-based Asset Discovery**: Organized view of assets across Canon, Library, and Personal zones
-- **Component Metadata**: Essential information (shortName, type) for Import Navigator display
-- **Real-time Updates**: Live synchronization with asset changes and zone movements
-- **Import Navigator Support**: Structured data format optimized for tabular UI display
+- **Component Header Metadata**: Minimal identification data (shortName, type, keys) for Import Navigator display
+- **Real-time Updates**: Live synchronization with asset changes and zone movements, expressed as header-only updates
+- **Import Navigator Support**: Structured data format optimized for tabular UI display and selection flows
 
 ## Technical Details
 
