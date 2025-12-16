@@ -58,6 +58,7 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
                 returnValue._key = mapKeyToFormat('universal')(returnValue._key)
                 return returnValue.withMapping(allKeys).remapReferences('universal')
             })
+        newStandard._topLevel = newStandard._topLevel?.toFormat('universal')
     }
     const allStubKeys = standard._components
         .filter((component) => (!fullKeys.find((checkKey) => (new StandardKey(checkKey).equals(component._key)))))
@@ -93,10 +94,10 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
     // (for the relevant components)
     //
     const recursiveImports = (await Promise.all(Object.entries(relevantImportsByAssetId)
-            .map(([assetId, { fullKeys, stubKeys }]) => (
-                recursiveFetchImports({ assetId: assetId as AssetUUID, jsonHelper, fullKeys, stubKeys, removeLocalKeys: true })
-            ))
+        .map(([assetId, { fullKeys, stubKeys }]) => (
+            recursiveFetchImports({ assetId: assetId as AssetUUID, jsonHelper, fullKeys, stubKeys, removeLocalKeys: true })
         ))
+    ))
 
     //
     // Merge all localized imports forward to the current level
@@ -111,7 +112,7 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
     )
 
     newStandard._components = merged._components
-    return newStandard.finalize()
+    return newStandard.generateImplicitParents()._updateTopLevelFromComponents().generateImplicitParents().finalize()
 
 }
 

@@ -1344,6 +1344,8 @@ export class StandardForm {
                     return requestOutput(request, component).reduce<StandardComponent[]>((innerAccumulator, output) => (mergeToComponentList(returnValue._keys)(innerAccumulator, output)), accumulator)
                 }, previous)
             }, [])
+        const filteredTopLevel = returnValue._topLevel?.payload.filter((reference) => (returnValue._components.some((component) => (component._key.equals(reference.plain().standardKey))))) ?? []
+        returnValue._topLevel = filteredTopLevel.length > 0 ? new ReferenceList(filteredTopLevel) : undefined
 
         const withImplicitParents = returnValue.generateImplicitParents()
         // Update topLevel to reflect current component state (remove references to components that no longer exist)
