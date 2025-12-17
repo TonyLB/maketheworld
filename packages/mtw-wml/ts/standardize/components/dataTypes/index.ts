@@ -53,7 +53,7 @@ export type StandardReplaceData = {
 
 export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (typeof value !== 'string' && value.tag === tag)
 
-export const isStandardNonEdit = (value: any): value is StandardComponentNonEditData => (
+export const isStandardComponentData = (value: any): value is StandardComponentData => (
     isStandardCharacter(value) ||
     isStandardExample(value) ||
     isStandardRoom(value) ||
@@ -71,7 +71,7 @@ export const isStandardRemoveWithOptions = (options: { typeGuard?: (value: any) 
     }
     return checkAll(
         ('tag' in arg && arg.tag === 'Remove'),
-        ('component' in arg && (options.typeGuard ?? isStandardNonEdit)(arg.component))
+        ('component' in arg && (options.typeGuard ?? isStandardComponentData)(arg.component))
     )
 }
 
@@ -83,8 +83,8 @@ export const isStandardReplaceWithOptions = (options: { typeGuard?: (value: any)
     }
     return checkAll(
         ('tag' in arg && arg.tag === 'Replace'),
-        ('match' in arg && (options.typeGuard ?? isStandardNonEdit)(arg.match)),
-        ('payload' in arg && (options.typeGuard ?? isStandardNonEdit)(arg.payload))
+        ('match' in arg && (options.typeGuard ?? isStandardComponentData)(arg.match)),
+        ('payload' in arg && (options.typeGuard ?? isStandardComponentData)(arg.payload))
     )
 }
 
@@ -98,8 +98,6 @@ export type StandardFormData = {
     summary?: StandardEditableData<RenderTree>;
     topLevel?: ReferenceListData;
 }
-
-export const isStandardComponentData = (arg: any): arg is StandardComponentData => (isStandardNonEdit(arg) || isStandardRemove(arg) || isStandardReplace(arg))
 
 export const isStandardForm = (arg: any): arg is StandardFormData => {
     if (typeof arg !== 'object') {

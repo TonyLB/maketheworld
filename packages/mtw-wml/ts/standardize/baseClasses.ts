@@ -61,14 +61,10 @@ export const isStandardMap = isStandardFactory<StandardMapData>("Map")
 export const isStandardMessage = isStandardFactory<StandardMessageData>("Message")
 export const isStandardMoment = isStandardFactory<StandardMomentData>("Moment")
 
-
-
 export const isStandardImage = isStandardFactory<StandardImageData>("Image")
 
 export const isStandardRemove = isStandardFactory<StandardRemove>("Remove")
 export const isStandardReplace = isStandardFactory<StandardReplace>("Replace")
-
-export const isStandardNonEdit = (value: StandardComponentData): value is Exclude<StandardComponentData, StandardRemove | StandardReplace> => (!(["Remove", "Replace"].includes(value.tag)))
 
 export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, universalKey?: ComponentUUID): Exclude<StandardComponentNonEditData, string> => {
     switch(tag) {
