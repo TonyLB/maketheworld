@@ -1,59 +1,53 @@
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isStandardRemove, isStandardReplace, StandardComponentData } from "./baseClasses"
 import { StandardComponent } from "./components/baseClasses"
+import { isStandardCharacter, isStandardFeature, isStandardImage, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardRoom, StandardComponentData } from "./baseClasses"
+import StandardCharacter from "./components/character"
+import StandardFeature from "./components/feature"
+import StandardExample from "./components/example"
+import StandardImage from "./components/image"
+import StandardKnowledge from "./components/knowledge"
+import StandardMap from "./components/map"
+import StandardMessage from "./components/message"
+import StandardMoment from "./components/moment"
+import StandardRoom from "./components/room"
+import { isStandardExample } from "./components/dataTypes/example"
+import { isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 import { isSchemaTreeNode } from "../schema"
-import { StandardRemove, StandardReplace } from "./components/edits"
-import standardNonEditComponentFactory from "./nonEditFactory"
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 
 //
 // standardComponentFactory takes an incoming argument that can apply to any of the StandardComponent classes (including Remove and Replace),
 // finds the correct constructor, and creates the sub-typed class
 //
 export const standardComponentFactory = (arg: StandardComponentData | GenericTreeNode<SchemaTag>): StandardComponent | undefined => {
-    if (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaRemove)(arg)) {
-        const { children } = arg
-        if (children.length !== 1) {
-            throw new Error("SchemaRemove must have exactly one child")
-        }
-        const childComponent = standardComponentFactory(children[0])
-        if (!childComponent) {
-            throw new Error("SchemaRemove must have a valid child component")
-        }
-        return new StandardRemove(childComponent)
+    if ((!isSchemaTreeNode(arg) && isStandardCharacter(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaCharacter)(arg))) {
+        return new StandardCharacter(arg)
     }
-    if (!isSchemaTreeNode(arg) && isStandardRemove(arg)) {
-        const childComponent = standardComponentFactory(arg.component)
-        if (!childComponent) {
-            throw new Error("SchemaRemove must have a valid child component")
-        }
-        return new StandardRemove(childComponent)
+    if ((!isSchemaTreeNode(arg) && isStandardExample(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaExample)(arg))) {
+        return new StandardExample(arg)
     }
-    if (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaReplace)(arg)) {
-        const { children } = arg
-        const match = children.find(isSchemaReplaceMatch)
-        const payload = children.find(isSchemaReplacePayload)
-        if (match?.children?.length !== 1) {
-            throw new Error("SchemaReplace must have exactly one match child")
-        }
-        if (payload?.children?.length !== 1) {
-            throw new Error("SchemaReplace must have exactly one payload child")
-        }
-        const matchComponent = standardComponentFactory(match.children[0])
-        const payloadComponent = standardComponentFactory(payload.children[0])
-        if (!matchComponent || !payloadComponent) {
-            throw new Error("SchemaReplace must have valid child components")
-        }
-        return new StandardReplace(matchComponent, payloadComponent)
+    if ((!isSchemaTreeNode(arg) && isStandardRoom(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaRoom)(arg))) {
+        return new StandardRoom(arg)
     }
-    if (!isSchemaTreeNode(arg) && isStandardReplace(arg)) {
-        const matchComponent = standardComponentFactory(arg.match)
-        const payloadComponent = standardComponentFactory(arg.payload)
-        if (!matchComponent || !payloadComponent) {
-            throw new Error("SchemaReplace must have valid child components")
-        }
-        return new StandardReplace(matchComponent, payloadComponent)
+    if ((!isSchemaTreeNode(arg) && isStandardFeature(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaFeature)(arg))) {
+        return new StandardFeature(arg)
     }
-    return standardNonEditComponentFactory(arg)
+    if ((!isSchemaTreeNode(arg) && isStandardKnowledge(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaKnowledge)(arg))) {
+        return new StandardKnowledge(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardMap(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaMap)(arg))) {
+        return new StandardMap(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardMessage(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaMessage)(arg))) {
+        return new StandardMessage(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardMoment(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaMoment)(arg))) {
+        return new StandardMoment(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardImage(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaImage)(arg))) {
+        return new StandardImage(arg)
+    }
+    return undefined
 }
