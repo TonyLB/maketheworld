@@ -5,7 +5,7 @@ export type StandardImageData = {
     tag: 'Image';
 } & StandardBaseData
 
-export const isStandardImage = (arg: any): arg is StandardImageData => {
+export const isStandardImageData = (arg: any): arg is StandardImageData => {
     if (typeof arg !== 'object') {
         return false
     }

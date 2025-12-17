@@ -27,7 +27,7 @@ import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
-import { isStandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
+import { isStandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { push } from '../UI/feedback'
@@ -310,7 +310,7 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAss
 
     const roomComponent = standard.components.find((component) => component.universalKey === roomId)
 
-    if (roomComponent && isStandardRoom(roomComponent)) {
+    if (roomComponent && isStandardRoomData(roomComponent)) {
         const name = typeof roomComponent.shortName === 'string' ? roomComponent.shortName : ''
         if (name) {
             dispatch(socketDispatchPromise({

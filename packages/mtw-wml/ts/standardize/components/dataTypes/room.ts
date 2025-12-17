@@ -13,7 +13,7 @@ export type StandardRoomData = {
     characters?: ReferenceListData;
 } & StandardBaseData
 
-export const isStandardRoom = (arg: any): arg is StandardRoomData => {
+export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
     if (typeof arg !== 'object') {
         return false
     }

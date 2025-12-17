@@ -14,7 +14,7 @@ export type StandardCharacterData = {
     image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
 } & StandardBaseData
 
-export const isStandardCharacter = (arg: any): arg is StandardCharacterData => {
+export const isStandardCharacterData = (arg: any): arg is StandardCharacterData => {
     if (typeof arg !== 'object') {
         return false
     }

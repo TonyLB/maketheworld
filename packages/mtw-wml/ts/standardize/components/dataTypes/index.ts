@@ -4,16 +4,16 @@ import { isSchemaTreeNode } from "../../../schema"
 import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardKeyData } from "./reference"
 
-import { isStandardCharacter, StandardCharacterData } from "./character"
+import { isStandardCharacterData, StandardCharacterData } from "./character"
 
-import { isStandardExample, StandardExampleData } from "./example"
-import { StandardFeatureData, isStandardFeature } from "./feature"
-import { StandardImageData, isStandardImage } from "./image"
-import { StandardKnowledgeData, isStandardKnowledge } from "./knowledge"
-import { StandardMapData, isStandardMap } from "./map"
-import { StandardMessageData, isStandardMessage } from "./message"
-import { StandardMomentData, isStandardMoment } from "./moment"
-import { StandardRoomData, isStandardRoom } from "./room"
+import { isStandardExampleData, StandardExampleData } from "./example"
+import { StandardFeatureData, isStandardFeatureData } from "./feature"
+import { StandardImageData, isStandardImageData } from "./image"
+import { StandardKnowledgeData, isStandardKnowledgeData } from "./knowledge"
+import { StandardMapData, isStandardMapData } from "./map"
+import { StandardMessageData, isStandardMessageData } from "./message"
+import { StandardMomentData, isStandardMomentData } from "./moment"
+import { StandardRoomData, isStandardRoomData } from "./room"
 
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -21,7 +21,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { ReferenceListData } from "./reference"
 
-export { isStandardRoom, isStandardFeature, isStandardKnowledge, isStandardMap, isStandardMessage, isStandardMoment, isStandardImage }
+export { isStandardCharacterData, isStandardExampleData, isStandardRoomData, isStandardFeatureData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardImageData }
 
 export type StandardComponentNonEditData =
     StandardCharacterData |
@@ -54,15 +54,15 @@ export type StandardReplaceData = {
 export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (typeof value !== 'string' && value.tag === tag)
 
 export const isStandardComponentData = (value: any): value is StandardComponentData => (
-    isStandardCharacter(value) ||
-    isStandardExample(value) ||
-    isStandardRoom(value) ||
-    isStandardFeature(value) ||
-    isStandardKnowledge(value) ||
-    isStandardMap(value) ||
-    isStandardMessage(value) ||
-    isStandardMoment(value) ||
-    isStandardImage(value)
+    isStandardCharacterData(value) ||
+    isStandardExampleData(value) ||
+    isStandardRoomData(value) ||
+    isStandardFeatureData(value) ||
+    isStandardKnowledgeData(value) ||
+    isStandardMapData(value) ||
+    isStandardMessageData(value) ||
+    isStandardMomentData(value) ||
+    isStandardImageData(value)
 )
 
 export const isStandardRemoveWithOptions = (options: { typeGuard?: (value: any) => boolean } = {}) => (arg: any): arg is StandardRemoveData => {

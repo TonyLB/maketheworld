@@ -13,7 +13,7 @@ export type StandardMapData = {
     positions?: StandardEditableData<StandardPositionData>[];
 } & StandardBaseData
 
-export const isStandardMap = (arg: any): arg is StandardMapData => {
+export const isStandardMapData = (arg: any): arg is StandardMapData => {
     if (typeof arg !== 'object') {
         return false
     }

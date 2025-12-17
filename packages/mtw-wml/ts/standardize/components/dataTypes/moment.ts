@@ -8,7 +8,7 @@ export type StandardMomentData = {
     messages?: ReferenceListData;
 } & StandardBaseData
 
-export const isStandardMoment = (arg: any): arg is StandardMomentData => {
+export const isStandardMomentData = (arg: any): arg is StandardMomentData => {
     if (typeof arg !== 'object') {
         return false
     }
