@@ -231,7 +231,7 @@ updateStandard({ type: 'update', update: (draft) => {
 }})
 
 // 4. Add components (rooms, features, etc.)
-const component = standardComponentByTag('Room', 'Room1')
+const component = standardComponentFactory({ tag: 'Room', key: 'Room1' })
 draft._components = [...draft._components, component]
 ```
 
