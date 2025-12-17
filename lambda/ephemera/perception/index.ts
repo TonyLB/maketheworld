@@ -15,7 +15,7 @@ import {
     EphemeraRoomId,
     isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { isStandardMessage, StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
+import { StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
@@ -23,6 +23,7 @@ import StandardMoment from "@tonylb/mtw-wml/ts/standardize/components/moment"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import StandardMessage from "@tonylb/mtw-wml/ts/standardize/components/message"
+import { isStandardMessageData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes";
 
 type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'fileURL' | 'Color']: EphemeraCharacter[K];
@@ -46,7 +47,7 @@ export const perceptionMessage = async ({
             if (!characterId) {
                 const internalCache = getCache()
                 const messageMetaByAsset = await internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId) as Record<AssetUUID, StandardComponent>
-                const roomsForMessage = (Object.values(messageMetaByAsset) as StandardComponentData[]).filter(isStandardMessage).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...(rooms ?? []) as `ROOM#${string}`[] ]), [])
+                const roomsForMessage = (Object.values(messageMetaByAsset) as StandardComponentData[]).filter(isStandardMessageData).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...(rooms ?? []) as `ROOM#${string}`[] ]), [])
                 const roomCharacterLists = await Promise.all(roomsForMessage.map(async (roomId) => (internalCache.RoomCharacterList.get(roomId))))
 
                 await Promise.all(

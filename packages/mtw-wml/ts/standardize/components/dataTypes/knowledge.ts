@@ -9,7 +9,7 @@ export type StandardKnowledgeData = {
     examples?: ReferenceListData;
 } & StandardBaseData
 
-export const isStandardKnowledge = (arg: any): arg is StandardKnowledgeData => {
+export const isStandardKnowledgeData = (arg: any): arg is StandardKnowledgeData => {
     if (typeof arg !== 'object') {
         return false
     }

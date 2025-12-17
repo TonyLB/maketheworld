@@ -18,7 +18,7 @@ export type StandardExampleNDJSONData = {
     description?: RenderTree;
 } & StandardBaseData
 
-export const isStandardExample = (arg: any): arg is StandardExampleData => {
+export const isStandardExampleData = (arg: any): arg is StandardExampleData => {
     if (typeof arg !== 'object') {
         return false
     }

@@ -51,20 +51,10 @@ export type StandardReplace = {
 export type StandardComponentData = StandardComponentNonEditData | StandardRemove | StandardReplace
 export type StandardComponentTag = StandardComponentData["tag"]
 
-export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (value.tag === tag)
+export const isStandardDataFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (value.tag === tag)
 
-export const isStandardCharacter = isStandardFactory<StandardCharacterData>("Character")
-export const isStandardRoom = isStandardFactory<StandardRoomData>("Room")
-export const isStandardFeature = isStandardFactory<StandardFeatureData>("Feature")
-export const isStandardKnowledge = isStandardFactory<StandardKnowledgeData>("Knowledge")
-export const isStandardMap = isStandardFactory<StandardMapData>("Map")
-export const isStandardMessage = isStandardFactory<StandardMessageData>("Message")
-export const isStandardMoment = isStandardFactory<StandardMomentData>("Moment")
-
-export const isStandardImage = isStandardFactory<StandardImageData>("Image")
-
-export const isStandardRemove = isStandardFactory<StandardRemove>("Remove")
-export const isStandardReplace = isStandardFactory<StandardReplace>("Replace")
+export const isStandardRemove = isStandardDataFactory<StandardRemove>("Remove")
+export const isStandardReplace = isStandardDataFactory<StandardReplace>("Replace")
 
 export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, universalKey?: ComponentUUID): Exclude<StandardComponentNonEditData, string> => {
     switch(tag) {

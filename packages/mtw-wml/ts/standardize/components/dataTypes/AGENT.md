@@ -178,17 +178,14 @@ export const isStandardExample = (arg: any): arg is StandardExampleData => {
 ```
 
 ### **Available Type Guards**
-- `isStandardExample()` - Validates Example data
-- `isStandardRoom()` - Validates Room data
-- `isStandardFeature()` - Validates Feature data
-- `isStandardCharacter()` - Validates Character data
-- `isStandardMessage()` - Validates Message data
-- `isStandardKnowledge()` - Validates Knowledge data
-- `isStandardMoment()` - Validates Moment data
-- `isStandardMap()` - Validates Map data
-- `isStandardAction()` - Validates Action data
-- `isStandardVariable()` - Validates Variable data
-- `isStandardComputed()` - Validates Computed data
+- `isStandardExampleData()` - Validates Example data
+- `isStandardRoomData()` - Validates Room data
+- `isStandardFeatureData()` - Validates Feature data
+- `isStandardCharacterData()` - Validates Character data
+- `isStandardMessageData()` - Validates Message data
+- `isStandardKnowledgeData()` - Validates Knowledge data
+- `isStandardMomentData()` - Validates Moment data
+- `isStandardMapData()` - Validates Map data
 - `isStandardExit()` - Validates Exit data
 - `isStandardPosition()` - Validates Position data
 

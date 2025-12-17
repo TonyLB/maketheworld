@@ -11,7 +11,7 @@ export type StandardMessageData = {
     rooms?: ReferenceListData;
 } & StandardBaseData
 
-export const isStandardMessage = (arg: any): arg is StandardMessageData => {
+export const isStandardMessageData = (arg: any): arg is StandardMessageData => {
     if (typeof arg !== 'object') {
         return false
     }

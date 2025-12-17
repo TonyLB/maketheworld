@@ -9,7 +9,7 @@ export type StandardFeatureData = {
     examples?: ReferenceListData;
 } & StandardBaseData
 
-export const isStandardFeature = (arg: any): arg is StandardFeatureData => {
+export const isStandardFeatureData = (arg: any): arg is StandardFeatureData => {
     if (typeof arg !== 'object') {
         return false
     }

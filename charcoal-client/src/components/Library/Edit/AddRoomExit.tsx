@@ -9,7 +9,6 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 
 import { useLibraryAsset } from './LibraryAsset'
-import { isStandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses';
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room';
 
 interface AddRoomExitProps {
