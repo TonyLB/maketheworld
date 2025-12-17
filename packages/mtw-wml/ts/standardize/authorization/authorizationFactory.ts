@@ -10,7 +10,7 @@ import StandardGrant from "./components/grant"
 import { isStandardAuthorizationNonEdit } from "./components/nonEdit"
 
 //
-// standardNonEditComponentFactory takes an incoming argument that can apply to one of the non-edit StandardComponent classes,
+// standardNonEditAuthorizationFactory takes an incoming argument that can apply to one of the non-edit StandardAuthorizationItem classes,
 // finds the correct constructor, and creates the sub-typed class
 //
 export const standardNonEditAuthorizationFactory = (arg: StandardAuthorizationData | GenericTreeNode<SchemaTag>): StandardAuthorizationItem | undefined => {
