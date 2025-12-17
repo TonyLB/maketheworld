@@ -48,18 +48,6 @@ export type StandardReplace = {
     implicitParent?: StandardKeyData;  // Parent StandardKey (serialized as StandardKeyData, minimal identifier without tag)
 }
 
-export const unwrapStandardComponent = (component: StandardComponentData): StandardComponentNonEditData => {
-    if (isStandardNonEdit(component)) {
-        return component
-    }
-    else if (isStandardRemove(component)) {
-        return component.component
-    }
-    else {
-        return component.payload
-    }
-}
-
 export type StandardComponentData = StandardComponentNonEditData | StandardRemove | StandardReplace
 export type StandardComponentTag = StandardComponentData["tag"]
 

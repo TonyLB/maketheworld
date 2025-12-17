@@ -90,18 +90,6 @@ export const isStandardReplaceWithOptions = (options: { typeGuard?: (value: any)
 
 export const isStandardReplace = isStandardReplaceWithOptions()
 
-export const unwrapStandardComponent = (component: StandardComponentData): StandardComponentNonEditData => {
-    if (isStandardNonEdit(component)) {
-        return component
-    }
-    else if (isStandardRemove(component)) {
-        return component.component
-    }
-    else {
-        return component.payload
-    }
-}
-
 export type StandardFormData = {
     universalKey: AssetUUID;
     components: StandardComponentData[];
