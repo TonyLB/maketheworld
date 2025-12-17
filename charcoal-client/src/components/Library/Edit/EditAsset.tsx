@@ -49,7 +49,6 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
-import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 import { RecentlyVisited } from './RecentlyVisited'
 import { LabelledIndentBox } from './LabelledIndentBox'
 import { blue } from '@mui/material/colors'
@@ -60,6 +59,7 @@ import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { useDebouncedOnChange } from '../../../hooks/useDebounce'
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 
 type AssetEditFormProps = {}
 
@@ -167,7 +167,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 let nextIndex = 1
                 while (`${tag}${nextIndex}` in draft.byId) { nextIndex++ }
                 const defaultedKey = `${tag}${nextIndex}`
-                const component = standardComponentByTag(tag, defaultedKey)
+                const component = standardComponentFactory({ tag, key: defaultedKey })
                 if (component) {
                     draft._components = [...draft._components, component]
                 }

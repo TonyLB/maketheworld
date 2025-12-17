@@ -54,33 +54,4 @@ export const standardNonEditComponentFactory = (arg: StandardComponentData | Gen
     return undefined
 }
 
-//
-// standardComponentByTag takes an incoming tag and key, and creates the appropriate StandardComponent
-//
-export const standardComponentByTag = (tag: ComponentTag, key: string): StandardComponent | undefined => {
-    switch (tag) {
-        case "Character":
-            return new StandardCharacter(key)
-        case "Example":
-            return new StandardExample(key)
-        case "Room":
-            return new StandardRoom(key)
-        case "Feature":
-            return new StandardFeature(key)
-        case "Knowledge":
-            return new StandardKnowledge(key)
-        case "Map":
-            return new StandardMap(key)
-        case "Message":
-            return new StandardMessage(key)
-        case "Moment":
-            return new StandardMoment(key)
-        case "Image":
-            return new StandardImage(key)
-        default:
-            return undefined
-    }
-
-}
-
 export default standardNonEditComponentFactory

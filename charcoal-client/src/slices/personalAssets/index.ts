@@ -24,7 +24,6 @@ import {
     UpdateStandardPayload
 } from './reducers'
 import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { getPlayer } from '../player'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
@@ -32,17 +31,16 @@ import { isStandardRoom } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { push } from '../UI/feedback'
-import { excludeUndefined } from '../../lib/lists'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import Debounce from '../../lib/keyedDebounce'
 import { isSchemaImport, SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
-import { standardComponentByTag } from '@tonylb/mtw-wml/ts/standardize/nonEditFactory'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { deepEqual } from '../../lib/objects'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { AssetUUID, ComponentUUID, isSchemaComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 
 const autoSaveDebounce = new Debounce()
 
@@ -292,7 +290,7 @@ export const addImport = ({ assetId, fromAsset, uuid, tag }: {
                 draft.byUniversalId[uuid] = newComponent.withImport(fromAsset)
             }
             else {
-                const component = standardComponentByTag(tag, uuid)
+                const component = standardComponentFactory({ tag, universalKey: uuid })
                 if (!component) {
                     throw new Error(`Could not create component for tag ${tag}`)
                 }
