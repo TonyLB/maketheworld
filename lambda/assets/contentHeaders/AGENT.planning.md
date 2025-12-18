@@ -31,7 +31,7 @@ export const contentHeadersDataSource = new AssetsDataSource<ContentHeadersSnaps
     eventSerializer: new ContentHeadersEventSerializer(),
     snapshotContentGenerator: generateContentHeadersSnapshot,
     subscribedEventTypeGuard: (event): event is any => {
-        // Subscribe to mtw.assets events (Component Removed now handled via Component Updated with StandardRemove)
+        // Subscribe to mtw.assets events (Component removal now expressed as Component Updated with `<Remove>` edits)
         return event.dataSourceKey === 'mtw.assets' && 
                event.event.update.type === 'Component Updated'
     },
@@ -112,7 +112,7 @@ All infrastructure components for the Content Headers data source have been impl
 - Proper serialization boundary between internal StandardForm objects and external WML strings
 - Type-safe event subscription with discriminated union types
 - Replayable DataSource configuration with snapshot generation support
-- Event processing pipeline for Component Updated events (including StandardRemove components)
+- Event processing pipeline for Component Updated events
 
 ### Step 2: Implement Snapshot Generation
 **Duration**: 1-2 days

@@ -43,10 +43,10 @@ The characters data source uses `assetId` as the stream key, enabling:
 ### **Event Types**
 
 #### **Incoming Events** (from `mtw.assets`)
-- **Component Updated**: When components are updated, check if it's a character type (including `StandardRemove` and `StandardReplace` components where `_match` is a character)
+- **Component Updated**: When components are updated, check if it's a character type
 
 #### **Outgoing Events** (to EventBridge)
-- **Character Updated**: Published when character data changes within an asset (including removals via `StandardRemove` components)
+- **Character Updated**: Published when character data changes within an asset
 
 ## Implementation Design
 
@@ -89,10 +89,9 @@ export class CharactersDataSource extends AssetsDataSource<
 The sub-source will process incoming component events to detect character-specific changes:
 
 1. **Component Updated Events**: 
-   - Check if the component is a character type (including `StandardRemove` and `StandardReplace` components where `_match` is a character)
+   - Check if the component is a character type
    - If character-related, generate `Character Updated` event with structured payload containing detailType, characterId, and WML data
    - Extract character ID from component information (assetId available as streamKey)
-   - Handle removals by extracting the matched character from `StandardRemove` components
 
 ### **Event Payload Structure**
 
@@ -145,12 +144,12 @@ type CharacterSnapshotPayload = {
 
 ### **Event Subscription**
 - **Source**: `mtw.assets` data source
-- **Event Types**: `Component Updated` (including `StandardRemove` components)
+- **Event Types**: `Component Updated`
 - **Processing**: Filters for character component types and generates appropriate character events
 
 ### **Event Publishing**
 - **Target**: EventBridge (live events) + SNS (replay events)
-- **Event Types**: `Character Updated` (including removals via `StandardRemove` components)
+- **Event Types**: `Character Updated`
 - **Consumers**: Downstream systems that need character change notifications
 - **Client Subscriptions**: UI components that need character listings for player selection
 

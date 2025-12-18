@@ -32,17 +32,16 @@ The caching functions are responsible for:
 2. **Diff Analysis**: Compares cached data with file data to identify changes
 3. **Component Updates**: Updates or deletes individual component records in DynamoDB
 4. **Meta Updates**: Updates cross-asset component metadata
-5. **Unified Streaming**: Streams all component diffs as Component Updated events; removals are represented with `StandardRemove`
+5. **Unified Streaming**: Streams all component diffs as `Component Updated` events
 6. **Cache Invalidation**: Invalidates `ComponentData` for all changed components
 
 #### `decacheAsset({ assetId, streamEvent }): Promise<void>`
 
 **Process Flow**:
 1. **Load Current Cache**: Load current `StandardForm` from internal cache
-2. **Diff to Empty**: Diff against an empty `StandardForm` for the asset to generate `StandardRemove` edits
-3. **Component Removal**: Delete component records from DynamoDB based on diff
-4. **Meta Updates**: Remove asset from component metadata cached lists; delete empty meta when appropriate
-5. **Unified Streaming**: Stream each removal as a `Component Updated` event carrying `StandardRemove`
+2. **Component Removal**: Delete component records from DynamoDB when they do not exist in the incoming record
+3. **Meta Updates**: Remove asset from component metadata cached lists; delete empty meta when appropriate
+4. **Unified Streaming**: Stream each removal as a `Component Updated` event whose payload serializes the inverted content
 
 ### Data Source Integration
 
