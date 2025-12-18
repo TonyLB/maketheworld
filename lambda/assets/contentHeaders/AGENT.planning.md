@@ -136,7 +136,7 @@ The snapshot generation function has been implemented with:
 **Duration**: 2-3 days
 
 #### Tasks
-- [x] Subscribe to `mtw.assets` events (`Component Updated` including `StandardRemove` components)
+- [x] Subscribe to `mtw.assets` events (`Component Updated` / `Component Removed` plus asset-level updates)
 - [x] Process asset changes and generate content header updates
 - [x] Implement diff generation for incremental updates (extract relevant changes from Component Updated diffs)
 - [x] Add error handling and logging
@@ -144,12 +144,12 @@ The snapshot generation function has been implemented with:
 #### Event Processing Logic
 ```typescript
 receiveEvents: async ({ event, streamEvent }) => {
-    if (event.event.update.type === 'Component Updated') {
+    if (event.event.update.type === 'Component Updated' || event.event.update.type === 'Component Removed') {
         const assetId = event.event.streamKey
         const zone = await getAssetZone(assetId)
         const metadata = await extractAssetMetadata(assetId, zone)
         
-        // Handle both regular updates and removals (via StandardRemove components)
+        // Handle both regular updates and removals
         await streamEvent({
             update: {
                 type: 'ContentHeadersUpdate',
@@ -166,7 +166,7 @@ receiveEvents: async ({ event, streamEvent }) => {
 
 #### Step 3 Complete ✅
 Event subscription and processing has been implemented with:
-- Event subscription to `mtw.assets` `Component Updated` events (including `StandardRemove` components)
+- Event subscription to `mtw.assets` `Component Updated` and `Component Removed` events
 - Asset change processing with event grouping by asset ID for efficient batch processing
 - Content header update generation that extracts relevant changes from Component Updated diffs
 - Comprehensive error handling with try-catch blocks and error reporting via messageBus

@@ -3,7 +3,7 @@ import internalCache from "../../internalCache";
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly";
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
-import { AssetsEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets';
+import { AssetsEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets';
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses';
 
 /**
@@ -114,12 +114,31 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
         ])
 
         // Prepare component-level events with StandardComponent objects (same for removes and updates)
-        const componentsUpdated = diff._components
+        const { componentsUpdated, componentsRemoved } = diff._components
             .filter((component) => (!!component.universalKey))
-            .map((component): ComponentUpdatedEvent => ({
-                type: 'Component Updated',
-                component
-            }))
+            .reduce<{ componentsUpdated: ComponentUpdatedEvent[]; componentsRemoved: ComponentRemovedEvent[] }>((acc, component) => {
+                const universalKey = component.universalKey
+                if (!universalKey) {
+                    return acc
+                }
+                const fileComponent = fileAsset._lookup(universalKey)
+                //
+                // If the component still exists in the incoming asset, treat as a content update.
+                // If it no longer exists, emit both Component Updated (for content-focused subscribers)
+                // and Component Removed (for presence-focused subscribers).
+                //
+                acc.componentsUpdated.push({
+                    type: 'Component Updated',
+                    component
+                })
+                if (!fileComponent) {
+                    acc.componentsRemoved.push({
+                        type: 'Component Removed',
+                        component
+                    })
+                }
+                return acc
+            }, { componentsUpdated: [], componentsRemoved: [] })
         
         // Invalidate component cache for all updated components
         diff._components
@@ -131,14 +150,20 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             })
         
         // Stream component events with StandardComponent objects; Character events will be handled by mtw.assets.characters data source
-        await Promise.all(
-            componentsUpdated.map((componentUpdatedEvent) => (
+        await Promise.all([
+            ...componentsUpdated.map((componentUpdatedEvent) => (
                 streamEvent({
                     update: componentUpdatedEvent,
                     streamKey: assetId
                 })
+            )),
+            ...componentsRemoved.map((componentRemovedEvent) => (
+                streamEvent({
+                    update: componentRemovedEvent,
+                    streamKey: assetId
+                })
             ))
-        )
+        ])
 
         // Emit Asset Updated event for Asset-level metadata changes (ShortName/Summary)
         const diffShortName = (diff as any).shortName

@@ -43,10 +43,10 @@ The characters data source uses `assetId` as the stream key, enabling:
 ### **Event Types**
 
 #### **Incoming Events** (from `mtw.assets`)
-- **Component Updated**: When components are updated, check if it's a character type
+- **Component Updated / Component Removed**: When components change or are removed, check if the component is a character type
 
 #### **Outgoing Events** (to EventBridge)
-- **Character Updated**: Published when character data changes within an asset
+- **Character Updated**: Published when character data changes within an asset, including removals
 
 ## Implementation Design
 

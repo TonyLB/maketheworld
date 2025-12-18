@@ -30,7 +30,7 @@ if (diff) {
 2. **Generate Diff**: Compare the two StandardForm objects to identify differences
 3. **Classify Changes**: Categorize changes where needed for DB operations (removals vs updates)
 4. **Apply Updates**: Process each change type with appropriate database operations
-5. **Stream Events (Unified)**: Stream all component changes as `"Component Updated"` events
+5. **Stream Events (Unified)**: Stream all component changes as `"Component Updated"` events, and emit `"Component Removed"` events when components are deleted from the asset
 
 ### Diff Types
 

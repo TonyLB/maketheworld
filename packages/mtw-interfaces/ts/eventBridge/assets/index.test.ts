@@ -9,9 +9,11 @@ import {
     AssetsEventExternal,
     ComponentEventUpdate,
     ComponentUpdatedEvent,
+    ComponentRemovedEvent,
     AssetLevelEventUpdate,
     AssetCachedEventUpdate,
     isAssetsComponentUpdatedEvent,
+    isAssetsComponentRemovedEvent,
     isAssetsComponentEvent,
     isAssetsLevelEvent
 } from './index'
@@ -112,6 +114,97 @@ describe('AssetsEventSerializer', () => {
             expect(deserializedEvent).not.toBeNull()
             expect(isAssetsComponentUpdatedEvent(deserializedEvent!)).toBe(true)
             if (isAssetsComponentUpdatedEvent(deserializedEvent!)) {
+                expect(deserializedEvent.component.universalKey).toBe('CHARACTER#test-character')
+                expect(deserializedEvent.component).toBeInstanceOf(StandardCharacter)
+            }
+        })
+
+        it('should serialize Component Removed event to external format', () => {
+            const character = new StandardCharacter(deIndentWML(`
+                <Character key=(test-character) uuid=(test-character)>
+                    <Name>Test Character</Name>
+                </Character>
+            `))
+
+            const componentEvent: ComponentRemovedEvent = {
+                type: 'Component Removed',
+                component: character
+            }
+
+            const externalEvent = serializer.serialize({
+                dataSourceKey: 'mtw.assets',
+                streamKey: 'ASSET#test-asset',
+                update: componentEvent
+            })
+
+            expect(externalEvent.type).toBe('Component Removed')
+            if (externalEvent.type === 'Component Removed') {
+                expect(externalEvent.componentId).toBe('CHARACTER#test-character')
+                expect(externalEvent.wml).toBe(deIndentWML(`
+                <Character uuid=(test-character) key=(test-character)>
+                    <Name>Test Character</Name>
+                </Character>
+            `))
+            }
+        })
+
+        it('should deserialize Component Removed event from external format', () => {
+            const externalEvent: AssetsEventExternal = {
+                type: 'Component Removed',
+                componentId: 'CHARACTER#test-character',
+                wml: deIndentWML(`
+                    <Character key=(test-character) uuid=(test-character)>
+                        <Name>Test Character</Name>
+                    </Character>
+                `)
+            }
+
+            const internalEvent = serializer.deserialize({
+                dataSourceKey: 'mtw.assets',
+                detailType: 'Component Removed',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+
+            expect(internalEvent).not.toBeNull()
+            expect(internalEvent!.type).toBe('Component Removed')
+            if (isAssetsComponentRemovedEvent(internalEvent!)) {
+                expect(internalEvent.component.universalKey).toBe('CHARACTER#test-character')
+                expect(internalEvent.component).toBeInstanceOf(StandardCharacter)
+            }
+        })
+
+        it('should handle Component Removed round-trip correctly', () => {
+            const originalCharacter = new StandardCharacter(deIndentWML(`
+                <Character key=(test-character) uuid=(test-character)>
+                    <Name>Test Character</Name>
+                </Character>
+            `))
+
+            const originalEvent: ComponentRemovedEvent = {
+                type: 'Component Removed',
+                component: originalCharacter
+            }
+
+            // Serialize to external format
+            const externalEvent = serializer.serialize({
+                dataSourceKey: 'mtw.assets',
+                streamKey: 'ASSET#test-asset',
+                update: originalEvent
+            })
+
+            // Deserialize back to internal format
+            const deserializedEvent = serializer.deserialize({
+                dataSourceKey: 'mtw.assets',
+                detailType: 'Component Removed',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+
+            // Verify the component is preserved
+            expect(deserializedEvent).not.toBeNull()
+            expect(isAssetsComponentRemovedEvent(deserializedEvent!)).toBe(true)
+            if (isAssetsComponentRemovedEvent(deserializedEvent!)) {
                 expect(deserializedEvent.component.universalKey).toBe('CHARACTER#test-character')
                 expect(deserializedEvent.component).toBeInstanceOf(StandardCharacter)
             }
@@ -334,6 +427,31 @@ describe('AssetsEventSerializer', () => {
                 }
 
                 expect(isAssetsComponentEvent(event)).toBe(true)
+            })
+        })
+
+        describe('isAssetsComponentRemovedEvent', () => {
+            it('should return true for valid Component Removed events', () => {
+                const character = new StandardCharacter(deIndentWML(`
+                    <Character key=(test-character) uuid=(test-character)>
+                        <Name>Test Character</Name>
+                    </Character>
+                `))
+
+                const event = {
+                    type: 'Component Removed',
+                    component: character
+                }
+
+                expect(isAssetsComponentRemovedEvent(event)).toBe(true)
+            })
+
+            it('should return false for invalid events', () => {
+                expect(isAssetsComponentRemovedEvent(null)).toBe(false)
+                expect(isAssetsComponentRemovedEvent(undefined)).toBe(false)
+                expect(isAssetsComponentRemovedEvent({})).toBe(false)
+                expect(isAssetsComponentRemovedEvent({ type: 'Asset Cached' })).toBe(false)
+                expect(isAssetsComponentRemovedEvent({ type: 'Component Removed' })).toBe(false)
             })
         })
 

@@ -2,10 +2,7 @@ import { assetsDataSource } from './index'
 import { AssetsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
-import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { cacheAsset, decacheAsset } from './caching'
@@ -107,38 +104,6 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const eventBridgeCall = eventBridgeSendMock.mock.calls[0][0][0]
             const serializedUpdate = eventBridgeCall.Detail
             expect(serializedUpdate.wml).toEqual(deIndentWML(`<Character uuid=(char123)><ShortName>Test Character</ShortName></Character>`))
-        })
-
-        it('should serialize StandardRemove as Component Updated with WML', async () => {
-            // Construct a StandardRemove wrapped around a Character
-            const component = new StandardCharacter({
-                tag: 'Character',
-                universalKey: 'CHARACTER#char456'
-            })
-            const update: AssetsEventUpdate = {
-                type: 'Component Updated',
-                component: new StandardRemove(component)
-            }
-
-            await assetsDataSource.streamEvent({
-                update,
-                streamKey: 'ASSET#asset456'
-            })
-
-            // Verify EventBridge event structure and serialization
-            expect(eventBridgeSendMock).toHaveBeenCalledWith(
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        Source: 'mtw.assets',
-                        DetailType: 'Component Updated',
-                        Detail: expect.objectContaining({
-                            streamKey: 'ASSET#asset456', // streamKey contains the asset ID
-                            componentId: 'CHARACTER#char456',
-                            wml: expect.stringContaining('<Remove>')
-                        })
-                    })
-                ])
-            )
         })
 
         it('should serialize Asset-level events to EventBridge', async () => {
