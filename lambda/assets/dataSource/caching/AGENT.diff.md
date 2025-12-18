@@ -28,19 +28,19 @@ if (diff) {
 **Process Flow**:
 1. **Load Sources**: Retrieve cached data from DynamoDB and file data from S3
 2. **Generate Diff**: Compare the two StandardForm objects to identify differences
-3. **Classify Changes**: Categorize changes where needed for DB operations (StandardRemove vs update)
+3. **Classify Changes**: Categorize changes where needed for DB operations (removals vs updates)
 4. **Apply Updates**: Process each change type with appropriate database operations
-5. **Stream Events (Unified)**: Stream all component changes as "Component Updated" events, including removals represented as `StandardRemove`
+5. **Stream Events (Unified)**: Stream all component changes as `"Component Updated"` events
 
 ### Diff Types
 
 The diff analysis identifies two main categories of component changes for DB operations:
 
-#### StandardRemove
+#### Remove
 Components that have been removed from the asset:
 
 ```typescript
-if (component instanceof StandardRemove) {
+if (!incoming._lookup(component._key.toJSON())) {
     await assetDB.deleteItem({
         AssetId: component.universalKey,
         DataCategory: `ASSET#${assetId}`
@@ -54,8 +54,8 @@ if (component instanceof StandardRemove) {
 - **Database**: DELETE operation on component record
 - **Meta**: May require cleanup of cross-reference records
 
-#### StandardReplace
-Components that have been modified or replaced:
+#### Updated Component
+Components that have been modified:
 
 ```typescript
 const fileComponent = fileAsset._lookup(component._key)
@@ -142,7 +142,7 @@ await assetDB.optimisticUpdate({
 
 ### Unified Streaming and Cache Invalidation
 
-All component changes (including removals) are streamed as "Component Updated" events. Removals are represented by a `StandardRemove` payload which serializes to `<Remove>` WML. Component cache is invalidated for all changed components.
+All component changes (including removals) are streamed as `"Component Updated"` events. Component cache is invalidated for all changed components.
 
 ```typescript
 // Stream all component diffs uniformly

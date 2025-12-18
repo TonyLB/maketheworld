@@ -31,7 +31,7 @@ The Content Headers data source serves as a specialized view of the assets syste
 ### Data Source Configuration
 - **DataSource Key**: `mtw.assets.contentHeaders`
 - **Type**: Replayable DataSource with single `global` stream
-- **Event Subscription**: Subscribes to `mtw.assets` events (`Component Updated` including `StandardRemove` components)
+- **Event Subscription**: Subscribes to `mtw.assets` `Component Updated` events
 - **Event Publishing**: Publishes filtered metadata events for Import Navigator consumption
 
 ### Event Types

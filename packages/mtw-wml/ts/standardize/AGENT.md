@@ -63,11 +63,10 @@ to that specific room in that specific asset
 - **Purpose**: Represents changes that need to be applied to an existing asset
 - **Usage**: When creating, updating, or modifying asset content through the editing interface
 - **Characteristics**:
-  - Contains `StandardRemove`, `StandardReplace`, and other edit operation components
   - May include only partial information (just the components being changed)
   - Designed to be merged with existing asset data
   - **Key distinction**: This is a temporary artifact meant only to convey the *action* of a change, not a durable asset representation
-- **Example**: A user editing a room's description creates a `StandardReplace` component that will be merged with existing room data as part of updating the stored asset
+- **Example**: A user editing a room's description creates an edit component that changes and removes some values, while leaving others untouched
 
 ### 3. Aggregation of the Content of Multiple Assets
 - **Purpose**: Combines content from multiple assets through inheritance, imports, or other aggregation operations
@@ -229,9 +228,8 @@ const merged = base.merge(incoming)
 
 The merge operation:
 1. **Component-Level Merging**: Each component is merged using its own `merge()` method
-2. **Additive Behavior**: New components are added, existing components are merged
-3. **Edit Processing**: Handles `StandardRemove` and `StandardReplace` components
-4. **Conflict Detection**: Throws `MergeConflictError` for incompatible changes
+2. **Additive Behavior**: New components are added, existing components are merged, components with all references removed are themselves removed
+3. **Conflict Detection**: Throws `MergeConflictError` for incompatible changes
 
 ### Subset Operations
 
@@ -350,7 +348,7 @@ const assetWithEdits = new StandardForm({
 - **Component System**: Orchestrates operations on StandardComponent instances
 - **Schema System**: Converts to/from WML schema format
 - **Reference System**: Manages component references and mappings
-- **Edit System**: Processes StandardRemove and StandardReplace components
+- **Edit System**: Processes asset-level and content-level edit components according to the edit algebra
 - **WML Language**: See [`../AGENT.md`](../AGENT.md) for WML format details
 - **Standard Components**: See [`./components/AGENT.md`](./components/AGENT.md) for component details
 - **Rich Text Processing**: See [`./render/AGENT.md`](./render/AGENT.md) for content handling
