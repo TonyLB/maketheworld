@@ -11,16 +11,25 @@ import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
 // Internal types for component events (using StandardComponent objects)
-export type ComponentEventUpdate = ComponentUpdatedEvent
+export type ComponentEventUpdate = ComponentUpdatedEvent | ComponentRemovedEvent
 
 export type ComponentUpdatedEvent = {
     type: 'Component Updated'
     component: StandardComponent // The actual component object for internal processing
 }
 
+export type ComponentRemovedEvent = {
+    type: 'Component Removed'
+    component: StandardComponent // The component being removed from the asset
+}
+
 // Type guards for component events
 export const isComponentUpdatedEvent = (event: ComponentEventUpdate): event is ComponentUpdatedEvent => {
     return event.type === 'Component Updated'
+}
+
+export const isComponentRemovedEvent = (event: ComponentEventUpdate): event is ComponentRemovedEvent => {
+    return event.type === 'Component Removed'
 }
 
 // Type guards for assets events (full union type)
@@ -33,8 +42,17 @@ export const isAssetsComponentUpdatedEvent = (event: any): event is ComponentUpd
         && isStandardComponent(event.component)
 }
 
+export const isAssetsComponentRemovedEvent = (event: any): event is ComponentRemovedEvent => {
+    return event != null &&
+        typeof event === 'object' &&
+        'type' in event &&
+        event.type === 'Component Removed'
+        && 'component' in event
+        && isStandardComponent(event.component)
+}
+
 export const isAssetsComponentEvent = (event: any): event is ComponentEventUpdate => {
-    return isAssetsComponentUpdatedEvent(event)
+    return isAssetsComponentUpdatedEvent(event) || isAssetsComponentRemovedEvent(event)
 }
 
 export const isAssetsLevelEvent = (event: AssetsEventUpdate): event is AssetLevelEventUpdate => {
@@ -72,10 +90,16 @@ export const isAssetUpdatedEvent = (event: any): event is AssetUpdatedEventUpdat
     return event?.type === 'Asset Updated' && event.standardForm instanceof StandardForm
 }
 
-export type ComponentEventExternal = ComponentUpdatedEventExternal
+export type ComponentEventExternal = ComponentUpdatedEventExternal | ComponentRemovedEventExternal
 
 export type ComponentUpdatedEventExternal = {
     type: 'Component Updated'
+    componentId: string
+    wml: string // Serialized WML for external consumption
+}
+
+export type ComponentRemovedEventExternal = {
+    type: 'Component Removed'
     componentId: string
     wml: string // Serialized WML for external consumption
 }
@@ -206,12 +230,21 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         const { update } = params
         
         // Use the embedded type property to determine what type of event we're serializing
-        if (isAssetsComponentUpdatedEvent(update)) {
+        if (isAssetsComponentEvent(update)) {
             const { component } = update
-            return {
-                type: 'Component Updated',
+            const base = {
                 componentId: component.universalKey || '', // Extract componentId from component
                 wml: schemaToWML([component.schema])
+            }
+            if (update.type === 'Component Removed') {
+                return {
+                    type: 'Component Removed',
+                    ...base
+                }
+            }
+            return {
+                type: 'Component Updated',
+                ...base
             }
         } else if (isAssetsLevelEvent(update)) {
             // This is an asset-level event - pass through as-is since internal and external types are now identical
@@ -243,6 +276,12 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
             return {
                 type: 'Component Updated',
                 component: this.parseWMLToComponent(updatedExternal.wml, updatedExternal.componentId)
+            }
+        } else if (externalUpdate.type === 'Component Removed') {
+            const removedExternal = externalUpdate as ComponentRemovedEventExternal
+            return {
+                type: 'Component Removed',
+                component: this.parseWMLToComponent(removedExternal.wml, removedExternal.componentId)
             }
         } else {
             // This is an asset-level event - pass through as-is since internal and external types are now identical

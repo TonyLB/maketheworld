@@ -10,7 +10,7 @@ import {
     ContentHeadersExternal,
     ContentHeadersSnapshotExternal
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
-import { ComponentEventUpdate, ComponentUpdatedEvent, AssetUpdatedEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+import { ComponentEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent, AssetUpdatedEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -30,7 +30,7 @@ import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/components/referen
 // enabling content discovery and import workflows during the Bootstrapping phase.
 // 
 // Key responsibilities:
-// - Subscribe to mtw.assets events (Component Updated with StandardRemove for removals)
+// - Subscribe to mtw.assets events (Component Updated)
 // - Generate content headers snapshots for new subscribers
 // - Stream content header updates for real-time UI synchronization
 // - Maintain zone-based organization (Canon, Library, Personal)
@@ -53,7 +53,7 @@ const isSubscribedAssetsEvent = (event: StreamingEventPayload): event is Subscri
         event.detailEnvelope !== null &&
         'type' in event.detailEnvelope &&
         (event.detailEnvelope as any).type &&
-        ((event.detailEnvelope as any).type === 'Component Updated' || (event.detailEnvelope as any).type === 'Asset Updated')
+        (((event.detailEnvelope as any).type === 'Component Updated') || ((event.detailEnvelope as any).type === 'Component Removed') || ((event.detailEnvelope as any).type === 'Asset Updated'))
     )
 }
 
@@ -181,7 +181,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
         // Group content events by asset to enable aggregation
         
         const { eventsByAsset, zoneEvents } = events.reduce<{ eventsByAsset: Record<AssetUUID, SubscribedEvent[]>, zoneEvents: SubscribedWMLEvent[] }>((previous, event) => {
-            if (event.detailEnvelope.type === 'Component Updated' || event.detailEnvelope.type === 'Asset Updated') {
+            if (event.detailEnvelope.type === 'Component Updated' || event.detailEnvelope.type === 'Component Removed' || event.detailEnvelope.type === 'Asset Updated') {
                 const assetId = event.streamKey as AssetUUID
                 return {
                     ...previous,
@@ -293,8 +293,8 @@ function createAggregatedContentHeadersUpdate(
         
         // Process all events for this asset
         for (const event of events) {
-            if (event.detailEnvelope.type === 'Component Updated') {
-                const componentUpdate = event.detailEnvelope as ComponentUpdatedEvent
+            if (event.detailEnvelope.type === 'Component Updated' || event.detailEnvelope.type === 'Component Removed') {
+                const componentUpdate = event.detailEnvelope as ComponentUpdatedEvent | ComponentRemovedEvent
                 const { component } = componentUpdate
                 
                 if (!component) {

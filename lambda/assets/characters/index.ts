@@ -97,22 +97,21 @@ const processComponentEvent = async (
         return
     }
 
-    if (update.type === 'Component Updated') {
-        // Check if this is a character component or an edit referring to a character
-        const isCharacterComponent = update.component instanceof StandardCharacter
-        if (!isCharacterComponent) {
-            return
-        }
-
-        // Generate character updated event with StandardComponent object (could be Remove/Replace)
-        await streamEvent({
-            update: {
-                type: 'Character Updated',
-                component: update.component
-            },
-            streamKey
-        })
+    // For characters, both content edits and full removals are interesting.
+    // We rely on the component type, not the specific update type, to decide.
+    const component = (update as any).component
+    if (!(component instanceof StandardCharacter)) {
+        return
     }
+
+    // Generate character updated event with StandardComponent object
+    await streamEvent({
+        update: {
+            type: 'Character Updated',
+            component
+        },
+        streamKey
+    })
 }
 
 // Create the characters data source singleton

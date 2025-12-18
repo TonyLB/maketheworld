@@ -234,7 +234,7 @@ describe('Cache Asset (Data Source)', () => {
                 DataCategory: 'ASSET#primitives'
             })
 
-            // Should emit Component Updated streaming event with StandardRemove payload
+            // Should emit Component Updated streaming event
             expect(mockStreamEvent).toHaveBeenCalled()
             const removalCall = mockStreamEvent.mock.calls.find(([arg]) => arg.update?.type === 'Component Updated' && arg.streamKey === 'primitives')?.[0]
             expect(removalCall).toBeTruthy()
@@ -352,7 +352,7 @@ describe('Cache Asset (Data Source)', () => {
                 zone: 'Canon'
             }])
 
-            // file adds a ShortName to the existing Room (delta should be StandardReplace for Room with ShortName)
+            // file adds a ShortName to the existing Room
             standardFormMock = new StandardForm(`
                 <Asset uuid=(primitives)>
                     <Room uuid=(VORTEX)><ShortName>Vortex</ShortName></Room>

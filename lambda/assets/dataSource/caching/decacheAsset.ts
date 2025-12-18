@@ -1,5 +1,5 @@
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
-import { ComponentEventUpdate, ComponentUpdatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+import { ComponentEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import internalCache from "../../internalCache"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
@@ -32,7 +32,7 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
     const diff = dbAsset.diff(emptyAsset)
 
     if (diff) {
-        // For each removal in the diff, delete DB record, update metadata, and emit as Component Updated with StandardRemove
+        // For each removal in the diff, delete DB record, update metadata, and emit as both Component Updated and Component Removed
         await Promise.all(diff._components.map(async (component) => {
             if (!component.universalKey) {
                 return
@@ -60,10 +60,20 @@ export const decacheAsset = async ({ assetId, streamEvent }: {
                 type: 'Component Updated',
                 component
             }
-            await streamEvent({
-                update: componentUpdatedEvent,
-                streamKey: assetId
-            })
+            const componentRemovedEvent: ComponentRemovedEvent = {
+                type: 'Component Removed',
+                component
+            }
+            await Promise.all([
+                streamEvent({
+                    update: componentUpdatedEvent,
+                    streamKey: assetId
+                }),
+                streamEvent({
+                    update: componentRemovedEvent,
+                    streamKey: assetId
+                })
+            ])
         }))
     }
 

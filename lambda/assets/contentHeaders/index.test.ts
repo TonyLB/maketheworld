@@ -4,7 +4,6 @@ import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
-import { StandardRemove } from '@tonylb/mtw-wml/ts/standardize/components/edits'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import internalCache from '../internalCache'
@@ -90,26 +89,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             } as const
 
             const shouldSubscribe = contentHeadersDataSource.subscribedEventTypeGuard?.(componentUpdatedEvent)
-            expect(shouldSubscribe).toBe(true)
-        })
-
-        it('should subscribe to Component Updated events with StandardRemove from mtw.assets', () => {
-            const componentRemovedEvent: StreamingEventPayload = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#asset123',
-                detailEnvelope: {
-                    type: 'Component Updated',
-                    assetId: 'ASSET#asset123',
-                    component: new StandardRemove(new StandardRoom({
-                        tag: 'Room',
-                        shortName: 'Test Room',
-                        universalKey: 'ROOM#room123'
-                    }))
-                },
-                timestamp: Date.now()
-            } as const
-
-            const shouldSubscribe = contentHeadersDataSource.subscribedEventTypeGuard?.(componentRemovedEvent)
             expect(shouldSubscribe).toBe(true)
         })
 
@@ -362,139 +341,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
                 await contentHeadersDataSource.receiveEvents?.({
                     events: [componentUpdatedEvent],
-                    streamEvent: mockStreamEvent
-                })
-
-                expect(messageBus.send).toHaveBeenCalledWith({
-                    type: 'Error',
-                    body: {
-                        error: 'Could not determine zone for asset ASSET#asset123',
-                        statusCode: 400
-                    }
-                })
-            })
-        })
-
-        describe('Component Updated Events with StandardRemove', () => {
-            it('should process Component Updated events with StandardRemove and not stream content header updates', async () => {
-                // Mock zone lookup
-                internalCacheMock.AssetMetaData.get.mockResolvedValue([{
-                    AssetId: 'ASSET#asset123',
-                    zone: 'Library'
-                }])
-
-                const componentRemovedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset123',
-                    detailEnvelope: {
-                        type: 'Component Updated',
-                        component: new StandardRemove(new StandardRoom({
-                            tag: 'Room',
-                            shortName: 'Test Room',
-                            universalKey: 'ROOM#room123'
-                        }))
-                    },
-                    timestamp: Date.now()
-                }
-
-                await contentHeadersDataSource.receiveEvents?.({
-                    events: [componentRemovedEvent],
-                    streamEvent: mockStreamEvent
-                })
-
-                // StandardRemove components should not generate content header updates
-                // The actual removal logic is handled by snapshot generation
-                expect(mockStreamEvent).not.toHaveBeenCalled()
-            })
-
-            it('should skip events when zone cannot be determined', async () => {
-                // Mock zone lookup failure
-                internalCacheMock.AssetMetaData.get.mockResolvedValue([])
-
-                const componentRemovedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset123',
-                    detailEnvelope: {
-                        type: 'Component Updated',
-                        component: new StandardRemove(new StandardRoom({
-                            tag: 'Room',
-                            shortName: 'Test Room',
-                            universalKey: 'ROOM#room123'
-                        }))
-                    },
-                    timestamp: Date.now()
-                }
-
-                await contentHeadersDataSource.receiveEvents?.({
-                    events: [componentRemovedEvent],
-                    streamEvent: mockStreamEvent
-                })
-
-                expect(mockStreamEvent).not.toHaveBeenCalled()
-            })
-
-            it('should handle missing assetId gracefully', async () => {
-                const componentRemovedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset123',
-                    detailEnvelope: {
-                        type: 'Component Updated',
-                        component: new StandardRemove(new StandardRoom({
-                            tag: 'Room',
-                            shortName: 'Test Room',
-                            universalKey: 'ROOM#room123'
-                        }))
-                    },
-                    timestamp: Date.now()
-                }
-
-                await contentHeadersDataSource.receiveEvents?.({
-                    events: [componentRemovedEvent],
-                    streamEvent: mockStreamEvent
-                })
-
-                expect(mockStreamEvent).not.toHaveBeenCalled()
-            })
-
-            it('should handle missing component gracefully', async () => {
-                const componentRemovedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset123',
-                    detailEnvelope: {
-                        type: 'Component Updated',
-                        component: undefined as any
-                    },
-                    timestamp: Date.now()
-                }
-
-                await contentHeadersDataSource.receiveEvents?.({
-                    events: [componentRemovedEvent],
-                    streamEvent: mockStreamEvent
-                })
-
-                expect(mockStreamEvent).not.toHaveBeenCalled()
-            })
-
-            it('should handle errors and send error message to messageBus', async () => {
-                // Mock zone lookup to throw error
-                internalCacheMock.AssetMetaData.get.mockRejectedValue(new Error('Cache error'))
-
-                const componentRemovedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset123',
-                    detailEnvelope: {
-                        type: 'Component Updated',
-                        component: new StandardRemove(new StandardRoom({
-                            tag: 'Room',
-                            shortName: 'Test Room',
-                            universalKey: 'ROOM#room123'
-                        }))
-                    },
-                    timestamp: Date.now()
-                }
-
-                await contentHeadersDataSource.receiveEvents?.({
-                    events: [componentRemovedEvent],
                     streamEvent: mockStreamEvent
                 })
 
