@@ -3,7 +3,7 @@ import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties, validateExpressionAsPositiveInteger } from "./utils"
+import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
@@ -31,7 +31,7 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
     Message: {
         initialize: ({ parseOpen }): SchemaMessageTag => {
             const { uuid, ref, ...rest } = validateProperties(messagingTemplates.Message)(parseOpen)
-            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Message',
                 uuid: uuid ? enforceTypedKey('MESSAGE')(uuid) : undefined,
@@ -52,7 +52,7 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
     Moment: {
         initialize: ({ parseOpen }): SchemaMomentTag => {
             const { uuid, ref, ...rest } = validateProperties(messagingTemplates.Moment)(parseOpen)
-            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Moment',
                 uuid: uuid ? enforceTypedKey('MOMENT')(uuid) : undefined,
