@@ -145,43 +145,59 @@ This migration should proceed incrementally, starting with a single component ty
 **Status:** ✅ **COMPLETE**
 
 **Tasks:**
-- Remove `StandardReferenceReplace` class
-  - Delete `StandardReferenceReplace` class from `reference.ts`
-  - Remove all references to `StandardReferenceReplace` from type definitions
-  - Update `StandardReference` to only handle `Simple` and `Remove` operations
-  - Update return types from merge/diff methods to exclude `StandardReferenceReplace`
-  - Remove `StandardReferenceReplace` from imports and exports
+- ✅ Remove `StandardReferenceReplace` class
+  - ✅ Deleted `StandardReferenceReplace` class from `reference.ts`
+  - ✅ Removed all references to `StandardReferenceReplace` from type definitions
+  - ✅ Updated `StandardReference` to only handle `Simple` and `Remove` operations
+  - ✅ Updated return types from merge/diff methods to exclude `StandardReferenceReplace`
+  - ✅ Removed `StandardReferenceReplace` from imports and exports
 
-- Update code that handles Replace operations from WML/JSON
-  - **Note:** Component-level Replace operations already throw errors (handled in `processComponents.ts`), so we only need to handle reference-level Replace operations
-  - **For WML (reference-level Replace tags):** Convert Replace operations to Add+Remove pairs during loading
-    - Update `standardEditableFactory` constructorDelta (in `editable/index.ts`) to return separate Add and Remove deltas instead of a combined Replace delta when processing reference Replace tags
-    - Or update `StandardReference` constructor to split Replace deltas into separate Add+Remove operations before creating references
-    - This provides backward compatibility: existing WML files with reference-level Replace tags will be converted automatically to Add+Remove pairs
-  - **For JSON:** Throw an error when encountering Replace operations (since we're removing Replace support from JSON entirely)
-    - Update `isReplace()` check in `standardEditableFactory` to throw error for JSON input
-    - Replace operations should only exist in WML (for backward compatibility), not in JSON serialization format
+- ✅ Rebuild `StandardReference` without `standardEditableFactory`
+  - ✅ Rebuilt `StandardReferenceSimple` constructor to directly parse WML/JSON/schema without factory
+  - ✅ Rebuilt `StandardReferenceRemove` constructor to directly parse WML/JSON/schema without factory
+  - ✅ Updated `StandardReference` constructor to parse directly without factory
+  - ✅ Implemented direct merge/diff logic using `addDelta`/`diffDelta` helpers (exported from `editable/index.ts`)
+  - ✅ Removed factory imports and dependencies from `reference.ts`
+  - ✅ Updated `fromDelta` to throw error when both `add` and `remove` are present (Replace operations are illegal)
 
-- Update ReferenceList and related utilities
-  - Remove `StandardReferenceReplace` handling from `mapContents()`, `lookup()`, `toFormat()`, `invert()`, etc.
-  - Update type guards to exclude `StandardReferenceReplace`
-  - Remove all conditional logic that checks for `instanceof StandardReferenceReplace`
+- ✅ Update code that handles Replace operations from WML/JSON
+  - ✅ **Note:** Component-level Replace operations already throw errors (handled in `processComponents.ts`), so we only need to handle reference-level Replace operations
+  - ✅ **For WML (reference-level Replace tags):** Throw error immediately when encountered
+    - ✅ Updated `StandardReference` constructor to check for Replace tags in WML strings and throw error
+    - ✅ Updated `StandardReferenceSimple` and `StandardReferenceRemove` constructors to check for Replace tags in schema and throw errors
+  - ✅ **For JSON:** Throw error immediately when encountering Replace operations
+    - ✅ Updated `StandardReference` constructor to check for Replace JSON structures (`{ tag: 'Replace', ... }`) and throw error
+    - ✅ Replace operations are now illegal in both WML and JSON for references
 
-- Update tests
-  - Remove all tests that create or use `StandardReferenceReplace` instances
-  - Update tests that load Replace operations from WML/JSON to verify they're converted correctly
-  - Ensure all existing functionality works without Replace operations
+- ✅ Update ReferenceList and related utilities
+  - ✅ Removed `StandardReferenceReplace` handling from `mapContents()`, `lookup()`, `toFormat()`, `invert()`, `equal()`, etc.
+  - ✅ Updated type guards to exclude `StandardReferenceReplace`
+  - ✅ Removed all conditional logic that checks for `instanceof StandardReferenceReplace`
+  - ✅ Updated `childReferenceFactory` in `utils/references.ts` to remove Replace handling
 
-- Update documentation
-  - Remove all references to `StandardReferenceReplace` from documentation
-  - Update type documentation to reflect only Simple and Remove operations
+- ✅ Update tests
+  - ✅ Removed all tests that create or use `StandardReferenceReplace` instances
+  - ✅ Added tests verifying that Replace operations from WML throw errors
+  - ✅ Added tests verifying that Replace operations from JSON throw errors
+  - ✅ Added tests verifying that `fromDelta` throws error when both add and remove are present
+  - ✅ Moved constructor error test from `editableList.test.ts` to `reference.test.ts` (ReferenceList-specific tests)
+  - ✅ Removed merge test that attempted to use Replace data (couldn't run because constructor throws)
+  - ✅ Ensured all existing functionality works without Replace operations
+
+- ✅ Update documentation
+  - ✅ Removed all references to `StandardReferenceReplace` from documentation
+  - ✅ Updated `AGENT.referenceList.md` to clarify that Replace operations are illegal and throw errors
+  - ✅ Updated type documentation to reflect only Simple and Remove operations
+  - ✅ Clarified that `standardEditableFactory` is for content editing only (not references)
 
 **Success Criteria:**
-- `StandardReferenceReplace` class completely removed from codebase
-- All Replace operations from WML/JSON are converted to Add+Remove pairs during loading
-- All existing tests pass without Replace operations
-- No references to Replace operations remain in ReferenceList code
-- Type system reflects only Simple and Remove operations
+- ✅ `StandardReferenceReplace` class completely removed from codebase
+- ✅ All Replace operations from WML/JSON throw errors (no conversion)
+- ✅ `StandardReference` rebuilt without `standardEditableFactory` dependency
+- ✅ All existing tests pass without Replace operations
+- ✅ No references to Replace operations remain in ReferenceList code
+- ✅ Type system reflects only Simple and Remove operations
+- ✅ Error messages are consistent: "Replace operations are illegal for references. References can only be added or removed, not replaced."
 
 ### 1.4 Align StandardRoomPayload with Edit Algebra
 
