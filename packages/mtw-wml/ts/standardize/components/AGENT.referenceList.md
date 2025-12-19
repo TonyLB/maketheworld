@@ -32,7 +32,7 @@ In WML, components contain reference collections (like `features`, `examples`, `
 - **`StandardReferenceSimple`**: Standard reference addition
 - **`StandardReferenceRemove`**: Marks a reference for removal
 
-**Note:** `StandardReferenceReplace` exists for backward compatibility (loading from WML/JSON that contains Replace tags), but merge and diff operations will never create Replace operations. References can only be added or removed, never replaced with a different target component.
+**Note:** Replace operations are illegal for references. When loading from WML/JSON that contains Replace tags, an error is thrown. References can only be added or removed, never replaced with a different target component.
 
 The constructor normalizes references to ensure minimum key information (removing context-dependent data).
 

@@ -49,7 +49,7 @@ export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayl
     diff: (base: StandardEditableDataDelta<PayloadDataType<FinalType>>, incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>) => StandardEditableDataDelta<PayloadDataType<FinalType>>;
 }
 
-const addDelta = <FinalType extends StandardEditablePayload<any>>(
+export const addDelta = <FinalType extends StandardEditablePayload<any>>(
         add: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>) => PayloadDataType<FinalType>,
         subtract: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>, options?: { fromStart?: boolean }) => StandardEditableDataDelta<PayloadDataType<FinalType>>,
         diff: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>, options?: { fromStart?: boolean }) => StandardEditableDataDelta<PayloadDataType<FinalType>>
@@ -89,7 +89,7 @@ const addDelta = <FinalType extends StandardEditablePayload<any>>(
         : { add: cancelledAdd, remove: cancelledRemove }
 }
 
-const diffDelta = <FinalType extends StandardEditablePayload<any>>(
+export const diffDelta = <FinalType extends StandardEditablePayload<any>>(
     add: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>) => PayloadDataType<FinalType>,
     subtract: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>) => StandardEditableDataDelta<PayloadDataType<FinalType>>,
     diff: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>) => StandardEditableDataDelta<PayloadDataType<FinalType>>

@@ -1,12 +1,15 @@
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { ComponentTag, componentTagFromUpperCase } from "./dataTypes/abstract";
 import { isStandardKeyData, isStandardReferencePayloadData, StandardKeyData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
-import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
+import { StandardEditableDataDelta, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { ReferenceFormat } from "./utils/references";
 import { editableListClassFactory, EditableListItem } from "./editableList";
+import { treeFromWML } from "../../schema";
+import { addDelta, diffDelta } from "../../generics/editable";
 
 export class StandardKey implements StandardEditablePayload<StandardKeyData> {
     key?: string;
@@ -318,14 +321,8 @@ const standardReferenceDiff = (base: StandardReferenceData, incoming: StandardRe
     }
 }
 
-export const { constructorDelta: factory, typeguard: isStandardReferenceData, merge, diff } = standardEditableFactory({
-    typeguard: isStandardReferencePayloadData,
-    payloadFactory: payloadFactory,
-    payload: StandardReferencePayload,
-    add: standardReferenceAdd,
-    subtract: standardReferenceSubtract,
-    diff: standardReferenceDiff
-})
+// Factory removed - StandardReference now parses directly without using standardEditableFactory
+// This is because references have different edit semantics (add/remove only, no replace)
 
 // Helper function to derive tag from various data sources
 const deriveTagFromReferenceData = (
@@ -365,14 +362,14 @@ const deriveTagFromReferenceData = (
     return undefined
 }
 
-const fromDelta = (delta: StandardEditableDataDelta<StandardReferenceData>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined => {
+const fromDelta = (delta: StandardEditableDataDelta<StandardReferenceData>): StandardReferenceSimple | StandardReferenceRemove | undefined => {
     const { add, remove } = delta
+    if (add && remove) {
+        // Replace operations are illegal for references
+        throw new Error('Replace operations are illegal for references. References can only be added or removed, not replaced.')
+    }
     if (add) {
         const addPayload = new StandardReferencePayload(add)
-        if (remove) {
-            const removePayload = new StandardReferencePayload(remove)
-            return new StandardReferenceReplace(removePayload, addPayload)
-        }
         return new StandardReferenceSimple(addPayload)
     }
     if (remove) {
@@ -419,12 +416,54 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
             return
         }
         
-        // Handle StandardReferenceData or GenericTree - use factory
-        const delta = factory(data)
-        if (delta && delta.add && !delta.remove) {
-            this.payload = delta.add
+        // Handle StandardReferenceData directly
+        if (isStandardReferencePayloadData(data)) {
+            this.payload = new StandardReferencePayload(data)
             return
         }
+        
+        // Handle string (WML) - parse and check for Remove/Replace tags
+        if (typeof data === 'string') {
+            const schema = treeFromWML(data)
+            if (schema.length === 0) {
+                throw new Error('Invalid WML string in StandardReferenceSimple: empty schema')
+            }
+            const firstElement = schema[0]
+            
+            // Check for Remove tag - should use StandardReferenceRemove
+            if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
+                throw new Error('Remove operations should use StandardReferenceRemove, not StandardReferenceSimple')
+            }
+            
+            // Check for Replace tag - illegal for references
+            if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
+                throw new Error('Replace operations are illegal for references. References can only be added or removed, not replaced.')
+            }
+            
+            // Parse as plain reference
+            this.payload = new StandardReferencePayload(schema)
+            return
+        }
+        
+        // Handle GenericTree<SchemaTag>
+        if (Array.isArray(data) && data.length > 0) {
+            const firstElement = data[0]
+            
+            // Check for Remove tag - should use StandardReferenceRemove
+            if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
+                throw new Error('Remove operations should use StandardReferenceRemove, not StandardReferenceSimple')
+            }
+            
+            // Check for Replace tag - illegal for references
+            if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
+                throw new Error('Replace operations are illegal for references. References can only be added or removed, not replaced.')
+            }
+            
+            // Parse as plain reference
+            this.payload = new StandardReferencePayload(data)
+            return
+        }
+        
         throw new Error('Invalid data in StandardReferenceSimple')
     }
     get universalKey() {
@@ -460,11 +499,33 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         return this.payload.toJSON()
     }
     get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
+    // Method overloading: Accept concrete types for direct calls, but also satisfy StandardEditableWrapper interface
+    // This is needed because ReferenceList uses editableListClassFactory which requires StandardEditableWrapper.
+    // TODO: This may be temporary - if we later refactor ReferenceList away from editableListFactory
+    // (similar to how we moved StandardReference away from standardEditableFactory), we can remove
+    // the StandardEditableWrapper overloads and only accept the concrete types.
+    merge(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined
+    merge(other: StandardEditableWrapper<StandardReferencePayload>): StandardEditableWrapper<StandardReferencePayload> | undefined
+    merge(other: StandardReferenceSimple | StandardReferenceRemove | StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | undefined {
+        if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
+            throw new Error('merge() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
+        }
+        const resultDelta = addDelta(standardReferenceAdd, standardReferenceSubtract, standardReferenceDiff)(this._delta, other._delta)
+        return fromDelta(resultDelta)
     }
-    diff(other: StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
+    // Method overloading: Accept concrete types for direct calls, but also satisfy StandardEditableWrapper interface
+    // This is needed because ReferenceList uses editableListClassFactory which requires StandardEditableWrapper.
+    // TODO: This may be temporary - if we later refactor ReferenceList away from editableListFactory
+    // (similar to how we moved StandardReference away from standardEditableFactory), we can remove
+    // the StandardEditableWrapper overloads and only accept the concrete types.
+    diff(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined
+    diff(other: StandardEditableWrapper<StandardReferencePayload>): StandardEditableWrapper<StandardReferencePayload> | undefined
+    diff(other: StandardReferenceSimple | StandardReferenceRemove | StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | undefined {
+        if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
+            throw new Error('diff() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
+        }
+        const resultDelta = diffDelta(standardReferenceAdd, standardReferenceSubtract, standardReferenceDiff)(this._delta, other._delta)
+        return fromDelta(resultDelta)
     }
     withKey(key: string): StandardReferenceSimple {
         const returnValue = this.clone()
@@ -507,13 +568,55 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
             return
         }
         
-        // Handle StandardReferenceData or GenericTree - use factory
-        const delta = factory(data)
-        if (delta && !delta.add && delta.remove) {
-            this.match = new StandardReferencePayload(delta.remove)
+        // Handle StandardReferenceData directly (for Remove JSON structure)
+        if (typeof data === 'object' && data !== null && 'tag' in data && data.tag === 'Remove' && 'match' in data) {
+            const removeData = data as { tag: 'Remove'; match: StandardReferenceData }
+            this.match = new StandardReferencePayload(removeData.match)
             return
         }
-        console.log(`Invalid data: ${JSON.stringify(data)}`)
+        
+        // Handle string (WML) - parse and expect Remove wrapper
+        if (typeof data === 'string') {
+            const schema = treeFromWML(data)
+            if (schema.length === 0) {
+                throw new Error('Invalid WML string in StandardReferenceRemove: empty schema')
+            }
+            const firstElement = schema[0]
+            
+            // Check for Replace tag - illegal for references
+            if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
+                throw new Error('Replace operations are illegal for references. References can only be added or removed, not replaced.')
+            }
+            
+            // Expect Remove tag
+            if (!treeNodeTypeguard(isSchemaRemove)(firstElement)) {
+                throw new Error('StandardReferenceRemove requires Remove tag in WML')
+            }
+            
+            // Extract match data from Remove children
+            this.match = new StandardReferencePayload(firstElement.children)
+            return
+        }
+        
+        // Handle GenericTree<SchemaTag> - expect Remove node
+        if (Array.isArray(data) && data.length > 0) {
+            const firstElement = data[0]
+            
+            // Check for Replace tag - illegal for references
+            if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
+                throw new Error('Replace operations are illegal for references. References can only be added or removed, not replaced.')
+            }
+            
+            // Expect Remove tag
+            if (!treeNodeTypeguard(isSchemaRemove)(firstElement)) {
+                throw new Error('StandardReferenceRemove requires Remove tag in schema')
+            }
+            
+            // Extract match data from Remove children
+            this.match = new StandardReferencePayload(firstElement.children)
+            return
+        }
+        
         throw new Error('Invalid data in StandardReferenceRemove')
     }
     get schema() {
@@ -548,11 +651,33 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
         return { tag: 'Remove' as const, match: this.match.toJSON() }
     }
     get plain() { return this.match }
-    merge(other: StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
+    // Method overloading: Accept concrete types for direct calls, but also satisfy StandardEditableWrapper interface
+    // This is needed because ReferenceList uses editableListClassFactory which requires StandardEditableWrapper.
+    // TODO: This may be temporary - if we later refactor ReferenceList away from editableListFactory
+    // (similar to how we moved StandardReference away from standardEditableFactory), we can remove
+    // the StandardEditableWrapper overloads and only accept the concrete types.
+    merge(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined
+    merge(other: StandardEditableWrapper<StandardReferencePayload>): StandardEditableWrapper<StandardReferencePayload> | undefined
+    merge(other: StandardReferenceSimple | StandardReferenceRemove | StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | undefined {
+        if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
+            throw new Error('merge() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
+        }
+        const resultDelta = addDelta(standardReferenceAdd, standardReferenceSubtract, standardReferenceDiff)(this._delta, other._delta)
+        return fromDelta(resultDelta)
     }
-    diff(other: StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
+    // Method overloading: Accept concrete types for direct calls, but also satisfy StandardEditableWrapper interface
+    // This is needed because ReferenceList uses editableListClassFactory which requires StandardEditableWrapper.
+    // TODO: This may be temporary - if we later refactor ReferenceList away from editableListFactory
+    // (similar to how we moved StandardReference away from standardEditableFactory), we can remove
+    // the StandardEditableWrapper overloads and only accept the concrete types.
+    diff(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined
+    diff(other: StandardEditableWrapper<StandardReferencePayload>): StandardEditableWrapper<StandardReferencePayload> | undefined
+    diff(other: StandardReferenceSimple | StandardReferenceRemove | StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | undefined {
+        if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
+            throw new Error('diff() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
+        }
+        const resultDelta = diffDelta(standardReferenceAdd, standardReferenceSubtract, standardReferenceDiff)(this._delta, other._delta)
+        return fromDelta(resultDelta)
     }
     withKey(key: string): StandardReferenceRemove {
         const returnValue = this.clone()
@@ -565,144 +690,12 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
     }
 }
 
-export class StandardReferenceReplace implements StandardEditableWrapper<StandardReferencePayload> {
-    match: StandardReferencePayload
-    payload: StandardReferencePayload
-    constructor(
-        ...args: [StandardReferencePayload, StandardReferencePayload] | [StandardKey, StandardKey, ComponentTag] | [StandardKey, StandardKey] | [StandardEditableData<StandardReferenceData> | GenericTree<SchemaTag> | string, ComponentTag?]
-    ) {
-        // Handle StandardReferencePayload directly
-        if (args.length === 2 && args[0] instanceof StandardReferencePayload && args[1] instanceof StandardReferencePayload) {
-            this.match = args[0]
-            this.payload = args[1]
-            return
-        }
-        
-        // Handle StandardKey with explicit tag
-        if (args.length === 3 && args[0] instanceof StandardKey && args[1] instanceof StandardKey && typeof args[2] === 'string') {
-            const tag = args[2] as ComponentTag
-            const matchKeyData = args[0].toJSON()
-            const payloadKeyData = args[1].toJSON()
-            const matchData: StandardReferenceData = typeof matchKeyData === 'string' 
-                ? matchKeyData 
-                : { ...matchKeyData, tag }
-            const payloadData: StandardReferenceData = typeof payloadKeyData === 'string' 
-                ? payloadKeyData 
-                : { ...payloadKeyData, tag }
-            this.match = new StandardReferencePayload(matchData)
-            this.payload = new StandardReferencePayload(payloadData)
-            return
-        }
-        
-        // Handle two StandardKeys - derive tag from payload
-        if (args.length === 2 && args[0] instanceof StandardKey && args[1] instanceof StandardKey) {
-            const derivedTag = deriveTagFromReferenceData(args[1])
-            if (!derivedTag) {
-                throw new Error('StandardReferenceReplace requires derivable tag from payload StandardKey')
-            }
-            const matchKeyData = args[0].toJSON()
-            const payloadKeyData = args[1].toJSON()
-            const matchData: StandardReferenceData = typeof matchKeyData === 'string' 
-                ? matchKeyData 
-                : { ...matchKeyData, tag: derivedTag }
-            const payloadData: StandardReferenceData = typeof payloadKeyData === 'string' 
-                ? payloadKeyData 
-                : { ...payloadKeyData, tag: derivedTag }
-            this.match = new StandardReferencePayload(matchData)
-            this.payload = new StandardReferencePayload(payloadData)
-            return
-        }
-        
-        // Handle StandardReferenceData or GenericTree - use factory
-        // At this point, StandardKey cases have been handled, so data should be StandardReferenceData | GenericTree | string
-        const data = args[0]
-        if (data instanceof StandardKey) {
-            throw new Error('StandardKey should have been handled in previous cases')
-        }
-        const delta = factory(data)
-        if (delta && delta.add && delta.remove) {
-            this.match = new StandardReferencePayload(delta.remove)
-            this.payload = new StandardReferencePayload(delta.add)
-            return
-        }
-        throw new Error('Invalid data in StandardReferenceReplace')
-    }
-    get schema() {
-        return [{ data: { tag: 'Replace' as const }, children: [
-            { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
-            { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
-        ] }]
-    }
-    get key() {
-        return this.payload.key
-    }
-    get universalKey() {
-        return this.payload.universalKey
-    }
-    get context() {
-        // context has been removed from StandardKey; retained for backward compatibility (always undefined)
-        return undefined
-    }
-    get tag() {
-        return this.payload.tag
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Replace' as const },
-            children: [
-                {
-                    data: { tag: 'ReplaceMatch' as const },
-                    children: [{ data: tag, children: this.match.schema }]
-                },
-                {
-                    data: { tag: 'ReplacePayload' as const },
-                    children: [{ data: tag, children: this.payload.schema }]
-                }
-            ]
-        }]
-    }
-    get _delta(): StandardEditableDataDelta<StandardReferenceData> {
-        return { remove: this.match.toJSON(), add: this.payload.toJSON() }
-    }
-    clone() {
-        return new StandardReferenceReplace(this.match, this.payload)
-    }
-    toJSON: () => StandardEditableData<StandardReferenceData> = () => {
-        return { 
-            tag: 'Replace' as const,
-            match: this.match.toJSON(),
-            payload: this.payload.toJSON()
-        }
-    }
-    get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-    withKey(key: string): StandardReferenceReplace {
-        const returnValue = this.clone()
-        const payloadJSON = returnValue.payload.toJSON()
-        const matchJSON = returnValue.match.toJSON()
-        const updatedPayloadData: StandardReferenceData = typeof payloadJSON === 'string' 
-            ? payloadJSON 
-            : { ...payloadJSON, key }
-        const updatedMatchData: StandardReferenceData = typeof matchJSON === 'string' 
-            ? matchJSON 
-            : { ...matchJSON, key }
-        returnValue.payload = new StandardReferencePayload(updatedPayloadData)
-        returnValue.match = new StandardReferencePayload(updatedMatchData)
-        return returnValue
-    }
-}
-
 export class StandardReference {
-    _payload: StandardReferenceSimple | StandardReferenceRemove | StandardReferenceReplace;
+    _payload: StandardReferenceSimple | StandardReferenceRemove;
     
     constructor(arg: any, explicitTag?: ComponentTag) {
         // Handle wrapper instances directly
-        if (arg instanceof StandardReferenceSimple || arg instanceof StandardReferenceRemove || arg instanceof StandardReferenceReplace) {
+        if (arg instanceof StandardReferenceSimple || arg instanceof StandardReferenceRemove) {
             this._payload = arg
             return
         }
@@ -714,22 +707,68 @@ export class StandardReference {
             return
         }
         
-        // Fall back to factory pattern for single argument
-        const delta = factory(arg)
-        if (!delta) {
-            console.log(`Invalid argument to StandardReference constructor: ${JSON.stringify(arg)}`)
-            throw new Error('Invalid argument to StandardReference constructor')
+        // Check for Remove JSON structure BEFORE isStandardReferencePayloadData check
+        if (typeof arg === 'object' && arg !== null && 'tag' in arg && arg.tag === 'Remove' && 'match' in arg) {
+            this._payload = new StandardReferenceRemove(arg)
+            return
         }
-        // Convert payload instances to data for fromDelta
-        const dataDelta: StandardEditableDataDelta<StandardReferenceData> = {
-            add: delta.add?.toJSON(),
-            remove: delta.remove?.toJSON()
+        
+        // Check for Replace JSON structure - illegal for references
+        if (typeof arg === 'object' && arg !== null && 'tag' in arg && arg.tag === 'Replace' && 'match' in arg && 'payload' in arg) {
+            throw new Error('Replace operations are illegal for references. References can only be added or removed, not replaced.')
         }
-        const payload = fromDelta(dataDelta)
-        if (!payload) {
-            throw new Error('Invalid argument to StandardReference constructor')
+        
+        // Handle StandardReferenceData directly
+        if (isStandardReferencePayloadData(arg)) {
+            this._payload = new StandardReferenceSimple(new StandardReferencePayload(arg))
+            return
         }
-        this._payload = payload
+        
+        // Handle string (WML) - parse and check for Remove/Replace tags
+        if (typeof arg === 'string') {
+            const schema = treeFromWML(arg)
+            if (schema.length === 0) {
+                throw new Error('Invalid WML string in StandardReference constructor: empty schema')
+            }
+            const firstElement = schema[0]
+            
+            // Check for Remove tag
+            if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
+                this._payload = new StandardReferenceRemove(schema)
+                return
+            }
+            
+            // Check for Replace tag - illegal for references
+            if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
+                throw new Error('Replace operations are illegal for references. References can only be added or removed, not replaced.')
+            }
+            
+            // Parse as plain reference
+            this._payload = new StandardReferenceSimple(schema)
+            return
+        }
+        
+        // Handle GenericTree<SchemaTag>
+        if (Array.isArray(arg) && arg.length > 0) {
+            const firstElement = arg[0]
+            
+            // Check for Remove tag
+            if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
+                this._payload = new StandardReferenceRemove(arg)
+                return
+            }
+            
+            // Check for Replace tag - illegal for references
+            if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
+                throw new Error('Replace operations are illegal for references. References can only be added or removed, not replaced.')
+            }
+            
+            // Parse as plain reference
+            this._payload = new StandardReferenceSimple(arg)
+            return
+        }
+        
+        throw new Error(`Invalid argument to StandardReference constructor: ${JSON.stringify(arg)}`)
     }
 
     get schema(): GenericTree<SchemaTag> {
@@ -794,14 +833,6 @@ export class StandardReference {
             const matchReferenceData = this._payload.match.toJSON()
             return new StandardReference(new StandardReferenceRemove(new StandardReferencePayload(callback(matchReferenceData))))
         }
-        if (this._payload instanceof StandardReferenceReplace) {
-            const matchReferenceData = this._payload.match.toJSON()
-            const payloadReferenceData = this._payload.payload.toJSON()
-            return new StandardReference(new StandardReferenceReplace(
-                new StandardReferencePayload(callback(matchReferenceData)), 
-                new StandardReferencePayload(callback(payloadReferenceData))
-            ))
-        }
         throw new Error('Invalid StandardReference payload')
     }
 
@@ -829,10 +860,6 @@ export class StandardReference {
         if (this._payload instanceof StandardReferenceRemove && other._payload instanceof StandardReferenceRemove) {
             return this._payload.match.standardKey.equals(other._payload.match.standardKey)
         }
-        if (this._payload instanceof StandardReferenceReplace && other._payload instanceof StandardReferenceReplace) {
-            return this._payload.match.standardKey.equals(other._payload.match.standardKey) &&
-                   this._payload.payload.standardKey.equals(other._payload.payload.standardKey)
-        }
         return false
     }
 
@@ -853,9 +880,6 @@ export class StandardReference {
         }
         if (this._payload instanceof StandardReferenceRemove) {
             return new StandardReference(new StandardReferenceSimple(this._payload.match))
-        }
-        if (this._payload instanceof StandardReferenceReplace) {
-            return new StandardReference(new StandardReferenceReplace(this._payload.payload, this._payload.match))
         }
         throw new Error('Invalid StandardReference payload for invert')
     }
@@ -891,30 +915,6 @@ export class StandardReference {
                 : { key: lookedUpKey.key || '', universalKey: lookedUpKey.universalKey, tag }
             return new StandardReference(new StandardReferenceRemove(new StandardReferencePayload(referenceData)))
         }
-        if (this._payload instanceof StandardReferenceReplace) {
-            const matchKey = this._payload.match.standardKey
-            const payloadKey = this._payload.payload.standardKey
-            const lookedUpMatchKey = callback(matchKey)
-            const lookedUpPayloadKey = callback(payloadKey)
-            // Only clone if no lookup found matches for either
-            if ((!lookedUpMatchKey || lookedUpMatchKey === matchKey) && 
-                (!lookedUpPayloadKey || lookedUpPayloadKey === payloadKey)) {
-                return this.clone()
-            }
-            const tag = this._payload.tag
-            const matchKeyToUse = lookedUpMatchKey ?? matchKey
-            const payloadKeyToUse = lookedUpPayloadKey ?? payloadKey
-            const matchData: StandardReferenceData = matchKeyToUse.universalKey && !matchKeyToUse.key
-                ? matchKeyToUse.universalKey
-                : { key: matchKeyToUse.key || '', universalKey: matchKeyToUse.universalKey, tag }
-            const payloadData: StandardReferenceData = payloadKeyToUse.universalKey && !payloadKeyToUse.key
-                ? payloadKeyToUse.universalKey
-                : { key: payloadKeyToUse.key || '', universalKey: payloadKeyToUse.universalKey, tag }
-            return new StandardReference(new StandardReferenceReplace(
-                new StandardReferencePayload(matchData),
-                new StandardReferencePayload(payloadData)
-            ))
-        }
         throw new Error('Invalid StandardReference payload for lookup')
     }
 
@@ -939,25 +939,6 @@ export class StandardReference {
                 ? keyData 
                 : { ...keyData, tag }
             return new StandardReference(new StandardReferenceRemove(new StandardReferencePayload(referenceData)))
-        }
-        if (this._payload instanceof StandardReferenceReplace) {
-            const matchKey = this._payload.match.standardKey
-            const payloadKey = this._payload.payload.standardKey
-            const formattedMatchKey = matchKey.toFormat(format)
-            const formattedPayloadKey = payloadKey.toFormat(format)
-            const tag = this._payload.tag
-            const matchKeyData = formattedMatchKey.toJSON()
-            const payloadKeyData = formattedPayloadKey.toJSON()
-            const matchData: StandardReferenceData = typeof matchKeyData === 'string' 
-                ? matchKeyData 
-                : { ...matchKeyData, tag }
-            const payloadData: StandardReferenceData = typeof payloadKeyData === 'string' 
-                ? payloadKeyData 
-                : { ...payloadKeyData, tag }
-            return new StandardReference(new StandardReferenceReplace(
-                new StandardReferencePayload(matchData),
-                new StandardReferencePayload(payloadData)
-            ))
         }
         throw new Error('Invalid StandardReference payload for format')
     }

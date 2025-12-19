@@ -107,31 +107,13 @@ describe('editableListClassFactory', () => {
         }
     })
 
-    it('should throw error when attempting to change reference target', () => {
-        const base = new ReferenceList([
-            'ROOM#test',
-            'FEATURE#toReplace'            
-        ])
-        const toMerge = new ReferenceList([
-            { tag: 'Replace', match: { key: 'featureTest', tag: 'Feature', universalKey: 'FEATURE#toReplace' }, payload: { key: 'newFeature', tag: 'Feature' } }
-        ])
-        expect(() => base.merge(toMerge)).toThrow('Cannot change which component a reference points to')
-    })
-
-    it('should merge removes into base replaces', () => {
-        const base = new ReferenceList([
-            'ROOM#test',
-            { tag: 'Replace', match: 'FEATURE#toReplace', payload: { key: 'newFeature', tag: 'Feature' } }
-        ])
-        const toMerge = new ReferenceList([
-            { tag: 'Remove', match: { key: 'newFeature', tag: 'Feature' } }
-        ])
-        const merged = base.merge(toMerge)
-        expect(merged).toBeDefined()
-        if (merged) {
-            expect(merged._items.length).toBe(2)
-            expect(merged._items.map(item => item.toJSON())).toEqual(['ROOM#test', { tag: 'Remove', match: 'FEATURE#toReplace' }])
-        }
+    it('should throw error when attempting to create Replace reference in list', () => {
+        expect(() => {
+            new ReferenceList([
+                'ROOM#test',
+                { tag: 'Replace', match: 'FEATURE#toReplace', payload: { key: 'newFeature', tag: 'Feature' } }
+            ])
+        }).toThrow('Replace operations are illegal for references')
     })
 
     it('should diff simple items', () => {

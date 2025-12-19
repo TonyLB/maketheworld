@@ -2,7 +2,6 @@ import { isRenderTreeNode } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaTreeNode } from "../../../schema"
 import { isStandardLiteralData } from "../../literal"
 import { isStandardReferencePayloadData } from "./reference"
-import { isStandardReferenceData } from "../reference"
 
 export const checkAll = (...items: boolean[]): boolean => (
     items.reduce<boolean>((previous, item) => (previous && item), true)
@@ -31,7 +30,7 @@ export const checkTypes = (item: any, requiredList: Record<string, CheckType>, o
                 if (!Array.isArray(value)) {
                     return false
                 }
-                return value.every(isStandardReferenceData)
+                return value.every(isStandardReferencePayloadData)
             default:
                 return typeof(value) === type
         }
