@@ -20,7 +20,7 @@ export type SchemaRoomTag = {
     key?: string;
     x?: number;
     y?: number;
-    apply?: number;
+    ref?: number;
 } & SchemaImportableBase
 
 export type SchemaFeatureTag = {
@@ -28,14 +28,14 @@ export type SchemaFeatureTag = {
     uuid?: ComponentUUID;
     key?: string;
     global?: boolean;
-    apply?: number;
+    ref?: number;
 } & SchemaImportableBase
 
 export type SchemaKnowledgeTag = {
     tag: 'Knowledge';
     uuid?: ComponentUUID;
     key?: string;
-    apply?: number;
+    ref?: number;
 } & SchemaImportableBase
 
 export type SchemaPositionTag = {
@@ -48,21 +48,21 @@ export type SchemaMapTag = {
     tag: 'Map';
     uuid?: ComponentUUID;
     key?: string;
-    apply?: number;
+    ref?: number;
 } & SchemaImportableBase
 
 export type SchemaMessageTag = {
     tag: 'Message';
     uuid?: ComponentUUID;
     key?: string;
-    apply?: number;
+    ref?: number;
 } & SchemaImportableBase
 
 export type SchemaMomentTag = {
     tag: 'Moment';
     uuid?: ComponentUUID;
     key?: string;
-    apply?: number;
+    ref?: number;
 } & SchemaImportableBase
 
 const { typeGuard } = literalTagFactory<'ShortName'>('ShortName')
@@ -85,7 +85,7 @@ export const isSchemaExit = (schema: any): schema is SchemaExitTag => (
 export const isSchemaRoom = (schema: any): schema is SchemaRoomTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
-        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, apply: CheckTypes.NUMBER },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
         values: {
             tag: 'Room',
             from: isSchemaAssetUUID,
@@ -97,7 +97,7 @@ export const isSchemaRoom = (schema: any): schema is SchemaRoomTag => (
 export const isSchemaFeature = (schema: any): schema is SchemaFeatureTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
-        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, apply: CheckTypes.NUMBER },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
         values: {
             tag: 'Feature',
             from: isSchemaAssetUUID,
@@ -109,7 +109,7 @@ export const isSchemaFeature = (schema: any): schema is SchemaFeatureTag => (
 export const isSchemaKnowledge = (schema: any): schema is SchemaKnowledgeTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING},
-        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, apply: CheckTypes.NUMBER },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
         values: { 
             tag: 'Knowledge', 
             from: isSchemaAssetUUID,
@@ -125,7 +125,7 @@ export const isSchemaPosition = (schema: any): schema is SchemaPositionTag => (
 export const isSchemaMap = (schema: any): schema is SchemaMapTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
-        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, apply: CheckTypes.NUMBER },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
         values: { 
             tag: 'Map', 
             from: isSchemaAssetUUID,
@@ -137,7 +137,7 @@ export const isSchemaMap = (schema: any): schema is SchemaMapTag => (
 export const isSchemaMessage = (schema: any): schema is SchemaMessageTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
-        optional: { key: CheckTypes.STRING, from: CheckTypes.STRING, apply: CheckTypes.NUMBER },
+        optional: { key: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
         values: { 
             tag: 'Message', 
             from: isSchemaAssetUUID,
@@ -149,7 +149,7 @@ export const isSchemaMessage = (schema: any): schema is SchemaMessageTag => (
 export const isSchemaMoment = (schema: any): schema is SchemaMomentTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
-        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, apply: CheckTypes.NUMBER },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
         values: { 
             tag: 'Moment', 
             from: isSchemaAssetUUID,
