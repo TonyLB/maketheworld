@@ -90,6 +90,35 @@ describe('StandardReference', () => {
         expect(schemaToWML(new StandardReference('<Room key=(test) />')?.merge(new StandardReference('<Room key=(test) />'))?.schema ?? [])).toEqual(deIndentWML('<Room key=(test) />'))
     })
 
+    it('should merge correctly when references point to same component with different key representations', () => {
+        // Same component (same universalKey), different key values - should merge successfully
+        const ref1 = new StandardReference({ key: 'room1', universalKey: 'ROOM#test', tag: 'Room' })
+        const ref2 = new StandardReference({ key: 'room2', universalKey: 'ROOM#test', tag: 'Room' })
+        const merged = ref1.merge(ref2)
+        expect(merged).toBeDefined()
+        expect(merged?.toJSON()).toEqual({ key: 'room2', universalKey: 'ROOM#test', tag: 'Room' })
+    })
+
+    it('should throw error when diff attempts to change target component', () => {
+        const ref1 = new StandardReference({ key: 'room1', tag: 'Room' })
+        const ref2 = new StandardReference({ key: 'room2', tag: 'Room' })
+        expect(() => ref1.diff(ref2)).toThrow('Cannot change which component a reference points to')
+    })
+
+    it('should throw error when merge attempts to change target component', () => {
+        const ref1 = new StandardReference({ key: 'room1', tag: 'Room' })
+        const ref2 = new StandardReference({ key: 'room2', tag: 'Room' })
+        expect(() => ref1.merge(ref2)).toThrow('Cannot change which component a reference points to')
+    })
+
+    it('should diff correctly when references point to same component with different key representations', () => {
+        // Same component (same universalKey), different key values - should return empty (no diff needed)
+        const ref1 = new StandardReference({ key: 'room1', universalKey: 'ROOM#test', tag: 'Room' })
+        const ref2 = new StandardReference({ key: 'room2', universalKey: 'ROOM#test', tag: 'Room' })
+        const diffed = ref1.diff(ref2)
+        expect(diffed).toBeUndefined() // No difference when pointing to same component
+    })
+
     it('should correctly parse a StandardReferenceRemove', () => {
         const testReferenceData = {
             tag: 'Remove',

@@ -273,6 +273,17 @@ export const standardReferenceSerialize = (incoming: StandardReferenceData): Sta
 }
 
 const standardReferenceAdd = (base: StandardReferenceData, incoming: StandardReferenceData): StandardReferenceData => {
+    // If base exists, validate that incoming points to the same component
+    const baseDeserialized = standardReferenceDeserialize(base)
+    const incomingDeserialized = standardReferenceDeserialize(incoming)
+    
+    const keysMatch = baseDeserialized.key && incomingDeserialized.key && baseDeserialized.key === incomingDeserialized.key
+    const universalKeysMatch = baseDeserialized.universalKey && incomingDeserialized.universalKey && baseDeserialized.universalKey === incomingDeserialized.universalKey
+    
+    if (!keysMatch && !universalKeysMatch) {
+        throw new MergeConflictError('Cannot change which component a reference points to during merge. References can only be added or removed, not replaced.')
+    }
+    
     return incoming
 }
 
@@ -292,12 +303,18 @@ const standardReferenceSubtract = (base: StandardReferenceData, incoming: Standa
 const standardReferenceDiff = (base: StandardReferenceData, incoming: StandardReferenceData): { add?: StandardReferenceData, remove?: StandardReferenceData } => {
     const baseDeserialized = standardReferenceDeserialize(base)
     const incomingDeserialized = standardReferenceDeserialize(incoming)
-    if ((baseDeserialized.key && incomingDeserialized.key && baseDeserialized.key === incomingDeserialized.key) ||
-        (baseDeserialized.universalKey && incomingDeserialized.universalKey && baseDeserialized.universalKey === incomingDeserialized.universalKey)) {
+    
+    // Use sameKey() logic: match if either keys match OR universalKeys match
+    const keysMatch = baseDeserialized.key && incomingDeserialized.key && baseDeserialized.key === incomingDeserialized.key
+    const universalKeysMatch = baseDeserialized.universalKey && incomingDeserialized.universalKey && baseDeserialized.universalKey === incomingDeserialized.universalKey
+    
+    if (keysMatch || universalKeysMatch) {
+        // Same component reference - no change needed
         return { add: undefined, remove: undefined }
     }
     else {
-        return { add: standardReferenceSerialize(incoming), remove: standardReferenceSerialize(base) }
+        // Attempting to change which component is referenced - this is an error
+        throw new MergeConflictError('Cannot change which component a reference points to. References can only be added or removed, not replaced.')
     }
 }
 

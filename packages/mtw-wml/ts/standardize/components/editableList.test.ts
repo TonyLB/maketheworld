@@ -107,7 +107,7 @@ describe('editableListClassFactory', () => {
         }
     })
 
-    it('should merge incoming replaces', () => {
+    it('should throw error when attempting to change reference target', () => {
         const base = new ReferenceList([
             'ROOM#test',
             'FEATURE#toReplace'            
@@ -115,12 +115,7 @@ describe('editableListClassFactory', () => {
         const toMerge = new ReferenceList([
             { tag: 'Replace', match: { key: 'featureTest', tag: 'Feature', universalKey: 'FEATURE#toReplace' }, payload: { key: 'newFeature', tag: 'Feature' } }
         ])
-        const merged = base.merge(toMerge)
-        expect(merged).toBeDefined()
-        if (merged) {
-            expect(merged._items.length).toBe(2)
-            expect(merged._items.map(item => item.toJSON())).toEqual(['ROOM#test', { key: 'newFeature', tag: 'Feature' }])
-        }
+        expect(() => base.merge(toMerge)).toThrow('Cannot change which component a reference points to')
     })
 
     it('should merge removes into base replaces', () => {

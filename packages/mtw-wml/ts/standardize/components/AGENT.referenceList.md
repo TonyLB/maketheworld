@@ -23,15 +23,16 @@ In WML, components contain reference collections (like `features`, `examples`, `
 - **Item matching**: Uses `sameKey()` to identify equivalent references
 - **Merge operations**: Combines matching items, adds unmatched items
 - **Diff operations**: Computes additions and removals
-- **Edit support**: Handles `StandardReferenceSimple`, `StandardReferenceRemove`, and `StandardReferenceReplace` wrapper types
+- **Edit support**: Handles `StandardReferenceSimple` and `StandardReferenceRemove` wrapper types
 
 ### Reference Storage
 
-`ReferenceList` stores `StandardReference` objects, which internally wrap one of three edit operation types:
+`ReferenceList` stores `StandardReference` objects, which internally wrap one of two edit operation types:
 
 - **`StandardReferenceSimple`**: Standard reference addition
 - **`StandardReferenceRemove`**: Marks a reference for removal
-- **`StandardReferenceReplace`**: Replaces one reference with another
+
+**Note:** `StandardReferenceReplace` exists for backward compatibility (loading from WML/JSON that contains Replace tags), but merge and diff operations will never create Replace operations. References can only be added or removed, never replaced with a different target component.
 
 The constructor normalizes references to ensure minimum key information (removing context-dependent data).
 
@@ -67,6 +68,13 @@ The `toJSON()` method returns `ReferenceListData` (an array of `StandardReferenc
 
 `ReferenceList` provides nuanced merging and diffing, according to its own [`edit algebra`](./AGENT.referenceList.editAlgebra.md)
 
+**Important constraint:** References cannot change which component they point to. When merging or diffing references:
+
+- If two references point to the same component (matched by `sameKey()` - same `key` OR same `universalKey`), they merge/diff successfully
+- If two references point to different components, merge/diff operations throw a `MergeConflictError`
+
+This ensures that references can only transition between add/remove/undefined states. To change which component a reference points to, you must explicitly remove the old reference and add a new one as separate operations.
+
 ### Bulk Operations
 
 `ReferenceList` provides methods that apply single-reference operations (e.g. `toFormat`) across all items in the list, returning a new `ReferenceList` instance. This pattern ensures consistent transformations while preserving the list structure and edit operation types, while delegating the individual processing to `StandardReference`.
@@ -78,7 +86,7 @@ The `toJSON()` method returns `ReferenceListData` (an array of `StandardReferenc
 - Accepts a callback function `(key: StandardKey) => StandardKey | undefined`
 - Or an array of `StandardKey` objects for lookup
 - Updates all references in the list with resolved keys
-- Preserves edit operation types (Simple/Remove/Replace)
+- Preserves edit operation types (Simple/Remove/Replace, though Replace is deprecated)
 
 This is used when resolving component keys across different contexts or when merging components with key mappings.
 

@@ -1,5 +1,6 @@
 *.iml
 *.tsbuildinfo
+.cursor/
 .idea/
 .aws-sam/
 .vscode/

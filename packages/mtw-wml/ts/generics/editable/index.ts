@@ -66,6 +66,16 @@ const addDelta = <FinalType extends StandardEditablePayload<any>>(
         // be reconciled with the incomingRemove, that is a failure state.
         //
         const cancelledDelta = subtract(baseAdd, incomingRemove)
+        
+        // If baseAdd was completely cancelled (no remaining add) and we have an incomingAdd,
+        // this means we're trying to replace baseAdd with incomingAdd. We need to validate
+        // that they point to the same component (for references) or throw an error.
+        if (!cancelledDelta.add && incomingAdd) {
+            // Validate that incomingAdd points to the same component as baseAdd
+            // This prevents Replace operations from changing target components
+            add(baseAdd, incomingAdd)
+        }
+        
         return addDelta(add, subtract, diff)(
             { add: cancelledDelta.add, remove: baseRemove },
             { add: incomingAdd, remove: cancelledDelta.remove }

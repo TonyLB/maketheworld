@@ -107,7 +107,42 @@ This migration should proceed incrementally, starting with a single component ty
 - All existing tests pass with the new storage model
 - No-op Remove operations are not stored in `_components`
 
-### 1.3 Remove Replace Operations (Phase 1: Reference Lists Only)
+### 1.3 Prevent Replace Operations (Phase 1: Reference Lists Only)
+
+**Status:** ✅ **COMPLETE**
+
+**Tasks:**
+- ✅ Prevent `StandardReferenceReplace` creation in merge/diff operations
+  - ✅ Updated `standardReferenceDiff()` to throw `MergeConflictError` when references point to different components
+  - ✅ Updated `standardReferenceAdd()` to validate key consistency and throw errors when attempting to change target components
+  - ✅ References can now only transition between add/remove/undefined states, never change target components
+  - Note: `StandardReferenceReplace` class still exists for backward compatibility (loading from WML/JSON), but merge/diff operations will never create it
+
+- ✅ Update `ReferenceList` merge/diff to never produce Replace results
+  - ✅ Diff operations now throw errors instead of producing Replace results when keys differ
+  - ✅ Merge operations validate that references point to the same component
+  - ✅ Legacy Replace input from WML/JSON is still supported for loading, but won't be created by operations
+
+- ✅ Update ReferenceList tests
+  - ✅ Updated tests that expected Replace operations from key changes to expect errors instead
+  - ✅ Added tests verifying error behavior when attempting to change reference targets
+  - ✅ Added tests verifying that same-component references with different key representations merge/diff correctly
+
+- ✅ Update documentation
+  - ✅ Updated `AGENT.referenceList.md` to document that references cannot change target components
+  - ✅ Clarified that Replace operations are deprecated/not created by merge/diff
+  - ✅ Added section explaining error conditions for merge/diff operations
+
+**Success Criteria:**
+- ✅ Merge/diff operations throw errors instead of creating Replace operations when attempting to change target components
+- ✅ References can only be added or removed, never replaced with different targets
+- ✅ All existing tests pass with updated expectations
+- ✅ Documentation reflects the new constraints
+- Note: `StandardReferenceReplace` class remains for backward compatibility but is no longer created by operations
+
+### 1.3.2 Remove StandardReferenceReplace Class
+
+**Status:** 🔄 **PENDING**
 
 **Tasks:**
 - Remove `StandardReferenceReplace` class
@@ -115,27 +150,38 @@ This migration should proceed incrementally, starting with a single component ty
   - Remove all references to `StandardReferenceReplace` from type definitions
   - Update `StandardReference` to only handle `Simple` and `Remove` operations
   - Update return types from merge/diff methods to exclude `StandardReferenceReplace`
+  - Remove `StandardReferenceReplace` from imports and exports
 
-- Update `ReferenceList` merge/diff to never produce Replace results
-  - Ensure diff operations never produce Replace results (only Add/Remove)
-  - Update merge logic to handle any legacy Replace input by converting to Add+Remove pairs
-  - Add helper: `convertReplaceToAddRemove(referenceReplace: StandardReferenceReplace)` if needed for migration of existing data
+- Update code that handles Replace operations from WML/JSON
+  - **Note:** Component-level Replace operations already throw errors (handled in `processComponents.ts`), so we only need to handle reference-level Replace operations
+  - **For WML (reference-level Replace tags):** Convert Replace operations to Add+Remove pairs during loading
+    - Update `standardEditableFactory` constructorDelta (in `editable/index.ts`) to return separate Add and Remove deltas instead of a combined Replace delta when processing reference Replace tags
+    - Or update `StandardReference` constructor to split Replace deltas into separate Add+Remove operations before creating references
+    - This provides backward compatibility: existing WML files with reference-level Replace tags will be converted automatically to Add+Remove pairs
+  - **For JSON:** Throw an error when encountering Replace operations (since we're removing Replace support from JSON entirely)
+    - Update `isReplace()` check in `standardEditableFactory` to throw error for JSON input
+    - Replace operations should only exist in WML (for backward compatibility), not in JSON serialization format
 
-- Update ReferenceList tests
-  - Remove all tests involving `StandardReferenceReplace`
-  - Add tests validating that Replace operations are converted to Add+Remove
-  - Verify all existing functionality works with Add+Remove only
+- Update ReferenceList and related utilities
+  - Remove `StandardReferenceReplace` handling from `mapContents()`, `lookup()`, `toFormat()`, `invert()`, etc.
+  - Update type guards to exclude `StandardReferenceReplace`
+  - Remove all conditional logic that checks for `instanceof StandardReferenceReplace`
+
+- Update tests
+  - Remove all tests that create or use `StandardReferenceReplace` instances
+  - Update tests that load Replace operations from WML/JSON to verify they're converted correctly
+  - Ensure all existing functionality works without Replace operations
 
 - Update documentation
-  - Remove all references to `StandardReferenceReplace`
-  - Update `AGENT.referenceList.md` to remove Replace mentions
-  - Update type documentation
+  - Remove all references to `StandardReferenceReplace` from documentation
+  - Update type documentation to reflect only Simple and Remove operations
 
 **Success Criteria:**
 - `StandardReferenceReplace` class completely removed from codebase
-- ReferenceList operations only produce Add/Remove results
-- All existing tests pass with Add+Remove operations only
+- All Replace operations from WML/JSON are converted to Add+Remove pairs during loading
+- All existing tests pass without Replace operations
 - No references to Replace operations remain in ReferenceList code
+- Type system reflects only Simple and Remove operations
 
 ### 1.4 Align StandardRoomPayload with Edit Algebra
 
