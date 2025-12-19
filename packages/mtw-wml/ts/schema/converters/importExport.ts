@@ -2,7 +2,7 @@ import { isSchemaImport, isSchemaMeta, SchemaImportTag, SchemaMetaTag } from "@t
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties, validateExpressionAsPositiveInteger } from "./utils"
+import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
@@ -65,7 +65,7 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
     Image: {
         initialize: ({ parseOpen }): SchemaImageTag => {
             const { ref, ...rest } = validateProperties(importExportTemplates.Image)(parseOpen)
-            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Image',
                 ...(refValue !== undefined ? { ref: refValue } : {}),

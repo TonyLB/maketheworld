@@ -2,7 +2,7 @@ import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties, validateExpressionAsPositiveInteger } from "./utils"
+import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
@@ -150,7 +150,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     Room: {
         initialize: ({ parseOpen }): SchemaRoomTag => {
             const { uuid, ref, ...rest } = validateProperties(componentTemplates.Room)(parseOpen)
-            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Room',
                 uuid: uuid ? enforceTypedKey('ROOM')(uuid) : undefined,
@@ -162,7 +162,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     Feature: {
         initialize: ({ parseOpen }): SchemaFeatureTag => {
             const { uuid, ref, ...rest } = validateProperties(componentTemplates.Feature)(parseOpen)
-            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Feature',
                 uuid: uuid ? enforceTypedKey('FEATURE')(uuid) : undefined,
@@ -174,7 +174,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     Knowledge: {
         initialize: ({ parseOpen }): SchemaKnowledgeTag => {
             const { uuid, ref, ...rest } = validateProperties(componentTemplates.Knowledge)(parseOpen)
-            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Knowledge',
                 uuid: uuid ? enforceTypedKey('KNOWLEDGE')(uuid) : undefined,
@@ -200,7 +200,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     Map: {
         initialize: ({ parseOpen }): SchemaMapTag => {
             const { uuid, ref, ...rest } = validateProperties(componentTemplates.Map)(parseOpen)
-            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Map',
                 uuid: uuid ? enforceTypedKey('MAP')(uuid) : undefined,

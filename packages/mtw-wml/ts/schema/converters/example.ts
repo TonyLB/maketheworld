@@ -2,7 +2,7 @@ import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties, validateExpressionAsPositiveInteger } from "./utils"
+import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaExampleTag, SchemaNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -74,7 +74,7 @@ export const exampleConverters: Record<string, ConverterMapEntry> = {
     Example: {
         initialize: ({ parseOpen }): SchemaExampleTag => {
             const { uuid, ref, ...rest } = validateProperties(exampleTemplates.Example)(parseOpen)
-            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Example',
                 uuid: uuid ? enforceTypedKey('EXAMPLE')(uuid) : undefined,

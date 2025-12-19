@@ -2,7 +2,7 @@ import { isSchemaPronouns, SchemaCharacterTag, SchemaPronounsTag } from "@tonylb
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties, validateExpressionAsPositiveInteger } from "./utils"
+import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaCharacter, isSchemaCharacterContents, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
@@ -28,7 +28,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     Character: {
         initialize: ({ parseOpen }): SchemaCharacterTag => {
             const { uuid, ref, ...rest } = validateProperties(characterTemplates.Character)(parseOpen)
-            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Character',
                 uuid: uuid ? enforceTypedKey('CHARACTER')(uuid) : undefined,
