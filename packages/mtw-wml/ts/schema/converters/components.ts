@@ -28,21 +28,21 @@ const componentTemplates = {
         display: { type: ParsePropertyTypes.Literal },
         from: { type: ParsePropertyTypes.Asset },
         origin: { type: ParsePropertyTypes.AssetList },
-        apply: { type: ParsePropertyTypes.Expression }
+        ref: { type: ParsePropertyTypes.Expression }
     },
     Feature: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
         origin: { type: ParsePropertyTypes.AssetList },
-        apply: { type: ParsePropertyTypes.Expression }
+        ref: { type: ParsePropertyTypes.Expression }
     },
     Knowledge: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
         origin: { type: ParsePropertyTypes.AssetList },
-        apply: { type: ParsePropertyTypes.Expression }
+        ref: { type: ParsePropertyTypes.Expression }
     },
     Position: {
         x: { required: true, type: ParsePropertyTypes.Literal },
@@ -53,7 +53,7 @@ const componentTemplates = {
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
         origin: { type: ParsePropertyTypes.AssetList },
-        apply: { type: ParsePropertyTypes.Expression }
+        ref: { type: ParsePropertyTypes.Expression }
     }
 } as const
 
@@ -149,36 +149,36 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     },
     Room: {
         initialize: ({ parseOpen }): SchemaRoomTag => {
-            const { uuid, apply, ...rest } = validateProperties(componentTemplates.Room)(parseOpen)
-            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
+            const { uuid, ref, ...rest } = validateProperties(componentTemplates.Room)(parseOpen)
+            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Room',
                 uuid: uuid ? enforceTypedKey('ROOM')(uuid) : undefined,
-                ...(applyValue !== undefined ? { apply: applyValue } : {}),
+                ...(refValue !== undefined ? { ref: refValue } : {}),
                 ...rest
             }
         }
     },
     Feature: {
         initialize: ({ parseOpen }): SchemaFeatureTag => {
-            const { uuid, apply, ...rest } = validateProperties(componentTemplates.Feature)(parseOpen)
-            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
+            const { uuid, ref, ...rest } = validateProperties(componentTemplates.Feature)(parseOpen)
+            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Feature',
                 uuid: uuid ? enforceTypedKey('FEATURE')(uuid) : undefined,
-                ...(applyValue !== undefined ? { apply: applyValue } : {}),
+                ...(refValue !== undefined ? { ref: refValue } : {}),
                 ...rest
             }
         }
     },
     Knowledge: {
         initialize: ({ parseOpen }): SchemaKnowledgeTag => {
-            const { uuid, apply, ...rest } = validateProperties(componentTemplates.Knowledge)(parseOpen)
-            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
+            const { uuid, ref, ...rest } = validateProperties(componentTemplates.Knowledge)(parseOpen)
+            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Knowledge',
                 uuid: uuid ? enforceTypedKey('KNOWLEDGE')(uuid) : undefined,
-                ...(applyValue !== undefined ? { apply: applyValue } : {}),
+                ...(refValue !== undefined ? { ref: refValue } : {}),
                 ...rest
             }
         }
@@ -199,12 +199,12 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     },
     Map: {
         initialize: ({ parseOpen }): SchemaMapTag => {
-            const { uuid, apply, ...rest } = validateProperties(componentTemplates.Map)(parseOpen)
-            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
+            const { uuid, ref, ...rest } = validateProperties(componentTemplates.Map)(parseOpen)
+            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Map',
                 uuid: uuid ? enforceTypedKey('MAP')(uuid) : undefined,
-                ...(applyValue !== undefined ? { apply: applyValue } : {}),
+                ...(refValue !== undefined ? { ref: refValue } : {}),
                 ...rest
             }
         },
@@ -268,7 +268,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
+                ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
             ],
             node: { data: tag, children }
         })
@@ -289,7 +289,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
+                ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
             ],
             node: { data: tag, children }
         })
@@ -309,7 +309,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
+                ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
             ],
             node: { data: tag, children }
         })
@@ -343,7 +343,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
                 { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
+                ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
             ],
             node: { data: tag, children }
         })

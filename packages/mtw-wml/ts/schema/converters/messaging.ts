@@ -16,26 +16,26 @@ const messagingTemplates = {
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
         origin: { type: ParsePropertyTypes.AssetList },
-        apply: { type: ParsePropertyTypes.Expression }
+        ref: { type: ParsePropertyTypes.Expression }
     },
     Moment: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
         origin: { type: ParsePropertyTypes.AssetList },
-        apply: { type: ParsePropertyTypes.Expression }
+        ref: { type: ParsePropertyTypes.Expression }
     },
 } as const
 
 export const messagingConverters: Record<string, ConverterMapEntry> = {
     Message: {
         initialize: ({ parseOpen }): SchemaMessageTag => {
-            const { uuid, apply, ...rest } = validateProperties(messagingTemplates.Message)(parseOpen)
-            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
+            const { uuid, ref, ...rest } = validateProperties(messagingTemplates.Message)(parseOpen)
+            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Message',
                 uuid: uuid ? enforceTypedKey('MESSAGE')(uuid) : undefined,
-                ...(applyValue !== undefined ? { apply: applyValue } : {}),
+                ...(refValue !== undefined ? { ref: refValue } : {}),
                 ...rest
             }
         },
@@ -51,12 +51,12 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
     },
     Moment: {
         initialize: ({ parseOpen }): SchemaMomentTag => {
-            const { uuid, apply, ...rest } = validateProperties(messagingTemplates.Moment)(parseOpen)
-            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
+            const { uuid, ref, ...rest } = validateProperties(messagingTemplates.Moment)(parseOpen)
+            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Moment',
                 uuid: uuid ? enforceTypedKey('MOMENT')(uuid) : undefined,
-                ...(applyValue !== undefined ? { apply: applyValue } : {}),
+                ...(refValue !== undefined ? { ref: refValue } : {}),
                 ...rest
             }
         },
@@ -75,7 +75,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                    ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
+                    ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
                 ],
                 node: { data: tag, children }
             })
@@ -91,7 +91,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                    ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
+                    ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
                 ],
                 node: { data: tag, children }
             })

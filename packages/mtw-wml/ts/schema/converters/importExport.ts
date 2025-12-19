@@ -20,7 +20,7 @@ const importExportTemplates = {
     Image: {
         key: { required: true, type: ParsePropertyTypes.Key },
         origin: { type: ParsePropertyTypes.AssetList },
-        apply: { type: ParsePropertyTypes.Expression }
+        ref: { type: ParsePropertyTypes.Expression }
     },
     Selected: {}
 } as const
@@ -64,11 +64,11 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
     },
     Image: {
         initialize: ({ parseOpen }): SchemaImageTag => {
-            const { apply, ...rest } = validateProperties(importExportTemplates.Image)(parseOpen)
-            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
+            const { ref, ...rest } = validateProperties(importExportTemplates.Image)(parseOpen)
+            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Image',
-                ...(applyValue !== undefined ? { apply: applyValue } : {}),
+                ...(refValue !== undefined ? { ref: refValue } : {}),
                 ...rest
             }
         }
@@ -109,7 +109,7 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
                     ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                    ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
+                    ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
                 ],
                 node: { data: tag, children }
             })

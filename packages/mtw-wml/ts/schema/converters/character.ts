@@ -17,7 +17,7 @@ const characterTemplates = {
         from: { type: ParsePropertyTypes.Asset },
         update: { type: ParsePropertyTypes.Boolean },
         origin: { type: ParsePropertyTypes.AssetList },
-        apply: { type: ParsePropertyTypes.Expression }
+        ref: { type: ParsePropertyTypes.Expression }
     }
 } as const
 
@@ -27,12 +27,12 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
     Pronouns: pronounsConverter,
     Character: {
         initialize: ({ parseOpen }): SchemaCharacterTag => {
-            const { uuid, apply, ...rest } = validateProperties(characterTemplates.Character)(parseOpen)
-            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
+            const { uuid, ref, ...rest } = validateProperties(characterTemplates.Character)(parseOpen)
+            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Character',
                 uuid: uuid ? enforceTypedKey('CHARACTER')(uuid) : undefined,
-                ...(applyValue !== undefined ? { apply: applyValue } : {}),
+                ...(refValue !== undefined ? { ref: refValue } : {}),
                 ...rest
             }
         },
@@ -52,7 +52,7 @@ export const characterPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     { key: 'update', type: 'boolean', value: tag.update ?? false },
                     ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                    ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
+                    ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
                 ],
                 node: { data: tag, children }
             })

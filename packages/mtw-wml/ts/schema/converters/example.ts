@@ -18,7 +18,7 @@ const exampleTemplates = {
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
         origin: { type: ParsePropertyTypes.AssetList },
-        apply: { type: ParsePropertyTypes.Expression }
+        ref: { type: ParsePropertyTypes.Expression }
     },
 } as const
 
@@ -73,12 +73,12 @@ export const exampleConverters: Record<string, ConverterMapEntry> = {
     },
     Example: {
         initialize: ({ parseOpen }): SchemaExampleTag => {
-            const { uuid, apply, ...rest } = validateProperties(exampleTemplates.Example)(parseOpen)
-            const applyValue = apply ? validateExpressionAsPositiveInteger(apply as string, 'apply', parseOpen.tag) : undefined
+            const { uuid, ref, ...rest } = validateProperties(exampleTemplates.Example)(parseOpen)
+            const refValue = ref ? validateExpressionAsPositiveInteger(ref as string, 'ref', parseOpen.tag) : undefined
             return {
                 tag: 'Example',
                 uuid: uuid ? enforceTypedKey('EXAMPLE')(uuid) : undefined,
-                ...(applyValue !== undefined ? { apply: applyValue } : {}),
+                ...(refValue !== undefined ? { ref: refValue } : {}),
                 ...rest
             }
         }
@@ -125,7 +125,7 @@ export const examplePrintMap: Record<string, PrintMapEntry> = {
                 { key: 'key', type: 'key', value: tag.key ?? '' },
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                ...(tag.apply ? [{ key: 'apply', type: 'expression' as const, value: String(tag.apply) }] : [])
+                ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
             ],
             node: { data: tag, children }
         })
