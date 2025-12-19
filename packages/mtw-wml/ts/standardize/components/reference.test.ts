@@ -90,6 +90,35 @@ describe('StandardReference', () => {
         expect(schemaToWML(new StandardReference('<Room key=(test) />')?.merge(new StandardReference('<Room key=(test) />'))?.schema ?? [])).toEqual(deIndentWML('<Room key=(test) />'))
     })
 
+    it('should merge correctly when references point to same component with different key representations', () => {
+        // Same component (same universalKey), different key values - should merge successfully
+        const ref1 = new StandardReference({ key: 'room1', universalKey: 'ROOM#test', tag: 'Room' })
+        const ref2 = new StandardReference({ key: 'room2', universalKey: 'ROOM#test', tag: 'Room' })
+        const merged = ref1.merge(ref2)
+        expect(merged).toBeDefined()
+        expect(merged?.toJSON()).toEqual({ key: 'room2', universalKey: 'ROOM#test', tag: 'Room' })
+    })
+
+    it('should throw error when diff attempts to change target component', () => {
+        const ref1 = new StandardReference({ key: 'room1', tag: 'Room' })
+        const ref2 = new StandardReference({ key: 'room2', tag: 'Room' })
+        expect(() => ref1.diff(ref2)).toThrow('Cannot change which component a reference points to')
+    })
+
+    it('should throw error when merge attempts to change target component', () => {
+        const ref1 = new StandardReference({ key: 'room1', tag: 'Room' })
+        const ref2 = new StandardReference({ key: 'room2', tag: 'Room' })
+        expect(() => ref1.merge(ref2)).toThrow('Cannot change which component a reference points to')
+    })
+
+    it('should diff correctly when references point to same component with different key representations', () => {
+        // Same component (same universalKey), different key values - should return empty (no diff needed)
+        const ref1 = new StandardReference({ key: 'room1', universalKey: 'ROOM#test', tag: 'Room' })
+        const ref2 = new StandardReference({ key: 'room2', universalKey: 'ROOM#test', tag: 'Room' })
+        const diffed = ref1.diff(ref2)
+        expect(diffed).toBeUndefined() // No difference when pointing to same component
+    })
+
     it('should correctly parse a StandardReferenceRemove', () => {
         const testReferenceData = {
             tag: 'Remove',
@@ -173,12 +202,6 @@ describe('StandardReference', () => {
         expect(testSimple.lookup(callback).toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room'})
         const testRemove = new StandardReference({ tag: 'Remove', match: { key: 'room2', tag: 'Room' } })
         expect(testRemove.lookup(callback).toJSON()).toEqual({ tag: 'Remove', match: { key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room' } })
-        const testReplace = new StandardReference({ tag: 'Replace', match: { key: 'room2', tag: 'Room' }, payload: { key: 'room3', tag: 'Room' } })
-        expect(testReplace.lookup(callback).toJSON()).toEqual({
-            tag: 'Replace',
-            match: { key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room' },
-            payload: { key: 'room3', universalKey: 'ROOM#Room3', tag: 'Room' }
-        })
     })
 
         it('should correctly lookup keys in reference list', () => {
@@ -193,12 +216,6 @@ describe('StandardReference', () => {
         expect(testSimple.lookup(keys).toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room'})
         const testRemove = new StandardReference({ tag: 'Remove', match: { key: 'room2', tag: 'Room' } })
         expect(testRemove.lookup(keys).toJSON()).toEqual({ tag: 'Remove', match: { key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room' } })
-        const testReplace = new StandardReference({ tag: 'Replace', match: { key: 'room2', tag: 'Room' }, payload: { key: 'room3', tag: 'Room' } })
-        expect(testReplace.lookup(keys).toJSON()).toEqual({
-            tag: 'Replace',
-            match: { key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room' },
-            payload: { key: 'room3', universalKey: 'ROOM#Room3', tag: 'Room' }
-        })
     })
 
     it('should correctly format a simple reference', () => {
@@ -215,23 +232,16 @@ describe('StandardReference', () => {
         expect(testSimple.toFormat('universal').toJSON()).toEqual({ tag: 'Remove', match: `ROOM#Room1` })
     })
 
-    it('should correctly format a replace reference', () => {
-        const testSimple = new StandardReference('<Replace><Room key=(room1) uuid=(Room1) /></Replace><With><Room key=(room2) uuid=(Room2) /></With>')
-        expect(testSimple.toFormat('both').toJSON()).toEqual({
-            tag: 'Replace',
-            match: { key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room' },
-            payload: { key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room' }
-        })
-        expect(testSimple.toFormat('key').toJSON()).toEqual({
-            tag: 'Replace',
-            match: { key: 'room1', tag: 'Room' },
-            payload: { key: 'room2', tag: 'Room' }
-        })
-        expect(testSimple.toFormat('universal').toJSON()).toEqual({
-            tag: 'Replace',
-            match: `ROOM#Room1`,
-            payload: `ROOM#Room2`
-        })
+    it('should throw error when attempting to create Replace reference from WML', () => {
+        expect(() => {
+            new StandardReference('<Replace><Room key=(room1) uuid=(Room1) /></Replace><With><Room key=(room2) uuid=(Room2) /></With>')
+        }).toThrow('Replace operations are illegal for references')
+    })
+
+    it('should throw error when attempting to create Replace reference from JSON', () => {
+        expect(() => {
+            new StandardReference({ tag: 'Replace', match: { key: 'room1', tag: 'Room' }, payload: { key: 'room2', tag: 'Room' } })
+        }).toThrow('Replace operations are illegal for references')
     })
 })
 
@@ -379,5 +389,23 @@ describe('ReferenceList', () => {
         const inverted = emptyList.invert()
         expect(inverted.toJSON()).toEqual([])
         expect(inverted.payload.length).toBe(0)
+    })
+
+    it('should throw error when attempting to create ReferenceList with Replace reference from JSON', () => {
+        expect(() => {
+            new ReferenceList([
+                'ROOM#test',
+                { tag: 'Replace', match: { key: 'featureTest', tag: 'Feature', universalKey: 'FEATURE#toReplace' }, payload: { key: 'newFeature', tag: 'Feature' } }
+            ])
+        }).toThrow('Replace operations are illegal for references. References can only be added or removed, not replaced.')
+    })
+
+    it('should throw error when attempting to create ReferenceList with Replace reference from WML', () => {
+        expect(() => {
+            new ReferenceList([
+                'ROOM#test',
+                '<Replace><Feature key=(featureTest) uuid=(FEATURE#toReplace) /></Replace><With><Feature key=(newFeature) /></With>'
+            ])
+        }).toThrow('Replace operations are illegal for references. References can only be added or removed, not replaced.')
     })
 })

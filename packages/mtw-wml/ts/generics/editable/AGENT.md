@@ -6,6 +6,15 @@
 
 The current `StandardEditable` architecture uses a complex edit pattern that handles WML edit operations (add, remove, replace) but creates usability challenges in non-edit contexts like UI rendering and data manipulation. The `v2StandardEditableFactory` introduces a new pattern that enables clean `instanceof` checks and type-safe access to edit-specific functionality.
 
+## Important: Content Editing Only
+
+**`standardEditableFactory` and `v2StandardEditableFactory` are for content editing only** (e.g., `StandardLiteral`, `StandardRender`, `StandardExit`). They should NOT be used for reference editing (`StandardReference`), which has different edit semantics:
+
+- **Content editables**: Support Add, Remove, and Replace operations
+- **References**: Support only Add and Remove operations (Replace operations are illegal)
+
+`StandardReference` does NOT use the factory pattern because references can only be added or removed, never replaced with a different target component. This aligns with the edit algebra where changing a reference target requires explicit separate Add and Remove operations.
+
 ## Current Edit Pattern Architecture
 
 ### How It Works

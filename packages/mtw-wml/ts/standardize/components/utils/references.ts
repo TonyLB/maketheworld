@@ -1,7 +1,7 @@
 import { unique } from "../../../list"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import StandardReference, { StandardReferenceReplace, StandardKey } from "../reference"
+import StandardReference, { StandardKey } from "../reference"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
@@ -97,12 +97,7 @@ export const mapKeyToFormat = (format: ReferenceFormat) =>
 
 export const childReferenceFactory = (props: any): StandardReference => {
     const reference = new StandardReference(isSchemaTreeNode(props) ? [props] : props)
-    if (reference._payload instanceof StandardReferenceReplace && reference._payload.match.standardKey.equals(reference._payload.payload.standardKey)) {
-        // If the match and payload are the same, this is a reference to a child node that is being
-        // modified, and *for this particular method* we include a plain reference (so that parents
-        // will know to render the change)
-        return new StandardReference(new StandardReferenceSimple(reference._payload.plain))
-    }
+    // Note: Replace operations are now illegal for references, so we can just return the reference as-is
     return reference
 }
 
