@@ -14,7 +14,6 @@ import { HasDescription, HasName, HasShortName } from "./components/abstract"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
-import { StandardRemove, StandardReplace } from "./components/edits"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardToJSONOptions } from "./components/baseClasses"
 import { AssetUUID, ComponentUUID, isSchemaAsset, isSchemaAssetUUID, isSchemaOutputTag, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -42,9 +41,7 @@ import { unique } from "../list"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
-    return (value instanceof StandardRemove) ||
-        (value instanceof StandardReplace) ||
-        (value instanceof StandardCharacter) ||
+    return (value instanceof StandardCharacter) ||
         (value instanceof StandardFeature) ||
         (value instanceof StandardImage) ||
         (value instanceof StandardKnowledge) ||
@@ -1563,20 +1560,10 @@ export class StandardForm {
             }, [])
 
         //
-        // Find components that are not diffed, but appear nested inside of diff components of
-        // StandardReplace or StandardRemove form (so that you can match terms completely in the
-        // final diff)
+        // With the removal of StandardRemove and StandardReplace, components are stored as plain components
+        // with edits handled at the reference level. The diffed components are already complete.
         //
-        // TODO: Future enhancement - could use buildComponentGraph to determine cascade-delete behavior
-        // based on whether components appear with other parents that still have connections.
         diffedValue._components = diffedComponents
-            .filter((component) => (component instanceof StandardReplace || component instanceof StandardRemove))
-            .reduce<StandardComponent[]>((previous, component) => {
-                const nestedComponents = this._components
-                    .filter((childComponent) => childComponent.implicitParent?.equals(component._key))
-                    .filter(({ universalKey }) => (!Boolean(previous.find(({ universalKey: existingUniversalKey }) => (existingUniversalKey === universalKey)))))
-                return [...previous, ...nestedComponents]
-            }, diffedComponents)
 
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
         diffedValue._metaData = applyEdits(combinedMetaData.tree)

@@ -5,7 +5,6 @@ import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
 import StandardReference, { StandardKey, StandardReferenceSimple, StandardReferenceRemove } from "./reference"
 import { StandardExplicitParent } from "../explicit"
-import { StandardRemove, StandardReplace } from "./edits"
 
 describe('StandardRoom class', () => {
 
@@ -650,33 +649,6 @@ describe('StandardRoom class', () => {
             expect(diff).toBeUndefined()
         })
 
-        it('should handle explicitParent in Remove operations', () => {
-            const room = new StandardRoom(deIndentWML(`
-                <Room key=(testRoom)>
-                    <Parent>ROOM#parent-room</Parent>
-                </Room>
-            `))
-            const remove = new StandardRemove(room)
-            expect(remove.explicitParent).toBeDefined()
-            expect(remove.explicitParent?.toJSON()).toBe('ROOM#parent-room')
-        })
-
-        it('should handle explicitParent in Replace operations', () => {
-            const match = new StandardRoom(deIndentWML(`
-                <Room key=(testRoom)>
-                    <Parent>ROOM#old-parent</Parent>
-                </Room>
-            `))
-            const payload = new StandardRoom(deIndentWML(`
-                <Room key=(testRoom)>
-                    <Parent>ROOM#new-parent</Parent>
-                </Room>
-            `))
-            const replace = new StandardReplace(match, payload)
-            // Should use explicitParent from match if available, otherwise from payload
-            expect(replace.explicitParent).toBeDefined()
-            expect(replace.explicitParent?.toJSON()).toBe('ROOM#old-parent')
-        })
 
         it('should accept legalKey format in Parent tag', () => {
             const testSource = deIndentWML(`

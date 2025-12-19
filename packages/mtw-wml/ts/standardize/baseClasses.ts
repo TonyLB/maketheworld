@@ -2,16 +2,6 @@ import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree";
 import { isStandardComponentData, StandardComponentNonEditData } from "./components/dataTypes";
 import { StandardBaseData, ComponentTag } from "./components/dataTypes/abstract";
 
-import { StandardCharacterData } from "./components/dataTypes/character";
-
-import { StandardExampleData } from "./components/dataTypes/example";
-import { StandardFeatureData } from "./components/dataTypes/feature";
-import { StandardImageData } from "./components/dataTypes/image";
-import { StandardKnowledgeData } from "./components/dataTypes/knowledge";
-import { StandardMapData } from "./components/dataTypes/map";
-import { StandardMessageData } from "./components/dataTypes/message";
-import { StandardMomentData } from "./components/dataTypes/moment";
-import { StandardRoomData } from "./components/dataTypes/room";
 import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
@@ -31,30 +21,10 @@ export type StandardFormSemanticMode =
     | 'edits-to-apply'           // Mode 2: Edits to be applied to a single asset  
     | 'aggregation'              // Mode 3: Aggregation of content from multiple assets
 
-export type StandardRemove = {
-    key?: string;
-    universalKey?: string;
-    tag: 'Remove';
-    component: StandardComponentNonEditData;
-    implicitParent?: StandardKeyData;  // Parent StandardKey (serialized as StandardKeyData, minimal identifier without tag)
-}
-
-export type StandardReplace = {
-    key?: string;
-    universalKey?: string;
-    tag: 'Replace';
-    match: StandardComponentNonEditData;
-    payload: StandardComponentNonEditData;
-    implicitParent?: StandardKeyData;  // Parent StandardKey (serialized as StandardKeyData, minimal identifier without tag)
-}
-
-export type StandardComponentData = StandardComponentNonEditData | StandardRemove | StandardReplace
+export type StandardComponentData = StandardComponentNonEditData
 export type StandardComponentTag = StandardComponentData["tag"]
 
 export const isStandardDataFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (value.tag === tag)
-
-export const isStandardRemove = isStandardDataFactory<StandardRemove>("Remove")
-export const isStandardReplace = isStandardDataFactory<StandardReplace>("Replace")
 
 export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, universalKey?: ComponentUUID): Exclude<StandardComponentNonEditData, string> => {
     switch(tag) {

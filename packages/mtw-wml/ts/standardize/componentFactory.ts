@@ -18,7 +18,7 @@ import { isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSch
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 
 //
-// standardComponentFactory takes an incoming argument that can apply to any of the StandardComponent classes (including Remove and Replace),
+// standardComponentFactory takes an incoming argument that can apply to any of the StandardComponent classes,
 // finds the correct constructor, and creates the sub-typed class
 //
 export const standardComponentFactory = (arg: StandardComponentData | GenericTreeNode<SchemaTag>): StandardComponent | undefined => {
