@@ -69,12 +69,14 @@ This migration should proceed incrementally, starting with a single component ty
   - ✅ Update return type `ComponentProcessingResult` to guarantee it only contains plain components (using `StandardComponentNonEdit` type)
   - ✅ Note: Empty/no-op Remove operations will naturally result in no storage (inverting empty components produces empty, merging empty is a no-op)
 
-- Remove `StandardRemove` and `StandardReplace` classes
-  - Delete `StandardRemove` class from `edits.ts`
-  - Delete `StandardReplace` class from `edits.ts`
-  - Remove all type definitions referencing `StandardRemove` and `StandardReplace`
-  - Update `StandardComponentData` type to exclude `StandardRemoveData` and `StandardReplaceData`
-  - Remove imports of `StandardRemove` and `StandardReplace` throughout the codebase
+- ✅ Remove `StandardRemove` and `StandardReplace` classes
+  - ✅ Delete `StandardRemove` class from `edits.ts`
+  - ✅ Delete `StandardReplace` class from `edits.ts`
+  - ✅ Delete `edits.ts` file entirely (merged functionality into `mergeToComponentList.ts`)
+  - ✅ Delete `edits.test.ts` file
+  - ✅ Remove all type definitions referencing `StandardRemove` and `StandardReplace`
+  - ✅ Update `StandardComponentData` type to exclude `StandardRemoveData` and `StandardReplaceData`
+  - ✅ Remove imports of `StandardRemove` and `StandardReplace` throughout the codebase
 
 - Update merge and diff operations accordingly
   - ✅ Update `StandardForm.merge()` to handle only plain components (no `StandardRemove` or `StandardReplace` input)
@@ -86,17 +88,16 @@ This migration should proceed incrementally, starting with a single component ty
   - Update cascade graph handling to work with the new storage model
   - Note: Merging plain components using inversion/merge approach will naturally produce only plain components (no Replace operations possible)
 
-- Update component factory and related utilities
-  - Update `componentFactory.ts` to never create `StandardRemove` or `StandardReplace` instances
-  - Update type guards to exclude `StandardRemove` and `StandardReplace`
-  - Update any utility functions that handle component processing
+- ✅ Update component factory and related utilities
+  - ✅ Update `componentFactory.ts` to never create `StandardRemove` or `StandardReplace` instances (removed from comment)
+  - ✅ Update type guards to exclude `StandardRemove` and `StandardReplace`
+  - ✅ Update utility functions that handle component processing (merged `mergeWithEdits` into `mergeToComponentList.ts`)
 
-- Update tests and test expectations
-  - Update `processComponents` tests to expect only plain components in results
-  - Convert test cases that use `StandardRemove` or `StandardReplace` to the new model
-  - Update merge/diff tests to verify they never produce Replace operations
-  - Add tests for edge cases (empty removes, no-op removes, etc.)
-  - Verify existing functionality still works with the new storage model
+- ✅ Update tests and test expectations
+  - ✅ Update `processComponents` tests to expect only plain components in results
+  - ✅ Convert test cases that use `StandardRemove` or `StandardReplace` to the new model (removed from `edits.test.ts`, `room.test.ts`, `character.test.ts`)
+  - ✅ Update merge/diff tests to verify they never produce Replace operations
+  - ✅ Verify existing functionality still works with the new storage model
 
 **Success Criteria:**
 - `processComponents` returns only plain `StandardComponent` instances

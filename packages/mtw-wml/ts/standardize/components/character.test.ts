@@ -3,7 +3,6 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardCharacterData } from "./dataTypes/character"
 import { StandardCharacter } from './character'
 import { mergeTest } from "./utils/testing"
-import { StandardReplace } from "./edits"
 import { excludeUndefined } from "../../lib/lists"
 
 describe('StandardCharacter class', () => {

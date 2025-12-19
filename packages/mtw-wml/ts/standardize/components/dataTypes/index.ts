@@ -34,22 +34,6 @@ export type StandardComponentNonEditData =
     StandardMomentData |
     StandardImageData
 
-export type StandardRemoveData = {
-    key?: string;
-    universalKey?: string;
-    tag: 'Remove';
-    component: StandardComponentNonEditData;
-    implicitParent?: StandardKeyData;  // Parent StandardKey (serialized as StandardKeyData, minimal identifier without tag)
-}
-
-export type StandardReplaceData = {
-    key?: string;
-    universalKey?: string;
-    tag: 'Replace';
-    match: StandardComponentNonEditData;
-    payload: StandardComponentNonEditData;
-    implicitParent?: StandardKeyData;  // Parent StandardKey (serialized as StandardKeyData, minimal identifier without tag)
-}
 
 export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (typeof value !== 'string' && value.tag === tag)
 
@@ -65,30 +49,6 @@ export const isStandardComponentData = (value: any): value is StandardComponentD
     isStandardImageData(value)
 )
 
-export const isStandardRemoveWithOptions = (options: { typeGuard?: (value: any) => boolean } = {}) => (arg: any): arg is StandardRemoveData => {
-    if (typeof arg !== 'object') {
-        return false
-    }
-    return checkAll(
-        ('tag' in arg && arg.tag === 'Remove'),
-        ('component' in arg && (options.typeGuard ?? isStandardComponentData)(arg.component))
-    )
-}
-
-export const isStandardRemove = isStandardRemoveWithOptions()
-
-export const isStandardReplaceWithOptions = (options: { typeGuard?: (value: any) => boolean } = {}) => (arg: any): arg is StandardReplaceData => {
-    if (typeof arg !== 'object') {
-        return false
-    }
-    return checkAll(
-        ('tag' in arg && arg.tag === 'Replace'),
-        ('match' in arg && (options.typeGuard ?? isStandardComponentData)(arg.match)),
-        ('payload' in arg && (options.typeGuard ?? isStandardComponentData)(arg.payload))
-    )
-}
-
-export const isStandardReplace = isStandardReplaceWithOptions()
 
 export type StandardFormData = {
     universalKey: AssetUUID;

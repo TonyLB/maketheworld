@@ -1,12 +1,12 @@
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardComponent } from "./components/baseClasses"
-import { mergeWithEdits } from "./components/edits"
 import { excludeUndefined } from "../lib/lists"
 import { StandardKey } from "./components/reference"
 import { unique } from "@tonylb/mtw-base/ts/utils/lists"
 
 const mergeHelper = (base: StandardComponent, value: StandardComponent): StandardComponent | undefined => {
-    const merged = mergeWithEdits(base, value)
+    const merged = base ? (value ? base.merge(value) : base) : value
+    
     if (merged) {
         const origin = unique([...(base.origin ?? []), ...(value.origin ?? [])])
         return merged.withOrigin(origin.length ? origin : undefined)

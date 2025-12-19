@@ -147,11 +147,7 @@ Serialization format for Position sub-components. Contains `room` reference and 
 
 ### **Edit Data Types**
 
-#### **StandardRemoveData** (`index.ts`)
-Serialization format for Remove edit operations. Contains `_match` component to be removed.
-
-#### **StandardReplaceData** (`index.ts`)
-Serialization format for Replace edit operations. Contains `_match` original component and `_payload` replacement component.
+Component-level edit operations (Remove/Replace) are no longer supported. All edit operations are handled at the reference level in `ReferenceList` (as `StandardReferenceRemove` references), not as wrapper classes around components.
 
 ## Type Guards
 
