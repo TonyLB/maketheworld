@@ -220,12 +220,17 @@ export class StandardReferencePayload implements StandardEditablePayload<Standar
     }
     
     get schema() {
+        const schemaData: SchemaTag = {
+            tag: this._tag,
+            key: this.key,
+            uuid: this.universalKey
+        } as SchemaTag
+        // Include ref property when it's not 1 and >= 0
+        if (this._ref !== 1 && this._ref >= 0) {
+            (schemaData as { ref: number }).ref = this._ref
+        }
         return [{
-            data: {
-                tag: this._tag,
-                key: this.key,
-                uuid: this.universalKey
-            } as SchemaTag,
+            data: schemaData,
             children: []
         }]
     }
@@ -506,6 +511,20 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         return undefined
     }
     get schema() {
+        // If ref is negative, wrap in Remove tag with absolute value
+        if (this.payload.ref < 0) {
+            // Create a temporary payload with the absolute value of ref
+            const payloadJSON = this.payload.toJSON()
+            // Convert to object form if it's a string (ComponentUUID)
+            const deserialized = typeof payloadJSON === 'string'
+                ? standardReferenceDeserialize(payloadJSON)
+                : payloadJSON
+            const absRefData: StandardReferenceData = { ...deserialized, ref: Math.abs(this.payload.ref) }
+            const tempPayload = new StandardReferencePayload(absRefData)
+            // Wrap the schema in a Remove tag
+            return [{ data: { tag: 'Remove' as const }, children: tempPayload.schema }]
+        }
+        // For non-negative ref, delegate to payload schema
         return this.payload.schema
     }
     nestedSchema(tag) {
