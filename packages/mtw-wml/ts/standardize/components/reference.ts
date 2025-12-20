@@ -143,6 +143,7 @@ export class StandardReferencePayload implements StandardEditablePayload<Standar
     key?: string
     universalKey?: ComponentUUID
     _tag: ComponentTag // Required - stored in payload for StandardReferenceData
+    _ref: number // Reference number (can be negative), defaults to 1
     
     constructor(data: StandardReferenceData | GenericTree<SchemaTag> | StandardReferencePayload) {
         // Handle cloning
@@ -150,6 +151,7 @@ export class StandardReferencePayload implements StandardEditablePayload<Standar
             this.key = data.key
             this.universalKey = data.universalKey
             this._tag = data._tag
+            this._ref = data._ref
             return
         }
         
@@ -167,6 +169,7 @@ export class StandardReferencePayload implements StandardEditablePayload<Standar
                 throw new Error('Cannot derive tag from ComponentUUID')
             }
             this._tag = derivedTag
+            this._ref = 1 // Default to 1 for ComponentUUID string form
             return
         }
         
@@ -179,6 +182,7 @@ export class StandardReferencePayload implements StandardEditablePayload<Standar
                 throw new Error('StandardReferenceData object form requires tag')
             }
             this._tag = data.tag ?? deriveTagFromReferenceData(data)
+            this._ref = data.ref ?? 1 // Extract ref from data, default to 1
             return
         }
         
@@ -195,6 +199,8 @@ export class StandardReferencePayload implements StandardEditablePayload<Standar
                 throw new Error('Schema node requires tag for StandardReferencePayload')
             }
             this._tag = tag
+            // Extract ref from schema node data (if present), default to 1
+            this._ref = 'ref' in node.data && typeof node.data.ref === 'number' ? node.data.ref : 1
             return
         }
         
@@ -203,6 +209,10 @@ export class StandardReferencePayload implements StandardEditablePayload<Standar
     
     get tag(): ComponentTag {
         return this._tag
+    }
+    
+    get ref(): number {
+        return this._ref
     }
     
     get standardKey(): StandardKey {
@@ -226,12 +236,16 @@ export class StandardReferencePayload implements StandardEditablePayload<Standar
     
     toJSON: () => StandardReferenceData = () => {
         if (!this.key && this.universalKey) {
-            // If only universalKey, return ComponentUUID string form
+            // If only universalKey, return ComponentUUID string form (ref not included in string form)
             return this.universalKey
         }
         if (this.key) {
-            // Object form - tag is required
-            return { key: this.key, universalKey: this.universalKey, tag: this._tag }
+            // Object form - tag is required, include ref if not default (1)
+            const result: StandardReferenceData = { key: this.key, universalKey: this.universalKey, tag: this._tag }
+            if (this._ref !== 1) {
+                (result as { ref: number }).ref = this._ref
+            }
+            return result
         }
         throw new Error('StandardReferencePayload must have a universalKey or key')
     }
@@ -265,9 +279,14 @@ export const standardReferenceSerialize = (incoming: StandardReferenceData): Sta
         }
         return incoming
     }
-    const { universalKey, key } = incoming
+    const { universalKey, key, ref } = incoming
     if (key) {
-        return incoming
+        // Return object form, but omit ref if it's 1 (default)
+        const result: StandardReferenceData = { key, universalKey, tag: incoming.tag }
+        if (ref !== undefined && ref !== 1) {
+            (result as { ref: number }).ref = ref
+        }
+        return result
     }
     if (!universalKey) {
         throw new Error('StandardReferenceData must have a universalKey or key')
@@ -479,6 +498,9 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     get tag() {
         return this.payload.tag
     }
+    get ref() {
+        return this.payload.ref
+    }
     get context() {
         // context has been removed from StandardKey; retained for backward compatibility (always undefined)
         return undefined
@@ -532,12 +554,14 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         const payloadJSON = returnValue.payload.toJSON()
         const updatedData: StandardReferenceData = typeof payloadJSON === 'string' 
             ? payloadJSON 
-            : { ...payloadJSON, key }
+            : { ...payloadJSON, key, ref: returnValue.payload.ref }
         returnValue.payload = new StandardReferencePayload(updatedData)
         return returnValue
     }
     equals(other: StandardReferenceSimple): boolean {
-        return this.payload.key === other.payload.key && this.payload.universalKey === other.payload.universalKey
+        return this.payload.key === other.payload.key && 
+               this.payload.universalKey === other.payload.universalKey &&
+               this.payload.ref === other.payload.ref
     }
 }
 
@@ -635,6 +659,9 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
     get tag() {
         return this.match.tag
     }
+    get ref() {
+        return this.match.ref
+    }
     nestedSchema(tag) {
         return [{
             data: { tag: 'Remove' as const },
@@ -684,7 +711,7 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
         const matchJSON = returnValue.match.toJSON()
         const updatedData: StandardReferenceData = typeof matchJSON === 'string' 
             ? matchJSON 
-            : { ...matchJSON, key }
+            : { ...matchJSON, key, ref: returnValue.match.ref }
         returnValue.match = new StandardReferencePayload(updatedData)
         return returnValue
     }
@@ -782,6 +809,9 @@ export class StandardReference {
     }
     get tag(): ComponentTag | undefined {
         return this._payload.tag
+    }
+    get ref(): number {
+        return this._payload.ref
     }
 
     clone(): StandardReference {
@@ -897,9 +927,10 @@ export class StandardReference {
             }
             // Extract properties directly from looked-up key to preserve both key and universalKey
             const tag = this._payload.tag
+            const ref = this._payload.ref
             const referenceData: StandardReferenceData = lookedUpKey.universalKey && !lookedUpKey.key
                 ? lookedUpKey.universalKey  // Use ComponentUUID string form when only universalKey exists
-                : { key: lookedUpKey.key || '', universalKey: lookedUpKey.universalKey, tag }
+                : { key: lookedUpKey.key || '', universalKey: lookedUpKey.universalKey, tag, ref }
             return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(referenceData)))
         }
         if (this._payload instanceof StandardReferenceRemove) {
@@ -910,9 +941,10 @@ export class StandardReference {
                 return this.clone()
             }
             const tag = this._payload.tag
+            const ref = this._payload.ref
             const referenceData: StandardReferenceData = lookedUpKey.universalKey && !lookedUpKey.key
                 ? lookedUpKey.universalKey
-                : { key: lookedUpKey.key || '', universalKey: lookedUpKey.universalKey, tag }
+                : { key: lookedUpKey.key || '', universalKey: lookedUpKey.universalKey, tag, ref }
             return new StandardReference(new StandardReferenceRemove(new StandardReferencePayload(referenceData)))
         }
         throw new Error('Invalid StandardReference payload for lookup')
@@ -924,20 +956,22 @@ export class StandardReference {
             const key = this._payload.plain.standardKey
             const formattedKey = key.toFormat(format)
             const tag = this._payload.tag
+            const ref = this._payload.ref
             const keyData = formattedKey.toJSON()
             const referenceData: StandardReferenceData = typeof keyData === 'string' 
                 ? keyData 
-                : { ...keyData, tag }
+                : { ...keyData, tag, ref }
             return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(referenceData)))
         }
         if (this._payload instanceof StandardReferenceRemove) {
             const key = this._payload.plain.standardKey
             const formattedKey = key.toFormat(format)
             const tag = this._payload.tag
+            const ref = this._payload.ref
             const keyData = formattedKey.toJSON()
             const referenceData: StandardReferenceData = typeof keyData === 'string' 
                 ? keyData 
-                : { ...keyData, tag }
+                : { ...keyData, tag, ref }
             return new StandardReference(new StandardReferenceRemove(new StandardReferencePayload(referenceData)))
         }
         throw new Error('Invalid StandardReference payload for format')

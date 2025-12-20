@@ -20,6 +20,7 @@ export type StandardReferenceData = ComponentUUID | ({
     key: string;  // Required in object form - if missing, use ComponentUUID form instead
     universalKey?: ComponentUUID;
     tag: ComponentTag;  // Required - stored in StandardReference for standalone functionality
+    ref?: number;  // Optional - reference number (can be negative), defaults to 1
 })
 
 /**
@@ -58,7 +59,7 @@ export const isStandardReferencePayloadData = (arg: any): arg is StandardReferen
     // Object form: requires key and tag
     if (checkTypes({
         required: { },
-        optional: { universalKey: CheckTypes.STRING, tag: CheckTypes.STRING, key: CheckTypes.STRING }
+        optional: { universalKey: CheckTypes.STRING, tag: CheckTypes.STRING, key: CheckTypes.STRING, ref: CheckTypes.NUMBER }
     })(arg)) {
         if (arg.universalKey && !isSchemaComponentUUID(arg.universalKey)) {
             return false
