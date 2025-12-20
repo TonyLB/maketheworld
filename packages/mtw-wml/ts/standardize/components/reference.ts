@@ -7,7 +7,8 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { StandardEditableDataDelta, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { ReferenceFormat } from "./utils/references";
-import { editableListClassFactory, EditableListItem } from "./editableList";
+import { excludeUndefined } from "../../lib/lists";
+import { isSchemaTreeNode } from "../../schema";
 import { treeFromWML } from "../../schema";
 import { addDelta, diffDelta } from "../../generics/editable";
 
@@ -997,64 +998,154 @@ export class StandardReference {
     }
 }
 
-export class ReferenceList extends editableListClassFactory<StandardEditablePayload<StandardReferenceData>, any>(StandardReference as any, 'ReferenceList') {
+export class ReferenceList {
+    _items: StandardReference[] = []
 
     constructor(args: any) {
-        super(args)
-        //
-        // Guarantee that the reference stored is to the minimum key information needed to correctly
-        // identify the component, without context.
-        //
-        this._items = this._items.map<StandardReference>((item) => {
-            if (item instanceof StandardReference) {
-                return item.mapContents((data) => {
-                    if (isStandardReferencePayloadData(data)) {
-                        if (typeof data === 'string') {
-                            return data
-                        }
-                        return {
-                            ...data
-                        }
-                    }
-                    return data
-                })
+        // Handle cloning from another ReferenceList
+        if (args instanceof ReferenceList) {
+            this._items = args._items.map((item) => item.clone())
+            return
+        }
+        
+        // Handle array input
+        if (Array.isArray(args)) {
+            let items: StandardReference[]
+            
+            // Check if array contains StandardReference instances
+            if (args.every((item) => item instanceof StandardReference)) {
+                items = args as StandardReference[]
             }
-            return item as unknown as StandardReference
-        }) as any
-    }
-
-    override merge(other: ReferenceList): ReferenceList | undefined {
-        const merged = super.merge(other)
-        if (merged) {
-            return new ReferenceList(merged)
+            // Check if array contains schema tree nodes
+            else if (args.every(isSchemaTreeNode)) {
+                items = args.map((item) => new StandardReference([item]))
+            }
+            // Otherwise, treat as StandardReferenceData (JSON)
+            else {
+                items = args.map((item) => new StandardReference(item))
+            }
+            
+            // Deduplication: Merge items with the same key
+            const swapSpace = items.reduce<StandardReference[]>((previous, item) => {
+                const unmatchedPrevious = previous.filter((prev) => !item.sameKey(prev))
+                const previousMatch = previous.find((prev) => item.sameKey(prev))
+                if (previousMatch) {
+                    const merged = previousMatch.merge(item)
+                    if (merged) {
+                        return [...unmatchedPrevious, merged].filter(excludeUndefined)
+                    }
+                    return unmatchedPrevious
+                }
+                return [...previous, item]
+            }, [])
+            
+            this._items = swapSpace
+            
+            //
+            // Guarantee that the reference stored is to the minimum key information needed to correctly
+            // identify the component, without context.
+            //
+            this._items = this._items.map<StandardReference>((item) => {
+                if (item instanceof StandardReference) {
+                    return item.mapContents((data) => {
+                        if (isStandardReferencePayloadData(data)) {
+                            if (typeof data === 'string') {
+                                return data
+                            }
+                            return {
+                                ...data
+                            }
+                        }
+                        return data
+                    })
+                }
+                return item
+            })
+            return
         }
-        return undefined
+        
+        throw new Error('Invalid argument type for ReferenceList constructor')
     }
 
-    override diff(other: ReferenceList): ReferenceList | undefined {
-        const diffed = super.diff(other)
-        if (diffed) {
-            return new ReferenceList(diffed)
-        }
-        return undefined
+    toJSON(): StandardEditableData<StandardReferenceData>[] {
+        return this._items.map((item) => item.toJSON())
     }
 
-    override clone(): ReferenceList {
-        return new ReferenceList(super.clone())
+    get schema(): GenericTree<SchemaTag> {
+        return this._items.map(item => item.schema).flat(1).filter(isSchemaTreeNode)
+    }
+
+    clone(): ReferenceList {
+        return new ReferenceList(this)
     }
 
     get payload(): StandardReference[] {
-        return this._items as unknown as StandardReference[];
+        return this._items
     }
 
-    override assureItem(item): ReferenceList {
-        const assured = super.assureItem(item as any)
-        return new ReferenceList(assured)
+    merge(other: ReferenceList): ReferenceList | undefined {
+        if (!(other instanceof ReferenceList)) {
+            throw new Error('Cannot merge with non-ReferenceList instance')
+        }
+        
+        const unmatchedBaseItems = this._items.filter(item => !other._items.some(otherItem => item.sameKey(otherItem)))
+        const matchedOtherItems: { base: StandardReference, incoming: StandardReference }[] = other._items.map((incoming) => {
+                const base = this._items.find(item => item.sameKey(incoming))
+                if (base) {
+                    return { incoming, base }
+                }
+                return { incoming, base: undefined }
+            })
+            .filter((value): value is { base: StandardReference, incoming: StandardReference } => typeof value.base !== 'undefined')
+        const unmatchedOtherItems = other._items.filter(item => !this._items.some(baseItem => baseItem.sameKey(item)))
+        
+        const mergedItems = [
+            ...unmatchedBaseItems,
+            ...matchedOtherItems.map(({ base, incoming }) => base.merge(incoming)),
+            ...unmatchedOtherItems
+        ].filter(excludeUndefined)
+        
+        return new ReferenceList(mergedItems)
     }
 
-    override map(callback: (item: EditableListItem<StandardEditablePayload<StandardReferenceData>>) => EditableListItem<StandardEditablePayload<StandardReferenceData>>): ReferenceList {
-        const mapped = super.map(callback)
-        return new ReferenceList(mapped)
+    diff(other: ReferenceList): ReferenceList | undefined {
+        if (!(other instanceof ReferenceList)) {
+            throw new Error('Cannot diff with non-ReferenceList instance')
+        }
+        
+        const unmatchedBaseItems = this._items.filter(item => !other._items.some(otherItem => item.sameKey(otherItem)))
+        const matchedOtherItems: { base: StandardReference, incoming: StandardReference }[] = other._items.map((incoming) => {
+                const base = this._items.find(item => item.sameKey(incoming))
+                if (base) {
+                    return { incoming, base }
+                }
+                return { incoming, base: undefined }
+            })
+            .filter((value): value is { base: StandardReference, incoming: StandardReference } => typeof value.base !== 'undefined')
+        const unmatchedOtherItems = other._items.filter(item => !this._items.some(baseItem => baseItem.sameKey(item)))
+        
+        const diffedItems = [
+            ...unmatchedBaseItems.map(item => item.invert()),
+            ...matchedOtherItems.map(({ base, incoming }) => base.diff(incoming)),
+            ...unmatchedOtherItems
+        ].filter(excludeUndefined)
+        
+        return new ReferenceList(diffedItems)
+    }
+
+    assureItem(item: StandardReference): ReferenceList {
+        if (!this._items.some(existingItem => existingItem.sameKey(item))) {
+            const returnValue = this.clone()
+            returnValue._items = [...returnValue._items, item]
+            return returnValue
+        }
+        return this
+    }
+
+    map(callback: (item: StandardReference) => StandardReference): ReferenceList {
+        const returnValue = this.clone()
+        returnValue._items = this._items.map(callback)
+        return returnValue
     }
 
     toFormat(format: ReferenceFormat): ReferenceList {

@@ -16,9 +16,9 @@ In WML, components contain reference collections (like `features`, `examples`, `
 
 ## Architecture
 
-### Base Class Pattern
+### Standalone Implementation
 
-`ReferenceList` extends `editableListClassFactory`, a generic factory that provides list operations for editable items. This pattern enables:
+`ReferenceList` is a standalone class that implements list operations directly for `StandardReference` objects. This implementation:
 
 - **Item matching**: Uses `sameKey()` to identify equivalent references
 - **Merge operations**: Combines matching items, adds unmatched items
@@ -106,5 +106,5 @@ This independent storage enables precise control over reference collections and 
 - [`reference.ts`](./reference.ts) - Implementation of `ReferenceList`, `StandardReference`, and `StandardKey`
 - [`AGENT.md`](./AGENT.md) - Conceptual overview of Components and references
 - [`AGENT.editAlgebra.md`](./AGENT.editAlgebra.md) - Mathematical properties of component edit operations
-- [`editableList.ts`](./editableList.ts) - Base class factory for editable list operations
+- [`editableList.ts`](./editableList.ts) - Factory pattern for editable list operations (used for content, not asset structure)
 
