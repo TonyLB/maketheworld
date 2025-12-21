@@ -11,6 +11,10 @@ export const renderReference = ({ lookup, options }: { lookup: (key: string | St
     
     // Check if this is a Remove reference - if so, pass removeContext: true to nestedSchema
     // so the component knows to invert its contents for display in a remove context
+    // #region agent log
+    const refValue = reference._payload.ref;
+    fetch('http://127.0.0.1:7242/ingest/3e0dcc50-5f2b-4d0c-a479-a8fcebe97cf4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'schema.ts:14',message:'renderReference check',data:{refValue,key:reference.key,universalKey:reference.universalKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     const isRemoveReference = reference._payload.ref < 0
     const nestedOptions: NestedSchemaOptions = { 
         ...options, 

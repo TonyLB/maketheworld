@@ -729,7 +729,23 @@ export class StandardReference {
     }
     mapContents(callback: (incoming: StandardReferenceData) => StandardReferenceData): StandardReference {
         const payloadReferenceData = this._payload.payload.toJSON()
+        const currentRef = this._payload.ref
         const updatedData = callback(payloadReferenceData)
+        
+        // Preserve ref value when data is in string form (ComponentUUID only, no key)
+        // String form doesn't include ref, so we need to convert to object form with ref preserved
+        if (typeof updatedData === 'string' && currentRef !== 1) {
+            const deserialized = standardReferenceDeserialize(updatedData)
+            const refData: StandardReferenceData = { ...deserialized, ref: currentRef }
+            return new StandardReference(refData)
+        }
+        
+        // For object form, ensure ref is preserved if it was non-default
+        if (typeof updatedData === 'object' && updatedData !== null && !('ref' in updatedData) && currentRef !== 1) {
+            const refData: StandardReferenceData = { ...updatedData, ref: currentRef }
+            return new StandardReference(refData)
+        }
+        
         return new StandardReference(updatedData)
     }
 
@@ -973,7 +989,24 @@ export class ReferenceList {
     }
 
     invert(): ReferenceList {
-        return new ReferenceList(this.payload.map((item) => item.invert()))
+        // #region agent log
+        const beforeRefs = this.payload.map(item => ({key:item.key,universalKey:item.universalKey,ref:item.ref}));
+        fetch('http://127.0.0.1:7242/ingest/3e0dcc50-5f2b-4d0c-a479-a8fcebe97cf4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reference.ts:976',message:'Before ReferenceList invert',data:{beforeRefs},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        const inverted = new ReferenceList(this.payload.map((item) => {
+            // #region agent log
+            const beforeItemRef = item.ref;
+            const invertedItem = item.invert();
+            const afterItemRef = invertedItem.ref;
+            fetch('http://127.0.0.1:7242/ingest/3e0dcc50-5f2b-4d0c-a479-a8fcebe97cf4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reference.ts:978',message:'Item invert',data:{beforeItemRef,afterItemRef,key:item.key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,E'})}).catch(()=>{});
+            return invertedItem;
+            // #endregion
+        }))
+        // #region agent log
+        const afterRefs = inverted.payload.map(item => ({key:item.key,universalKey:item.universalKey,ref:item.ref}));
+        fetch('http://127.0.0.1:7242/ingest/3e0dcc50-5f2b-4d0c-a479-a8fcebe97cf4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reference.ts:985',message:'After ReferenceList invert',data:{afterRefs},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        return inverted
     }
 
 }
