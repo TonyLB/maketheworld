@@ -1,10 +1,10 @@
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
+import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit";
 import { ComponentTag, componentTagFromUpperCase } from "./dataTypes/abstract";
 import { isStandardKeyData, isStandardReferencePayloadData, StandardKeyData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
-import { StandardEditableDataDelta, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable";
+import { StandardEditablePayload } from "../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { ReferenceFormat } from "./utils/references";
 import { excludeUndefined } from "../../lib/lists";
@@ -337,7 +337,7 @@ const deriveTagFromReferenceData = (
     return undefined
 }
 
-export class StandardReferenceSimple implements StandardEditableWrapper<StandardReferencePayload> {
+export class StandardReferenceSimple {
     payload: StandardReferencePayload
     constructor(
         data: StandardReferencePayload | StandardKey | StandardEditableData<StandardReferenceData> | GenericTree<SchemaTag> | string,
@@ -464,9 +464,6 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     nestedSchema(tag) {
         return [{ data: tag, children: this.schema }]
     }
-    get _delta(): StandardEditableDataDelta<StandardReferenceData> {
-        return { add: this.payload.toJSON() }
-    }
     clone() {
         return new StandardReferenceSimple(this.payload)
     }
@@ -474,14 +471,7 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         return this.payload.toJSON()
     }
     get plain() { return this.payload }
-    // Method overloading: Accept concrete types for direct calls, but also satisfy StandardEditableWrapper interface
-    // This is needed because ReferenceList uses editableListClassFactory which requires StandardEditableWrapper.
-    // TODO: This may be temporary - if we later refactor ReferenceList away from editableListFactory
-    // (similar to how we moved StandardReference away from standardEditableFactory), we can remove
-    // the StandardEditableWrapper overloads and only accept the concrete types.
-    merge(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined
-    merge(other: StandardEditableWrapper<StandardReferencePayload>): StandardEditableWrapper<StandardReferencePayload> | undefined
-    merge(other: StandardReferenceSimple | StandardReferenceRemove | StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | undefined {
+    merge(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined {
         if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
             throw new Error('merge() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
         }
@@ -507,14 +497,7 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         
         return new StandardReferenceSimple(new StandardReferencePayload(mergedData))
     }
-    // Method overloading: Accept concrete types for direct calls, but also satisfy StandardEditableWrapper interface
-    // This is needed because ReferenceList uses editableListClassFactory which requires StandardEditableWrapper.
-    // TODO: This may be temporary - if we later refactor ReferenceList away from editableListFactory
-    // (similar to how we moved StandardReference away from standardEditableFactory), we can remove
-    // the StandardEditableWrapper overloads and only accept the concrete types.
-    diff(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined
-    diff(other: StandardEditableWrapper<StandardReferencePayload>): StandardEditableWrapper<StandardReferencePayload> | undefined
-    diff(other: StandardReferenceSimple | StandardReferenceRemove | StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | undefined {
+    diff(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined {
         if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
             throw new Error('diff() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
         }
@@ -553,6 +536,16 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
         returnValue.payload = new StandardReferencePayload(updatedData)
         return returnValue
     }
+    withRef(ref: number): StandardReferenceSimple {
+        const returnValue = this.clone()
+        const payloadJSON = returnValue.payload.toJSON()
+        const updatedData: StandardReferenceData = typeof payloadJSON === 'string'
+            ? standardReferenceDeserialize(payloadJSON)
+            : payloadJSON
+        const refData: StandardReferenceData = { ...updatedData, ref }
+        returnValue.payload = new StandardReferencePayload(refData)
+        return returnValue
+    }
     equals(other: StandardReferenceSimple): boolean {
         return this.payload.key === other.payload.key && 
                this.payload.universalKey === other.payload.universalKey &&
@@ -560,7 +553,7 @@ export class StandardReferenceSimple implements StandardEditableWrapper<Standard
     }
 }
 
-export class StandardReferenceRemove implements StandardEditableWrapper<StandardReferencePayload> {
+export class StandardReferenceRemove {
     match: StandardReferencePayload
     constructor(
         data: StandardReferencePayload | StandardKey | StandardEditableData<StandardReferenceData> | GenericTree<SchemaTag> | string,
@@ -663,9 +656,6 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
             children: [{ data: tag, children: this.match.schema }]
         }]
     }
-    get _delta(): StandardEditableDataDelta<StandardReferenceData> {
-        return { remove: this.match.toJSON() }
-    }
     clone() {
         return new StandardReferenceRemove(this.match)
     }
@@ -673,14 +663,7 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
         return { tag: 'Remove' as const, match: this.match.toJSON() }
     }
     get plain() { return this.match }
-    // Method overloading: Accept concrete types for direct calls, but also satisfy StandardEditableWrapper interface
-    // This is needed because ReferenceList uses editableListClassFactory which requires StandardEditableWrapper.
-    // TODO: This may be temporary - if we later refactor ReferenceList away from editableListFactory
-    // (similar to how we moved StandardReference away from standardEditableFactory), we can remove
-    // the StandardEditableWrapper overloads and only accept the concrete types.
-    merge(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined
-    merge(other: StandardEditableWrapper<StandardReferencePayload>): StandardEditableWrapper<StandardReferencePayload> | undefined
-    merge(other: StandardReferenceSimple | StandardReferenceRemove | StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | undefined {
+    merge(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined {
         if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
             throw new Error('merge() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
         }
@@ -710,14 +693,7 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
         }
         return new StandardReferenceSimple(new StandardReferencePayload(mergedData))
     }
-    // Method overloading: Accept concrete types for direct calls, but also satisfy StandardEditableWrapper interface
-    // This is needed because ReferenceList uses editableListClassFactory which requires StandardEditableWrapper.
-    // TODO: This may be temporary - if we later refactor ReferenceList away from editableListFactory
-    // (similar to how we moved StandardReference away from standardEditableFactory), we can remove
-    // the StandardEditableWrapper overloads and only accept the concrete types.
-    diff(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined
-    diff(other: StandardEditableWrapper<StandardReferencePayload>): StandardEditableWrapper<StandardReferencePayload> | undefined
-    diff(other: StandardReferenceSimple | StandardReferenceRemove | StandardEditableWrapper<StandardReferencePayload>): StandardReferenceSimple | StandardReferenceRemove | undefined {
+    diff(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined {
         if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
             throw new Error('diff() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
         }
@@ -750,6 +726,16 @@ export class StandardReferenceRemove implements StandardEditableWrapper<Standard
             ? matchJSON 
             : { ...matchJSON, key, ref: returnValue.match.ref }
         returnValue.match = new StandardReferencePayload(updatedData)
+        return returnValue
+    }
+    withRef(ref: number): StandardReferenceRemove {
+        const returnValue = this.clone()
+        const matchJSON = returnValue.match.toJSON()
+        const updatedData: StandardReferenceData = typeof matchJSON === 'string'
+            ? standardReferenceDeserialize(matchJSON)
+            : matchJSON
+        const refData: StandardReferenceData = { ...updatedData, ref }
+        returnValue.match = new StandardReferencePayload(refData)
         return returnValue
     }
 }
@@ -864,6 +850,9 @@ export class StandardReference {
     }
 
     merge(incoming: StandardReference): StandardReference | undefined {
+        if (!this.sameKey(incoming)) {
+            throw new Error('Cannot change which component a reference points to')
+        }
         const merged = this._payload.merge(incoming._payload)
         if (merged) {
             return new StandardReference(merged)
@@ -872,6 +861,9 @@ export class StandardReference {
     }
     diff(incoming: StandardReference | undefined): StandardReference | undefined {
         if (incoming) {
+            if (!this.sameKey(incoming)) {
+                throw new Error('Cannot change which component a reference points to')
+            }
             const diff = this._payload.diff(incoming._payload)
             if (diff) {
                 return new StandardReference(diff)
@@ -918,15 +910,20 @@ export class StandardReference {
         return returnValue
     }
 
-    plain(): StandardReferenceSimple {
-        // Return StandardReferenceSimple representing the plain reference (without edit operations)
-        // This is consistent with other StandardEditableWrapper patterns where plain returns the payload
-        const payloadData = this._payload.plain
-        return new StandardReferenceSimple(payloadData)
+    withRef(ref: number): StandardReference {
+        const returnValue = this.clone()
+        if (this._payload instanceof StandardReferenceSimple) {
+            returnValue._payload = this._payload.withRef(ref)
+        } else if (this._payload instanceof StandardReferenceRemove) {
+            returnValue._payload = this._payload.withRef(ref)
+        }
+        return returnValue
     }
 
-    _delta(): StandardEditableDataDelta<StandardReferenceData> | undefined {
-        return this._payload._delta
+    plain(): StandardReferenceSimple {
+        // Return StandardReferenceSimple representing the plain reference (without edit operations)
+        const payloadData = this._payload.plain
+        return new StandardReferenceSimple(payloadData)
     }
 
     equal(other: StandardReference): boolean {
@@ -941,34 +938,32 @@ export class StandardReference {
 
     sameKey(other: any): boolean {
         // Compare what each reference points to (plain value) for list matching
+        // Prioritizes universalKey: if both have the same universalKey, they're the same component
+        // regardless of local key differences
         if (!(other instanceof StandardReference)) {
             return false
         }
         const baseMatchPayload = this._payload instanceof StandardReferenceSimple
             ? this._payload
             : this._payload.match
-        return baseMatchPayload.standardKey.equals(other.plain().standardKey)
+        const otherMatchPayload = other._payload instanceof StandardReferenceSimple
+            ? other._payload
+            : other._payload.match
+        
+        const baseStandardKey = baseMatchPayload.standardKey
+        const otherStandardKey = otherMatchPayload.standardKey
+        
+        // If both have universalKey and they match, they're the same component
+        if (baseStandardKey.universalKey && otherStandardKey.universalKey) {
+            return baseStandardKey.universalKey === otherStandardKey.universalKey
+        }
+        
+        // Otherwise, fall back to standardKey.equals() which compares keys
+        return baseStandardKey.equals(otherStandardKey)
     }
 
     invert(): StandardReference {
-        // Negate the ref value
-        const currentRef = this._payload.ref
-        const invertedRef = -currentRef
-        
-        // Get base data
-        const baseData = this._payload instanceof StandardReferenceSimple
-            ? this._payload.payload.toJSON()
-            : this._payload.match.toJSON()
-        const deserialized = typeof baseData === 'string'
-            ? standardReferenceDeserialize(baseData)
-            : baseData
-        const invertedData: StandardReferenceData = { ...deserialized, ref: invertedRef }
-        
-        // If inverted ref is negative, wrap in Remove; otherwise use Simple
-        if (invertedRef < 0) {
-            return new StandardReference(new StandardReferenceRemove(new StandardReferencePayload(invertedData)))
-        }
-        return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(invertedData)))
+        return this.withRef(-this._payload.ref)
     }
 
     lookup(arg: StandardKey[] | ((key: StandardKey) => StandardKey | undefined)): StandardReference {
