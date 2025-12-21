@@ -337,6 +337,23 @@ const deriveTagFromReferenceData = (
     return undefined
 }
 
+// Helper to parse Remove tag and create StandardReferenceSimple with negated ref value
+const parseRemoveTag = (removeNode: GenericTree<SchemaTag>): StandardReferenceSimple => {
+    // removeNode is an array, first element is the Remove tag with children
+    const removeElement = removeNode[0]
+    if (!removeElement || !treeNodeTypeguard(isSchemaRemove)(removeElement)) {
+        throw new Error('parseRemoveTag expects a Remove tag node')
+    }
+    const matchPayload = new StandardReferencePayload(removeElement.children)
+    const matchRef = matchPayload.ref // Gets ref value (defaults to 1 if not present)
+    const matchData = matchPayload.toJSON()
+    const deserialized = typeof matchData === 'string'
+        ? standardReferenceDeserialize(matchData)
+        : matchData
+    const removeData: StandardReferenceData = { ...deserialized, ref: -matchRef }
+    return new StandardReferenceSimple(new StandardReferencePayload(removeData))
+}
+
 export class StandardReferenceSimple {
     payload: StandardReferencePayload
     constructor(
@@ -369,7 +386,7 @@ export class StandardReferenceSimple {
             // Convert StandardKeyData to StandardReferenceData by adding the tag
             const referenceData: StandardReferenceData = typeof data === 'string'
                 ? data
-                : { ...data, tag: explicitTag }
+                : { ...(data as { key?: string; universalKey?: ComponentUUID }), tag: explicitTag }
             this.payload = new StandardReferencePayload(referenceData)
             return
         }
@@ -388,9 +405,9 @@ export class StandardReferenceSimple {
             }
             const firstElement = schema[0]
             
-            // Check for Remove tag - should use StandardReferenceRemove
+            // Check for Remove tag - should be handled by StandardReference constructor
             if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
-                throw new Error('Remove operations should use StandardReferenceRemove, not StandardReferenceSimple')
+                throw new Error('Remove operations should be parsed through StandardReference constructor, not StandardReferenceSimple')
             }
             
             // Check for Replace tag - illegal for references
@@ -407,9 +424,9 @@ export class StandardReferenceSimple {
         if (Array.isArray(data) && data.length > 0) {
             const firstElement = data[0]
             
-            // Check for Remove tag - should use StandardReferenceRemove
+            // Check for Remove tag - should be handled by StandardReference constructor
             if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
-                throw new Error('Remove operations should use StandardReferenceRemove, not StandardReferenceSimple')
+                throw new Error('Remove operations should be parsed through StandardReference constructor, not StandardReferenceSimple')
             }
             
             // Check for Replace tag - illegal for references
@@ -471,9 +488,9 @@ export class StandardReferenceSimple {
         return this.payload.toJSON()
     }
     get plain() { return this.payload }
-    merge(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined {
-        if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
-            throw new Error('merge() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
+    merge(other: StandardReferenceSimple): StandardReferenceSimple | undefined {
+        if (!(other instanceof StandardReferenceSimple)) {
+            throw new Error('merge() can only be called with StandardReferenceSimple instances')
         }
         
         // Get ref values from both references
@@ -497,9 +514,9 @@ export class StandardReferenceSimple {
         
         return new StandardReferenceSimple(new StandardReferencePayload(mergedData))
     }
-    diff(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined {
-        if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
-            throw new Error('diff() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
+    diff(other: StandardReferenceSimple): StandardReferenceSimple | undefined {
+        if (!(other instanceof StandardReferenceSimple)) {
+            throw new Error('diff() can only be called with StandardReferenceSimple instances')
         }
         
         // Get ref values: base (this) and incoming (other)
@@ -521,10 +538,7 @@ export class StandardReferenceSimple {
             : baseData
         const diffData: StandardReferenceData = { ...deserialized, ref: diffRef }
         
-        // If diff ref is negative, wrap in Remove; otherwise use Simple
-        if (diffRef < 0) {
-            return new StandardReferenceRemove(new StandardReferencePayload(diffData))
-        }
+        // Always return StandardReferenceSimple (even with negative ref)
         return new StandardReferenceSimple(new StandardReferencePayload(diffData))
     }
     withKey(key: string): StandardReferenceSimple {
@@ -553,199 +567,13 @@ export class StandardReferenceSimple {
     }
 }
 
-export class StandardReferenceRemove {
-    match: StandardReferencePayload
-    constructor(
-        data: StandardReferencePayload | StandardKey | StandardEditableData<StandardReferenceData> | GenericTree<SchemaTag> | string,
-        explicitTag?: ComponentTag
-    ) {
-        // Handle StandardReferencePayload directly
-        if (data instanceof StandardReferencePayload) {
-            this.match = data
-            return
-        }
-        
-        // Handle StandardKey with explicit tag - convert to StandardReferencePayload
-        if (data instanceof StandardKey) {
-            const derivedTag = explicitTag ?? deriveTagFromReferenceData(data)
-            if (!derivedTag) {
-                throw new Error(`StandardReferenceRemove requires derivable tag. Data: ${JSON.stringify(data)}`)
-            }
-            const keyData = data.toJSON() // Returns StandardKeyData
-            // Convert StandardKeyData to StandardReferenceData
-            const referenceData: StandardReferenceData = typeof keyData === 'string' 
-                ? keyData 
-                : { ...keyData, tag: derivedTag }
-            this.match = new StandardReferencePayload(referenceData)
-            return
-        }
-        
-        // Handle StandardReferenceData directly (for Remove JSON structure)
-        if (typeof data === 'object' && data !== null && 'tag' in data && data.tag === 'Remove' && 'match' in data) {
-            const removeData = data as { tag: 'Remove'; match: StandardReferenceData }
-            this.match = new StandardReferencePayload(removeData.match)
-            return
-        }
-        
-        // Handle string (WML) - parse and expect Remove wrapper
-        if (typeof data === 'string') {
-            const schema = treeFromWML(data)
-            if (schema.length === 0) {
-                throw new Error('Invalid WML string in StandardReferenceRemove: empty schema')
-            }
-            const firstElement = schema[0]
-            
-            // Check for Replace tag - illegal for references
-            if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
-                throw new Error('Replace operations are illegal for references. References can only be added or removed, not replaced.')
-            }
-            
-            // Expect Remove tag
-            if (!treeNodeTypeguard(isSchemaRemove)(firstElement)) {
-                throw new Error('StandardReferenceRemove requires Remove tag in WML')
-            }
-            
-            // Extract match data from Remove children
-            this.match = new StandardReferencePayload(firstElement.children)
-            return
-        }
-        
-        // Handle GenericTree<SchemaTag> - expect Remove node
-        if (Array.isArray(data) && data.length > 0) {
-            const firstElement = data[0]
-            
-            // Check for Replace tag - illegal for references
-            if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
-                throw new Error('Replace operations are illegal for references. References can only be added or removed, not replaced.')
-            }
-            
-            // Expect Remove tag
-            if (!treeNodeTypeguard(isSchemaRemove)(firstElement)) {
-                throw new Error('StandardReferenceRemove requires Remove tag in schema')
-            }
-            
-            // Extract match data from Remove children
-            this.match = new StandardReferencePayload(firstElement.children)
-            return
-        }
-        
-        throw new Error('Invalid data in StandardReferenceRemove')
-    }
-    get schema() {
-        return [{ data: { tag: 'Remove' as const }, children: this.match.schema }]
-    }
-    get key() {
-        return this.match.key
-    }
-    get universalKey() {
-        return this.match.universalKey
-    }
-    get context() {
-        // context has been removed from StandardKey; retained for backward compatibility (always undefined)
-        return undefined
-    }
-    get tag() {
-        return this.match.tag
-    }
-    get ref() {
-        return this.match.ref
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Remove' as const },
-            children: [{ data: tag, children: this.match.schema }]
-        }]
-    }
-    clone() {
-        return new StandardReferenceRemove(this.match)
-    }
-    toJSON: () => StandardEditableData<StandardReferenceData> = () => {
-        return { tag: 'Remove' as const, match: this.match.toJSON() }
-    }
-    get plain() { return this.match }
-    merge(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined {
-        if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
-            throw new Error('merge() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
-        }
-        
-        // Get ref values from both references
-        const baseRef = this.match.ref
-        const otherRef = other.ref
-        
-        // Calculate merged ref value
-        const mergedRef = baseRef + otherRef
-        
-        // Handle zero result: cancellation, return undefined
-        if (mergedRef === 0) {
-            return undefined
-        }
-        
-        // Non-zero result: create new reference with merged ref value
-        const baseData = this.match.toJSON()
-        const deserialized = typeof baseData === 'string'
-            ? standardReferenceDeserialize(baseData)
-            : baseData
-        const mergedData: StandardReferenceData = { ...deserialized, ref: mergedRef }
-        
-        // If merged ref is negative, wrap in Remove; otherwise use Simple
-        if (mergedRef < 0) {
-            return new StandardReferenceRemove(new StandardReferencePayload(mergedData))
-        }
-        return new StandardReferenceSimple(new StandardReferencePayload(mergedData))
-    }
-    diff(other: StandardReferenceSimple | StandardReferenceRemove): StandardReferenceSimple | StandardReferenceRemove | undefined {
-        if (!(other instanceof StandardReferenceSimple || other instanceof StandardReferenceRemove)) {
-            throw new Error('diff() can only be called with StandardReferenceSimple or StandardReferenceRemove instances')
-        }
-        
-        // Get ref values: base (this) and incoming (other)
-        const baseRef = this.match.ref
-        const incomingRef = other.ref
-        
-        // Calculate diff: incoming - base
-        const diffRef = incomingRef - baseRef
-        
-        // Handle zero result: no change, return undefined
-        if (diffRef === 0) {
-            return undefined
-        }
-        
-        // Non-zero result: create new reference with diff ref value
-        const baseData = this.match.toJSON()
-        const deserialized = typeof baseData === 'string'
-            ? standardReferenceDeserialize(baseData)
-            : baseData
-        const diffData: StandardReferenceData = { ...deserialized, ref: diffRef }
-        
-        return new StandardReferenceSimple(new StandardReferencePayload(diffData))
-    }
-    withKey(key: string): StandardReferenceRemove {
-        const returnValue = this.clone()
-        const matchJSON = returnValue.match.toJSON()
-        const updatedData: StandardReferenceData = typeof matchJSON === 'string' 
-            ? matchJSON 
-            : { ...matchJSON, key, ref: returnValue.match.ref }
-        returnValue.match = new StandardReferencePayload(updatedData)
-        return returnValue
-    }
-    withRef(ref: number): StandardReferenceRemove {
-        const returnValue = this.clone()
-        const matchJSON = returnValue.match.toJSON()
-        const updatedData: StandardReferenceData = typeof matchJSON === 'string'
-            ? standardReferenceDeserialize(matchJSON)
-            : matchJSON
-        const refData: StandardReferenceData = { ...updatedData, ref }
-        returnValue.match = new StandardReferencePayload(refData)
-        return returnValue
-    }
-}
 
 export class StandardReference {
-    _payload: StandardReferenceSimple | StandardReferenceRemove;
+    _payload: StandardReferenceSimple;
     
     constructor(arg: any, explicitTag?: ComponentTag) {
         // Handle wrapper instances directly
-        if (arg instanceof StandardReferenceSimple || arg instanceof StandardReferenceRemove) {
+        if (arg instanceof StandardReferenceSimple) {
             this._payload = arg
             return
         }
@@ -759,7 +587,16 @@ export class StandardReference {
         
         // Check for Remove JSON structure BEFORE isStandardReferencePayloadData check
         if (typeof arg === 'object' && arg !== null && 'tag' in arg && arg.tag === 'Remove' && 'match' in arg) {
-            this._payload = new StandardReferenceRemove(arg)
+            // Extract match data, get its ref value (defaulting to 1), negate it, and create StandardReferenceSimple
+            const removeData = arg as { tag: 'Remove'; match: StandardReferenceData }
+            const matchPayload = new StandardReferencePayload(removeData.match)
+            const matchRef = matchPayload.ref // Gets ref value (defaults to 1 if not present)
+            const matchData = matchPayload.toJSON()
+            const deserialized = typeof matchData === 'string'
+                ? standardReferenceDeserialize(matchData)
+                : matchData
+            const removeRefData: StandardReferenceData = { ...deserialized, ref: -matchRef }
+            this._payload = new StandardReferenceSimple(new StandardReferencePayload(removeRefData))
             return
         }
         
@@ -784,7 +621,7 @@ export class StandardReference {
             
             // Check for Remove tag
             if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
-                this._payload = new StandardReferenceRemove(schema)
+                this._payload = parseRemoveTag(schema)
                 return
             }
             
@@ -804,7 +641,7 @@ export class StandardReference {
             
             // Check for Remove tag
             if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
-                this._payload = new StandardReferenceRemove(arg)
+                this._payload = parseRemoveTag(arg)
                 return
             }
             
@@ -881,9 +718,7 @@ export class StandardReference {
             }
             
             // Create inverted reference
-            const baseData = this._payload instanceof StandardReferenceSimple
-                ? this._payload.payload.toJSON()
-                : this._payload.match.toJSON()
+            const baseData = this._payload.payload.toJSON()
             const deserialized = typeof baseData === 'string'
                 ? standardReferenceDeserialize(baseData)
                 : baseData
@@ -893,15 +728,9 @@ export class StandardReference {
         }
     }
     mapContents(callback: (incoming: StandardReferenceData) => StandardReferenceData): StandardReference {
-        if (this._payload instanceof StandardReferenceSimple) {
-            const payloadReferenceData = this._payload.payload.toJSON()
-            return new StandardReference(callback(payloadReferenceData))
-        }
-        if (this._payload instanceof StandardReferenceRemove) {
-            const matchReferenceData = this._payload.match.toJSON()
-            return new StandardReference(new StandardReferenceRemove(new StandardReferencePayload(callback(matchReferenceData))))
-        }
-        throw new Error('Invalid StandardReference payload')
+        const payloadReferenceData = this._payload.payload.toJSON()
+        const updatedData = callback(payloadReferenceData)
+        return new StandardReference(updatedData)
     }
 
     withKey(key: string): StandardReference {
@@ -912,11 +741,7 @@ export class StandardReference {
 
     withRef(ref: number): StandardReference {
         const returnValue = this.clone()
-        if (this._payload instanceof StandardReferenceSimple) {
-            returnValue._payload = this._payload.withRef(ref)
-        } else if (this._payload instanceof StandardReferenceRemove) {
-            returnValue._payload = this._payload.withRef(ref)
-        }
+        returnValue._payload = this._payload.withRef(ref)
         return returnValue
     }
 
@@ -927,13 +752,7 @@ export class StandardReference {
     }
 
     equal(other: StandardReference): boolean {
-        if (this._payload instanceof StandardReferenceSimple && other._payload instanceof StandardReferenceSimple) {
-            return this._payload.standardKey.equals(other._payload.standardKey)
-        }
-        if (this._payload instanceof StandardReferenceRemove && other._payload instanceof StandardReferenceRemove) {
-            return this._payload.match.standardKey.equals(other._payload.match.standardKey)
-        }
-        return false
+        return this._payload.standardKey.equals(other._payload.standardKey)
     }
 
     sameKey(other: any): boolean {
@@ -943,12 +762,8 @@ export class StandardReference {
         if (!(other instanceof StandardReference)) {
             return false
         }
-        const baseMatchPayload = this._payload instanceof StandardReferenceSimple
-            ? this._payload
-            : this._payload.match
-        const otherMatchPayload = other._payload instanceof StandardReferenceSimple
-            ? other._payload
-            : other._payload.match
+        const baseMatchPayload = this._payload
+        const otherMatchPayload = other._payload
         
         const baseStandardKey = baseMatchPayload.standardKey
         const otherStandardKey = otherMatchPayload.standardKey
@@ -970,63 +785,32 @@ export class StandardReference {
         const callback = typeof arg === 'function' ? arg : (key: StandardKey) => {
             return arg.find((item) => item.equals(key))
         }
-        if (this._payload instanceof StandardReferenceSimple) {
-            const currentKey = this._payload.standardKey
-            const lookedUpKey = callback(currentKey)
-            // Only clone if no lookup found a match (lookedUpKey is undefined or same object reference)
-            if (!lookedUpKey || lookedUpKey === currentKey) {
-                return this.clone()
-            }
-            // Extract properties directly from looked-up key to preserve both key and universalKey
-            const tag = this._payload.tag
-            const ref = this._payload.ref
-            const referenceData: StandardReferenceData = lookedUpKey.universalKey && !lookedUpKey.key
-                ? lookedUpKey.universalKey  // Use ComponentUUID string form when only universalKey exists
-                : { key: lookedUpKey.key || '', universalKey: lookedUpKey.universalKey, tag, ref }
-            return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(referenceData)))
+        const currentKey = this._payload.standardKey
+        const lookedUpKey = callback(currentKey)
+        // Only clone if no lookup found a match (lookedUpKey is undefined or same object reference)
+        if (!lookedUpKey || lookedUpKey === currentKey) {
+            return this.clone()
         }
-        if (this._payload instanceof StandardReferenceRemove) {
-            const currentKey = this._payload.plain.standardKey
-            const lookedUpKey = callback(currentKey)
-            // Only clone if no lookup found a match
-            if (!lookedUpKey || lookedUpKey === currentKey) {
-                return this.clone()
-            }
-            const tag = this._payload.tag
-            const ref = this._payload.ref
-            const referenceData: StandardReferenceData = lookedUpKey.universalKey && !lookedUpKey.key
-                ? lookedUpKey.universalKey
-                : { key: lookedUpKey.key || '', universalKey: lookedUpKey.universalKey, tag, ref }
-            return new StandardReference(new StandardReferenceRemove(new StandardReferencePayload(referenceData)))
-        }
-        throw new Error('Invalid StandardReference payload for lookup')
+        // Extract properties directly from looked-up key to preserve both key and universalKey
+        const tag = this._payload.tag
+        const ref = this._payload.ref
+        const referenceData: StandardReferenceData = lookedUpKey.universalKey && !lookedUpKey.key
+            ? lookedUpKey.universalKey  // Use ComponentUUID string form when only universalKey exists
+            : { key: lookedUpKey.key || '', universalKey: lookedUpKey.universalKey, tag, ref }
+        return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(referenceData)))
     }
 
     toFormat(format: ReferenceFormat): StandardReference {
         // Convert payload to StandardKey, format it, then convert back
-        if (this._payload instanceof StandardReferenceSimple) {
-            const key = this._payload.plain.standardKey
-            const formattedKey = key.toFormat(format)
-            const tag = this._payload.tag
-            const ref = this._payload.ref
-            const keyData = formattedKey.toJSON()
-            const referenceData: StandardReferenceData = typeof keyData === 'string' 
-                ? keyData 
-                : { ...keyData, tag, ref }
-            return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(referenceData)))
-        }
-        if (this._payload instanceof StandardReferenceRemove) {
-            const key = this._payload.plain.standardKey
-            const formattedKey = key.toFormat(format)
-            const tag = this._payload.tag
-            const ref = this._payload.ref
-            const keyData = formattedKey.toJSON()
-            const referenceData: StandardReferenceData = typeof keyData === 'string' 
-                ? keyData 
-                : { ...keyData, tag, ref }
-            return new StandardReference(new StandardReferenceRemove(new StandardReferencePayload(referenceData)))
-        }
-        throw new Error('Invalid StandardReference payload for format')
+        const key = this._payload.plain.standardKey
+        const formattedKey = key.toFormat(format)
+        const tag = this._payload.tag
+        const ref = this._payload.ref
+        const keyData = formattedKey.toJSON()
+        const referenceData: StandardReferenceData = typeof keyData === 'string' 
+            ? keyData 
+            : { ...keyData, tag, ref }
+        return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(referenceData)))
     }
 }
 

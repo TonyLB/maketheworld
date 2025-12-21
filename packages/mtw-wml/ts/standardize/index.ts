@@ -24,7 +24,7 @@ import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
 import { ReferenceListData, StandardReferenceData, StandardKeyData } from "./components/dataTypes/reference"
-import StandardReference, { ReferenceList, StandardKey, StandardReferenceSimple, StandardReferenceRemove } from "./components/reference"
+import StandardReference, { ReferenceList, StandardKey, StandardReferenceSimple } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
 import { StandardExplicitParent, StandardExplicitParentSimple } from "./explicit/parent"
@@ -1030,7 +1030,7 @@ export class StandardForm {
             .map((reference) => {
                 const component = remapped._lookup(reference.plain().standardKey.toJSON())
                 if (!component) return []
-                const isRemoveReference = reference._payload instanceof StandardReferenceRemove
+                const isRemoveReference = reference._payload.ref < 0
                 const schema = component.nestedSchema(lookupWrapper, { parent: undefined, removeContext: isRemoveReference })
                 return isRemoveReference ? [{
                     data: { tag: 'Remove' as const },
@@ -1086,7 +1086,7 @@ export class StandardForm {
         // Toplevel Simple references in incoming are assumed to be in-place edits, so we merge only Remove references
         // If the incoming topLevel Simple has no other appearance in the hierarchy then it will be re-added by
         // _updateTopLevelFromComponents()
-        const incomingTopLevelRemoveReferencesPayload = incoming._topLevel?.payload.filter((ref) => (ref._payload instanceof StandardReferenceRemove)) ?? []
+        const incomingTopLevelRemoveReferencesPayload = incoming._topLevel?.payload.filter((ref) => (ref._payload.ref < 0)) ?? []
         const incomingTopLevelRemoveReferences = incomingTopLevelRemoveReferencesPayload.length > 0 ? new ReferenceList(incomingTopLevelRemoveReferencesPayload) : undefined
         returnValue._topLevel = (this._topLevel && incomingTopLevelRemoveReferences) ? this._topLevel.merge(incomingTopLevelRemoveReferences) : this._topLevel ?? incomingTopLevelRemoveReferences
 
@@ -1512,10 +1512,12 @@ export class StandardForm {
 
         const zipperedComponents = allKeys
             .map((reference: StandardReferenceData) => {
-                // Convert StandardReferenceData to StandardKeyData by removing tag if present
+                // Convert StandardReferenceData to StandardKeyData by removing tag and ref if present
                 const keyData: StandardKeyData = typeof reference === 'string' 
                     ? reference 
-                    : { key: reference.key, universalKey: reference.universalKey }
+                    : reference.key 
+                        ? { key: reference.key, universalKey: reference.universalKey }
+                        : reference.universalKey ?? (() => { throw new Error('StandardReferenceData must have either key or universalKey') })()
                 return {
                     reference,
                     previous: this._lookup(keyData)?.withMapping(mergedForKeys)?.remapReferences('both'),

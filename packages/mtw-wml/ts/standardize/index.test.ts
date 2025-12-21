@@ -5,7 +5,7 @@ import { GenericTree, GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag, AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from './components/room'
 import StandardCharacter from './components/character'
-import StandardReference, { StandardKey, ReferenceList, StandardReferenceRemove, StandardReferencePayload, StandardReferenceSimple } from './components/reference'
+import StandardReference, { StandardKey, ReferenceList, StandardReferencePayload, StandardReferenceSimple } from './components/reference'
 import { StandardExplicitParent } from './explicit/parent'
 import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 import StandardFeature from './components/feature'
@@ -4998,8 +4998,8 @@ describe('StandardForm', () => {
             
             // Create a Remove reference for feature1 in topLevel (even though it's nested)
             const feature1 = form._components.find(c => c.key === 'feature1')!
-            const feature1RefData = feature1.referenceData
-            const removeRef = new StandardReferenceRemove(new StandardReferencePayload(feature1RefData))
+            const feature1Ref = new StandardReference(feature1.referenceData)
+            const removeRef = feature1Ref.withRef(-1)
             form._topLevel = new ReferenceList([removeRef])
             
             // Update topLevel
@@ -5007,7 +5007,7 @@ describe('StandardForm', () => {
             
             // Remove reference should be preserved even though component is no longer top-level
             expect(updated._topLevel?.payload.length).toBe(2)
-            expect(updated._topLevel?.payload[0]._payload).toBeInstanceOf(StandardReferenceRemove)
+            expect(updated._topLevel?.payload[0].ref).toBe(-1)
             expect(updated._topLevel?.payload[0].plain().key).toBe('feature1')
             expect(updated._topLevel?.payload[1]._payload).toBeInstanceOf(StandardReferenceSimple)
             expect(updated._topLevel?.payload[1].plain().key).toBe('parentRoom')
@@ -5025,7 +5025,7 @@ describe('StandardForm', () => {
             // Remove reference should be preserved
             expect(updated._topLevel?.payload.length).toBe(2)
             const room2Ref = updated._topLevel!.payload.find(ref => ref.plain().key === 'room2')
-            expect(room2Ref?._payload).toBeInstanceOf(StandardReferenceRemove)
+            expect(room2Ref?.ref).toBe(-1)
         })
 
         it('should remove Remove references for components that no longer exist', () => {

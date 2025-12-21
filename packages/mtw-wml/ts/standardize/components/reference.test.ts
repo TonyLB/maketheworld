@@ -1,4 +1,4 @@
-import { ReferenceList, StandardKey, StandardReference, StandardReferenceRemove } from './reference';
+import { ReferenceList, StandardKey, StandardReference, StandardReferenceSimple } from './reference';
 import { deIndentWML } from '../../schema/utils';
 import { Schema, schemaToWML } from '../../schema';
 import { StandardKeyData, StandardReferenceData } from './dataTypes/reference';
@@ -129,7 +129,8 @@ describe('StandardReference', () => {
         }
         const testVariableRemove = new StandardReference(testReferenceData)
         expect(testVariableRemove.tag).toEqual('Room')
-        expect(testVariableRemove._payload).toBeInstanceOf(StandardReferenceRemove)
+        expect(testVariableRemove._payload).toBeInstanceOf(StandardReferenceSimple)
+        expect(testVariableRemove.ref).toEqual(-1)
     })
 
     it('should correctly judge equality when both key and universalKey match', () => {
@@ -201,7 +202,7 @@ describe('StandardReference', () => {
         const testSimple = new StandardReference({ key: 'room1', tag: 'Room' })
         expect(testSimple.lookup(callback).toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room'})
         const testRemove = new StandardReference({ tag: 'Remove', match: { key: 'room2', tag: 'Room' } })
-        expect(testRemove.lookup(callback).toJSON()).toEqual({ tag: 'Remove', match: { key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room' } })
+        expect(testRemove.lookup(callback).toJSON()).toEqual({ key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room', ref: -1 })
     })
 
         it('should correctly lookup keys in reference list', () => {
@@ -215,7 +216,7 @@ describe('StandardReference', () => {
         const testSimple = new StandardReference({ key: 'room1', tag: 'Room' })
         expect(testSimple.lookup(keys).toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room'})
         const testRemove = new StandardReference({ tag: 'Remove', match: { key: 'room2', tag: 'Room' } })
-        expect(testRemove.lookup(keys).toJSON()).toEqual({ tag: 'Remove', match: { key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room' } })
+        expect(testRemove.lookup(keys).toJSON()).toEqual({ key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room', ref: -1 })
     })
 
     it('should correctly format a simple reference', () => {
@@ -227,9 +228,9 @@ describe('StandardReference', () => {
 
     it('should correctly format a remove reference', () => {
         const testSimple = new StandardReference('<Remove><Room key=(room1) uuid=(Room1) /></Remove>')
-        expect(testSimple.toFormat('both').toJSON()).toEqual({ tag: 'Remove', match: { key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room' } })
-        expect(testSimple.toFormat('key').toJSON()).toEqual({ tag: 'Remove', match: { key: 'room1', tag: 'Room' } })
-        expect(testSimple.toFormat('universal').toJSON()).toEqual({ tag: 'Remove', match: `ROOM#Room1` })
+        expect(testSimple.toFormat('both').toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room', ref: -1 })
+        expect(testSimple.toFormat('key').toJSON()).toEqual({ key: 'room1', tag: 'Room', ref: -1 })
+        expect(testSimple.toFormat('universal').toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room', ref: -1 })
     })
 
     it('should throw error when attempting to create Replace reference from WML', () => {
@@ -301,8 +302,7 @@ describe('ReferenceList', () => {
     it('should render Remove tags correctly in schemaToWML', () => {
         // Create a ReferenceList with a Remove tag (like when a Room removes an Example reference)
         const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
-        const removedExample = new StandardReferenceRemove(exampleKey, 'Example')
-        const removedReference = new StandardReference(removedExample)
+        const removedReference = new StandardReference(exampleKey, 'Example').withRef(-1)
         const referenceListWithRemove = new ReferenceList([removedReference])
         
         // Test that schemaToWML correctly renders the Remove tag
@@ -317,8 +317,7 @@ describe('ReferenceList', () => {
         const room1Ref = new StandardReference({ key: 'room1', tag: 'Room' })
         
         const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
-        const removedExample = new StandardReferenceRemove(exampleKey, 'Example')
-        const removedRef = new StandardReference(removedExample)
+        const removedRef = new StandardReference(exampleKey, 'Example').withRef(-1)
         
         const referenceList = new ReferenceList([room1Ref, removedRef])
         
@@ -373,8 +372,7 @@ describe('ReferenceList', () => {
     it('should satisfy double-inversion property (invert.invert returns equivalent)', () => {
         const room1Ref = new StandardReference({ key: 'room1', tag: 'Room' })
         const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
-        const removedExample = new StandardReferenceRemove(exampleKey, 'Example')
-        const removedRef = new StandardReference(removedExample)
+        const removedRef = new StandardReference(exampleKey, 'Example').withRef(-1)
         const testList = new ReferenceList([room1Ref, removedRef])
         
         // Double inversion should return to original state

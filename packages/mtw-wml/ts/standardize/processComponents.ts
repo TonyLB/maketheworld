@@ -4,7 +4,7 @@ import { StandardComponent } from "./components/baseClasses"
 import { isSchemaComponent, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { ComponentTag } from "./components/dataTypes/abstract"
-import { StandardReferenceSimple, StandardReferenceRemove, ReferenceList } from "./components/reference"
+import StandardReference, { StandardReferenceSimple, ReferenceList } from "./components/reference"
 import { ReferenceCollection } from "./components/utils/referenceCollection"
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists"
 
@@ -141,10 +141,10 @@ export const processComponents = (props: {
                 let updatedTopLevel = previous.topLevel
                 if (isTopLevel) {
                     // Create appropriate reference based on Remove context
-                    const referenceData = plainComponent.referenceData
+                    const baseReference = new StandardReference(plainComponent.referenceData)
                     const reference = inContextOfRemove
-                        ? new StandardReferenceRemove({ tag: 'Remove', match: referenceData })
-                        : new StandardReferenceSimple(referenceData)
+                        ? baseReference.withRef(-1)
+                        : baseReference
                     
                     const topLevelReferenceList = new ReferenceList([reference])
                     const merged = previous.topLevel.merge(topLevelReferenceList)

@@ -17,7 +17,7 @@ export type StandardKeyData = ComponentUUID | ({
  * Used for StandardReference serialization - includes tag for standalone functionality
  */
 export type StandardReferenceData = ComponentUUID | ({
-    key: string;  // Required in object form - if missing, use ComponentUUID form instead
+    key?: string;  // Optional - if missing, must have universalKey (or use ComponentUUID string form)
     universalKey?: ComponentUUID;
     tag: ComponentTag;  // Required - stored in StandardReference for standalone functionality
     ref?: number;  // Optional - reference number (can be negative), defaults to 1

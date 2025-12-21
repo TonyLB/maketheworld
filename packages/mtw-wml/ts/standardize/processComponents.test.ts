@@ -2,7 +2,7 @@ import { Schema, schemaToWML } from "../schema"
 import { deIndentWML } from "../schema/utils"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import StandardRoom from "./components/room"
-import { StandardKey, StandardReferenceSimple, StandardReferenceRemove } from "./components/reference"
+import { StandardKey, StandardReferenceSimple } from "./components/reference"
 
 const componentTemplates: ComponentProcessingTemplate[] = [
     { 
@@ -516,7 +516,7 @@ describe("processComponents", () => {
             expect(room1Ref?._payload).toBeInstanceOf(StandardReferenceSimple)
             
             const room2Ref = result.topLevel.payload.find(ref => ref.plain().key === 'room2')
-            expect(room2Ref?._payload).toBeInstanceOf(StandardReferenceRemove)
+            expect(room2Ref?.ref).toBe(-1)
         })
 
         it('should return empty ReferenceList when no assetUUID provided', () => {
