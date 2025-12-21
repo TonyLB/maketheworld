@@ -2,83 +2,128 @@
 
 ## Overview
 
-This document describes the **mathematical properties and relationships** of edit operations on `ReferenceList` instances. It focuses on the algebra of how reference list edits relate to each other, including how merges and diffs operate on collections of references.
+This document describes the **mathematical properties and relationships** of edit operations on `ReferenceList` instances using the numeric `ref` property model. It focuses on the algebra of how reference list edits relate to each other, including how merges and diffs operate on collections of references as simple arithmetic operations.
 
-**⚠️ IMPORTANT**: This document describes the **target architecture and design goals** for ReferenceList edit operations in WML. The current implementation in this directory may not fully match all concepts described here, as the system is in active migration toward these requirements. For current implementation details, see [`reference.ts`](./reference.ts). For general ReferenceList usage, see [`AGENT.referenceList.md`](./AGENT.referenceList.md).
+For current implementation details, see [`reference.ts`](./reference.ts). For general ReferenceList usage, see [`AGENT.referenceList.md`](./AGENT.referenceList.md).
 
 ## Core Concept
 
-A `ReferenceList` stores what is essentially a *set* of references. In the set, each reference can (conceptually) have one of three states:
-- It is present (conceptually: positive) in the `ReferenceList`
-- It is being _removed_ (conceptually: negative) in the `ReferenceList`
-- It is absent (conceptually: zero) from the `ReferenceList`
+A `ReferenceList` stores references where each reference has a numeric `ref` value that represents its operation:
+
+- **`ref > 0`**: Add operation - the reference is being added (the value represents the count)
+- **`ref < 0`**: Remove operation - the reference is being removed (the absolute value represents the count)
+- **`ref = 0`**: Explicit cancellation/neutral state - the reference exists but has zero net effect
+- **Default**: When `ref` is not specified, it defaults to `1` (representing a standard add operation)
+
+This numeric model simplifies merge and diff operations to basic arithmetic: merging becomes addition (`ref1 + ref2`) and diffing becomes subtraction (`ref2 - ref1`).
 
 ## Inverse
 
-The inverse of a `ReferenceList` is simply the same list with the state of each reference inverted:
-- Adds become removals
-- Removals become adds
+The inverse of a `ReferenceList` is computed by negating the `ref` value of each reference:
+- `ref` becomes `-ref`
+- Positive values become negative, negative values become positive, zero remains zero
 
-Conceptually this is very much like multiplying a sum by -1: The sign-change distributes down to each individual summand.
 
-Example: Inverting a list with `{+feat1, -feat2}` (feat1 added, feat2 removed) produces `{-feat1, +feat2}` (feat1 removed, feat2 added).
+Example: Inverting a list with `<Room key=(feat1) />` and `<Remove><Room key=(feat2) /></Remove>` produces `<Remove><Room key=(feat1) /></Remove>` and `<Room key=(feat2) />`.
 
 ## Merging
 
-When merging reference lists, the first step is to zipper all matching keys together:
-- References appearing in only one of the two lists appear unchanged in the final list
-- References appearing in _both_ of the lists are merged together
+When merging reference lists, references are matched by key (using `sameKey()`), and their `ref` values are added together:
 
-There are three meaningful possible pair-wise merges for references:
-- A reference present in both lists is also present in the final list (i.e., positive + positive = positive)
-- A reference removed in both lists is also removed in the final list (i.e., negative + negative = negative)
-- A reference removed in one list and added in the other (in either order) is absent from the final list (i.e. negative + positive = zero)
+- **Unmatched references**: References appearing in only one list appear unchanged in the final list
+- **Matched references**: References appearing in both lists have their `ref` values added: `ref1 + ref2`
 
-Example: Merging `{+feat1, +feat2, +feat4, -feat5, -feat7, -feat8}` with `{+feat1, +feat3, -feat4, -feat6, -feat7, +feat8}`:
-- `feat1`: present in both → `+feat1` (positive + positive = positive)
-- `feat2`: only in first → `+feat2` (unchanged)
-- `feat3`: only in second → `+feat3` (unchanged)
-- `feat4`: added in first, removed in second → absent (positive + negative = zero)
-- `feat5`: only removed in first → `-feat5` (unchanged)
-- `feat6`: only removed in second → `-feat6` (unchanged)
-- `feat7`: removed in both → `-feat7` (negative + negative = negative)
-- `feat8`: removed in first, added in second → absent (negative + positive = zero)
+The merge operation is numeric addition, but the handling of zero results depends on whether the zero is explicit or due to cancellation:
 
-Result: `{+feat1, +feat2, +feat3, -feat5, -feat6, -feat7}`
+- **Cancellation** (`ref1 + ref2 = 0` where both `ref1` and `ref2` are non-zero): The reference disappears from the result (semantic add and remove cancel out)
+- **Explicit zero** (one of the references has `ref={0}` explicitly set): The reference remains in the result with `ref={0}` (for display/organization purposes)
+- **Non-zero result** (`ref1 + ref2 ≠ 0`): The reference appears with the sum as its `ref` value
 
-## Non-Idempotency and Non-Associativity
+Example: Merging a list with `<Room key=(feat1) ref={1}>`, `<Room key=(feat2) ref={1}>`, `<Room key=(feat4) ref={1}>`, `<Room key=(feat5) ref={-1}>`, `<Room key=(feat7) ref={-1}>`, `<Room key=(feat8) ref={-1}>` with a list containing `<Room key=(feat1) ref={1}>`, `<Room key=(feat3) ref={1}>`, `<Room key=(feat4) ref={-1}>`, `<Room key=(feat6) ref={-1}>`, `<Room key=(feat7) ref={-1}>`, `<Room key=(feat8) ref={1}>`:
 
-Because matching references are merged during the merge operation (positive + positive = positive, negative + negative = negative), ReferenceList merging exhibits two important mathematical properties:
+- `feat1`: `ref={1}` + `ref={1}` = `ref={2}` (both add, accumulates)
+- `feat2`: only in first → `ref={1}` (unchanged)
+- `feat3`: only in second → `ref={1}` (unchanged)
+- `feat4`: `ref={1}` + `ref={-1}` = `ref={0}` → disappears (cancellation: add and remove cancel out)
+- `feat5`: only in first → `ref={-1}` (unchanged)
+- `feat6`: only in second → `ref={-1}` (unchanged)
+- `feat7`: `ref={-1}` + `ref={-1}` = `ref={-2}` (both remove, accumulates)
+- `feat8`: `ref={-1}` + `ref={1}` = `ref={0}` → disappears (cancellation: add and remove cancel out)
 
-### Non-Associativity
+Result: `<Room key=(feat1) ref={2}>`, `<Room key=(feat2) ref={1}>`, `<Room key=(feat3) ref={1}>`, `<Room key=(feat5) ref={-1}>`, `<Room key=(feat6) ref={-1}>`, `<Room key=(feat7) ref={-2}>`
 
-The order of merges matters. You cannot guarantee that `(a + b) + c = a + (c + b)`. This is because references are matched by key during merge, and the intermediate matching results affect how subsequent merges proceed.
+**Contrast with explicit zero**: If instead `feat4` had `<Room key=(feat4) ref={0}>` in the second list (explicit zero for display), the merge would be `ref={1} + ref={0} = ref={1}`, preserving the semantic connection while allowing display organization.
 
-Example: Consider `a = {+feat1}`, `b = {+feat1}`, `c = {-feat1}`:
-- `(a + b) + c`: First `a + b = {+feat1}` (positive + positive = positive), then merging with `c` matches `feat1` (positive + negative = zero), resulting in `{}` (empty list)
-- `a + (c + b)`: First `c + b` matches `feat1` (negative + positive = zero), resulting in `{}`, then merging with `a` adds `feat1`, resulting in `{+feat1}`
+## ref={0} and Display vs. Semantic References
 
-This demonstrates non-associativity: `(a + b) + c = {}` but `a + (c + b) = {+feat1}`, showing that merge order produces different final results.
+`ReferenceList` serves two distinct purposes in the WML system:
 
-### Non-Idempotency
+1. **Semantic content**: Establishing meaningful associations between components (e.g., "This Feature is meaningfully associated with this Room")
+2. **Display/organization**: Organizing where content appears in the hierarchy for display and editing (e.g., "This Feature is shared by several rooms, and therefore is displayed at the Asset Level")
 
-You cannot guarantee that `a + b + b = a + b`. This is because merging `b` with `b` will match each reference in `b` with itself, and while the result may appear similar, the merge operation is not guaranteed to preserve the exact structure when the same reference appears multiple times.
+The `ref` value distinguishes between these purposes:
 
-Example: Consider `a = {+feat1, -feat2}` and `b = {+feat2}`:
-- `a + b`: Merging `{+feat1, -feat2}` with `{+feat2}` matches `feat1` (unchanged) and `feat2` (negative + positive = zero), resulting in `{+feat1}`
-- `(a + b) + b`: Merging `{+feat1}` with `{+feat2}` adds both references, resulting in `{+feat1, +feat2}`
+- **Non-zero `ref`** (`ref > 0` or `ref < 0`): Establishes or removes semantic connections. These references both establish meaningful associations AND display their semantic content (and potentially component content).
+- **Zero `ref`** (`ref = 0`): Used for display and editing organization WITHOUT establishing new semantic connections. These references allow content to be displayed or edited in a useful place in the hierarchy without creating new semantic relationships.
 
-This demonstrates non-idempotency: `a + b = {+feat1}` but `(a + b) + b = {+feat1, +feat2}`, showing that applying the same merge operation twice produces a different result than applying it once.
+### Explicit Zero vs. Implicit Absence
 
-These properties mean that merge operations must be performed in a consistent, well-defined order, and that the system cannot assume that repeated merges are equivalent to single merges.
+The `ref={0}` value enables explicit representation of a reference that exists for display/organization purposes but has zero net semantic effect. This is distinct from the reference simply not appearing in the list:
+
+- **Implicit absence**: Reference not in list → no operation, no display
+- **Explicit zero**: Reference present with `ref={0}` → display/organization only, no semantic connection
+
+### Use Cases for ref={0}
+
+The `ref={0}` value is particularly useful for:
+
+- **Hierarchical display**: Displaying shared components at the appropriate level in the hierarchy (e.g., Asset-level) without establishing new semantic connections
+- **Inline content edits**: Editing component content (like a Room's Description) in a useful hierarchical location without modifying semantic reference state
+- **Edit organization**: Organizing edits in edit contexts where you need to distinguish between "reference doesn't exist" and "reference exists for display/editing but not for semantic purposes"
+
+When a reference is marked as `ref={0}`, it explicitly indicates "this reference is present for display/organization purposes, but it does not establish or modify semantic connections." This allows clean separation between semantic content and display organization.
+
+Example: If you have a base list with `<Room key=(mainHall) ref={1}>` (semantic connection) and you want to edit the Room's Description at the Asset level without changing the semantic reference, you can represent this as `<Room key=(mainHall) ref={0}>` in the edit. When merged: `ref={1} + ref={0} = ref={1}`, preserving the semantic connection while allowing the content edit to be processed at the appropriate hierarchical level.
+
+## Mathematical Properties
+
+With numeric `ref` values, merge and diff operations become standard arithmetic operations. This simplifies the mathematical properties:
+
+### Associativity and Commutativity
+
+For matched references (same key), numeric addition is both associative and commutative:
+- **Commutative**: `a.merge(b)` for matched references = `b.merge(a)` (since `ref1 + ref2 = ref2 + ref1`)
+- **Associative**: For matched references, `(a.merge(b)).merge(c)` = `a.merge(b.merge(c))` (since `(ref1 + ref2) + ref3 = ref1 + (ref2 + ref3)`)
+
+Since references are matched by key (not position) and each key appears at most once per list (due to deduplication during construction), the merge operation is **order-independent**: `a.merge(b)` produces the same result (excepting the order of references within the list) regardless of the order of items within `a` or `b`. The result is determined solely by which keys are present and their `ref` values.
+
+### Idempotency
+
+Merging a list with itself (`a.merge(a)`) will:
+- Double all `ref` values: `ref` becomes `ref + ref = 2*ref`
+- This is **not idempotent** unless all `ref` values are `0`
+
+However, if you merge a list with a list containing the same references but with `ref={0}` values, the result preserves the original `ref` values (since `ref + 0 = ref`). This property is useful for edit operations where you want to preserve existing references while making other changes.
 
 ## Diffing
 
-The `diff()` method computes the difference between two `ReferenceList` instances: This enables incremental updates and change tracking.
+The `diff()` method computes the difference between two `ReferenceList` instances using numeric subtraction:
 
-(Fun mathematical side-note: We've just (above) described the intuitions from algebra that _don't_ apply to these
-operations, but here we have one that _does_. If `a.diff(b) = x` such that `a + x = b`, we _can_ in fact conclude
-that `x = b - a`. This means we can express diffing in terms of merging and inversion: `a.diff(b) = b.merge(a.inverse())`.)
+- **Unmatched base references**: References in the base but not in the incoming are inverted (negated)
+- **Matched references**: References in both have their `ref` values subtracted: `ref2 - ref1` (incoming - base)
+- **Unmatched incoming references**: References in the incoming but not in the base appear unchanged
+
+The diff operation is simply numeric subtraction: `ref2 - ref1`. If the result is `0`, the reference disappears from the diff (no change needed).
+
+Example: Diffing a base list with `<Room key=(feat1) ref={1}>`, `<Room key=(feat2) ref={1}>` against an incoming list with `<Room key=(feat1) ref={0}>`, `<Room key=(feat3) ref={1}>`:
+
+- `feat1`: `ref={0}` - `ref={1}` = `ref={-1}` (incoming has zero, base has one → need to remove)
+- `feat2`: only in base → inverted → `ref={-1}` (remove from base)
+- `feat3`: only in incoming → `ref={1}` (add to base)
+
+Result: `<Room key=(feat1) ref={-1}>`, `<Room key=(feat2) ref={-1}>`, `<Room key=(feat3) ref={1}>`
+
+**Mathematical relationship**: If `a.diff(b) = x` such that `a.merge(x) = b`, then `x = b - a` (where subtraction is applied to each matched reference's `ref` value). This means we can express diffing in terms of merging and inversion: `a.diff(b)` is equivalent to computing `b - a` for each reference.
 
 ## Related Documentation
 

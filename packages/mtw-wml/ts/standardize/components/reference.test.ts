@@ -87,16 +87,16 @@ describe('StandardReference', () => {
     })
 
     it('should merge correctly', () => {
-        expect(schemaToWML(new StandardReference('<Room key=(test) />')?.merge(new StandardReference('<Room key=(test) />'))?.schema ?? [])).toEqual(deIndentWML('<Room key=(test) />'))
+        expect(schemaToWML(new StandardReference('<Room key=(test) />')?.merge(new StandardReference('<Room key=(test) ref={0} />'))?.schema ?? [])).toEqual(deIndentWML('<Room key=(test) />'))
     })
 
     it('should merge correctly when references point to same component with different key representations', () => {
         // Same component (same universalKey), different key values - should merge successfully
         const ref1 = new StandardReference({ key: 'room1', universalKey: 'ROOM#test', tag: 'Room' })
-        const ref2 = new StandardReference({ key: 'room2', universalKey: 'ROOM#test', tag: 'Room' })
+        const ref2 = new StandardReference({ key: 'room2', universalKey: 'ROOM#test', tag: 'Room', ref: 0 })
         const merged = ref1.merge(ref2)
         expect(merged).toBeDefined()
-        expect(merged?.toJSON()).toEqual({ key: 'room2', universalKey: 'ROOM#test', tag: 'Room' })
+        expect(merged?.toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#test', tag: 'Room' })
     })
 
     it('should throw error when diff attempts to change target component', () => {
@@ -339,15 +339,14 @@ describe('ReferenceList', () => {
         
         // Inverted should have Remove operations for both
         expect(inverted.toJSON()).toEqual([
-            { tag: 'Remove', match: { key: 'room1', tag: 'Room' } },
-            { tag: 'Remove', match: { key: 'room2', tag: 'Room' } }
+            { key: 'room1', tag: 'Room', ref: -1 },
+            { key: 'room2', tag: 'Room', ref: -1 }
         ])
     })
 
     it('should invert a ReferenceList with removed references', () => {
         const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
-        const removedExample = new StandardReferenceRemove(exampleKey, 'Example')
-        const removedRef = new StandardReference(removedExample)
+        const removedRef = new StandardReference(exampleKey, 'Example').withRef(-1)
         const testList = new ReferenceList([removedRef])
         const inverted = testList.invert()
         
@@ -360,14 +359,13 @@ describe('ReferenceList', () => {
     it('should invert a ReferenceList with mixed references', () => {
         const room1Ref = new StandardReference({ key: 'room1', tag: 'Room' })
         const exampleKey = new StandardKey({ key: 'ex1', tag: 'Example' })
-        const removedExample = new StandardReferenceRemove(exampleKey, 'Example')
-        const removedRef = new StandardReference(removedExample)
+        const removedRef = new StandardReference(exampleKey, 'Example').withRef(-1)
         const testList = new ReferenceList([room1Ref, removedRef])
         const inverted = testList.invert()
         
         // Inverted should swap Add and Remove
         expect(inverted.toJSON()).toEqual([
-            { tag: 'Remove', match: { key: 'room1', tag: 'Room' } },
+            { key: 'room1', tag: 'Room', ref: -1 },
             { key: 'ex1', tag: 'Example' }
         ])
     })
