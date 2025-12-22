@@ -620,30 +620,27 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "examples": [
-      "EXAMPLE#example2",
-      "EXAMPLE#example3",
-    ],
-    "exits": [
+    "description": [
+      "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
       {
-        "description": "passage",
-        "to": {
-          "key": "curvingPassage",
-          "universalKey": undefined,
+        "children": [],
+        "data": {
+          "tag": "br",
         },
       },
-      {
-        "description": "out",
-        "to": {
-          "key": "VORTEX",
-          "universalKey": undefined,
-        },
-      },
+      "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
     ],
-    "key": "cave",
-    "shortName": undefined,
-    "tag": "Room",
-    "universalKey": undefined,
+    "implicitParent": {
+      "key": "VORTEX",
+      "universalKey": undefined,
+    },
+    "key": undefined,
+    "name": [
+      "Cave entrance",
+    ],
+    "summary": undefined,
+    "tag": "Example",
+    "universalKey": "EXAMPLE#example1",
   },
   {
     "description": [
@@ -676,6 +673,68 @@ exports[`large WML test should standardize properly 1`] = `
     "summary": undefined,
     "tag": "Example",
     "universalKey": "EXAMPLE#example3",
+  },
+  {
+    "description": [
+      "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
+    ],
+    "implicitParent": {
+      "key": "curvingPassage",
+      "universalKey": undefined,
+    },
+    "key": undefined,
+    "name": [
+      "Curving Passage",
+    ],
+    "summary": undefined,
+    "tag": "Example",
+    "universalKey": "EXAMPLE#example4",
+  },
+  {
+    "implicitParent": {
+      "key": "chamber",
+      "universalKey": undefined,
+    },
+    "key": "orc",
+    "shortName": undefined,
+    "tag": "Feature",
+    "universalKey": undefined,
+  },
+  {
+    "implicitParent": {
+      "key": "chamber",
+      "universalKey": undefined,
+    },
+    "key": "pie",
+    "shortName": undefined,
+    "tag": "Feature",
+    "universalKey": undefined,
+  },
+  {
+    "examples": [
+      "EXAMPLE#example2",
+      "EXAMPLE#example3",
+    ],
+    "exits": [
+      {
+        "description": "passage",
+        "to": {
+          "key": "curvingPassage",
+          "universalKey": undefined,
+        },
+      },
+      {
+        "description": "out",
+        "to": {
+          "key": "VORTEX",
+          "universalKey": undefined,
+        },
+      },
+    ],
+    "key": "cave",
+    "shortName": undefined,
+    "tag": "Room",
+    "universalKey": undefined,
   },
   {
     "examples": [
@@ -720,26 +779,6 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": "EXAMPLE#example5",
   },
   {
-    "implicitParent": {
-      "key": "chamber",
-      "universalKey": undefined,
-    },
-    "key": "orc",
-    "shortName": undefined,
-    "tag": "Feature",
-    "universalKey": undefined,
-  },
-  {
-    "implicitParent": {
-      "key": "chamber",
-      "universalKey": undefined,
-    },
-    "key": "pie",
-    "shortName": undefined,
-    "tag": "Feature",
-    "universalKey": undefined,
-  },
-  {
     "examples": [
       "EXAMPLE#example4",
     ],
@@ -765,22 +804,6 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "description": [
-      "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
-    ],
-    "implicitParent": {
-      "key": "curvingPassage",
-      "universalKey": undefined,
-    },
-    "key": undefined,
-    "name": [
-      "Curving Passage",
-    ],
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example4",
-  },
-  {
     "examples": [
       "EXAMPLE#example1",
     ],
@@ -797,29 +820,6 @@ exports[`large WML test should standardize properly 1`] = `
     "shortName": undefined,
     "tag": "Room",
     "universalKey": undefined,
-  },
-  {
-    "description": [
-      "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
-      {
-        "children": [],
-        "data": {
-          "tag": "br",
-        },
-      },
-      "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
-    ],
-    "implicitParent": {
-      "key": "VORTEX",
-      "universalKey": undefined,
-    },
-    "key": undefined,
-    "name": [
-      "Cave entrance",
-    ],
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example1",
   },
   {
     "images": [
