@@ -3,7 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardRoomData } from "./dataTypes/room"
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
-import StandardReference, { StandardKey, StandardReferenceSimple, StandardReferenceRemove } from "./reference"
+import StandardReference, { StandardKey, StandardReferenceSimple } from "./reference"
 import { StandardExplicitParent } from "../explicit"
 
 describe('StandardRoom class', () => {
@@ -116,9 +116,9 @@ describe('StandardRoom class', () => {
                 </Example>
             </Room>`,
             StandardRoom,
-            `<Room key=(testRoomOne)>
+            `<Room key=(testRoomOne) ref={0}>
                 <Feature key=(testFeature) />
-                <Example key=(base)>
+                <Example key=(base) ref={0}>
                     <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
                     <Description><Space />Shadows cling to the corners of the room.</Description>
                 </Example>
@@ -789,7 +789,7 @@ describe('StandardRoom class', () => {
             
             expect(inverted.shortName).toBeUndefined()
             expect(inverted.exits).toEqual([])
-            expect(inverted.features.toJSON()).toEqual([{ tag: 'Remove', match: { tag: 'Feature', key: 'feat1' } }])
+            expect(inverted.features.toJSON()).toEqual([{ tag: 'Feature', key: 'feat1', ref: -1 }])
             expect(inverted.examples.toJSON()).toEqual([])
             expect(inverted.characters.toJSON()).toEqual([])
         })
