@@ -133,16 +133,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         // Invert each exit (StandardExit has invert() from v2StandardEditableFactory)
         returnValue._exits = this._exits.map((exit) => exit.invert() as StandardExit)
         // Invert each ReferenceList
-        // #region agent log
-        const beforeExamples = this._examples.payload.map(ref => ({key:ref.key,universalKey:ref.universalKey,ref:ref.ref}));
-        fetch('http://127.0.0.1:7242/ingest/3e0dcc50-5f2b-4d0c-a479-a8fcebe97cf4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'room.ts:136',message:'Before examples invert',data:{beforeExamples},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         returnValue._features = this._features.invert()
         returnValue._examples = this._examples.invert()
-        // #region agent log
-        const afterExamples = returnValue._examples.payload.map(ref => ({key:ref.key,universalKey:ref.universalKey,ref:ref.ref}));
-        fetch('http://127.0.0.1:7242/ingest/3e0dcc50-5f2b-4d0c-a479-a8fcebe97cf4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'room.ts:138',message:'After examples invert',data:{afterExamples},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         returnValue._characters = this._characters.invert()
         return returnValue as this
     }

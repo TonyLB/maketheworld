@@ -989,24 +989,7 @@ export class ReferenceList {
     }
 
     invert(): ReferenceList {
-        // #region agent log
-        const beforeRefs = this.payload.map(item => ({key:item.key,universalKey:item.universalKey,ref:item.ref}));
-        fetch('http://127.0.0.1:7242/ingest/3e0dcc50-5f2b-4d0c-a479-a8fcebe97cf4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reference.ts:976',message:'Before ReferenceList invert',data:{beforeRefs},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
-        const inverted = new ReferenceList(this.payload.map((item) => {
-            // #region agent log
-            const beforeItemRef = item.ref;
-            const invertedItem = item.invert();
-            const afterItemRef = invertedItem.ref;
-            fetch('http://127.0.0.1:7242/ingest/3e0dcc50-5f2b-4d0c-a479-a8fcebe97cf4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reference.ts:978',message:'Item invert',data:{beforeItemRef,afterItemRef,key:item.key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,E'})}).catch(()=>{});
-            return invertedItem;
-            // #endregion
-        }))
-        // #region agent log
-        const afterRefs = inverted.payload.map(item => ({key:item.key,universalKey:item.universalKey,ref:item.ref}));
-        fetch('http://127.0.0.1:7242/ingest/3e0dcc50-5f2b-4d0c-a479-a8fcebe97cf4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reference.ts:985',message:'After ReferenceList invert',data:{afterRefs},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
-        return inverted
+        return new ReferenceList(this.payload.map((item) => item.invert()))
     }
 
 }

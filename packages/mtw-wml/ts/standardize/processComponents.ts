@@ -119,17 +119,9 @@ export const processComponents = (props: {
 
                 // Invert component if in Remove context - this distributes Remove operations into component fields
                 // Result is always a non-edit component (not wrapped in Remove/Replace)
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/3e0dcc50-5f2b-4d0c-a479-a8fcebe97cf4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'processComponents.ts:122',message:'Before inversion check',data:{inContextOfRemove,hasInvert:!!localizedComponent.invert,componentTag:item.data.tag},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                // #endregion
                 const plainComponent: StandardComponentNonEdit = (inContextOfRemove && localizedComponent.invert) 
                     ? localizedComponent.invert() as StandardComponentNonEdit
                     : localizedComponent as StandardComponentNonEdit
-                // #region agent log
-                if (inContextOfRemove && localizedComponent.invert) {
-                    fetch('http://127.0.0.1:7242/ingest/3e0dcc50-5f2b-4d0c-a479-a8fcebe97cf4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'processComponents.ts:125',message:'After inversion',data:{componentTag:item.data.tag,hasExamples:'examples' in plainComponent},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                }
-                // #endregion
 
                 //
                 // Track if this component is at Asset level (topLevel)
