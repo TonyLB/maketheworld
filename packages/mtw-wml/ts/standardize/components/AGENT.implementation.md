@@ -96,6 +96,53 @@ This principle ensures that:
 - Required identifiers are always present for component identification
 - Storage and transmission formats remain efficient
 
+### assureReferences Method
+
+The `assureReferences` method is the single point where `ref={0}` references are introduced in the component system. It ensures that child components that should be displayed in a parent context are present in the appropriate reference buckets.
+
+#### Purpose
+
+- **Single source of `ref={0}`**: This is the ONLY place where `ref={0}` references should be introduced (though they can be deserialized from WML format)
+- **Component-specific dispatch**: Each component type handles its own bucket structure (e.g., Room dispatches to features/examples/characters based on component tag)
+- **Hierarchy assurance**: Ensures that components with implicit or explicit parentage appear in their parent's reference lists when rendering
+
+#### Method Signature
+
+- **Payload interface** (`ComponentConstructorMethods`): `assureReferences?(children: StandardReference[]): this` (optional)
+- **Component interface** (`StandardComponent`): `assureReferences(children: StandardReference[]): StandardComponent` (required)
+
+#### Behavior
+
+- **Pure function**: Returns a cloned component/payload, does not mutate the original
+- **Idempotency**: Calling `assureReferences` multiple times with the same children should produce equivalent results
+- **Delegation pattern**: Component wrapper delegates to payload's `assureReferences` if available, otherwise returns instance unchanged
+- **Reference handling**:
+  - Uses `StandardReference.sameKey()` to check if a reference already exists in a bucket
+  - If reference exists with non-zero ref, leaves it unchanged
+  - If reference doesn't exist, adds it with `ref={0}` (using `StandardReference.withRef(0)` or equivalent)
+
+#### Component-Specific Dispatch
+
+Each component type implements its own dispatch logic:
+- **StandardRoom**: Dispatches to `features`, `examples`, `characters` based on the reference's `tag` property
+- Other components will have their own bucket structures (to be implemented in Phase 4.3)
+
+#### Relationship to Other Operations
+
+- **Non-zero refs elsewhere**: All other reference manipulation (merge, diff, withChild, etc.) should use non-zero refs
+- **Used by nestedSchema**: Will be called on-demand in `nestedSchema` (Phase 4.4) to ensure references are present when rendering in parent context
+- **Hierarchy integration**: Works with `SchemaOrganization` to determine which children should be assured based on implicit/explicit parentage
+
+#### Implementation Pattern
+
+The method follows the same delegation pattern as `invert()`:
+1. Component wrapper clones itself
+2. Checks if payload has `assureReferences` method
+3. If yes, calls it and updates the payload
+4. Returns the cloned component
+
+This allows gradual rollout: components without payload implementation return unchanged.
+
 ## Testing
 
 ### Running Tests
