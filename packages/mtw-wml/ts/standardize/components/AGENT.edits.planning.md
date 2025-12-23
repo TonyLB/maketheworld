@@ -201,71 +201,100 @@ This migration should proceed incrementally, starting with a single component ty
 
 ### 1.4 Align StandardRoomPayload with Edit Algebra
 
+**Status:** ✅ **COMPLETE** (with minor gap)
+
 **Tasks:**
-- Update `StandardRoomPayload.merge()` to follow algebraic properties
-  - Ensure merge respects non-associativity (document order requirements)
-  - Validate that data payload merging follows inversion principles
-  - Ensure reference list merging delegates to ReferenceList.merge() (which handles non-associativity)
+- ✅ Update `StandardRoomPayload.merge()` to follow algebraic properties
+  - ✅ Ensure merge respects non-associativity (document order requirements)
+  - ✅ Validate that data payload merging follows inversion principles
+  - ✅ Ensure reference list merging delegates to ReferenceList.merge() (which handles non-associativity)
+  - ✅ Implemented in `StandardRoomPayload.merge()` - delegates to `ReferenceList.merge()` for features, examples, characters
 
-- Update `StandardRoomPayload.diff()` to use algebraic relationship
-  - Implement `diff(incoming)` as `incoming.merge(this.invert())`
-  - Add unit tests validating `a.diff(b)` produces `x` such that `a.merge(x) = b`
-  - Verify diff results are correct for all field types
+- ✅ Update `StandardRoomPayload.diff()` to use algebraic relationship
+  - ✅ Implement `diff(incoming)` as `incoming.merge(this.invert())`
+  - ✅ Implemented in base `componentClassFactory` class (component.ts line 365-371): `diff(a, b) = b.merge(a.invert())`
+  - ⚠️ Add unit tests validating `a.diff(b)` produces `x` such that `a.merge(x) = b` (explicit algebraic relationship tests not yet present)
 
-- Extend unit tests for StandardRoomPayload
-  - Add tests for inversion operations
-  - Add tests validating merge algebraic properties (with order dependencies)
-  - Add tests validating diff algebraic relationship
-  - Add tests for edge cases (empty rooms, rooms with only references, etc.)
+- ✅ Extend unit tests for StandardRoomPayload
+  - ✅ Add tests for inversion operations (room.test.ts lines 705-796)
+  - ✅ Add tests for diff operations (room.test.ts lines 359-373, 620-637)
+  - ⚠️ Add tests validating merge algebraic properties (with order dependencies) - basic merge tests exist but order dependency tests may be incomplete
+  - ⚠️ Add tests validating diff algebraic relationship - diff tests exist but explicit `a.merge(a.diff(b)) = b` validation not present
+  - ✅ Add tests for edge cases (empty rooms, rooms with only references, etc.) - covered in inversion tests
 
 **Success Criteria:**
-- StandardRoomPayload merge/diff operations align with edit algebra documentation
-- All algebraic relationships are validated by tests
-- Existing functionality preserved (backward compatible)
+- ✅ StandardRoomPayload merge/diff operations align with edit algebra documentation
+- ⚠️ All algebraic relationships are validated by tests (core implementation complete, explicit algebraic relationship tests could be added)
+- ✅ Existing functionality preserved (backward compatible)
 
 ## Phase 2: Component-Level Replace Removal
 
-**Note:** Phase 2 should begin only after Phase 1 is complete and validated.
+**Status:** ✅ **COMPLETE**
+
+**Note:** Phase 2 was completed as part of Phase 1.2 (Refactor Component Storage to Plain Components Only).
 
 ### 2.1 Remove StandardReplace
 
-**Tasks:**
-- Remove `StandardReplace` class
-  - Delete `StandardReplace` class from `edits.ts`
-  - Remove all type definitions referencing `StandardReplace`
-  - Update `StandardComponentData` type to exclude `StandardReplaceData`
+**Status:** ✅ **COMPLETE**
 
-- Identify and update all `StandardReplace` usages
-  - Search codebase for `StandardReplace` instantiation
-  - Convert each usage to equivalent Add+Remove operations
-  - Update `processComponents.ts` to handle Add+Remove instead of Replace
-  - Update `componentFactory.ts` to never create Replace instances
+**Tasks:**
+- ✅ Remove `StandardReplace` class
+  - ✅ Deleted `StandardReplace` class from `edits.ts` (completed in Phase 1.2)
+  - ✅ Removed all type definitions referencing `StandardReplace`
+  - ✅ Updated `StandardComponentData` type to exclude `StandardReplaceData` (baseClasses.ts line 24: `StandardComponentData = StandardComponentNonEditData`)
+
+- ✅ Identify and update all `StandardReplace` usages
+  - ✅ Searched codebase for `StandardReplace` instantiation - none found in component code
+  - ✅ Converted usages to equivalent Add+Remove operations (completed in Phase 1.2)
+  - ✅ Updated `processComponents.ts` to throw error for Replace tags (processComponents.ts line 90)
+  - ✅ Updated `componentFactory.ts` to never create Replace instances (no Replace handling in factory)
+
+**Success Criteria:**
+- ✅ `StandardReplace` class completely removed from component codebase
+- ✅ `StandardComponentData` excludes `StandardReplaceData`
+- ✅ No `StandardReplace` instantiation in component code
+- ✅ `processComponents.ts` rejects Replace tags with error
 
 ### 2.2 Update Component Processing
 
-**Tasks:**
-- Update `processComponents.ts` to remove Replace handling
-  - Remove all Replace tag processing logic
-  - Update to handle only Add and Remove operations
-  - Ensure reference handling preserves correct parent-child relationships
-  - Update cascade graph handling for Add+Remove operations
+**Status:** ✅ **COMPLETE**
 
-- Update `componentFactory.ts` to remove Replace handling
-  - Remove Replace creation logic
-  - Ensure factory methods never create Replace instances
-  - Update type guards to exclude Replace
+**Tasks:**
+- ✅ Update `processComponents.ts` to remove Replace handling
+  - ✅ Removed all Replace tag processing logic (throws error on Replace tags)
+  - ✅ Updated to handle only Add and Remove operations
+  - ✅ Reference handling preserves correct parent-child relationships
+  - ✅ Cascade graph handling works with Add+Remove operations
+
+- ✅ Update `componentFactory.ts` to remove Replace handling
+  - ✅ Removed Replace creation logic (no Replace handling in factory)
+  - ✅ Factory methods never create Replace instances
+  - ✅ Type guards exclude Replace (StandardComponentData = StandardComponentNonEditData)
+
+**Success Criteria:**
+- ✅ `processComponents.ts` throws error for Replace tags
+- ✅ `componentFactory.ts` never creates Replace instances
+- ✅ All component processing uses only Add and Remove operations
 
 ### 2.3 Migration of External Dependencies
 
-**Tasks:**
-- Update tests that use `StandardReplace`
-  - Convert test cases to use Add+Remove instead
-  - Ensure test expectations still pass
-  - Add new tests for the converted operations
+**Status:** ✅ **COMPLETE** (for component code)
 
-- Update UI/editor code that creates Replace operations
-  - Modify editors to create Add+Remove pairs instead
-  - Update diff display logic if needed
+**Tasks:**
+- ✅ Update tests that use `StandardReplace`
+  - ✅ Converted test cases to use Add+Remove instead (completed in Phase 1.2)
+  - ✅ Test expectations updated and passing
+  - ✅ New tests added for Add+Remove operations
+
+- ⚠️ Update UI/editor code that creates Replace operations
+  - ⚠️ Status unknown - UI/editor code is outside this package scope
+  - ⚠️ May need verification in client codebase
+  - Note: Component-level Replace operations are rejected at the `processComponents` level, so any UI attempts to create them will fail with clear error
+
+**Success Criteria:**
+- ✅ Component tests no longer use `StandardReplace`
+- ⚠️ UI/editor code status unknown (outside package scope)
+- ✅ Component processing layer rejects Replace operations with clear error
 
 ## Phase 3: Extend to Other Components
 
