@@ -298,19 +298,23 @@ This migration should proceed incrementally, starting with a single component ty
 
 ## Phase 3: Extend to Other Components
 
-**Tasks:**
-- Implement `invert()` for other component types
-  - StandardFeature
-  - StandardCharacter
-  - StandardExample
-  - StandardKnowledge
-  - StandardMessage
-  - StandardMoment
-  - StandardExit (if not already done)
+**Status:** ✅ **COMPLETE**
 
-- Align all component merge/diff operations
-  - Apply same patterns validated in StandardRoomPayload
-  - Ensure consistency across all component types
+**Tasks:**
+- ✅ Implement `invert()` for other component types
+  - ✅ StandardFeature - Added `invert()` to `StandardFeaturePayload` and wrapper class
+  - ✅ StandardCharacter - Added `invert()` to `StandardCharacterPayload` and wrapper class
+  - ✅ StandardExample - Already implemented in Phase 1
+  - ✅ StandardKnowledge - Added `invert()` to `StandardKnowledgePayload` and wrapper class
+  - ✅ StandardMessage - Added `invert()` to `StandardMessagePayload` and wrapper class
+  - ✅ StandardMoment - Added `invert()` to `StandardMomentPayload` and wrapper class
+  - ✅ StandardExit - Already has `invert()` from `v2StandardEditableFactory` (implemented in Phase 1)
+
+- ✅ Align all component merge/diff operations
+  - ✅ Applied same patterns validated in StandardRoomPayload
+  - ✅ Ensured consistency across all component types
+  - ✅ All implementations follow the established pattern: invert StandardLiteral, StandardRender, ReferenceList, and arrays of editables
+  - ✅ Added wrapper class overrides for type consistency (matching StandardExample pattern)
 
 ## Identified Future Work (To Be Validated During Phase 1)
 
@@ -336,22 +340,32 @@ This migration should proceed incrementally, starting with a single component ty
 
 ### Decisions to Make After Prototyping
 
+**Status:** ✅ **DECISIONS MADE**
+
 1. **WML Schema Updates**
-   - Update WML schema to remove `<Replace>` tag support
-   - Decide how to handle existing WML files that contain Replace tags (convert on load, error, etc.)
-   - Update schema validation to reject Replace tags
+   - ✅ **Decision:** Replace tags are still parsed by the WML schema (for backwards compatibility and content-level editing contexts like `StandardLiteral`, `StandardRender`)
+   - ✅ **Decision:** Replace tags throw errors when used at component or reference level
+   - ✅ **Implementation:** `processComponents.ts` throws error: "Replace tags are not permitted at component level"
+   - ✅ **Implementation:** `StandardReference` constructors throw error: "Replace operations are illegal for references. References can only be added or removed, not replaced."
+   - ✅ Schema validation rejects Replace tags for components/references with clear error messages
 
 2. **Serialization Format**
-   - Remove Replace support from serialization formats
-   - Ensure JSON serialization never produces Replace data structures
+   - ✅ **Decision:** JSON serialization never produces Replace data structures (merge/diff operations don't create them)
+   - ✅ **Implementation:** Component merge/diff operations never create Replace operations
+   - ✅ **Implementation:** Reference merge/diff operations throw errors instead of creating Replace
+   - Note: Replace is still supported for content-level editing (StandardLiteral, StandardRender, etc.) but not for components/references
 
 3. **Error Handling**
-   - How should we handle legacy Replace operations in incoming data?
-   - What warnings/errors should we provide to developers?
+   - ✅ **Decision:** Replace operations throw clear errors immediately when encountered (no conversion)
+   - ✅ **Implementation:** Component-level Replace tags throw error: "Replace tags are not permitted at component level"
+   - ✅ **Implementation:** Reference-level Replace tags throw error: "Replace operations are illegal for references. References can only be added or removed, not replaced."
+   - ✅ Error messages are consistent and informative for developers
 
 4. **Testing Strategy**
-   - How comprehensive should replacement conversion tests be?
-   - Should we maintain parallel test suites during migration?
+   - ✅ **Decision:** Tests verify error behavior when Replace operations are encountered (no conversion testing needed)
+   - ✅ **Implementation:** Added tests verifying Replace operations from WML throw errors
+   - ✅ **Implementation:** Added tests verifying Replace operations from JSON throw errors
+   - ✅ No parallel test suites needed - error behavior is straightforward and well-tested
 
 ## Approach: Iterative Validation
 
