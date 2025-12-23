@@ -39,6 +39,7 @@ import { rebuildSchemaFromStandardRender } from "./components/utils/extractStand
 import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
 import { unique } from "../list"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
+import { KeyLookup } from "./keyLookup"
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
     return (value instanceof StandardCharacter) ||
@@ -83,17 +84,6 @@ export const hasShortName = (component: StandardComponent): component is Standar
         (component instanceof StandardKnowledge)
 }
 
-const lookupInComponentList = (componentList: StandardComponent[], key: StandardKey): StandardComponent | undefined => {
-    if (typeof key === 'string') {
-        return componentList.find((component) => (component.universalKey === key))
-    }
-    return componentList.find((component) => (
-        (component.key && component.key === key.key) ||
-        (component.universalKey && component.universalKey === key.universalKey)
-    ))
-}
-
-
 export class StandardForm {
     _universalKey: AssetUUID;
     _components: StandardComponent[];
@@ -107,6 +97,7 @@ export class StandardForm {
      * @see {@link ./AGENT.md#semantic-modes AGENT.md - Semantic Modes} for detailed explanation of each mode
      */
     semanticMode?: StandardFormSemanticMode;
+    _keyLookupCache?: KeyLookup;
 
     constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string) {
         if (typeof args === 'string' && isSchemaAssetUUID(args)) {
@@ -366,6 +357,7 @@ export class StandardForm {
                             ...target._components.slice(findComponentIndex + 1)
                         ]
                     }
+                    target.invalidateCache()
                     // Update topLevel after component changes (requires generateImplicitParents to have been run)
                     const updated = target._updateTopLevelFromComponents()
                     target._topLevel = updated._topLevel
@@ -948,6 +940,7 @@ export class StandardForm {
                             ...target._components.slice(findComponentIndex + 1)
                         ]
                     }
+                    target.invalidateCache()
                     // Update topLevel after component changes (requires generateImplicitParents to have been run)
                     const updated = target._updateTopLevelFromComponents()
                     target._topLevel = updated._topLevel
@@ -1064,8 +1057,16 @@ export class StandardForm {
             .map((component) => (component._key))
     }
 
+    invalidateCache(): void {
+        this._keyLookupCache = undefined
+    }
+
     _lookup(keyData: StandardKeyData): StandardComponent | undefined {
-        return lookupInComponentList(this._components, new StandardKey(keyData))
+        if (!this._keyLookupCache) {
+            this._keyLookupCache = new KeyLookup(this._components)
+        }
+        const result = this._keyLookupCache.lookup(new StandardKey(keyData))
+        return result.component
     }
 
     //
@@ -1334,7 +1335,7 @@ export class StandardForm {
         returnValue._components = allRequests
             .reduce<StandardComponent[]>((previous, request) => {
                 return request.keys.reduce<StandardComponent[]>((accumulator, key) => {
-                    const component = lookupInComponentList(this._components, key)
+                    const component = this._lookup(key.toJSON())
                     if (!component) {
                         return accumulator
                     }
