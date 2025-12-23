@@ -40,6 +40,7 @@ import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
 import { unique } from "../list"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { KeyLookup } from "./keyLookup"
+import { SchemaOrganization } from "./schemaOrganization"
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
     return (value instanceof StandardCharacter) ||
@@ -98,6 +99,7 @@ export class StandardForm {
      */
     semanticMode?: StandardFormSemanticMode;
     _keyLookupCache?: KeyLookup;
+    _schemaOrganizationCache?: SchemaOrganization;
 
     constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string) {
         if (typeof args === 'string' && isSchemaAssetUUID(args)) {
@@ -1059,6 +1061,7 @@ export class StandardForm {
 
     invalidateCache(): void {
         this._keyLookupCache = undefined
+        this._schemaOrganizationCache = undefined
     }
 
     _lookup(keyData: StandardKeyData): StandardComponent | undefined {
@@ -1067,6 +1070,22 @@ export class StandardForm {
         }
         const result = this._keyLookupCache.lookup(new StandardKey(keyData))
         return result.component
+    }
+
+    _getSchemaOrganization(): SchemaOrganization {
+        if (!this._schemaOrganizationCache) {
+            // Ensure _keyLookupCache is instantiated
+            if (!this._keyLookupCache) {
+                this._keyLookupCache = new KeyLookup(this._components)
+            }
+            this._schemaOrganizationCache = new SchemaOrganization({
+                components: this._components,
+                assetUUID: this._universalKey,
+                topLevel: this._topLevel,
+                keyLookup: this._keyLookupCache
+            })
+        }
+        return this._schemaOrganizationCache
     }
 
     //
