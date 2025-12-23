@@ -403,20 +403,34 @@ This migration should proceed incrementally, starting with a single component ty
 
 ### 4.1 Implement assureReferences on StandardComponent Interface
 
-**Status:** ⏳ **PENDING**
+**Status:** ✅ **COMPLETE**
 
 **Tasks:**
-- Add `assureReferences(children: StandardReference[]): StandardComponent` method to `StandardComponent` interface
-  - Document that this is a pure function returning a cloned component
-  - Document that this is the ONLY place where `ref={0}` references should be introduced
-  - Document that all other reference manipulation should use non-zero refs
-- Update `StandardComponent` interface documentation to clarify:
-  - `assureReferences` handles idiosyncratic component-specific dispatch (features → features list, examples → examples list, etc.)
-  - Components own responsibility for their bucket structure
+- ✅ Add optional `assureReferences?(children: StandardReference[]): this` method to `ComponentConstructorMethods` interface (payload classes)
+  - ✅ Added to `ComponentConstructorMethods` interface in `component.ts`
+  - ✅ Added JSDoc comment referencing detailed documentation in `AGENT.implementation.md`
+- ✅ Add required `assureReferences(children: StandardReference[]): StandardComponent` method to `StandardComponent` interface
+  - ✅ Added to `StandardComponent` interface in `baseClasses.ts`
+  - ✅ Added JSDoc comment referencing detailed documentation
+  - ✅ Documented that this is a pure function returning a cloned component
+  - ✅ Documented delegation pattern (delegates to payload if available, otherwise returns unchanged)
+- ✅ Implement `assureReferences` in `componentClassFactory`
+  - ✅ Added implementation following the `invert()` delegation pattern
+  - ✅ Delegates to payload's `assureReferences` if available
+  - ✅ Returns instance unchanged if payload doesn't implement it (allows gradual rollout)
+- ✅ Add comprehensive documentation to `AGENT.implementation.md`
+  - ✅ Documented purpose, behavior, and component-specific dispatch patterns
+  - ✅ Documented relationship to other operations and hierarchy integration
+  - ✅ Documented implementation pattern and delegation behavior
 
 **Success Criteria:**
-- `assureReferences` method signature added to `StandardComponent` interface
-- Interface documentation updated with clear responsibilities
+- ✅ `assureReferences?()` method signature added to `ComponentConstructorMethods` interface
+- ✅ `assureReferences()` method signature added to `StandardComponent` interface
+- ✅ `assureReferences()` implementation added to `componentClassFactory` following `invert()` pattern
+- ✅ Brief JSDoc comments added with reference to detailed documentation
+- ✅ Comprehensive documentation added to `AGENT.implementation.md` explaining behavior, purpose, and patterns
+- ✅ TypeScript compilation succeeds with new interface methods
+- ✅ Components without payload `assureReferences` implementation return unchanged (allows gradual rollout)
 
 ### 4.2 Implement assureReferences for StandardRoomPayload (Prototype)
 
