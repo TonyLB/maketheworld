@@ -338,6 +338,250 @@ This migration should proceed incrementally, starting with a single component ty
 - Make decisions about backward compatibility and external APIs
 - Validate that patterns established in Phase 1 scale to other components
 
+## Phase 4: SchemaOrganization Refactor - Component Hierarchy and Rendering
+
+**Status:** 📋 **PLANNING**
+
+**Overview:** Refactor component hierarchy management and schema rendering to separate concerns between `StandardForm` (content orchestration) and `SchemaOrganization` (hierarchy/layout). This refactor will make `SchemaOrganization` the single source of truth for parentage information, enable components to make local decisions about rendering in parent contexts, and localize `ref={0}` reference assurance to component-level logic.
+
+**Goals:**
+- Make `SchemaOrganization` the sole authority for implicit/explicit parentage
+- Remove graph-building and parentage computation logic from `StandardForm`
+- Enable components to determine "am I rendering in my parent context?" and "what are my children?" at render time
+- Localize `ref={0}` reference assurance to a single `assureReferences` method per component
+- Simplify `StandardForm` to focus on content orchestration (merge/diff/subset) rather than hierarchy management
+
+**Key Design Decisions:**
+- `assureReferences` is a pure function that returns a cloned-and-updated component
+- `assureReferences` is called on-demand in `nestedSchema` (not pre-computed)
+- `getChildrenOfParent` returns `StandardReference[]` (not `StandardKey[]`) to provide type information for component dispatch
+- `assureReferences` accepts `StandardReference[]` directly (not full `OrganizationContext`)
+- `ref={0}` becomes a first-class encoding, eliminating semantic-mode distinctions in parentage handling
+
+### 4.1 Implement assureReferences on StandardComponent Interface
+
+**Status:** ⏳ **PENDING**
+
+**Tasks:**
+- Add `assureReferences(children: StandardReference[]): StandardComponent` method to `StandardComponent` interface
+  - Document that this is a pure function returning a cloned component
+  - Document that this is the ONLY place where `ref={0}` references should be introduced
+  - Document that all other reference manipulation should use non-zero refs
+- Update `StandardComponent` interface documentation to clarify:
+  - `assureReferences` handles idiosyncratic component-specific dispatch (features → features list, examples → examples list, etc.)
+  - Components own responsibility for their bucket structure
+
+**Success Criteria:**
+- `assureReferences` method signature added to `StandardComponent` interface
+- Interface documentation updated with clear responsibilities
+
+### 4.2 Implement assureReferences for StandardRoomPayload (Prototype)
+
+**Status:** ⏳ **PENDING**
+
+**Tasks:**
+- Implement `assureReferences` on `StandardRoomPayload`
+  - Accept `StandardReference[]` of children
+  - Dispatch children to appropriate buckets (features, examples, characters) based on component tag
+  - For each child reference:
+    - If reference already exists in the target bucket with non-zero ref, leave it unchanged
+    - If reference doesn't exist in target bucket, add it with `ref={0}`
+  - Return new `StandardRoomPayload` instance (pure function, no mutation)
+- Add comprehensive unit tests:
+  - Empty children array
+  - Children that already exist in buckets
+  - Children that need to be added with `ref={0}`
+  - Mixed scenarios (some exist, some don't)
+  - Verify returned component is a clone (original unchanged)
+  - Verify idempotency: `component.assureReferences(children).assureReferences(children) === component.assureReferences(children)`
+
+**Success Criteria:**
+- `StandardRoomPayload.assureReferences()` implemented and tested
+- All tests pass, demonstrating pure function behavior
+- Pattern established for other component types
+
+### 4.3 Extend assureReferences to Other Component Types
+
+**Status:** ⏳ **PENDING**
+
+**Tasks:**
+- Implement `assureReferences` for all component types that have reference lists:
+  - `StandardFeature`
+  - `StandardCharacter`
+  - `StandardExample`
+  - `StandardKnowledge`
+  - `StandardMap` (for positions)
+  - `StandardMoment`
+  - Any other components with child references
+- For each component:
+  - Follow pattern established in `StandardRoomPayload`
+  - Dispatch children to appropriate buckets based on component tag
+  - Add `ref={0}` only when reference doesn't exist
+  - Return cloned component (pure function)
+- Add unit tests for each component type
+- Update `nestedSchema` implementations for each component type to use `assureReferences`
+
+**Success Criteria:**
+- All component types with reference lists implement `assureReferences`
+- All implementations follow consistent pattern
+- All tests pass
+
+### 4.4 Define OrganizationContext Interface
+
+**Status:** ⏳ **PENDING**
+
+**Tasks:**
+- Define `OrganizationContext` type with two methods:
+  - `getImplicitParent(key: StandardKey): StandardKey | undefined`
+  - `getChildrenOfParent(parent: StandardKey | AssetUUID): StandardReference[]`
+- Add `getChildrenOfParent` method to `SchemaOrganization` class
+  - Implement logic to return all components that have the given parent (via implicit or explicit parentage)
+  - Return as `StandardReference[]` with appropriate reference types
+- Create factory/helper to construct `OrganizationContext` from `SchemaOrganization`
+- Add unit tests for `getChildrenOfParent` covering:
+  - Top-level children (AssetUUID parent)
+  - Nested children (StandardKey parent)
+  - Explicit parent vs implicit parent precedence
+  - Empty parent cases
+
+**Success Criteria:**
+- `OrganizationContext` type defined with minimal, focused API
+- `SchemaOrganization.getChildrenOfParent()` implemented and tested
+- Factory method available to create `OrganizationContext` from `SchemaOrganization`
+
+### 4.5 Update nestedSchema to Use OrganizationContext
+
+**Status:** ⏳ **PENDING**
+
+**Tasks:**
+- Update `StandardComponent.nestedSchema` signature:
+  - Change `lookup` parameter to `deps: { lookup: ..., organization?: OrganizationContext }`
+  - Keep `options: Partial<NestedSchemaOptions>` parameter
+- Update `StandardRoomPayload.nestedSchema` implementation:
+  - Check if rendering in parent context: `organization?.getImplicitParent(this._key) === options.parent` (or check explicitParent)
+  - If rendering in parent context:
+    - Get children: `const children = organization?.getChildrenOfParent(this._key) ?? []`
+    - Assure references: `const assured = this.assureReferences(children)`
+    - Render using `assured`'s reference lists
+  - If not in parent context, render as reference (or skip, depending on component semantics)
+- Update `renderReference` helper in `components/utils/schema.ts`:
+  - Pass `organization` context through to nested `nestedSchema` calls
+  - Ensure parent context propagates correctly through nested rendering
+- Update `StandardForm.schema` getter:
+  - Construct `SchemaOrganization` (or use cached instance)
+  - Create `OrganizationContext` from `SchemaOrganization`
+  - Pass `organization` to `nestedSchema` calls
+- Add unit tests for `nestedSchema` with `OrganizationContext`:
+  - Component rendering in its parent context (full contents)
+  - Component rendering outside parent context (reference only)
+  - Nested components with correct parent propagation
+
+**Success Criteria:**
+- `nestedSchema` accepts and uses `OrganizationContext`
+- Components correctly determine parent context and render appropriately
+- `ref={0}` references appear only when components are rendered in their parent context
+- All existing schema rendering tests pass with new implementation
+
+### 4.6 Converge StandardForm on SchemaOrganization for Parentage
+
+**Status:** ⏳ **PENDING**
+
+**Tasks:**
+- Replace `StandardForm._buildComponentGraph()` with delegation to `SchemaOrganization._buildComponentGraph()`
+  - Remove duplicate graph-building logic from `StandardForm`
+  - Update all call sites to use `SchemaOrganization` instance
+- Replace `StandardForm.generateImplicitParents()` with delegation to `SchemaOrganization._calculateImplicitParents()`
+  - Remove duplicate implicit parent calculation from `StandardForm`
+  - Update `StandardForm` to use `SchemaOrganization.getImplicitParent()` for any parent queries
+  - Consider whether `implicitParent` should remain as a cached field on components or become purely derived from `SchemaOrganization`
+- Update `StandardForm._updateTopLevelFromComponents()`:
+  - Remove logic that pre-computes top-level references
+  - This functionality will be handled by `assureReferences` at render time
+  - Or, if top-level needs to be maintained for other operations, update it to use `SchemaOrganization.getChildrenOfParent(assetUUID)`
+- Update all `StandardForm` methods that currently call `generateImplicitParents()` or `_buildComponentGraph()`:
+  - `merge()`
+  - `diff()`
+  - `subset()`
+  - `finalize()`
+  - Any other methods that depend on parentage
+- Remove `implicitParent` field mutation from `StandardForm`:
+  - Components should no longer have `implicitParent` set during `StandardForm` operations
+  - Parentage queries should go through `SchemaOrganization` instead
+  - Consider making `implicitParent` a getter that queries `SchemaOrganization` (if cached access is needed)
+
+**Success Criteria:**
+- `StandardForm` no longer contains graph-building or parentage calculation logic
+- All parentage queries go through `SchemaOrganization`
+- `StandardForm` methods delegate to `SchemaOrganization` for hierarchy information
+- All existing tests pass with refactored implementation
+
+### 4.7 Remove Obsolete StandardForm Methods
+
+**Status:** ⏳ **PENDING**
+
+**Tasks:**
+- Remove or deprecate methods that are no longer needed:
+  - `_buildComponentGraph()` (delegated to `SchemaOrganization`)
+  - `generateImplicitParents()` (delegated to `SchemaOrganization`)
+  - `_updateTopLevelFromComponents()` (functionality moved to `assureReferences` at render time)
+  - Any other helper methods that were only used for hierarchy management
+- Update all call sites to use `SchemaOrganization` directly or through `OrganizationContext`
+- Verify no external code depends on removed methods
+- Update documentation to reflect new architecture
+
+**Success Criteria:**
+- Obsolete methods removed from `StandardForm`
+- All functionality preserved through `SchemaOrganization`
+- No broken references in codebase
+- Documentation updated
+
+### 4.8 Update Tests and Documentation
+
+**Status:** ⏳ **PENDING**
+
+**Tasks:**
+- Update `StandardForm` tests:
+  - Remove tests that directly test graph-building or parentage calculation (move to `SchemaOrganization` tests)
+  - Update tests to verify `StandardForm` delegates correctly to `SchemaOrganization`
+  - Ensure all merge/diff/subset tests still pass
+- Update `SchemaOrganization` tests:
+  - Add comprehensive tests for `getChildrenOfParent`
+  - Verify equivalence with previous `generateImplicitParents` behavior
+  - Test edge cases (empty hierarchies, cycles, explicit vs implicit parent conflicts)
+- Update component tests:
+  - Add tests for `assureReferences` behavior
+  - Update `nestedSchema` tests to use `OrganizationContext`
+  - Verify `ref={0}` appears only in correct contexts
+- Update documentation:
+  - `standardize/AGENT.md`: Document new separation of concerns
+  - `components/AGENT.md`: Document `assureReferences` and `OrganizationContext` usage
+  - Update any architecture diagrams or flow descriptions
+
+**Success Criteria:**
+- All tests pass
+- Test coverage maintained or improved
+- Documentation accurately reflects new architecture
+- Clear examples of `OrganizationContext` and `assureReferences` usage
+
+### 4.9 Performance Optimization (If Needed)
+
+**Status:** ⏳ **PENDING**
+
+**Tasks:**
+- Profile `assureReferences` and `getChildrenOfParent` performance:
+  - Measure cost of on-demand `assureReferences` calls in deeply nested renders
+  - Identify any performance regressions compared to pre-computed approach
+- If performance issues identified:
+  - Consider memoization/caching strategies for `assureReferences` results
+  - Consider caching `getChildrenOfParent` results in `SchemaOrganization`
+  - Evaluate whether pre-computation is needed for specific high-frequency paths
+- Add performance tests/benchmarks if significant changes made
+
+**Success Criteria:**
+- Performance is acceptable (no significant regressions)
+- Caching/memoization added if needed
+- Performance characteristics documented
+
 ## Related Documentation
 
 - [`AGENT.editAlgebra.md`](./AGENT.editAlgebra.md) - Mathematical properties of component edit operations
@@ -345,3 +589,5 @@ This migration should proceed incrementally, starting with a single component ty
 - [`AGENT.md`](./AGENT.md) - Conceptual overview of Components
 - [`AGENT.implementation.md`](./AGENT.implementation.md) - Current implementation details
 - [`AGENT.referenceList.md`](./AGENT.referenceList.md) - ReferenceList usage and architecture
+- [`../AGENT.md`](../AGENT.md) - StandardForm overview and architecture
+- [`../schemaOrganization.ts`](../schemaOrganization.ts) - SchemaOrganization implementation
