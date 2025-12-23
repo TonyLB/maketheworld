@@ -124,6 +124,15 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         const hasRooms = this._rooms.payload.length > 0
         return !(hasDescription || hasRooms)
     }
+
+    invert(): this {
+        const returnValue = new StandardMessagePayload()
+        // Invert description if it exists (StandardRender has invert())
+        returnValue._description = this._description ? this._description.invert() : undefined
+        // Invert rooms ReferenceList
+        returnValue._rooms = this._rooms.invert()
+        return returnValue as this
+    }
 }
 
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {
@@ -208,6 +217,10 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardMessage(super.withExplicitParent(explicitParent) as StandardMessage)
+    }
+
+    override invert(): StandardMessage {
+        return new StandardMessage(super.invert() as StandardMessage)
     }
 
 }
