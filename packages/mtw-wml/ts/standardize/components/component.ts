@@ -50,6 +50,11 @@ export interface ComponentConstructorMethods<D> {
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
     withChild?(child: StandardReference): this;
     invert?(): this;
+    /**
+     * Assures that the given child references exist in the appropriate buckets with ref={0} if needed.
+     * See AGENT.implementation.md for detailed documentation.
+     */
+    assureReferences?(children: StandardReference[]): this;
     isEmpty?(): boolean;
 }
 
@@ -451,6 +456,16 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (this.explicitParent) {
                 returnValue.explicitParent = this.explicitParent.invert()
             }
+            return returnValue as StandardComponent
+        }
+
+        assureReferences(children: StandardReference[]): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this)
+            // Delegate to payload if it has assureReferences method
+            if (this._payload.assureReferences && typeof this._payload.assureReferences === 'function') {
+                returnValue._payload = this._payload.assureReferences(children) as InstanceType<typeof Base>
+            }
+            // If payload doesn't have assureReferences, return instance unchanged
             return returnValue as StandardComponent
         }
 

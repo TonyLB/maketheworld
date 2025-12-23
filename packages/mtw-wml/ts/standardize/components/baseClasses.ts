@@ -58,5 +58,11 @@ export interface StandardComponent {
     withOrigin(origin: AssetUUID[] | undefined): StandardComponent;
     withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent;
     invert?(): StandardComponent;
+    /**
+     * Assures that the given child references exist in the appropriate buckets with ref={0} if needed.
+     * Delegates to payload's assureReferences if available, otherwise returns instance unchanged.
+     * See AGENT.implementation.md for detailed documentation.
+     */
+    assureReferences(children: StandardReference[]): StandardComponent;
     isEmpty(): boolean;
 }
