@@ -121,6 +121,19 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         const hasImage = Boolean(this._image)
         return !(hasName || hasShortName || hasPronouns || hasImage)
     }
+
+    invert(): this {
+        const returnValue = new StandardCharacterPayload()
+        // Invert shortName if it exists (StandardLiteral has invert() from v2StandardEditableFactory)
+        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
+        // Invert pronouns if it exists (StandardLiteral has invert() from v2StandardEditableFactory)
+        returnValue._pronouns = this._pronouns ? this._pronouns.invert() as StandardLiteral : undefined
+        // Invert name if it exists (StandardRender has invert())
+        returnValue._name = this._name ? this._name.invert() : undefined
+        // Leave _image unchanged (EditWrappedStandardNode doesn't have invert support)
+        returnValue._image = this._image
+        return returnValue as this
+    }
 }
 
 export class StandardCharacter extends componentClassFactory(StandardCharacterPayload, 'StandardCharacter') {
@@ -204,6 +217,10 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardCharacter(super.withExplicitParent(explicitParent) as StandardCharacter)
+    }
+
+    override invert(): StandardCharacter {
+        return new StandardCharacter(super.invert() as StandardCharacter)
     }
 
 }

@@ -130,6 +130,15 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         const hasExamples = this._examples.payload.length > 0
         return !(hasShortName || hasExamples)
     }
+
+    invert(): this {
+        const returnValue = new StandardFeaturePayload()
+        // Invert shortName if it exists (StandardLiteral has invert() from v2StandardEditableFactory)
+        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
+        // Invert examples ReferenceList
+        returnValue._examples = this._examples.invert()
+        return returnValue as this
+    }
 }
 
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
@@ -210,6 +219,10 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardFeature(super.withExplicitParent(explicitParent) as StandardFeature)
+    }
+
+    override invert(): StandardFeature {
+        return new StandardFeature(super.invert() as StandardFeature)
     }
 
 }

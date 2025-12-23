@@ -111,6 +111,13 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         return this._messages.payload.length === 0
     }
 
+    invert(): this {
+        const returnValue = new StandardMomentPayload()
+        // Invert messages ReferenceList
+        returnValue._messages = this._messages.invert()
+        return returnValue as this
+    }
+
 }
 
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {
@@ -186,6 +193,10 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardMoment(super.withExplicitParent(explicitParent) as StandardMoment)
+    }
+
+    override invert(): StandardMoment {
+        return new StandardMoment(super.invert() as StandardMoment)
     }
 
 }

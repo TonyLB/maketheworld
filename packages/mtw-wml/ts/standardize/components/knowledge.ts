@@ -131,6 +131,15 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         const hasExamples = this._examples.payload.length > 0
         return !(hasShortName || hasExamples)
     }
+
+    invert(): this {
+        const returnValue = new StandardKnowledgePayload()
+        // Invert shortName if it exists (StandardLiteral has invert() from v2StandardEditableFactory)
+        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
+        // Invert examples ReferenceList
+        returnValue._examples = this._examples.invert()
+        return returnValue as this
+    }
 }
 
 export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {
@@ -211,6 +220,10 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardKnowledge(super.withExplicitParent(explicitParent) as StandardKnowledge)
+    }
+
+    override invert(): StandardKnowledge {
+        return new StandardKnowledge(super.invert() as StandardKnowledge)
     }
 
 }
