@@ -468,28 +468,37 @@ This migration should proceed incrementally, starting with a single component ty
 
 ### 4.3 Extend assureReferences to Other Component Types
 
-**Status:** ⏳ **PENDING**
+**Status:** ✅ **COMPLETE**
 
 **Tasks:**
-- Implement `assureReferences` for all component types that have reference lists:
-  - `StandardFeature`
-  - `StandardKnowledge`
-  - `StandardMoment`
-  - `StandardMap` (for positions)
+- ✅ Implement `assureReferences` for all component types that have reference lists:
+  - ✅ `StandardFeature` (dispatches Example children to `_examples` bucket)
+  - ✅ `StandardKnowledge` (dispatches Example children to `_examples` bucket)
+  - ✅ `StandardMoment` (dispatches Message children to `_messages` bucket)
+  - ✅ `StandardMessage` (dispatches Room children to `_rooms` bucket) - *initially omitted, added after completion*
+  - ⚠️ `StandardMap` (for positions) - **Skipped**
     - ⚠️ **Note:** We do not currently handle having items parented to `Map` types, and cannot really `assureReferences` against `StandardPosition`. This may need to be implemented in the future.
-  - Any other components with child references
-- For each component:
-  - Follow pattern established in `StandardRoomPayload`
-  - Dispatch children to appropriate buckets based on component tag
-  - Add `ref={0}` only when reference doesn't exist
-  - Return cloned component (pure function)
-- Add unit tests for each component type
-- Update `nestedSchema` implementations for each component type to use `assureReferences`
+- ✅ For each component:
+  - ✅ Follow pattern established in `StandardRoomPayload`
+  - ✅ Dispatch children to appropriate buckets based on component tag using functional filter/map approach
+  - ✅ Add `ref={0}` only when reference doesn't exist (using `withRef(0)` and merging with `{ cleanEmptyReferences: false }`)
+  - ✅ Return cloned component (pure function, no mutation)
+- ✅ Add comprehensive unit tests for each component type:
+  - ✅ Empty children array
+  - ✅ Children that already exist in buckets (with non-zero refs)
+  - ✅ Children that need to be added with `ref={0}`
+  - ✅ Mixed scenarios (some exist, some don't)
+  - ✅ Verify returned component is a clone (original unchanged)
+  - ✅ Verify idempotency: calling `assureReferences` multiple times with same children produces equivalent results
+  - ✅ Verify correct bucket dispatch based on component tag
+  - ✅ Verify ignoring children with incorrect tags
+- ⏳ Update `nestedSchema` implementations for each component type to use `assureReferences` (deferred to Phase 4.5)
 
 **Success Criteria:**
-- All component types with reference lists implement `assureReferences`
-- All implementations follow consistent pattern
-- All tests pass
+- ✅ All component types with reference lists implement `assureReferences` (except `StandardMap` which is documented as future work)
+- ✅ All implementations follow consistent pattern
+- ✅ All tests pass
+- ✅ `StandardMessage` added after initial completion (omission corrected)
 
 ### 4.4 Define OrganizationContext Interface
 
