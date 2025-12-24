@@ -4,7 +4,7 @@ import { ReferenceList } from "./components/reference"
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
-import { StandardExplicitParent, StandardExplicitParentSimple } from "./explicit/parent"
+import { StandardExplicitParent, StandardExplicitParentSimple, StandardExplicitParentRemove, StandardExplicitParentReplace } from "./explicit/parent"
 import { excludeUndefined } from "../lib/lists"
 import { unique } from "../list"
 import { KeyLookup } from "./keyLookup"
@@ -12,6 +12,7 @@ import { StandardReferenceSimple } from "./components/reference"
 
 export class SchemaOrganization {
     private _organization: Array<{ key: StandardKey; implicitParent?: StandardKey }>
+    private _explicitOrganization: Array<{ key: StandardKey; parent: StandardKey | undefined }>
     private components: StandardComponent[]
     private assetUUID: AssetUUID
     private keyLookup: KeyLookup
@@ -26,11 +27,17 @@ export class SchemaOrganization {
         this.assetUUID = args.assetUUID
         this.keyLookup = args.keyLookup
         this._organization = this._calculateImplicitParents(args.topLevel)
+        this._explicitOrganization = this._calculateExplicitParents()
     }
 
     getImplicitParent(key: StandardKey): StandardKey | undefined {
         const entry = this._organization.find((entry) => (entry.key.equals(key)))
         return entry?.implicitParent
+    }
+
+    getExplicitParent(key: StandardKey): StandardKey | undefined {
+        const entry = this._explicitOrganization.find((entry) => (entry.key.equals(key)))
+        return entry?.parent
     }
 
     private _getParentChildEdges(topLevel?: ReferenceList): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
@@ -400,6 +407,55 @@ export class SchemaOrganization {
         }
 
         return organization
+    }
+
+    private _calculateExplicitParents(): Array<{ key: StandardKey; parent: StandardKey | undefined }> {
+        return this.components.reduce<Array<{ key: StandardKey; parent: StandardKey | undefined }>>(
+            (organization, component) => {
+                const componentKey = component._key?.plain
+                if (!componentKey) {
+                    return organization
+                }
+
+                const explicitParent = component.explicitParent
+                if (!explicitParent || !explicitParent._payload) {
+                    // No explicit parent set - skip this component
+                    return organization
+                }
+
+                const payload = explicitParent._payload
+
+                if (payload instanceof StandardExplicitParentSimple) {
+                    // Extract data from plain property (StandardExplicitParentSimpleBase)
+                    const explicitParentData = payload.plain.data
+                    
+                    if (explicitParentData === 'ASSET') {
+                        // Asset-level parentage - store as undefined
+                        return [...organization, { key: componentKey, parent: undefined }]
+                    } else if (explicitParentData instanceof StandardKey) {
+                        // Component parent
+                        return [...organization, { key: componentKey, parent: explicitParentData }]
+                    }
+                } else if (payload instanceof StandardExplicitParentRemove) {
+                    // Removed explicit parent - no explicit parent set
+                    return [...organization, { key: componentKey, parent: undefined }]
+                } else if (payload instanceof StandardExplicitParentReplace) {
+                    // Extract replacement value from plain property
+                    const explicitParentData = payload.plain.data
+                    
+                    if (explicitParentData === 'ASSET') {
+                        // Asset-level parentage - store as undefined
+                        return [...organization, { key: componentKey, parent: undefined }]
+                    } else if (explicitParentData instanceof StandardKey) {
+                        // Component parent
+                        return [...organization, { key: componentKey, parent: explicitParentData }]
+                    }
+                }
+                
+                return organization
+            },
+            []
+        )
     }
 }
 
