@@ -434,28 +434,37 @@ This migration should proceed incrementally, starting with a single component ty
 
 ### 4.2 Implement assureReferences for StandardRoomPayload (Prototype)
 
-**Status:** ⏳ **PENDING**
+**Status:** ✅ **COMPLETE**
 
 **Tasks:**
-- Implement `assureReferences` on `StandardRoomPayload`
-  - Accept `StandardReference[]` of children
-  - Dispatch children to appropriate buckets (features, examples, characters) based on component tag
-  - For each child reference:
-    - If reference already exists in the target bucket with non-zero ref, leave it unchanged
-    - If reference doesn't exist in target bucket, add it with `ref={0}`
-  - Return new `StandardRoomPayload` instance (pure function, no mutation)
-- Add comprehensive unit tests:
-  - Empty children array
-  - Children that already exist in buckets
-  - Children that need to be added with `ref={0}`
-  - Mixed scenarios (some exist, some don't)
-  - Verify returned component is a clone (original unchanged)
-  - Verify idempotency: `component.assureReferences(children).assureReferences(children) === component.assureReferences(children)`
+- ✅ Implement `assureReferences` on `StandardRoomPayload`
+  - ✅ Accept `StandardReference[]` of children
+  - ✅ Dispatch children to appropriate buckets (features, examples, characters) based on component tag using functional filter/map approach
+  - ✅ For each child reference:
+    - ✅ If reference already exists in the target bucket with non-zero ref, leave it unchanged (handled by `ReferenceList.merge`)
+    - ✅ If reference doesn't exist in target bucket, add it with `ref={0}` (using `withRef(0)` and merging with `{ cleanEmptyReferences: false }`)
+  - ✅ Return new `StandardRoomPayload` instance (pure function, no mutation)
+- ✅ Refactor `ReferenceList.merge` to support `cleanEmptyReferences` option
+  - ✅ Added optional `options?: { cleanEmptyReferences?: boolean }` parameter, defaulting to `true`
+  - ✅ Updated `StandardReference.merge` and `StandardReferenceSimple.merge` to accept and pass through options
+  - ✅ Updated `StandardReferenceSimple.merge` to preserve `ref={0}` when `cleanEmptyReferences: false` (using `this.withRef(0)`)
+  - ✅ All existing call sites continue to work (backward compatible)
+- ✅ Add comprehensive unit tests:
+  - ✅ Empty children array
+  - ✅ Children that already exist in buckets (with non-zero refs)
+  - ✅ Children that need to be added with `ref={0}`
+  - ✅ Mixed scenarios (some exist, some don't)
+  - ✅ Verify returned component is a clone (original unchanged)
+  - ✅ Verify idempotency: calling `assureReferences` multiple times with same children produces equivalent results
+  - ✅ Verify correct bucket dispatch based on component tag
+  - ✅ Added tests for `ReferenceList.merge` with `cleanEmptyReferences` option (default behavior and `false` option)
 
 **Success Criteria:**
-- `StandardRoomPayload.assureReferences()` implemented and tested
-- All tests pass, demonstrating pure function behavior
-- Pattern established for other component types
+- ✅ `StandardRoomPayload.assureReferences()` implemented and tested
+- ✅ `ReferenceList.merge` refactored to support `cleanEmptyReferences` option
+- ✅ All tests pass, demonstrating pure function behavior
+- ✅ Pattern established for other component types
+- ✅ Backward compatibility maintained for existing `ReferenceList.merge` call sites
 
 ### 4.3 Extend assureReferences to Other Component Types
 
@@ -464,11 +473,10 @@ This migration should proceed incrementally, starting with a single component ty
 **Tasks:**
 - Implement `assureReferences` for all component types that have reference lists:
   - `StandardFeature`
-  - `StandardCharacter`
-  - `StandardExample`
   - `StandardKnowledge`
-  - `StandardMap` (for positions)
   - `StandardMoment`
+  - `StandardMap` (for positions)
+    - ⚠️ **Note:** We do not currently handle having items parented to `Map` types, and cannot really `assureReferences` against `StandardPosition`. This may need to be implemented in the future.
   - Any other components with child references
 - For each component:
   - Follow pattern established in `StandardRoomPayload`

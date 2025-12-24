@@ -13,6 +13,15 @@ import StandardReference, { StandardKey } from "./reference"
 import { StandardLiteral } from "../literal"
 import { StandardExplicitParent } from "../explicit"
 
+/**
+ * StandardMapPayload represents a Map component.
+ * 
+ * NOTE: We do not currently handle having items parented to Map types, and cannot really
+ * `assureReferences` against `StandardPosition`. This may need to be implemented in the future
+ * as part of the SchemaOrganization refactor (Phase 4.3). The `_positions` array contains
+ * `StandardPosition` objects, which have a different structure than `ReferenceList`-based
+ * child references used by other components like `StandardRoom`.
+ */
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
     _name?: StandardLiteral;
     _images: GenericTree<SchemaTag> = [];

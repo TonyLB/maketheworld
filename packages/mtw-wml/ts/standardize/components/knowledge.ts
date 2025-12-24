@@ -140,6 +140,23 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         returnValue._examples = this._examples.invert()
         return returnValue as this
     }
+
+    assureReferences(children: StandardReference[]): this {
+        const returnValue = new StandardKnowledgePayload(this)
+        
+        // Filter and map children by type, creating references with ref={0}
+        const exampleReferences = new ReferenceList(
+            children
+                .filter(child => child._payload.plain.tag === 'Example')
+                .map(child => child.withRef(0))
+        )
+        
+        // Merge with existing bucket, preserving ref={0} references
+        // cleanEmptyReferences: false ensures ref={0} entries are preserved when merging
+        returnValue._examples = this._examples.merge(exampleReferences, { cleanEmptyReferences: false }) ?? this._examples
+        
+        return returnValue as this
+    }
 }
 
 export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {

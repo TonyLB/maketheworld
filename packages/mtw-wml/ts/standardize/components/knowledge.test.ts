@@ -132,5 +132,117 @@ describe('StandardKnowledge class', () => {
             </Knowledge>
         `))
     })
+
+    describe('assureReferences method', () => {
+        it('should return unchanged knowledge when children array is empty', () => {
+            const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
+            const result = knowledge._payload.assureReferences([])
+            
+            expect(result.examples.payload.length).toBe(0)
+            // Verify it's a clone (original unchanged)
+            expect(knowledge._payload.examples.payload.length).toBe(0)
+        })
+        
+        it('should add children with ref={0} when they do not exist', () => {
+            const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            
+            const result = knowledge._payload.assureReferences([exampleRef])
+            
+            // Verify reference was added with ref={0}
+            expect(result.examples.payload.length).toBe(1)
+            expect(result.examples.payload[0].ref).toBe(0)
+            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
+        })
+        
+        it('should leave existing references with non-zero ref unchanged', () => {
+            const knowledge = new StandardKnowledge(deIndentWML(`
+                <Knowledge key=(test)>
+                    <Example key=(ex1) />
+                </Knowledge>
+            `))
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            
+            const result = knowledge._payload.assureReferences([exampleRef])
+            
+            // Verify existing reference was left unchanged
+            expect(result.examples.payload.length).toBe(1)
+            expect(result.examples.payload[0].ref).toBe(1) // Original ref value (default)
+        })
+        
+        it('should handle mixed scenarios (some exist, some do not)', () => {
+            const knowledge = new StandardKnowledge(deIndentWML(`
+                <Knowledge key=(test)>
+                    <Example key=(existingEx) />
+                </Knowledge>
+            `))
+            const existingExample = new StandardReference({ tag: 'Example', key: 'existingEx' })
+            const newExample = new StandardReference({ tag: 'Example', key: 'newEx' })
+            
+            const result = knowledge._payload.assureReferences([existingExample, newExample])
+            
+            // Existing example should be unchanged
+            expect(result.examples.payload.length).toBe(2)
+            const existingExInResult = result.examples.payload.find(ref => ref.sameKey(existingExample))
+            expect(existingExInResult?.ref).toBe(1) // Original ref value
+            
+            // New example should be added with ref={0}
+            const newExInResult = result.examples.payload.find(ref => ref.sameKey(newExample))
+            expect(newExInResult?.ref).toBe(0)
+        })
+        
+        it('should return a clone without mutating the original', () => {
+            const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
+            const originalExamplesLength = knowledge._payload.examples.payload.length
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            
+            const result = knowledge._payload.assureReferences([exampleRef])
+            
+            // Original should be unchanged
+            expect(knowledge._payload.examples.payload.length).toBe(originalExamplesLength)
+            // Result should have the new reference
+            expect(result.examples.payload.length).toBe(1)
+            // They should be different objects
+            expect(result).not.toBe(knowledge._payload)
+        })
+        
+        it('should be idempotent (calling multiple times with same children produces same result)', () => {
+            const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            
+            const firstCall = knowledge._payload.assureReferences([exampleRef])
+            const secondCall = firstCall.assureReferences([exampleRef])
+            
+            // Both calls should produce the same result
+            expect(firstCall.examples.payload.length).toBe(1)
+            expect(secondCall.examples.payload.length).toBe(1)
+            expect(firstCall.examples.payload[0].sameKey(secondCall.examples.payload[0])).toBe(true)
+            expect(firstCall.examples.payload[0].ref).toBe(0)
+            expect(secondCall.examples.payload[0].ref).toBe(0)
+        })
+        
+        it('should dispatch children to correct bucket based on tag', () => {
+            const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            
+            const result = knowledge._payload.assureReferences([exampleRef])
+            
+            // Verify reference went to the correct bucket
+            expect(result.examples.payload.length).toBe(1)
+            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
+        })
+        
+        it('should ignore children with incorrect tag', () => {
+            const knowledge = new StandardKnowledge({ tag: 'Knowledge', key: 'test' })
+            const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            
+            const result = knowledge._payload.assureReferences([featureRef, exampleRef])
+            
+            // Only Example should be added
+            expect(result.examples.payload.length).toBe(1)
+            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
+        })
+    })
     
 })
