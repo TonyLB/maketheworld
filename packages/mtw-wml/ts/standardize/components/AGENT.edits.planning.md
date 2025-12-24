@@ -298,19 +298,23 @@ This migration should proceed incrementally, starting with a single component ty
 
 ## Phase 3: Extend to Other Components
 
-**Tasks:**
-- Implement `invert()` for other component types
-  - StandardFeature
-  - StandardCharacter
-  - StandardExample
-  - StandardKnowledge
-  - StandardMessage
-  - StandardMoment
-  - StandardExit (if not already done)
+**Status:** ✅ **COMPLETE**
 
-- Align all component merge/diff operations
-  - Apply same patterns validated in StandardRoomPayload
-  - Ensure consistency across all component types
+**Tasks:**
+- ✅ Implement `invert()` for other component types
+  - ✅ StandardFeature - Added `invert()` to `StandardFeaturePayload` and wrapper class
+  - ✅ StandardCharacter - Added `invert()` to `StandardCharacterPayload` and wrapper class
+  - ✅ StandardExample - Already implemented in Phase 1
+  - ✅ StandardKnowledge - Added `invert()` to `StandardKnowledgePayload` and wrapper class
+  - ✅ StandardMessage - Added `invert()` to `StandardMessagePayload` and wrapper class
+  - ✅ StandardMoment - Added `invert()` to `StandardMomentPayload` and wrapper class
+  - ✅ StandardExit - Already has `invert()` from `v2StandardEditableFactory` (implemented in Phase 1)
+
+- ✅ Align all component merge/diff operations
+  - ✅ Applied same patterns validated in StandardRoomPayload
+  - ✅ Ensured consistency across all component types
+  - ✅ All implementations follow the established pattern: invert StandardLiteral, StandardRender, ReferenceList, and arrays of editables
+  - ✅ Added wrapper class overrides for type consistency (matching StandardExample pattern)
 
 ## Identified Future Work (To Be Validated During Phase 1)
 
@@ -336,22 +340,32 @@ This migration should proceed incrementally, starting with a single component ty
 
 ### Decisions to Make After Prototyping
 
+**Status:** ✅ **DECISIONS MADE**
+
 1. **WML Schema Updates**
-   - Update WML schema to remove `<Replace>` tag support
-   - Decide how to handle existing WML files that contain Replace tags (convert on load, error, etc.)
-   - Update schema validation to reject Replace tags
+   - ✅ **Decision:** Replace tags are still parsed by the WML schema (for backwards compatibility and content-level editing contexts like `StandardLiteral`, `StandardRender`)
+   - ✅ **Decision:** Replace tags throw errors when used at component or reference level
+   - ✅ **Implementation:** `processComponents.ts` throws error: "Replace tags are not permitted at component level"
+   - ✅ **Implementation:** `StandardReference` constructors throw error: "Replace operations are illegal for references. References can only be added or removed, not replaced."
+   - ✅ Schema validation rejects Replace tags for components/references with clear error messages
 
 2. **Serialization Format**
-   - Remove Replace support from serialization formats
-   - Ensure JSON serialization never produces Replace data structures
+   - ✅ **Decision:** JSON serialization never produces Replace data structures (merge/diff operations don't create them)
+   - ✅ **Implementation:** Component merge/diff operations never create Replace operations
+   - ✅ **Implementation:** Reference merge/diff operations throw errors instead of creating Replace
+   - Note: Replace is still supported for content-level editing (StandardLiteral, StandardRender, etc.) but not for components/references
 
 3. **Error Handling**
-   - How should we handle legacy Replace operations in incoming data?
-   - What warnings/errors should we provide to developers?
+   - ✅ **Decision:** Replace operations throw clear errors immediately when encountered (no conversion)
+   - ✅ **Implementation:** Component-level Replace tags throw error: "Replace tags are not permitted at component level"
+   - ✅ **Implementation:** Reference-level Replace tags throw error: "Replace operations are illegal for references. References can only be added or removed, not replaced."
+   - ✅ Error messages are consistent and informative for developers
 
 4. **Testing Strategy**
-   - How comprehensive should replacement conversion tests be?
-   - Should we maintain parallel test suites during migration?
+   - ✅ **Decision:** Tests verify error behavior when Replace operations are encountered (no conversion testing needed)
+   - ✅ **Implementation:** Added tests verifying Replace operations from WML throw errors
+   - ✅ **Implementation:** Added tests verifying Replace operations from JSON throw errors
+   - ✅ No parallel test suites needed - error behavior is straightforward and well-tested
 
 ## Approach: Iterative Validation
 
@@ -389,71 +403,102 @@ This migration should proceed incrementally, starting with a single component ty
 
 ### 4.1 Implement assureReferences on StandardComponent Interface
 
-**Status:** ⏳ **PENDING**
+**Status:** ✅ **COMPLETE**
 
 **Tasks:**
-- Add `assureReferences(children: StandardReference[]): StandardComponent` method to `StandardComponent` interface
-  - Document that this is a pure function returning a cloned component
-  - Document that this is the ONLY place where `ref={0}` references should be introduced
-  - Document that all other reference manipulation should use non-zero refs
-- Update `StandardComponent` interface documentation to clarify:
-  - `assureReferences` handles idiosyncratic component-specific dispatch (features → features list, examples → examples list, etc.)
-  - Components own responsibility for their bucket structure
+- ✅ Add optional `assureReferences?(children: StandardReference[]): this` method to `ComponentConstructorMethods` interface (payload classes)
+  - ✅ Added to `ComponentConstructorMethods` interface in `component.ts`
+  - ✅ Added JSDoc comment referencing detailed documentation in `AGENT.implementation.md`
+- ✅ Add required `assureReferences(children: StandardReference[]): StandardComponent` method to `StandardComponent` interface
+  - ✅ Added to `StandardComponent` interface in `baseClasses.ts`
+  - ✅ Added JSDoc comment referencing detailed documentation
+  - ✅ Documented that this is a pure function returning a cloned component
+  - ✅ Documented delegation pattern (delegates to payload if available, otherwise returns unchanged)
+- ✅ Implement `assureReferences` in `componentClassFactory`
+  - ✅ Added implementation following the `invert()` delegation pattern
+  - ✅ Delegates to payload's `assureReferences` if available
+  - ✅ Returns instance unchanged if payload doesn't implement it (allows gradual rollout)
+- ✅ Add comprehensive documentation to `AGENT.implementation.md`
+  - ✅ Documented purpose, behavior, and component-specific dispatch patterns
+  - ✅ Documented relationship to other operations and hierarchy integration
+  - ✅ Documented implementation pattern and delegation behavior
 
 **Success Criteria:**
-- `assureReferences` method signature added to `StandardComponent` interface
-- Interface documentation updated with clear responsibilities
+- ✅ `assureReferences?()` method signature added to `ComponentConstructorMethods` interface
+- ✅ `assureReferences()` method signature added to `StandardComponent` interface
+- ✅ `assureReferences()` implementation added to `componentClassFactory` following `invert()` pattern
+- ✅ Brief JSDoc comments added with reference to detailed documentation
+- ✅ Comprehensive documentation added to `AGENT.implementation.md` explaining behavior, purpose, and patterns
+- ✅ TypeScript compilation succeeds with new interface methods
+- ✅ Components without payload `assureReferences` implementation return unchanged (allows gradual rollout)
 
 ### 4.2 Implement assureReferences for StandardRoomPayload (Prototype)
 
-**Status:** ⏳ **PENDING**
+**Status:** ✅ **COMPLETE**
 
 **Tasks:**
-- Implement `assureReferences` on `StandardRoomPayload`
-  - Accept `StandardReference[]` of children
-  - Dispatch children to appropriate buckets (features, examples, characters) based on component tag
-  - For each child reference:
-    - If reference already exists in the target bucket with non-zero ref, leave it unchanged
-    - If reference doesn't exist in target bucket, add it with `ref={0}`
-  - Return new `StandardRoomPayload` instance (pure function, no mutation)
-- Add comprehensive unit tests:
-  - Empty children array
-  - Children that already exist in buckets
-  - Children that need to be added with `ref={0}`
-  - Mixed scenarios (some exist, some don't)
-  - Verify returned component is a clone (original unchanged)
-  - Verify idempotency: `component.assureReferences(children).assureReferences(children) === component.assureReferences(children)`
+- ✅ Implement `assureReferences` on `StandardRoomPayload`
+  - ✅ Accept `StandardReference[]` of children
+  - ✅ Dispatch children to appropriate buckets (features, examples, characters) based on component tag using functional filter/map approach
+  - ✅ For each child reference:
+    - ✅ If reference already exists in the target bucket with non-zero ref, leave it unchanged (handled by `ReferenceList.merge`)
+    - ✅ If reference doesn't exist in target bucket, add it with `ref={0}` (using `withRef(0)` and merging with `{ cleanEmptyReferences: false }`)
+  - ✅ Return new `StandardRoomPayload` instance (pure function, no mutation)
+- ✅ Refactor `ReferenceList.merge` to support `cleanEmptyReferences` option
+  - ✅ Added optional `options?: { cleanEmptyReferences?: boolean }` parameter, defaulting to `true`
+  - ✅ Updated `StandardReference.merge` and `StandardReferenceSimple.merge` to accept and pass through options
+  - ✅ Updated `StandardReferenceSimple.merge` to preserve `ref={0}` when `cleanEmptyReferences: false` (using `this.withRef(0)`)
+  - ✅ All existing call sites continue to work (backward compatible)
+- ✅ Add comprehensive unit tests:
+  - ✅ Empty children array
+  - ✅ Children that already exist in buckets (with non-zero refs)
+  - ✅ Children that need to be added with `ref={0}`
+  - ✅ Mixed scenarios (some exist, some don't)
+  - ✅ Verify returned component is a clone (original unchanged)
+  - ✅ Verify idempotency: calling `assureReferences` multiple times with same children produces equivalent results
+  - ✅ Verify correct bucket dispatch based on component tag
+  - ✅ Added tests for `ReferenceList.merge` with `cleanEmptyReferences` option (default behavior and `false` option)
 
 **Success Criteria:**
-- `StandardRoomPayload.assureReferences()` implemented and tested
-- All tests pass, demonstrating pure function behavior
-- Pattern established for other component types
+- ✅ `StandardRoomPayload.assureReferences()` implemented and tested
+- ✅ `ReferenceList.merge` refactored to support `cleanEmptyReferences` option
+- ✅ All tests pass, demonstrating pure function behavior
+- ✅ Pattern established for other component types
+- ✅ Backward compatibility maintained for existing `ReferenceList.merge` call sites
 
 ### 4.3 Extend assureReferences to Other Component Types
 
-**Status:** ⏳ **PENDING**
+**Status:** ✅ **COMPLETE**
 
 **Tasks:**
-- Implement `assureReferences` for all component types that have reference lists:
-  - `StandardFeature`
-  - `StandardCharacter`
-  - `StandardExample`
-  - `StandardKnowledge`
-  - `StandardMap` (for positions)
-  - `StandardMoment`
-  - Any other components with child references
-- For each component:
-  - Follow pattern established in `StandardRoomPayload`
-  - Dispatch children to appropriate buckets based on component tag
-  - Add `ref={0}` only when reference doesn't exist
-  - Return cloned component (pure function)
-- Add unit tests for each component type
-- Update `nestedSchema` implementations for each component type to use `assureReferences`
+- ✅ Implement `assureReferences` for all component types that have reference lists:
+  - ✅ `StandardFeature` (dispatches Example children to `_examples` bucket)
+  - ✅ `StandardKnowledge` (dispatches Example children to `_examples` bucket)
+  - ✅ `StandardMoment` (dispatches Message children to `_messages` bucket)
+  - ✅ `StandardMessage` (dispatches Room children to `_rooms` bucket) - *initially omitted, added after completion*
+  - ⚠️ `StandardMap` (for positions) - **Skipped**
+    - ⚠️ **Note:** We do not currently handle having items parented to `Map` types, and cannot really `assureReferences` against `StandardPosition`. This may need to be implemented in the future.
+- ✅ For each component:
+  - ✅ Follow pattern established in `StandardRoomPayload`
+  - ✅ Dispatch children to appropriate buckets based on component tag using functional filter/map approach
+  - ✅ Add `ref={0}` only when reference doesn't exist (using `withRef(0)` and merging with `{ cleanEmptyReferences: false }`)
+  - ✅ Return cloned component (pure function, no mutation)
+- ✅ Add comprehensive unit tests for each component type:
+  - ✅ Empty children array
+  - ✅ Children that already exist in buckets (with non-zero refs)
+  - ✅ Children that need to be added with `ref={0}`
+  - ✅ Mixed scenarios (some exist, some don't)
+  - ✅ Verify returned component is a clone (original unchanged)
+  - ✅ Verify idempotency: calling `assureReferences` multiple times with same children produces equivalent results
+  - ✅ Verify correct bucket dispatch based on component tag
+  - ✅ Verify ignoring children with incorrect tags
+- ⏳ Update `nestedSchema` implementations for each component type to use `assureReferences` (deferred to Phase 4.5)
 
 **Success Criteria:**
-- All component types with reference lists implement `assureReferences`
-- All implementations follow consistent pattern
-- All tests pass
+- ✅ All component types with reference lists implement `assureReferences` (except `StandardMap` which is documented as future work)
+- ✅ All implementations follow consistent pattern
+- ✅ All tests pass
+- ✅ `StandardMessage` added after initial completion (omission corrected)
 
 ### 4.4 Define OrganizationContext Interface
 

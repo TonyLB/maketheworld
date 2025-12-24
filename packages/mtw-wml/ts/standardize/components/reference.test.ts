@@ -404,4 +404,46 @@ describe('ReferenceList', () => {
             ])
         }).toThrow('Replace operations are illegal for references. References can only be added or removed, not replaced.')
     })
+
+    describe('merge with cleanEmptyReferences option', () => {
+        it('should filter out cancelled references by default (cleanEmptyReferences=true)', () => {
+            const base = new ReferenceList([{ tag: 'Feature', key: 'feat1', ref: 1 }])
+            const incoming = new ReferenceList([{ tag: 'Feature', key: 'feat1', ref: -1 }])
+            const merged = base.merge(incoming)
+            
+            // Cancelled reference should be removed
+            expect(merged?.payload.length).toBe(0)
+        })
+        
+        it('should preserve ref={0} references when cleanEmptyReferences=false', () => {
+            const base = new ReferenceList([{ tag: 'Feature', key: 'feat1', ref: 1 }])
+            const incoming = new ReferenceList([{ tag: 'Feature', key: 'feat1', ref: -1 }])
+            const merged = base.merge(incoming, { cleanEmptyReferences: false })
+            
+            // Cancelled reference should be preserved as ref={0}
+            expect(merged?.payload.length).toBe(1)
+            expect(merged?.payload[0].ref).toBe(0)
+            expect(merged?.payload[0].sameKey(new StandardReference({ tag: 'Feature', key: 'feat1' }))).toBe(true)
+        })
+        
+        it('should preserve explicit ref={0} references when merging with non-zero ref', () => {
+            const base = new ReferenceList([{ tag: 'Feature', key: 'feat1', ref: 0 }])
+            const incoming = new ReferenceList([{ tag: 'Feature', key: 'feat1', ref: 1 }])
+            const merged = base.merge(incoming, { cleanEmptyReferences: false })
+            
+            // 0 + 1 = 1, so result should be ref={1} (arithmetic merge)
+            expect(merged?.payload.length).toBe(1)
+            expect(merged?.payload[0].ref).toBe(1)
+        })
+        
+        it('should preserve ref={0} when merging ref={0} with ref={0}', () => {
+            const base = new ReferenceList([{ tag: 'Feature', key: 'feat1', ref: 0 }])
+            const incoming = new ReferenceList([{ tag: 'Feature', key: 'feat1', ref: 0 }])
+            const merged = base.merge(incoming, { cleanEmptyReferences: false })
+            
+            // 0 + 0 = 0, should be preserved as ref={0}
+            expect(merged?.payload.length).toBe(1)
+            expect(merged?.payload[0].ref).toBe(0)
+        })
+    })
 })

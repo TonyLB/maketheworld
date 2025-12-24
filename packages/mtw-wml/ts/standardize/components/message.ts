@@ -133,6 +133,23 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         returnValue._rooms = this._rooms.invert()
         return returnValue as this
     }
+
+    assureReferences(children: StandardReference[]): this {
+        const returnValue = new StandardMessagePayload(this)
+        
+        // Filter and map children by type, creating references with ref={0}
+        const roomReferences = new ReferenceList(
+            children
+                .filter(child => child._payload.plain.tag === 'Room')
+                .map(child => child.withRef(0))
+        )
+        
+        // Merge with existing bucket, preserving ref={0} references
+        // cleanEmptyReferences: false ensures ref={0} entries are preserved when merging
+        returnValue._rooms = this._rooms.merge(roomReferences, { cleanEmptyReferences: false }) ?? this._rooms
+        
+        return returnValue as this
+    }
 }
 
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {

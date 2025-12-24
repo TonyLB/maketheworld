@@ -118,6 +118,23 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         return returnValue as this
     }
 
+    assureReferences(children: StandardReference[]): this {
+        const returnValue = new StandardMomentPayload(this)
+        
+        // Filter and map children by type, creating references with ref={0}
+        const messageReferences = new ReferenceList(
+            children
+                .filter(child => child._payload.plain.tag === 'Message')
+                .map(child => child.withRef(0))
+        )
+        
+        // Merge with existing bucket, preserving ref={0} references
+        // cleanEmptyReferences: false ensures ref={0} entries are preserved when merging
+        returnValue._messages = this._messages.merge(messageReferences, { cleanEmptyReferences: false }) ?? this._messages
+        
+        return returnValue as this
+    }
+
 }
 
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {

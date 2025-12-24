@@ -113,5 +113,117 @@ describe('StandardMoment class', () => {
             </Moment>
         `))
     })
+
+    describe('assureReferences method', () => {
+        it('should return unchanged moment when children array is empty', () => {
+            const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
+            const result = moment._payload.assureReferences([])
+            
+            expect(result.messages.payload.length).toBe(0)
+            // Verify it's a clone (original unchanged)
+            expect(moment._payload.messages.payload.length).toBe(0)
+        })
+        
+        it('should add children with ref={0} when they do not exist', () => {
+            const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
+            const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
+            
+            const result = moment._payload.assureReferences([messageRef])
+            
+            // Verify reference was added with ref={0}
+            expect(result.messages.payload.length).toBe(1)
+            expect(result.messages.payload[0].ref).toBe(0)
+            expect(result.messages.payload[0].sameKey(messageRef)).toBe(true)
+        })
+        
+        it('should leave existing references with non-zero ref unchanged', () => {
+            const moment = new StandardMoment(deIndentWML(`
+                <Moment key=(test)>
+                    <Message key=(msg1) />
+                </Moment>
+            `))
+            const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
+            
+            const result = moment._payload.assureReferences([messageRef])
+            
+            // Verify existing reference was left unchanged
+            expect(result.messages.payload.length).toBe(1)
+            expect(result.messages.payload[0].ref).toBe(1) // Original ref value (default)
+        })
+        
+        it('should handle mixed scenarios (some exist, some do not)', () => {
+            const moment = new StandardMoment(deIndentWML(`
+                <Moment key=(test)>
+                    <Message key=(existingMsg) />
+                </Moment>
+            `))
+            const existingMessage = new StandardReference({ tag: 'Message', key: 'existingMsg' })
+            const newMessage = new StandardReference({ tag: 'Message', key: 'newMsg' })
+            
+            const result = moment._payload.assureReferences([existingMessage, newMessage])
+            
+            // Existing message should be unchanged
+            expect(result.messages.payload.length).toBe(2)
+            const existingMsgInResult = result.messages.payload.find(ref => ref.sameKey(existingMessage))
+            expect(existingMsgInResult?.ref).toBe(1) // Original ref value
+            
+            // New message should be added with ref={0}
+            const newMsgInResult = result.messages.payload.find(ref => ref.sameKey(newMessage))
+            expect(newMsgInResult?.ref).toBe(0)
+        })
+        
+        it('should return a clone without mutating the original', () => {
+            const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
+            const originalMessagesLength = moment._payload.messages.payload.length
+            const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
+            
+            const result = moment._payload.assureReferences([messageRef])
+            
+            // Original should be unchanged
+            expect(moment._payload.messages.payload.length).toBe(originalMessagesLength)
+            // Result should have the new reference
+            expect(result.messages.payload.length).toBe(1)
+            // They should be different objects
+            expect(result).not.toBe(moment._payload)
+        })
+        
+        it('should be idempotent (calling multiple times with same children produces same result)', () => {
+            const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
+            const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
+            
+            const firstCall = moment._payload.assureReferences([messageRef])
+            const secondCall = firstCall.assureReferences([messageRef])
+            
+            // Both calls should produce the same result
+            expect(firstCall.messages.payload.length).toBe(1)
+            expect(secondCall.messages.payload.length).toBe(1)
+            expect(firstCall.messages.payload[0].sameKey(secondCall.messages.payload[0])).toBe(true)
+            expect(firstCall.messages.payload[0].ref).toBe(0)
+            expect(secondCall.messages.payload[0].ref).toBe(0)
+        })
+        
+        it('should dispatch children to correct bucket based on tag', () => {
+            const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
+            const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
+            
+            const result = moment._payload.assureReferences([messageRef])
+            
+            // Verify reference went to the correct bucket
+            expect(result.messages.payload.length).toBe(1)
+            expect(result.messages.payload[0].sameKey(messageRef)).toBe(true)
+        })
+        
+        it('should ignore children with incorrect tag', () => {
+            const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
+            
+            const result = moment._payload.assureReferences([exampleRef, messageRef])
+            
+            // Only Message should be added
+            expect(result.messages.payload.length).toBe(1)
+            expect(result.messages.payload[0].sameKey(messageRef)).toBe(true)
+        })
+    })
     
 })
