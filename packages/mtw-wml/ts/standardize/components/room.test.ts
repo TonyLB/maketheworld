@@ -795,4 +795,145 @@ describe('StandardRoom class', () => {
         })
     })
 
+    describe('assureReferences method', () => {
+        it('should return unchanged room when children array is empty', () => {
+            const room = new StandardRoom({ tag: 'Room', key: 'test' })
+            const result = room._payload.assureReferences([])
+            
+            expect(result.features.payload.length).toBe(0)
+            expect(result.examples.payload.length).toBe(0)
+            expect(result.characters.payload.length).toBe(0)
+            // Verify it's a clone (original unchanged)
+            expect(room._payload.features.payload.length).toBe(0)
+        })
+        
+        it('should add children with ref={0} when they do not exist', () => {
+            const room = new StandardRoom({ tag: 'Room', key: 'test' })
+            const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const charRef = new StandardReference({ tag: 'Character', key: 'char1' })
+            
+            const result = room._payload.assureReferences([featureRef, exampleRef, charRef])
+            
+            // Verify references were added with ref={0}
+            expect(result.features.payload.length).toBe(1)
+            expect(result.features.payload[0].ref).toBe(0)
+            expect(result.features.payload[0].sameKey(featureRef)).toBe(true)
+            
+            expect(result.examples.payload.length).toBe(1)
+            expect(result.examples.payload[0].ref).toBe(0)
+            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
+            
+            expect(result.characters.payload.length).toBe(1)
+            expect(result.characters.payload[0].ref).toBe(0)
+            expect(result.characters.payload[0].sameKey(charRef)).toBe(true)
+        })
+        
+        it('should leave existing references with non-zero ref unchanged', () => {
+            const room = new StandardRoom(deIndentWML(`
+                <Room key=(test)>
+                    <Feature key=(feat1) />
+                    <Example key=(ex1) ref={2} />
+                </Room>
+            `))
+            const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1', ref: 2 })
+            
+            const result = room._payload.assureReferences([featureRef, exampleRef])
+            
+            // Verify existing references were left unchanged
+            expect(result.features.payload.length).toBe(1)
+            expect(result.features.payload[0].ref).toBe(1) // Original ref value (default)
+            
+            expect(result.examples.payload.length).toBe(1)
+            expect(result.examples.payload[0].ref).toBe(2) // Original ref value
+        })
+        
+        it('should handle mixed scenarios (some exist, some do not)', () => {
+            const room = new StandardRoom(deIndentWML(`
+                <Room key=(test)>
+                    <Feature key=(existingFeat) />
+                </Room>
+            `))
+            const existingFeature = new StandardReference({ tag: 'Feature', key: 'existingFeat' })
+            const newFeature = new StandardReference({ tag: 'Feature', key: 'newFeat' })
+            const newExample = new StandardReference({ tag: 'Example', key: 'newEx' })
+            
+            const result = room._payload.assureReferences([existingFeature, newFeature, newExample])
+            
+            // Existing feature should be unchanged
+            expect(result.features.payload.length).toBe(2)
+            const existingFeatInResult = result.features.payload.find(ref => ref.sameKey(existingFeature))
+            expect(existingFeatInResult?.ref).toBe(1) // Original ref value
+            
+            // New feature should be added with ref={0}
+            const newFeatInResult = result.features.payload.find(ref => ref.sameKey(newFeature))
+            expect(newFeatInResult?.ref).toBe(0)
+            
+            // New example should be added with ref={0}
+            expect(result.examples.payload.length).toBe(1)
+            expect(result.examples.payload[0].ref).toBe(0)
+            expect(result.examples.payload[0].sameKey(newExample)).toBe(true)
+        })
+        
+        it('should return a clone without mutating the original', () => {
+            const room = new StandardRoom({ tag: 'Room', key: 'test' })
+            const originalFeaturesLength = room._payload.features.payload.length
+            const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
+            
+            const result = room._payload.assureReferences([featureRef])
+            
+            // Original should be unchanged
+            expect(room._payload.features.payload.length).toBe(originalFeaturesLength)
+            // Result should have the new reference
+            expect(result.features.payload.length).toBe(1)
+            // They should be different objects
+            expect(result).not.toBe(room._payload)
+        })
+        
+        it('should be idempotent (calling multiple times with same children produces same result)', () => {
+            const room = new StandardRoom({ tag: 'Room', key: 'test' })
+            const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            
+            const firstCall = room._payload.assureReferences([featureRef, exampleRef])
+            const secondCall = firstCall.assureReferences([featureRef, exampleRef])
+            
+            // Both calls should produce the same result
+            expect(firstCall.features.payload.length).toBe(1)
+            expect(secondCall.features.payload.length).toBe(1)
+            expect(firstCall.features.payload[0].sameKey(secondCall.features.payload[0])).toBe(true)
+            expect(firstCall.features.payload[0].ref).toBe(0)
+            expect(secondCall.features.payload[0].ref).toBe(0)
+            
+            expect(firstCall.examples.payload.length).toBe(1)
+            expect(secondCall.examples.payload.length).toBe(1)
+            expect(firstCall.examples.payload[0].sameKey(secondCall.examples.payload[0])).toBe(true)
+            expect(firstCall.examples.payload[0].ref).toBe(0)
+            expect(secondCall.examples.payload[0].ref).toBe(0)
+        })
+        
+        it('should dispatch children to correct buckets based on tag', () => {
+            const room = new StandardRoom({ tag: 'Room', key: 'test' })
+            const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const charRef = new StandardReference({ tag: 'Character', key: 'char1' })
+            
+            const result = room._payload.assureReferences([featureRef, exampleRef, charRef])
+            
+            // Verify each reference went to the correct bucket
+            expect(result.features.payload.length).toBe(1)
+            expect(result.features.payload[0].sameKey(featureRef)).toBe(true)
+            
+            expect(result.examples.payload.length).toBe(1)
+            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
+            
+            expect(result.characters.payload.length).toBe(1)
+            expect(result.characters.payload[0].sameKey(charRef)).toBe(true)
+            
+            // Verify other buckets are empty
+            expect(result.exits.length).toBe(0)
+        })
+    })
+
 })

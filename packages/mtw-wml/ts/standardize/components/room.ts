@@ -139,6 +139,35 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
+    assureReferences(children: StandardReference[]): this {
+        const returnValue = new StandardRoomPayload(this)
+        
+        // Filter and map children by type, creating references with ref={0}
+        const featureReferences = new ReferenceList(
+            children
+                .filter(child => child._payload.plain.tag === 'Feature')
+                .map(child => child.withRef(0))
+        )
+        const exampleReferences = new ReferenceList(
+            children
+                .filter(child => child._payload.plain.tag === 'Example')
+                .map(child => child.withRef(0))
+        )
+        const characterReferences = new ReferenceList(
+            children
+                .filter(child => child._payload.plain.tag === 'Character')
+                .map(child => child.withRef(0))
+        )
+        
+        // Merge with existing buckets, preserving ref={0} references
+        // cleanEmptyReferences: false ensures ref={0} entries are preserved when merging
+        returnValue._features = this._features.merge(featureReferences, { cleanEmptyReferences: false }) ?? this._features
+        returnValue._examples = this._examples.merge(exampleReferences, { cleanEmptyReferences: false }) ?? this._examples
+        returnValue._characters = this._characters.merge(characterReferences, { cleanEmptyReferences: false }) ?? this._characters
+        
+        return returnValue as this
+    }
+
     subset({ requestType }): this {
         if (requestType === 'Full') {
             return new StandardRoomPayload(this) as this

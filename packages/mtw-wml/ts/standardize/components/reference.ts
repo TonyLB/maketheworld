@@ -488,7 +488,9 @@ export class StandardReferenceSimple {
         return this.payload.toJSON()
     }
     get plain() { return this.payload }
-    merge(other: StandardReferenceSimple): StandardReferenceSimple | undefined {
+    merge(other: StandardReferenceSimple, options?: { cleanEmptyReferences?: boolean }): StandardReferenceSimple | undefined {
+        const { cleanEmptyReferences = true } = options ?? {}
+        
         if (!(other instanceof StandardReferenceSimple)) {
             throw new Error('merge() can only be called with StandardReferenceSimple instances')
         }
@@ -500,8 +502,12 @@ export class StandardReferenceSimple {
         // Calculate merged ref value
         const mergedRef = baseRef + otherRef
         
-        // Handle zero result: cancellation, return undefined
+        // Handle zero result
         if (mergedRef === 0) {
+            if (!cleanEmptyReferences) {
+                return this.withRef(0)
+            }
+            // Default: cancellation, return undefined
             return undefined
         }
         
@@ -686,11 +692,11 @@ export class StandardReference {
         return this._payload.toJSON()
     }
 
-    merge(incoming: StandardReference): StandardReference | undefined {
+    merge(incoming: StandardReference, options?: { cleanEmptyReferences?: boolean }): StandardReference | undefined {
         if (!this.sameKey(incoming)) {
             throw new Error('Cannot change which component a reference points to')
         }
-        const merged = this._payload.merge(incoming._payload)
+        const merged = this._payload.merge(incoming._payload, options)
         if (merged) {
             return new StandardReference(merged)
         }
@@ -915,7 +921,7 @@ export class ReferenceList {
         return this._items
     }
 
-    merge(other: ReferenceList): ReferenceList | undefined {
+    merge(other: ReferenceList, options?: { cleanEmptyReferences?: boolean }): ReferenceList | undefined {
         if (!(other instanceof ReferenceList)) {
             throw new Error('Cannot merge with non-ReferenceList instance')
         }
@@ -933,7 +939,7 @@ export class ReferenceList {
         
         const mergedItems = [
             ...unmatchedBaseItems,
-            ...matchedOtherItems.map(({ base, incoming }) => base.merge(incoming)),
+            ...matchedOtherItems.map(({ base, incoming }) => base.merge(incoming, options)),
             ...unmatchedOtherItems
         ].filter(excludeUndefined)
         
