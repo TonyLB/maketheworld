@@ -24,7 +24,7 @@ import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
 import { ReferenceListData, StandardReferenceData, StandardKeyData } from "./components/dataTypes/reference"
-import StandardReference, { ReferenceList, StandardKey, StandardReferenceSimple } from "./components/reference"
+import StandardReference, { ReferenceList, StandardKey, StandardReferenceSimple, referenceSortOrder } from "./components/reference"
 import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
 import { StandardExplicitParent, StandardExplicitParentSimple } from "./explicit/parent"
@@ -910,15 +910,6 @@ export class StandardForm {
 
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
-        // Create lookup helper for sorting - convert StandardComponent to new lookup result format
-        const lookup = (key: StandardKey) => {
-            const component = this._lookup(key.toJSON())
-            if (!component) return undefined
-            return {
-                reference: component.reference.plain(),
-                implicitParent: component.implicitParent
-            }
-        }
         const lookupWrapper = (key: string | StandardKey): StandardComponent | undefined => {
             if (typeof key === 'string') {
                 // String is assumed to be ComponentUUID (part of StandardKeyData)
@@ -950,7 +941,7 @@ export class StandardForm {
         const placeholderKey = (topLevelToRender.payload?.[0]?.plain().standardKey) ?? new StandardKey({ tag: 'Room', key: 'Placeholder', universalKey: undefined })
         
         const children = (topLevelToRender.payload ?? [])
-            .sort((referenceA, referenceB) => (standardComponentSortOrder(referenceA.plain(), referenceB.plain(), lookup)))
+            .sort((referenceA, referenceB) => (referenceSortOrder(referenceA.plain(), referenceB.plain())))
             .map(renderReference({ 
                 lookup: lookupWrapper, 
                 options: { 
