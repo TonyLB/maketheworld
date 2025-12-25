@@ -498,3 +498,52 @@ export class SchemaOrganization {
     }
 }
 
+/**
+ * Minimal interface for querying component parentage information.
+ * Provides a focused API for components to determine their parent context
+ * and retrieve their children during schema rendering.
+ */
+export interface OrganizationContext {
+    /**
+     * Returns the implicit parent of a component, if one exists.
+     * 
+     * @param key - The StandardKey of the component to query
+     * @returns The implicit parent StandardKey, or undefined if the component is at Asset level
+     */
+    getImplicitParent(key: StandardKey): StandardKey | undefined;
+
+    /**
+     * Returns all children of a given parent component or Asset.
+     * 
+     * @param parent - The StandardKey of the parent component, or AssetUUID for Asset-level children
+     * @returns Array of StandardReference instances for all child components
+     */
+    getChildrenOfParent(parent: StandardKey | AssetUUID): StandardReference[];
+}
+
+/**
+ * Creates an OrganizationContext from a SchemaOrganization instance.
+ * 
+ * This factory function wraps a SchemaOrganization and provides the minimal
+ * OrganizationContext interface. It handles type conversion between AssetUUID
+ * (used in the interface) and undefined (used internally by SchemaOrganization).
+ * 
+ * @param organization - The SchemaOrganization instance to wrap
+ * @returns An OrganizationContext that delegates to the provided SchemaOrganization
+ */
+export function createOrganizationContext(organization: SchemaOrganization): OrganizationContext {
+    return {
+        getImplicitParent(key: StandardKey): StandardKey | undefined {
+            return organization.getImplicitParent(key);
+        },
+
+        getChildrenOfParent(parent: StandardKey | AssetUUID): StandardReference[] {
+            // Convert AssetUUID to undefined for SchemaOrganization API
+            const parentKey: StandardKey | undefined = typeof parent === 'string' && parent.startsWith('ASSET#')
+                ? undefined
+                : parent as StandardKey;
+            return organization.getChildrenOfParent(parentKey);
+        }
+    };
+}
+
