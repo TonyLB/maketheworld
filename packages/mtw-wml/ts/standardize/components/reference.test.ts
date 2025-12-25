@@ -230,7 +230,7 @@ describe('StandardReference', () => {
         const testSimple = new StandardReference('<Remove><Room key=(room1) uuid=(Room1) /></Remove>')
         expect(testSimple.toFormat('both').toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room', ref: -1 })
         expect(testSimple.toFormat('key').toJSON()).toEqual({ key: 'room1', tag: 'Room', ref: -1 })
-        expect(testSimple.toFormat('universal').toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room', ref: -1 })
+        expect(testSimple.toFormat('universal').toJSON()).toEqual({ universalKey: 'ROOM#Room1', tag: 'Room', ref: -1 })
     })
 
     it('should throw error when attempting to create Replace reference from WML', () => {

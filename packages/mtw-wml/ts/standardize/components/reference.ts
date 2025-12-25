@@ -242,6 +242,11 @@ export class StandardReferencePayload implements StandardEditablePayload<Standar
     toJSON: () => StandardReferenceData = () => {
         if (!this.key && this.universalKey) {
             // If only universalKey, return ComponentUUID string form (ref not included in string form)
+            // However, if ref is non-default, we must return object form to include ref
+            if (this._ref !== 1) {
+                const result: StandardReferenceData = { universalKey: this.universalKey, tag: this._tag, ref: this._ref }
+                return result
+            }
             return this.universalKey
         }
         if (this.key) {
@@ -831,8 +836,8 @@ export class StandardReference {
         const keyData = formattedKey.toJSON()
         const referenceData: StandardReferenceData = typeof keyData === 'string' 
             ? keyData 
-            : { ...keyData, tag, ref }
-        return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(referenceData)))
+            : { ...keyData, tag }
+        return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(referenceData))).withRef(ref)
     }
 }
 
