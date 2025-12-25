@@ -449,51 +449,6 @@ export class StandardForm {
     }
 
     /**
-     * Gets the ancestry chain for a component by traversing its implicitParent chain.
-     * 
-     * Returns an array of ComponentUUID[] representing the chain from Asset level (earliest ancestor)
-     * to direct parent (most proximate ancestor). This matches the order of the old `context` array.
-     * 
-     * Note: This does NOT include the current component itself, only ancestors.
-     * 
-     * **Note on implicit vs explicit parent**: This function currently only uses `implicitParent`.
-     * As we add more nuanced interaction between implicit and explicit parent, we may want to
-     * modify this to consider both parent types (e.g., explicit parent takes precedence, or merge both chains).
-     * 
-     * @param component The component to get the ancestry chain for
-     * @returns Array of ComponentUUID[] representing the ancestry chain (earliest to most proximate),
-     *          empty array for Asset-level components
-     */
-    _getAncestryChainFromImplicitParent(component: StandardComponent): StandardKey[] {
-        let chain: StandardKey[] = []
-        let current: StandardComponent | undefined = component
-        
-        // Traverse up the implicitParent chain, building chain from most proximate to earliest
-        let visited: StandardKey[] = []
-        while (current?.implicitParent) {
-            const parentKey = current.implicitParent  // StandardKey
-            
-            // Look up parent component by StandardKey
-            const parentComponent = this._lookup(parentKey.toJSON())
-            
-            // Cycle detection
-            if (visited.some(visitedKey => visitedKey.equals(parentKey))) {
-                throw new Error(`Cycle detected in implicitParent chain: ${JSON.stringify(parentKey)} appears multiple times. Chain: ${visited.map(key => JSON.stringify(key)).join(' -> ')} -> ${JSON.stringify(parentKey)}`)
-            }
-            visited = [...visited, parentKey]
-            
-            // Add parent to chain (most proximate first)
-            chain = [...chain, parentKey]
-            
-            // Continue traversal with parent component
-            current = parentComponent
-        }
-        
-        // Reverse to get order from Asset level (earliest) to direct parent (most proximate)
-        return chain.reverse()
-    }
-
-    /**
      * Builds a directed graph using StandardKey (works before finalize()).
      * 
      * This version creates synthetic UUIDs for StandardKeys and merges StandardKeys

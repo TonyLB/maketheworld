@@ -620,9 +620,10 @@ This migration should proceed incrementally, starting with a single component ty
   - ✅ `index.ts` (lines 277, 893): Sorting now uses `SchemaOrganization.sortOrder()` instead of lookup functions
     - ✅ Removed lookup functions that read `component.implicitParent` field
     - ✅ Both locations now use `organization.sortOrder()` directly
-  - `index.ts` (line 476): `_getAncestryChainFromImplicitParent` method traverses `implicitParent` chain
-    - Update to use `SchemaOrganization.getImplicitParent()` in a loop
-    - Consider whether this method is still needed or can be replaced by `SchemaOrganization` queries
+  - ✅ `index.ts` (line 467): `_getAncestryChainFromImplicitParent` method removed
+    - ✅ Method was unused dead code (no call sites found)
+    - ✅ Functionality superseded by `SchemaOrganization.buildAncestryChain()` which handles both explicit and implicit parentage
+    - ✅ `SchemaOrganization.buildAncestryChain()` provides better return type (`StandardReferenceSimple[]` with tags)
   - ✅ `map.ts` (line 121): Updated to use `options.organization?.isParentContext(roomKey, mapKeyPlain)`
     - ✅ Replaced `roomComponent.implicitParent?.equals(mapKeyPlain)` with `isParentContext` helper
     - ✅ `OrganizationContext` already available in `NestedSchemaOptions` (from Phase 4.5)
@@ -644,9 +645,10 @@ This migration should proceed incrementally, starting with a single component ty
 
 **Tasks:**
 - Remove or deprecate methods that are no longer needed:
+  - ✅ `_getAncestryChainFromImplicitParent()` (removed - was unused dead code, superseded by `SchemaOrganization.buildAncestryChain()`)
   - `_buildComponentGraph()` (delegated to `SchemaOrganization`)
   - `generateImplicitParents()` (delegated to `SchemaOrganization`)
-  - `_updateTopLevelFromComponents()` (functionality moved to `assureReferences` at render time)
+  - ✅ `_updateTopLevelFromComponents()` (removed - functionality moved to `assureReferences` at render time)
   - Any other helper methods that were only used for hierarchy management
 - Update all call sites to use `SchemaOrganization` directly or through `OrganizationContext`
 - Verify no external code depends on removed methods
