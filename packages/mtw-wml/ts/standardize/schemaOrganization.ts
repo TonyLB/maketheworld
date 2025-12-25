@@ -55,12 +55,20 @@ export class SchemaOrganization {
 
                 // Explicit parent takes precedence
                 if (explicitParentResult !== undefined) {
-                    return explicitParentResult.explicitParent === parent
+                    const explicitParent = explicitParentResult.explicitParent
+                    // Compare using .equals() for StandardKey objects, or === for undefined
+                    const matches = explicitParent === undefined 
+                        ? parent === undefined
+                        : explicitParent !== undefined && parent !== undefined && explicitParent.equals(parent)
+                    return matches
                 }
 
                 // Implicit parent as fallback (only when no explicit parent data exists)
                 const implicitParent = this.getImplicitParent(componentKey)
-                return implicitParent === parent
+                // Compare using .equals() for StandardKey objects, or === for undefined
+                return implicitParent === undefined
+                    ? parent === undefined
+                    : implicitParent !== undefined && parent !== undefined && implicitParent.equals(parent)
             })
             .map((component) => component.reference)
     }
@@ -463,6 +471,9 @@ export class SchemaOrganization {
                     } else if (explicitParentData instanceof StandardKey) {
                         // Component parent
                         return [...organization, { key: componentKey, parent: explicitParentData }]
+                    } else if (typeof explicitParentData === 'string') {
+                        // Handle string ComponentUUID - convert to StandardKey
+                        return [...organization, { key: componentKey, parent: new StandardKey(explicitParentData) }]
                     }
                 } else if (payload instanceof StandardExplicitParentRemove) {
                     // Removed explicit parent - no explicit parent set, so don't add entry
