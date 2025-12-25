@@ -231,21 +231,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
 
             const target = removeContext ? this.invert() as this : this
             
-            // Check if component should be rendered based on its explicit and implicit parents:
-            //   (a) It has no ex/implicitParent and we are rendering the asset (expectedParent === undefined), OR
-            //   (b) It has an ex/implicitParent and we're rendering in the context of that parent (ex/implicitParent matches expectedParent)
-            const renderingParent = options.parent
-            
-            const explicitParentKey = target.explicitParent?.standardKey
-            // Get implicit parent as StandardKey (works both before and after finalize)
-            const positionalParentKey: StandardKey | undefined = explicitParentKey ? explicitParentKey === 'ASSET' ? undefined : new StandardKey(explicitParentKey) : target._implicitParent
-            
-            // Determine if we should render:
-            // - If expectedParent is undefined, render only if component is Asset-level (no implicit parent)
-            // - If expectedParent is set, render only if component has implicitParent and it matches expectedParent
-            const shouldRender = typeof renderingParent === 'undefined'
-                ? typeof positionalParentKey === 'undefined'  // Asset-level rendering: only render if component is also Asset-level
-                : positionalParentKey?.equals(renderingParent)  // Nested rendering: only render if parent matches
+            // Check if component should be rendered based on its parent context using OrganizationContext helper
+            const shouldRender = options.organization?.isParentContext(target._key.plain, options.parent) ?? false
             
             if (!shouldRender) {
                 const reference = new StandardReference(new StandardReferenceSimple(target._key, target.tag)).toFormat('key')

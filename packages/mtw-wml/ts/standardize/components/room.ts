@@ -102,15 +102,31 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key } = options
+        
+        // If organization is available, use assured references from organization
+        // Otherwise, fall back to stored reference lists
+        let featuresToRender = this.features
+        let examplesToRender = this.examples
+        let charactersToRender = this.characters
+        
+        if (options.organization) {
+            // Get children from organization and assure references
+            const children = options.organization.getChildrenOfParent(key) ?? []
+            const assured = this.assureReferences(children)
+            featuresToRender = assured.features
+            examplesToRender = assured.examples
+            charactersToRender = assured.characters
+        }
+        
         // Pass this Room's key as parent to children (just like componentClassFactory does)
         // This allows children with implicitParent set to this Room to render correctly
         return {
             data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
-                ...this.features.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
-                ...this.examples.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
-                ...this.characters.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
+                ...featuresToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
+                ...examplesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
+                ...charactersToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...this.exits.map((exit) => (exit.schema)).flat(1)
             ]
         }

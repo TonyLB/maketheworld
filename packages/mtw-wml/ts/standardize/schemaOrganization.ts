@@ -73,6 +73,26 @@ export class SchemaOrganization {
             .map((component) => component.reference)
     }
 
+    isParentContext(childKey: StandardKey, parentCandidate: StandardKey | undefined): boolean {
+        const explicitParentResult = this.getExplicitParent(childKey)
+
+        // Explicit parent takes precedence
+        if (typeof explicitParentResult !== "undefined") {
+            const explicitParent = explicitParentResult.explicitParent
+            // Compare using .equals() for StandardKey objects, or === for undefined
+            return explicitParent
+                ? Boolean(parentCandidate && explicitParent.equals(parentCandidate))
+                : typeof parentCandidate === "undefined"
+        }
+
+        // Implicit parent as fallback (only when no explicit parent data exists)
+        const implicitParent = this.getImplicitParent(childKey)
+        // Compare using .equals() for StandardKey objects, or === for undefined
+        return implicitParent
+            ? Boolean(parentCandidate && implicitParent.equals(parentCandidate))
+            : typeof parentCandidate === "undefined"
+    }
+
     private _getParentChildEdges(topLevel?: ReferenceList): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
         // Helper function to extract implicit edges from an entity with StandardKey and referencedKeys
         const getImplicitEdges = (
@@ -519,6 +539,15 @@ export interface OrganizationContext {
      * @returns Array of StandardReference instances for all child components
      */
     getChildrenOfParent(parent: StandardKey | AssetUUID): StandardReference[];
+
+    /**
+     * Determines if a component is a child of the given parent candidate.
+     * 
+     * @param childKey - The StandardKey of the child component to check
+     * @param parentCandidate - The StandardKey of the potential parent, or undefined for Asset-level
+     * @returns true if the component is a child of the parent candidate, false otherwise
+     */
+    isParentContext(childKey: StandardKey, parentCandidate: StandardKey | undefined): boolean;
 }
 
 /**
@@ -543,6 +572,10 @@ export function createOrganizationContext(organization: SchemaOrganization): Org
                 ? undefined
                 : parent as StandardKey;
             return organization.getChildrenOfParent(parentKey);
+        },
+
+        isParentContext(childKey: StandardKey, parentCandidate: StandardKey | undefined): boolean {
+            return organization.isParentContext(childKey, parentCandidate);
         }
     };
 }

@@ -6,6 +6,7 @@ import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
 import StandardReference, { StandardKey } from "./reference";
 import { StandardExplicitParent } from "../explicit";
+import { OrganizationContext } from "../schemaOrganization";
 
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;
@@ -21,6 +22,7 @@ export type NestedSchemaOptions = {
     key: StandardKey;
     parent?: StandardKey;  // Parent component StandardKey (undefined for Asset-level rendering)
     removeContext?: boolean;  // If true, nestedSchema will invert its contents for display in a remove context
+    organization?: OrganizationContext;  // Optional organization context for parentage queries
 }
 
 export type StandardDiffOptions = {

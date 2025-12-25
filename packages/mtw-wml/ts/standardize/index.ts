@@ -40,7 +40,7 @@ import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
 import { unique } from "../list"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { KeyLookup } from "./keyLookup"
-import { SchemaOrganization } from "./schemaOrganization"
+import { SchemaOrganization, createOrganizationContext } from "./schemaOrganization"
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
     return (value instanceof StandardCharacter) ||
@@ -1016,6 +1016,10 @@ export class StandardForm {
             return this._lookup(key.toJSON())
         }
 
+        // Get or create SchemaOrganization and create OrganizationContext
+        const organization = this._getSchemaOrganization()
+        const organizationContext = createOrganizationContext(organization)
+
         const remapped = this._clone()
         const mapKeys = remapped._components.map((component) => (component._key))
         remapped._components = remapped._components.map((component) => (component.withMapping(mapKeys).remapReferences('key')))
@@ -1026,7 +1030,7 @@ export class StandardForm {
                 const component = remapped._lookup(reference.plain().standardKey.toJSON())
                 if (!component) return []
                 const isRemoveReference = reference._payload.ref < 0
-                const schema = component.nestedSchema(lookupWrapper, { parent: undefined, removeContext: isRemoveReference })
+                const schema = component.nestedSchema(lookupWrapper, { parent: undefined, removeContext: isRemoveReference, organization: organizationContext })
                 return isRemoveReference ? [{
                     data: { tag: 'Remove' as const },
                     children: [schema]
