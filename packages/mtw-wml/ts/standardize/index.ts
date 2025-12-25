@@ -41,6 +41,7 @@ import { unique } from "../list"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { KeyLookup } from "./keyLookup"
 import { SchemaOrganization, createOrganizationContext } from "./schemaOrganization"
+import { renderReference } from "./components/utils/schema"
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
     return (value instanceof StandardCharacter) ||
@@ -1024,18 +1025,32 @@ export class StandardForm {
         const mapKeys = remapped._components.map((component) => (component._key))
         remapped._components = remapped._components.map((component) => (component.withMapping(mapKeys).remapReferences('key')))
 
-        const children = (remapped._topLevel?.payload ?? [])
+        // Get asset-level children from organization and ensure ref={0}
+        const assetLevelChildren = organizationContext.getChildrenOfParent(remapped._universalKey)
+        const assetLevelChildrenWithRef0 = assetLevelChildren.map(ref => ref.withRef(0))
+        const assetLevelChildrenList = new ReferenceList(assetLevelChildrenWithRef0)
+
+        // Merge with existing _topLevel to preserve any non-ref={0} references
+        // cleanEmptyReferences: false ensures ref={0} entries are preserved when merging
+        const topLevelToRender = remapped._topLevel
+            ? remapped._topLevel.merge(assetLevelChildrenList, { cleanEmptyReferences: false }) ?? assetLevelChildrenList
+            : assetLevelChildrenList
+
+        // Get a placeholder key for options (renderReference will override it with the reference's key)
+        const placeholderKey = (topLevelToRender.payload?.[0]?.plain().standardKey) ?? new StandardKey({ tag: 'Room', key: 'Placeholder', universalKey: undefined })
+        
+        const children = (topLevelToRender.payload ?? [])
             .sort((referenceA, referenceB) => (standardComponentSortOrder(referenceA.plain(), referenceB.plain(), lookup)))
-            .map((reference) => {
-                const component = remapped._lookup(reference.plain().standardKey.toJSON())
-                if (!component) return []
-                const isRemoveReference = reference._payload.ref < 0
-                const schema = component.nestedSchema(lookupWrapper, { parent: undefined, removeContext: isRemoveReference, organization: organizationContext })
-                return isRemoveReference ? [{
-                    data: { tag: 'Remove' as const },
-                    children: [schema]
-                }] : [schema]
-            }).flat(1)
+            .map(renderReference({ 
+                lookup: lookupWrapper, 
+                options: { 
+                    key: placeholderKey, 
+                    parent: undefined, 
+                    organization: organizationContext 
+                } 
+            }))
+            .filter(excludeUndefined)
+            .flat(1)
 
         return {
             data: { tag: 'Asset', uuid: this._universalKey, Story: undefined },

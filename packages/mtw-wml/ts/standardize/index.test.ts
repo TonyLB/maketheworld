@@ -3460,6 +3460,7 @@ describe('StandardForm', () => {
                     <Example uuid=(003b)><Description>Global</Description></Example>
                 </Feature>
                 <Room uuid=(001) key=(testRoom)>
+                    <Feature key=(testGlobal) />
                     <Feature uuid=(004) key=(testLocal)>
                         <Example uuid=(004b)>
                             <Name>Clocktower</Name>
@@ -3469,7 +3470,6 @@ describe('StandardForm', () => {
                             </Description>
                         </Example>
                     </Feature>
-                    <Feature key=(testGlobal) />
                     <Example uuid=(001b)><Name>Vortex</Name></Example>
                 </Room>
                 <Room uuid=(002) key=(testRoomTwo) />
@@ -3821,11 +3821,11 @@ describe('StandardForm', () => {
                         <Name>Bob</Name>
                     </Character>
                     <Room uuid=(room1) key=(room1)>
+                        <Character key=(char1) />
                         <Character uuid=(mock-uuid-1) key=(char3)>
                             <ShortName>Charlie</ShortName>
                             <Name>Charlie</Name>
                         </Character>
-                        <Character key=(char1) />
                     </Room>
                     <Room uuid=(room2) key=(room2)>
                         <Character key=(char2) />
