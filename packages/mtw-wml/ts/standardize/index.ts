@@ -1421,7 +1421,7 @@ export class StandardForm {
             }, [])
 
         //
-        // Sort the keys in the merged form by the standardComponentSortOrder, to provide an order in which
+        // Sort the keys in the merged form to provide an order in which
         // to diff the components in each StandardForm against each other.
         //
 

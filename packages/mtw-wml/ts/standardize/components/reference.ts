@@ -1051,7 +1051,7 @@ export const referenceSortOrder = (
         return idA.localeCompare(idB)
     }
     
-    // Component tag order (same as in sortOrder.ts)
+    // Component tag order
     const componentKeys: ComponentTag[] = ['Character', 'Image', 'Example', 'Feature', 'Knowledge', 'Room', 'Map', 'Message', 'Moment']
     const indexA = componentKeys.indexOf(tagA)
     const indexB = componentKeys.indexOf(tagB)

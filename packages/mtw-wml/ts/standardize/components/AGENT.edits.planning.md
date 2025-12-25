@@ -611,12 +611,15 @@ This migration should proceed incrementally, starting with a single component ty
   - Parentage queries should go through `SchemaOrganization` instead
   - Consider making `implicitParent` a getter that queries `SchemaOrganization` (if cached access is needed)
 - Migrate code that depends on `component.implicitParent` field to use `SchemaOrganization`:
-  - `sortOrder.ts` (line 37): `buildAncestryChain` function uses `component.implicitParent` to traverse ancestry
-    - Update to use `SchemaOrganization.getImplicitParent()` instead
-    - May need to pass `SchemaOrganization` or `OrganizationContext` to sort functions
-  - `index.ts` (lines 276, 899): Lookup functions for sorting return `implicitParent` field
-    - Update lookup functions to query `SchemaOrganization` instead of returning component field
-    - May need to pass `SchemaOrganization` context to lookup functions
+  - ✅ `sortOrder.ts`: Nested sorting functionality migrated to `SchemaOrganization.sortOrder()`
+    - ✅ Added `buildAncestryChain()` and `sortOrder()` methods to `SchemaOrganization`
+    - ✅ Updated `StandardForm` constructor (line 280) to use `SchemaOrganization.sortOrder()`
+    - ✅ Updated `StandardForm.toNDJSON()` (line 903) to use `SchemaOrganization.sortOrder()`
+    - ✅ Removed `sortOrder.ts` and `sortOrder.test.ts` files
+    - ✅ Updated comment in `index.ts` (line 1424) to remove reference to `standardComponentSortOrder`
+  - ✅ `index.ts` (lines 277, 893): Sorting now uses `SchemaOrganization.sortOrder()` instead of lookup functions
+    - ✅ Removed lookup functions that read `component.implicitParent` field
+    - ✅ Both locations now use `organization.sortOrder()` directly
   - `index.ts` (line 476): `_getAncestryChainFromImplicitParent` method traverses `implicitParent` chain
     - Update to use `SchemaOrganization.getImplicitParent()` in a loop
     - Consider whether this method is still needed or can be replaced by `SchemaOrganization` queries
