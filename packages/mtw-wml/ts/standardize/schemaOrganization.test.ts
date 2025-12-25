@@ -1,4 +1,4 @@
-import { SchemaOrganization } from './schemaOrganization'
+import { SchemaOrganization, createOrganizationContext } from './schemaOrganization'
 import { StandardKey } from './components/reference'
 import StandardRoom from './components/room'
 import StandardFeature from './components/feature'
@@ -892,6 +892,177 @@ describe('SchemaOrganization', () => {
             const childKeys = children.map(child => child._payload.plain.standardKey.toJSON())
             expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
             expect(childKeys).toContainEqual(feature2!._key.plain.toJSON())
+        })
+    })
+
+    describe('createOrganizationContext', () => {
+        it('should return an object implementing OrganizationContext', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const context = createOrganizationContext(organization)
+            expect(context).toBeDefined()
+            expect(typeof context.getImplicitParent).toBe('function')
+            expect(typeof context.getChildrenOfParent).toBe('function')
+        })
+
+        it('should delegate getImplicitParent correctly', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const context = createOrganizationContext(organization)
+            const room1 = formWithParents._lookup('ROOM#room1')
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            expect(room1).toBeDefined()
+            expect(feature1).toBeDefined()
+
+            const room1Key = room1!._key.plain
+            const feature1Key = feature1!._key.plain
+
+            // Room should have undefined implicit parent (asset-level)
+            expect(context.getImplicitParent(room1Key)).toBeUndefined()
+            // Feature should have room1 as implicit parent
+            expect(context.getImplicitParent(feature1Key)).toBeDefined()
+            expect(context.getImplicitParent(feature1Key)?.equals(room1Key)).toBe(true)
+        })
+
+        it('should delegate getChildrenOfParent correctly for StandardKey parent', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                        <Feature uuid=(feature2) key=(feature2) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const context = createOrganizationContext(organization)
+            const room1 = formWithParents._lookup('ROOM#room1')
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            expect(room1).toBeDefined()
+            expect(feature1).toBeDefined()
+            expect(feature2).toBeDefined()
+
+            const room1Key = room1!._key.plain
+            const children = context.getChildrenOfParent(room1Key)
+            expect(children.length).toBe(2)
+
+            const childKeys = children.map(child => child._payload.plain.standardKey.toJSON())
+            expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
+            expect(childKeys).toContainEqual(feature2!._key.plain.toJSON())
+        })
+
+        it('should convert AssetUUID to undefined for getChildrenOfParent', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1) />
+                    <Feature uuid=(feature1) key=(feature1) />
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const context = createOrganizationContext(organization)
+            const room1 = formWithParents._lookup('ROOM#room1')
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            expect(room1).toBeDefined()
+            expect(feature1).toBeDefined()
+
+            // Pass AssetUUID instead of undefined
+            const assetUUID = formWithParents._universalKey
+            const children = context.getChildrenOfParent(assetUUID)
+            expect(children.length).toBeGreaterThan(0)
+
+            const childKeys = children.map(child => child._payload.plain.standardKey.toJSON())
+            expect(childKeys).toContainEqual(room1!._key.plain.toJSON())
+            expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
+        })
+
+        it('should work with existing SchemaOrganization instances', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1)>
+                            <Parent />
+                        </Feature>
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            // Create context from existing organization
+            const context = createOrganizationContext(organization)
+            
+            // Verify it works with explicit parent scenarios
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            expect(feature1).toBeDefined()
+
+            const feature1Key = feature1!._key.plain
+            const implicitParent = context.getImplicitParent(feature1Key)
+            
+            // Feature has explicit parent of ASSET, so implicit parent should be undefined
+            expect(implicitParent).toBeUndefined()
+
+            // But it should appear in asset-level children
+            const assetChildren = context.getChildrenOfParent(formWithParents._universalKey)
+            const assetChildKeys = assetChildren.map(child => child._payload.plain.standardKey.toJSON())
+            expect(assetChildKeys).toContainEqual(feature1!._key.plain.toJSON())
         })
     })
 })
