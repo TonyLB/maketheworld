@@ -1008,7 +1008,7 @@ export class ReferenceList {
 /**
  * Simple sort order for references that compares by tag and key only (no nested hierarchy).
  * Use this when sorting references that are already at the same hierarchy level.
- * For sorting components with nested parent-child relationships, use `standardComponentSortOrder` from `sortOrder.ts`.
+ * For sorting components with nested parent-child relationships, use `SchemaOrganization.sortOrder()`.
  * 
  * Sorting rules:
  * 1. First by component tag order

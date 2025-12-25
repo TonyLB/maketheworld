@@ -25,7 +25,6 @@ import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
 import { ReferenceListData, StandardReferenceData, StandardKeyData } from "./components/dataTypes/reference"
 import StandardReference, { ReferenceList, StandardKey, StandardReferenceSimple, referenceSortOrder } from "./components/reference"
-import { standardComponentSortOrder } from "./sortOrder"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
 import { StandardExplicitParent, StandardExplicitParentSimple } from "./explicit/parent"
 import StandardImage from "./components/image"
@@ -266,18 +265,16 @@ export class StandardForm {
                 
                 // Generate implicit parents using StandardKey (works before finalize)
                 const withImplicitParents = this.generateImplicitParents()
-                // Sort after implicitParent is available, so sortOrder can use it instead of context
-                // Create lookup helper for sorting - convert StandardComponent to new lookup result format
-                const lookup = (key: StandardKey) => {
-                    const component = withImplicitParents._lookup(key.toJSON())
-                    if (!component) return undefined
-                    return {
-                        reference: component.reference.plain(),
-                        implicitParent: component.implicitParent
-                    }
-                }
+                // Sort after implicitParent is available using SchemaOrganization
+                const keyLookup = new KeyLookup(withImplicitParents._components)
+                const organization = new SchemaOrganization({
+                    components: withImplicitParents._components,
+                    assetUUID: withImplicitParents._universalKey,
+                    topLevel: withImplicitParents._topLevel,
+                    keyLookup
+                })
                 this._components = withImplicitParents._components
-                    .sort((componentA, componentB) => (standardComponentSortOrder(componentA._key, componentB._key, lookup)))
+                    .sort((componentA, componentB) => (organization.sortOrder(componentA._key, componentB._key)))
                 return
             }
             else {
@@ -890,17 +887,10 @@ export class StandardForm {
 
     toNDJSON(): StandardNDJSON {
         const mapKeys = this._components.map(({ _key }) => (_key.plain))
-        // Create lookup helper for sorting - convert StandardComponent to new lookup result format
-        const lookup = (key: StandardKey) => {
-            const component = this._lookup(key.toJSON())
-            if (!component) return undefined
-            return {
-                reference: component.reference.plain(),
-                implicitParent: component.implicitParent
-            }
-        }
+        // Sort using SchemaOrganization
+        const organization = this._getSchemaOrganization()
         const components: (StandardComponentData & SerializeNDJSONMixin)[] = this._components
-            .sort(({ _key: keyA }, { _key: keyB }) => (standardComponentSortOrder(keyA, keyB, lookup)))
+            .sort(({ _key: keyA }, { _key: keyB }) => (organization.sortOrder(keyA, keyB)))
             .map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON()))
         return [
             this.header,

@@ -1282,5 +1282,302 @@ describe('SchemaOrganization', () => {
             expect(organization.isParentContext(feature2Key, room1Key)).toBe(false)
         })
     })
+
+    describe('buildAncestryChain', () => {
+        it('should return single-item chain for asset-level component', () => {
+            const room1 = new StandardRoom(deIndentWML(`<Room uuid=(room1) key=(room1) />`))
+            const components = [room1]
+            const keyLookup = new KeyLookup(components)
+            const organization = new SchemaOrganization({
+                components,
+                assetUUID: 'ASSET#test' as const,
+                keyLookup
+            })
+
+            const key = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+            const chain = organization.buildAncestryChain(key)
+
+            expect(chain.length).toBe(1)
+            expect(chain[0].standardKey.equals(key)).toBe(true)
+            expect(chain[0].tag).toBe('Room')
+        })
+
+        it('should return full chain for nested component', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(testRoom) key=(testRoom)>
+                        <Feature uuid=(testFeature) key=(testFeature)>
+                            <Example uuid=(testExample) />
+                        </Feature>
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const example = formWithParents._lookup('EXAMPLE#testExample')
+            const exampleKey = example?._key.plain
+            expect(exampleKey).toBeDefined()
+
+            const chain = organization.buildAncestryChain(exampleKey!)
+
+            // Should have: Room, Feature, Example (from Asset level to component)
+            expect(chain.length).toBe(3)
+            expect(chain[0].tag).toBe('Room')
+            expect(chain[1].tag).toBe('Feature')
+            expect(chain[2].tag).toBe('Example')
+            expect(chain[2].standardKey.equals(exampleKey!)).toBe(true)
+        })
+
+        it('should use explicit parent over implicit parent', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                    <Room uuid=(room2) key=(room2)>
+                        <Feature uuid=(feature2) key=(feature2)>
+                            <Parent>ROOM#room1</Parent>
+                        </Feature>
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const feature2Key = feature2?._key.plain
+            expect(feature2Key).toBeDefined()
+
+            const chain = organization.buildAncestryChain(feature2Key!)
+
+            // Should use explicit parent (room1) not implicit parent (room2)
+            expect(chain.length).toBe(2)
+            expect(chain[0].tag).toBe('Room')
+            const room1 = formWithParents._lookup('ROOM#room1')
+            expect(chain[0].standardKey.equals(room1!._key.plain)).toBe(true)
+            expect(chain[1].tag).toBe('Feature')
+        })
+
+        it('should handle deeply nested components', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1)>
+                            <Example uuid=(example1) />
+                        </Feature>
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const example = formWithParents._lookup('EXAMPLE#example1')
+            const exampleKey = example?._key.plain
+            expect(exampleKey).toBeDefined()
+
+            const chain = organization.buildAncestryChain(exampleKey!)
+
+            // Should have: Room, Feature, Example
+            expect(chain.length).toBe(3)
+            expect(chain[0].tag).toBe('Room')
+            expect(chain[1].tag).toBe('Feature')
+            expect(chain[2].tag).toBe('Example')
+        })
+    })
+
+    describe('sortOrder', () => {
+        it('should sort parent before child (same tag)', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const room = formWithParents._lookup('ROOM#room1')
+            const feature = formWithParents._lookup('FEATURE#feature1')
+            const roomKey = room!._key.plain
+            const featureKey = feature!._key.plain
+
+            expect(organization.sortOrder(roomKey, featureKey)).toBeLessThan(0)
+            expect(organization.sortOrder(featureKey, roomKey)).toBeGreaterThan(0)
+        })
+
+        it('should sort siblings by tag order', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1) />
+                    <Character uuid=(char1) key=(char1) />
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const room = formWithParents._lookup('ROOM#room1')
+            const character = formWithParents._lookup('CHARACTER#char1')
+            const roomKey = room!._key.plain
+            const characterKey = character!._key.plain
+
+            // Character comes before Room in tag order
+            expect(organization.sortOrder(characterKey, roomKey)).toBeLessThan(0)
+            expect(organization.sortOrder(roomKey, characterKey)).toBeGreaterThan(0)
+        })
+
+        it('should sort siblings with same tag by key', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                        <Feature uuid=(feature2) key=(feature2) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const feature1Key = feature1!._key.plain
+            const feature2Key = feature2!._key.plain
+
+            expect(organization.sortOrder(feature1Key, feature2Key)).toBeLessThan(0)
+            expect(organization.sortOrder(feature2Key, feature1Key)).toBeGreaterThan(0)
+        })
+
+        it('should compare at differing ancestor when components have different ancestry', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                    <Room uuid=(room2) key=(room2)>
+                        <Feature uuid=(feature2) key=(feature2) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const feature1Key = feature1!._key.plain
+            const feature2Key = feature2!._key.plain
+
+            // Both are Features, but their ancestors are Room1 and Room2
+            // Should compare at the Room level (differing ancestor)
+            // Room1 comes before Room2 alphabetically
+            expect(organization.sortOrder(feature1Key, feature2Key)).toBeLessThan(0)
+            expect(organization.sortOrder(feature2Key, feature1Key)).toBeGreaterThan(0)
+        })
+
+        it('should handle explicit parent vs implicit parent precedence in sorting', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                    <Room uuid=(room2) key=(room2)>
+                        <Feature uuid=(feature2) key=(feature2)>
+                            <Parent>ROOM#room1</Parent>
+                        </Feature>
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const feature1Key = feature1!._key.plain
+            const feature2Key = feature2!._key.plain
+
+            // Both features should be sorted as children of room1 (feature2 has explicit parent room1)
+            // So they should be siblings and sorted by key
+            expect(organization.sortOrder(feature1Key, feature2Key)).toBeLessThan(0)
+            expect(organization.sortOrder(feature2Key, feature1Key)).toBeGreaterThan(0)
+        })
+
+        it('should return 0 for identical keys', () => {
+            const room1 = new StandardRoom(deIndentWML(`<Room uuid=(room1) key=(room1) />`))
+            const components = [room1]
+            const keyLookup = new KeyLookup(components)
+            const organization = new SchemaOrganization({
+                components,
+                assetUUID: 'ASSET#test' as const,
+                keyLookup
+            })
+
+            const key = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+            expect(organization.sortOrder(key, key)).toBe(0)
+        })
+    })
 })
 
