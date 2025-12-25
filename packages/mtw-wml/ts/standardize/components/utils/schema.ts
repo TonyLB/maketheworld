@@ -15,7 +15,8 @@ export const renderReference = ({ lookup, options }: { lookup: (key: string | St
     const nestedOptions: NestedSchemaOptions = { 
         ...options, 
         key: reference._payload.plain.standardKey,
-        removeContext: isRemoveReference ? !(options.removeContext ?? false) : options.removeContext
+        removeContext: isRemoveReference ? !(options.removeContext ?? false) : options.removeContext,
+        organization: options.organization  // Pass organization through to nested calls
     }
     const nested = found.nestedSchema(lookup, nestedOptions)
     

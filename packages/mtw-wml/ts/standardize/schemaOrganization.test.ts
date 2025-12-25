@@ -1065,5 +1065,222 @@ describe('SchemaOrganization', () => {
             expect(assetChildKeys).toContainEqual(feature1!._key.plain.toJSON())
         })
     })
+
+    describe('isParentContext', () => {
+        it('should return true for component with explicit parent matching parentCandidate', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1) />
+                    <Feature uuid=(feature1) key=(feature1)>
+                        <Parent>ROOM#room1</Parent>
+                    </Feature>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const room1 = formWithParents._lookup('ROOM#room1')
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            expect(room1).toBeDefined()
+            expect(feature1).toBeDefined()
+
+            const room1Key = room1!._key.plain
+            const feature1Key = feature1!._key.plain
+
+            expect(organization.isParentContext(feature1Key, room1Key)).toBe(true)
+        })
+
+        it('should return false for component with explicit parent not matching parentCandidate', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1) />
+                    <Room uuid=(room2) key=(room2) />
+                    <Feature uuid=(feature1) key=(feature1)>
+                        <Parent>ROOM#room1</Parent>
+                    </Feature>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const room2 = formWithParents._lookup('ROOM#room2')
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            expect(room2).toBeDefined()
+            expect(feature1).toBeDefined()
+
+            const room2Key = room2!._key.plain
+            const feature1Key = feature1!._key.plain
+
+            expect(organization.isParentContext(feature1Key, room2Key)).toBe(false)
+        })
+
+        it('should return true for component with implicit parent matching parentCandidate', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const room1 = formWithParents._lookup('ROOM#room1')
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            expect(room1).toBeDefined()
+            expect(feature1).toBeDefined()
+
+            const room1Key = room1!._key.plain
+            const feature1Key = feature1!._key.plain
+
+            expect(organization.isParentContext(feature1Key, room1Key)).toBe(true)
+        })
+
+        it('should return false for component with implicit parent not matching parentCandidate', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                    <Room uuid=(room2) key=(room2) />
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const room2 = formWithParents._lookup('ROOM#room2')
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            expect(room2).toBeDefined()
+            expect(feature1).toBeDefined()
+
+            const room2Key = room2!._key.plain
+            const feature1Key = feature1!._key.plain
+
+            expect(organization.isParentContext(feature1Key, room2Key)).toBe(false)
+        })
+
+        it('should return true for asset-level component with undefined parentCandidate', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const room1 = formWithParents._lookup('ROOM#room1')
+            expect(room1).toBeDefined()
+
+            const room1Key = room1!._key.plain
+
+            expect(organization.isParentContext(room1Key, undefined)).toBe(true)
+        })
+
+        it('should return false for nested component with undefined parentCandidate', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            expect(feature1).toBeDefined()
+
+            const feature1Key = feature1!._key.plain
+
+            expect(organization.isParentContext(feature1Key, undefined)).toBe(false)
+        })
+
+        it('should prioritize explicit parent over implicit parent', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                    <Room uuid=(room2) key=(room2) />
+                    <Feature uuid=(feature2) key=(feature2)>
+                        <Parent>ROOM#room2</Parent>
+                    </Feature>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const formWithParents = form.generateImplicitParents()
+
+            const keyLookup = new KeyLookup(formWithParents._components)
+            const organization = new SchemaOrganization({
+                components: formWithParents._components,
+                assetUUID: formWithParents._universalKey,
+                topLevel: formWithParents._topLevel,
+                keyLookup
+            })
+
+            const room1 = formWithParents._lookup('ROOM#room1')
+            const room2 = formWithParents._lookup('ROOM#room2')
+            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            expect(room1).toBeDefined()
+            expect(room2).toBeDefined()
+            expect(feature2).toBeDefined()
+
+            const room1Key = room1!._key.plain
+            const room2Key = room2!._key.plain
+            const feature2Key = feature2!._key.plain
+
+            // Feature2 has explicit parent room2, so it should match room2, not room1 (even though implicit would be room1)
+            expect(organization.isParentContext(feature2Key, room2Key)).toBe(true)
+            expect(organization.isParentContext(feature2Key, room1Key)).toBe(false)
+        })
+    })
 })
 

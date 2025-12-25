@@ -76,11 +76,23 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key } = options
+        
+        // If organization is available, use assured references from organization
+        // Otherwise, fall back to stored reference lists
+        let examplesToRender = this.examples
+        
+        if (options.organization) {
+            // Get children from organization and assure references
+            const children = options.organization.getChildrenOfParent(key) ?? []
+            const assured = this.assureReferences(children)
+            examplesToRender = assured.examples
+        }
+        
         return {
             data: { tag: 'Knowledge', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
-                ...this.examples.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
+                ...examplesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
             ]
         }
     }

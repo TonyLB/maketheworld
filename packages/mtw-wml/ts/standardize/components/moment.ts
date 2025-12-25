@@ -62,9 +62,21 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key } = options
+        
+        // If organization is available, use assured references from organization
+        // Otherwise, fall back to stored reference lists
+        let messagesToRender = this.messages
+        
+        if (options.organization) {
+            // Get children from organization and assure references
+            const children = options.organization.getChildrenOfParent(key) ?? []
+            const assured = this.assureReferences(children)
+            messagesToRender = assured.messages
+        }
+        
         return {
             data: { tag: 'Moment', key: key.key ?? '', uuid: key.universalKey },
-            children: this.messages.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1)
+            children: messagesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1)
         }
     }
     
