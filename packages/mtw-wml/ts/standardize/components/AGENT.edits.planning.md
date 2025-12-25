@@ -623,9 +623,10 @@ This migration should proceed incrementally, starting with a single component ty
   - `index.ts` (line 476): `_getAncestryChainFromImplicitParent` method traverses `implicitParent` chain
     - Update to use `SchemaOrganization.getImplicitParent()` in a loop
     - Consider whether this method is still needed or can be replaced by `SchemaOrganization` queries
-  - `map.ts` (line 121): Checks if room is implicitly parented to map using `roomComponent.implicitParent?.equals(mapKeyPlain)`
-    - Update to use `SchemaOrganization.getImplicitParent()` and compare results
-    - May need to pass `SchemaOrganization` or `OrganizationContext` to `nestedSchema` calls
+  - ✅ `map.ts` (line 121): Updated to use `options.organization?.isParentContext(roomKey, mapKeyPlain)`
+    - ✅ Replaced `roomComponent.implicitParent?.equals(mapKeyPlain)` with `isParentContext` helper
+    - ✅ `OrganizationContext` already available in `NestedSchemaOptions` (from Phase 4.5)
+    - ✅ Now correctly handles both explicit and implicit parentage (explicit takes precedence)
   - Test files: Many tests verify `implicitParent` field values
     - Update tests to verify `SchemaOrganization.getImplicitParent()` results instead
     - Consider whether these tests should move to `SchemaOrganization` test suite
