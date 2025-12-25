@@ -8,7 +8,7 @@ import { StandardExplicitParent, StandardExplicitParentSimple, StandardExplicitP
 import { excludeUndefined } from "../lib/lists"
 import { unique } from "../list"
 import { KeyLookup } from "./keyLookup"
-import { StandardReferenceSimple } from "./components/reference"
+import { StandardReferenceSimple, StandardReference } from "./components/reference"
 
 export class SchemaOrganization {
     private _organization: Array<{ key: StandardKey; implicitParent?: StandardKey }>
@@ -26,8 +26,8 @@ export class SchemaOrganization {
         this.components = args.components
         this.assetUUID = args.assetUUID
         this.keyLookup = args.keyLookup
-        this._organization = this._calculateImplicitParents(args.topLevel)
         this._explicitOrganization = this._calculateExplicitParents()
+        this._organization = this._calculateImplicitParents(args.topLevel)
     }
 
     getImplicitParent(key: StandardKey): StandardKey | undefined {
@@ -35,9 +35,34 @@ export class SchemaOrganization {
         return entry?.implicitParent
     }
 
-    getExplicitParent(key: StandardKey): StandardKey | undefined {
+    getExplicitParent(key: StandardKey): { explicitParent: StandardKey | undefined } | undefined {
         const entry = this._explicitOrganization.find((entry) => (entry.key.equals(key)))
-        return entry?.parent
+        if (entry === undefined) {
+            return undefined
+        }
+        return { explicitParent: entry.parent }
+    }
+
+    getChildrenOfParent(parent: StandardKey | undefined): StandardReference[] {
+        return this.components
+            .filter((component) => {
+                const componentKey = component._key?.plain
+                if (!componentKey) {
+                    return false
+                }
+
+                const explicitParentResult = this.getExplicitParent(componentKey)
+
+                // Explicit parent takes precedence
+                if (explicitParentResult !== undefined) {
+                    return explicitParentResult.explicitParent === parent
+                }
+
+                // Implicit parent as fallback (only when no explicit parent data exists)
+                const implicitParent = this.getImplicitParent(componentKey)
+                return implicitParent === parent
+            })
+            .map((component) => component.reference)
     }
 
     private _getParentChildEdges(topLevel?: ReferenceList): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
@@ -95,17 +120,20 @@ export class SchemaOrganization {
         return this.components.reduce<Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>>(
             (acc, component) => {
                 const childKey = component._key?.plain
+                if (!childKey) {
+                    return acc
+                }
                 
-                if (childKey && component.explicitParent?._payload instanceof StandardExplicitParentSimple) {
-                    const explicitParentData = component.explicitParent._payload.payload.data
-                    
-                    if (explicitParentData === 'ASSET') {
-                        // Explicit parent is ASSET
-                        return [...acc, { parent: this.assetUUID, child: childKey }]
-                    } else if (explicitParentData instanceof StandardKey) {
-                        // Explicit parent is a StandardKey
-                        return [...acc, { parent: explicitParentData, child: childKey }]
-                    }
+                const explicitParentResult = this.getExplicitParent(childKey)
+                if (explicitParentResult === undefined) {
+                    // No explicit parent - skip (don't add edge)
+                    return acc
+                } else if (explicitParentResult.explicitParent === undefined) {
+                    // Asset-level explicit parent
+                    return [...acc, { parent: this.assetUUID, child: childKey }]
+                } else if (explicitParentResult.explicitParent instanceof StandardKey) {
+                    // Component parent
+                    return [...acc, { parent: explicitParentResult.explicitParent, child: childKey }]
                 }
                 return acc
             },
@@ -437,8 +465,8 @@ export class SchemaOrganization {
                         return [...organization, { key: componentKey, parent: explicitParentData }]
                     }
                 } else if (payload instanceof StandardExplicitParentRemove) {
-                    // Removed explicit parent - no explicit parent set
-                    return [...organization, { key: componentKey, parent: undefined }]
+                    // Removed explicit parent - no explicit parent set, so don't add entry
+                    return organization
                 } else if (payload instanceof StandardExplicitParentReplace) {
                     // Extract replacement value from plain property
                     const explicitParentData = payload.plain.data
