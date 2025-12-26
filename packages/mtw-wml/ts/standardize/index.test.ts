@@ -5,7 +5,7 @@ import { GenericTree, GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag, AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardRoom from './components/room'
 import StandardCharacter from './components/character'
-import StandardReference, { StandardKey, ReferenceList, StandardReferencePayload, StandardReferenceSimple } from './components/reference'
+import StandardReference, { StandardKey, ReferenceList } from './components/reference'
 import { StandardExplicitParent } from './explicit/parent'
 import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 import StandardFeature from './components/feature'
@@ -1641,8 +1641,8 @@ describe('StandardForm', () => {
         expect(sideRoom.characters.payload.length).toBe(2)
         
         // Verify character types (local vs universal)
-        const mainRoomKeys = mainRoom.characters.payload.map(ref => ref._payload.plain.key || ref._payload.plain.universalKey)
-        const sideRoomKeys = sideRoom.characters.payload.map(ref => ref._payload.plain.key || ref._payload.plain.universalKey)
+        const mainRoomKeys = mainRoom.characters.payload.map(ref => ref.key || ref.universalKey)
+        const sideRoomKeys = sideRoom.characters.payload.map(ref => ref.key || ref.universalKey)
         
         expect(mainRoomKeys).toContain('local1')
         expect(mainRoomKeys).toContain('CHARACTER#global1')
@@ -1681,7 +1681,7 @@ describe('StandardForm', () => {
         const room1 = form2._lookup('ROOM#room1') as StandardRoom
         expect(room1.characters.payload.length).toBe(2)
         
-        const charKeys = room1.characters.payload.map(ref => ref._payload.plain.key || ref._payload.plain.universalKey)
+        const charKeys = room1.characters.payload.map(ref => ref.key || ref.universalKey)
         expect(charKeys).toContain('local1')
         expect(charKeys).toContain('char1')
 
@@ -1816,7 +1816,7 @@ describe('StandardForm', () => {
         const mergedRoom = mergedForm._lookup('ROOM#room1') as StandardRoom
         expect(mergedRoom.characters.payload.length).toBe(4)
         
-        const mergedCharKeys = mergedRoom.characters.payload.map(ref => ref._payload.plain.key || ref._payload.plain.universalKey)
+        const mergedCharKeys = mergedRoom.characters.payload.map(ref => ref.key || ref.universalKey)
         expect(mergedCharKeys).toContain('local1')
         expect(mergedCharKeys).toContain('local2')
         expect(mergedCharKeys).toContain('CHARACTER#char1')
@@ -2530,7 +2530,7 @@ describe('StandardForm', () => {
             // Verify in topLevel
             expect(diff.header.topLevel).toBeDefined()
             // @ts-ignore - accessing private for test
-            const topLevelRefs = diff._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
+            const topLevelRefs = diff._topLevel?.payload.map(ref => ref.standardKey.toJSON()) || []
             expect(topLevelRefs).toContainEqual({ key: 'ex1', universalKey: 'EXAMPLE#ex1' })
         })
 
@@ -2622,7 +2622,7 @@ describe('StandardForm', () => {
                 // Verify in topLevel
                 expect(diff.header.topLevel).toBeDefined()
                 // @ts-ignore - accessing private for test
-                const topLevelRefs = diff._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
+                const topLevelRefs = diff._topLevel?.payload.map(ref => ref.standardKey.toJSON()) || []
                 expect(topLevelRefs).toContainEqual({ key: 'ex1', universalKey: 'EXAMPLE#ex1' })
             })
 
@@ -2671,7 +2671,7 @@ describe('StandardForm', () => {
                 // Verify Room no longer has Example reference
                 const roomComponent = merged.byId['room1']
                 const roomExamples = (roomComponent as any)?.examples?.payload || []
-                expect(roomExamples.some((ref: any) => ref.plain().standardKey.key === 'ex1')).toBe(false)
+                expect(roomExamples.some((ref: any) => ref.standardKey.key === 'ex1')).toBe(false)
                 
                 // Verify in topLevel
                 expect(merged.header.topLevel).toBeDefined()
@@ -2763,7 +2763,7 @@ describe('StandardForm', () => {
                 // Verify Room has Example reference
                 const roomComponent = merged.byId['room1']
                 const roomExamples = (roomComponent as any)?.examples?.payload || []
-                expect(roomExamples.some((ref: any) => ref.plain().standardKey.key === 'ex1')).toBe(true)
+                expect(roomExamples.some((ref: any) => ref.standardKey.key === 'ex1')).toBe(true)
                 
                 // Verify not in topLevel
                 // @ts-ignore - accessing private for test
@@ -3781,8 +3781,8 @@ describe('StandardForm', () => {
             expect(room2.characters.payload.length).toBe(2)
             
             // Test that character references include both local and universal keys
-            const room1CharKeys = room1.characters.payload.map(ref => ref._payload.plain.key || ref._payload.plain.universalKey)
-            const room2CharKeys = room2.characters.payload.map(ref => ref._payload.plain.key || ref._payload.plain.universalKey)
+            const room1CharKeys = room1.characters.payload.map(ref => ref.key || ref.universalKey)
+            const room2CharKeys = room2.characters.payload.map(ref => ref.key || ref.universalKey)
             
             expect(room1CharKeys).toContain('char3') // Local character in room1
             expect(room1CharKeys).toContain('CHARACTER#char1') // Universal character reference in room1

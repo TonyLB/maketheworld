@@ -24,7 +24,7 @@ import StandardCharacter from "./components/character"
 import { isSchemaTreeNode, nodeFromWML } from "../schema"
 import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToComponentList"
 import { ReferenceListData, StandardReferenceData, StandardKeyData } from "./components/dataTypes/reference"
-import StandardReference, { ReferenceList, StandardKey, StandardReferenceSimple, referenceSortOrder } from "./components/reference"
+import StandardReference, { ReferenceList, StandardKey, referenceSortOrder } from "./components/reference"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
 import { StandardExplicitParent, StandardExplicitParentSimple } from "./explicit/parent"
 import StandardImage from "./components/image"
@@ -365,9 +365,8 @@ export class StandardForm {
         }
         // Convert topLevel references to StandardComponentReferenceKey format
         return this._topLevel.payload
-            .filter(ref => ref._payload instanceof StandardReferenceSimple)
             .map(ref => ({
-                key: ref.plain().standardKey,
+                key: ref.standardKey,
                 referenceType: 'Direct' as const
             }))
     }
@@ -655,10 +654,10 @@ export class StandardForm {
             : assetLevelChildrenList
 
         // Get a placeholder key for options (renderReference will override it with the reference's key)
-        const placeholderKey = (topLevelToRender.payload?.[0]?.plain().standardKey) ?? new StandardKey({ tag: 'Room', key: 'Placeholder', universalKey: undefined })
+        const placeholderKey = (topLevelToRender.payload?.[0]?.standardKey) ?? new StandardKey({ tag: 'Room', key: 'Placeholder', universalKey: undefined })
         
         const children = (topLevelToRender.payload ?? [])
-            .sort((referenceA, referenceB) => (referenceSortOrder(referenceA.plain(), referenceB.plain())))
+            .sort((referenceA, referenceB) => (referenceSortOrder(referenceA, referenceB)))
             .map(renderReference({ 
                 lookup: lookupWrapper, 
                 options: { 
@@ -749,7 +748,7 @@ export class StandardForm {
 
         const priorComponentsWithNoReferences = this._components
             .filter((component) => (!Object.values(graph.nodes).some((node) => (node?.standardKey && component._key.equals(node.standardKey)))))
-            .filter((component) => (!returnValue._topLevel?.payload.some((ref) => (ref.plain().standardKey.equals(component._key)))))
+            .filter((component) => (!returnValue._topLevel?.payload.some((ref) => (ref.standardKey.equals(component._key)))))
 
         // Implement StandardComponent.isEmpty() to test whether any of the components are non-empty
         const nonEmptyComponents = priorComponentsWithNoReferences.filter((component) => (!component.isEmpty()))
@@ -993,7 +992,7 @@ export class StandardForm {
                     return requestOutput(request, component).reduce<StandardComponent[]>((innerAccumulator, output) => (mergeToComponentList(returnValue._keys)(innerAccumulator, output)), accumulator)
                 }, previous)
             }, [])
-        const filteredTopLevel = returnValue._topLevel?.payload.filter((reference) => (returnValue._components.some((component) => (component._key.equals(reference.plain().standardKey))))) ?? []
+        const filteredTopLevel = returnValue._topLevel?.payload.filter((reference) => (returnValue._components.some((component) => (component._key.equals(reference.standardKey))))) ?? []
         returnValue._topLevel = filteredTopLevel.length > 0 ? new ReferenceList(filteredTopLevel) : undefined
 
         return returnValue
@@ -1125,7 +1124,7 @@ export class StandardForm {
         const allKeys = new ReferenceList(
             [...this._components, ...incoming._components]
             .map((component) => (new StandardReference(component.referenceData)))
-        ).toFormat('universal').payload.map((reference) => (reference._payload.plain.toJSON()))
+        ).toFormat('universal').payload.map((reference) => (reference.toJSON()))
 
         //
         // Next, we need a zippered version of the components in the two forms, with an
@@ -1208,24 +1207,19 @@ export class StandardForm {
 
         if (topLevelDiff) {
             const baseTopLevelKeys = this._topLevel?.payload.map((ref) => {
-                if (ref._payload instanceof StandardReferenceSimple) {
-                    return ref._payload.standardKey
-                }
-                return undefined
+                return ref.standardKey
             }).filter((key): key is StandardKey => key !== undefined) ?? []
 
             topLevelDiff.payload.forEach((ref) => {
-                // Only process additions (StandardReferenceSimple) that weren't in base topLevel
-                if (ref._payload instanceof StandardReferenceSimple) {
-                    const refKey = ref._payload.standardKey
-                    const wasInBase = this._lookup(refKey.toJSON()) !== undefined
-                    if (wasInBase) {
-                        const wasInBaseTopLevel = baseTopLevelKeys.some((baseKey) => baseKey.equals(refKey))
-                        if (!wasInBaseTopLevel) {
-                            const component = diffedValue._lookup(refKey.toJSON())
-                            if (component) {
-                                component.explicitParent = new StandardExplicitParent('ASSET')
-                            }
+                // Only process additions that weren't in base topLevel
+                const refKey = ref.standardKey
+                const wasInBase = this._lookup(refKey.toJSON()) !== undefined
+                if (wasInBase) {
+                    const wasInBaseTopLevel = baseTopLevelKeys.some((baseKey) => baseKey.equals(refKey))
+                    if (!wasInBaseTopLevel) {
+                        const component = diffedValue._lookup(refKey.toJSON())
+                        if (component) {
+                            component.explicitParent = new StandardExplicitParent('ASSET')
                         }
                     }
                 }

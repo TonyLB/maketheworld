@@ -2,7 +2,7 @@ import { Schema, schemaToWML } from "../schema"
 import { deIndentWML } from "../schema/utils"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import StandardRoom from "./components/room"
-import { StandardKey, StandardReferenceSimple } from "./components/reference"
+import { StandardKey, StandardReference } from "./components/reference"
 
 const componentTemplates: ComponentProcessingTemplate[] = [
     { 
@@ -458,10 +458,10 @@ describe("processComponents", () => {
             // Should have 3 top-level components
             expect(result.topLevel.payload.length).toBe(3)
             
-            // Check that all are StandardReferenceSimple (not Remove)
+            // Check that all are StandardReference (not Remove)
             const topLevelKeys = result.topLevel.payload.map(ref => {
-                expect(ref._payload).toBeInstanceOf(StandardReferenceSimple)
-                return ref.plain().standardKey.toJSON()
+                expect(ref).toBeInstanceOf(StandardReference)
+                return ref.standardKey.toJSON()
             })
             
             expect(topLevelKeys).toContainEqual({ key: 'room1' })
@@ -488,7 +488,7 @@ describe("processComponents", () => {
             
             // Should only have Room in topLevel, not Feature or Example
             expect(result.topLevel.payload.length).toBe(1)
-            const topLevelKey = result.topLevel.payload[0].plain().standardKey.toJSON()
+            const topLevelKey = result.topLevel.payload[0].standardKey.toJSON()
             expect(topLevelKey).toEqual({ key: 'room1' })
         })
 
@@ -512,10 +512,10 @@ describe("processComponents", () => {
             // Should have room1 as Simple and room2 as Remove
             expect(result.topLevel.payload.length).toBe(2)
             
-            const room1Ref = result.topLevel.payload.find(ref => ref.plain().key === 'room1')
-            expect(room1Ref?._payload).toBeInstanceOf(StandardReferenceSimple)
+            const room1Ref = result.topLevel.payload.find(ref => ref.key === 'room1')
+            expect(room1Ref).toBeInstanceOf(StandardReference)
             
-            const room2Ref = result.topLevel.payload.find(ref => ref.plain().key === 'room2')
+            const room2Ref = result.topLevel.payload.find(ref => ref.key === 'room2')
             expect(room2Ref?.ref).toBe(-1)
         })
 

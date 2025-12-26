@@ -176,7 +176,7 @@ export class StandardAuthorizationCollection {
             if (!b.component) return 1
             
             // Use referenceSortOrder for simple tag+key comparison (authorization resources have no parent hierarchy)
-            return referenceSortOrder(a.component.plain(), b.component.plain())
+            return referenceSortOrder(a.component, b.component)
         }
     }
 

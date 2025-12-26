@@ -620,7 +620,7 @@ describe('SchemaOrganization', () => {
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
-            const childKeys = children.map(child => child._payload.plain.standardKey.toJSON())
+            const childKeys = children.map(child => child.standardKey.toJSON())
             expect(childKeys).toContainEqual(room1!._key.plain.toJSON())
             expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
         })
@@ -649,7 +649,7 @@ describe('SchemaOrganization', () => {
             expect(feature1).toBeDefined()
 
             const children = organization.getChildrenOfParent(undefined)
-            const childKeys = children.map(child => child._payload.plain.standardKey.toJSON())
+            const childKeys = children.map(child => child.standardKey.toJSON())
             expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
         })
 
@@ -680,7 +680,7 @@ describe('SchemaOrganization', () => {
             const room1Key = room1!._key.plain
             const children = organization.getChildrenOfParent(room1Key)
             expect(children.length).toBe(1)
-            expect(children[0]._payload.plain.standardKey.toJSON()).toEqual(feature1!._key.plain.toJSON())
+            expect(children[0].standardKey.toJSON()).toEqual(feature1!._key.plain.toJSON())
         })
 
         it('should return children with implicit parent when no explicit parent', () => {
@@ -708,7 +708,7 @@ describe('SchemaOrganization', () => {
 
             const room1Key = room1!._key.plain
             const children = organization.getChildrenOfParent(room1Key)
-            const childKeys = children.map(child => child._payload.plain.standardKey.toJSON())
+            const childKeys = children.map(child => child.standardKey.toJSON())
             expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
         })
 
@@ -745,11 +745,11 @@ describe('SchemaOrganization', () => {
             const room2Key = room2!._key.plain
 
             const room1Children = organization.getChildrenOfParent(room1Key)
-            const room1ChildKeys = room1Children.map(child => child._payload.plain.standardKey.toJSON())
+            const room1ChildKeys = room1Children.map(child => child.standardKey.toJSON())
             expect(room1ChildKeys).not.toContainEqual(feature2!._key.plain.toJSON())
 
             const room2Children = organization.getChildrenOfParent(room2Key)
-            const room2ChildKeys = room2Children.map(child => child._payload.plain.standardKey.toJSON())
+            const room2ChildKeys = room2Children.map(child => child.standardKey.toJSON())
             expect(room2ChildKeys).toContainEqual(feature2!._key.plain.toJSON())
         })
 
@@ -836,7 +836,7 @@ describe('SchemaOrganization', () => {
             const children = organization.getChildrenOfParent(room1Key)
             expect(children.length).toBe(3)
 
-            const childKeys = children.map(child => child._payload.plain.standardKey.toJSON())
+            const childKeys = children.map(child => child.standardKey.toJSON())
             expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
             expect(childKeys).toContainEqual(feature2!._key.plain.toJSON())
             expect(childKeys).toContainEqual(knowledge1!._key.plain.toJSON())
@@ -844,7 +844,7 @@ describe('SchemaOrganization', () => {
             // Verify references have correct properties
             children.forEach(child => {
                 expect(child.tag).toBeDefined()
-                expect(child._payload.plain.standardKey).toBeDefined()
+                expect(child.standardKey).toBeDefined()
             })
         })
 
@@ -875,7 +875,7 @@ describe('SchemaOrganization', () => {
             expect(feature2).toBeDefined()
 
             const children = organization.getChildrenOfParent(undefined)
-            const childKeys = children.map(child => child._payload.plain.standardKey.toJSON())
+            const childKeys = children.map(child => child.standardKey.toJSON())
             expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
             expect(childKeys).toContainEqual(feature2!._key.plain.toJSON())
         })
@@ -969,7 +969,7 @@ describe('SchemaOrganization', () => {
             const children = context.getChildrenOfParent(room1Key)
             expect(children.length).toBe(2)
 
-            const childKeys = children.map(child => child._payload.plain.standardKey.toJSON())
+            const childKeys = children.map(child => child.standardKey.toJSON())
             expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
             expect(childKeys).toContainEqual(feature2!._key.plain.toJSON())
         })
@@ -1002,7 +1002,7 @@ describe('SchemaOrganization', () => {
             const children = context.getChildrenOfParent(assetUUID)
             expect(children.length).toBeGreaterThan(0)
 
-            const childKeys = children.map(child => child._payload.plain.standardKey.toJSON())
+            const childKeys = children.map(child => child.standardKey.toJSON())
             expect(childKeys).toContainEqual(room1!._key.plain.toJSON())
             expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
         })
@@ -1042,7 +1042,7 @@ describe('SchemaOrganization', () => {
 
             // But it should appear in asset-level children
             const assetChildren = context.getChildrenOfParent(form._universalKey)
-            const assetChildKeys = assetChildren.map(child => child._payload.plain.standardKey.toJSON())
+            const assetChildKeys = assetChildren.map(child => child.standardKey.toJSON())
             expect(assetChildKeys).toContainEqual(feature1!._key.plain.toJSON())
         })
     })

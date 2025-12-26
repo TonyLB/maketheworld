@@ -1,4 +1,4 @@
-import { ReferenceList, StandardKey, StandardReference, StandardReferenceSimple, referenceSortOrder } from './reference';
+import { ReferenceList, StandardKey, StandardReference, referenceSortOrder } from './reference';
 import { deIndentWML } from '../../schema/utils';
 import { Schema, schemaToWML } from '../../schema';
 import { StandardKeyData, StandardReferenceData } from './dataTypes/reference';
@@ -129,7 +129,7 @@ describe('StandardReference', () => {
         }
         const testVariableRemove = new StandardReference(testReferenceData)
         expect(testVariableRemove.tag).toEqual('Room')
-        expect(testVariableRemove._payload).toBeInstanceOf(StandardReferenceSimple)
+        expect(testVariableRemove).toBeInstanceOf(StandardReference)
         expect(testVariableRemove.ref).toEqual(-1)
     })
 
@@ -508,9 +508,9 @@ describe('referenceSortOrder', () => {
         expect(referenceSortOrder(withKey1, withKey2)).toBeLessThan(0)
     })
 
-    it('should work with StandardReferenceSimple instances', () => {
-        const ref1 = new StandardReferenceSimple({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
-        const ref2 = new StandardReferenceSimple({ tag: 'Room', key: 'room2', universalKey: 'ROOM#room2' })
+    it('should work with StandardReference instances', () => {
+        const ref1 = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
+        const ref2 = new StandardReference({ tag: 'Room', key: 'room2', universalKey: 'ROOM#room2' })
         
         expect(referenceSortOrder(ref1, ref2)).toBeLessThan(0)
         expect(referenceSortOrder(ref2, ref1)).toBeGreaterThan(0)

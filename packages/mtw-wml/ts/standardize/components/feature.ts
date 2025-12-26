@@ -110,7 +110,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey }))
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey }))
         ]
     }
 
@@ -127,11 +127,11 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 
     withChild(child: StandardReference): this {
         const returnValue = new StandardFeaturePayload(this)
-        if (child._payload.plain.tag === 'Example') {
+        if (child.tag === 'Example') {
             returnValue._examples = returnValue._examples.assureItem(child)
         }
         else {
-            throw new Error(`Invalid child type ${child._payload.tag} for StandardFeature`)
+            throw new Error(`Invalid child type ${child.tag} for StandardFeature`)
         }
         return returnValue as this
     }
@@ -158,7 +158,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         // Filter and map children by type, creating references with ref={0}
         const exampleReferences = new ReferenceList(
             children
-                .filter(child => child._payload.plain.tag === 'Example')
+                .filter(child => child.tag === 'Example')
                 .map(child => child.withRef(0))
         )
         

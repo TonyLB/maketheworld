@@ -160,17 +160,17 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         // Filter and map children by type, creating references with ref={0}
         const featureReferences = new ReferenceList(
             children
-                .filter(child => child._payload.plain.tag === 'Feature')
+                .filter(child => child.tag === 'Feature')
                 .map(child => child.withRef(0))
         )
         const exampleReferences = new ReferenceList(
             children
-                .filter(child => child._payload.plain.tag === 'Example')
+                .filter(child => child.tag === 'Example')
                 .map(child => child.withRef(0))
         )
         const characterReferences = new ReferenceList(
             children
-                .filter(child => child._payload.plain.tag === 'Character')
+                .filter(child => child.tag === 'Character')
                 .map(child => child.withRef(0))
         )
         
@@ -198,9 +198,9 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return [
             ...exitReferenceKeys(this.exits)
                 .map((key) => ({ referenceType: 'Exit' as const, key: isSchemaComponentUUID(key) ? new StandardKey(key) : new StandardKey({ key }) })),
-            ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey })),
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey })),
-            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey }))
+            ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey })),
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey })),
+            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey }))
         ]
     }
 
@@ -230,17 +230,17 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     withChild(child: StandardReference): this {
         const returnValue = new StandardRoomPayload(this)
-        if (child._payload.plain.tag === 'Feature') {
+        if (child.tag === 'Feature') {
             returnValue._features = returnValue._features.assureItem(child)
         }
-        else if (child._payload.plain.tag === 'Example') {
+        else if (child.tag === 'Example') {
             returnValue._examples = returnValue._examples.assureItem(child)
         }
-        else if (child._payload.plain.tag === 'Character') {
+        else if (child.tag === 'Character') {
             returnValue._characters = returnValue._characters.assureItem(child)
         }
         else {
-            throw new Error(`Invalid child type ${child._payload.tag} for StandardRoom`)
+            throw new Error(`Invalid child type ${child.tag} for StandardRoom`)
         }
         return returnValue as this
     }

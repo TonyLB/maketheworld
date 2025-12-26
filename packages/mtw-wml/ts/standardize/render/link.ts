@@ -52,12 +52,12 @@ export class StandardRenderLink extends StandardRenderAbstract implements Standa
         const returnValue = this.clone() as this
         if (this._to instanceof StandardKey) {
             const mappedReference = new StandardReference(this._to).lookup(mapping).toFormat(mapTo)
-            returnValue._to = mappedReference._payload.plain.standardKey
+            returnValue._to = mappedReference.standardKey
         }
         else {
             const findMatch = mapping.find(({ key, universalKey }) => (key === this._to || universalKey === this._to))
             if (findMatch) {
-                returnValue._to = new StandardReference(findMatch).lookup(mapping).toFormat(mapTo)._payload.plain.standardKey
+                returnValue._to = new StandardReference(findMatch).lookup(mapping).toFormat(mapTo).standardKey
             }
         }
         return returnValue

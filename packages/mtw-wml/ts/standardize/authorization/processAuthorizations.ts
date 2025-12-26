@@ -5,7 +5,7 @@ import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplaceP
 import { isSchemaGrant } from "@tonylb/mtw-base/ts/schema/authorization"
 import StandardGrant from "./components/grant"
 import { StandardAuthorizationResource } from "./resource"
-import StandardReference, { StandardReferenceSimple } from "../components/reference"
+import StandardReference from "../components/reference"
 import { StandardAuthorizationItem } from "./components/baseClasses"
 
 //
@@ -119,7 +119,7 @@ export const processAuthorizations = (props: {
             // Flat structure: Component with grants directly inside, no nesting
             //
             const componentRef = new StandardReference([item])
-            if (!(componentRef._payload instanceof StandardReferenceSimple)) {
+            if (!(componentRef instanceof StandardReference)) {
                 throw new Error(`Component ${item.data.tag} does not have a valid reference payload`)
             }
 

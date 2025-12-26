@@ -6,7 +6,7 @@ import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePay
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { isSimplePositionData, StandardPositionData } from "./dataTypes/position";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
-import StandardReference, { StandardKey, standardReferenceDeserialize, standardReferenceSerialize, StandardReferenceSimple } from "./reference";
+import StandardReference, { StandardKey } from "./reference";
 
 export class StandardPositionSimpleBase implements StandardEditablePayload<StandardPositionData> {
     room: StandardKey;
@@ -19,7 +19,7 @@ export class StandardPositionSimpleBase implements StandardEditablePayload<Stand
         this.y = data.y;
     }
     get schema() {
-        const roomSchema = new StandardReferenceSimple(this.room, 'Room').schema
+        const roomSchema = new StandardReference(this.room, 'Room').schema
         return roomSchema.map(node => {
             if (treeNodeTypeguard(isSchemaRoom)(node)) {
                 return {
@@ -130,7 +130,7 @@ export class StandardPositionSimple implements StandardEditableWrapper<StandardP
             this.payload = delta.add
             return
         }
-        throw new Error('Invalid data in StandardReferenceSimple')
+        throw new Error('Invalid data in StandardPositionSimple')
     }
     get room() {
         return this.payload.room

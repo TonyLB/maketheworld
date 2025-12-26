@@ -111,7 +111,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey }))
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey }))
         ]
     }
 
@@ -128,11 +128,11 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
     
     withChild(child: StandardReference): this {
         const returnValue = new StandardKnowledgePayload(this)
-        if (child._payload.plain.tag === 'Example') {
+        if (child.tag === 'Example') {
             returnValue._examples = returnValue._examples.assureItem(child)
         }
         else {
-            throw new Error(`Invalid child type ${child._payload.tag} for StandardKnowledge`)
+            throw new Error(`Invalid child type ${child.tag} for StandardKnowledge`)
         }
         return returnValue as this
     }
@@ -159,7 +159,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         // Filter and map children by type, creating references with ref={0}
         const exampleReferences = new ReferenceList(
             children
-                .filter(child => child._payload.plain.tag === 'Example')
+                .filter(child => child.tag === 'Example')
                 .map(child => child.withRef(0))
         )
         

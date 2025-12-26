@@ -4,7 +4,7 @@ import { StandardComponent } from "./components/baseClasses"
 import { isSchemaComponent, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { ComponentTag } from "./components/dataTypes/abstract"
-import StandardReference, { StandardReferenceSimple, ReferenceList } from "./components/reference"
+import StandardReference, { ReferenceList } from "./components/reference"
 import { ReferenceCollection } from "./components/utils/referenceCollection"
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists"
 
@@ -171,7 +171,7 @@ export const processComponents = (props: {
         .map(component => {
             try {
                 const referenceData = component.referenceData
-                return new StandardReferenceSimple(referenceData)
+                return new StandardReference(referenceData)
             } catch (error) {
                 // Skip components that don't have valid referenceData
                 return undefined

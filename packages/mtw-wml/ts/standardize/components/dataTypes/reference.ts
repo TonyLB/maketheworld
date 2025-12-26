@@ -51,7 +51,7 @@ export const isStandardKeyData = (arg: any): arg is StandardKeyData => {
     return false
 }
 
-export const isStandardReferencePayloadData = (arg: any): arg is StandardReferenceData => {
+export const isStandardReferenceData = (arg: any): arg is StandardReferenceData => {
     // ComponentUUID form (string)
     if (typeof arg === 'string') {
         return isSchemaComponentUUID(arg)

@@ -1,9 +1,9 @@
-import { StandardReferenceSimple, StandardKey } from "../reference"
+import { StandardReference, StandardKey } from "../reference"
 
 /**
- * ReferenceCollection manages a deduplicated collection of StandardReferenceSimple appearances.
+ * ReferenceCollection manages a deduplicated collection of StandardReference appearances.
  * 
- * References are matched using StandardReferenceSimple.standardKey.equals(), which considers
+ * References are matched using StandardReference.standardKey.equals(), which considers
  * two references equal if they share either the same key or the same universalKey.
  * 
  * When references are added:
@@ -15,15 +15,15 @@ import { StandardReferenceSimple, StandardKey } from "../reference"
  * which allows for complete StandardReferenceData representation.
  */
 export class ReferenceCollection {
-    private _references: StandardReferenceSimple[]
+    private _references: StandardReference[]
 
-    constructor(references: StandardReferenceSimple[] = []) {
+    constructor(references: StandardReference[] = []) {
         this._references = references.reduce((acc, reference) => {
             return this._addReferenceToCollection(acc, reference)
-        }, [] as StandardReferenceSimple[])
+        }, [] as StandardReference[])
     }
 
-    get references(): StandardReferenceSimple[] {
+    get references(): StandardReference[] {
         return this._references
     }
 
@@ -33,7 +33,7 @@ export class ReferenceCollection {
         return returnValue
     }
 
-    withReference(reference: StandardReferenceSimple): ReferenceCollection {
+    withReference(reference: StandardReference): ReferenceCollection {
         const returnValue = this.clone()
         returnValue._references = this._addReferenceToCollection(returnValue._references, reference)
         return returnValue
@@ -46,7 +46,7 @@ export class ReferenceCollection {
      * Throws an error if the query key matches multiple references in the collection
      * (ambiguous match).
      */
-    lookup(query: StandardKey): StandardReferenceSimple | undefined {
+    lookup(query: StandardKey): StandardReference | undefined {
         const matches = this._references.filter(existing => query.equals(existing.standardKey))
         
         if (matches.length === 0) {
@@ -75,7 +75,7 @@ export class ReferenceCollection {
      *      - They match each other, so they get merged into { key, universalKey, tag }
      * 3. If no matches, add the new reference as-is
      */
-    private _addReferenceToCollection(collection: StandardReferenceSimple[], newReference: StandardReferenceSimple): StandardReferenceSimple[] {
+    private _addReferenceToCollection(collection: StandardReference[], newReference: StandardReference): StandardReference[] {
         const matches = collection.filter(existing => newReference.standardKey.equals(existing.standardKey))
         
         if (matches.length === 0) {
@@ -108,7 +108,7 @@ export class ReferenceCollection {
         }
         
         // Create merged reference from the merged key and tag
-        const merged = new StandardReferenceSimple(mergedKey, tag)
+        const merged = new StandardReference(mergedKey, tag)
         
         // Remove all matches and add the merged result
         const withoutMatches = collection.filter(existing => !newReference.standardKey.equals(existing.standardKey))
