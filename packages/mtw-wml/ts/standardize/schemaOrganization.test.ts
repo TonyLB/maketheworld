@@ -1567,7 +1567,7 @@ describe('SchemaOrganization', () => {
             expect(room1).toBeDefined()
 
             const room1Key = room1!._key.plain
-            expect(organization.isReferenced(room1Key, form._topLevel)).toBe(true)
+            expect(organization.isReferenced(room1Key)).toBe(true)
         })
 
         it('should return true for component referenced as child in another component', () => {
@@ -1592,7 +1592,7 @@ describe('SchemaOrganization', () => {
             expect(feature1).toBeDefined()
 
             const feature1Key = feature1!._key.plain
-            expect(organization.isReferenced(feature1Key, form._topLevel)).toBe(true)
+            expect(organization.isReferenced(feature1Key)).toBe(true)
         })
 
         it('should return false for component with no references', () => {
@@ -1632,7 +1632,7 @@ describe('SchemaOrganization', () => {
 
             const room1Key = room1!._key.plain
             // Should return true because it's in topLevel
-            expect(organization.isReferenced(room1Key, form._topLevel)).toBe(true)
+            expect(organization.isReferenced(room1Key)).toBe(true)
         })
 
         it('should return false for component not in topLevel and not referenced as child', () => {
@@ -1656,7 +1656,7 @@ describe('SchemaOrganization', () => {
 
             const orphanKey = orphanRoom._key.plain
             // orphan is not in topLevel and not referenced as a child
-            expect(organization.isReferenced(orphanKey, form._topLevel)).toBe(false)
+            expect(organization.isReferenced(orphanKey)).toBe(false)
         })
 
         it('should return true for deeply nested component referenced as child', () => {
@@ -1684,7 +1684,7 @@ describe('SchemaOrganization', () => {
 
             const example1Key = example1!._key.plain
             // Example is referenced as a child of Feature
-            expect(organization.isReferenced(example1Key, form._topLevel)).toBe(true)
+            expect(organization.isReferenced(example1Key)).toBe(true)
         })
 
         it('should return true for component with multiple parents (multiple references)', () => {
@@ -1713,7 +1713,7 @@ describe('SchemaOrganization', () => {
 
             const feature1Key = feature1!._key.plain
             // Feature1 is referenced as a child in both room1 and room2
-            expect(organization.isReferenced(feature1Key, form._topLevel)).toBe(true)
+            expect(organization.isReferenced(feature1Key)).toBe(true)
         })
 
         it('should return false when topLevel is not provided and component is only in topLevel', () => {
@@ -1751,7 +1751,7 @@ describe('SchemaOrganization', () => {
 
             const room1Key = room1._key.plain
             // Empty topLevel should not cause issues
-            expect(organization.isReferenced(room1Key, undefined)).toBe(false)
+            expect(organization.isReferenced(room1Key)).toBe(false)
         })
 
         it('should return false for nonexistent component key', () => {
@@ -1771,7 +1771,7 @@ describe('SchemaOrganization', () => {
             })
 
             const nonexistentKey = new StandardKey({ key: 'nonexistent' })
-            expect(organization.isReferenced(nonexistentKey, form._topLevel)).toBe(false)
+            expect(organization.isReferenced(nonexistentKey)).toBe(false)
         })
     })
 })
