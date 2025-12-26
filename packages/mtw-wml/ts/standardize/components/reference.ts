@@ -242,6 +242,11 @@ export class StandardReferencePayload implements StandardEditablePayload<Standar
     toJSON: () => StandardReferenceData = () => {
         if (!this.key && this.universalKey) {
             // If only universalKey, return ComponentUUID string form (ref not included in string form)
+            // However, if ref is non-default, we must return object form to include ref
+            if (this._ref !== 1) {
+                const result: StandardReferenceData = { universalKey: this.universalKey, tag: this._tag, ref: this._ref }
+                return result
+            }
             return this.universalKey
         }
         if (this.key) {
@@ -831,8 +836,8 @@ export class StandardReference {
         const keyData = formattedKey.toJSON()
         const referenceData: StandardReferenceData = typeof keyData === 'string' 
             ? keyData 
-            : { ...keyData, tag, ref }
-        return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(referenceData)))
+            : { ...keyData, tag }
+        return new StandardReference(new StandardReferenceSimple(new StandardReferencePayload(referenceData))).withRef(ref)
     }
 }
 
@@ -1000,5 +1005,86 @@ export class ReferenceList {
 
 }
 
+/**
+ * Simple sort order for references that compares by tag and key only (no nested hierarchy).
+ * Use this when sorting references that are already at the same hierarchy level.
+ * For sorting components with nested parent-child relationships, use `SchemaOrganization.sortOrder()`.
+ * 
+ * Sorting rules:
+ * 1. First by component tag order
+ * 2. Then: items with only `universalKey` (no local `key`) come before items with a local `key`
+ * 3. Within universalKey-only items: sort by `universalKey` alphabetically
+ * 4. Within items with local `key`: sort by `key` alphabetically
+ * 
+ * @param referenceA - First reference or key to compare
+ * @param referenceB - Second reference or key to compare
+ * @returns Negative if A < B, positive if A > B, zero if equal
+ */
+export const referenceSortOrder = (
+    referenceA: StandardReferenceSimple | StandardKey,
+    referenceB: StandardReferenceSimple | StandardKey
+): number => {
+    // Extract keys from references if needed
+    const keyA = referenceA instanceof StandardReferenceSimple ? referenceA.standardKey : referenceA
+    const keyB = referenceB instanceof StandardReferenceSimple ? referenceB.standardKey : referenceB
+    
+    // Get tags from keys
+    const tagA = keyA.tag
+    const tagB = keyB.tag
+    
+    // If either tag is undefined, we can't compare properly - fallback to identifier comparison
+    if (!tagA || !tagB) {
+        // If both have keys, compare by key
+        if (keyA.key && keyB.key) {
+            return keyA.key.localeCompare(keyB.key)
+        }
+        // If both have only universalKeys, compare by universalKey
+        if (!keyA.key && !keyB.key && keyA.universalKey && keyB.universalKey) {
+            return keyA.universalKey.localeCompare(keyB.universalKey)
+        }
+        // UniversalKey-only comes before key
+        if (!keyA.key && keyB.key) return -1
+        if (keyA.key && !keyB.key) return 1
+        // Fallback to string comparison of available identifiers
+        const idA = keyA.key ?? keyA.universalKey ?? ''
+        const idB = keyB.key ?? keyB.universalKey ?? ''
+        return idA.localeCompare(idB)
+    }
+    
+    // Component tag order
+    const componentKeys: ComponentTag[] = ['Character', 'Image', 'Example', 'Feature', 'Knowledge', 'Room', 'Map', 'Message', 'Moment']
+    const indexA = componentKeys.indexOf(tagA)
+    const indexB = componentKeys.indexOf(tagB)
+    
+    // Compare by tag order first
+    if (indexA !== indexB) {
+        return indexA - indexB
+    }
+    
+    // Same tag - check if items have local keys
+    const hasKeyA = Boolean(keyA.key)
+    const hasKeyB = Boolean(keyB.key)
+    
+    // Items with only universalKey come before items with local key
+    if (!hasKeyA && hasKeyB) {
+        return -1
+    }
+    if (hasKeyA && !hasKeyB) {
+        return 1
+    }
+    
+    // Both have same key presence - sort within their group
+    if (!hasKeyA && !hasKeyB) {
+        // Both are universalKey-only - sort by universalKey
+        const universalKeyA = keyA.universalKey ?? ''
+        const universalKeyB = keyB.universalKey ?? ''
+        return universalKeyA.localeCompare(universalKeyB)
+    } else {
+        // Both have local keys - sort by key alphabetically
+        const keyAStr = keyA.key ?? ''
+        const keyBStr = keyB.key ?? ''
+        return keyAStr.localeCompare(keyBStr)
+    }
+}
 
 export default StandardReference

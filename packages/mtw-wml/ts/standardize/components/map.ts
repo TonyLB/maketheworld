@@ -117,9 +117,9 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
             const roomKey = position._payload.plain.room
             const roomComponent = lookup(roomKey)
             
-            // Check if room is implicitly parented to this map
-            if (roomComponent && roomComponent.implicitParent?.equals(mapKeyPlain)) {
-                // Room is implicitly parented to map - get full room schema with all content
+            // Check if room is parented to this map (explicit or implicit parentage)
+            if (roomComponent && options.organization?.isParentContext(roomKey, mapKeyPlain)) {
+                // Room is parented to map - get full room schema with all content
                 const roomNestedSchema = roomComponent.nestedSchema(lookup, { 
                     ...options, 
                     key: roomKey, 
@@ -146,7 +146,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
                 
                 return roomNestedSchema
             } else {
-                // Room is not implicitly parented to map - use position-only schema
+                // Room is not parented to map - use position-only schema
                 return positionRoomNode
             }
         }).filter(excludeUndefined)

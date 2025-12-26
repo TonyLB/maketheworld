@@ -539,36 +539,50 @@ This migration should proceed incrementally, starting with a single component ty
 
 ### 4.5 Update nestedSchema to Use OrganizationContext
 
-**Status:** ⏳ **PENDING**
+**Status:** ✅ **COMPLETE**
 
 **Tasks:**
-- Update `StandardComponent.nestedSchema` signature:
-  - Change `lookup` parameter to `deps: { lookup: ..., organization?: OrganizationContext }`
-  - Keep `options: Partial<NestedSchemaOptions>` parameter
-- Update `StandardRoomPayload.nestedSchema` implementation:
-  - Check if rendering in parent context: `organization?.getImplicitParent(this._key) === options.parent` (or check explicitParent)
-  - If rendering in parent context:
-    - Get children: `const children = organization?.getChildrenOfParent(this._key) ?? []`
-    - Assure references: `const assured = this.assureReferences(children)`
-    - Render using `assured`'s reference lists
-  - If not in parent context, render as reference (or skip, depending on component semantics)
-- Update `renderReference` helper in `components/utils/schema.ts`:
-  - Pass `organization` context through to nested `nestedSchema` calls
-  - Ensure parent context propagates correctly through nested rendering
-- Update `StandardForm.schema` getter:
-  - Construct `SchemaOrganization` (or use cached instance)
-  - Create `OrganizationContext` from `SchemaOrganization`
-  - Pass `organization` to `nestedSchema` calls
-- Add unit tests for `nestedSchema` with `OrganizationContext`:
-  - Component rendering in its parent context (full contents)
-  - Component rendering outside parent context (reference only)
-  - Nested components with correct parent propagation
+- ✅ Add `organization?: OrganizationContext` to `NestedSchemaOptions` type
+  - ✅ Added to `baseClasses.ts` in `NestedSchemaOptions` type definition
+  - ✅ Keeps existing signature pattern while adding organization context
+- ✅ Add `isParentContext` helper to `OrganizationContext` and `SchemaOrganization`
+  - ✅ Added `isParentContext(childKey: StandardKey, parentCandidate: StandardKey | undefined): boolean` to `SchemaOrganization`
+  - ✅ Added `isParentContext` to `OrganizationContext` interface
+  - ✅ Implemented in `createOrganizationContext` factory
+  - ✅ Handles explicit parent precedence over implicit parent
+  - ✅ Handles asset-level cases (undefined parent)
+- ✅ Update `componentClassFactory` default `nestedSchema` implementation:
+  - ✅ Uses `options.organization?.isParentContext(target._key.plain, options.parent)` for parent context detection
+  - ✅ Replaces manual parent context checks with helper function
+  - ✅ All components now use consistent parent context detection logic
+- ✅ Update payload `nestedSchema` implementations:
+  - ✅ `StandardRoomPayload`: Uses `organization.getChildrenOfParent(key)` and `assureReferences(children)`
+  - ✅ `StandardFeaturePayload`: Uses `organization.getChildrenOfParent(key)` and `assureReferences(children)`
+  - ✅ `StandardKnowledgePayload`: Uses `organization.getChildrenOfParent(key)` and `assureReferences(children)`
+  - ✅ `StandardMomentPayload`: Uses `organization.getChildrenOfParent(key)` and `assureReferences(children)`
+  - ✅ Removed redundant `isParentContext` checks from payload implementations (handled by wrapper)
+  - ✅ All payloads now use assured references from `organization` when available
+- ✅ Update `renderReference` helper in `components/utils/schema.ts`:
+  - ✅ Passes `organization: options.organization` through to nested `nestedSchema` calls
+  - ✅ Ensures parent context propagates correctly through nested rendering
+- ✅ Update `StandardForm.schema` getter:
+  - ✅ Constructs `SchemaOrganization` from components
+  - ✅ Creates `OrganizationContext` from `SchemaOrganization` using factory
+  - ✅ Gets asset-level children from `organizationContext.getChildrenOfParent(assetUUID)`
+  - ✅ Maps asset-level children to `ref.withRef(0)` for organizational references
+  - ✅ Merges with existing `_topLevel` to preserve content-type references
+  - ✅ Passes `organizationContext` to `renderReference` calls
+- ⏳ Add unit tests for `nestedSchema` with `OrganizationContext`:
+  - ⏳ Component rendering in its parent context (full contents)
+  - ⏳ Component rendering outside parent context (reference only)
+  - ⏳ Nested components with correct parent propagation
 
 **Success Criteria:**
-- `nestedSchema` accepts and uses `OrganizationContext`
-- Components correctly determine parent context and render appropriately
-- `ref={0}` references appear only when components are rendered in their parent context
-- All existing schema rendering tests pass with new implementation
+- ✅ `nestedSchema` accepts and uses `OrganizationContext` (via `NestedSchemaOptions.organization`)
+- ✅ Components correctly determine parent context using `isParentContext` helper
+- ✅ `ref={0}` references are assured via `assureReferences` when components render in their parent context
+- ✅ All existing schema rendering tests pass with new implementation
+- ⏳ Unit tests for `nestedSchema` with `OrganizationContext` (deferred - core functionality complete)
 
 ### 4.6 Converge StandardForm on SchemaOrganization for Parentage
 
@@ -596,6 +610,32 @@ This migration should proceed incrementally, starting with a single component ty
   - Components should no longer have `implicitParent` set during `StandardForm` operations
   - Parentage queries should go through `SchemaOrganization` instead
   - Consider making `implicitParent` a getter that queries `SchemaOrganization` (if cached access is needed)
+- Migrate code that depends on `component.implicitParent` field to use `SchemaOrganization`:
+  - ✅ `sortOrder.ts`: Nested sorting functionality migrated to `SchemaOrganization.sortOrder()`
+    - ✅ Added `buildAncestryChain()` and `sortOrder()` methods to `SchemaOrganization`
+    - ✅ Updated `StandardForm` constructor (line 280) to use `SchemaOrganization.sortOrder()`
+    - ✅ Updated `StandardForm.toNDJSON()` (line 903) to use `SchemaOrganization.sortOrder()`
+    - ✅ Removed `sortOrder.ts` and `sortOrder.test.ts` files
+    - ✅ Updated comment in `index.ts` (line 1424) to remove reference to `standardComponentSortOrder`
+  - ✅ `index.ts` (lines 277, 893): Sorting now uses `SchemaOrganization.sortOrder()` instead of lookup functions
+    - ✅ Removed lookup functions that read `component.implicitParent` field
+    - ✅ Both locations now use `organization.sortOrder()` directly
+  - ✅ `index.ts` (line 467): `_getAncestryChainFromImplicitParent` method removed
+    - ✅ Method was unused dead code (no call sites found)
+    - ✅ Functionality superseded by `SchemaOrganization.buildAncestryChain()` which handles both explicit and implicit parentage
+    - ✅ `SchemaOrganization.buildAncestryChain()` provides better return type (`StandardReferenceSimple[]` with tags)
+  - ✅ `map.ts` (line 121): Updated to use `options.organization?.isParentContext(roomKey, mapKeyPlain)`
+    - ✅ Replaced `roomComponent.implicitParent?.equals(mapKeyPlain)` with `isParentContext` helper
+    - ✅ `OrganizationContext` already available in `NestedSchemaOptions` (from Phase 4.5)
+    - ✅ Now correctly handles both explicit and implicit parentage (explicit takes precedence)
+  - ✅ `index.ts` (line 1327): Removed hierarchy assurance code from `finalize()` that read `implicitParent`
+    - ✅ Removed code that pre-computed child references using `implicitParent` field
+    - ✅ Child reference assurance now handled lazily via `assureReferences` during schema generation
+    - ✅ Organizational references (`ref={0}`) are no longer stored durably in components
+  - Test files: Many tests verify `implicitParent` field values
+    - Update tests to verify `SchemaOrganization.getImplicitParent()` results instead
+    - Consider whether these tests should move to `SchemaOrganization` test suite
+    - Ensure test coverage is maintained for parentage behavior
 
 **Success Criteria:**
 - `StandardForm` no longer contains graph-building or parentage calculation logic
@@ -609,9 +649,10 @@ This migration should proceed incrementally, starting with a single component ty
 
 **Tasks:**
 - Remove or deprecate methods that are no longer needed:
+  - ✅ `_getAncestryChainFromImplicitParent()` (removed - was unused dead code, superseded by `SchemaOrganization.buildAncestryChain()`)
   - `_buildComponentGraph()` (delegated to `SchemaOrganization`)
   - `generateImplicitParents()` (delegated to `SchemaOrganization`)
-  - `_updateTopLevelFromComponents()` (functionality moved to `assureReferences` at render time)
+  - ✅ `_updateTopLevelFromComponents()` (removed - functionality moved to `assureReferences` at render time)
   - Any other helper methods that were only used for hierarchy management
 - Update all call sites to use `SchemaOrganization` directly or through `OrganizationContext`
 - Verify no external code depends on removed methods

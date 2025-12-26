@@ -2,14 +2,13 @@ import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericT
 import { AssetUUID, isSchemaAsset, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardAuthorizationItem } from "./components/baseClasses"
 import { isStandardAuthorizationCollection, StandardAuthorizationCollectionData } from "./components/dataTypes"
-import StandardReference, { StandardKey } from "../components/reference"
+import StandardReference, { StandardKey, referenceSortOrder } from "../components/reference"
 import { isSchemaTreeNode, nodeFromWML } from "../../schema"
 import { excludeUndefined } from "../../lib/lists"
 import processAuthorizations from "./processAuthorizations"
 import { isStandardAuthorizationResourceNDJSON, StandardAuthorizationResource, StandardAuthorizationResourceNDJSON } from "./resource"
 import { StandardToJSONOptions } from "../components/baseClasses"
 import { unique } from "../../list"
-import { standardComponentSortOrder } from "../sortOrder"
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
     if (typeguard(value)) {
@@ -170,29 +169,14 @@ export class StandardAuthorizationCollection {
     }
 
     _sortOrderFactory(): (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => number {
-        // For authorization sorting, we don't have access to full component hierarchy,
-        // so we provide a lookup that returns references but no implicitParent (treats everything as Asset-level)
-        const lookup = (key: StandardKey) => {
-            // Find the matching resource by component reference
-            const resource = this._grants.find(resource => {
-                if (!resource.component) return false
-                return resource.component.plain().standardKey.equals(key)
-            })
-            if (!resource?.component) return undefined
-            return {
-                reference: resource.component.plain(),
-                implicitParent: undefined // Authorization resources have no parent hierarchy
-            }
-        }
-        
         return (a: StandardAuthorizationResource, b: StandardAuthorizationResource) => {
             // Global grants (no component) come first
             if (!a.component && !b.component) return 0
             if (!a.component) return -1
             if (!b.component) return 1
             
-            // Use the StandardReferenceSimple directly for sorting (it extracts the key internally)
-            return standardComponentSortOrder(a.component.plain(), b.component.plain(), lookup)
+            // Use referenceSortOrder for simple tag+key comparison (authorization resources have no parent hierarchy)
+            return referenceSortOrder(a.component.plain(), b.component.plain())
         }
     }
 

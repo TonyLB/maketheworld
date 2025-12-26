@@ -1,4 +1,5 @@
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
+import { ComponentTag } from "./components/dataTypes/abstract"
 import { StandardKey } from "./components/reference"
 import { ReferenceList } from "./components/reference"
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
@@ -8,7 +9,7 @@ import { StandardExplicitParent, StandardExplicitParentSimple, StandardExplicitP
 import { excludeUndefined } from "../lib/lists"
 import { unique } from "../list"
 import { KeyLookup } from "./keyLookup"
-import { StandardReferenceSimple, StandardReference } from "./components/reference"
+import { StandardReferenceSimple, StandardReference, referenceSortOrder } from "./components/reference"
 
 export class SchemaOrganization {
     private _organization: Array<{ key: StandardKey; implicitParent?: StandardKey }>
@@ -91,6 +92,89 @@ export class SchemaOrganization {
         return implicitParent
             ? Boolean(parentCandidate && implicitParent.equals(parentCandidate))
             : typeof parentCandidate === "undefined"
+    }
+
+    /**
+     * Builds an ancestry chain for a given key, traversing up through parents.
+     * Returns the full chain from Asset level (earliest) to the given key (most proximate), with tags.
+     * 
+     * @param key - The StandardKey to build the ancestry chain for
+     * @returns Array of StandardReferenceSimple instances representing the ancestry chain
+     */
+    buildAncestryChain(key: StandardKey): StandardReferenceSimple[] {
+        const chain: StandardReferenceSimple[] = []
+        let current: StandardKey | undefined = key
+        
+        while (current) {
+            // Find component to get tag
+            const lookupResult = this.keyLookup.lookup(current)
+            const componentTag = lookupResult?.component?.tag ?? current.tag
+            if (!componentTag) {
+                throw new Error(`Cannot determine tag for key in ancestry chain: ${JSON.stringify(current)}`)
+            }
+            
+            // Ensure tag is a valid ComponentTag (not 'Remove' or 'Replace')
+            // Components in organization should all be actual components, not edit wrappers
+            if (componentTag === 'Remove' || componentTag === 'Replace') {
+                throw new Error(`Invalid tag '${componentTag}' in ancestry chain - components should not be Remove/Replace wrappers`)
+            }
+            const tag = componentTag as ComponentTag
+            
+            chain.push(new StandardReferenceSimple(current, tag))
+            
+            // Get parent (explicit takes precedence over implicit)
+            const explicitParentResult = this.getExplicitParent(current)
+            if (explicitParentResult !== undefined) {
+                current = explicitParentResult.explicitParent ?? undefined
+            } else {
+                current = this.getImplicitParent(current)
+            }
+            
+            // Stop at Asset level (undefined parent)
+            if (current === undefined) {
+                break
+            }
+        }
+        
+        // Reverse to get order from Asset level (earliest) to direct parent (most proximate)
+        chain.reverse()
+        return chain
+    }
+
+    /**
+     * Sort order for components with nested parent-child relationships.
+     * Uses ancestry chains to ensure parents come before children.
+     * 
+     * @param referenceA - First reference or key to compare
+     * @param referenceB - Second reference or key to compare
+     * @returns Negative if A < B, positive if A > B, zero if equal
+     */
+    sortOrder(
+        referenceA: StandardReferenceSimple | StandardKey,
+        referenceB: StandardReferenceSimple | StandardKey
+    ): number {
+        // Extract keys from references if needed
+        const keyA = referenceA instanceof StandardReferenceSimple ? referenceA.standardKey : referenceA
+        const keyB = referenceB instanceof StandardReferenceSimple ? referenceB.standardKey : referenceB
+        
+        // Build ancestry chains
+        const chainA = this.buildAncestryChain(keyA)
+        const chainB = this.buildAncestryChain(keyB)
+        
+        // Find first differing ancestor (same logic as current implementation)
+        const differingIndex = chainA.findIndex((ancestorEntry, index) => 
+            !(chainB.length > index && chainB[index].standardKey.equals(ancestorEntry.standardKey))
+        )
+        
+        if (differingIndex === -1 || differingIndex >= chainB.length) {
+            return chainA.length - chainB.length
+        }
+        
+        // Compare at differing index using referenceSortOrder
+        const elementA = chainA[differingIndex]
+        const elementB = chainB[differingIndex]
+        
+        return referenceSortOrder(elementA, elementB)
     }
 
     private _getParentChildEdges(topLevel?: ReferenceList): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {

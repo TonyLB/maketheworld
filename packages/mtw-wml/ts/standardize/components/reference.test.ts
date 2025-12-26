@@ -1,4 +1,4 @@
-import { ReferenceList, StandardKey, StandardReference, StandardReferenceSimple } from './reference';
+import { ReferenceList, StandardKey, StandardReference, StandardReferenceSimple, referenceSortOrder } from './reference';
 import { deIndentWML } from '../../schema/utils';
 import { Schema, schemaToWML } from '../../schema';
 import { StandardKeyData, StandardReferenceData } from './dataTypes/reference';
@@ -230,7 +230,7 @@ describe('StandardReference', () => {
         const testSimple = new StandardReference('<Remove><Room key=(room1) uuid=(Room1) /></Remove>')
         expect(testSimple.toFormat('both').toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room', ref: -1 })
         expect(testSimple.toFormat('key').toJSON()).toEqual({ key: 'room1', tag: 'Room', ref: -1 })
-        expect(testSimple.toFormat('universal').toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room', ref: -1 })
+        expect(testSimple.toFormat('universal').toJSON()).toEqual({ universalKey: 'ROOM#Room1', tag: 'Room', ref: -1 })
     })
 
     it('should throw error when attempting to create Replace reference from WML', () => {
@@ -445,5 +445,98 @@ describe('ReferenceList', () => {
             expect(merged?.payload.length).toBe(1)
             expect(merged?.payload[0].ref).toBe(0)
         })
+    })
+})
+
+describe('referenceSortOrder', () => {
+    it('should sort by tag order first', () => {
+        const character = new StandardKey({ key: 'char1', universalKey: 'CHARACTER#char1' })
+        const room = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+        
+        // Character comes before Room in tag order
+        expect(referenceSortOrder(character, room)).toBeLessThan(0)
+        expect(referenceSortOrder(room, character)).toBeGreaterThan(0)
+    })
+
+    it('should sort universalKey-only items before items with local key (same tag)', () => {
+        const universalOnly = new StandardKey({ universalKey: 'ROOM#room1' })
+        const withKey = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+        
+        // UniversalKey-only comes before items with local key
+        expect(referenceSortOrder(universalOnly, withKey)).toBeLessThan(0)
+        expect(referenceSortOrder(withKey, universalOnly)).toBeGreaterThan(0)
+    })
+
+    it('should sort universalKey-only items by universalKey alphabetically', () => {
+        const room1 = new StandardKey({ universalKey: 'ROOM#room1' })
+        const room2 = new StandardKey({ universalKey: 'ROOM#room2' })
+        const room10 = new StandardKey({ universalKey: 'ROOM#room10' })
+        
+        // Should sort alphabetically: room1, room10, room2
+        expect(referenceSortOrder(room1, room2)).toBeLessThan(0)
+        expect(referenceSortOrder(room1, room10)).toBeLessThan(0)
+        expect(referenceSortOrder(room10, room2)).toBeLessThan(0)
+    })
+
+    it('should sort items with local key by key alphabetically', () => {
+        const room1 = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+        const room2 = new StandardKey({ key: 'room2', universalKey: 'ROOM#room2' })
+        const room10 = new StandardKey({ key: 'room10', universalKey: 'ROOM#room10' })
+        
+        // Should sort alphabetically: room1, room10, room2
+        expect(referenceSortOrder(room1, room2)).toBeLessThan(0)
+        expect(referenceSortOrder(room1, room10)).toBeLessThan(0)
+        expect(referenceSortOrder(room10, room2)).toBeLessThan(0)
+    })
+
+    it('should handle mixed universalKey-only and key items correctly', () => {
+        const universal1 = new StandardKey({ universalKey: 'ROOM#room1' })
+        const universal2 = new StandardKey({ universalKey: 'ROOM#room2' })
+        const withKey1 = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+        const withKey2 = new StandardKey({ key: 'room2', universalKey: 'ROOM#room2' })
+        
+        // All universalKey-only should come before all with-key items
+        expect(referenceSortOrder(universal1, withKey1)).toBeLessThan(0)
+        expect(referenceSortOrder(universal2, withKey1)).toBeLessThan(0)
+        expect(referenceSortOrder(universal1, withKey2)).toBeLessThan(0)
+        expect(referenceSortOrder(universal2, withKey2)).toBeLessThan(0)
+        
+        // Within universalKey-only group, sort by universalKey
+        expect(referenceSortOrder(universal1, universal2)).toBeLessThan(0)
+        
+        // Within with-key group, sort by key
+        expect(referenceSortOrder(withKey1, withKey2)).toBeLessThan(0)
+    })
+
+    it('should work with StandardReferenceSimple instances', () => {
+        const ref1 = new StandardReferenceSimple({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
+        const ref2 = new StandardReferenceSimple({ tag: 'Room', key: 'room2', universalKey: 'ROOM#room2' })
+        
+        expect(referenceSortOrder(ref1, ref2)).toBeLessThan(0)
+        expect(referenceSortOrder(ref2, ref1)).toBeGreaterThan(0)
+    })
+
+    it('should handle items with only universalKey vs items with only key (no universalKey)', () => {
+        const universalOnly = new StandardKey({ universalKey: 'ROOM#room1' })
+        const keyOnly = new StandardKey({ key: 'room1' })
+        
+        // UniversalKey-only comes before key-only
+        expect(referenceSortOrder(universalOnly, keyOnly)).toBeLessThan(0)
+        expect(referenceSortOrder(keyOnly, universalOnly)).toBeGreaterThan(0)
+    })
+
+    it('should return 0 for identical keys', () => {
+        const key1 = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+        const key2 = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+        
+        expect(referenceSortOrder(key1, key2)).toBe(0)
+    })
+
+    it('should handle different tags with universalKey-only vs key', () => {
+        const charUniversal = new StandardKey({ universalKey: 'CHARACTER#char1' })
+        const roomWithKey = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+        
+        // Character comes before Room in tag order, regardless of key presence
+        expect(referenceSortOrder(charUniversal, roomWithKey)).toBeLessThan(0)
     })
 })
