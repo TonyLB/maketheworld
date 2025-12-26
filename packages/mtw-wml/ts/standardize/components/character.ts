@@ -211,9 +211,6 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         return new StandardCharacter(super.withChild(child) as StandardCharacter)
     }
 
-    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
-        return new StandardCharacter(super.withImplicitParent(implicitParent) as StandardCharacter)
-    }
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardCharacter(super.withExplicitParent(explicitParent) as StandardCharacter)

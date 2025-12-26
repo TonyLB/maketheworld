@@ -118,8 +118,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             charactersToRender = assured.characters
         }
         
-        // Pass this Room's key as parent to children (just like componentClassFactory does)
-        // This allows children with implicitParent set to this Room to render correctly
+        // Pass this Room's key as parent context to children for correct rendering
         return {
             data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
             children: [
@@ -325,9 +324,6 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         return new StandardRoom(super.withChild(child) as StandardRoom)
     }
 
-    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
-        return new StandardRoom(super.withImplicitParent(implicitParent) as StandardRoom)
-    }
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardRoom(super.withExplicitParent(explicitParent) as StandardRoom)

@@ -1158,7 +1158,7 @@ export class StandardForm {
         const diffedComponents: StandardComponent[] = zipperedComponents
             .reduce<StandardComponent[]>((previous, { previous: previousComponent, incoming: incomingComponent }) => {
                 if (previousComponent && incomingComponent) {
-                    const diffedComponent = previousComponent.diff(incomingComponent, {})?.withImplicitParent(undefined)
+                    const diffedComponent = previousComponent.diff(incomingComponent, {})
                     if (diffedComponent) {
                         return [...previous, diffedComponent]
                     } else {
@@ -1170,13 +1170,13 @@ export class StandardForm {
                         const removedComponent = previousComponent.invert()
                         return [
                             ...previous,
-                            removedComponent.withImplicitParent(undefined)
+                            removedComponent
                         ]
                     }
                     if (incomingComponent) {
                         return [
                             ...previous,
-                            incomingComponent.withImplicitParent(undefined)
+                            incomingComponent
                         ]
                     }
                     throw new Error('diff error')

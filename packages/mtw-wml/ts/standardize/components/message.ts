@@ -228,9 +228,6 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         return new StandardMessage(super.withChild(child) as StandardMessage)
     }
 
-    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
-        return new StandardMessage(super.withImplicitParent(implicitParent) as StandardMessage)
-    }
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardMessage(super.withExplicitParent(explicitParent) as StandardMessage)

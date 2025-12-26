@@ -216,9 +216,6 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         return new StandardMoment(super.withChild(child) as StandardMoment)
     }
 
-    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
-        return new StandardMoment(super.withImplicitParent(implicitParent) as StandardMoment)
-    }
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardMoment(super.withExplicitParent(explicitParent) as StandardMoment)

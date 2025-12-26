@@ -66,7 +66,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _from?: AssetUUID;
         _origin?: AssetUUID[];
         explicitParent?: StandardExplicitParent;
-        _implicitParent?: StandardKey;
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
             if (props instanceof GeneratedComponentClass) {
@@ -77,7 +76,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._mapping = props._mapping
                 // Clone explicitParent if it exists - use constructor to clone (preserves ASSET sentinel)
                 this.explicitParent = props.explicitParent ? new StandardExplicitParent(props.explicitParent) : undefined
-                this._implicitParent = props._implicitParent ? new StandardKey(props._implicitParent) : undefined
                 return
             }
             if (typeof props === 'string' && isLegalKey(props)) {
@@ -142,9 +140,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             }
             this._key = isStandardReferencePayloadData(props) ? new StandardKey(props) : typeof props === 'string' ? new StandardKey(props) : new StandardKey('')
             this._payload.fromJSON(props)
-            if (!isSchemaTreeNode(props) && props.implicitParent) {
-                this._implicitParent = new StandardKey(props.implicitParent)
-            }
+            // Backwards compatibility: silently ignore implicitParent if present in JSON
+            // (it's no longer used, but old data may still contain it)
         }
 
         withMapping(mapping: StandardKey[]): StandardComponent {
@@ -179,7 +176,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return new StandardReference(this.referenceData)
         }
         get origin(): AssetUUID[] | undefined { return this._origin }
-        get implicitParent(): StandardKey | undefined { return this._implicitParent }
 
         clone(): StandardComponent {
             return new GeneratedComponentClass(this)
@@ -195,7 +191,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (this._payload.remapReferences) {
                 const returnValue = this.clone() as GeneratedComponentClass
                 returnValue._payload = returnValue._payload.remapReferences?.({ mapTo, mappings: this._mapping ?? [] }) ?? returnValue._payload
-                returnValue._implicitParent = this._implicitParent ? this._implicitParent.toFormat(mapTo) : undefined
                 return returnValue as this
             }
             return this
@@ -209,7 +204,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 ...(this._from ? { from: this._from } : {}),
                 ...(this._origin ? { origin: this._origin } : {}),
                 ...(this.explicitParent ? { explicitParent: this.explicitParent.toJSON() } : {}),
-                ...(this._implicitParent ? { implicitParent: this._implicitParent.toJSON() } : {}),
             } as D
         }
 
@@ -240,7 +234,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             }
             
             // Pass the current component's StandardKey to children
-            // Children should render if their implicitParent matches this component's StandardKey
             const contextKey = target._key.plain
             const payload = target._payload.nestedSchema
                 ? target._payload.nestedSchema(lookup, { ...options, key: contextKey, parent: contextKey })
@@ -265,9 +258,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         // can be equal (semantically) without being identical.
         //
         equals(incoming: StandardComponent): boolean {
-            const { implicitParent: _implicitParent1, ...thisJSONWithoutImplicitParent } = this.toJSON()
-            const { implicitParent: _implicitParent2, ...incomingJSONWithoutImplicitParent } = incoming.toJSON()
-            return deepEqual(thisJSONWithoutImplicitParent, incomingJSONWithoutImplicitParent)
+            return deepEqual(this.toJSON(), incoming.toJSON())
         }
 
         //
@@ -298,8 +289,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             } else {
                 returnValue.explicitParent = this.explicitParent ?? (incoming as any).explicitParent
             }
-            // implicitParent is computed metadata - don't copy during merge, will be recomputed during finalize()
-            returnValue._implicitParent = undefined
 
             return returnValue as StandardComponent
         }
@@ -343,12 +332,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             const explicitParentDiff = this.explicitParent?.diff((incoming as any).explicitParent)
             const hasExplicitParentDiff = explicitParentDiff !== undefined
             // Check other differences (explicitParent is now included in toJSON, but we handle it separately for diff logic)
-            // Temporarily exclude explicitParent and implicitParent from comparison to check other differences
-            // implicitParent is computed metadata and should not be included in diff comparisons
             const thisJSON = this.toJSON() as any
             const incomingJSON = incoming.toJSON() as any
-            const { explicitParent: _explicitParent1, implicitParent: _implicitParent1, ...thisJSONWithoutParent } = thisJSON
-            const { explicitParent: _explicitParent2, implicitParent: _implicitParent2, ...incomingJSONWithoutParent } = incomingJSON
+            const { explicitParent: _explicitParent1, ...thisJSONWithoutParent } = thisJSON
+            const { explicitParent: _explicitParent2, ...incomingJSONWithoutParent } = incomingJSON
             const otherDiff = deepEqual(thisJSONWithoutParent, incomingJSONWithoutParent)
             // If both are equal and no explicitParent diff, return undefined
             if (otherDiff && !hasExplicitParentDiff) {
@@ -418,12 +405,6 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         withOrigin(origin: AssetUUID[] | undefined): StandardComponent {
             const returnValue = this.clone() as GeneratedComponentClass
             returnValue._origin = origin
-            return returnValue
-        }
-
-        withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
-            const returnValue = this.clone() as GeneratedComponentClass
-            returnValue._implicitParent = implicitParent ? new StandardKey(implicitParent) : undefined
             return returnValue
         }
 

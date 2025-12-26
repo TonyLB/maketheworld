@@ -10,7 +10,6 @@ export type StandardBaseData = {
     update?: boolean;
     // context has been removed; hierarchical relationships are handled at the component level
     origin?: AssetUUID[];  // Array of ancestor asset UUIDs in inheritance chain
-    implicitParent?: StandardKeyData;  // Parent StandardKey (serialized as StandardKeyData, minimal identifier without tag)
     explicitParent?: StandardEditablePayload<StandardKeyData | 'ASSET'>;
 }
 

@@ -242,9 +242,6 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         return new StandardFeature(super.withChild(child) as StandardFeature)
     }
 
-    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
-        return new StandardFeature(super.withImplicitParent(implicitParent) as StandardFeature)
-    }
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardFeature(super.withExplicitParent(explicitParent) as StandardFeature)
