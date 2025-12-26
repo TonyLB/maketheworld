@@ -596,7 +596,7 @@ This migration should proceed incrementally, starting with a single component ty
   - ✅ Removed `generateImplicitParents()` method from `StandardForm` (no longer needed - `SchemaOrganization` handles all parentage queries)
   - ✅ Removed all call sites (constructor, merge, subset, finalize, diff methods)
   - ✅ Updated documentation comments to reference `SchemaOrganization` instead
-  - ✅ `implicitParent` field on components is now unused legacy data (future work: consider removing entirely)
+  - ✅ Removed `implicitParent` field from `StandardComponent` interface and all implementations
 - Update `StandardForm._updateTopLevelFromComponents()`:
   - Remove logic that pre-computes top-level references
   - This functionality will be handled by `assureReferences` at render time
@@ -654,6 +654,7 @@ This migration should proceed incrementally, starting with a single component ty
   - ⚠️ `_buildComponentGraph()` (still needed - used by `merge()` method for graph-based validation)
   - ✅ `generateImplicitParents()` (removed - `SchemaOrganization` handles all parentage queries)
   - ✅ `_updateTopLevelFromComponents()` (removed - functionality moved to `assureReferences` at render time)
+  - ✅ `implicitParent` field removed from `StandardComponent` interface and all implementations
   - Any other helper methods that were only used for hierarchy management
 - Update all call sites to use `SchemaOrganization` directly or through `OrganizationContext`
 - Verify no external code depends on removed methods

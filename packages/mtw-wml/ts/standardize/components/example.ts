@@ -176,9 +176,7 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         if (!(incoming instanceof StandardExample)) {
             return false
         }
-        const { implicitParent: _implicitParent1, ...thisJSONWithoutImplicitParent } = this.toJSON()
-        const { implicitParent: _implicitParent2, ...incomingJSONWithoutImplicitParent } = incoming.toJSON()
-        return deepEqual(thisJSONWithoutImplicitParent, incomingJSONWithoutImplicitParent)
+        return deepEqual(this.toJSON(), incoming.toJSON())
     }
 
     override merge(incoming: StandardComponent): StandardComponent {
@@ -239,9 +237,6 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         return new StandardExample(super.withChild(child) as StandardExample)
     }
 
-    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
-        return new StandardExample(super.withImplicitParent(implicitParent) as StandardExample)
-    }
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardExample(super.withExplicitParent(explicitParent) as StandardExample)

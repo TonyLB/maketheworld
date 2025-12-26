@@ -100,9 +100,6 @@ export class StandardImage extends componentClassFactory(StandardImagePayload, '
         return new StandardImage(super.withChild(child) as StandardImage)
     }
 
-    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
-        return new StandardImage(super.withImplicitParent(implicitParent) as StandardImage)
-    }
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardImage(super.withExplicitParent(explicitParent) as StandardImage)

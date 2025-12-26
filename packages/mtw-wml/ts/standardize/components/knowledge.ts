@@ -243,9 +243,6 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         return new StandardKnowledge(super.withChild(child) as StandardKnowledge)
     }
 
-    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
-        return new StandardKnowledge(super.withImplicitParent(implicitParent) as StandardKnowledge)
-    }
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardKnowledge(super.withExplicitParent(explicitParent) as StandardKnowledge)

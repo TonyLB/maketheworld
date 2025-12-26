@@ -253,9 +253,6 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
         return new StandardMap(super.withChild(child) as StandardMap)
     }
 
-    override withImplicitParent(implicitParent: StandardKey | undefined): StandardComponent {
-        return new StandardMap(super.withImplicitParent(implicitParent) as StandardMap)
-    }
 
     override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
         return new StandardMap(super.withExplicitParent(explicitParent) as StandardMap)

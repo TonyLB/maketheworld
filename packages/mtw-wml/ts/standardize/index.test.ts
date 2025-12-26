@@ -781,7 +781,6 @@ describe('StandardForm', () => {
                 },
                 {
                     tag: 'Example',
-                    implicitParent: 'ROOM#testRoom',
                     universalKey: 'EXAMPLE#testRoomBase',
                     name: [{
                         data: { tag: 'Replace' },
@@ -828,7 +827,6 @@ describe('StandardForm', () => {
                 {
                     tag: 'Example',
                     key: 'base',
-                    implicitParent: 'ROOM#testRoom',
                     universalKey: 'EXAMPLE#testRoomBase',
                     description: ['Test Description']
                 }
@@ -1097,7 +1095,6 @@ describe('StandardForm', () => {
             },
             {
                 tag: 'Example',
-                implicitParent: 'FEATURE#testGlobal',
                 universalKey: 'EXAMPLE#testGlobalBase',
                 description: ['Global']
             },
@@ -1110,20 +1107,17 @@ describe('StandardForm', () => {
             },
             {
                 tag: 'Example',
-                implicitParent: 'ROOM#testRoom',
                 universalKey: 'EXAMPLE#testRoomBase',
                 description: ['One']
             },
             {
                 tag: 'Feature',
                 key: 'testLocal',
-                implicitParent: 'ROOM#testRoom',
                 universalKey: 'FEATURE#testLocal',
                 examples: ['EXAMPLE#testLocalBase']
             },
             {
                 tag: 'Example',
-                implicitParent: 'FEATURE#testLocal',
                 universalKey: 'EXAMPLE#testLocalBase',
                 description: ['Local']
             },
@@ -1159,7 +1153,6 @@ describe('StandardForm', () => {
             },
             {
                 tag: 'Example',
-                implicitParent: 'ROOM#test',
                 universalKey: 'EXAMPLE#testLocal',
                 description: ['Description Test']
             },
@@ -1191,7 +1184,6 @@ describe('StandardForm', () => {
             },
             {
                 tag: 'Example',
-                implicitParent: 'KNOWLEDGE#test',
                 universalKey: 'EXAMPLE#testLocal',
                 description: ['Description Test']
             }]
@@ -1225,13 +1217,11 @@ describe('StandardForm', () => {
             {
                 tag: 'Feature',
                 key: 'testFeature',
-                implicitParent: 'ROOM#test',
                 universalKey: 'FEATURE#testFeature',
                 examples: ['EXAMPLE#testLocal']
             },
             {
                 tag: 'Example',
-                implicitParent: 'FEATURE#testFeature',
                 key: 'testLocal',
                 universalKey: 'EXAMPLE#testLocal',
                 description: ['Description Test']
@@ -1903,8 +1893,7 @@ describe('StandardForm', () => {
         expect(mapTest.byId.testRoomOne.toJSON()).toEqual({
             key: 'testRoomOne',
             universalKey: 'ROOM#testRoomOne',
-            tag: 'Room',
-            implicitParent: { key: 'testMap', universalKey: 'MAP#testMap'}
+            tag: 'Room'
         })
     })
 
@@ -2179,7 +2168,6 @@ describe('StandardForm', () => {
                 {
                     tag: 'Example',
                     universalKey: 'EXAMPLE#testRoomOneBase',
-                    implicitParent: 'ROOM#testRoomOne',
                     name: [{ data: { tag: 'String', value: ': Night' }, children: [] }],
                 },
             ],
@@ -2492,9 +2480,9 @@ describe('StandardForm', () => {
                     </Asset>
                 `))
                 
-                // Verify implicitParent is Room (not Asset-level)
+                // Verify component exists
                 const exampleComponent = merged.byId['ex1']
-                expect(exampleComponent?.implicitParent?.equals(new StandardKey({ key: 'room1', tag: 'Room' }))).toBe(true)
+                expect(exampleComponent).toBeDefined()
                 
                 // Verify not in topLevel
                 expect(merged.header.topLevel).toEqual(['ROOM#room1'])
@@ -2577,11 +2565,11 @@ describe('StandardForm', () => {
                     </Asset>
                 `))
                 
-                // Verify implicitParent is undefined (Asset-level)
+                // Verify component exists
                 const exampleComponent = merged.byId['ex1']
-                expect(exampleComponent?.implicitParent).toBeUndefined()
+                expect(exampleComponent).toBeDefined()
                 
-                // Verify explicitParent was removed (redundant with implicitParent = ASSET)
+                // Verify explicitParent was removed
                 expect(exampleComponent?.explicitParent?.toJSON()).toEqual('ASSET')
                 
                 // Verify in topLevel
@@ -2673,11 +2661,11 @@ describe('StandardForm', () => {
                     </Asset>
                 `))
                 
-                // Verify implicitParent is undefined (Asset-level)
+                // Verify component exists
                 const exampleComponent = merged.byId['ex1']
-                expect(exampleComponent?.implicitParent).toBeUndefined()
+                expect(exampleComponent).toBeDefined()
                 
-                // Verify explicitParent was removed (redundant with implicitParent = ASSET)
+                // Verify explicitParent was removed
                 expect(exampleComponent?.explicitParent?.toJSON()).toEqual('ASSET')
                 
                 // Verify Room no longer has Example reference
@@ -2765,11 +2753,11 @@ describe('StandardForm', () => {
                     </Asset>
                 `))
                 
-                // Verify implicitParent is Room
+                // Verify component exists
                 const exampleComponent = merged.byId['ex1']
-                expect(exampleComponent?.implicitParent?.equals(new StandardKey({ key: 'room1', tag: 'Room' }))).toBe(true)
+                expect(exampleComponent).toBeDefined()
                 
-                // Verify explicitParent was removed (redundant with implicitParent = room1)
+                // Verify explicitParent was removed
                 expect(exampleComponent?.explicitParent).toBeUndefined()
                 
                 // Verify Room has Example reference
@@ -3419,7 +3407,6 @@ describe('StandardForm', () => {
             {
                 tag: 'Example',
                 universalKey: 'EXAMPLE#003b',
-                implicitParent: 'FEATURE#003',
                 description: ['Global']
             },
             {
@@ -3432,20 +3419,17 @@ describe('StandardForm', () => {
             {
                 tag: 'Example',
                 universalKey: 'EXAMPLE#001b',
-                implicitParent: 'ROOM#001',
                 name:['Vortex']
             },
             {
                 tag: 'Feature',
                 key: 'testLocal',
                 examples: ['EXAMPLE#004b'],
-                universalKey: 'FEATURE#004',
-                implicitParent: 'ROOM#001'
+                universalKey: 'FEATURE#004'
             },
             {
                 tag: 'Example',
                 universalKey: 'EXAMPLE#004b',
-                implicitParent: 'FEATURE#004',
                 description: ['A tower built of white sandstone blocks, with an ornate clock set on the northern face.'],
                 name: ['Clocktower']
             },
@@ -3880,7 +3864,7 @@ describe('StandardForm', () => {
         const mergedForm = baseForm.merge(editForm)
         
         // The top-level Example in edit mode successfully merges with the nested Example
-        // The merged Example retains its implicitParent association with Room (topLevel is
+        // The merged Example retains its association with Room (topLevel is
         // not updated, by design)
         expect(schemaToWML([mergedForm.schema])).toEqual(deIndentWML(`
             <Asset uuid=(Test)>
