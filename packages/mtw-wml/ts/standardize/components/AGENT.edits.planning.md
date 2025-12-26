@@ -592,10 +592,11 @@ This migration should proceed incrementally, starting with a single component ty
 - Replace `StandardForm._buildComponentGraph()` with delegation to `SchemaOrganization._buildComponentGraph()`
   - Remove duplicate graph-building logic from `StandardForm`
   - Update all call sites to use `SchemaOrganization` instance
-- Replace `StandardForm.generateImplicitParents()` with delegation to `SchemaOrganization._calculateImplicitParents()`
-  - Remove duplicate implicit parent calculation from `StandardForm`
-  - Update `StandardForm` to use `SchemaOrganization.getImplicitParent()` for any parent queries
-  - Consider whether `implicitParent` should remain as a cached field on components or become purely derived from `SchemaOrganization`
+- ✅ Replace `StandardForm.generateImplicitParents()` with delegation to `SchemaOrganization._calculateImplicitParents()`
+  - ✅ Removed `generateImplicitParents()` method from `StandardForm` (no longer needed - `SchemaOrganization` handles all parentage queries)
+  - ✅ Removed all call sites (constructor, merge, subset, finalize, diff methods)
+  - ✅ Updated documentation comments to reference `SchemaOrganization` instead
+  - ✅ `implicitParent` field on components is now unused legacy data (future work: consider removing entirely)
 - Update `StandardForm._updateTopLevelFromComponents()`:
   - Remove logic that pre-computes top-level references
   - This functionality will be handled by `assureReferences` at render time
@@ -650,8 +651,8 @@ This migration should proceed incrementally, starting with a single component ty
 **Tasks:**
 - Remove or deprecate methods that are no longer needed:
   - ✅ `_getAncestryChainFromImplicitParent()` (removed - was unused dead code, superseded by `SchemaOrganization.buildAncestryChain()`)
-  - `_buildComponentGraph()` (delegated to `SchemaOrganization`)
-  - `generateImplicitParents()` (delegated to `SchemaOrganization`)
+  - ⚠️ `_buildComponentGraph()` (still needed - used by `merge()` method for graph-based validation)
+  - ✅ `generateImplicitParents()` (removed - `SchemaOrganization` handles all parentage queries)
   - ✅ `_updateTopLevelFromComponents()` (removed - functionality moved to `assureReferences` at render time)
   - Any other helper methods that were only used for hierarchy management
 - Update all call sites to use `SchemaOrganization` directly or through `OrganizationContext`
