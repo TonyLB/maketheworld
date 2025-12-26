@@ -1320,34 +1320,7 @@ export class StandardForm {
         returnValue._components = uuidDefaultedComponents
         returnValue = returnValue.generateImplicitParents()
         
-        // Hierarchy assurance: Add child references to parent components
-        returnValue._components = returnValue._components
-            .map((component) => {
-                const implicitChildren = returnValue._components
-                    .filter(({ implicitParent }) => (implicitParent && implicitParent.equals(component._key.plain)))
-                if (implicitChildren.length > 0) {
-                    //
-                    // If the component is the implicit parent, assure that it includes all
-                    // the child references
-                    //
-                    // TODO: We need to change this when explicitParent is implemented, so that
-                    // it does not add a child reference to the implicit parent if positioning
-                    // will be overridden by an explicit parent. That may involve moving the
-                    // child reference addition to the finalize() step.
-                    //
-                    // TODO: We need to evaluate whether this adds the right type of reference
-                    // when different StandardKey types (e.g. add and replace) are combined by
-                    // the implicit-parent mechanism.
-                    //
-                    return implicitChildren.reduce<StandardComponent>((previous, current) => {
-                        return previous.withChild(new StandardReference(current._key.plain))
-                    }, component)
-                }
-                return component
-            })
-
-        const mappings: StandardKey[] = returnValue._components
-            .map((component) => (component._key))
+        const mappings: StandardKey[] = returnValue._components.map((component) => (component._key))
         returnValue._components = returnValue._components.map((component) => (component.withMapping(mappings).remapReferences('universal')))
         return returnValue
     }

@@ -628,6 +628,10 @@ This migration should proceed incrementally, starting with a single component ty
     - ✅ Replaced `roomComponent.implicitParent?.equals(mapKeyPlain)` with `isParentContext` helper
     - ✅ `OrganizationContext` already available in `NestedSchemaOptions` (from Phase 4.5)
     - ✅ Now correctly handles both explicit and implicit parentage (explicit takes precedence)
+  - ✅ `index.ts` (line 1327): Removed hierarchy assurance code from `finalize()` that read `implicitParent`
+    - ✅ Removed code that pre-computed child references using `implicitParent` field
+    - ✅ Child reference assurance now handled lazily via `assureReferences` during schema generation
+    - ✅ Organizational references (`ref={0}`) are no longer stored durably in components
   - Test files: Many tests verify `implicitParent` field values
     - Update tests to verify `SchemaOrganization.getImplicitParent()` results instead
     - Consider whether these tests should move to `SchemaOrganization` test suite
