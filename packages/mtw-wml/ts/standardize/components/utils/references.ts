@@ -7,7 +7,6 @@ import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { excludeUndefined } from "../../../lib/lists"
 import { StandardExit, StandardExitPlain, StandardExitRemove, StandardExitReplace } from "../exit"
-import { StandardReferenceSimple } from "../reference"
 import { isSchemaTreeNode } from "../../../schema"
 
 export const linkReferenceKeys = (mappings: StandardKey[]) => (tree: GenericTree<SchemaTag>): StandardKey[] => {

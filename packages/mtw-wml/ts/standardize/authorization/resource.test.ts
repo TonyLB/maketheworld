@@ -29,7 +29,7 @@ describe('StandardAuthorizationResource class', () => {
             component: { key: 'Room1', tag: 'Room' },
             grant: { tag: 'Grant', player: 'player2', actions: ['action2'] }
         }])
-        expect(resource.component?.plain()?.payload.toJSON()).toEqual({ key: 'Room1', tag: 'Room' })
+        expect(resource.component?.toJSON()).toEqual({ key: 'Room1', tag: 'Room' })
         expect(resource.grants).toEqual([
             new StandardGrant({ tag: 'Grant', player: 'player1', actions: ['action1'] }),
             new StandardGrant({ tag: 'Grant', player: 'player2', actions: ['action2'] })

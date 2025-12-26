@@ -3,7 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardRoomData } from "./dataTypes/room"
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
-import StandardReference, { StandardKey, StandardReferenceSimple } from "./reference"
+import StandardReference, { StandardKey } from "./reference"
 import { StandardExplicitParent } from "../explicit"
 
 describe('StandardRoom class', () => {
@@ -228,7 +228,7 @@ describe('StandardRoom class', () => {
             </Room>
         `)
         const feature = new StandardKey({ key: 'featureTwo' })
-        const added = test.withChild(new StandardReference(new StandardReferenceSimple(feature, 'Feature')))
+        const added = test.withChild(new StandardReference(feature, 'Feature'))
         expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
             <Room key=(testRoomOne)>
                 <Feature uuid=(Feature1) />
@@ -309,8 +309,8 @@ describe('StandardRoom class', () => {
             `)
             const room = new StandardRoom(testSource)
             expect(room.characters.payload.length).toBe(2)
-            expect(room.characters.payload[0]._payload.plain.key).toBe('char1')
-            expect(room.characters.payload[1]._payload.plain.universalKey).toBe('CHARACTER#uuid123')
+            expect(room.characters.payload[0].key).toBe('char1')
+            expect(room.characters.payload[1].universalKey).toBe('CHARACTER#uuid123')
         })
 
         it('should serialize characters to JSON correctly', () => {
@@ -352,8 +352,8 @@ describe('StandardRoom class', () => {
             `)
             const merged = room1.merge(room2) as StandardRoom
             expect(merged.characters.payload.length).toBe(2)
-            expect(merged.characters.payload.map(ref => ref._payload.plain.key)).toContain('char1')
-            expect(merged.characters.payload.map(ref => ref._payload.plain.key)).toContain('char2')
+            expect(merged.characters.payload.map(ref => ref.key)).toContain('char1')
+            expect(merged.characters.payload.map(ref => ref.key)).toContain('char2')
         })
 
         it('should detect character differences in diff operation', () => {
@@ -443,8 +443,8 @@ describe('StandardRoom class', () => {
                 </Room>
             `)
             expect(room.characters.payload.length).toBe(2)
-            expect(room.characters.payload[0]._payload.plain.key).toBe('char1')
-            expect(room.characters.payload[1]._payload.plain.key).toBe('char2')
+            expect(room.characters.payload[0].key).toBe('char1')
+            expect(room.characters.payload[1].key).toBe('char2')
         })
 
         it('should handle empty character lists correctly', () => {

@@ -85,7 +85,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this._rooms.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey }))
+            ...this._rooms.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey }))
         ]
     }
 
@@ -109,11 +109,11 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     withChild(child: StandardReference): this {
         const returnValue = new StandardMessagePayload(this)
-        if (child._payload.plain.tag === 'Room') {
+        if (child.tag === 'Room') {
             returnValue._rooms = returnValue._rooms.assureItem(child)
         }
         else {
-            throw new Error(`Invalid child type ${child._payload.tag} for StandardMessage`)
+            throw new Error(`Invalid child type ${child.tag} for StandardMessage`)
         }
         return returnValue as this
     }
@@ -140,7 +140,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         // Filter and map children by type, creating references with ref={0}
         const roomReferences = new ReferenceList(
             children
-                .filter(child => child._payload.plain.tag === 'Room')
+                .filter(child => child.tag === 'Room')
                 .map(child => child.withRef(0))
         )
         

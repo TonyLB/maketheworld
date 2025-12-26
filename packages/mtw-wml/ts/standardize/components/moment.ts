@@ -92,8 +92,8 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
         return [
-            ...this.messages.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference._payload.plain.standardKey })),
-            ...this.messages.payload.map((reference) => ({ referenceType: 'Dependency' as const, key: reference._payload.plain.standardKey })),
+            ...this.messages.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey })),
+            ...this.messages.payload.map((reference) => ({ referenceType: 'Dependency' as const, key: reference.standardKey })),
         ]
     }
 
@@ -109,11 +109,11 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     
     withChild(child: StandardReference): this {
         const returnValue = new StandardMomentPayload(this)
-        if (child._payload.plain.tag === 'Message') {
+        if (child.tag === 'Message') {
             returnValue._messages = returnValue._messages.assureItem(child)
         }
         else {
-            throw new Error(`Invalid child type ${child._payload.tag} for StandardMoment`)
+            throw new Error(`Invalid child type ${child.tag} for StandardMoment`)
         }
         return returnValue as this
     }
@@ -136,7 +136,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         // Filter and map children by type, creating references with ref={0}
         const messageReferences = new ReferenceList(
             children
-                .filter(child => child._payload.plain.tag === 'Message')
+                .filter(child => child.tag === 'Message')
                 .map(child => child.withRef(0))
         )
         

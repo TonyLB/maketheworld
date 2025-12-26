@@ -23,11 +23,10 @@ import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
-import { isStandardReferencePayloadData, StandardReferenceData } from "./dataTypes/reference";
-import StandardReference, { StandardKey, StandardReferenceSimple } from "./reference";
+import { isStandardReferenceData, StandardReferenceData } from "./dataTypes/reference";
+import StandardReference, { StandardKey } from "./reference";
 import { StandardExplicitParent } from "../explicit";
 import SchemaTagTree from "../../tagTree/schema";
-import { StandardExplicitParentSimpleBase } from "../explicit/parent";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -138,7 +137,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._payload.fromSchema(nodeWithoutParent)
                 return
             }
-            this._key = isStandardReferencePayloadData(props) ? new StandardKey(props) : typeof props === 'string' ? new StandardKey(props) : new StandardKey('')
+            this._key = isStandardReferenceData(props) ? new StandardKey(props) : typeof props === 'string' ? new StandardKey(props) : new StandardKey('')
             this._payload.fromJSON(props)
             // Backwards compatibility: silently ignore implicitParent if present in JSON
             // (it's no longer used, but old data may still contain it)
@@ -229,7 +228,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             const shouldRender = options.organization?.isParentContext(target._key.plain, options.parent) ?? false
             
             if (!shouldRender) {
-                const reference = new StandardReference(new StandardReferenceSimple(target._key, target.tag)).toFormat('key')
+                const reference = new StandardReference(target._key, target.tag).toFormat('key')
                 return reference.schema[0]
             }
             

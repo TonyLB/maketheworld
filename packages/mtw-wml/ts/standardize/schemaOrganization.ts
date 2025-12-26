@@ -9,7 +9,7 @@ import { StandardExplicitParent, StandardExplicitParentSimple, StandardExplicitP
 import { excludeUndefined } from "../lib/lists"
 import { unique } from "../list"
 import { KeyLookup } from "./keyLookup"
-import { StandardReferenceSimple, StandardReference, referenceSortOrder } from "./components/reference"
+import { StandardReference, referenceSortOrder } from "./components/reference"
 
 export class SchemaOrganization {
     private _organization: Array<{ key: StandardKey; implicitParent?: StandardKey }>
@@ -101,10 +101,10 @@ export class SchemaOrganization {
      * Returns the full chain from Asset level (earliest) to the given key (most proximate), with tags.
      * 
      * @param key - The StandardKey to build the ancestry chain for
-     * @returns Array of StandardReferenceSimple instances representing the ancestry chain
+     * @returns Array of StandardReference instances representing the ancestry chain
      */
-    buildAncestryChain(key: StandardKey): StandardReferenceSimple[] {
-        const chain: StandardReferenceSimple[] = []
+    buildAncestryChain(key: StandardKey): StandardReference[] {
+        const chain: StandardReference[] = []
         let current: StandardKey | undefined = key
         
         while (current) {
@@ -122,7 +122,7 @@ export class SchemaOrganization {
             }
             const tag = componentTag as ComponentTag
             
-            chain.push(new StandardReferenceSimple(current, tag))
+            chain.push(new StandardReference(current, tag))
             
             // Get parent (explicit takes precedence over implicit)
             const explicitParentResult = this.getExplicitParent(current)
@@ -152,12 +152,12 @@ export class SchemaOrganization {
      * @returns Negative if A < B, positive if A > B, zero if equal
      */
     sortOrder(
-        referenceA: StandardReferenceSimple | StandardKey,
-        referenceB: StandardReferenceSimple | StandardKey
+        referenceA: StandardReference | StandardKey,
+        referenceB: StandardReference | StandardKey
     ): number {
         // Extract keys from references if needed
-        const keyA = referenceA instanceof StandardReferenceSimple ? referenceA.standardKey : referenceA
-        const keyB = referenceB instanceof StandardReferenceSimple ? referenceB.standardKey : referenceB
+        const keyA = referenceA instanceof StandardReference ? referenceA.standardKey : referenceA
+        const keyB = referenceB instanceof StandardReference ? referenceB.standardKey : referenceB
         
         // Build ancestry chains
         const chainA = this.buildAncestryChain(keyA)
@@ -194,7 +194,7 @@ export class SchemaOrganization {
         // Check if component appears in topLevel (asset-level reference)
         if (this._topLevel) {
             const isInTopLevel = this._topLevel.payload.some((ref) => {
-                const refKey = ref.plain().standardKey
+                const refKey = ref.standardKey
                 return refKey.equals(key)
             })
             if (isInTopLevel) {
@@ -255,9 +255,8 @@ export class SchemaOrganization {
                 }
                 // Convert topLevel references to StandardComponentReferenceKey format
                 return topLevel.payload
-                    .filter(ref => ref._payload instanceof StandardReferenceSimple)
                     .map(ref => ({
-                        key: ref.plain().standardKey,
+                        key: ref.standardKey,
                         referenceType: 'Direct' as const
                     }))
             }
