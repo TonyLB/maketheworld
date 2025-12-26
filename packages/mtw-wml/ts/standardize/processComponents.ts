@@ -110,8 +110,8 @@ export const processComponents = (props: {
                 }
 
                 //
-                // Note: We no longer set context here. Parent relationships are determined later by
-                // generateImplicitParents() which builds a graph from component.referencedKeys() edges.
+                // Note: We no longer set context here. Parent relationships are determined by
+                // SchemaOrganization which builds a graph from component.referencedKeys() edges.
                 // The componentContext parameter is still used for topLevel tracking,
                 // but we don't need to set context on the component itself.
                 //

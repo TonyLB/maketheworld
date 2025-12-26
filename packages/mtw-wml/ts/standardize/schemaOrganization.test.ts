@@ -37,19 +37,18 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const example = formWithParents._lookup('EXAMPLE#testExample')
-            const feature = formWithParents._lookup('FEATURE#testFeature')
-            const room = formWithParents._lookup('ROOM#testRoom')
+            const example = form._lookup('EXAMPLE#testExample')
+            const feature = form._lookup('FEATURE#testFeature')
+            const room = form._lookup('ROOM#testRoom')
 
             expect(example).toBeDefined()
             expect(feature).toBeDefined()
@@ -113,7 +112,7 @@ describe('SchemaOrganization', () => {
             expect(implicitParent).toBeUndefined()
         })
 
-        it('should match generateImplicitParents behavior for nested hierarchy', () => {
+        it('should correctly calculate implicit parents for nested hierarchy', () => {
             const testWML = deIndentWML(`
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom) key=(testRoom)>
@@ -126,28 +125,33 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            // Verify all components have matching implicitParent values
-            formWithParents._components.forEach(component => {
-                const componentKey = component._key.plain
-                const organizationImplicitParent = organization.getImplicitParent(componentKey)
-                
-                if (component.implicitParent) {
-                    expect(organizationImplicitParent).toBeDefined()
-                    expect(organizationImplicitParent?.equals(component.implicitParent)).toBe(true)
-                } else {
-                    expect(organizationImplicitParent).toBeUndefined()
-                }
-            })
+            // Verify implicit parent calculations
+            const exampleKey = form._lookup('EXAMPLE#testExample')!._key.plain
+            const featureKey = form._lookup('FEATURE#testFeature')!._key.plain
+            const roomKey = form._lookup('ROOM#testRoom')!._key.plain
+
+            // Example should have Feature as implicitParent
+            const exampleImplicitParent = organization.getImplicitParent(exampleKey)
+            expect(exampleImplicitParent).toBeDefined()
+            expect(exampleImplicitParent?.equals(featureKey)).toBe(true)
+
+            // Feature should have Room as implicitParent
+            const featureImplicitParent = organization.getImplicitParent(featureKey)
+            expect(featureImplicitParent).toBeDefined()
+            expect(featureImplicitParent?.equals(roomKey)).toBe(true)
+
+            // Room should be at Asset level (undefined implicitParent)
+            const roomImplicitParent = organization.getImplicitParent(roomKey)
+            expect(roomImplicitParent).toBeUndefined()
         })
 
         it('should handle components with explicit parents correctly', () => {
@@ -160,18 +164,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room = formWithParents._lookup('ROOM#room1')
-            const feature = formWithParents._lookup('FEATURE#feature1')
+            const room = form._lookup('ROOM#room1')
+            const feature = form._lookup('FEATURE#feature1')
 
             expect(room).toBeDefined()
             expect(feature).toBeDefined()
@@ -197,19 +200,18 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room = formWithParents._lookup('ROOM#room1')
-            const feature = formWithParents._lookup('FEATURE#feature1')
-            const character = formWithParents._lookup('CHARACTER#char1')
+            const room = form._lookup('ROOM#room1')
+            const feature = form._lookup('FEATURE#feature1')
+            const character = form._lookup('CHARACTER#char1')
 
             expect(room).toBeDefined()
             expect(feature).toBeDefined()
@@ -249,21 +251,20 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const room2 = formWithParents._lookup('ROOM#room2')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
-            const example1 = formWithParents._lookup('EXAMPLE#example1')
+            const room1 = form._lookup('ROOM#room1')
+            const room2 = form._lookup('ROOM#room2')
+            const feature1 = form._lookup('FEATURE#feature1')
+            const feature2 = form._lookup('FEATURE#feature2')
+            const example1 = form._lookup('EXAMPLE#example1')
 
             expect(room1).toBeDefined()
             expect(room2).toBeDefined()
@@ -339,18 +340,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room = formWithParents._lookup('ROOM#room1')
-            const feature = formWithParents._lookup('FEATURE#feature1')
+            const room = form._lookup('ROOM#room1')
+            const feature = form._lookup('FEATURE#feature1')
 
             expect(room).toBeDefined()
             expect(feature).toBeDefined()
@@ -376,17 +376,16 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const feature = formWithParents._lookup('FEATURE#feature1')
+            const feature = form._lookup('FEATURE#feature1')
             expect(feature).toBeDefined()
 
             const featureKey = feature!._key.plain
@@ -409,17 +408,16 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const feature = formWithParents._lookup('FEATURE#feature1')
+            const feature = form._lookup('FEATURE#feature1')
             expect(feature).toBeDefined()
 
             const featureKey = feature!._key.plain
@@ -441,18 +439,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room2 = formWithParents._lookup('ROOM#room2')
-            const feature = formWithParents._lookup('FEATURE#feature1')
+            const room2 = form._lookup('ROOM#room2')
+            const feature = form._lookup('FEATURE#feature1')
             expect(room2).toBeDefined()
             expect(feature).toBeDefined()
 
@@ -484,21 +481,20 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const room2 = formWithParents._lookup('ROOM#room2')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
-            const feature3 = formWithParents._lookup('FEATURE#feature3')
+            const room1 = form._lookup('ROOM#room1')
+            const room2 = form._lookup('ROOM#room2')
+            const feature1 = form._lookup('FEATURE#feature1')
+            const feature2 = form._lookup('FEATURE#feature2')
+            const feature3 = form._lookup('FEATURE#feature3')
 
             expect(room1).toBeDefined()
             expect(room2).toBeDefined()
@@ -557,20 +553,19 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const room2 = formWithParents._lookup('ROOM#room2')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const room1 = form._lookup('ROOM#room1')
+            const room2 = form._lookup('ROOM#room2')
+            const feature1 = form._lookup('FEATURE#feature1')
+            const feature2 = form._lookup('FEATURE#feature2')
 
             expect(room1).toBeDefined()
             expect(room2).toBeDefined()
@@ -608,21 +603,20 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
             const children = organization.getChildrenOfParent(undefined)
             expect(children.length).toBeGreaterThan(0)
             
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const room1 = form._lookup('ROOM#room1')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
@@ -642,17 +636,16 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(feature1).toBeDefined()
 
             const children = organization.getChildrenOfParent(undefined)
@@ -670,18 +663,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const room1 = form._lookup('ROOM#room1')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
@@ -700,18 +692,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const room1 = form._lookup('ROOM#room1')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
@@ -734,19 +725,18 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const room2 = formWithParents._lookup('ROOM#room2')
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const room1 = form._lookup('ROOM#room1')
+            const room2 = form._lookup('ROOM#room2')
+            const feature2 = form._lookup('FEATURE#feature2')
             expect(room1).toBeDefined()
             expect(room2).toBeDefined()
             expect(feature2).toBeDefined()
@@ -770,17 +760,16 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
+            const room1 = form._lookup('ROOM#room1')
             expect(room1).toBeDefined()
 
             const room1Key = room1!._key.plain
@@ -795,13 +784,12 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
@@ -826,20 +814,19 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
-            const knowledge1 = formWithParents._lookup('KNOWLEDGE#knowledge1')
+            const room1 = form._lookup('ROOM#room1')
+            const feature1 = form._lookup('FEATURE#feature1')
+            const feature2 = form._lookup('FEATURE#feature2')
+            const knowledge1 = form._lookup('KNOWLEDGE#knowledge1')
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
             expect(feature2).toBeDefined()
@@ -873,18 +860,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const feature1 = form._lookup('FEATURE#feature1')
+            const feature2 = form._lookup('FEATURE#feature2')
             expect(feature1).toBeDefined()
             expect(feature2).toBeDefined()
 
@@ -903,13 +889,12 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
@@ -928,19 +913,18 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
             const context = createOrganizationContext(organization)
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const room1 = form._lookup('ROOM#room1')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
@@ -964,20 +948,19 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
             const context = createOrganizationContext(organization)
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const room1 = form._lookup('ROOM#room1')
+            const feature1 = form._lookup('FEATURE#feature1')
+            const feature2 = form._lookup('FEATURE#feature2')
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
             expect(feature2).toBeDefined()
@@ -999,24 +982,23 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
             const context = createOrganizationContext(organization)
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const room1 = form._lookup('ROOM#room1')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
             // Pass AssetUUID instead of undefined
-            const assetUUID = formWithParents._universalKey
+            const assetUUID = form._universalKey
             const children = context.getChildrenOfParent(assetUUID)
             expect(children.length).toBeGreaterThan(0)
 
@@ -1036,13 +1018,12 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
@@ -1050,7 +1031,7 @@ describe('SchemaOrganization', () => {
             const context = createOrganizationContext(organization)
             
             // Verify it works with explicit parent scenarios
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(feature1).toBeDefined()
 
             const feature1Key = feature1!._key.plain
@@ -1060,7 +1041,7 @@ describe('SchemaOrganization', () => {
             expect(implicitParent).toBeUndefined()
 
             // But it should appear in asset-level children
-            const assetChildren = context.getChildrenOfParent(formWithParents._universalKey)
+            const assetChildren = context.getChildrenOfParent(form._universalKey)
             const assetChildKeys = assetChildren.map(child => child._payload.plain.standardKey.toJSON())
             expect(assetChildKeys).toContainEqual(feature1!._key.plain.toJSON())
         })
@@ -1077,18 +1058,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const room1 = form._lookup('ROOM#room1')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
@@ -1109,18 +1089,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room2 = formWithParents._lookup('ROOM#room2')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const room2 = form._lookup('ROOM#room2')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(room2).toBeDefined()
             expect(feature1).toBeDefined()
 
@@ -1139,18 +1118,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const room1 = form._lookup('ROOM#room1')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
@@ -1170,18 +1148,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room2 = formWithParents._lookup('ROOM#room2')
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const room2 = form._lookup('ROOM#room2')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(room2).toBeDefined()
             expect(feature1).toBeDefined()
 
@@ -1198,17 +1175,16 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
+            const room1 = form._lookup('ROOM#room1')
             expect(room1).toBeDefined()
 
             const room1Key = room1!._key.plain
@@ -1225,17 +1201,16 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
+            const feature1 = form._lookup('FEATURE#feature1')
             expect(feature1).toBeDefined()
 
             const feature1Key = feature1!._key.plain
@@ -1256,19 +1231,18 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room1 = formWithParents._lookup('ROOM#room1')
-            const room2 = formWithParents._lookup('ROOM#room2')
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const room1 = form._lookup('ROOM#room1')
+            const room2 = form._lookup('ROOM#room2')
+            const feature2 = form._lookup('FEATURE#feature2')
             expect(room1).toBeDefined()
             expect(room2).toBeDefined()
             expect(feature2).toBeDefined()
@@ -1313,17 +1287,16 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const example = formWithParents._lookup('EXAMPLE#testExample')
+            const example = form._lookup('EXAMPLE#testExample')
             const exampleKey = example?._key.plain
             expect(exampleKey).toBeDefined()
 
@@ -1351,17 +1324,16 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const feature2 = form._lookup('FEATURE#feature2')
             const feature2Key = feature2?._key.plain
             expect(feature2Key).toBeDefined()
 
@@ -1370,7 +1342,7 @@ describe('SchemaOrganization', () => {
             // Should use explicit parent (room1) not implicit parent (room2)
             expect(chain.length).toBe(2)
             expect(chain[0].tag).toBe('Room')
-            const room1 = formWithParents._lookup('ROOM#room1')
+            const room1 = form._lookup('ROOM#room1')
             expect(chain[0].standardKey.equals(room1!._key.plain)).toBe(true)
             expect(chain[1].tag).toBe('Feature')
         })
@@ -1386,17 +1358,16 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const example = formWithParents._lookup('EXAMPLE#example1')
+            const example = form._lookup('EXAMPLE#example1')
             const exampleKey = example?._key.plain
             expect(exampleKey).toBeDefined()
 
@@ -1420,18 +1391,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room = formWithParents._lookup('ROOM#room1')
-            const feature = formWithParents._lookup('FEATURE#feature1')
+            const room = form._lookup('ROOM#room1')
+            const feature = form._lookup('FEATURE#feature1')
             const roomKey = room!._key.plain
             const featureKey = feature!._key.plain
 
@@ -1447,18 +1417,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const room = formWithParents._lookup('ROOM#room1')
-            const character = formWithParents._lookup('CHARACTER#char1')
+            const room = form._lookup('ROOM#room1')
+            const character = form._lookup('CHARACTER#char1')
             const roomKey = room!._key.plain
             const characterKey = character!._key.plain
 
@@ -1477,18 +1446,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const feature1 = form._lookup('FEATURE#feature1')
+            const feature2 = form._lookup('FEATURE#feature2')
             const feature1Key = feature1!._key.plain
             const feature2Key = feature2!._key.plain
 
@@ -1508,18 +1476,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const feature1 = form._lookup('FEATURE#feature1')
+            const feature2 = form._lookup('FEATURE#feature2')
             const feature1Key = feature1!._key.plain
             const feature2Key = feature2!._key.plain
 
@@ -1544,18 +1511,17 @@ describe('SchemaOrganization', () => {
                 </Asset>
             `)
             const form = new StandardForm(testWML)
-            const formWithParents = form.generateImplicitParents()
 
-            const keyLookup = new KeyLookup(formWithParents._components)
+            const keyLookup = new KeyLookup(form._components)
             const organization = new SchemaOrganization({
-                components: formWithParents._components,
-                assetUUID: formWithParents._universalKey,
-                topLevel: formWithParents._topLevel,
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
                 keyLookup
             })
 
-            const feature1 = formWithParents._lookup('FEATURE#feature1')
-            const feature2 = formWithParents._lookup('FEATURE#feature2')
+            const feature1 = form._lookup('FEATURE#feature1')
+            const feature2 = form._lookup('FEATURE#feature2')
             const feature1Key = feature1!._key.plain
             const feature2Key = feature2!._key.plain
 
