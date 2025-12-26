@@ -17,6 +17,7 @@ export class SchemaOrganization {
     private components: StandardComponent[]
     private assetUUID: AssetUUID
     private keyLookup: KeyLookup
+    private _topLevel?: ReferenceList
 
     constructor(args: {
         components: StandardComponent[]
@@ -27,8 +28,9 @@ export class SchemaOrganization {
         this.components = args.components
         this.assetUUID = args.assetUUID
         this.keyLookup = args.keyLookup
+        this._topLevel = args.topLevel
         this._explicitOrganization = this._calculateExplicitParents()
-        this._organization = this._calculateImplicitParents(args.topLevel)
+        this._organization = this._calculateImplicitParents()
     }
 
     getImplicitParent(key: StandardKey): StandardKey | undefined {
@@ -186,13 +188,12 @@ export class SchemaOrganization {
      * This only checks direct references, not computed implicit/explicit parent relationships.
      * 
      * @param key - The StandardKey of the component to check
-     * @param topLevel - Optional ReferenceList for asset-level references
      * @returns true if the component is directly referenced, false otherwise
      */
-    isReferenced(key: StandardKey, topLevel?: ReferenceList): boolean {
+    isReferenced(key: StandardKey): boolean {
         // Check if component appears in topLevel (asset-level reference)
-        if (topLevel) {
-            const isInTopLevel = topLevel.payload.some((ref) => {
+        if (this._topLevel) {
+            const isInTopLevel = this._topLevel.payload.some((ref) => {
                 const refKey = ref.plain().standardKey
                 return refKey.equals(key)
             })
@@ -202,7 +203,7 @@ export class SchemaOrganization {
         }
 
         // Build graph with only direct references (implicit edges)
-        const { graph } = this._buildComponentGraph(topLevel)
+        const { graph } = this._buildComponentGraph()
         
         // Find the synthetic UUID for the component key
         const componentSyntheticUUID = Object.values(graph.nodes).find(
@@ -218,7 +219,7 @@ export class SchemaOrganization {
         return graph.edges.some(edge => edge.to === componentSyntheticUUID)
     }
 
-    private _getParentChildEdges(topLevel?: ReferenceList): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
+    private _getParentChildEdges(): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
         // Helper function to extract implicit edges from an entity with StandardKey and referencedKeys
         const getImplicitEdges = (
             entity: { _key?: { plain: StandardKey }; universalKey?: ComponentUUID | AssetUUID; referencedKeys(): StandardComponentReferenceKey[] }
@@ -245,6 +246,7 @@ export class SchemaOrganization {
         }
         
         // Create a pseudo-entity for Asset-level references from topLevel
+        const topLevel = this._topLevel
         const assetEntity: { universalKey: AssetUUID; referencedKeys(): StandardComponentReferenceKey[] } = {
             universalKey: this.assetUUID,
             referencedKeys(): StandardComponentReferenceKey[] {
@@ -294,11 +296,11 @@ export class SchemaOrganization {
         )
     }
 
-    private _buildComponentGraph(topLevel?: ReferenceList): {
+    private _buildComponentGraph(): {
         graph: Graph<string, { key: string; standardKey?: StandardKey; componentUUID?: ComponentUUID }, {}>;
         topologicalSort: string[][];
     } {
-        const implicitEdges = this._getParentChildEdges(topLevel)
+        const implicitEdges = this._getParentChildEdges()
         const explicitEdges = this._getExplicitParentEdges()
         const uuidGenerator = new UUIDGenerator()
         
@@ -396,8 +398,8 @@ export class SchemaOrganization {
         return { graph, topologicalSort }
     }
 
-    private _calculateImplicitParents(topLevel?: ReferenceList): Array<{ key: StandardKey; implicitParent?: StandardKey }> {
-        const { graph, topologicalSort } = this._buildComponentGraph(topLevel)
+    private _calculateImplicitParents(): Array<{ key: StandardKey; implicitParent?: StandardKey }> {
+        const { graph, topologicalSort } = this._buildComponentGraph()
         
         // Helper to find longest common prefix of multiple arrays (works with syntheticUUIDs)
         const longestCommonPrefix = (arrays: string[][]): string[] => {
