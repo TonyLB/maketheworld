@@ -177,6 +177,47 @@ export class SchemaOrganization {
         return referenceSortOrder(elementA, elementB)
     }
 
+    /**
+     * Checks if a component is directly referenced as a child.
+     * A component is considered referenced if:
+     * - It appears as a child (in the 'to' field) in any graph edge (from direct references in components or topLevel)
+     * - It appears in the topLevel ReferenceList
+     * 
+     * This only checks direct references, not computed implicit/explicit parent relationships.
+     * 
+     * @param key - The StandardKey of the component to check
+     * @param topLevel - Optional ReferenceList for asset-level references
+     * @returns true if the component is directly referenced, false otherwise
+     */
+    isReferenced(key: StandardKey, topLevel?: ReferenceList): boolean {
+        // Check if component appears in topLevel (asset-level reference)
+        if (topLevel) {
+            const isInTopLevel = topLevel.payload.some((ref) => {
+                const refKey = ref.plain().standardKey
+                return refKey.equals(key)
+            })
+            if (isInTopLevel) {
+                return true
+            }
+        }
+
+        // Build graph with only direct references (implicit edges)
+        const { graph } = this._buildComponentGraph(topLevel)
+        
+        // Find the synthetic UUID for the component key
+        const componentSyntheticUUID = Object.values(graph.nodes).find(
+            (node) => node?.standardKey && node.standardKey.equals(key)
+        )?.key
+        
+        if (!componentSyntheticUUID) {
+            // Component not in graph, so it's not referenced
+            return false
+        }
+        
+        // Check if any edge has this component as a child (in the 'to' field)
+        return graph.edges.some(edge => edge.to === componentSyntheticUUID)
+    }
+
     private _getParentChildEdges(topLevel?: ReferenceList): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
         // Helper function to extract implicit edges from an entity with StandardKey and referencedKeys
         const getImplicitEdges = (

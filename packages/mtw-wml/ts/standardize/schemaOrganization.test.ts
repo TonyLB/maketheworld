@@ -1,5 +1,5 @@
 import { SchemaOrganization, createOrganizationContext } from './schemaOrganization'
-import { StandardKey } from './components/reference'
+import { ReferenceList, StandardKey } from './components/reference'
 import StandardRoom from './components/room'
 import StandardFeature from './components/feature'
 import StandardExample from './components/example'
@@ -1543,6 +1543,235 @@ describe('SchemaOrganization', () => {
 
             const key = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
             expect(organization.sortOrder(key, key)).toBe(0)
+        })
+    })
+
+    describe('isReferenced', () => {
+        it('should return true for component referenced in topLevel', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+
+            const keyLookup = new KeyLookup(form._components)
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const room1 = form._lookup('ROOM#room1')
+            expect(room1).toBeDefined()
+
+            const room1Key = room1!._key.plain
+            expect(organization.isReferenced(room1Key, form._topLevel)).toBe(true)
+        })
+
+        it('should return true for component referenced as child in another component', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+
+            const keyLookup = new KeyLookup(form._components)
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const feature1 = form._lookup('FEATURE#feature1')
+            expect(feature1).toBeDefined()
+
+            const feature1Key = feature1!._key.plain
+            expect(organization.isReferenced(feature1Key, form._topLevel)).toBe(true)
+        })
+
+        it('should return false for component with no references', () => {
+            const room1 = new StandardRoom(deIndentWML(`<Room uuid=(room1) key=(room1) />`))
+            const room2 = new StandardRoom(deIndentWML(`<Room uuid=(room2) key=(room2) />`))
+            const components = [room1, room2]
+            const keyLookup = new KeyLookup(components)
+            const organization = new SchemaOrganization({
+                components,
+                assetUUID: 'ASSET#test' as const,
+                keyLookup
+            })
+
+            const room2Key = room2._key.plain
+            // room2 is not referenced anywhere (not in topLevel, not as a child)
+            expect(organization.isReferenced(room2Key)).toBe(false)
+        })
+
+        it('should return true for component referenced in topLevel even if not in graph', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+
+            const keyLookup = new KeyLookup(form._components)
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const room1 = form._lookup('ROOM#room1')
+            expect(room1).toBeDefined()
+
+            const room1Key = room1!._key.plain
+            // Should return true because it's in topLevel
+            expect(organization.isReferenced(room1Key, form._topLevel)).toBe(true)
+        })
+
+        it('should return false for component not in topLevel and not referenced as child', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+
+            // Create a component that's not in the form
+            const orphanRoom = new StandardRoom(deIndentWML(`<Room uuid=(orphan) key=(orphan) />`))
+            const allComponents = [...form._components, orphanRoom]
+            const keyLookup = new KeyLookup(allComponents)
+            const organization = new SchemaOrganization({
+                components: allComponents,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const orphanKey = orphanRoom._key.plain
+            // orphan is not in topLevel and not referenced as a child
+            expect(organization.isReferenced(orphanKey, form._topLevel)).toBe(false)
+        })
+
+        it('should return true for deeply nested component referenced as child', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1)>
+                            <Example uuid=(example1) />
+                        </Feature>
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+
+            const keyLookup = new KeyLookup(form._components)
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const example1 = form._lookup('EXAMPLE#example1')
+            expect(example1).toBeDefined()
+
+            const example1Key = example1!._key.plain
+            // Example is referenced as a child of Feature
+            expect(organization.isReferenced(example1Key, form._topLevel)).toBe(true)
+        })
+
+        it('should return true for component with multiple parents (multiple references)', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                    <Room uuid=(room2) key=(room2)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+
+            const keyLookup = new KeyLookup(form._components)
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const feature1 = form._lookup('FEATURE#feature1')
+            expect(feature1).toBeDefined()
+
+            const feature1Key = feature1!._key.plain
+            // Feature1 is referenced as a child in both room1 and room2
+            expect(organization.isReferenced(feature1Key, form._topLevel)).toBe(true)
+        })
+
+        it('should return false when topLevel is not provided and component is only in topLevel', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+
+            const keyLookup = new KeyLookup(form._components)
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: new ReferenceList([]),
+                keyLookup
+            })
+
+            const room1 = form._lookup('ROOM#room1')
+            expect(room1).toBeDefined()
+
+            const room1Key = room1!._key.plain
+            expect(organization.isReferenced(room1Key)).toBe(false)
+        })
+
+        it('should handle empty topLevel correctly', () => {
+            const room1 = new StandardRoom(deIndentWML(`<Room uuid=(room1) key=(room1) />`))
+            const components = [room1]
+            const keyLookup = new KeyLookup(components)
+            const organization = new SchemaOrganization({
+                components,
+                assetUUID: 'ASSET#test' as const,
+                keyLookup
+            })
+
+            const room1Key = room1._key.plain
+            // Empty topLevel should not cause issues
+            expect(organization.isReferenced(room1Key, undefined)).toBe(false)
+        })
+
+        it('should return false for nonexistent component key', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1) />
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+
+            const keyLookup = new KeyLookup(form._components)
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const nonexistentKey = new StandardKey({ key: 'nonexistent' })
+            expect(organization.isReferenced(nonexistentKey, form._topLevel)).toBe(false)
         })
     })
 })
