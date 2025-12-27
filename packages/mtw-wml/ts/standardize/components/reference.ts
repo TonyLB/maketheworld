@@ -623,9 +623,23 @@ export class StandardReference {
         return this.withRef(-this._ref)
     }
 
-    lookup(arg: StandardKey[] | ((key: StandardKey) => StandardKey | undefined)): StandardReference {
+    lookup(arg: StandardReference[] | StandardKey[] | ((key: StandardKey) => StandardKey | undefined)): StandardReference {
         const callback = typeof arg === 'function' ? arg : (key: StandardKey) => {
-            return arg.find((item) => item.equals(key))
+            if (!Array.isArray(arg)) {
+                throw new Error('Invalid argument type for lookup')
+            }
+            // Check if it's StandardReference[] by examining first element
+            if (arg.length > 0 && arg[0] instanceof StandardReference) {
+                const refArray = arg as StandardReference[]
+                const matchingRef = refArray.find((item) => item.standardKey.equals(key))
+                return matchingRef?.standardKey
+            }
+            // Handle StandardKey[] array (for backward compatibility during transition)
+            if (arg.length === 0 || (arg.length > 0 && arg[0] instanceof StandardKey)) {
+                const keyArray = arg as StandardKey[]
+                return keyArray.find((item) => item.equals(key))
+            }
+            throw new Error('Invalid argument type for lookup')
         }
         const currentKey = this.standardKey
         const lookedUpKey = callback(currentKey)
@@ -810,7 +824,7 @@ export class ReferenceList {
         return new ReferenceList(this.payload.map((item) => item.toFormat(format)))
     }
 
-    lookup(arg: StandardKey[] | ((key: StandardKey) => StandardKey | undefined)): ReferenceList {
+    lookup(arg: StandardReference[] | StandardKey[] | ((key: StandardKey) => StandardKey | undefined)): ReferenceList {
         return new ReferenceList(this.payload.map((item) => item.lookup(arg)))
     }
 

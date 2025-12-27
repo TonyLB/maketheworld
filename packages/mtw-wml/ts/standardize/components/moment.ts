@@ -101,7 +101,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         return this
     }
 
-    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
+    remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMomentPayload(this)
         returnValue._messages = returnValue._messages.lookup(props.mappings).toFormat(props.mapTo)
         return returnValue as this
@@ -200,7 +200,7 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         return new StandardMoment(super.withFileName(key) as StandardMoment)
     }
 
-    override withMapping(mapping: StandardKey[]): StandardComponent {
+    override withMapping(mapping: StandardReference[]): StandardComponent {
         return new StandardMoment(super.withMapping(mapping) as StandardMoment)
     }
 

@@ -35,7 +35,7 @@ export interface StandardComponent {
     universalKey?: ComponentUUID;
     explicitParent?: StandardExplicitParent;
     clone(): StandardComponent;
-    withMapping(mapping: StandardKey[]): StandardComponent;
+    withMapping(mapping: StandardReference[]): StandardComponent;
     withKey(key: string): StandardComponent;
     withUniversalKey(key: string | undefined): StandardComponent;
     fileName?: string;

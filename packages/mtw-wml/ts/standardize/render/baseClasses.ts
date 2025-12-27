@@ -1,7 +1,5 @@
-import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { RenderTreeNode } from "@tonylb/mtw-base/ts/renderTree";
-import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
-import { StandardKey } from "../components/reference";
+import StandardReference from "../components/reference";
 import { ReferenceFormat } from "../components/utils/references";
 
 export interface StandardRenderElement {
@@ -16,7 +14,7 @@ export class StandardRenderAbstract implements StandardRenderElement {
     toJSON(): RenderTreeNode { return '' }
     toNDJSON(): RenderTreeNode { return '' }
     clone(): StandardRenderElement { return new StandardRenderAbstract() }
-    remapReferences(props: { mapping: StandardKey[]; mapTo: ReferenceFormat }): this {
+    remapReferences(props: { mapping: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = this.clone() as this
         return returnValue
     }

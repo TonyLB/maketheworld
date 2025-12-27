@@ -109,11 +109,11 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
-    referencedKeys(mapping: StandardKey[]): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
+    referencedKeys(mapping: StandardReference[]): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" }[] {
         const renderTrees = [this._name?.toJSON(), this._summary?.toJSON(), this._description?.toJSON()].filter(excludeUndefined)
         return [
             ...linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1)))
-                .map((key) => ({ referenceType: 'Link' as const, key }))
+                .map((reference) => ({ referenceType: 'Link' as const, key: reference.standardKey }))
         ]
     }
 
@@ -131,7 +131,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
     
-    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
+    remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardExamplePayload(this)
         returnValue._name = returnValue._name?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
         returnValue._summary = returnValue._summary?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
@@ -221,7 +221,7 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         return new StandardExample(super.withFileName(key) as StandardExample)
     }
 
-    override withMapping(mapping: StandardKey[]): StandardComponent {
+    override withMapping(mapping: StandardReference[]): StandardComponent {
         return new StandardExample(super.withMapping(mapping) as StandardExample)
     }
 

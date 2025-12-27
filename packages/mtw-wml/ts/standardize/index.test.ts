@@ -2575,7 +2575,7 @@ describe('StandardForm', () => {
                 // Verify in topLevel
                 expect(merged.header.topLevel).toBeDefined()
                 // @ts-ignore - accessing private for test
-                const topLevelRefs = merged._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
+                const topLevelRefs = merged._topLevel?.payload.map(ref => ref.standardKey.toJSON()) || []
                 expect(topLevelRefs).toContainEqual({ key: 'ex1', universalKey: 'EXAMPLE#ex1' })
             })
         })

@@ -44,8 +44,8 @@ export interface ComponentConstructorMethods<D> {
     schema(key?: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag>;
     nestedSchema?(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
-    referencedKeys(mapping: StandardKey[]): StandardComponentReferenceKey[];
-    remapReferences?: (props: { mappings: StandardKey[], mapTo: ReferenceFormat }) => this;
+    referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[];
+    remapReferences?: (props: { mappings: StandardReference[], mapTo: ReferenceFormat }) => this;
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this;
     withChild?(child: StandardReference): this;
     invert?(): this;
@@ -60,7 +60,7 @@ export interface ComponentConstructorMethods<D> {
 export const componentClassFactory = <D extends StandardComponentData, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
     return class GeneratedComponentClass implements StandardComponent {
         _key: StandardKey;
-        _mapping?: StandardKey[];
+        _mapping?: StandardReference[];
         _payload: InstanceType<typeof Base>;
         _from?: AssetUUID;
         _origin?: AssetUUID[];
@@ -72,7 +72,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 this._payload = props._payload
                 this._from = props._from
                 this._origin = props._origin
-                this._mapping = props._mapping
+                this._mapping = props._mapping?.map(ref => new StandardReference(ref))
                 // Clone explicitParent if it exists - use constructor to clone (preserves ASSET sentinel)
                 this.explicitParent = props.explicitParent ? new StandardExplicitParent(props.explicitParent) : undefined
                 return
@@ -143,7 +143,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             // (it's no longer used, but old data may still contain it)
         }
 
-        withMapping(mapping: StandardKey[]): StandardComponent {
+        withMapping(mapping: StandardReference[]): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             returnValue._mapping = mapping
             return returnValue as StandardComponent

@@ -4,7 +4,7 @@ import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from '@tonylb/mtw-base/ts/schema/edit';
 import { isSchemaTreeNode, treeFromWML } from '../../schema';
 import { ReferenceFormat } from '../../standardize/components/utils/references';
-import { StandardKey } from '../../standardize/components/reference';
+import StandardReference, { StandardKey } from '../../standardize/components/reference';
 
 export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;
@@ -269,7 +269,7 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         }
         
         // Stub method that must be implemented by concrete types
-        remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass {
+        remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardReference[] }): GeneratedV2EditableClass {
             throw new Error('remapReferences() must be implemented by concrete subclass');
         }
         
@@ -427,7 +427,7 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             return this.payload;
         }
         
-        override remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass {
+        override remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardReference[] }): GeneratedV2EditableClass {
             if (this.payload && 'remapReferences' in this.payload) {
                 const remappedPayload = (this.payload as any).remapReferences(props);
                 return new GeneratedV2EditablePlainClass(remappedPayload);
@@ -496,7 +496,7 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             return this.match;
         }
         
-        override remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass {
+        override remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardReference[] }): GeneratedV2EditableClass {
             if (this.match && 'remapReferences' in this.match) {
                 const remappedMatch = (this.match as any).remapReferences(props);
                 return new GeneratedV2EditableRemoveClass(remappedMatch);
@@ -588,7 +588,7 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             return this.payload;
         }
         
-        override remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): GeneratedV2EditableClass {
+        override remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardReference[] }): GeneratedV2EditableClass {
             let remappedMatch = this.match;
             let remappedPayload = this.payload;
             

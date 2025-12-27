@@ -592,7 +592,7 @@ export class StandardForm {
     get universalKey(): AssetUUID { return this._universalKey }
 
     toJSON(options?: StandardToJSONOptions): StandardFormData {
-        const mapKeys = this._components.map(({ _key }) => (_key.plain))
+        const mapKeys = this._components.map((component) => component.reference)
         const result: StandardFormData = {
             universalKey: this._universalKey,
             metaData: this.metaData,
@@ -612,7 +612,7 @@ export class StandardForm {
     }
 
     toNDJSON(): StandardNDJSON {
-        const mapKeys = this._components.map(({ _key }) => (_key.plain))
+        const mapKeys = this._components.map((component) => component.reference)
         // Sort using SchemaOrganization
         const organization = this._getSchemaOrganization()
         const components: (StandardComponentData & SerializeNDJSONMixin)[] = this._components
@@ -639,7 +639,7 @@ export class StandardForm {
         const organizationContext = createOrganizationContext(organization)
 
         const remapped = this._clone()
-        const mapKeys = remapped._components.map((component) => (component._key))
+        const mapKeys = remapped._components.map((component) => component.reference)
         remapped._components = remapped._components.map((component) => (component.withMapping(mapKeys).remapReferences('key')))
 
         // Get asset-level children from organization and ensure ref={0}
@@ -765,7 +765,7 @@ export class StandardForm {
     subset(requests: StandardFormSubsetRequest[]): StandardForm {
         const returnValue = this._clone()
         returnValue._metaData = [...this._metaData]
-        const mappings = this._components.map((component) => (component._key))
+        const mappings = this._components.map((component) => component.reference)
         //
         // mergeIntoRequestList is a reducer that takes a current list of request, and a new request that should
         // be merged into the list. For each key in the new request, it checks if there is a prior request
@@ -1088,7 +1088,7 @@ export class StandardForm {
             })
         returnValue._components = uuidDefaultedComponents
         
-        const mappings: StandardKey[] = returnValue._components.map((component) => (component._key))
+        const mappings = returnValue._components.map((component) => component.reference)
         returnValue._components = returnValue._components.map((component) => (component.withMapping(mappings).remapReferences('universal')))
         return returnValue
     }
@@ -1101,15 +1101,15 @@ export class StandardForm {
         // data structure). This importantly simplifies the resulting diff, and makes it more useful.
         //
         const mergedForKeys = [...this._components, ...incoming._components]
-            .reduce<StandardKey[]>((previous, component) => {
-                const existingIndex = previous.findIndex((key) => (key.equals(component._key)))
+            .reduce<StandardReference[]>((previous, component) => {
+                const existingIndex = previous.findIndex((key) => (key.sameKey(component.reference)))
                 if (existingIndex === -1) {
-                    return [...previous, component._key]
+                    return [...previous, component.reference]
                 }
                 else {
                     return previous.map((key, index) => {
                         if (index === existingIndex) {
-                            return key.merge(component._key)
+                            return key.merge(component.reference) ?? key
                         }
                         return key
                     })

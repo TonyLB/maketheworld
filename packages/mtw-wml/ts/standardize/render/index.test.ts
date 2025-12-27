@@ -1,7 +1,7 @@
 import { StandardRenderSimple, StandardRenderRemove, StandardRenderReplace, StandardRender, StandardRenderSimpleCompareDirection } from './index'
 import { Schema, schemaToWML } from '../../schema'
 import { deIndentWML } from '../../schema/utils'
-import { StandardKey } from '../components/reference'
+import StandardReference from '../components/reference'
 
 describe('StandardRenderRemove', () => {
     it('should create an instance from valid incoming schema', () => {
@@ -489,7 +489,7 @@ describe('StandardRender', () => {
             </With>
         `)
         const render = new StandardRender(schema.schema)
-        const remapped = render.remapReferences({ mapping: [new StandardKey({ key: 'Feature1', tag: 'Feature', universalKey: 'FEATURE#feature1' }), new StandardKey({ key: 'Feature2', tag: 'Feature', universalKey: 'FEATURE#feature2' })], mapTo: 'universal' })
+        const remapped = render.remapReferences({ mapping: [new StandardReference({ key: 'Feature1', tag: 'Feature', universalKey: 'FEATURE#feature1' }), new StandardReference({ key: 'Feature2', tag: 'Feature', universalKey: 'FEATURE#feature2' })], mapTo: 'universal' })
         expect(schemaToWML(remapped.schema)).toEqual(deIndentWML(`
             <Replace>
                 Example

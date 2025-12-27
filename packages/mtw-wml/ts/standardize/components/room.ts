@@ -220,7 +220,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
-    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
+    remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardRoomPayload(this)
         returnValue._examples = returnValue._examples.lookup(props.mappings).toFormat(props.mapTo)
         returnValue._features = returnValue._features.lookup(props.mappings).toFormat(props.mapTo)
@@ -308,7 +308,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         return new StandardRoom(super.withFileName(key) as StandardRoom)
     }
 
-    override withMapping(mapping: StandardKey[]): StandardComponent {
+    override withMapping(mapping: StandardReference[]): StandardComponent {
         return new StandardRoom(super.withMapping(mapping) as StandardRoom)
     }
 

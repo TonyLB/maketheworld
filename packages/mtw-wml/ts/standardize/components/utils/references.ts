@@ -9,7 +9,7 @@ import { excludeUndefined } from "../../../lib/lists"
 import { StandardExit, StandardExitPlain, StandardExitRemove, StandardExitReplace } from "../exit"
 import { isSchemaTreeNode } from "../../../schema"
 
-export const linkReferenceKeys = (mappings: StandardKey[]) => (tree: GenericTree<SchemaTag>): StandardKey[] => {
+export const linkReferenceKeys = (mappings: StandardReference[]) => (tree: GenericTree<SchemaTag>): StandardReference[] => {
     return unique(tree
         .map(({ data, children }) => {
             if (isSchemaLink(data)) {

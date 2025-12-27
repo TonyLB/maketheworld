@@ -11,7 +11,7 @@ import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit
 import { isRenderTreeNode, isSimpleRenderTree, RenderTree, RenderTreeNode, renderTreeToSchema, renderTreeToString, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
-import { StandardKey } from "../components/reference"
+import StandardReference from "../components/reference"
 import { ReferenceFormat } from "../components/utils/references"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 
@@ -68,7 +68,7 @@ export class StandardRenderSimpleBase implements StandardEditablePayload<RenderT
         return new StandardRenderSimpleBase(JSON.parse(JSON.stringify(this.data)))
     }
     toJSON: () => RenderTree = () => this.data
-    remapReferences: (props: { mapping: StandardKey[], mapTo: ReferenceFormat }) => StandardRenderSimpleBase = (props) => {
+    remapReferences: (props: { mapping: StandardReference[], mapTo: ReferenceFormat }) => StandardRenderSimpleBase = (props) => {
         const simpleElements = renderTreeToSimpleElements(this.data)
         const remappedElements = simpleElements.map((element) => (element.remapReferences(props)))
         return new StandardRenderSimpleBase(remappedElements.map((element) => element.toJSON()))
@@ -369,7 +369,7 @@ export class StandardRenderSimple implements StandardEditableWrapper<StandardRen
     diff(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
-    remapReferences: (props: { mapping: StandardKey[], mapTo: ReferenceFormat }) => StandardRenderSimple = (props) => {
+    remapReferences: (props: { mapping: StandardReference[], mapTo: ReferenceFormat }) => StandardRenderSimple = (props) => {
         return new StandardRenderSimple(this.payload.remapReferences(props))
     }
 }
@@ -412,7 +412,7 @@ export class StandardRenderRemove implements StandardEditableWrapper<StandardRen
     diff(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
-    remapReferences: (props: { mapping: StandardKey[], mapTo: ReferenceFormat }) => StandardRenderRemove = (props) => {
+    remapReferences: (props: { mapping: StandardReference[], mapTo: ReferenceFormat }) => StandardRenderRemove = (props) => {
         return new StandardRenderRemove(this.match.remapReferences(props))
     }
 }
@@ -473,7 +473,7 @@ export class StandardRenderReplace implements StandardEditableWrapper<StandardRe
     diff(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
         return fromDelta(diff(this._delta, other._delta))
     }
-    remapReferences: (props: { mapping: StandardKey[], mapTo: ReferenceFormat }) => StandardRenderReplace = (props) => {
+    remapReferences: (props: { mapping: StandardReference[], mapTo: ReferenceFormat }) => StandardRenderReplace = (props) => {
         return new StandardRenderReplace(
             this.match.remapReferences(props),
             this.payload.remapReferences(props)
@@ -571,7 +571,7 @@ export class StandardRender {
         throw new Error('Invalid StandardRender payload')
     }
 
-    remapReferences(props: { mapping: StandardKey[], mapTo: ReferenceFormat }): StandardRender {
+    remapReferences(props: { mapping: StandardReference[], mapTo: ReferenceFormat }): StandardRender {
         return new StandardRender(this._payload.remapReferences(props))
     }
 

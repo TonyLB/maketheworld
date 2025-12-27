@@ -3,7 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardExampleData } from "./dataTypes/example"
 import StandardExample from './example'
-import { StandardKey } from "./reference"
+import StandardReference from "./reference"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 const mergeTest = (base: string, incoming: string): string => {
@@ -227,7 +227,7 @@ describe('StandardExample class', () => {
                 <Description>Description Test<Link to=(feature1)>Link Text</Link></Description>
             </Example>
         `)
-        const mappings = [new StandardKey({ key: 'feature1', tag: 'Feature', universalKey: 'FEATURE#feature1' })]
+        const mappings = [new StandardReference({ key: 'feature1', tag: 'Feature', universalKey: 'FEATURE#feature1' })]
         const remapped = testExample.withMapping(mappings).remapReferences('universal')
         expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Example uuid=(123)>

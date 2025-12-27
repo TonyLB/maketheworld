@@ -48,16 +48,16 @@ export class StandardRenderLink extends StandardRenderAbstract implements Standa
         return new StandardRenderLink(this)
     }
 
-    override remapReferences({ mapping, mapTo }: { mapping: StandardKey[]; mapTo: ReferenceFormat }): this {
+    override remapReferences({ mapping, mapTo }: { mapping: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = this.clone() as this
         if (this._to instanceof StandardKey) {
             const mappedReference = new StandardReference(this._to).lookup(mapping).toFormat(mapTo)
             returnValue._to = mappedReference.standardKey
         }
         else {
-            const findMatch = mapping.find(({ key, universalKey }) => (key === this._to || universalKey === this._to))
+            const findMatch = mapping.find((ref) => (ref.key === this._to || ref.universalKey === this._to))
             if (findMatch) {
-                returnValue._to = new StandardReference(findMatch).lookup(mapping).toFormat(mapTo).standardKey
+                returnValue._to = findMatch.lookup(mapping).toFormat(mapTo).standardKey
             }
         }
         return returnValue

@@ -98,7 +98,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
-    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
+    remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMessagePayload(this)
         returnValue._rooms = returnValue._rooms.lookup(props.mappings).toFormat(props.mapTo)
         if (returnValue._description) {
@@ -212,7 +212,7 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         return new StandardMessage(super.withFileName(key) as StandardMessage)
     }
 
-    override withMapping(mapping: StandardKey[]): StandardComponent {
+    override withMapping(mapping: StandardReference[]): StandardComponent {
         return new StandardMessage(super.withMapping(mapping) as StandardMessage)
     }
 
