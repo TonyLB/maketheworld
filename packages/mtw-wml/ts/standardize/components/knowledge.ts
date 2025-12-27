@@ -2,7 +2,7 @@ import { excludeUndefined } from "../../lib/lists"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import { childReferenceFactory, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
@@ -109,9 +109,9 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
     }
 
 
-    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    referencedKeys(): StandardComponentReferenceKey[] {
         return [
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey }))
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, reference }))
         ]
     }
 

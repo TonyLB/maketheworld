@@ -238,7 +238,7 @@ export class SchemaOrganization {
                 )
                 
                 childReferences.forEach(childRef => {
-                    edges.push({ parent: parentKey, child: childRef.key })
+                    edges.push({ parent: parentKey, child: childRef.reference.standardKey })
                 })
             }
             

@@ -1,7 +1,7 @@
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardGrantData } from "./dataTypes/grant"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { NestedSchemaOptions, StandardToJSONOptions } from "../../components/baseClasses";
+import { NestedSchemaOptions, StandardComponentReferenceKey, StandardToJSONOptions } from "../../components/baseClasses";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { unique } from "../../../list";
 import { isSchemaGrant } from "@tonylb/mtw-base/ts/schema/authorization";
@@ -70,7 +70,7 @@ export class StandardGrantPayload {
         return returnValue as this
     }
 
-    referencedKeys(): { key: string; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
+    referencedKeys(): StandardComponentReferenceKey[] {
         return []
     }
 

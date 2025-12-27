@@ -4,7 +4,7 @@ import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardRoomData } from "./dataTypes/room"
 import { childReferenceFactory, exitReferenceKeys, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
@@ -194,13 +194,18 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
-    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    referencedKeys(): StandardComponentReferenceKey[] {
         return [
             ...exitReferenceKeys(this.exits)
-                .map((key) => ({ referenceType: 'Exit' as const, key: isSchemaComponentUUID(key) ? new StandardKey(key) : new StandardKey({ key }) })),
-            ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey })),
-            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey })),
-            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey }))
+                .map((key) => {
+                    // Create StandardReference for exit - exits always reference rooms
+                    const exitKey = isSchemaComponentUUID(key) ? new StandardKey(key) : new StandardKey({ key })
+                    const exitReference = new StandardReference(exitKey, 'Room')
+                    return { referenceType: 'Exit' as const, reference: exitReference }
+                }),
+            ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
+            ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
+            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, reference }))
         ]
     }
 

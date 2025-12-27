@@ -1,6 +1,6 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { NestedSchemaOptions, StandardComponent, StandardDiffOptions } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardMomentData } from "./dataTypes/moment"
 import { childReferenceFactory, ReferenceFormat } from "./utils/references"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -90,10 +90,10 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         return new StandardMomentPayload() as this
     }
 
-    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    referencedKeys(): StandardComponentReferenceKey[] {
         return [
-            ...this.messages.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey })),
-            ...this.messages.payload.map((reference) => ({ referenceType: 'Dependency' as const, key: reference.standardKey })),
+            ...this.messages.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
+            ...this.messages.payload.map((reference) => ({ referenceType: 'Dependency' as const, reference })),
         ]
     }
 

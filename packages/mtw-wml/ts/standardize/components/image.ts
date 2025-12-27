@@ -1,6 +1,6 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent } from "./baseClasses"
+import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import { StandardImageData } from "./dataTypes/image"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image";
@@ -45,7 +45,7 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
         return new StandardImagePayload() as this
     }
 
-    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    referencedKeys(): StandardComponentReferenceKey[] {
         return []
     }
 
