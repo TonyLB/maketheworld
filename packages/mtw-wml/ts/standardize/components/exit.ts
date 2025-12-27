@@ -5,7 +5,7 @@ import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { StandardKeyData, isStandardKeyData } from "../components/dataTypes/reference"
-import { StandardKey } from "../components/reference"
+import StandardReference, { StandardKey } from "../components/reference"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isStandardLiteralData, StandardLiteral } from "../literal"
 import { deepEqual } from "../../lib/objects"
@@ -45,9 +45,9 @@ export class StandardExitBase implements StandardEditablePayload<StandardExitDat
         description: this.description ? this.description.toJSON() : undefined
     })
 
-    remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardKey[] }): StandardExitBase {
+    remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardReference[] }): StandardExitBase {
         const returnValue = this.clone()
-        const mapReference = props.mappings.find((mapping) => (mapping.equals(this.to))) ?? this.to
+        const mapReference = props.mappings.find((mapping) => (mapping.standardKey.equals(this.to)))?.standardKey ?? this.to
         returnValue.to = mapReference.toFormat(props.mapTo)
         return returnValue
     }

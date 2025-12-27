@@ -1,6 +1,6 @@
 import { StandardRenderLink } from './link';
 import { GenericTreeNode, GenericTreeNodeFiltered } from '@tonylb/mtw-base/ts/genericTree';
-import { StandardKey } from '../components/reference';
+import StandardReference, { StandardKey } from '../components/reference';
 import { SchemaLinkTag } from '@tonylb/mtw-base/ts/schema/renderTree';
 import { SchemaOutputTag } from '@tonylb/mtw-base/ts/schema';
 
@@ -53,7 +53,7 @@ describe('StandardRenderLink', () => {
             children: []
         };
         const link = new StandardRenderLink(arg);
-        const mapping = [new StandardKey({ key: 'Room1', tag: 'Room', universalKey: 'ROOM#Room1' })];
+        const mapping = [new StandardReference({ key: 'Room1', tag: 'Room', universalKey: 'ROOM#Room1' })];
         const remappedLink = link.remapReferences({ mapping, mapTo: 'key' });
         expect(remappedLink._to).toBeInstanceOf(StandardKey);
         expect((remappedLink._to as StandardKey).key).toBe('Room1');
@@ -65,7 +65,7 @@ describe('StandardRenderLink', () => {
             children: []
         };
         const link = new StandardRenderLink(arg);
-        const mapping = [new StandardKey({ key: 'Room1', tag: 'Room', universalKey: 'ROOM#Room1' })];
+        const mapping = [new StandardReference({ key: 'Room1', tag: 'Room', universalKey: 'ROOM#Room1' })];
         const remappedLink = link.remapReferences({ mapping, mapTo: 'universal' });
         expect(remappedLink._to).toBeInstanceOf(StandardKey);
         expect((remappedLink._to as StandardKey).universalKey).toBe('ROOM#Room1');
@@ -77,7 +77,7 @@ describe('StandardRenderLink', () => {
             children: []
         };
         const link = new StandardRenderLink(arg);
-        const mapping = [new StandardKey({ key: 'Room1', tag: 'Room', universalKey: 'ROOM#Room1' })];
+        const mapping = [new StandardReference({ key: 'Room1', tag: 'Room', universalKey: 'ROOM#Room1' })];
         const remappedLink = link.remapReferences({ mapping, mapTo: 'both' });
         expect(remappedLink._to).toBeInstanceOf(StandardKey);
         expect((remappedLink._to as StandardKey).universalKey).toBe('ROOM#Room1');
@@ -89,7 +89,7 @@ describe('StandardRenderLink', () => {
             data: { to: 'Room1', text: 'Example', tag: 'Link' },
             children: []
         });
-        const mapping = [new StandardKey({ key: 'Room1', tag: 'Room', universalKey: 'ROOM#Room1' })];
+        const mapping = [new StandardReference({ key: 'Room1', tag: 'Room', universalKey: 'ROOM#Room1' })];
         const firstRemap = arg.remapReferences({ mapping, mapTo: 'universal' });
         const remappedLink = firstRemap.remapReferences({ mapping, mapTo: 'key' });
         expect(remappedLink._to).toBeInstanceOf(StandardKey);

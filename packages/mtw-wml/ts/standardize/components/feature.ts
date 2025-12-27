@@ -119,7 +119,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         return returnValue as this
     }
 
-    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
+    remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardFeaturePayload(this)
         returnValue._examples = returnValue._examples.lookup(props.mappings).toFormat(props.mapTo)
         return returnValue as this
@@ -226,7 +226,7 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         return new StandardFeature(super.withFileName(key) as StandardFeature)
     }
 
-    override withMapping(mapping: StandardKey[]): StandardComponent {
+    override withMapping(mapping: StandardReference[]): StandardComponent {
         return new StandardFeature(super.withMapping(mapping) as StandardFeature)
     }
 

@@ -120,7 +120,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         return returnValue as this
     }
 
-    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
+    remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardKnowledgePayload(this)
         returnValue._examples = returnValue._examples.lookup(props.mappings).toFormat(props.mapTo)
         return returnValue as this
@@ -227,7 +227,7 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         return new StandardKnowledge(super.withFileName(key) as StandardKnowledge)
     }
 
-    override withMapping(mapping: StandardKey[]): StandardComponent {
+    override withMapping(mapping: StandardReference[]): StandardComponent {
         return new StandardKnowledge(super.withMapping(mapping) as StandardKnowledge)
     }
 

@@ -195,7 +195,7 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         return new StandardCharacter(super.withFileName(key) as StandardCharacter)
     }
 
-    override withMapping(mapping: StandardKey[]): StandardComponent {
+    override withMapping(mapping: StandardReference[]): StandardComponent {
         return new StandardCharacter(super.withMapping(mapping) as StandardCharacter)
     }
 

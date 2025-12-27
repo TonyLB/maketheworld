@@ -187,9 +187,9 @@ describe('StandardRoom class', () => {
             </Room>
         `)
         const remapped = test.withMapping([
-            new StandardKey({ universalKey: 'ROOM#Room1', key: 'testRoomOne'}),
-            new StandardKey({ universalKey: 'EXAMPLE#Example1', key: 'base' }),
-            new StandardKey({ universalKey: 'ROOM#testRoomTwo', key: 'testRoomTwo' })
+            new StandardReference({ universalKey: 'ROOM#Room1', key: 'testRoomOne', tag: 'Room'}),
+            new StandardReference({ universalKey: 'EXAMPLE#Example1', key: 'base', tag: 'Example' }),
+            new StandardReference({ universalKey: 'ROOM#testRoomTwo', key: 'testRoomTwo', tag: 'Room' })
         ]).remapReferences('universal')
         expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Room uuid=(Room1) key=(testRoomOne)>
@@ -208,9 +208,9 @@ describe('StandardRoom class', () => {
         `)
         expect(schemaToWML([
             test.withMapping([
-                new StandardKey({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne' }),
-                new StandardKey({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base' }),
-                new StandardKey({ universalKey: 'FEATURE#Feature1', tag: 'Feature', key: 'featureOne' })
+                new StandardReference({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne' }),
+                new StandardReference({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base' }),
+                new StandardReference({ universalKey: 'FEATURE#Feature1', tag: 'Feature', key: 'featureOne' })
             ]).remapReferences('key').schema
         ])).toEqual(deIndentWML(`
             <Room key=(testRoomOne)>

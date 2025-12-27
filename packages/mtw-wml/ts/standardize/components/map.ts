@@ -191,7 +191,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return returnValue as this
     }
 
-    remapReferences(props: { mappings: StandardKey[]; mapTo: ReferenceFormat }): this {
+    remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMapPayload(this)
         // const mapReference = mapReferenceToFormat(props.mappings, props.mapTo === 'uuid' ? 'universal' : 'key')
         //
@@ -237,7 +237,7 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
         return new StandardMap(super.withFileName(key) as StandardMap)
     }
 
-    override withMapping(mapping: StandardKey[]): StandardComponent {
+    override withMapping(mapping: StandardReference[]): StandardComponent {
         return new StandardMap(super.withMapping(mapping) as StandardMap)
     }
 
