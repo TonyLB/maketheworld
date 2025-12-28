@@ -138,7 +138,7 @@ describe('StandardRoom class', () => {
             </Room>
         `)
         expect(test.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: 'ROOM#testRoomTwo', description: 'exit' }])
-        expect(test.referencedKeys().map(({ key, ...rest }) => ({ key: key.toJSON(), ...rest }))).toEqual([{ key: 'ROOM#testRoomTwo', referenceType: 'Exit' }])
+        expect(test.referencedKeys().map(({ reference, ...rest }) => ({ key: reference.standardKey.toJSON(), ...rest }))).toEqual([{ key: 'ROOM#testRoomTwo', referenceType: 'Exit' }])
     })
 
     // it('should map contents on exits correctly', () => {
@@ -416,7 +416,7 @@ describe('StandardRoom class', () => {
                 </Room>
             `)
             const referencedKeys = room.referencedKeys()
-            expect(referencedKeys.map((ref) => ref.key.toJSON())).toEqual([{ key: 'feat1' }, { key: 'char1' }, 'CHARACTER#uuid123'])
+            expect(referencedKeys.map((ref) => ref.reference.standardKey.toJSON())).toEqual([{ key: 'feat1' }, { key: 'char1' }, 'CHARACTER#uuid123'])
         })
 
         it('should include Features from Remove tags in referencedKeys', () => {
@@ -430,7 +430,7 @@ describe('StandardRoom class', () => {
             const referencedKeys = room.referencedKeys()
             const featureKeys = referencedKeys
                 .filter((ref) => ref.referenceType === 'Direct')
-                .map((ref) => ref.key.toJSON())
+                .map((ref) => ref.reference.standardKey.toJSON())
             
             expect(featureKeys).toContainEqual({ key: 'removedFeature' })
         })

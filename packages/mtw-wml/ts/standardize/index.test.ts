@@ -766,7 +766,7 @@ describe('StandardForm', () => {
             metaData: [],
             topLevel: [
                 'ROOM#testRoom',
-                { tag: 'Remove', match: 'ROOM#testRoomRemove' }
+                { universalKey: 'ROOM#testRoomRemove', tag: 'Room', ref: -1 }
             ],
             components: [
                 {

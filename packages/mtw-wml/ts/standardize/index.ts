@@ -366,7 +366,7 @@ export class StandardForm {
         // Convert topLevel references to StandardComponentReferenceKey format
         return this._topLevel.payload
             .map(ref => ({
-                key: ref.standardKey,
+                reference: ref,
                 referenceType: 'Direct' as const
             }))
     }
@@ -402,7 +402,7 @@ export class StandardForm {
                 )
                 
                 childReferences.forEach(childRef => {
-                    edges.push({ parent: parentKey, child: childRef.key })
+                    edges.push({ parent: parentKey, child: childRef.reference.standardKey })
                 })
             }
             
@@ -898,7 +898,7 @@ export class StandardForm {
                         .filter(({ referenceType }) => 
                             node.transitions.some(t => t.connectionType === referenceType)
                         )
-                        .map(({ key }) => key)
+                        .map(({ reference }) => reference.standardKey)
                     
                     // Add new visits for connected components
                     connectedKeys.forEach(connectedKey => {

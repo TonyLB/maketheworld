@@ -7,7 +7,7 @@ import { AssetUUID, ComponentUUID, isSchemaCharacter, isSchemaOutputTag, SchemaT
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 import { StandardLiteral } from "../literal"
 import SchemaTagTree from "../../tagTree/schema"
-import { StandardComponent, StandardDiffOptions } from "./baseClasses"
+import { StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { deepEqual } from "../../lib/objects"
 import StandardReference, { StandardKey } from "./reference"
 import { StandardRender } from "../render"
@@ -105,7 +105,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         return new StandardCharacterPayload() as this
     }
 
-    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency"; }[] {
+    referencedKeys(): StandardComponentReferenceKey[] {
         return []
     }
 

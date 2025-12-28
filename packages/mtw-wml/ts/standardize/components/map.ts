@@ -3,7 +3,7 @@ import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent, NestedSchemaOptions } from "./baseClasses"
+import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
 import { StandardMapData } from "./dataTypes/map"
 import { ReferenceFormat } from "./utils/references"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -173,10 +173,12 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return new StandardMapPayload() as this
     }
 
-    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    referencedKeys(): StandardComponentReferenceKey[] {
         return this.positions.map((position ) => {
             if (position._payload instanceof StandardPositionSimple || position._payload instanceof StandardPositionReplace) {
-                return [{ referenceType: 'Position' as const, key: position._payload.room }]
+                // Positions always reference rooms
+                const positionReference = new StandardReference(position._payload.room, 'Room')
+                return [{ referenceType: 'Position' as const, reference: positionReference }]
             }
             return []
         }).flat(1)

@@ -3,7 +3,7 @@ import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent, StandardDiffOptions } from "./baseClasses"
+import { StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
 import { childReferenceFactory, ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
@@ -83,9 +83,9 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return new StandardMessagePayload() as this
     }
 
-    referencedKeys(): { key: StandardKey; referenceType: "Link" | "Position" | "Exit" | "Direct" | "Dependency" }[] {
+    referencedKeys(): StandardComponentReferenceKey[] {
         return [
-            ...this._rooms.payload.map((reference) => ({ referenceType: 'Direct' as const, key: reference.standardKey }))
+            ...this._rooms.payload.map((reference) => ({ referenceType: 'Direct' as const, reference }))
         ]
     }
 

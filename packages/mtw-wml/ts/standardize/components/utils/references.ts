@@ -15,11 +15,15 @@ export const linkReferenceKeys = (mappings: StandardReference[]) => (tree: Gener
             if (isSchemaLink(data)) {
                 const mapping = mappings.find((mapping) => mapping.key === data.to || mapping.universalKey === data.to)
                 if (mapping) {
+                    // Use the mapping's reference, but ensure ref is 1 (links don't have ref values)
+                    // Clone and set ref to 1 to be explicit
+                    const reference = mapping.withRef(1)
                     return [
-                        mapping,
+                        reference,
                         ...linkReferenceKeys(mappings)(children)
                     ]
                 }
+                // If no mapping found, skip this reference (filter it out)
             }
             return linkReferenceKeys(mappings)(children)
         })
