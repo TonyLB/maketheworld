@@ -761,6 +761,8 @@ export class ReferenceList {
             throw new Error('Cannot merge with non-ReferenceList instance')
         }
         
+        const { cleanEmptyReferences = true } = options ?? {}
+        
         const unmatchedBaseItems = this._items.filter(item => !other._items.some(otherItem => item.sameKey(otherItem)))
         const matchedOtherItems: { base: StandardReference, incoming: StandardReference }[] = other._items.map((incoming) => {
                 const base = this._items.find(item => item.sameKey(incoming))
@@ -772,10 +774,17 @@ export class ReferenceList {
             .filter((value): value is { base: StandardReference, incoming: StandardReference } => typeof value.base !== 'undefined')
         const unmatchedOtherItems = other._items.filter(item => !this._items.some(baseItem => baseItem.sameKey(item)))
         
+        // Filter unmatched incoming items: if cleanEmptyReferences is true (default), exclude items with ref === 0
+        // because ref={0} means "reference only, don't add if not already present"
+        // Note: ref < 0 (Remove operations) should be kept, only ref === 0 should be filtered
+        const filteredUnmatchedOtherItems = cleanEmptyReferences
+            ? unmatchedOtherItems.filter(item => item.ref !== 0)
+            : unmatchedOtherItems
+        
         const mergedItems = [
             ...unmatchedBaseItems,
             ...matchedOtherItems.map(({ base, incoming }) => base.merge(incoming, options)),
-            ...unmatchedOtherItems
+            ...filteredUnmatchedOtherItems
         ].filter(excludeUndefined)
         
         return new ReferenceList(mergedItems)

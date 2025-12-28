@@ -225,7 +225,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             const target = removeContext ? this.invert() as this : this
             
             // Check if component should be rendered based on its parent context using OrganizationContext helper
-            const shouldRender = options.organization?.isParentContext(target._key.plain, options.parent) ?? false
+            const isParentContextResult = options.organization?.isParentContext(target._key.plain, options.parent) ?? false
+            const shouldRender = isParentContextResult
             
             if (!shouldRender) {
                 const reference = new StandardReference(target._key, target.tag).toFormat('key')

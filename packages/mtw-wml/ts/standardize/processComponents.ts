@@ -125,6 +125,9 @@ export const processComponents = (props: {
 
                 //
                 // Track if this component is at Asset level (topLevel)
+                // NOTE: This uses ancestorTags.length === 0, which means components without legalParents
+                // will always be considered topLevel even when nested. Components that can be nested
+                // should have their legalParents properly configured in componentTemplates.
                 //
                 const isTopLevel = ancestorTags.length === 0 && assetUUID
 
@@ -140,10 +143,11 @@ export const processComponents = (props: {
                 // Build topLevel ReferenceList
                 let updatedTopLevel = previous.topLevel
                 if (isTopLevel) {
-                    // Create appropriate reference based on Remove context
-                    const baseReference = new StandardReference(plainComponent.referenceData)
+                    // Create reference from schema node to preserve ref attribute
+                    // StandardReference constructor extracts ref from node.data if present
+                    const baseReference = new StandardReference([item])
                     const reference = inContextOfRemove
-                        ? baseReference.withRef(-1)
+                        ? baseReference.invert()
                         : baseReference
                     
                     const topLevelReferenceList = new ReferenceList([reference])
