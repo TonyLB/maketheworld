@@ -2370,6 +2370,41 @@ describe('StandardForm', () => {
             `))
         })
 
+        it('should include referenced-only components in diff when references appear in the diff outputs', () => {
+            // Test case: Empty component (no content) referenced in different parents
+            // When diffing, the component itself should appear in the diff, not just reference changes in parents
+            const baseWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room1) key=(room1)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                </Asset>
+            `)
+            const modifiedWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(room2) key=(room2)>
+                        <Feature uuid=(feature1) key=(feature1) />
+                    </Room>
+                </Asset>
+            `)
+            
+            const baseForm = new StandardForm(baseWML)
+            const modifiedForm = new StandardForm(modifiedWML)
+            const diffForm = baseForm.diff(modifiedForm)
+            
+            expect(diffForm).toBeDefined()
+            
+            // The diff should include the feature component itself, not just the room reference changes
+            const featureInDiff = diffForm!._lookup('FEATURE#feature1')
+            expect(featureInDiff).toBeDefined()
+            
+            // Verify feature exists in components array
+            const featureComponent = diffForm!._components.find(
+                component => component.universalKey === 'FEATURE#feature1'
+            )
+            expect(featureComponent).toBeDefined()
+        })
+
         it('should return the diff for nested example components', () => {
             const base = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom)><Example uuid=(Example1) key=(Example1) /></Room></Asset>`)
             const incoming = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom)><Example uuid=(Example1) key=(Example1) /><Example uuid=(Example2) key=(Example2) /></Room></Asset>`)

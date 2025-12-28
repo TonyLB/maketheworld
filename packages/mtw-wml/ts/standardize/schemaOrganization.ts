@@ -220,31 +220,6 @@ export class SchemaOrganization {
     }
 
     private _getParentChildEdges(): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
-        // Helper function to extract implicit edges from an entity with StandardKey and referencedKeys
-        const getImplicitEdges = (
-            entity: { _key?: { plain: StandardKey }; universalKey?: ComponentUUID | AssetUUID; referencedKeys(): StandardComponentReferenceKey[] }
-        ): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> => {
-            const edges: Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> = []
-            
-            // For Asset-level, use AssetUUID; for components, use StandardKey
-            const parentKey: StandardKey | AssetUUID | undefined = entity.universalKey?.startsWith('ASSET#')
-                ? entity.universalKey as AssetUUID
-                : entity._key?.plain
-            
-            if (parentKey) {
-                // Collect implicit edges (from component nesting)
-                const childReferences = entity.referencedKeys().filter(
-                    (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position'
-                )
-                
-                childReferences.forEach(childRef => {
-                    edges.push({ parent: parentKey, child: childRef.reference.standardKey })
-                })
-            }
-            
-            return edges
-        }
-        
         // Create a pseudo-entity for Asset-level references from topLevel
         const topLevel = this._topLevel
         const assetEntity: { universalKey: AssetUUID; referencedKeys(): StandardComponentReferenceKey[] } = {
@@ -262,11 +237,63 @@ export class SchemaOrganization {
             }
         }
         
-        // Collect implicit edges from Asset and components
-        return [assetEntity, ...this.components].reduce<Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>>(
-            (acc, entity) => ([...acc, ...getImplicitEdges(entity)]),
+        // Phase 1: Collect all references with their parent keys
+        const allReferences = [assetEntity, ...this.components].reduce<Array<{ parent: StandardKey | AssetUUID; childRef: StandardComponentReferenceKey }>>(
+            (acc, entity) => {
+                // For Asset-level, use AssetUUID; for components, use StandardKey
+                const parentKey: StandardKey | AssetUUID | undefined = entity.universalKey?.startsWith('ASSET#')
+                    ? entity.universalKey as AssetUUID
+                    : ('_key' in entity && entity._key?.plain) ? entity._key.plain : undefined
+                
+                if (parentKey) {
+                    // Collect references with 'Direct' or 'Position' types
+                    const childReferences = entity.referencedKeys().filter(
+                        (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position'
+                    )
+                    return [...acc, ...childReferences.map(childRef => ({ parent: parentKey, childRef }))]
+                }
+                return acc
+            },
             []
         )
+        
+        // Phase 2: Group by child component using sameKey()
+        const groupedReferences = allReferences.reduce<Array<Array<{ parent: StandardKey | AssetUUID; childRef: StandardComponentReferenceKey }>>>(
+            (groups, item) => {
+                // Find existing group that contains a reference to the same child
+                const existingGroupIndex = groups.findIndex(group => 
+                    group.some(existing => existing.childRef.reference.sameKey(item.childRef.reference))
+                )
+                
+                if (existingGroupIndex >= 0) {
+                    // Add to existing group
+                    return groups.map((group, index) => 
+                        index === existingGroupIndex ? [...group, item] : group
+                    )
+                } else {
+                    // Create new group
+                    return [...groups, [item]]
+                }
+            },
+            []
+        )
+        
+        // Phase 3: Apply global preference per group and flatten to edges
+        return groupedReferences.flatMap(group => {
+            // Check if ANY reference in the group has positive ref (addition)
+            const hasPositiveRef = group.some(item => item.childRef.reference.ref > 0)
+            
+            // Filter based on preference: if positive refs exist, only use positive refs; otherwise use all (negative)
+            const filteredGroup = hasPositiveRef
+                ? group.filter(item => item.childRef.reference.ref > 0)
+                : group
+            
+            // Flatten to edge format
+            return filteredGroup.map(item => ({
+                parent: item.parent,
+                child: item.childRef.reference.standardKey
+            }))
+        })
     }
 
     private _getExplicitParentEdges(): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
