@@ -119,20 +119,6 @@ describe('StandardReference', () => {
         expect(diffed).toBeUndefined() // No difference when pointing to same component
     })
 
-    it('should correctly parse a StandardReferenceRemove', () => {
-        const testReferenceData = {
-            tag: 'Remove',
-            match: {
-                tag: 'Room',
-                key: 'test'
-            }
-        }
-        const testVariableRemove = new StandardReference(testReferenceData)
-        expect(testVariableRemove.tag).toEqual('Room')
-        expect(testVariableRemove).toBeInstanceOf(StandardReference)
-        expect(testVariableRemove.ref).toEqual(-1)
-    })
-
     it('should correctly judge equality when both key and universalKey match', () => {
         const testReferenceData: StandardReferenceData = {
             key: 'test',
@@ -201,7 +187,7 @@ describe('StandardReference', () => {
         // Create references with both key and universalKey so lookup can match on key
         const testSimple = new StandardReference({ key: 'room1', tag: 'Room' })
         expect(testSimple.lookup(callback).toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room'})
-        const testRemove = new StandardReference({ tag: 'Remove', match: { key: 'room2', tag: 'Room' } })
+        const testRemove = new StandardReference({ key: 'room2', tag: 'Room', ref: -1 })
         expect(testRemove.lookup(callback).toJSON()).toEqual({ key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room', ref: -1 })
     })
 
@@ -215,7 +201,7 @@ describe('StandardReference', () => {
         // Create references with both key and tag so lookup can match on key
         const testSimple = new StandardReference({ key: 'room1', tag: 'Room' })
         expect(testSimple.lookup(keys).toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room'})
-        const testRemove = new StandardReference({ tag: 'Remove', match: { key: 'room2', tag: 'Room' } })
+        const testRemove = new StandardReference({ key: 'room2', tag: 'Room', ref: -1 })
         expect(testRemove.lookup(keys).toJSON()).toEqual({ key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room', ref: -1 })
     })
 

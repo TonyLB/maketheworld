@@ -112,8 +112,8 @@ xdescribe('editableListClassFactory', () => {
     it('should merge incoming removes', () => {
         const base = new ReferenceList(['ROOM#test', 'FEATURE#toRemove'])
         const toMerge = new ReferenceList([
-            { tag: 'Remove', match: { key: 'featureTest', tag: 'Feature', universalKey: 'FEATURE#toRemove' } },
-            { tag: 'Remove', match: { key: 'unmatched', tag: 'Room' } }
+            { key: 'featureTest', tag: 'Feature', universalKey: 'FEATURE#toRemove', ref: -1 },
+            { key: 'unmatched', tag: 'Room', ref: -1 }
         ])
         const merged = base.merge(toMerge)
         expect(merged).toBeDefined()
@@ -121,7 +121,7 @@ xdescribe('editableListClassFactory', () => {
             expect(merged._items.length).toBe(2)
             expect(merged._items.map(item => item.toJSON())).toEqual([
                 'ROOM#test',
-                { tag: 'Remove', match: { key: 'unmatched', tag: 'Room' } }
+                { key: 'unmatched', tag: 'Room', ref: -1 }
             ])
         }
     })
@@ -129,7 +129,7 @@ xdescribe('editableListClassFactory', () => {
     it('should merge into base removes', () => {
         const base = new ReferenceList([
             'ROOM#test',
-            { tag: 'Remove', match: { key: 'featureTest', tag: 'Feature', universalKey: 'FEATURE#removed' } }
+            { key: 'featureTest', tag: 'Feature', universalKey: 'FEATURE#removed', ref: -1 }
         ])
         const toMerge = new ReferenceList(['FEATURE#removed'])
         const merged = base.merge(toMerge)
@@ -156,12 +156,12 @@ xdescribe('editableListClassFactory', () => {
         expect(diffed).toBeDefined()
         if (diffed) {
             expect(diffed._items.length).toBe(2)
-            expect(diffed._items.map(item => item.toJSON())).toEqual([{ tag: 'Remove', match: 'FEATURE#toRemove' }, { key: 'featureTest', tag: 'Feature' }])
+            expect(diffed._items.map(item => item.toJSON())).toEqual([{ universalKey: 'FEATURE#toRemove', tag: 'Feature', ref: -1 }, { key: 'featureTest', tag: 'Feature' }])
         }
     })
 
     it('should diff base removes', () => {
-        const base = new ReferenceList([{ tag: 'Remove', match: 'FEATURE#toRemove' }])
+        const base = new ReferenceList([{ universalKey: 'FEATURE#toRemove', tag: 'Feature', ref: -1 }])
         const toDiff = new ReferenceList([])
         const diffed = base.diff(toDiff)
         expect(diffed).toBeDefined()

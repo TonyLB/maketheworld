@@ -69,9 +69,10 @@ export const exitReferenceKeys = (list: StandardExit[]): string[] => {
 }
 
 //
-// mapReferenceToFormat accepts a StandardReference, StandardRemove (of a reference) or StandardReplace (of a reference) and returns
-// a StandardReference, StandardRemove or StandardReplace of the same type, but with the key mapped to the new format.
+// mapReferenceToFormat accepts a StandardReference and returns a StandardReference of the same type,
+// but with the key mapped to the new format.
 // It is used to convert references from one format to another.
+// Note: Replace operations are illegal for references, so only StandardReference (with ref values) is supported.
 //
 // The differente references types are:
 // - key: A reference that includes the local (to the Asset) key of the reference, and NOT the universal key
