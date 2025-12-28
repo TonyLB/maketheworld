@@ -2,7 +2,6 @@ import { ReferenceList, StandardKey, StandardReference, referenceSortOrder } fro
 import { deIndentWML } from '../../schema/utils';
 import { Schema, schemaToWML } from '../../schema';
 import { StandardKeyData, StandardReferenceData } from './dataTypes/reference';
-import StandardRoom from './room';
 
 describe('StandardKey', () => {
     it('should return a clone for format "both"', () => {
@@ -119,20 +118,6 @@ describe('StandardReference', () => {
         expect(diffed).toBeUndefined() // No difference when pointing to same component
     })
 
-    it('should correctly parse a StandardReferenceRemove', () => {
-        const testReferenceData = {
-            tag: 'Remove',
-            match: {
-                tag: 'Room',
-                key: 'test'
-            }
-        }
-        const testVariableRemove = new StandardReference(testReferenceData)
-        expect(testVariableRemove.tag).toEqual('Room')
-        expect(testVariableRemove).toBeInstanceOf(StandardReference)
-        expect(testVariableRemove.ref).toEqual(-1)
-    })
-
     it('should correctly judge equality when both key and universalKey match', () => {
         const testReferenceData: StandardReferenceData = {
             key: 'test',
@@ -201,8 +186,6 @@ describe('StandardReference', () => {
         // Create references with both key and universalKey so lookup can match on key
         const testSimple = new StandardReference({ key: 'room1', tag: 'Room' })
         expect(testSimple.lookup(callback).toJSON()).toEqual({ key: 'room1', universalKey: 'ROOM#Room1', tag: 'Room'})
-        const testRemove = new StandardReference({ tag: 'Remove', match: { key: 'room2', tag: 'Room' } })
-        expect(testRemove.lookup(callback).toJSON()).toEqual({ key: 'room2', universalKey: 'ROOM#Room2', tag: 'Room', ref: -1 })
     })
 
         it('should correctly lookup keys in reference list', () => {

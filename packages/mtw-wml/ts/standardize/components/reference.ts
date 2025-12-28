@@ -259,7 +259,15 @@ export class StandardReference {
                 return
             }
             
-            // Handle StandardKeyData (plain object)
+            // Handle string ComponentUUID with explicitTag (check BEFORE isStandardKeyData, since isStandardKeyData matches strings)
+            if (typeof arg === 'string' && isSchemaComponentUUID(arg)) {
+                this.universalKey = arg
+                this._tag = explicitTag
+                this._ref = 1
+                return
+            }
+            
+            // Handle StandardKeyData (plain object) - check AFTER string ComponentUUID, since isStandardKeyData matches strings
             if (isStandardKeyData(arg)) {
                 const keyData = arg as { key?: string; universalKey?: ComponentUUID }
                 this.key = keyData.key
@@ -341,13 +349,18 @@ export class StandardReference {
                 throw new Error('Invalid StandardReferenceData passed to StandardReference')
             }
             this.universalKey = arg
-            // Derive tag from ComponentUUID
-            const [upcaseTag] = arg.split('#')
-            const derivedTag = componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
-            if (!derivedTag) {
-                throw new Error('Cannot derive tag from ComponentUUID')
+            // Derive tag from ComponentUUID (or use explicitTag if provided)
+            if (explicitTag !== undefined) {
+                this._tag = explicitTag
+            } else {
+                // Derive tag from ComponentUUID
+                const [upcaseTag] = arg.split('#')
+                const derivedTag = componentTagFromUpperCase(upcaseTag as Uppercase<ComponentTag>)
+                if (!derivedTag) {
+                    throw new Error('Cannot derive tag from ComponentUUID')
+                }
+                this._tag = derivedTag
             }
-            this._tag = derivedTag
             this._ref = 1 // Default to 1 for ComponentUUID string form
             return
         }
@@ -427,10 +440,12 @@ export class StandardReference {
     
     get standardKey(): StandardKey {
         if (this.key !== undefined && this.key !== '') {
-            return new StandardKey({ key: this.key, universalKey: this.universalKey })
+            const result = new StandardKey({ key: this.key, universalKey: this.universalKey })
+            return result
         }
         if (this.universalKey !== undefined) {
-            return new StandardKey(this.universalKey as ComponentUUID)
+            const result = new StandardKey(this.universalKey as ComponentUUID)
+            return result
         }
         throw new Error('StandardReference.standardKey requires either key or universalKey to be set')
     }
