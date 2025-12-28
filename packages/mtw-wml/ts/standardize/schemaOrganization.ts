@@ -250,7 +250,8 @@ export class SchemaOrganization {
                     const childReferences = entity.referencedKeys().filter(
                         (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position'
                     )
-                    return [...acc, ...childReferences.map(childRef => ({ parent: parentKey, childRef }))]
+                    const newRefs = childReferences.map(childRef => ({ parent: parentKey, childRef }))
+                    return [...acc, ...newRefs]
                 }
                 return acc
             },
@@ -370,8 +371,11 @@ export class SchemaOrganization {
         }
         
         // Build nodeKeys once from all edges (both graphs need the same nodes)
+        // Also ensure ASSET# is always in the graph (even if it has no edges)
         const allEdges = [...implicitEdges, ...explicitEdges]
         const nodeKeys = new Set<string>()
+        // Always include assetUUID in the graph (this ensures it's in keyMappings too)
+        nodeKeys.add(getSyntheticUUID(this.assetUUID))
         allEdges.forEach(edge => {
             nodeKeys.add(getSyntheticUUID(edge.parent))
             nodeKeys.add(getSyntheticUUID(edge.child))
@@ -457,11 +461,12 @@ export class SchemaOrganization {
                 const graphNode = currentGraph.getNode(current)
                 if (graphNode) {
                     const backEdges = graphNode.backEdges
+                    const externalBackEdges = backEdges
+                        .map(edge => edge.from)
+                        .filter(parent => !scc.includes(parent))
                     return [
                         ...previous,
-                        ...backEdges
-                            .map(edge => edge.from)
-                            .filter(parent => !scc.includes(parent))
+                        ...externalBackEdges
                     ]
                 }
                 return previous
@@ -470,16 +475,26 @@ export class SchemaOrganization {
             //
             // If `ASSET#` is one of the external parents, then we know immediately that there is no
             // implicit component parent for this group of components.
+            // Check both if parent starts with 'ASSET#' and if it equals this.assetUUID exactly
             //
-            if (externalParents.some(parent => parent.startsWith('ASSET#'))) {
-                const keysToUpdate = scc
-                    .filter(key => !isSchemaAssetUUID(key))
-                    .map((key) => (currentGraph.nodes[key]?.standardKey))
-                    .filter((key): key is StandardKey => key !== undefined)
-
+            const hasAssetParent = externalParents.some(parent => parent.startsWith('ASSET#') || parent === this.assetUUID)
+            const keysToUpdate = scc
+                .filter(key => !isSchemaAssetUUID(key))
+                .map((key) => (currentGraph.nodes[key]?.standardKey))
+                .filter((key): key is StandardKey => key !== undefined)
+            if (hasAssetParent) {
                 // Store implicitParent as undefined for asset-level components
                 keysToUpdate.forEach(key => {
-                    organization.push({ key, implicitParent: undefined })
+                    // Normalize key by looking up the canonical component key
+                    const canonicalKey = this.keyLookup.lookup(key)?.component?._key ?? key
+                    // Check if this key already exists in organization (deduplicate)
+                    const existingIndex = organization.findIndex(e => e.key.equals(canonicalKey))
+                    if (existingIndex >= 0) {
+                        // Update existing entry - asset-level takes precedence
+                        organization[existingIndex] = { key: canonicalKey, implicitParent: undefined }
+                    } else {
+                        organization.push({ key: canonicalKey, implicitParent: undefined })
+                    }
                 })
 
                 // Step 1: Narrow the graph - Asset level components have edges from the ASSET node
@@ -540,14 +555,25 @@ export class SchemaOrganization {
                 ? undefined
                 : currentGraph.nodes[implicitParentSyntheticUUID]?.standardKey?.plain
 
-            const keysToUpdate = scc
+            const keysToUpdateForImplicit = scc
                 .filter(key => !isSchemaAssetUUID(key))
                 .map((key) => (currentGraph.nodes[key]?.standardKey))
                 .filter(excludeUndefined)
 
             // Store implicit parent information
-            keysToUpdate.forEach(key => {
-                organization.push({ key, implicitParent: implicitParentKey })
+            keysToUpdateForImplicit.forEach(key => {
+                // Normalize key by looking up the canonical component key
+                const canonicalKey = this.keyLookup.lookup(key)?.component?._key ?? key
+                // Check if this key already exists in organization (deduplicate)
+                const existingIndex = organization.findIndex(e => e.key.equals(canonicalKey))
+                if (existingIndex >= 0) {
+                    // Update existing entry only if it doesn't already have implicitParent: undefined (asset-level takes precedence)
+                    if (organization[existingIndex].implicitParent !== undefined) {
+                        organization[existingIndex] = { key: canonicalKey, implicitParent: implicitParentKey }
+                    }
+                } else {
+                    organization.push({ key: canonicalKey, implicitParent: implicitParentKey })
+                }
             })
 
             // Step 2: Narrow the graph by replacing all edges that end in nodes in this SCC

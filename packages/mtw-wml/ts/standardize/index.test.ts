@@ -356,13 +356,13 @@ describe('StandardForm', () => {
                     <Description>Three</Description>
                 </Example>
             </Room>
-            <Room key=(test)>
+            <Room key=(test) ref={0}>
                 <Example key=(testExample)><Summary>Two</Summary></Example>
             </Room>
             <Feature uuid=(testFeature) key=(testFeature)>
                 <Example uuid=(testFeatureBase) key=(base)><Description>Four</Description></Example>
             </Feature>
-            <Room key=(test)>
+            <Room key=(test) ref={0}>
                 <Example key=(testExample)><Name>Test Room</Name></Example>
             </Room>
         </Asset>`)
@@ -395,10 +395,10 @@ describe('StandardForm', () => {
                 </Example>
             </Room>
             <Room uuid=(testTwo) key=(testTwo) />
-            <Room key=(test)>
+            <Room key=(test) ref={0}>
                 <Exit to=(testTwo)>Test Exit</Exit>
             </Room>
-            <Room key=(testTwo)>
+            <Room key=(testTwo) ref={0}>
                 <Exit to=(test)>Test Return</Exit>
             </Room>
         </Asset>`)
@@ -951,7 +951,6 @@ describe('StandardForm', () => {
         `))
     })
 
-
     it('should handle complex WML parsing with nested character references', () => {
         const complexWML = deIndentWML(`
             <Asset uuid=(complex)>
@@ -1011,11 +1010,11 @@ describe('StandardForm', () => {
                     <Name>Test Character</Name>
                 </Character>
                 <Room uuid=(room1) key=(room1)>
+                    <Character key=(char1) />
                     <Character uuid=(local1) key=(local1)>
                         <ShortName>Local</ShortName>
                         <Name>Local Character</Name>
                     </Character>
-                    <Character key=(char1) />
                 </Room>
             </Asset>
         `)
@@ -1294,12 +1293,10 @@ describe('StandardForm', () => {
         `)
         const test = new StandardForm(`
             <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase)>
-                        <Replace><Name>Lobby</Name></Replace>
-                        <With><Name>Darkened lobby</Name></With>
-                    </Example>
-                </Room>
+                <Example uuid=(testRoomOneBase) ref={0}>
+                    <Replace><Name>Lobby</Name></Replace>
+                    <With><Name>Darkened lobby</Name></With>
+                </Example>
             </Asset>
         `)
         expect(schemaToWML([inherited.merge(test).schema])).toEqual(deIndentWML(`
@@ -1314,12 +1311,14 @@ describe('StandardForm', () => {
         `))
     })
 
-    it('should merge edit component remove of plain base component correctly', () => {
+    it('should merge edit component remove correctly', () => {
         const inherited = new StandardForm(`
             <Asset uuid=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Name>Lobby</Name>
-                    <Description>A plain lobby.</Description>
+                    <Example uuid=(testRoomOneBase) key=(base)>
+                        <Name>Lobby</Name>
+                        <Description>A plain lobby.</Description>
+                    </Example>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo) />
             </Asset>
@@ -1328,8 +1327,10 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Remove>
                     <Room uuid=(testRoomOne) key=(testRoomOne)>
-                        <Name>Lobby</Name>
-                        <Description>A plain lobby.</Description>
+                        <Example uuid=(testRoomOneBase) key=(base)>
+                            <Name>Lobby</Name>
+                            <Description>A plain lobby.</Description>
+                        </Example>
                     </Room>
                 </Remove>
             </Asset>
@@ -1378,7 +1379,7 @@ describe('StandardForm', () => {
         `)
         const test = new StandardForm(`
             <Asset uuid=(Test)>
-                <Room uuid=(testRoomTwo) key=(testRoomTwo)>
+                <Room uuid=(testRoomTwo) key=(testRoomTwo) ref={0}>
                     <Remove><Exit to=(testRoomOne)>out</Exit></Remove>
                     <Exit to=(testRoomOne)>depart</Exit>
                 </Room>

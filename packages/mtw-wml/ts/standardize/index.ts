@@ -190,7 +190,10 @@ export class StandardForm {
                         key: 'Character',
                         legalParents: ['Room']
                     },
-                    { key: 'Image' },
+                    { 
+                        key: 'Image',
+                        legalParents: ['Character', 'Map']
+                    },
                     {
                         key: 'Room',
                         legalParents: ['Map', 'Message']
