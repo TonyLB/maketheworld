@@ -256,7 +256,7 @@ export class SchemaOrganization {
                 // Convert topLevel references to StandardComponentReferenceKey format
                 return topLevel.payload
                     .map(ref => ({
-                        key: ref.standardKey,
+                        reference: ref,
                         referenceType: 'Direct' as const
                     }))
             }

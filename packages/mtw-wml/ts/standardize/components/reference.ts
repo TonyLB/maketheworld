@@ -426,7 +426,13 @@ export class StandardReference {
     }
     
     get standardKey(): StandardKey {
-        return new StandardKey(this.key ? { key: this.key, universalKey: this.universalKey } : this.universalKey as ComponentUUID)
+        if (this.key !== undefined && this.key !== '') {
+            return new StandardKey({ key: this.key, universalKey: this.universalKey })
+        }
+        if (this.universalKey !== undefined) {
+            return new StandardKey(this.universalKey as ComponentUUID)
+        }
+        throw new Error('StandardReference.standardKey requires either key or universalKey to be set')
     }
     
     get schema(): GenericTree<SchemaTag> {
