@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetCascadeCondition, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
+import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetCascadeCondition, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
 import { isStandardComponentData, isStandardForm, StandardFormData } from "./components/dataTypes"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
@@ -529,6 +529,27 @@ export class StandardForm {
         return result.component
     }
 
+    assureComponents(references: ReferenceList): StandardForm {
+        const returnValue = this._clone()
+        const newComponents = references.payload.reduce<StandardComponent[]>((previous, reference) => {
+            const existing = returnValue._lookup(reference.standardKey.toJSON())
+            if (!existing) {
+                const tag = reference.tag
+                const key = reference.key
+                const universalKey = reference.universalKey
+                const defaultData = defaultComponentFromTag(tag, key, universalKey)
+                const component = standardComponentFactory(defaultData)
+                if (component) {
+                    return [...previous, component]
+                }
+            }
+            return previous
+        }, [])
+        returnValue._components = [...returnValue._components, ...newComponents]
+        returnValue.invalidateCache()
+        return returnValue
+    }
+
     _getSchemaOrganization(): SchemaOrganization {
         if (!this._schemaOrganizationCache) {
             // Ensure _keyLookupCache is instantiated
@@ -972,8 +993,9 @@ export class StandardForm {
         // zipperedComponents as the basis for the diff.
         //
 
-        const diffedValue = this._clone()
-        diffedValue._topLevel = new ReferenceList([])
+        let diffedValue = this._clone()
+        const topLevelDiff = (this._topLevel ?? new ReferenceList([])).diff(incoming._topLevel ?? new ReferenceList([]))
+        diffedValue._topLevel = topLevelDiff
         const diffedComponents: StandardComponent[] = zipperedComponents
             .reduce<StandardComponent[]>((previous, { previous: previousComponent, incoming: incomingComponent }) => {
                 if (previousComponent && incomingComponent) {
@@ -1008,47 +1030,34 @@ export class StandardForm {
         //
         diffedValue._components = diffedComponents
 
+        // Collect all referenced keys from components in the diff and ensure they exist in the diff output
+        const referencedKeys = diffedComponents.reduce<StandardReference[]>((previous, component) => {
+            const componentReferences = component.referencedKeys()
+            return componentReferences.reduce<StandardReference[]>((refs, { reference }) => {
+                const mergedRef = mergedForKeys.find((key) => key.sameKey(reference))
+                const refToAdd = mergedRef ?? reference
+                const existingIndex = refs.findIndex((r) => r.sameKey(refToAdd))
+                if (existingIndex === -1) {
+                    return [...refs, refToAdd]
+                }
+                return refs
+            }, previous)
+        }, [])
+        const referencedComponentsList = new ReferenceList(referencedKeys)
+        const diffedValueFinal = diffedValue.assureComponents(referencedComponentsList)
+
         const combinedMetaData = new SchemaTagTree([...this._metaData, ...incoming._metaData])
-        diffedValue._metaData = applyEdits(combinedMetaData.tree)
+        diffedValueFinal._metaData = applyEdits(combinedMetaData.tree)
 
         // Diff Asset-level metadata
-        diffedValue._shortName = this._shortName
+        diffedValueFinal._shortName = this._shortName
             ? this._shortName.diff(incoming._shortName)
             : incoming._shortName
-        diffedValue._summary = this._summary
+        diffedValueFinal._summary = this._summary
             ? this._summary.diff(incoming._summary)
             : incoming._summary
 
-        // Calculate topLevelDiff, then use it to:
-        // 1. Set explicitParent on components being added to topLevel
-        // 2. Serve as a base for the final topLevel calculation, which will be supplemented by all in-place edit
-        // items that don't have a component parent in the diff
-        const topLevelDiff = (this._topLevel ?? new ReferenceList([])).diff(incoming._topLevel ?? new ReferenceList([]))
-
-        if (topLevelDiff) {
-            const baseTopLevelKeys = this._topLevel?.payload.map((ref) => {
-                return ref.standardKey
-            }).filter((key): key is StandardKey => key !== undefined) ?? []
-
-            topLevelDiff.payload.forEach((ref) => {
-                // Only process additions that weren't in base topLevel
-                const refKey = ref.standardKey
-                const wasInBase = this._lookup(refKey.toJSON()) !== undefined
-                if (wasInBase) {
-                    const wasInBaseTopLevel = baseTopLevelKeys.some((baseKey) => baseKey.equals(refKey))
-                    if (!wasInBaseTopLevel) {
-                        const component = diffedValue._lookup(refKey.toJSON())
-                        if (component) {
-                            component.explicitParent = new StandardExplicitParent('ASSET')
-                        }
-                    }
-                }
-            })
-        }
-
-        diffedValue._topLevel = topLevelDiff
-
-        return diffedValue
+        return diffedValueFinal
     }
 
     /**
