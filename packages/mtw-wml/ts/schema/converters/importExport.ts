@@ -109,7 +109,7 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 properties: [
                     { key: 'key', type: 'key', value: tag.key },
                     ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                    ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
+                    ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
                 ],
                 node: { data: tag, children }
             })

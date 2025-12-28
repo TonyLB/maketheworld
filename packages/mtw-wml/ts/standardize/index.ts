@@ -26,7 +26,6 @@ import { mergeToComponentList, mergeUniversalKeyMappings } from "./mergeToCompon
 import { ReferenceListData, StandardReferenceData, StandardKeyData } from "./components/dataTypes/reference"
 import StandardReference, { ReferenceList, StandardKey, referenceSortOrder } from "./components/reference"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
-import { StandardExplicitParent, StandardExplicitParentSimple } from "./explicit/parent"
 import StandardImage from "./components/image"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
@@ -35,8 +34,6 @@ import { StandardLiteral } from "./literal"
 import { StandardRender } from "./render"
 import { excludeUndefined } from "../lib/lists"
 import { rebuildSchemaFromStandardRender } from "./components/utils/extractStandardRender"
-import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
-import { unique } from "../list"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { KeyLookup } from "./keyLookup"
 import { SchemaOrganization, createOrganizationContext } from "./schemaOrganization"
@@ -67,8 +64,6 @@ export const assertInstance = <C extends { new (...args: any[]) : any }>(value: 
     }
     throw new Error('Type mismatch')
 }
-
-
 
 export const hasName = (component: StandardComponent): component is StandardComponent & HasName => {
     return (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardMap)

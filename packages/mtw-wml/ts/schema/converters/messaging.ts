@@ -75,7 +75,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                    ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
+                    ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
                 ],
                 node: { data: tag, children }
             })
@@ -91,7 +91,7 @@ export const messagingPrintMap: Record<string, PrintMapEntry> = {
                     { key: 'key', type: 'key', value: tag.key ?? '' },
                     { key: 'from', type: 'key', value: tag.from ?? '' },
                     ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-                    ...(tag.ref ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
+                    ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
                 ],
                 node: { data: tag, children }
             })

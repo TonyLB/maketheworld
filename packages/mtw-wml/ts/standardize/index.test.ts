@@ -1410,12 +1410,10 @@ describe('StandardForm', () => {
         `)
         const test = new StandardForm(`
             <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase)>
-                        <Name><Space />(at night)</Name>
-                        <Description><Space />Shadows cling to the corners of the room.</Description>
-                    </Example>
-                </Room>
+                <Example uuid=(testRoomOneBase) ref={0}>
+                    <Name><Space />(at night)</Name>
+                    <Description><Space />Shadows cling to the corners of the room.</Description>
+                </Example>
                 <Room uuid=(testRoomThree) key=(testRoomThree)>
                     <Example uuid=(testRoomThreeBase)><Name>Test Three</Name></Example>
                 </Room>
@@ -1459,12 +1457,10 @@ describe('StandardForm', () => {
         `)
         const test = new StandardForm(`
             <Asset uuid=(Test)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Example uuid=(testRoomOneBase)>
-                        <Name><Space />(at night)</Name>
-                        <Description><Space />Shadows cling to the corners of the room.</Description>
-                    </Example>
-                </Room>
+                <Example uuid=(testRoomOneBase) ref={0}>
+                    <Name><Space />(at night)</Name>
+                    <Description><Space />Shadows cling to the corners of the room.</Description>
+                </Example>
                 <Room uuid=(testRoomThree) key=(testRoomThree) from=(ASSET#primitives)>
                     <Example uuid=(testRoomThreeBase)>
                         <Name>Test Three</Name>
@@ -1515,7 +1511,7 @@ describe('StandardForm', () => {
                     tag: 'Room',
                     key: 'testRoomOne',
                     universalKey: 'ROOM#testRoomOne',
-                    examples: ['EXAMPLE#testRoomOneBase']
+                    examples: [{ universalKey: 'EXAMPLE#testRoomOneBase', tag: 'Example', ref: 0 }]
                 },
                 {
                     tag: 'Example',
@@ -1775,7 +1771,7 @@ describe('StandardForm', () => {
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(Test)>
-                    <Example uuid=(base) key=(base)>
+                    <Example uuid=(base) key=(base) ref={0}>
                         <Replace><Name>Old Name</Name></Replace>
                         <With><Name>New Name</Name></With>
                     </Example>
@@ -1801,7 +1797,7 @@ describe('StandardForm', () => {
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(Test)>
-                    <Room uuid=(testRoom) key=(testRoom)>
+                    <Room uuid=(testRoom) key=(testRoom) ref={0}>
                         <Feature uuid=(testFeatureTwo) key=(testFeatureTwo) />
                     </Room>
                 </Asset>
@@ -1851,7 +1847,7 @@ describe('StandardForm', () => {
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(Test)>
-                    <Room uuid=(testRoom) key=(testRoom)>
+                    <Room uuid=(testRoom) key=(testRoom) ref={0}>
                         <Example uuid=(Example2) key=(Example2) />
                     </Room>
                 </Asset>
@@ -1864,7 +1860,7 @@ describe('StandardForm', () => {
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(Test)>
-                    <Room uuid=(testRoom) key=(testRoom)>
+                    <Room uuid=(testRoom) key=(testRoom) ref={0}>
                         <Remove><Feature uuid=(testFeature) key=(testFeature) /></Remove>
                     </Room>
                 </Asset>
@@ -1886,7 +1882,7 @@ describe('StandardForm', () => {
             `))
         })
 
-        describe('Case 1: Nested Component Change (In-Place) - Minimal Diff Format', () => {
+        describe('Nested Component Change (In-Place) - Minimal Diff Format', () => {
             it('should generate minimal diff for nested component change (no Parent tag, no topLevel)', () => {
                 const base = new StandardForm(deIndentWML(`
                     <Asset uuid=(Test)>
@@ -1911,7 +1907,7 @@ describe('StandardForm', () => {
                 // Expected: Minimal diff - only the changed component, no parent components
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
-                        <Example uuid=(ex1) key=(ex1)>
+                        <Example uuid=(ex1) key=(ex1) ref={0}>
                             <Replace><Name>Old Name</Name></Replace>
                             <With><Name>New Name</Name></With>
                         </Example>
@@ -1923,7 +1919,8 @@ describe('StandardForm', () => {
                 expect(exampleComponent?.explicitParent).toBeUndefined()
                 
                 // Verify not in topLevel (nested change)
-                expect(diff.header.topLevel).toEqual(['EXAMPLE#ex1'])
+                // topLevel should be undefined since Example is nested, not at Asset level
+                expect(diff._topLevel?.toJSON()).toEqual([])
             })
 
             it('should merge minimal diff correctly, maintaining nested structure', () => {
@@ -1938,7 +1935,7 @@ describe('StandardForm', () => {
                 `))
                 const diff = new StandardForm(deIndentWML(`
                     <Asset uuid=(Test)>
-                        <Example uuid=(ex1) key=(ex1)>
+                        <Example uuid=(ex1) key=(ex1) ref={0}>
                             <Replace><Name>Original</Name></Replace>
                             <With><Name>Updated</Name></With>
                         </Example>
@@ -1988,25 +1985,15 @@ describe('StandardForm', () => {
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(Test)>
                     <Example uuid=(ex1) key=(ex1)>
-                        <Parent />
                         <Replace><Name>Old Example</Name></Replace>
                         <With><Name>New Example</Name></With>
                     </Example>
-                    <Room uuid=(room1) key=(room1)>
+                    <Room uuid=(room1) key=(room1) ref={0}>
                         <Remove><Example key=(ex1) /></Remove>
                     </Room>
                 </Asset>
             `))
             
-            // Verify explicitParent = ASSET
-            const exampleComponent = diff.byId['ex1']
-            expect(exampleComponent?.explicitParent?.toJSON()).toBe('ASSET')
-            
-            // Verify in topLevel
-            expect(diff.header.topLevel).toBeDefined()
-            // @ts-ignore - accessing private for test
-            const topLevelRefs = diff._topLevel?.payload.map(ref => ref.standardKey.toJSON()) || []
-            expect(topLevelRefs).toContainEqual({ key: 'ex1', universalKey: 'EXAMPLE#ex1' })
         })
 
         describe('Case 2: Explicit Top-Level Component', () => {
@@ -2076,15 +2063,14 @@ describe('StandardForm', () => {
                 `))
                 const diff = base.diff(incoming)
                 
-                // Expected: Diff with Parent tag, Replace/With, and Room removes Example reference
+                // Expected: Diff with top level reference, Replace/With, and Room removes Example reference
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Example uuid=(ex1) key=(ex1)>
-                            <Parent />
                             <Replace><Name>Nested Example</Name></Replace>
                             <With><Name>Top-Level Example</Name></With>
                         </Example>
-                        <Room uuid=(room1) key=(room1)>
+                        <Room uuid=(room1) key=(room1) ref={0}>
                             <Remove><Example key=(ex1) /></Remove>
                         </Room>
                     </Asset>
@@ -2092,7 +2078,7 @@ describe('StandardForm', () => {
                 
                 // Verify explicitParent = ASSET
                 const exampleComponent = diff.byId['ex1']
-                expect(exampleComponent?.explicitParent?.toJSON()).toBe('ASSET')
+                expect(exampleComponent?.explicitParent).toBeUndefined()
                 
                 // Verify in topLevel
                 expect(diff.header.topLevel).toBeDefined()
@@ -2118,7 +2104,7 @@ describe('StandardForm', () => {
                             <Replace><Name>Nested Example</Name></Replace>
                             <With><Name>Top-Level Example</Name></With>
                         </Example>
-                        <Room uuid=(room1) key=(room1)>
+                        <Room uuid=(room1) key=(room1) ref={0}>
                             <Remove><Example key=(ex1) /></Remove>
                         </Room>
                     </Asset>
@@ -2151,7 +2137,7 @@ describe('StandardForm', () => {
                 // Verify in topLevel
                 expect(merged.header.topLevel).toBeDefined()
                 // @ts-ignore - accessing private for test
-                const topLevelRefs = merged._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
+                const topLevelRefs = merged._topLevel?.payload.map(ref => ref.standardKey.toJSON()) || []
                 expect(topLevelRefs).toContainEqual({ key: 'ex1', universalKey: 'EXAMPLE#ex1' })
             })
         })
@@ -2180,13 +2166,13 @@ describe('StandardForm', () => {
                 // Expected: Diff with Parent tag pointing to room1, Remove from topLevel
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
-                        <Room uuid=(room1) key=(room1)>
+                        <Remove><Example key=(ex1) /></Remove>
+                        <Room uuid=(room1) key=(room1) ref={0}>
                             <Example uuid=(ex1) key=(ex1)>
                                 <Replace><Name>Top-level</Name></Replace>
                                 <With><Name>Now nested</Name></With>
                             </Example>
                         </Room>
-                        <Remove><Example key=(ex1) /></Remove>
                     </Asset>
                 `))
                 
@@ -2208,7 +2194,7 @@ describe('StandardForm', () => {
                 const diff = new StandardForm(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Remove><Example key=(ex1) /></Remove>
-                        <Room uuid=(room1) key=(room1)>
+                        <Room uuid=(room1) key=(room1) ref={0}>
                             <Example uuid=(ex1) key=(ex1)>
                                 <Parent>room1</Parent>
                                 <Replace><Name>Top-level</Name></Replace>
@@ -2223,7 +2209,10 @@ describe('StandardForm', () => {
                 expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1)>
-                            <Example uuid=(ex1) key=(ex1)><Name>Now nested</Name></Example>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <Parent>room1</Parent>
+                                <Name>Now nested</Name>
+                            </Example>
                         </Room>
                     </Asset>
                 `))
@@ -2233,7 +2222,7 @@ describe('StandardForm', () => {
                 expect(exampleComponent).toBeDefined()
                 
                 // Verify explicitParent was removed
-                expect(exampleComponent?.explicitParent).toBeUndefined()
+                expect(exampleComponent?.explicitParent?.toJSON()).toEqual({ key: 'room1' })
                 
                 // Verify Room has Example reference
                 const roomComponent = merged.byId['room1']
@@ -2242,7 +2231,7 @@ describe('StandardForm', () => {
                 
                 // Verify not in topLevel
                 // @ts-ignore - accessing private for test
-                const topLevelRefs = merged._topLevel?.payload.map(ref => ref.plain().standardKey.toJSON()) || []
+                const topLevelRefs = merged._topLevel?.payload.map(ref => ref.standardKey.toJSON()) || []
                 expect(topLevelRefs).not.toContainEqual({ key: 'ex1', tag: 'Example' })
             })
         })
@@ -2671,10 +2660,10 @@ describe('StandardForm', () => {
                 startNodes: ['map']
             }] }]).schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room key=(testRoom) />
                     <Map key=(testMap)>
                         <Room key=(testRoom)><Position x="0" y="0" /></Room>
                     </Map>
+                    <Room key=(testRoom) />
                 </Asset>
             `))
         })
@@ -2788,7 +2777,6 @@ describe('StandardForm', () => {
     it('should round-trip all component types through NDJSON', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(test)>
-                <Image key=(testBackground) />
                 <Feature uuid=(003) key=(testFeature)>
                     <Example uuid=(0035)>
                         <Name>Clocktower</Name>
@@ -2819,6 +2807,7 @@ describe('StandardForm', () => {
                     <Room key=(testRoom) />The door opens!
                 </Message>
                 <Moment uuid=(007) key=(openDoorMoment)><Message key=(openDoor) /></Moment>
+                <Image key=(testBackground) />
             </Asset>
         `)
         const testSource = new StandardForm(testWML)
@@ -3105,7 +3094,7 @@ describe('StandardForm', () => {
             test.byId.testFeature = new StandardFeature(`<Feature uuid=(testFeature) key=(testFeature) />`)
             expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Feature uuid=(testFeature) key=(testFeature) />
+                    <Feature uuid=(testFeature) key=(testFeature) ref={0} />
                     <Room key=(testRoom) />
                 </Asset>
             `))
@@ -3141,7 +3130,7 @@ describe('StandardForm', () => {
             test.byUniversalId[`FEATURE#testFeature`] = new StandardFeature(`<Feature uuid=(testFeature) key=(testFeature) />`)
             expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Feature uuid=(testFeature) key=(testFeature) />
+                    <Feature uuid=(testFeature) key=(testFeature) ref={0} />
                     <Room uuid=(testRoom) key=(testRoom) />
                 </Asset>
             `))

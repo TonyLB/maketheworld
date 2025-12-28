@@ -140,10 +140,11 @@ export const processComponents = (props: {
                 // Build topLevel ReferenceList
                 let updatedTopLevel = previous.topLevel
                 if (isTopLevel) {
-                    // Create appropriate reference based on Remove context
-                    const baseReference = new StandardReference(plainComponent.referenceData)
+                    // Create reference from schema node to preserve ref attribute
+                    // StandardReference constructor extracts ref from node.data if present
+                    const baseReference = new StandardReference([item])
                     const reference = inContextOfRemove
-                        ? baseReference.withRef(-1)
+                        ? baseReference.invert()
                         : baseReference
                     
                     const topLevelReferenceList = new ReferenceList([reference])
