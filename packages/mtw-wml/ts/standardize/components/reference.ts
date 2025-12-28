@@ -278,26 +278,6 @@ export class StandardReference {
             }
         }
         
-        // Check for Remove JSON structure BEFORE isStandardReferenceData check
-        if (typeof arg === 'object' && arg !== null && 'tag' in arg && arg.tag === 'Remove' && 'match' in arg) {
-            // Extract match data, get its ref value (defaulting to 1), negate it
-            const removeData = arg as { tag: 'Remove'; match: StandardReferenceData }
-            const tempRef = new StandardReference(removeData.match)
-            const matchRef = tempRef.ref // Gets ref value (defaults to 1 if not present)
-            const matchData = tempRef.toJSON()
-            const deserialized = typeof matchData === 'string'
-                ? standardReferenceDeserialize(matchData)
-                : matchData
-            const removeRefData: StandardReferenceData = { ...deserialized, ref: -matchRef }
-            // Recursively construct from the negated data
-            const temp = new StandardReference(removeRefData)
-            this.key = temp.key
-            this.universalKey = temp.universalKey
-            this._tag = temp._tag
-            this._ref = temp._ref
-            return
-        }
-        
         // Check for Replace JSON structure - illegal for references
         if (typeof arg === 'object' && arg !== null && 'tag' in arg && arg.tag === 'Replace' && 'match' in arg && 'payload' in arg) {
             throw new Error('Replace operations are illegal for references. References can only be added or removed, not replaced.')

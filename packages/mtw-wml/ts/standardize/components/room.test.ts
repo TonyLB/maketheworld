@@ -755,7 +755,7 @@ describe('StandardRoom class', () => {
                 shortName: 'Test Room',
                 exits: [{ to: { key: 'target' }, description: 'Exit' }],
                 features: [{ tag: 'Feature', key: 'feat1' }],
-                examples: [{ tag: 'Remove', match: { tag: 'Example', key: 'ex1' } }]
+                examples: [{ tag: 'Example', key: 'ex1', ref: -1 }]
             }
             const room = new StandardRoom(roomData)
             const doubleInverted = room._payload.invert().invert()
