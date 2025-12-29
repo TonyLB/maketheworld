@@ -4,7 +4,8 @@ import SourceStream from '../../parser/tokenizer/sourceStream'
 
 import { schemaFromParse, schemaToWML } from '../index'
 import { deIndentWML } from '../utils'
-import { isSchemaParent } from '@tonylb/mtw-base/ts/schema/components'
+import { isSchemaParent, isSchemaKey } from '@tonylb/mtw-base/ts/schema/components'
+import { isSchemaReplaceMatch, isSchemaReplacePayload } from '@tonylb/mtw-base/ts/schema/edit'
 
 describe('Parent tag', () => {
     beforeEach(() => {
@@ -246,3 +247,225 @@ describe('Parent tag', () => {
     })
 })
 
+describe('Key tag', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
+
+    describe('parsing', () => {
+        it('should parse Key tag inside a Room with legalKey', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)><Key>room2</Key></Room>
+                </Asset>
+            `))))
+            const schema = schemaFromParse(testParse)
+            const roomNode = schema[0].children.find(({ data }) => data.tag === 'Room')
+            expect(roomNode).toBeDefined()
+            const keyNode = roomNode?.children.find(({ data }) => data.tag === 'Key')
+            expect(keyNode).toBeDefined()
+            expect(isSchemaKey(keyNode?.data)).toBe(true)
+            expect(keyNode?.children[0].data).toEqual({ tag: 'String', value: 'room2' })
+        })
+
+        it('should parse Key tag inside a Feature with legalKey', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Feature key=(feature1)><Key>feature2</Key></Feature>
+                </Asset>
+            `))))
+            const schema = schemaFromParse(testParse)
+            const featureNode = schema[0].children.find(({ data }) => data.tag === 'Feature')
+            expect(featureNode).toBeDefined()
+            const keyNode = featureNode?.children.find(({ data }) => data.tag === 'Key')
+            expect(keyNode).toBeDefined()
+            expect(isSchemaKey(keyNode?.data)).toBe(true)
+        })
+
+        it('should parse Key tag inside a Knowledge with legalKey', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Knowledge key=(knowledge1)><Key>knowledge2</Key></Knowledge>
+                </Asset>
+            `))))
+            const schema = schemaFromParse(testParse)
+            const knowledgeNode = schema[0].children.find(({ data }) => data.tag === 'Knowledge')
+            expect(knowledgeNode).toBeDefined()
+            const keyNode = knowledgeNode?.children.find(({ data }) => data.tag === 'Key')
+            expect(keyNode).toBeDefined()
+            expect(isSchemaKey(keyNode?.data)).toBe(true)
+        })
+    })
+
+    describe('validation', () => {
+        it('should reject Key tag when not inside a ComponentUUID', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Key>room1</Key>
+                </Asset>
+            `))))
+            expect(() => schemaFromParse(testParse)).toThrow('Key tag can only be used inside a ComponentUUID (Room, Feature, etc.)')
+        })
+
+        it('should reject Key tag with invalid legalKey content', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Key>not-a-valid-key</Key>
+                    </Room>
+                </Asset>
+            `))))
+            expect(() => schemaFromParse(testParse)).toThrow('Key tag content must be a legalKey, got: not-a-valid-key')
+        })
+
+        it('should reject empty Key tag (self-closing)', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Key />
+                    </Room>
+                </Asset>
+            `))))
+            expect(() => schemaFromParse(testParse)).toThrow('Key tag must contain a legalKey value')
+        })
+
+        it('should reject empty Key tag (opening and closing)', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Key></Key>
+                    </Room>
+                </Asset>
+            `))))
+            expect(() => schemaFromParse(testParse)).toThrow('Key tag must contain a legalKey value')
+        })
+
+        it('should reject Key tag with properties', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Key key=(invalid)>room2</Key>
+                    </Room>
+                </Asset>
+            `))))
+            expect(() => schemaFromParse(testParse)).toThrow("Property 'key' is not allowed in 'Key' items.")
+        })
+
+        it('should reject Key tag with ComponentUUID content', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Key>ROOM#parent-room</Key>
+                    </Room>
+                </Asset>
+            `))))
+            expect(() => schemaFromParse(testParse)).toThrow('Key tag content must be a legalKey, got: ROOM#parent-room')
+        })
+    })
+
+    describe('serialization', () => {
+        it('should round-trip Key tag correctly', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(Test)><Room key=(room1)><Key>room2</Key></Room></Asset>
+            `)
+            expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+        })
+
+        it('should round-trip Key tag with different component types', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)><Key>room2</Key></Room>
+                    <Feature key=(feature1)><Key>feature2</Key></Feature>
+                    <Knowledge key=(knowledge1)><Key>knowledge2</Key></Knowledge>
+                </Asset>
+            `)
+            expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+        })
+    })
+
+    describe('edge cases', () => {
+        it('should allow Key tag alongside other content in a Room', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Name>Test Room</Name>
+                        <Key>room2</Key>
+                        <Description>Room description</Description>
+                    </Room>
+                </Asset>
+            `))))
+            const schema = schemaFromParse(testParse)
+            const roomNode = schema[0].children.find(({ data }) => data.tag === 'Room')
+            expect(roomNode).toBeDefined()
+            const keyNode = roomNode?.children.find(({ data }) => data.tag === 'Key')
+            expect(keyNode).toBeDefined()
+            const nameNode = roomNode?.children.find(({ data }) => data.tag === 'Name')
+            expect(nameNode).toBeDefined()
+        })
+
+        it('should parse Key tag wrapped in Remove operation', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Remove><Key>room2</Key></Remove>
+                    </Room>
+                </Asset>
+            `))))
+            const schema = schemaFromParse(testParse)
+            const roomNode = schema[0].children.find(({ data }) => data.tag === 'Room')
+            expect(roomNode).toBeDefined()
+            const removeNode = roomNode?.children.find(({ data }) => data.tag === 'Remove')
+            expect(removeNode).toBeDefined()
+            const keyNode = removeNode?.children.find(({ data }) => data.tag === 'Key')
+            expect(keyNode).toBeDefined()
+            expect(isSchemaKey(keyNode?.data)).toBe(true)
+        })
+
+        it('should parse Key tag wrapped in Replace operation', () => {
+            const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Replace><Key>room2</Key></Replace>
+                        <With><Key>room3</Key></With>
+                    </Room>
+                </Asset>
+            `))))
+            const schema = schemaFromParse(testParse)
+            const roomNode = schema[0].children.find(({ data }) => data.tag === 'Room')
+            expect(roomNode).toBeDefined()
+            const replaceNode = roomNode?.children.find(({ data }) => data.tag === 'Replace')
+            expect(replaceNode).toBeDefined()
+            const replaceMatchNode = replaceNode?.children.find(({ data }) => isSchemaReplaceMatch(data))
+            expect(replaceMatchNode).toBeDefined()
+            const keyNodeInReplaceMatch = replaceMatchNode?.children.find(({ data }) => data.tag === 'Key')
+            expect(keyNodeInReplaceMatch).toBeDefined()
+            expect(isSchemaKey(keyNodeInReplaceMatch?.data)).toBe(true)
+            const replacePayloadNode = replaceNode?.children.find(({ data }) => isSchemaReplacePayload(data))
+            expect(replacePayloadNode).toBeDefined()
+            const keyNodeInReplacePayload = replacePayloadNode?.children.find(({ data }) => data.tag === 'Key')
+            expect(keyNodeInReplacePayload).toBeDefined()
+            expect(isSchemaKey(keyNodeInReplacePayload?.data)).toBe(true)
+        })
+
+        it('should round-trip Key tag wrapped in Remove operation', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)><Remove><Key>room2</Key></Remove></Room>
+                </Asset>
+            `)
+            expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+        })
+
+        it('should round-trip Key tag wrapped in Replace operation', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(room1)>
+                        <Replace><Key>room2</Key></Replace><With><Key>room3</Key></With>
+                    </Room>
+                </Asset>
+            `)
+            expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+        })
+    })
+})

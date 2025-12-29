@@ -1,7 +1,7 @@
 import { SchemaAssetTag, SchemaStoryTag } from "./asset"
 import { isSchemaGrant, SchemaGrantTag } from "./authorization"
 import { isSchemaPronouns, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaPronounsTag } from "./character"
-import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag } from "./components"
+import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag } from "./components"
 
 import { isSchemaEdit, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaEditTag, SchemaReplaceTag } from "./edit"
 import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaExampleTag, SchemaNameTag, SchemaSummaryTag } from "./example"
@@ -62,7 +62,8 @@ export type SchemaTag = SchemaAssetTag |
     SchemaMomentTag |
     SchemaEditTag |
     SchemaGrantTag |
-    SchemaParentTag
+    SchemaParentTag |
+    SchemaKeyTag
 
 export type SchemaWithContents = SchemaAssetTag |
     SchemaStoryTag |
@@ -151,7 +152,8 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
         isSchemaMoment(value) ||
         isSchemaEdit(value) ||
         isSchemaGrant(value) ||
-        isSchemaParent(value)
+        isSchemaParent(value) ||
+        isSchemaKey(value)
 }
 
 export type SchemaToWMLTopLevelOptions = {
