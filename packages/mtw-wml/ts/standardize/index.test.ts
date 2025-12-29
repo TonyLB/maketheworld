@@ -1109,11 +1109,7 @@ describe('StandardForm', () => {
                     <ShortName>Charlie</ShortName>
                     <Name>Charlie</Name>
                 </Character>
-                <Room uuid=(room1) key=(room1)>
-                    <Character uuid=(local2) key=(local2)>
-                        <ShortName>Local2</ShortName>
-                        <Name>Local Character 2</Name>
-                    </Character>
+                <Room uuid=(room1) key=(room1) ref={0}>
                     <Character key=(char3) />
                     <Remove>
                         <Character uuid=(local1) key=(local1)>
@@ -1121,6 +1117,12 @@ describe('StandardForm', () => {
                             <Name>Local Character 1</Name>
                         </Character>
                     </Remove>
+                    <Character uuid=(local2) key=(local2)>
+                        <ShortName>Local2</ShortName>
+                        <Name>Local Character 2</Name>
+                    </Character>
+                    <Character uuid=(char2) key=(char2) />
+                    <Remove><Character uuid=(char1) key=(char1) /></Remove>
                 </Room>
             </Asset>
         `))

@@ -280,7 +280,7 @@ export class SchemaOrganization {
         )
         
         // Phase 3: Apply global preference per group and flatten to edges
-        return groupedReferences.flatMap(group => {
+        const edges = groupedReferences.flatMap(group => {
             // Check if ANY reference in the group has positive ref (addition)
             const hasPositiveRef = group.some(item => item.childRef.reference.ref > 0)
             
@@ -295,6 +295,7 @@ export class SchemaOrganization {
                 child: item.childRef.reference.standardKey
             }))
         })
+        return edges
     }
 
     private _getExplicitParentEdges(): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
