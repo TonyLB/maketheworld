@@ -64,7 +64,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         }
     }
 
-    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Feature', key, uuid: universalKey },
             children: [

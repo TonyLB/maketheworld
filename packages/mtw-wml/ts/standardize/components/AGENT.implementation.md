@@ -143,6 +143,78 @@ The method follows the same delegation pattern as `invert()`:
 
 This allows gradual rollout: components without payload implementation return unchanged.
 
+### Reference Mapping Pattern
+
+The component system maintains a clear architectural boundary between the component wrapper and payload implementation regarding reference mappings:
+
+#### Component Wrapper State
+
+- **`_mapping` property**: The component wrapper (`GeneratedComponentClass`) stores reference mappings in a private `_mapping?: StandardReference[]` property
+- **Set via `withMapping()`**: Mappings are established when components are prepared for operations that require reference resolution (e.g., schema generation, remapping)
+- **Component-level access**: Methods on the component wrapper can access `this._mapping` directly
+
+#### Payload Method Parameters
+
+- **No direct state access**: Payload methods (`ComponentConstructorMethods` implementations) do NOT access component wrapper state directly
+- **Mappings passed as parameters**: Payload methods that require mappings accept them as optional parameters:
+  - `schema(key?: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag>`
+  - `nestedSchema(lookup, options: NestedSchemaOptions)` where `NestedSchemaOptions` includes `mappings?: StandardReference[]`
+- **Explicit dependency**: This makes the dependency on mappings explicit and testable
+
+#### Component Wrapper Delegation
+
+The component wrapper passes mappings to payload methods:
+
+```typescript
+// Component wrapper schema getter
+get schema(): GenericTreeNode<SchemaTag> {
+    const payload = this._payload.schema(this.key, this.universalKey, this._mapping)
+    // ...
+}
+
+// Component wrapper nestedSchema method
+nestedSchema(lookup, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+    const payload = target._payload.nestedSchema
+        ? target._payload.nestedSchema(lookup, { ...options, mappings: target._mapping })
+        : target._payload.schema(target.key, target.universalKey, target._mapping)
+    // ...
+}
+```
+
+#### Benefits
+
+- **Clear separation of concerns**: Payload implementations remain pure and don't depend on component wrapper state
+- **Testability**: Payload methods can be tested independently by passing mappings directly
+- **Flexibility**: Different mapping strategies can be applied without modifying payload implementations
+- **Explicit dependencies**: The need for mappings is clear from method signatures
+
+#### Usage Examples
+
+**Schema generation with mappings:**
+```typescript
+// Component wrapper automatically passes _mapping to payload
+const component = someComponent.withMapping(mappings)
+const schema = component.schema  // Uses this._mapping internally
+
+// Payload method receives mappings as parameter
+schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
+    // Use mappings to remap Links in StandardRender to 'key' format
+    rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, mappings)
+}
+```
+
+**Nested schema with mappings:**
+```typescript
+// Component wrapper passes mappings through options
+nestedSchema(lookup, { ...options, mappings: target._mapping })
+
+// Payload receives mappings in options
+nestedSchema(lookup, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+    const { mappings } = options
+    // Use mappings for reference formatting
+}
+```
+
 ## Testing
 
 ### Running Tests

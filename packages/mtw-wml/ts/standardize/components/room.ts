@@ -87,7 +87,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }
     }
 
-    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Room', key, uuid: universalKey },
             children: [

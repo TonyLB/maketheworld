@@ -23,6 +23,7 @@ export type NestedSchemaOptions = {
     parent?: StandardKey;  // Parent component StandardKey (undefined for Asset-level rendering)
     removeContext?: boolean;  // If true, nestedSchema will invert its contents for display in a remove context
     organization?: OrganizationContext;  // Optional organization context for parentage queries
+    mappings?: StandardReference[];  // Optional mappings for remapping references (e.g., for Links in StandardRender)
 }
 
 export type StandardDiffOptions = {

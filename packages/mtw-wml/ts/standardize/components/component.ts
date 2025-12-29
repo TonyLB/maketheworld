@@ -41,7 +41,7 @@ export interface ComponentConstructorMethods<D> {
     subset(options: StandardFormSubsetRequest): this;
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
-    schema(key?: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag>;
+    schema(key?: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag>;
     nestedSchema?(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
     referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[];
@@ -207,7 +207,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         }
 
         get schema(): GenericTreeNode<SchemaTag> {
-            const payload = this._payload.schema(this.key, this.universalKey)
+            const payload = this._payload.schema(this.key, this.universalKey, this._mapping)
             if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
                 throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
             }
@@ -236,8 +236,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             // Pass the current component's StandardKey to children
             const contextKey = target._key.plain
             const payload = target._payload.nestedSchema
-                ? target._payload.nestedSchema(lookup, { ...options, key: contextKey, parent: contextKey })
-                : target._payload.schema(target.key, target.universalKey)
+                ? target._payload.nestedSchema(lookup, { ...options, key: contextKey, parent: contextKey, mappings: target._mapping })
+                : target._payload.schema(target.key, target.universalKey, target._mapping)
             if (!treeNodeTypeguard(isSchemaComponent)(payload)) {
                 throw new Error(`Invalid schema payload in ${label} schema: ${JSON.stringify(payload)}`)
             }

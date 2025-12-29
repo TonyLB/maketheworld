@@ -831,7 +831,9 @@ export class ReferenceList {
     }
 
     toFormat(format: ReferenceFormat): ReferenceList {
-        return new ReferenceList(this.payload.map((item) => item.toFormat(format)))
+        const formatted = this.payload.map((item) => item.toFormat(format));
+        
+        return new ReferenceList(formatted)
     }
 
     lookup(arg: StandardReference[] | StandardKey[] | ((key: StandardKey) => StandardKey | undefined)): ReferenceList {

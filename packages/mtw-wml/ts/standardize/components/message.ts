@@ -57,17 +57,23 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     toJSON(options?: StandardToJSONOptions): Omit<StandardMessageData, 'key' | 'universalKey'> {
         return {
             tag: 'Message',
-            description: rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }),
+            description: rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }, undefined),
             ...(this.rooms.payload.length ? { rooms: this.rooms.toJSON() } : {})
         }
     }
 
-    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
+        // Look up references using mappings to resolve universalKeys to local keys, then format to 'key' format
+        // (structural reference, not content)
+        const roomsLookedUp = mappings ? this.rooms.lookup(mappings) : this.rooms
+        const roomsFormatted = roomsLookedUp.toFormat('key')
+        const roomsSchema = roomsFormatted.schema
+        
         return {
             data: { tag: 'Message', key, uuid: universalKey },
             children: [
-                ...this.rooms.schema,
-                ...(this.description?.schema ?? [])
+                ...roomsSchema,
+                ...(this.description ? [rebuildSchemaFromStandardRender(this.description, { tag: 'Description' as const }, mappings)].filter(excludeUndefined) : [])
             ]
         }
     }

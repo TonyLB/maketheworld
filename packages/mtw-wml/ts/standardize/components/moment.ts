@@ -53,7 +53,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         }
     }
 
-    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Moment', key, uuid: universalKey },
             children: this.messages.schema
