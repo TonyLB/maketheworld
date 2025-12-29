@@ -1,5 +1,4 @@
 import { excludeUndefined } from "../../lib/lists"
-import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
@@ -41,10 +40,8 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMessage)(node)) {
-            const tagTree = new SchemaTagTree(node.children)
-            const descriptionChildren = tagTree.filter({ not: { match: 'Room' } }).tree
-            const descriptionItem = descriptionChildren.length ? { data: { tag: 'Description' as const }, children: descriptionChildren } : undefined
-            this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
+            const descriptionItem = node.children.filter(wrappedNodeTypeGuard(isSchemaDescription))[0]
+            this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
             this._rooms = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaRoom)).map(childReferenceFactory))
             return
         }

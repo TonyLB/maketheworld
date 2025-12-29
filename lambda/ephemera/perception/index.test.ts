@@ -103,7 +103,7 @@ describe('Perception message', () => {
                             <Message uuid=(Test) key=(testMessage)>
                                 <Room uuid=(VORTEX) />
                                 <Room uuid=(ABC) />
-                                Test Message
+                                <Description>Test Message</Description>
                             </Message>
                         `)
                     })
@@ -114,7 +114,7 @@ describe('Perception message', () => {
                             <Message uuid=(Test)>
                                 <Room uuid=(VORTEX) />
                                 <Room uuid=(ABC) />
-                                Test Message
+                                <Description>Test Message</Description>
                             </Message>
                         </Asset>
                     `))
@@ -166,7 +166,7 @@ describe('Perception message', () => {
                         ['ASSET#Base']: new StandardMessage(`
                             <Message uuid=(Test) key=(testMessage)>
                                 <Room uuid=(ABC) />
-                                Test Message
+                                <Description>Test Message</Description>
                             </Message>
                         `)
                     })
@@ -176,7 +176,7 @@ describe('Perception message', () => {
                         <Asset uuid=(render)>
                             <Message uuid=(Test)>
                                 <Room uuid=(ABC) />
-                                Test Message
+                                <Description>Test Message</Description>
                             </Message>
                         </Asset>
                     `))
@@ -220,7 +220,7 @@ describe('Perception message', () => {
                             <Message uuid=(Test) key=(testMessage)>
                                 <Room uuid=(VORTEX) />
                                 <Room uuid=(ABC) />
-                                Test Message
+                                <Description>Test Message</Description>
                             </Message>
                         `)
                     })

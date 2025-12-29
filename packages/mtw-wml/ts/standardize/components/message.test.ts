@@ -11,7 +11,10 @@ describe('StandardMessage class', () => {
 
     it('should construct StandardMessage from WML', () => {
         const testSource = deIndentWML(`
-            <Message uuid=(001) key=(test)><Room key=(testRoom) />Message Test</Message>
+            <Message uuid=(001) key=(test)>
+                <Room key=(testRoom) />
+                <Description>Message Test</Description>
+            </Message>
         `)
         const testMap = new StandardMessage(testSource)
         expect(testMap.universalKey).toEqual('MESSAGE#001')
@@ -24,7 +27,10 @@ describe('StandardMessage class', () => {
     it('should construct StandardMessage from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
-            <Message key=(test)><Room key=(testRoom) />Message Test</Message>
+            <Message key=(test)>
+                <Room key=(testRoom) />
+                <Description>Message Test</Description>
+            </Message>
         `)
         schema.loadWML(testSource)
         const testMap = new StandardMessage(schema.schema[0])
@@ -51,19 +57,19 @@ describe('StandardMessage class', () => {
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Message key=(test)>
-                Message test
+                <Description>Message test</Description>
                 <Room key=(testRoom) />
             </Message>`,
             StandardMessage,
             `<Message key=(test)>
-                <Space />(extended)
+                <Description><Space />(extended)</Description>
                 <Room key=(testRoomTwo) />
             </Message>`
         )).toEqual(deIndentWML(`
             <Message key=(test)>
                 <Room key=(testRoom) />
                 <Room key=(testRoomTwo) />
-                Message test (extended)
+                <Description>Message test (extended)</Description>
             </Message>
         `))
     })
@@ -71,7 +77,7 @@ describe('StandardMessage class', () => {
     it('should map contents on name', () => {
         const test = new StandardMessage(`
             <Message key=(test)>
-                Message test.
+                <Description>Message test.</Description>
                 <Room key=(testRoom) />
             </Message>
         `)
@@ -89,14 +95,17 @@ describe('StandardMessage class', () => {
             })
         }
         expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
-            <Message key=(test)><Room key=(testRoom) />Message test.Narf!</Message>
+            <Message key=(test)>
+                <Room key=(testRoom) />
+                <Description>Message test.Narf!</Description>
+            </Message>
         `))
     })
 
     it('should remap references', () => {
         const test = new StandardMessage(`
             <Message key=(test)>
-                Message test.<Link to=(feature1) />
+                <Description>Message test.<Link to=(feature1) /></Description>
                 <Room key=(testRoom) />
             </Message>
         `)
@@ -104,7 +113,8 @@ describe('StandardMessage class', () => {
         const remapped = test.withMapping(mappings).remapReferences('universal')
         expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Message key=(test)>
-                <Room uuid=(testRoom) />Message test.<Link to=(feature1) />
+                <Room key=(testRoom) />
+                <Description>Message test.<Link to=(feature1) /></Description>
             </Message>
         `))
     })
@@ -112,7 +122,7 @@ describe('StandardMessage class', () => {
     it('should correctly add a room reference to a message', () => {
         const test = new StandardMessage(`
             <Message key=(testMessage)>
-                Message test.<Link to=(feature1) />
+                <Description>Message test.<Link to=(feature1) /></Description>
                 <Room key=(testRoomOne) />
             </Message>
         `)
@@ -122,7 +132,7 @@ describe('StandardMessage class', () => {
             <Message key=(testMessage)>
                 <Room key=(testRoomOne) />
                 <Room key=(testRoomTwo) />
-                Message test.<Link to=(feature1) />
+                <Description>Message test.<Link to=(feature1) /></Description>
             </Message>
         `))
     })
