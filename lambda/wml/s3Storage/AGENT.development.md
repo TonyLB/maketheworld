@@ -16,16 +16,52 @@ This document outlines future enhancements and development priorities for the S3
 ### High Priority Features
 
 #### Authorization Edit Integration
-**Status**: Infrastructure Complete, Awaiting Edit Flow
+**Status**: Infrastructure Complete, Dual Transmission Capability Identified
 
-The infrastructure for authorization edits is already in place and tested. When authorization edit flows are implemented:
+The infrastructure for authorization edits is already in place and tested. The system supports two approaches:
 
-- **Parse Grant tags** from incoming WML
+**Approach 1: Separate Authorization Chunks** (Current Implementation Path)
+- **Parse Grant tags** from incoming WML (when sent separately)
 - **Write authorization chunks** using existing generic operations
 - **Update authorization manifests** with chunk events
 - **Maintain materialized views** for authorization files
 
-**Implementation**: All chunk/manifest/snapshot operations already accept prefix parameter for authorization files. No additional infrastructure needed.
+**Approach 2: Dual Transmission Format** (Future Enhancement)
+- **Combined WML Format**: Single WML structure containing both content components and authorization grants
+- **Duplex Parsing**: Parse incoming WML once, extract both content and authorization separately
+- **Non-Semantic References**: Use `ref={0}` for authorization component references to avoid interfering with semantic content structure
+- **Parallel Application**: Apply content edits to `StandardForm` and authorization edits to `StandardAuthorizationCollection` simultaneously
+
+**Current State** (December 2025):
+- ✅ **Infrastructure exists**: Both `StandardForm` and `StandardAuthorizationCollection` can parse WML containing both types
+- ✅ **Reference system ready**: `ref={0}` capability enables non-semantic references for organizational purposes
+- ❌ **Not yet sending**: Front-end only sends content (grants are ignored by `StandardForm.schema`)
+- ❌ **Not yet parsing**: Backend `executeAppendChunkStrategy` explicitly rejects authorization chunks with "Authorization chunk application not yet implemented"
+
+**Implementation Requirements** (for Dual Transmission):
+
+1. **Backend Parsing** (`lambda/wml/s3Storage/index.ts` - `executeAppendChunkStrategy`):
+   - Parse incoming WML once to get schema tree
+   - Extract content components → `StandardForm` (already works, ignores grants)
+   - Extract authorization grants → `StandardAuthorizationCollection` (via `processAuthorizations`)
+   - Apply both edits separately to their respective baselines
+   - Ensure authorization component references use `ref={0}` when creating `StandardAuthorizationResource` instances
+
+2. **Reference Handling** (`packages/mtw-wml/ts/standardize/authorization/processAuthorizations.ts`):
+   - When `processAuthorizations` creates component references for authorization grants, ensure they use `ref={0}`
+   - This prevents authorization component references from interfering with semantic references in content
+
+3. **Front-End Support** (Future):
+   - Optionally include authorization grants in edit WML when both content and authorization are being modified
+   - Use `StandardForm.schema` with authorization parameter (if implemented) or construct combined WML manually
+
+**Benefits of Dual Transmission**:
+- ✅ **Atomic Operations**: Content and authorization edits can be applied together
+- ✅ **Reduced Round-Trips**: Single edit operation for combined changes
+- ✅ **Simplified Merging**: Combined storage/transmission format for `StandardAuthorizationCollection` into content-ful `StandardForm`
+- ✅ **Safe Separation**: `ref={0}` ensures authorization references don't affect semantic content structure
+
+**Implementation**: All chunk/manifest/snapshot operations already accept prefix parameter for authorization files. The key addition is dual parsing logic in the execution strategy and ensuring `ref={0}` for authorization component references.
 
 #### S3 Lifecycle Policies
 **Status**: Deferred from Phase 2 (premature during active development)
