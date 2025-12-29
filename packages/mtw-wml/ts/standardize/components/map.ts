@@ -8,6 +8,7 @@ import { StandardMapData } from "./dataTypes/map"
 import { ReferenceFormat } from "./utils/references"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMap, isSchemaRoom, isSchemaPosition } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 import StandardPosition, { mergeStandardPositionList, StandardPositionReplace, StandardPositionRemove, StandardPositionSimple } from "./position"
 import StandardReference, { StandardKey } from "./reference"
 import { StandardLiteral } from "../literal"
@@ -174,7 +175,8 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     }
 
     referencedKeys(): StandardComponentReferenceKey[] {
-        return this.positions.map((position ) => {
+        // Extract Position references (for Rooms)
+        const positionReferences = this.positions.map((position ) => {
             if (position._payload instanceof StandardPositionSimple || position._payload instanceof StandardPositionReplace) {
                 // Positions always reference rooms
                 const positionReference = new StandardReference(position._payload.room, 'Room')
@@ -182,8 +184,17 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
             }
             return []
         }).flat(1)
-        // return positionReferenceKeys(this.positions ?? [])
-        //     .map((key) => ({ referenceType: 'Position', key }))
+        
+        // Extract Image references from _images schema nodes
+        const imageReferences = this._images
+            .filter(treeNodeTypeguard(isSchemaImage))
+            .map((imageNode) => {
+                // Create StandardReference from Image schema node
+                const imageReference = new StandardReference([imageNode])
+                return { referenceType: 'Direct' as const, reference: imageReference }
+            })
+        
+        return [...positionReferences, ...imageReferences]
     }
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
