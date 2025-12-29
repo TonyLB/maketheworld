@@ -34,7 +34,6 @@ import { StandardLiteral } from "./literal"
 import { StandardRender } from "./render"
 import { excludeUndefined } from "../lib/lists"
 import { rebuildSchemaFromStandardRender } from "./components/utils/extractStandardRender"
-import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { KeyLookup } from "./keyLookup"
 import { SchemaOrganization, createOrganizationContext } from "./schemaOrganization"
 import { renderReference } from "./components/utils/schema"
@@ -584,21 +583,22 @@ export class StandardForm {
         // Merge topLevel references - ReferenceList.merge will handle eliminating ref={0} outcomes
         returnValue._topLevel = (this._topLevel && incoming._topLevel) ? this._topLevel.merge(incoming._topLevel) : this._topLevel ?? incoming._topLevel
 
-        // Check for components that have had all references removed, and then test whether they are empty
-        // (in which case remove them) or have content (in which case raise a merge conflict)
+        // Remove components that have had all references removed AND are empty
+        // Components with no references but with content are valid (top-level inline edit pattern)
         const organization = returnValue._getSchemaOrganization()
 
         const priorComponentsWithNoReferences = this._components
             .filter((component) => (!organization.isReferenced(component._key)))
 
-        // Implement StandardComponent.isEmpty() to test whether any of the components are non-empty
-        const nonEmptyComponents = priorComponentsWithNoReferences.filter((component) => (!component.isEmpty()))
-        if (nonEmptyComponents.length > 0) {
-            throw new MergeConflictError('Merge conflict: components with no references but non-empty content')
-        }
-
-        // Remove components that have had all references removed
-        returnValue._components = returnValue._components.filter((component) => (!priorComponentsWithNoReferences.some((checkComponent) => (checkComponent._key.equals(component._key)))))
+        // Only remove components that are both unreferenced AND empty
+        // Components with content but no references are kept (valid for top-level inline edits)
+        returnValue._components = returnValue._components.filter((component) => {
+            const wasUnreferenced = priorComponentsWithNoReferences.some((checkComponent) => (checkComponent._key.equals(component._key)))
+            if (wasUnreferenced && component.isEmpty()) {
+                return false  // Remove: unreferenced and empty
+            }
+            return true  // Keep: either referenced, or has content (top-level inline edit)
+        })
 
         return returnValue
     }
