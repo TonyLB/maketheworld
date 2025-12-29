@@ -615,102 +615,6 @@ exports[`large WML test should parse properly 1`] = `
 exports[`large WML test should standardize properly 1`] = `
 [
   {
-    "key": "dungeonImage",
-    "tag": "Image",
-    "universalKey": undefined,
-  },
-  {
-    "description": [
-      "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
-      {
-        "children": [],
-        "data": {
-          "tag": "br",
-        },
-      },
-      "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
-    ],
-    "implicitParent": {
-      "key": "VORTEX",
-      "universalKey": undefined,
-    },
-    "key": undefined,
-    "name": [
-      "Cave entrance",
-    ],
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example1",
-  },
-  {
-    "description": [
-      "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
-    ],
-    "implicitParent": {
-      "key": "cave",
-      "universalKey": undefined,
-    },
-    "key": undefined,
-    "name": [
-      "Shallow cave",
-    ],
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example2",
-  },
-  {
-    "description": [
-      "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
-    ],
-    "implicitParent": {
-      "key": "cave",
-      "universalKey": undefined,
-    },
-    "key": undefined,
-    "name": [
-      "Shallow cave",
-    ],
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example3",
-  },
-  {
-    "description": [
-      "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
-    ],
-    "implicitParent": {
-      "key": "curvingPassage",
-      "universalKey": undefined,
-    },
-    "key": undefined,
-    "name": [
-      "Curving Passage",
-    ],
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example4",
-  },
-  {
-    "implicitParent": {
-      "key": "chamber",
-      "universalKey": undefined,
-    },
-    "key": "orc",
-    "shortName": undefined,
-    "tag": "Feature",
-    "universalKey": undefined,
-  },
-  {
-    "implicitParent": {
-      "key": "chamber",
-      "universalKey": undefined,
-    },
-    "key": "pie",
-    "shortName": undefined,
-    "tag": "Feature",
-    "universalKey": undefined,
-  },
-  {
     "examples": [
       "EXAMPLE#example2",
       "EXAMPLE#example3",
@@ -735,6 +639,30 @@ exports[`large WML test should standardize properly 1`] = `
     "shortName": undefined,
     "tag": "Room",
     "universalKey": undefined,
+  },
+  {
+    "description": [
+      "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
+    ],
+    "key": undefined,
+    "name": [
+      "Shallow cave",
+    ],
+    "summary": undefined,
+    "tag": "Example",
+    "universalKey": "EXAMPLE#example2",
+  },
+  {
+    "description": [
+      "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
+    ],
+    "key": undefined,
+    "name": [
+      "Shallow cave",
+    ],
+    "summary": undefined,
+    "tag": "Example",
+    "universalKey": "EXAMPLE#example3",
   },
   {
     "examples": [
@@ -768,15 +696,23 @@ exports[`large WML test should standardize properly 1`] = `
   },
   {
     "description": undefined,
-    "implicitParent": {
-      "key": "chamber",
-      "universalKey": undefined,
-    },
     "key": undefined,
     "name": undefined,
     "summary": undefined,
     "tag": "Example",
     "universalKey": "EXAMPLE#example5",
+  },
+  {
+    "key": "orc",
+    "shortName": undefined,
+    "tag": "Feature",
+    "universalKey": undefined,
+  },
+  {
+    "key": "pie",
+    "shortName": undefined,
+    "tag": "Feature",
+    "universalKey": undefined,
   },
   {
     "examples": [
@@ -804,22 +740,16 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "examples": [
-      "EXAMPLE#example1",
+    "description": [
+      "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
     ],
-    "exits": [
-      {
-        "description": "cave",
-        "to": {
-          "key": "cave",
-          "universalKey": undefined,
-        },
-      },
+    "key": undefined,
+    "name": [
+      "Curving Passage",
     ],
-    "key": "VORTEX",
-    "shortName": undefined,
-    "tag": "Room",
-    "universalKey": undefined,
+    "summary": undefined,
+    "tag": "Example",
+    "universalKey": "EXAMPLE#example4",
   },
   {
     "images": [
@@ -869,6 +799,48 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "tag": "Map",
     "universalKey": undefined,
+  },
+  {
+    "key": "dungeonImage",
+    "tag": "Image",
+    "universalKey": undefined,
+  },
+  {
+    "examples": [
+      "EXAMPLE#example1",
+    ],
+    "exits": [
+      {
+        "description": "cave",
+        "to": {
+          "key": "cave",
+          "universalKey": undefined,
+        },
+      },
+    ],
+    "key": "VORTEX",
+    "shortName": undefined,
+    "tag": "Room",
+    "universalKey": undefined,
+  },
+  {
+    "description": [
+      "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
+      {
+        "children": [],
+        "data": {
+          "tag": "br",
+        },
+      },
+      "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
+    ],
+    "key": undefined,
+    "name": [
+      "Cave entrance",
+    ],
+    "summary": undefined,
+    "tag": "Example",
+    "universalKey": "EXAMPLE#example1",
   },
 ]
 `;

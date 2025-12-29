@@ -117,11 +117,18 @@ describe('StandardExplicitParent', () => {
             expect(merged).toBeUndefined()
         })
 
-        it('should throw error when merging Remove with Simple (no exact match)', () => {
+        it('should create Replace when merging Remove with Simple (no exact match)', () => {
             const parent1 = new StandardExplicitParent({ tag: 'Remove', match: validComponentUUID })
             const parent2 = new StandardExplicitParent(anotherComponentUUID)
-            expect(() => parent1.merge(parent2)).toThrow(MergeConflictError)
-            expect(() => parent1.merge(parent2)).toThrow('Parent values can only be removed or replaced if they match exactly')
+            const merged = parent1.merge(parent2)
+            // Remove + Add with different values creates a Replace operation
+            expect(merged).toBeInstanceOf(StandardExplicitParent)
+            expect(merged?._payload).toBeInstanceOf(StandardExplicitParentReplace)
+            expect(merged?.toJSON()).toEqual({ 
+                tag: 'Replace', 
+                match: validComponentUUID, 
+                payload: anotherComponentUUID 
+            })
         })
 
 
