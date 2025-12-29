@@ -66,8 +66,9 @@ describe('StandardForm', () => {
                 }
             ],
             topLevel: [{
-                tag: 'Remove',
-                match: 'ROOM#testRoomTwo'
+                tag: 'Room',
+                universalKey: 'ROOM#testRoomTwo',
+                ref: -1
             }]
         })
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
@@ -689,7 +690,7 @@ describe('StandardForm', () => {
             </Room>
             <Room uuid=(testTwo) key=(testTwo) />
             <Message uuid=(testMessage) key=(testMessage)>
-                Test message
+                <Description>Test message</Description>
                 <Room uuid=(test) key=(test)>
                     <Example key=(base) ref={0}>
                         <Description>
@@ -715,7 +716,8 @@ describe('StandardForm', () => {
                     <Exit to=(test)>Test Return</Exit>
                 </Room>
                 <Message uuid=(testMessage) key=(testMessage)>
-                    <Room key=(test) />Test message
+                    <Room key=(test) />
+                    <Description>Test message</Description>
                 </Message>
             </Asset>
         `))
@@ -876,7 +878,7 @@ describe('StandardForm', () => {
     it('should render messages correctly', () => {
         const test = new StandardForm(`<Asset uuid=(Test)>
             <Message uuid=(testMessage) key=(testMessage)>
-                Test message
+                <Description>Test message</Description>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
                     <Example uuid=(testRoomOneBase)>
                         <Description>Test Room One</Description>
@@ -910,7 +912,7 @@ describe('StandardForm', () => {
                 <Message uuid=(testMessage) key=(testMessage)>
                     <Room key=(testRoomOne) />
                     <Room key=(testRoomTwo) />
-                    Test message
+                    <Description>Test message</Description>
                 </Message>
             </Asset>
         `))
@@ -920,7 +922,7 @@ describe('StandardForm', () => {
         const test = new StandardForm(`<Asset uuid=(Test)>
             <Moment uuid=(testMoment) key=(testMoment)>
                 <Message uuid=(testMessage) key=(testMessage)>
-                    Test message
+                    <Description>Test message</Description>
                     <Room uuid=(testRoomOne) key=(testRoomOne)>
                         <Example uuid=(testRoomOneBase)>
                             <Description>Test Room One</Description>
@@ -943,7 +945,8 @@ describe('StandardForm', () => {
                 <Room uuid=(testRoomTwo) key=(testRoomTwo) />
                 <Moment uuid=(testMoment) key=(testMoment)>
                     <Message uuid=(testMessage) key=(testMessage)>
-                        <Room key=(testRoomOne) />Test message
+                        <Room key=(testRoomOne) />
+                        <Description>Test message</Description>
                     </Message>
                 </Moment>
             </Asset>
@@ -2794,7 +2797,8 @@ describe('StandardForm', () => {
                     <Room key=(testRoom)><Position x="0" y="100" /></Room>
                 </Map>
                 <Message uuid=(006) key=(openDoor)>
-                    <Room key=(testRoom) />The door opens!
+                    <Room key=(testRoom) />
+                    <Description>The door opens!</Description>
                 </Message>
                 <Moment uuid=(007) key=(openDoorMoment)><Message key=(openDoor) /></Moment>
                 <Image key=(testBackground) />

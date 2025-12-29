@@ -250,7 +250,7 @@ describe("processComponents", () => {
                 </Room>
                 <Room key=(testTwo) />
                 <Message key=(testMessage)>
-                    Test message
+                    <Description>Test message</Description>
                     <Room key=(test)>
                         <Example uuid=(testRoomExample)>
                             <Description>
@@ -276,7 +276,12 @@ describe("processComponents", () => {
             `<Room key=(test)><Example uuid=(testRoomExample) /></Room>`,
             `<Example uuid=(testRoomExample)><Description>One<br /></Description></Example>`,
             `<Room key=(testTwo) />`,
-            `<Message key=(testMessage)><Room key=(test) />Test message</Message>`,
+            deIndentWML(`
+                <Message key=(testMessage)>
+                    <Room key=(test) />
+                    <Description>Test message</Description>
+                </Message>`
+            ),
             deIndentWML(`
                 <Room key=(test)>
                     <Example uuid=(testRoomExample) />

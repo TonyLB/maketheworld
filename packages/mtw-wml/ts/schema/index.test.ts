@@ -771,7 +771,10 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(test) />
-                <Message key=(msg)><Room key=(test) />Test</Message>
+                <Message key=(msg)>
+                    <Room key=(test) />
+                    <Description>Test</Description>
+                </Message>
             </Asset>
         `)
         const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
