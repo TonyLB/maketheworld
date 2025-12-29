@@ -121,7 +121,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardFeaturePayload(this)
-        returnValue._examples = returnValue._examples.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._examples = returnValue._examples.toFormat(props.mapTo, props.mappings)
         return returnValue as this
     }
 

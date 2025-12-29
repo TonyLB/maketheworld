@@ -65,8 +65,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         // Look up references using mappings to resolve universalKeys to local keys, then format to 'key' format
         // (structural reference, not content)
-        const roomsLookedUp = mappings ? this.rooms.lookup(mappings) : this.rooms
-        const roomsFormatted = roomsLookedUp.toFormat('key')
+        const roomsFormatted = this.rooms.toFormat('key', mappings)
         const roomsSchema = roomsFormatted.schema
         
         return {
@@ -106,7 +105,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMessagePayload(this)
-        returnValue._rooms = returnValue._rooms.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._rooms = returnValue._rooms.toFormat(props.mapTo, props.mappings)
         if (returnValue._description) {
             returnValue._description = returnValue._description.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
         }

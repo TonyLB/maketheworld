@@ -103,7 +103,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMomentPayload(this)
-        returnValue._messages = returnValue._messages.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._messages = returnValue._messages.toFormat(props.mapTo, props.mappings)
         return returnValue as this
     }
     
