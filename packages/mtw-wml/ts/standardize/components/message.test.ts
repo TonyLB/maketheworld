@@ -104,7 +104,7 @@ describe('StandardMessage class', () => {
         const remapped = test.withMapping(mappings).remapReferences('universal')
         expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Message key=(test)>
-                <Room uuid=(testRoom) />Message test.<Link to=(FEATURE#feature1) />
+                <Room uuid=(testRoom) />Message test.<Link to=(feature1) />
             </Message>
         `))
     })

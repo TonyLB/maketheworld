@@ -64,7 +64,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         }
     }
 
-    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Knowledge', key, uuid: universalKey },
             children: [
@@ -122,7 +122,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
 
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardKnowledgePayload(this)
-        returnValue._examples = returnValue._examples.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._examples = returnValue._examples.toFormat(props.mapTo, props.mappings)
         return returnValue as this
     }
     

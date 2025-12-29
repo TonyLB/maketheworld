@@ -29,7 +29,8 @@ export class StandardExitBase implements StandardEditablePayload<StandardExitDat
     to: StandardKey;
     description?: StandardLiteral;
     get schema() {
-        return [{ data: { tag: 'Exit' as const, to: this.to.key ?? this.to.universalKey ?? '' }, children: this.description?.schema ?? [] }]
+        const toKey = this.to.toFormat('key')
+        return [{ data: { tag: 'Exit' as const, to: toKey.key ?? toKey.universalKey ?? '' }, children: this.description?.schema ?? [] }]
     }
     constructor(data: StandardExitData) {
         this.to = new StandardKey(data.to)

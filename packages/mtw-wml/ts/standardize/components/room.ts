@@ -87,7 +87,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         }
     }
 
-    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Room', key, uuid: universalKey },
             children: [
@@ -227,8 +227,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardRoomPayload(this)
-        returnValue._examples = returnValue._examples.lookup(props.mappings).toFormat(props.mapTo)
-        returnValue._features = returnValue._features.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._examples = returnValue._examples.toFormat(props.mapTo, props.mappings)
+        returnValue._features = returnValue._features.toFormat(props.mapTo, props.mappings)
         returnValue._exits = returnValue._exits.map((exit) => exit.remapReferences(props))
         return returnValue as this
     }

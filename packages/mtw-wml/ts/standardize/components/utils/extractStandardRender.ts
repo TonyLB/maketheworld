@@ -3,6 +3,7 @@ import { StandardRender, StandardRenderRemove, StandardRenderReplace, StandardRe
 import { EditWrappedStandardNode } from "../dataTypes/abstract"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
+import StandardReference from "../reference"
 
 export const extractStandardRender = <D extends SchemaTag>(node: EditWrappedStandardNode<D, SchemaOutputTag> | undefined, typeguard: (data: SchemaTag) => data is D, errorMessage: string): StandardRender | undefined => {
     if (!node) {
@@ -32,9 +33,11 @@ export const extractStandardRender = <D extends SchemaTag>(node: EditWrappedStan
     throw new Error(errorMessage)
 }
 
-export const rebuildSchemaFromStandardRender = <D extends SchemaTag>(render: StandardRender | undefined, data: D): EditWrappedStandardNode<D, SchemaOutputTag> | undefined => {
+export const rebuildSchemaFromStandardRender = <D extends SchemaTag>(render: StandardRender | undefined, data: D, mappings?: StandardReference[]): EditWrappedStandardNode<D, SchemaOutputTag> | undefined => {
     if (!render) { return undefined }
-    const payload = render._payload
+    // Remap Links to 'key' format before generating schema (Links are always structural, never content-displaying references)
+    const remappedRender = mappings ? render.remapReferences({ mapping: mappings, mapTo: 'key' }) : render
+    const payload = remappedRender._payload
     if (payload instanceof StandardRenderRemove) {
         return { data: { tag: 'Remove' as const }, children: [{ data, children: payload.match.schema }] }
     }

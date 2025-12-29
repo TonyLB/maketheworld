@@ -77,13 +77,13 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         }
     }
 
-    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Character', key, uuid: universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
                 ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema({ tag: 'Pronouns' }))).flat(1),
-                rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }),
+                rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, mappings),
                 this.image
             ].filter(excludeUndefined).flat(1)
         }

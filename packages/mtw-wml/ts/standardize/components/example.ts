@@ -81,11 +81,11 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         }
     }
 
-    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         const children = [
-            rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }),
-            rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }),
-            rebuildSchemaFromStandardRender(this._description, { tag: 'Description' })
+            rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, mappings),
+            rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }, mappings),
+            rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, mappings)
         ].filter(excludeUndefined)
         return {
             data: { tag: 'Example', key, uuid: universalKey },

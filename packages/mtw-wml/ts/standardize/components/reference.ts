@@ -11,6 +11,8 @@ import { excludeUndefined } from "../../lib/lists";
 import { isSchemaTreeNode } from "../../schema";
 import { treeFromWML } from "../../schema";
 
+export type LookupMappings = StandardReference[] | StandardKey[] | ((key: StandardKey) => StandardKey | undefined);
+
 export class StandardKey implements StandardEditablePayload<StandardKeyData> {
     key?: string;
     universalKey?: ComponentUUID;
@@ -624,7 +626,7 @@ export class StandardReference {
         return this.withRef(-this._ref)
     }
 
-    lookup(arg: StandardReference[] | StandardKey[] | ((key: StandardKey) => StandardKey | undefined)): StandardReference {
+    lookup(arg: LookupMappings): StandardReference {
         const callback = typeof arg === 'function' ? arg : (key: StandardKey) => {
             if (!Array.isArray(arg)) {
                 throw new Error('Invalid argument type for lookup')
@@ -657,12 +659,14 @@ export class StandardReference {
         return new StandardReference(referenceData)
     }
 
-    toFormat(format: ReferenceFormat): StandardReference {
-        // Convert to StandardKey, format it, then convert back
-        const key = this.standardKey
+    toFormat(format: ReferenceFormat, mappings?: LookupMappings): StandardReference {
+        // First lookup if mappings provided
+        const reference = mappings ? this.lookup(mappings) : this
+        // Then format
+        const key = reference.standardKey
         const formattedKey = key.toFormat(format)
-        const tag = this._tag
-        const ref = this._ref
+        const tag = reference._tag
+        const ref = reference._ref
         const keyData = formattedKey.toJSON()
         const referenceData: StandardReferenceData = typeof keyData === 'string' 
             ? keyData 
@@ -830,11 +834,16 @@ export class ReferenceList {
         return returnValue
     }
 
-    toFormat(format: ReferenceFormat): ReferenceList {
-        return new ReferenceList(this.payload.map((item) => item.toFormat(format)))
+    toFormat(format: ReferenceFormat, mappings?: LookupMappings): ReferenceList {
+        // First lookup if mappings provided
+        const list = mappings ? this.lookup(mappings) : this
+        // Then format all items (don't pass mappings again, already looked up)
+        const formatted = list.payload.map((item) => item.toFormat(format, undefined));
+        
+        return new ReferenceList(formatted)
     }
 
-    lookup(arg: StandardReference[] | StandardKey[] | ((key: StandardKey) => StandardKey | undefined)): ReferenceList {
+    lookup(arg: LookupMappings): ReferenceList {
         return new ReferenceList(this.payload.map((item) => item.lookup(arg)))
     }
 

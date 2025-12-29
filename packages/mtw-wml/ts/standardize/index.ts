@@ -445,13 +445,6 @@ export class StandardForm {
 
     get schema(): GenericTreeNode<SchemaTag> {
         const metaData = this.metaData
-        const lookupWrapper = (key: string | StandardKey): StandardComponent | undefined => {
-            if (typeof key === 'string') {
-                // String is assumed to be ComponentUUID (part of StandardKeyData)
-                return this._lookup(key as ComponentUUID)
-            }
-            return this._lookup(key.toJSON())
-        }
 
         // Get or create SchemaOrganization and create OrganizationContext
         const organization = this._getSchemaOrganization()
@@ -459,7 +452,16 @@ export class StandardForm {
 
         const remapped = this._clone()
         const mapKeys = remapped._components.map((component) => component.reference)
-        remapped._components = remapped._components.map((component) => (component.withMapping(mapKeys).remapReferences('key')))
+        remapped._components = remapped._components.map((component) => (component.withMapping(mapKeys)))
+
+        // Create lookupWrapper AFTER remapping so it uses mapped components
+        const lookupWrapper = (key: string | StandardKey): StandardComponent | undefined => {
+            if (typeof key === 'string') {
+                // String is assumed to be ComponentUUID (part of StandardKeyData)
+                return remapped._lookup(key as ComponentUUID)
+            }
+            return remapped._lookup(key.toJSON())
+        }
 
         // Get asset-level children from organization and ensure ref={0}
         const assetLevelChildren = organizationContext.getChildrenOfParent(remapped._universalKey)
@@ -493,7 +495,7 @@ export class StandardForm {
             children: [
                 ...metaData.filter(treeNodeTypeguard(isSchemaMeta)),
                 ...[this._shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
-                ...[rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' })].filter(excludeUndefined),
+                ...[rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }, mapKeys)].filter(excludeUndefined),
                 ...children
             ]
         }

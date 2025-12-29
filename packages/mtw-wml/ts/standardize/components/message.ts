@@ -57,17 +57,22 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     toJSON(options?: StandardToJSONOptions): Omit<StandardMessageData, 'key' | 'universalKey'> {
         return {
             tag: 'Message',
-            description: rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }),
+            description: rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }, undefined),
             ...(this.rooms.payload.length ? { rooms: this.rooms.toJSON() } : {})
         }
     }
 
-    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
+        // Look up references using mappings to resolve universalKeys to local keys, then format to 'key' format
+        // (structural reference, not content)
+        const roomsFormatted = this.rooms.toFormat('key', mappings)
+        const roomsSchema = roomsFormatted.schema
+        
         return {
             data: { tag: 'Message', key, uuid: universalKey },
             children: [
-                ...this.rooms.schema,
-                ...(this.description?.schema ?? [])
+                ...roomsSchema,
+                ...(this.description ? [rebuildSchemaFromStandardRender(this.description, { tag: 'Description' as const }, mappings)].filter(excludeUndefined) : [])
             ]
         }
     }
@@ -100,7 +105,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMessagePayload(this)
-        returnValue._rooms = returnValue._rooms.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._rooms = returnValue._rooms.toFormat(props.mapTo, props.mappings)
         if (returnValue._description) {
             returnValue._description = returnValue._description.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
         }

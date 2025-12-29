@@ -1791,7 +1791,6 @@ describe('SchemaOrganization', () => {
             const testForm = new StandardForm(testWML)
 
             expect(testForm).toBeDefined()
-            console.log(`testForm: ${JSON.stringify(testForm.toJSON(), null, 2)}`)
 
             const keyLookup = new KeyLookup(testForm._components)
             const organization = new SchemaOrganization({

@@ -84,7 +84,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         }
     }
 
-    schema(key: string, universalKey?: ComponentUUID): GenericTreeNode<SchemaTag> {
+    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Map', key, uuid: universalKey },
             children: [
