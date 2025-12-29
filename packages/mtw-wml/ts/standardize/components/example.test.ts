@@ -234,7 +234,7 @@ describe('StandardExample class', () => {
                 <Name>Name Test</Name>
                 <Summary>Summary Test</Summary>
                 <Description>
-                    Description Test<Link to=(FEATURE#feature1)>Link Text</Link>
+                    Description Test<Link to=(feature1)>Link Text</Link>
                 </Description>
             </Example>
         `))
