@@ -4,7 +4,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaParent, isSchemaKey, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaMapContents, SchemaTag, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
@@ -22,6 +22,7 @@ const componentTemplates = {
     Name: {},
     ShortName: {},
     Parent: {},
+    Key: {},
     Room: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
@@ -68,6 +69,26 @@ const parentTagRenderLiteral = ({ tag: { data: tag, children }, ...args }: Print
     // Handle empty Parent tags (self-closing)
     if (children.length === 0) {
         return [{ printMode: PrintMode.naive, output: `<${tag.tag} />` }]
+    }
+    const textValue = children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('') as string
+    const naive = `<${tag.tag}>${textValue}</${tag.tag}>`
+    if (naive.length + Math.min(10, args.options.indent * 4) > 80) {
+        return [
+            { printMode: PrintMode.nested, output: `<${tag.tag}>` },
+            { printMode: PrintMode.nested, output: `    ${textValue}` },
+            { printMode: PrintMode.nested, output: `</${tag.tag}>` }
+        ]
+    }
+    else {
+        return [{ printMode: PrintMode.naive, output: `<${tag.tag}>${textValue}</${tag.tag}>` }]
+    }
+}
+
+// Key tag converter - similar to Parent but constrained to legalKey content
+// and can only be placed inside ComponentUUID tags
+const keyTagRenderLiteral = ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments): PrintMapResult[] => {
+    if (!isSchemaKey(tag)) {
+        return [{ printMode: PrintMode.naive, output: '' }]
     }
     const textValue = children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('') as string
     const naive = `<${tag.tag}>${textValue}</${tag.tag}>`
@@ -143,6 +164,45 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
             return {
                 data: { tag: 'Parent' },
+                children: children.map(({ data }) => data).filter(isSchemaString).map(({ value }) => ({ data: { tag: 'String' as const, value }, children: [] }))
+            }
+        }
+    },
+    Key: {
+        initialize: ({ parseOpen, contextStack }): SchemaKeyTag => {
+            // Validate that Key tag is inside a ComponentUUID
+            const hasComponentContext = contextStack.some(({ data }) => isSchemaComponent(data))
+            if (!hasComponentContext) {
+                throw new Error(`Key tag can only be used inside a ComponentUUID (Room, Feature, etc.)`)
+            }
+            // Validate properties using componentTemplates (Key has no properties)
+            validateProperties(componentTemplates.Key)(parseOpen)
+            return { tag: 'Key' }
+        },
+        typeCheckContents: (item: SchemaTag): boolean => {
+            // Key can only contain String tags (legalKey may be split across multiple strings)
+            // The combined result will be validated in finalize
+            return isSchemaString(item)
+        },
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaKeyTag, SchemaStringTag> => {
+            if (!isSchemaKey(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            // Key tags cannot be empty
+            if (children.length === 0) {
+                throw new Error('Key tag must contain a legalKey value')
+            }
+            // Validate that the combined string content is a legalKey
+            const textValue = children
+                .map(({ data }) => data)
+                .filter(isSchemaString)
+                .map(({ value }) => value)
+                .join('')
+            if (!isLegalKey(textValue)) {
+                throw new Error(`Key tag content must be a legalKey, got: ${textValue}`)
+            }
+            return {
+                data: { tag: 'Key' },
                 children: children.map(({ data }) => data).filter(isSchemaString).map(({ value }) => ({ data: { tag: 'String' as const, value }, children: [] }))
             }
         }
@@ -253,6 +313,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
     },
     ShortName: shortNamePrintMap,
     Parent: parentTagRenderLiteral,
+    Key: keyTagRenderLiteral,
     Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
         // Reassemble the contents out of name and description fields
