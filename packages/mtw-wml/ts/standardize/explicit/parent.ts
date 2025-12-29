@@ -152,6 +152,8 @@ const standardExplicitParentAdd = (base: StandardKeyData | 'ASSET', incoming: St
 }
 
 // Parent values can only be removed if they match exactly (no partial matches)
+// However, when used in merge context (via addDelta), mismatched values represent a Replace operation
+// and should return a delta indicating the base value should be kept (can't subtract)
 const standardExplicitParentSubtract = (base: StandardKeyData | 'ASSET', incoming: StandardKeyData | 'ASSET'): { add?: StandardKeyData | 'ASSET', remove?: StandardKeyData | 'ASSET' } => {
     // Handle ASSET sentinel values
     if (base === 'ASSET' && incoming === 'ASSET') {
@@ -159,8 +161,9 @@ const standardExplicitParentSubtract = (base: StandardKeyData | 'ASSET', incomin
         return {}
     }
     if (base === 'ASSET' || incoming === 'ASSET') {
-        // Partial matches are not allowed for Parent values
-        throw new MergeConflictError('Parent values can only be removed or replaced if they match exactly. Partial matches are not allowed.')
+        // Different values (one is ASSET, one is not) - this is a Replace operation
+        // Return delta keeping base value (can't subtract different value)
+        return { add: base }
     }
     const baseKey = new StandardKey(base)
     const incomingKey = new StandardKey(incoming)
@@ -169,8 +172,9 @@ const standardExplicitParentSubtract = (base: StandardKeyData | 'ASSET', incomin
         // Exact match: remove the value entirely
         return {}
     }
-    // Partial matches are not allowed for Parent values
-    throw new MergeConflictError('Parent values can only be removed or replaced if they match exactly. Partial matches are not allowed.')
+    // Different values - this is a Replace operation
+    // Return delta keeping base value (can't subtract different value)
+    return { add: base }
 }
 
 // Parent values can only be diffed if they match exactly (no partial matches)
@@ -466,25 +470,8 @@ export class StandardExplicitParent {
             return this
         }
         // Both have payloads - let the delta system handle ASSET sentinel values
-        // Check for Remove + Add mismatch (Parent-specific constraint)
-        const thisDelta = this._payload._delta
-        const incomingDelta = incoming._payload._delta
-        if (thisDelta.remove && incomingDelta.add) {
-            const removeKey = new StandardKey(thisDelta.remove)
-            const addKey = new StandardKey(incomingDelta.add)
-            if (!removeKey.equals(addKey)) {
-                // For Parent values, Remove + Add with different values is an error
-                throw new MergeConflictError('Parent values can only be removed or replaced if they match exactly. Partial matches are not allowed.')
-            }
-        }
-        if (incomingDelta.remove && thisDelta.add) {
-            const removeKey = new StandardKey(incomingDelta.remove)
-            const addKey = new StandardKey(thisDelta.add)
-            if (!removeKey.equals(addKey)) {
-                // For Parent values, Remove + Add with different values is an error
-                throw new MergeConflictError('Parent values can only be removed or replaced if they match exactly. Partial matches are not allowed.')
-            }
-        }
+        // Note: Remove + Add with different values is valid for Replace operations (used in diff)
+        // The underlying merge logic will handle conflicts appropriately
         const merged = this._payload.merge(incoming._payload)
         if (merged) {
             return new StandardExplicitParent(merged)
