@@ -808,9 +808,6 @@ describe('SchemaOrganization', () => {
                     <Feature uuid=(feature2) key=(feature2)>
                         <Parent>ROOM#room1</Parent>
                     </Feature>
-                    <Knowledge uuid=(knowledge1) key=(knowledge1)>
-                        <Parent>ROOM#room1</Parent>
-                    </Knowledge>
                 </Asset>
             `)
             const form = new StandardForm(testWML)
@@ -826,20 +823,17 @@ describe('SchemaOrganization', () => {
             const room1 = form._lookup('ROOM#room1')
             const feature1 = form._lookup('FEATURE#feature1')
             const feature2 = form._lookup('FEATURE#feature2')
-            const knowledge1 = form._lookup('KNOWLEDGE#knowledge1')
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
             expect(feature2).toBeDefined()
-            expect(knowledge1).toBeDefined()
 
             const room1Key = room1!.standardKey
             const children = organization.getChildrenOfParent(room1Key)
-            expect(children.length).toBe(3)
+            expect(children.length).toBe(2)
 
             const childKeys = children.map(child => child.standardKey.toJSON())
             expect(childKeys).toContainEqual(feature1!.standardKey.toJSON())
             expect(childKeys).toContainEqual(feature2!.standardKey.toJSON())
-            expect(childKeys).toContainEqual(knowledge1!.standardKey.toJSON())
 
             // Verify references have correct properties
             children.forEach(child => {

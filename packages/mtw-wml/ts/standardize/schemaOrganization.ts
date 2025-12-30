@@ -30,6 +30,8 @@ export class SchemaOrganization {
         this.keyLookup = args.keyLookup
         this._topLevel = args.topLevel
         this._explicitOrganization = this._calculateExplicitParents()
+        // Validate no circular explicit parent relationships before graph operations
+        this._validateNoCircularExplicitParents()
         this._organization = this._calculateImplicitParents()
     }
 
@@ -643,6 +645,69 @@ export class SchemaOrganization {
         }
 
         return organization
+    }
+
+    private _validateNoCircularExplicitParents(): void {
+        // Find parent key for a given component key using keyLookup instead of sparse array
+        const findParent = (childKey: StandardKey): StandardKey | undefined => {
+            const lookupResult = this.keyLookup.lookup(childKey)
+            const component = lookupResult?.component
+            if (!component || !component.explicitParent) {
+                return undefined
+            }
+            const explicitParentKey = component.explicitParent.standardKey
+            if (!explicitParentKey || explicitParentKey === 'ASSET') {
+                return undefined
+            }
+            return explicitParentKey
+        }
+
+        // Build chain string representation for error message
+        const keyToIdentifier = (key: StandardKey): string => {
+            const component = this.keyLookup.lookup(key)?.component
+            return component?.key || component?.universalKey || (key.key || key.universalKey || 'unknown')
+        }
+
+        // Check for cycles starting from each component with an explicit parent
+        this.components.reduce((_, component) => {
+            if (!component.explicitParent) {
+                // No explicit parent - cannot be part of explicit parent cycle
+                return _
+            }
+            const componentKey = component.standardKey?.plain
+            if (!componentKey) {
+                return _
+            }
+            const explicitParentKey = component.explicitParent.standardKey
+            if (!explicitParentKey || explicitParentKey === 'ASSET') {
+                // Remove state or asset-level - cannot create cycles
+                return _
+            }
+
+            // Build parent chain and detect cycles recursively
+            const buildChain = (startKey: StandardKey, visited: StandardKey[]): StandardKey[] => {
+                // Check if we've already visited this key (cycle detected)
+                const cycleStart = visited.find(v => v.equals(startKey))
+                if (cycleStart) {
+                    const chain = [...visited, startKey]
+                    const componentIdentifier = keyToIdentifier(componentKey)
+                    const chainString = chain.map(keyToIdentifier).join(' → ')
+                    throw new Error(`Circular parent relationship detected starting from component ${componentIdentifier} (${component.tag || 'unknown'}): ${chainString}`)
+                }
+
+                const parent = findParent(startKey)
+                if (parent === undefined) {
+                    // Reached end of chain (asset-level or no explicit parent)
+                    return visited
+                }
+
+                // Continue traversing up the chain
+                return buildChain(parent, [...visited, startKey])
+            }
+
+            buildChain(explicitParentKey, [componentKey])
+            return _
+        }, null)
     }
 
     private _calculateExplicitParents(): Array<{ key: StandardKey; parent: StandardKey | undefined }> {
