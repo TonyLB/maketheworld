@@ -463,8 +463,19 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (this.key && incoming.key && this.key !== incoming.key) {
                 throw new Error(`Mismatched keys in StandardComponent diff (${this.key} vs ${incoming.key})`)
             }
-            // Check _key differences separately
-            const keyDiff = this._key?.diff((incoming as any)._key)
+            // Check _key differences separately - handle undefined cases properly
+            // If this._key is undefined and incoming._key is defined, StandardExplicitKey.diff returns incoming
+            // But we can't call diff on undefined, so handle this case explicitly
+            let keyDiff: StandardExplicitKey | undefined
+            if (this._key) {
+                keyDiff = this._key.diff((incoming as any)._key)
+            } else if ((incoming as any)._key) {
+                // this._key is undefined, incoming._key is defined - return incoming as the diff
+                keyDiff = (incoming as any)._key
+            } else {
+                // Both are undefined
+                keyDiff = undefined
+            }
             const hasKeyDiff = keyDiff !== undefined
             // Check explicitParent differences separately
             const explicitParentDiff = this.explicitParent?.diff((incoming as any).explicitParent)
@@ -479,13 +490,20 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (otherDiff && !hasKeyDiff && !hasExplicitParentDiff) {
                 return undefined
             }
-            // Otherwise create a diff using edit algebra: diff(a, b) = b.merge(a.invert())
+            // Otherwise create a diff using edit algebra: diff(a, b) = a.invert().merge(b)
+            // Note: merge is non-commutative, so the order matters. We merge the inverted base into the incoming.
             // Create a new plain component with diffed payload
             const base = this.clone() as GeneratedComponentClass
             // Use merge/invert approach if invert() is available, otherwise fall back to incoming component
-            if (this.invert && incoming.merge) {
+            if (typeof (this as any).invert === 'function') {
                 const inverted = this.invert()
-                const merged = incoming.merge(inverted)
+                // Clear keys before merge to avoid double-processing (we handle keys separately via _applyKeyDiffToComponent)
+                // Create temporary components without keys for the merge operation
+                const invertedWithoutKey = inverted.clone() as GeneratedComponentClass
+                invertedWithoutKey._key = undefined
+                const incomingWithoutKey = incoming.clone() as GeneratedComponentClass
+                incomingWithoutKey._key = undefined
+                const merged = invertedWithoutKey.merge(incomingWithoutKey)
                 if (merged) {
                     base._payload = (merged as any)._payload
                 } else {

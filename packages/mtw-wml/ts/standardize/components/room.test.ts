@@ -795,6 +795,346 @@ describe('StandardRoom class', () => {
         })
     })
 
+    describe('explicitKey', () => {
+        it('should construct StandardRoom from WML with Key tag (simple)', () => {
+            const testSource = deIndentWML(`
+                <Room uuid=(123) key=(testRoom)>
+                    <Key>testRoom</Key>
+                    <ShortName>Test Room</ShortName>
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource)
+            expect(testRoom.key).toEqual('testRoom')
+            expect(testRoom.universalKey).toEqual('ROOM#123')
+            // Simple key should render as key=(value) attribute only, no Key tag in children
+            expect(schemaToWML([testRoom.schema])).toEqual(deIndentWML(`
+                <Room uuid=(123) key=(testRoom)><ShortName>Test Room</ShortName></Room>
+            `))
+        })
+
+        it('should construct StandardRoom from WML with Remove Key tag', () => {
+            const testSource = deIndentWML(`
+                <Room uuid=(123) key=(testRoom)>
+                    <Remove><Key>testRoom</Key></Remove>
+                    <ShortName>Test Room</ShortName>
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource)
+            expect(testRoom.key).toEqual('testRoom') // key getter returns match key
+            expect(testRoom.universalKey).toEqual('ROOM#123')
+            // Remove key should render as key=(matchValue) attribute AND Key tag in Remove wrapper
+            expect(schemaToWML([testRoom.schema])).toEqual(deIndentWML(`
+                <Room uuid=(123) key=(testRoom)>
+                    <Remove><Key>testRoom</Key></Remove>
+                    <ShortName>Test Room</ShortName>
+                </Room>
+            `))
+        })
+
+        it('should construct StandardRoom from WML with Replace Key tag', () => {
+            const testSource = deIndentWML(`
+                <Room uuid=(123) key=(oldRoom)>
+                    <Replace><Key>oldRoom</Key></Replace>
+                    <With><Key>newRoom</Key></With>
+                    <ShortName>Test Room</ShortName>
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource)
+            expect(testRoom.key).toEqual('oldRoom') // key getter returns match key
+            expect(testRoom.universalKey).toEqual('ROOM#123')
+            // Replace key should render as key=(matchValue) attribute AND Key tags in Replace wrapper
+            expect(schemaToWML([testRoom.schema])).toEqual(deIndentWML(`
+                <Room uuid=(123) key=(oldRoom)>
+                    <Replace><Key>oldRoom</Key></Replace><With><Key>newRoom</Key></With>
+                    <ShortName>Test Room</ShortName>
+                </Room>
+            `))
+        })
+
+        it('should construct StandardRoom from JSON with simple key (string)', () => {
+            const roomData: StandardRoomData = {
+                tag: 'Room',
+                key: 'testRoom',
+                shortName: 'Test Room'
+            }
+            const testRoom = new StandardRoom(roomData)
+            expect(testRoom.key).toEqual('testRoom')
+            expect(testRoom.toJSON().key).toBe('testRoom')
+        })
+
+        it('should construct StandardRoom from JSON with Remove key edit', () => {
+            const roomData: StandardRoomData = {
+                tag: 'Room',
+                key: { tag: 'Remove', match: 'testRoom' },
+                shortName: 'Test Room'
+            }
+            const testRoom = new StandardRoom(roomData)
+            expect(testRoom.key).toEqual('testRoom')
+            const keyJSON = testRoom.toJSON().key
+            expect(keyJSON).toEqual({ tag: 'Remove', match: 'testRoom' })
+        })
+
+        it('should construct StandardRoom from JSON with Replace key edit', () => {
+            const roomData: StandardRoomData = {
+                tag: 'Room',
+                key: { tag: 'Replace', match: 'oldRoom', payload: 'newRoom' },
+                shortName: 'Test Room'
+            }
+            const testRoom = new StandardRoom(roomData)
+            expect(testRoom.key).toEqual('oldRoom')
+            const keyJSON = testRoom.toJSON().key
+            expect(keyJSON).toEqual({ tag: 'Replace', match: 'oldRoom', payload: 'newRoom' })
+        })
+
+        it('should prefer Key tag over key attribute when both are present in WML', () => {
+            const testSource = deIndentWML(`
+                <Room uuid=(123) key=(attributeKey)>
+                    <Key>tagKey</Key>
+                </Room>
+            `)
+            const testRoom = new StandardRoom(testSource)
+            // Key tag should take precedence
+            expect(testRoom.key).toEqual('tagKey')
+            expect(schemaToWML([testRoom.schema])).toEqual(deIndentWML(`
+                <Room uuid=(123) key=(tagKey) />
+            `))
+        })
+
+        it('should merge components with identical simple keys', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <ShortName>Room One</ShortName>
+                </Room>
+            `))
+            const room2 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <ShortName>Room Two</ShortName>
+                </Room>
+            `))
+            const merged = room1.merge(room2) as StandardRoom
+            expect(merged.key).toEqual('testRoom')
+            // Keys should be preserved (idempotent)
+            expect(merged.toJSON().key).toBe('testRoom')
+        })
+
+        it('should throw error when merging components with different simple keys', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room key=(room1) />
+            `))
+            const room2 = new StandardRoom(deIndentWML(`
+                <Room key=(room2) />
+            `))
+            expect(() => room1.merge(room2)).toThrow('Merge of two unequal keys')
+        })
+
+        it('should merge component with simple key and component with Remove key (same value)', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room uuid=(123) key=(testRoom) />
+            `))
+            const room2Data: StandardRoomData = {
+                tag: 'Room',
+                universalKey: 'ROOM#123',
+                key: { tag: 'Remove', match: 'testRoom' }
+            }
+            const room2 = new StandardRoom(room2Data)
+            // Merging Simple with Remove (same value) should cancel out - key is removed
+            const merged = room1.merge(room2) as StandardRoom
+            expect(merged.key).toBeUndefined()
+            // The merge result should have no key (canceled out)
+            const keyJSON = merged.toJSON().key
+            expect(keyJSON).toBeUndefined()
+        })
+
+        it('should merge component without key and component with Remove key', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room uuid=(123) />
+            `))
+            const room2Data: StandardRoomData = {
+                tag: 'Room',
+                universalKey: 'ROOM#123',
+                key: { tag: 'Remove', match: 'testRoom' }
+            }
+            const room2 = new StandardRoom(room2Data)
+            // Merging component without key with Remove key should preserve the Remove operation
+            const merged = room1.merge(room2) as StandardRoom
+            // The key getter should return the match value from Remove operation
+            expect(merged.key).toEqual('testRoom')
+            // The merge result should preserve the Remove operation
+            const keyJSON = merged.toJSON().key
+            expect(keyJSON).toEqual({ tag: 'Remove', match: 'testRoom' })
+        })
+
+        it('should diff component with key and component without key', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room uuid=(123) key=(testRoom) />
+            `))
+            const room2 = new StandardRoom({
+                tag: 'Room',
+                universalKey: 'ROOM#123'
+            })
+            const diff = room1.diff(room2) as StandardRoom
+            expect(diff).toBeDefined()
+            // Diff should include Remove operation for the key
+            const keyJSON = diff!.toJSON().key
+            expect(keyJSON).toEqual({ tag: 'Remove', match: 'testRoom' })
+        })
+
+        it('should diff component without key and component with key', () => {
+            const room1 = new StandardRoom({
+                tag: 'Room',
+                universalKey: 'ROOM#123'
+            })
+            const room2 = new StandardRoom(deIndentWML(`
+                <Room uuid=(123) key=(testRoom) />
+            `))
+            const diff = room1.diff(room2) as StandardRoom
+            expect(diff).toBeDefined()
+            // Diff should include the new key
+            expect(diff!.key).toEqual('testRoom')
+            expect(diff!.toJSON().key).toBe('testRoom')
+        })
+
+        it('should preserve key in diff when both components have identical simple keys', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <ShortName>Room One</ShortName>
+                </Room>
+            `))
+            const room2 = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <ShortName>Room Two</ShortName>
+                </Room>
+            `))
+            const diff = room1.diff(room2) as StandardRoom
+            expect(diff).toBeDefined()
+            // Key should be preserved (idempotent behavior)
+            expect(diff!.key).toEqual('testRoom')
+            expect(diff!.toJSON().key).toBe('testRoom')
+        })
+
+        it('should diff component with simple key and component with Remove key (same value)', () => {
+            const room1 = new StandardRoom(deIndentWML(`
+                <Room uuid=(123) key=(testRoom) />
+            `))
+            const room2Data: StandardRoomData = {
+                tag: 'Room',
+                universalKey: 'ROOM#123',
+                key: { tag: 'Remove', match: 'testRoom' }
+            }
+            const room2 = new StandardRoom(room2Data)
+            const diff = room1.diff(room2) as StandardRoom
+            expect(diff).toBeDefined()
+            // Diff should show the change from Simple to Remove
+            const keyJSON = diff!.toJSON().key
+            expect(keyJSON).toEqual({ tag: 'Remove', match: 'testRoom' })
+        })
+
+        it('should clone explicit key edits correctly', () => {
+            const roomData: StandardRoomData = {
+                tag: 'Room',
+                key: { tag: 'Replace', match: 'oldRoom', payload: 'newRoom' }
+            }
+            const testRoom = new StandardRoom(roomData)
+            const cloned = testRoom.clone() as StandardRoom
+            expect(cloned.key).toEqual('oldRoom')
+            expect(cloned.toJSON().key).toEqual({ tag: 'Replace', match: 'oldRoom', payload: 'newRoom' })
+            // Should be a new instance, not the same reference
+            expect(cloned).not.toBe(testRoom)
+        })
+
+        it('should not invert simple keys (idempotent behavior)', () => {
+            const room = new StandardRoom(deIndentWML(`
+                <Room key=(testRoom)>
+                    <ShortName>Test</ShortName>
+                </Room>
+            `))
+            const inverted = room.invert() as StandardRoom
+            // Simple key should be preserved, not inverted to Remove
+            expect(inverted.key).toEqual('testRoom')
+            expect(inverted.toJSON().key).toBe('testRoom')
+        })
+
+        it('should invert Remove key to Simple key', () => {
+            const roomData: StandardRoomData = {
+                tag: 'Room',
+                key: { tag: 'Remove', match: 'testRoom' }
+            }
+            const room = new StandardRoom(roomData)
+            const inverted = room.invert() as StandardRoom
+            // Remove should invert to Simple
+            expect(inverted.key).toEqual('testRoom')
+            expect(inverted.toJSON().key).toBe('testRoom')
+        })
+
+        it('should invert Replace key (swap match and payload)', () => {
+            const roomData: StandardRoomData = {
+                tag: 'Room',
+                key: { tag: 'Replace', match: 'oldRoom', payload: 'newRoom' }
+            }
+            const room = new StandardRoom(roomData)
+            const inverted = room.invert() as StandardRoom
+            // Replace should invert by swapping match and payload
+            expect(inverted.key).toEqual('newRoom') // After invert, match is now 'newRoom'
+            const keyJSON = inverted.toJSON().key
+            expect(keyJSON).toEqual({ tag: 'Replace', match: 'newRoom', payload: 'oldRoom' })
+        })
+
+        it('should round-trip through WML for Remove key edit', () => {
+            const originalWML = deIndentWML(`
+                <Room uuid=(123) key=(testRoom)><Remove><Key>testRoom</Key></Remove></Room>
+            `)
+            const room = new StandardRoom(originalWML)
+            const roundTrip = schemaToWML([room.schema])
+            expect(roundTrip).toEqual(originalWML)
+        })
+
+        it('should round-trip through WML for Replace key edit', () => {
+            const originalWML = deIndentWML(`
+                <Room uuid=(123) key=(oldRoom)>
+                    <Replace><Key>oldRoom</Key></Replace><With><Key>newRoom</Key></With>
+                </Room>
+            `)
+            const room = new StandardRoom(originalWML)
+            const roundTrip = schemaToWML([room.schema])
+            expect(roundTrip).toEqual(originalWML)
+        })
+
+        it('should round-trip through JSON for Remove key edit', () => {
+            const roomData: StandardRoomData = {
+                tag: 'Room',
+                key: { tag: 'Remove', match: 'testRoom' }
+            }
+            const room = new StandardRoom(roomData)
+            const json = room.toJSON() as StandardRoomData
+            expect(json.key).toEqual({ tag: 'Remove', match: 'testRoom' })
+            // Round-trip: create new room from JSON
+            const roundTrip = new StandardRoom(json)
+            expect(roundTrip.toJSON().key).toEqual({ tag: 'Remove', match: 'testRoom' })
+        })
+
+        it('should round-trip through JSON for Replace key edit', () => {
+            const roomData: StandardRoomData = {
+                tag: 'Room',
+                key: { tag: 'Replace', match: 'oldRoom', payload: 'newRoom' }
+            }
+            const room = new StandardRoom(roomData)
+            const json = room.toJSON() as StandardRoomData
+            expect(json.key).toEqual({ tag: 'Replace', match: 'oldRoom', payload: 'newRoom' })
+            // Round-trip: create new room from JSON
+            const roundTrip = new StandardRoom(json)
+            expect(roundTrip.toJSON().key).toEqual({ tag: 'Replace', match: 'oldRoom', payload: 'newRoom' })
+        })
+
+        it('should use withKey to set a new simple key', () => {
+            const room = new StandardRoom(deIndentWML(`
+                <Room key=(oldKey) />
+            `))
+            const withNewKey = room.withKey('newKey') as StandardRoom
+            expect(withNewKey.key).toEqual('newKey')
+            expect(withNewKey.toJSON().key).toBe('newKey')
+        })
+    })
+
     describe('assureReferences method', () => {
         it('should return unchanged room when children array is empty', () => {
             const room = new StandardRoom({ tag: 'Room', key: 'test' })
