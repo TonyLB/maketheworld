@@ -55,23 +55,23 @@ describe('SchemaOrganization', () => {
             expect(room).toBeDefined()
 
             // Example should have Feature as implicitParent
-            const exampleKey = example!._key.plain
+            const exampleKey = example!.standardKey
             const exampleImplicitParent = organization.getImplicitParent(exampleKey)
             expect(exampleImplicitParent).toBeDefined()
-            if (exampleImplicitParent && feature?._key.plain) {
-                expect(exampleImplicitParent.equals(feature._key.plain)).toBe(true)
+            if (exampleImplicitParent && feature?.standardKey) {
+                expect(exampleImplicitParent.equals(feature.standardKey)).toBe(true)
             }
 
             // Feature should have Room as implicitParent
-            const featureKey = feature!._key.plain
+            const featureKey = feature!.standardKey
             const featureImplicitParent = organization.getImplicitParent(featureKey)
             expect(featureImplicitParent).toBeDefined()
-            if (featureImplicitParent && room?._key.plain) {
-                expect(featureImplicitParent.equals(room._key.plain)).toBe(true)
+            if (featureImplicitParent && room?.standardKey) {
+                expect(featureImplicitParent.equals(room.standardKey)).toBe(true)
             }
 
             // Room should be at Asset level (undefined implicitParent)
-            const roomKey = room!._key.plain
+            const roomKey = room!.standardKey
             const roomImplicitParent = organization.getImplicitParent(roomKey)
             expect(roomImplicitParent).toBeUndefined()
         })
@@ -135,9 +135,9 @@ describe('SchemaOrganization', () => {
             })
 
             // Verify implicit parent calculations
-            const exampleKey = form._lookup('EXAMPLE#testExample')!._key.plain
-            const featureKey = form._lookup('FEATURE#testFeature')!._key.plain
-            const roomKey = form._lookup('ROOM#testRoom')!._key.plain
+            const exampleKey = form._lookup('EXAMPLE#testExample')!.standardKey
+            const featureKey = form._lookup('FEATURE#testFeature')!.standardKey
+            const roomKey = form._lookup('ROOM#testRoom')!.standardKey
 
             // Example should have Feature as implicitParent
             const exampleImplicitParent = organization.getImplicitParent(exampleKey)
@@ -180,11 +180,11 @@ describe('SchemaOrganization', () => {
             expect(feature).toBeDefined()
 
             // Room should be at Asset level
-            const roomKey = room!._key.plain
+            const roomKey = room!.standardKey
             expect(organization.getImplicitParent(roomKey)).toBeUndefined()
 
             // Feature should have Room as implicitParent (even though it has explicit parent)
-            const featureKey = feature!._key.plain
+            const featureKey = feature!.standardKey
             const featureImplicitParent = organization.getImplicitParent(featureKey)
             // The implicit parent calculation should still work correctly
             expect(featureImplicitParent).toBeUndefined()
@@ -218,23 +218,23 @@ describe('SchemaOrganization', () => {
             expect(character).toBeDefined()
 
             // Room should be at Asset level
-            const roomKey = room!._key.plain
+            const roomKey = room!.standardKey
             expect(organization.getImplicitParent(roomKey)).toBeUndefined()
 
             // Feature and Character should both have Room as implicitParent
-            const featureKey = feature!._key.plain
-            const characterKey = character!._key.plain
+            const featureKey = feature!.standardKey
+            const characterKey = character!.standardKey
 
             const featureImplicitParent = organization.getImplicitParent(featureKey)
             const characterImplicitParent = organization.getImplicitParent(characterKey)
 
             expect(featureImplicitParent).toBeDefined()
             expect(characterImplicitParent).toBeDefined()
-            if (featureImplicitParent && room?._key.plain) {
-                expect(featureImplicitParent.equals(room._key.plain)).toBe(true)
+            if (featureImplicitParent && room?.standardKey) {
+                expect(featureImplicitParent.equals(room.standardKey)).toBe(true)
             }
-            if (characterImplicitParent && room?._key.plain) {
-                expect(characterImplicitParent.equals(room._key.plain)).toBe(true)
+            if (characterImplicitParent && room?.standardKey) {
+                expect(characterImplicitParent.equals(room.standardKey)).toBe(true)
             }
         })
 
@@ -273,26 +273,26 @@ describe('SchemaOrganization', () => {
             expect(example1).toBeDefined()
 
             // Both rooms should be at Asset level
-            expect(organization.getImplicitParent(room1!._key.plain)).toBeUndefined()
-            expect(organization.getImplicitParent(room2!._key.plain)).toBeUndefined()
+            expect(organization.getImplicitParent(room1!.standardKey)).toBeUndefined()
+            expect(organization.getImplicitParent(room2!.standardKey)).toBeUndefined()
 
             // Both features should have room1 as implicitParent
-            const feature1ImplicitParent = organization.getImplicitParent(feature1!._key.plain)
-            const feature2ImplicitParent = organization.getImplicitParent(feature2!._key.plain)
+            const feature1ImplicitParent = organization.getImplicitParent(feature1!.standardKey)
+            const feature2ImplicitParent = organization.getImplicitParent(feature2!.standardKey)
             expect(feature1ImplicitParent).toBeDefined()
             expect(feature2ImplicitParent).toBeDefined()
-            if (feature1ImplicitParent && room1?._key.plain) {
-                expect(feature1ImplicitParent.equals(room1._key.plain)).toBe(true)
+            if (feature1ImplicitParent && room1?.standardKey) {
+                expect(feature1ImplicitParent.equals(room1.standardKey)).toBe(true)
             }
-            if (feature2ImplicitParent && room1?._key.plain) {
-                expect(feature2ImplicitParent.equals(room1._key.plain)).toBe(true)
+            if (feature2ImplicitParent && room1?.standardKey) {
+                expect(feature2ImplicitParent.equals(room1.standardKey)).toBe(true)
             }
 
             // Example should have feature1 as implicitParent
-            const example1ImplicitParent = organization.getImplicitParent(example1!._key.plain)
+            const example1ImplicitParent = organization.getImplicitParent(example1!.standardKey)
             expect(example1ImplicitParent).toBeDefined()
-            if (example1ImplicitParent && feature1?._key.plain) {
-                expect(example1ImplicitParent.equals(feature1._key.plain)).toBe(true)
+            if (example1ImplicitParent && feature1?.standardKey) {
+                expect(example1ImplicitParent.equals(feature1.standardKey)).toBe(true)
             }
         })
 
@@ -355,13 +355,13 @@ describe('SchemaOrganization', () => {
             expect(room).toBeDefined()
             expect(feature).toBeDefined()
 
-            const featureKey = feature!._key.plain
+            const featureKey = feature!.standardKey
             const explicitParent = organization.getExplicitParent(featureKey)
 
             expect(explicitParent).toBeDefined()
             expect(explicitParent?.explicitParent).toBeDefined()
-            if (explicitParent?.explicitParent && room?._key.plain) {
-                expect(explicitParent.explicitParent.equals(room._key.plain)).toBe(true)
+            if (explicitParent?.explicitParent && room?.standardKey) {
+                expect(explicitParent.explicitParent.equals(room.standardKey)).toBe(true)
             }
         })
 
@@ -388,7 +388,7 @@ describe('SchemaOrganization', () => {
             const feature = form._lookup('FEATURE#feature1')
             expect(feature).toBeDefined()
 
-            const featureKey = feature!._key.plain
+            const featureKey = feature!.standardKey
             const explicitParent = organization.getExplicitParent(featureKey)
 
             // ASSET-level parentage should return { explicitParent: undefined }
@@ -420,7 +420,7 @@ describe('SchemaOrganization', () => {
             const feature = form._lookup('FEATURE#feature1')
             expect(feature).toBeDefined()
 
-            const featureKey = feature!._key.plain
+            const featureKey = feature!.standardKey
             const explicitParent = organization.getExplicitParent(featureKey)
 
             // Remove should result in undefined (no explicit parent)
@@ -453,14 +453,14 @@ describe('SchemaOrganization', () => {
             expect(room2).toBeDefined()
             expect(feature).toBeDefined()
 
-            const featureKey = feature!._key.plain
+            const featureKey = feature!.standardKey
             const explicitParent = organization.getExplicitParent(featureKey)
 
             // Should use replacement value (room2)
             expect(explicitParent).toBeDefined()
             expect(explicitParent?.explicitParent).toBeDefined()
-            if (explicitParent?.explicitParent && room2?._key.plain) {
-                expect(explicitParent.explicitParent.equals(room2._key.plain)).toBe(true)
+            if (explicitParent?.explicitParent && room2?.standardKey) {
+                expect(explicitParent.explicitParent.equals(room2.standardKey)).toBe(true)
             }
         })
 
@@ -503,23 +503,23 @@ describe('SchemaOrganization', () => {
             expect(feature3).toBeDefined()
 
             // Feature1 should have room1 as explicit parent
-            const feature1ExplicitParent = organization.getExplicitParent(feature1!._key.plain)
+            const feature1ExplicitParent = organization.getExplicitParent(feature1!.standardKey)
             expect(feature1ExplicitParent).toBeDefined()
             expect(feature1ExplicitParent?.explicitParent).toBeDefined()
-            if (feature1ExplicitParent?.explicitParent && room1?._key.plain) {
-                expect(feature1ExplicitParent.explicitParent.equals(room1._key.plain)).toBe(true)
+            if (feature1ExplicitParent?.explicitParent && room1?.standardKey) {
+                expect(feature1ExplicitParent.explicitParent.equals(room1.standardKey)).toBe(true)
             }
 
             // Feature2 should have room2 as explicit parent
-            const feature2ExplicitParent = organization.getExplicitParent(feature2!._key.plain)
+            const feature2ExplicitParent = organization.getExplicitParent(feature2!.standardKey)
             expect(feature2ExplicitParent).toBeDefined()
             expect(feature2ExplicitParent?.explicitParent).toBeDefined()
-            if (feature2ExplicitParent?.explicitParent && room2?._key.plain) {
-                expect(feature2ExplicitParent.explicitParent.equals(room2._key.plain)).toBe(true)
+            if (feature2ExplicitParent?.explicitParent && room2?.standardKey) {
+                expect(feature2ExplicitParent.explicitParent.equals(room2.standardKey)).toBe(true)
             }
 
             // Feature3 should have { explicitParent: undefined } (ASSET-level)
-            const feature3ExplicitParent = organization.getExplicitParent(feature3!._key.plain)
+            const feature3ExplicitParent = organization.getExplicitParent(feature3!.standardKey)
             expect(feature3ExplicitParent).toBeDefined()
             expect(feature3ExplicitParent?.explicitParent).toBeUndefined()
         })
@@ -573,23 +573,23 @@ describe('SchemaOrganization', () => {
             expect(feature2).toBeDefined()
 
             // Feature1 has implicit parent room1 (nested), no explicit parent
-            const feature1ImplicitParent = organization.getImplicitParent(feature1!._key.plain)
-            const feature1ExplicitParent = organization.getExplicitParent(feature1!._key.plain)
+            const feature1ImplicitParent = organization.getImplicitParent(feature1!.standardKey)
+            const feature1ExplicitParent = organization.getExplicitParent(feature1!.standardKey)
             expect(feature1ImplicitParent).toBeDefined()
             expect(feature1ExplicitParent).toBeUndefined()
-            if (feature1ImplicitParent && room1?._key.plain) {
-                expect(feature1ImplicitParent.equals(room1._key.plain)).toBe(true)
+            if (feature1ImplicitParent && room1?.standardKey) {
+                expect(feature1ImplicitParent.equals(room1.standardKey)).toBe(true)
             }
 
             // Feature2 has explicit parent room2 (overrides implicit parent)
-            const feature2ImplicitParent = organization.getImplicitParent(feature2!._key.plain)
-            const feature2ExplicitParent = organization.getExplicitParent(feature2!._key.plain)
+            const feature2ImplicitParent = organization.getImplicitParent(feature2!.standardKey)
+            const feature2ExplicitParent = organization.getExplicitParent(feature2!.standardKey)
             // Implicit parent might be room1 or undefined depending on nesting
             // But explicit parent should be room2
             expect(feature2ExplicitParent).toBeDefined()
             expect(feature2ExplicitParent?.explicitParent).toBeDefined()
-            if (feature2ExplicitParent?.explicitParent && room2?._key.plain) {
-                expect(feature2ExplicitParent.explicitParent.equals(room2._key.plain)).toBe(true)
+            if (feature2ExplicitParent?.explicitParent && room2?.standardKey) {
+                expect(feature2ExplicitParent.explicitParent.equals(room2.standardKey)).toBe(true)
             }
         })
     })
@@ -621,8 +621,8 @@ describe('SchemaOrganization', () => {
             expect(feature1).toBeDefined()
 
             const childKeys = children.map(child => child.standardKey.toJSON())
-            expect(childKeys).toContainEqual(room1!._key.plain.toJSON())
-            expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
+            expect(childKeys).toContainEqual(room1!.standardKey.toJSON())
+            expect(childKeys).toContainEqual(feature1!.standardKey.toJSON())
         })
 
         it('should return children with explicit asset-level parent', () => {
@@ -650,7 +650,7 @@ describe('SchemaOrganization', () => {
 
             const children = organization.getChildrenOfParent(undefined)
             const childKeys = children.map(child => child.standardKey.toJSON())
-            expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
+            expect(childKeys).toContainEqual(feature1!.standardKey.toJSON())
         })
 
         it('should return children with explicit parent matching StandardKey', () => {
@@ -677,10 +677,10 @@ describe('SchemaOrganization', () => {
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
-            const room1Key = room1!._key.plain
+            const room1Key = room1!.standardKey
             const children = organization.getChildrenOfParent(room1Key)
             expect(children.length).toBe(1)
-            expect(children[0].standardKey.toJSON()).toEqual(feature1!._key.plain.toJSON())
+            expect(children[0].standardKey.toJSON()).toEqual(feature1!.standardKey.toJSON())
         })
 
         it('should return children with implicit parent when no explicit parent', () => {
@@ -706,10 +706,10 @@ describe('SchemaOrganization', () => {
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
-            const room1Key = room1!._key.plain
+            const room1Key = room1!.standardKey
             const children = organization.getChildrenOfParent(room1Key)
             const childKeys = children.map(child => child.standardKey.toJSON())
-            expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
+            expect(childKeys).toContainEqual(feature1!.standardKey.toJSON())
         })
 
         it('should prioritize explicit parent over implicit parent', () => {
@@ -741,16 +741,16 @@ describe('SchemaOrganization', () => {
             expect(room2).toBeDefined()
             expect(feature2).toBeDefined()
 
-            const room1Key = room1!._key.plain
-            const room2Key = room2!._key.plain
+            const room1Key = room1!.standardKey
+            const room2Key = room2!.standardKey
 
             const room1Children = organization.getChildrenOfParent(room1Key)
             const room1ChildKeys = room1Children.map(child => child.standardKey.toJSON())
-            expect(room1ChildKeys).not.toContainEqual(feature2!._key.plain.toJSON())
+            expect(room1ChildKeys).not.toContainEqual(feature2!.standardKey.toJSON())
 
             const room2Children = organization.getChildrenOfParent(room2Key)
             const room2ChildKeys = room2Children.map(child => child.standardKey.toJSON())
-            expect(room2ChildKeys).toContainEqual(feature2!._key.plain.toJSON())
+            expect(room2ChildKeys).toContainEqual(feature2!.standardKey.toJSON())
         })
 
         it('should return empty array for parent with no children', () => {
@@ -772,7 +772,7 @@ describe('SchemaOrganization', () => {
             const room1 = form._lookup('ROOM#room1')
             expect(room1).toBeDefined()
 
-            const room1Key = room1!._key.plain
+            const room1Key = room1!.standardKey
             const children = organization.getChildrenOfParent(room1Key)
             expect(children).toEqual([])
         })
@@ -832,14 +832,14 @@ describe('SchemaOrganization', () => {
             expect(feature2).toBeDefined()
             expect(knowledge1).toBeDefined()
 
-            const room1Key = room1!._key.plain
+            const room1Key = room1!.standardKey
             const children = organization.getChildrenOfParent(room1Key)
             expect(children.length).toBe(3)
 
             const childKeys = children.map(child => child.standardKey.toJSON())
-            expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
-            expect(childKeys).toContainEqual(feature2!._key.plain.toJSON())
-            expect(childKeys).toContainEqual(knowledge1!._key.plain.toJSON())
+            expect(childKeys).toContainEqual(feature1!.standardKey.toJSON())
+            expect(childKeys).toContainEqual(feature2!.standardKey.toJSON())
+            expect(childKeys).toContainEqual(knowledge1!.standardKey.toJSON())
 
             // Verify references have correct properties
             children.forEach(child => {
@@ -876,8 +876,8 @@ describe('SchemaOrganization', () => {
 
             const children = organization.getChildrenOfParent(undefined)
             const childKeys = children.map(child => child.standardKey.toJSON())
-            expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
-            expect(childKeys).toContainEqual(feature2!._key.plain.toJSON())
+            expect(childKeys).toContainEqual(feature1!.standardKey.toJSON())
+            expect(childKeys).toContainEqual(feature2!.standardKey.toJSON())
         })
     })
 
@@ -928,8 +928,8 @@ describe('SchemaOrganization', () => {
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
-            const room1Key = room1!._key.plain
-            const feature1Key = feature1!._key.plain
+            const room1Key = room1!.standardKey
+            const feature1Key = feature1!.standardKey
 
             // Room should have undefined implicit parent (asset-level)
             expect(context.getImplicitParent(room1Key)).toBeUndefined()
@@ -965,13 +965,13 @@ describe('SchemaOrganization', () => {
             expect(feature1).toBeDefined()
             expect(feature2).toBeDefined()
 
-            const room1Key = room1!._key.plain
+            const room1Key = room1!.standardKey
             const children = context.getChildrenOfParent(room1Key)
             expect(children.length).toBe(2)
 
             const childKeys = children.map(child => child.standardKey.toJSON())
-            expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
-            expect(childKeys).toContainEqual(feature2!._key.plain.toJSON())
+            expect(childKeys).toContainEqual(feature1!.standardKey.toJSON())
+            expect(childKeys).toContainEqual(feature2!.standardKey.toJSON())
         })
 
         it('should convert AssetUUID to undefined for getChildrenOfParent', () => {
@@ -1003,8 +1003,8 @@ describe('SchemaOrganization', () => {
             expect(children.length).toBeGreaterThan(0)
 
             const childKeys = children.map(child => child.standardKey.toJSON())
-            expect(childKeys).toContainEqual(room1!._key.plain.toJSON())
-            expect(childKeys).toContainEqual(feature1!._key.plain.toJSON())
+            expect(childKeys).toContainEqual(room1!.standardKey.toJSON())
+            expect(childKeys).toContainEqual(feature1!.standardKey.toJSON())
         })
 
         it('should work with existing SchemaOrganization instances', () => {
@@ -1034,7 +1034,7 @@ describe('SchemaOrganization', () => {
             const feature1 = form._lookup('FEATURE#feature1')
             expect(feature1).toBeDefined()
 
-            const feature1Key = feature1!._key.plain
+            const feature1Key = feature1!.standardKey
             const implicitParent = context.getImplicitParent(feature1Key)
             
             // Feature has explicit parent of ASSET, so implicit parent should be undefined
@@ -1043,7 +1043,7 @@ describe('SchemaOrganization', () => {
             // But it should appear in asset-level children
             const assetChildren = context.getChildrenOfParent(form._universalKey)
             const assetChildKeys = assetChildren.map(child => child.standardKey.toJSON())
-            expect(assetChildKeys).toContainEqual(feature1!._key.plain.toJSON())
+            expect(assetChildKeys).toContainEqual(feature1!.standardKey.toJSON())
         })
     })
 
@@ -1072,8 +1072,8 @@ describe('SchemaOrganization', () => {
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
-            const room1Key = room1!._key.plain
-            const feature1Key = feature1!._key.plain
+            const room1Key = room1!.standardKey
+            const feature1Key = feature1!.standardKey
 
             expect(organization.isParentContext(feature1Key, room1Key)).toBe(true)
         })
@@ -1103,8 +1103,8 @@ describe('SchemaOrganization', () => {
             expect(room2).toBeDefined()
             expect(feature1).toBeDefined()
 
-            const room2Key = room2!._key.plain
-            const feature1Key = feature1!._key.plain
+            const room2Key = room2!.standardKey
+            const feature1Key = feature1!.standardKey
 
             expect(organization.isParentContext(feature1Key, room2Key)).toBe(false)
         })
@@ -1132,8 +1132,8 @@ describe('SchemaOrganization', () => {
             expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
-            const room1Key = room1!._key.plain
-            const feature1Key = feature1!._key.plain
+            const room1Key = room1!.standardKey
+            const feature1Key = feature1!.standardKey
 
             expect(organization.isParentContext(feature1Key, room1Key)).toBe(true)
         })
@@ -1162,8 +1162,8 @@ describe('SchemaOrganization', () => {
             expect(room2).toBeDefined()
             expect(feature1).toBeDefined()
 
-            const room2Key = room2!._key.plain
-            const feature1Key = feature1!._key.plain
+            const room2Key = room2!.standardKey
+            const feature1Key = feature1!.standardKey
 
             expect(organization.isParentContext(feature1Key, room2Key)).toBe(false)
         })
@@ -1187,7 +1187,7 @@ describe('SchemaOrganization', () => {
             const room1 = form._lookup('ROOM#room1')
             expect(room1).toBeDefined()
 
-            const room1Key = room1!._key.plain
+            const room1Key = room1!.standardKey
 
             expect(organization.isParentContext(room1Key, undefined)).toBe(true)
         })
@@ -1213,7 +1213,7 @@ describe('SchemaOrganization', () => {
             const feature1 = form._lookup('FEATURE#feature1')
             expect(feature1).toBeDefined()
 
-            const feature1Key = feature1!._key.plain
+            const feature1Key = feature1!.standardKey
 
             expect(organization.isParentContext(feature1Key, undefined)).toBe(false)
         })
@@ -1247,9 +1247,9 @@ describe('SchemaOrganization', () => {
             expect(room2).toBeDefined()
             expect(feature2).toBeDefined()
 
-            const room1Key = room1!._key.plain
-            const room2Key = room2!._key.plain
-            const feature2Key = feature2!._key.plain
+            const room1Key = room1!.standardKey
+            const room2Key = room2!.standardKey
+            const feature2Key = feature2!.standardKey
 
             // Feature2 has explicit parent room2, so it should match room2, not room1 (even though implicit would be room1)
             expect(organization.isParentContext(feature2Key, room2Key)).toBe(true)
@@ -1297,7 +1297,7 @@ describe('SchemaOrganization', () => {
             })
 
             const example = form._lookup('EXAMPLE#testExample')
-            const exampleKey = example?._key.plain
+            const exampleKey = example?.standardKey
             expect(exampleKey).toBeDefined()
 
             const chain = organization.buildAncestryChain(exampleKey!)
@@ -1334,7 +1334,7 @@ describe('SchemaOrganization', () => {
             })
 
             const feature2 = form._lookup('FEATURE#feature2')
-            const feature2Key = feature2?._key.plain
+            const feature2Key = feature2?.standardKey
             expect(feature2Key).toBeDefined()
 
             const chain = organization.buildAncestryChain(feature2Key!)
@@ -1343,7 +1343,7 @@ describe('SchemaOrganization', () => {
             expect(chain.length).toBe(2)
             expect(chain[0].tag).toBe('Room')
             const room1 = form._lookup('ROOM#room1')
-            expect(chain[0].standardKey.equals(room1!._key.plain)).toBe(true)
+            expect(chain[0].standardKey.equals(room1!.standardKey)).toBe(true)
             expect(chain[1].tag).toBe('Feature')
         })
 
@@ -1368,7 +1368,7 @@ describe('SchemaOrganization', () => {
             })
 
             const example = form._lookup('EXAMPLE#example1')
-            const exampleKey = example?._key.plain
+            const exampleKey = example?.standardKey
             expect(exampleKey).toBeDefined()
 
             const chain = organization.buildAncestryChain(exampleKey!)
@@ -1402,8 +1402,8 @@ describe('SchemaOrganization', () => {
 
             const room = form._lookup('ROOM#room1')
             const feature = form._lookup('FEATURE#feature1')
-            const roomKey = room!._key.plain
-            const featureKey = feature!._key.plain
+            const roomKey = room!.standardKey
+            const featureKey = feature!.standardKey
 
             expect(organization.sortOrder(roomKey, featureKey)).toBeLessThan(0)
             expect(organization.sortOrder(featureKey, roomKey)).toBeGreaterThan(0)
@@ -1428,8 +1428,8 @@ describe('SchemaOrganization', () => {
 
             const room = form._lookup('ROOM#room1')
             const character = form._lookup('CHARACTER#char1')
-            const roomKey = room!._key.plain
-            const characterKey = character!._key.plain
+            const roomKey = room!.standardKey
+            const characterKey = character!.standardKey
 
             // Character comes before Room in tag order
             expect(organization.sortOrder(characterKey, roomKey)).toBeLessThan(0)
@@ -1457,8 +1457,8 @@ describe('SchemaOrganization', () => {
 
             const feature1 = form._lookup('FEATURE#feature1')
             const feature2 = form._lookup('FEATURE#feature2')
-            const feature1Key = feature1!._key.plain
-            const feature2Key = feature2!._key.plain
+            const feature1Key = feature1!.standardKey
+            const feature2Key = feature2!.standardKey
 
             expect(organization.sortOrder(feature1Key, feature2Key)).toBeLessThan(0)
             expect(organization.sortOrder(feature2Key, feature1Key)).toBeGreaterThan(0)
@@ -1487,8 +1487,8 @@ describe('SchemaOrganization', () => {
 
             const feature1 = form._lookup('FEATURE#feature1')
             const feature2 = form._lookup('FEATURE#feature2')
-            const feature1Key = feature1!._key.plain
-            const feature2Key = feature2!._key.plain
+            const feature1Key = feature1!.standardKey
+            const feature2Key = feature2!.standardKey
 
             // Both are Features, but their ancestors are Room1 and Room2
             // Should compare at the Room level (differing ancestor)
@@ -1522,8 +1522,8 @@ describe('SchemaOrganization', () => {
 
             const feature1 = form._lookup('FEATURE#feature1')
             const feature2 = form._lookup('FEATURE#feature2')
-            const feature1Key = feature1!._key.plain
-            const feature2Key = feature2!._key.plain
+            const feature1Key = feature1!.standardKey
+            const feature2Key = feature2!.standardKey
 
             // Both features should be sorted as children of room1 (feature2 has explicit parent room1)
             // So they should be siblings and sorted by key
@@ -1566,7 +1566,7 @@ describe('SchemaOrganization', () => {
             const room1 = form._lookup('ROOM#room1')
             expect(room1).toBeDefined()
 
-            const room1Key = room1!._key.plain
+            const room1Key = room1!.standardKey
             expect(organization.isReferenced(room1Key)).toBe(true)
         })
 
@@ -1591,7 +1591,7 @@ describe('SchemaOrganization', () => {
             const feature1 = form._lookup('FEATURE#feature1')
             expect(feature1).toBeDefined()
 
-            const feature1Key = feature1!._key.plain
+            const feature1Key = feature1!.standardKey
             expect(organization.isReferenced(feature1Key)).toBe(true)
         })
 
@@ -1606,7 +1606,7 @@ describe('SchemaOrganization', () => {
                 keyLookup
             })
 
-            const room2Key = room2._key.plain
+            const room2Key = room2.standardKey
             // room2 is not referenced anywhere (not in topLevel, not as a child)
             expect(organization.isReferenced(room2Key)).toBe(false)
         })
@@ -1630,7 +1630,7 @@ describe('SchemaOrganization', () => {
             const room1 = form._lookup('ROOM#room1')
             expect(room1).toBeDefined()
 
-            const room1Key = room1!._key.plain
+            const room1Key = room1!.standardKey
             // Should return true because it's in topLevel
             expect(organization.isReferenced(room1Key)).toBe(true)
         })
@@ -1654,7 +1654,7 @@ describe('SchemaOrganization', () => {
                 keyLookup
             })
 
-            const orphanKey = orphanRoom._key.plain
+            const orphanKey = orphanRoom.standardKey
             // orphan is not in topLevel and not referenced as a child
             expect(organization.isReferenced(orphanKey)).toBe(false)
         })
@@ -1682,7 +1682,7 @@ describe('SchemaOrganization', () => {
             const example1 = form._lookup('EXAMPLE#example1')
             expect(example1).toBeDefined()
 
-            const example1Key = example1!._key.plain
+            const example1Key = example1!.standardKey
             // Example is referenced as a child of Feature
             expect(organization.isReferenced(example1Key)).toBe(true)
         })
@@ -1711,7 +1711,7 @@ describe('SchemaOrganization', () => {
             const feature1 = form._lookup('FEATURE#feature1')
             expect(feature1).toBeDefined()
 
-            const feature1Key = feature1!._key.plain
+            const feature1Key = feature1!.standardKey
             // Feature1 is referenced as a child in both room1 and room2
             expect(organization.isReferenced(feature1Key)).toBe(true)
         })
@@ -1735,7 +1735,7 @@ describe('SchemaOrganization', () => {
             const room1 = form._lookup('ROOM#room1')
             expect(room1).toBeDefined()
 
-            const room1Key = room1!._key.plain
+            const room1Key = room1!.standardKey
             expect(organization.isReferenced(room1Key)).toBe(false)
         })
 
@@ -1749,7 +1749,7 @@ describe('SchemaOrganization', () => {
                 keyLookup
             })
 
-            const room1Key = room1._key.plain
+            const room1Key = room1.standardKey
             // Empty topLevel should not cause issues
             expect(organization.isReferenced(room1Key)).toBe(false)
         })
@@ -1803,15 +1803,15 @@ describe('SchemaOrganization', () => {
             const feature1 = testForm._lookup('FEATURE#feature1')
             expect(feature1).toBeDefined()
 
-            const feature1Key = feature1!._key.plain
+            const feature1Key = feature1!.standardKey
             const room2 = testForm._lookup('ROOM#room2')
             expect(room2).toBeDefined()
 
             // The implicit parent should be room2 (from the addition reference), not room1 (from the removal reference)
             const implicitParent = organization.getImplicitParent(feature1Key)
             expect(implicitParent).toBeDefined()
-            if (implicitParent && room2?._key.plain) {
-                expect(implicitParent.equals(room2._key.plain)).toBe(true)
+            if (implicitParent && room2?.standardKey) {
+                expect(implicitParent.equals(room2.standardKey)).toBe(true)
             }
         })
 
@@ -1849,7 +1849,7 @@ describe('SchemaOrganization', () => {
             // Find the Feature in the diff (it should still exist as a removal)
             const feature1 = diffForm!._lookup('FEATURE#feature1')
             if (feature1) {
-                const feature1Key = feature1._key.plain
+                const feature1Key = feature1.standardKey
                 // Since there are no addition references, the removal reference should be used
                 // The implicit parent should be undefined (asset level) or room1 (depending on how removals work)
                 // This test verifies that removal references are used when no additions exist

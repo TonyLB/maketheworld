@@ -357,6 +357,10 @@ export class StandardExplicitKey {
         throw new Error('Key tag must contain a legalKey value')
     }
 
+    get payload(): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined {
+        return this._payload
+    }
+
     get schema(): GenericTree<SchemaTag> {
         if (!this._payload) {
             // Undefined payload - this should not happen in normal usage

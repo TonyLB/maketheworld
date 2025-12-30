@@ -226,7 +226,7 @@ export class StandardForm {
                             (universalKey && universalKey === component.universalKey)
                         ))
                         if (previousMatchIndex === -1) {
-                            return [...previous, new StandardKey(component._key)]
+                            return [...previous, component.standardKey]
                         }
                         const previousMatch = previous[previousMatchIndex]
                         if (previousMatch && (
@@ -234,16 +234,11 @@ export class StandardForm {
                             (previousMatch.universalKey && component.universalKey && previousMatch.universalKey !== component.universalKey))) {
                             throw new Error(`Key / UniversalKey mismatch in StandardForm constructor (${component.key} / ${component.universalKey})`)
                         }
+                        // Merge previousMatch with component's standardKey
+                        const mergedKey = component.standardKey
                         return [
                             ...previous.slice(0, previousMatchIndex),
-                            new StandardKey(
-                                previousMatch.key ?? component.key
-                                    ? {
-                                        universalKey: previousMatch.universalKey ?? component.universalKey,
-                                        key: previousMatch.key ?? component.key!
-                                    }
-                                    : (previousMatch.universalKey ?? component.universalKey ?? '')
-                            ),
+                            mergedKey,
                             ...previous.slice(previousMatchIndex + 1)
                         ]
                     }, [])
@@ -263,7 +258,7 @@ export class StandardForm {
                     keyLookup
                 })
                 this._components = this._components
-                    .sort((componentA, componentB) => (organization.sortOrder(componentA._key, componentB._key)))
+                    .sort((componentA, componentB) => (organization.sortOrder(componentA.standardKey, componentB.standardKey)))
                 return
             }
             else {
@@ -434,7 +429,7 @@ export class StandardForm {
         // Sort using SchemaOrganization
         const organization = this._getSchemaOrganization()
         const components: (StandardComponentData & SerializeNDJSONMixin)[] = this._components
-            .sort(({ _key: keyA }, { _key: keyB }) => (organization.sortOrder(keyA, keyB)))
+            .sort((componentA, componentB) => (organization.sortOrder(componentA.standardKey, componentB.standardKey)))
             .map((component) => (component.withMapping(mapKeys).remapReferences('universal').toJSON()))
         return [
             this.header,
@@ -512,7 +507,7 @@ export class StandardForm {
 
     get _keys(): StandardKey[] {
         return this._components
-            .map((component) => (component._key))
+            .map((component) => (component.standardKey))
     }
 
     invalidateCache(): void {
@@ -588,12 +583,12 @@ export class StandardForm {
         const organization = returnValue._getSchemaOrganization()
 
         const priorComponentsWithNoReferences = this._components
-            .filter((component) => (!organization.isReferenced(component._key)))
+            .filter((component) => (!organization.isReferenced(component.standardKey)))
 
         // Only remove components that are both unreferenced AND empty
         // Components with content but no references are kept (valid for top-level inline edits)
         returnValue._components = returnValue._components.filter((component) => {
-            const wasUnreferenced = priorComponentsWithNoReferences.some((checkComponent) => (checkComponent._key.equals(component._key)))
+            const wasUnreferenced = priorComponentsWithNoReferences.some((checkComponent) => (checkComponent.standardKey.equals(component.standardKey)))
             if (wasUnreferenced && component.isEmpty()) {
                 return false  // Remove: unreferenced and empty
             }
@@ -833,7 +828,7 @@ export class StandardForm {
                     return requestOutput(request, component).reduce<StandardComponent[]>((innerAccumulator, output) => (mergeToComponentList(returnValue._keys)(innerAccumulator, output)), accumulator)
                 }, previous)
             }, [])
-        const filteredTopLevel = returnValue._topLevel?.payload.filter((reference) => (returnValue._components.some((component) => (component._key.equals(reference.standardKey))))) ?? []
+        const filteredTopLevel = returnValue._topLevel?.payload.filter((reference) => (returnValue._components.some((component) => (component.standardKey.equals(reference.standardKey))))) ?? []
         returnValue._topLevel = filteredTopLevel.length > 0 ? new ReferenceList(filteredTopLevel) : undefined
 
         return returnValue

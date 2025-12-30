@@ -3,9 +3,10 @@ import { ComponentUUID, SchemaTag, SchemaWithKey, AssetUUID } from "@tonylb/mtw-
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardKeyData } from "./reference";
 import { StandardEditablePayload } from "../../../generics/editable";
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardBaseData = {
-    key?: string;
+    key?: string | StandardEditableData<string>;
     universalKey?: ComponentUUID;
     update?: boolean;
     // context has been removed; hierarchical relationships are handled at the component level
