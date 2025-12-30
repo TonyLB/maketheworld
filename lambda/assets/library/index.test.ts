@@ -18,6 +18,11 @@ jest.mock('@tonylb/mtw-utilities/ts/eventBridge', () => ({
     eventBridgeClient: { send: jest.fn() }
 }))
 
+jest.mock('../clients', () => ({
+    snsClient: { send: jest.fn() },
+    sfnClient: { send: jest.fn() }
+}))
+
 jest.mock('../messageBus', () => ({
     default: {
         send: jest.fn(),

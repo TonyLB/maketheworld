@@ -186,11 +186,11 @@ describe('recursiveFetchImports', () => {
         expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['ROOM#testImport'], stubKeys: [] }))
             .toEqual(deIndentWML(`
                 <Asset uuid=(testFinal)>
-                    <Room uuid=(Stub2) origin=(ASSET#testImportAssetTwo)>
-                        <ShortName>Asset Two</ShortName>
-                    </Room>
-                    <Room uuid=(Stub1) origin=(ASSET#testImportAssetOne)>
+                    <Room uuid=(Stub1) origin=(ASSET#testImportAssetOne) ref={0}>
                         <ShortName>Asset One</ShortName>
+                    </Room>
+                    <Room uuid=(Stub2) origin=(ASSET#testImportAssetTwo) ref={0}>
+                        <ShortName>Asset Two</ShortName>
                     </Room>
                     <Room
                         uuid=(testImport)
@@ -228,7 +228,7 @@ describe('recursiveFetchImports', () => {
         expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['ROOM#testRoomWithFeatures'], stubKeys: [] }))
             .toEqual(deIndentWML(`
                 <Asset uuid=(testFinal)>
-                    <Feature uuid=(testFeature) origin=(ASSET#testImport) />
+                    <Feature uuid=(testFeature) origin=(ASSET#testImport) ref={0} />
                     <Room
                         uuid=(testRoomWithFeatures)
                         key=(testRoomWithFeatures)
@@ -278,6 +278,7 @@ describe('recursiveFetchImports', () => {
                     <Room
                         uuid=(testImportRoomStub)
                         origin=(ASSET#testImportAssetA,ASSET#testImportAssetB,ASSET#testImportAssetC)
+                        ref={0}
                     >
                         <ShortName>Deep Ancestor Room</ShortName>
                     </Room>

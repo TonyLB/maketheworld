@@ -1,4 +1,7 @@
-jest.mock('../clients')
+jest.mock('../clients', () => ({
+    snsClient: { send: jest.fn() },
+    sfnClient: { send: jest.fn() }
+}))
 import { snsClient } from '../clients'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'

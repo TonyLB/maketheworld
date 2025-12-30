@@ -1,6 +1,9 @@
-jest.mock('../clients')
+jest.mock('../clients', () => ({
+    snsClient: { send: jest.fn() },
+    sfnClient: { send: jest.fn() }
+}))
 import { snsClient } from "../clients"
-jest.mock('@tonylb/mtw-asset-workspace/dist/readOnly', () => {
+jest.mock('@tonylb/mtw-asset-workspace/ts/readOnly', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
             status: {
