@@ -19,7 +19,7 @@ const componentTemplates: ComponentProcessingTemplate[] = [
     },
     {
         key: 'Feature',
-        legalParents: ['Room']
+        legalParents: ['Room', 'Feature']
     },
     { key: 'Knowledge' },
     { key: 'Map' },
