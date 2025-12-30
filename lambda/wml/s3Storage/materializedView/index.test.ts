@@ -30,11 +30,9 @@ describe('updateContentByChunk', () => {
             
             const chunkWML = `
                 <Asset uuid=(test)>
-                    <Room uuid=(testRoom)>
-                        <Example uuid=(testExample)>
-                            <Description>Added description</Description>
-                        </Example>
-                    </Room>
+                    <Example uuid=(testExample) ref={0}>
+                        <Description>Added description</Description>
+                    </Example>
                 </Asset>
             `
             
@@ -95,16 +93,14 @@ describe('updateContentByChunk', () => {
             
             const chunkWML = `
                 <Asset uuid=(test)>
-                    <Room uuid=(testRoom)>
-                        <Example uuid=(testExample)>
-                            <Replace>
-                                <Name>Original</Name>
-                            </Replace>
-                            <With>
-                                <Name>Updated</Name>
-                            </With>
-                        </Example>
-                    </Room>
+                    <Example uuid=(testExample) ref={0}>
+                        <Replace>
+                            <Name>Original</Name>
+                        </Replace>
+                        <With>
+                            <Name>Updated</Name>
+                        </With>
+                    </Example>
                 </Asset>
             `
             
@@ -158,11 +154,9 @@ describe('updateContentByChunk', () => {
             
             const chunk = `
                 <Asset uuid=(test)>
-                    <Room uuid=(testRoom)>
-                        <Example uuid=(testExample)>
-                            <Description>Added</Description>
-                        </Example>
-                    </Room>
+                    <Example uuid=(testExample) ref={0}>
+                        <Description>Added</Description>
+                    </Example>
                 </Asset>
             `
             
