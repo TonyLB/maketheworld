@@ -43,6 +43,18 @@ describe('StandardLiteral', () => {
         expect(diff?.toJSON()).toEqual({ tag: 'Replace', match: '1', payload: '2' })
     })
 
+    it('should merge Simple with Remove when values are different', () => {
+        // This is what happens in diff(a, b) = b.merge(a.invert()) when a and b are different
+        // a.invert() converts Simple to Remove, then we merge Simple(b) with Remove(a)
+        const simple = new StandardLiteral('Room Two')
+        const remove = new StandardLiteral({ tag: 'Remove', match: 'Room One' })
+        const merged = remove.merge(simple)
+        // Should produce a Replace operation (different values)
+        expect(merged).toBeInstanceOf(StandardLiteral)
+        expect(merged?._payload).toBeInstanceOf(StandardLiteralReplace)
+        expect(merged?.toJSON()).toEqual({ tag: 'Replace', match: 'One', payload: 'Two' })
+    })
+
     it('should map contents of StandardLiteralSimple', () => {
         const literal = new StandardLiteral('test')
         const mapped = literal.mapContents(data => data.toUpperCase())

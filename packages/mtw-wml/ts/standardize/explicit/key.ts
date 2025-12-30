@@ -161,10 +161,14 @@ const fromDelta = (delta: { add?: string, remove?: string }): StandardExplicitKe
             const addBase = new StandardExplicitKeySimpleBase(add)
             return new StandardExplicitKeyReplace(removeBase, addBase)
         }
-        return new StandardExplicitKeySimple(add)
+        // fromDelta receives string from _delta.toJSON(), create payload instance
+        const addBase = new StandardExplicitKeySimpleBase(add)
+        return new StandardExplicitKeySimple(addBase)
     }
     if (remove) {
-        return new StandardExplicitKeyRemove(remove)
+        // fromDelta receives string from _delta.toJSON(), create payload instance
+        const removeBase = new StandardExplicitKeySimpleBase(remove)
+        return new StandardExplicitKeyRemove(removeBase)
     }
     return undefined
 }
@@ -355,6 +359,10 @@ export class StandardExplicitKey {
         }
         // Empty delta - not allowed for Key
         throw new Error('Key tag must contain a legalKey value')
+    }
+
+    get payload(): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined {
+        return this._payload
     }
 
     get schema(): GenericTree<SchemaTag> {

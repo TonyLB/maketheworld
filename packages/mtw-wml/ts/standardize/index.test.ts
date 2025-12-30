@@ -1121,8 +1121,8 @@ describe('StandardForm', () => {
                         <ShortName>Local2</ShortName>
                         <Name>Local Character 2</Name>
                     </Character>
-                    <Character uuid=(char2) key=(char2) />
                     <Remove><Character uuid=(char1) key=(char1) /></Remove>
+                    <Character uuid=(char2) key=(char2) />
                 </Room>
             </Asset>
         `))

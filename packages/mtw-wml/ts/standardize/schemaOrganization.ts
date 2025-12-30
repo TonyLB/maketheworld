@@ -49,7 +49,7 @@ export class SchemaOrganization {
     getChildrenOfParent(parent: StandardKey | undefined): StandardReference[] {
         return this.components
             .filter((component) => {
-                const componentKey = component._key?.plain
+                const componentKey = component.standardKey?.plain
                 if (!componentKey) {
                     return false
                 }
@@ -243,7 +243,7 @@ export class SchemaOrganization {
                 // For Asset-level, use AssetUUID; for components, use StandardKey
                 const parentKey: StandardKey | AssetUUID | undefined = entity.universalKey?.startsWith('ASSET#')
                     ? entity.universalKey as AssetUUID
-                    : ('_key' in entity && entity._key?.plain) ? entity._key.plain : undefined
+                    : ('standardKey' in entity && entity.standardKey?.plain) ? entity.standardKey.plain : undefined
                 
                 if (parentKey) {
                     // Collect references with 'Direct' or 'Position' types
@@ -302,7 +302,7 @@ export class SchemaOrganization {
         // Collect explicitParent edges (from <Parent> tags) - only for components
         return this.components.reduce<Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>>(
             (acc, component) => {
-                const childKey = component._key?.plain
+                const childKey = component.standardKey?.plain
                 if (!childKey) {
                     return acc
                 }
@@ -487,7 +487,7 @@ export class SchemaOrganization {
                 // Store implicitParent as undefined for asset-level components
                 keysToUpdate.forEach(key => {
                     // Normalize key by looking up the canonical component key
-                    const canonicalKey = this.keyLookup.lookup(key)?.component?._key ?? key
+                    const canonicalKey = this.keyLookup.lookup(key)?.component?.standardKey ?? key
                     // Check if this key already exists in organization (deduplicate)
                     const existingIndex = organization.findIndex(e => e.key.equals(canonicalKey))
                     if (existingIndex >= 0) {
@@ -564,7 +564,7 @@ export class SchemaOrganization {
             // Store implicit parent information
             keysToUpdateForImplicit.forEach(key => {
                 // Normalize key by looking up the canonical component key
-                const canonicalKey = this.keyLookup.lookup(key)?.component?._key ?? key
+                const canonicalKey = this.keyLookup.lookup(key)?.component?.standardKey ?? key
                 // Check if this key already exists in organization (deduplicate)
                 const existingIndex = organization.findIndex(e => e.key.equals(canonicalKey))
                 if (existingIndex >= 0) {
@@ -648,7 +648,7 @@ export class SchemaOrganization {
     private _calculateExplicitParents(): Array<{ key: StandardKey; parent: StandardKey | undefined }> {
         return this.components.reduce<Array<{ key: StandardKey; parent: StandardKey | undefined }>>(
             (organization, component) => {
-                const componentKey = component._key?.plain
+                const componentKey = component.standardKey?.plain
                 if (!componentKey) {
                     return organization
                 }
