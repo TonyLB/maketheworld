@@ -28,8 +28,6 @@ export async function initializePrimitives(): Promise<{
     action: 'skipped' | 'created' | 'repaired'
     message: string
 }> {
-    console.log('Initialize Primitives: Starting idempotent check')
-    
     // Primitives must be in Canon zone - construct workspace directly
     const assetWorkspace = new ReadOnlyAssetWorkspace(PRIMITIVES_ASSET_ID, 'Canon')
     
@@ -41,7 +39,6 @@ export async function initializePrimitives(): Promise<{
         
         // Check if asset doesn't exist or has no content
         if (assetWorkspace.status.json === 'Error' || !existing || existing._components.length === 0) {
-            console.log('Initialize Primitives: Asset not found or empty - creating via applyEdit')
             const result = await applyEdit({
                 AssetId: PRIMITIVES_ASSET_ID,
                 RequestId: `initialize-primitives-create-${Date.now()}`,
@@ -69,17 +66,13 @@ export async function initializePrimitives(): Promise<{
         
         // Case 2a: Already properly initialized
         if (hasVortex && hasKnowledgeRoot) {
-            console.log('Initialize Primitives: Already properly initialized - skipping')
             return {
                 success: true,
                 action: 'skipped',
                 message: 'Primitives already initialized (no changes needed)'
             }
         }
-        
-        // Case 2b: Missing components - apply repair
-        console.log(`Initialize Primitives: Missing components - VORTEX: ${!hasVortex}, knowledgeRoot: ${!hasKnowledgeRoot}`)
-        
+                
         // Build edit that adds only the missing components
         const repairComponents: string[] = []
         if (!hasVortex) {
@@ -90,8 +83,6 @@ export async function initializePrimitives(): Promise<{
         }
         
         const repairWML = `<Asset uuid=(primitives)>\n${repairComponents.join('\n')}\n</Asset>`
-        
-        console.log(`Initialize Primitives: Applying repair with WML:\n${repairWML}`)
         
         const result = await applyEdit({
             AssetId: PRIMITIVES_ASSET_ID,

@@ -456,7 +456,7 @@ describe('WML DataSource', () => {
             // Test with invalid streamKey (not a valid asset UUID)
             const event = {
                 dataSourceKey: 'internal',
-                streamKey: 'invalid-stream-key',
+                streamKey: 'invalid!stream!key',
                 detailEnvelope: mockApplyEditRequest
             }
 
@@ -714,8 +714,8 @@ describe('WML DataSource', () => {
         it('should handle asset not found', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             
-            // Mock AssetWorkspace.fromUUID to return null (asset not found)
-            AssetWorkspaceMock.fromUUID.mockResolvedValue(null)
+            // Mock AssetWorkspace.fromUUID to return undefined (asset not found)
+            AssetWorkspaceMock.fromUUID.mockResolvedValue(undefined)
 
             const event = {
                 dataSourceKey: 'internal',

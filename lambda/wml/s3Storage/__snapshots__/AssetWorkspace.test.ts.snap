@@ -5,7 +5,6 @@ exports[`AssetWorkspace (WML Lambda) loadAuthorizationJSON should correctly pars
   "grants": [
     {
       "component": {
-        "context": undefined,
         "key": "Room1",
         "tag": "Room",
         "universalKey": undefined,
@@ -29,7 +28,6 @@ exports[`AssetWorkspace (WML Lambda) loadJSON should correctly parse and assign 
 {
   "components": [
     {
-      "context": undefined,
       "key": "testRoom",
       "shortName": "Test Room",
       "tag": "Room",
@@ -45,7 +43,6 @@ exports[`AssetWorkspace (WML Lambda) setWML should correctly parse WML input 1`]
 {
   "components": [
     {
-      "context": undefined,
       "exits": [
         {
           "description": "welcome",
@@ -58,7 +55,6 @@ exports[`AssetWorkspace (WML Lambda) setWML should correctly parse WML input 1`]
       "universalKey": "ROOM#room1",
     },
     {
-      "context": undefined,
       "exits": [
         {
           "description": "vortex",
@@ -72,6 +68,10 @@ exports[`AssetWorkspace (WML Lambda) setWML should correctly parse WML input 1`]
     },
   ],
   "metaData": [],
+  "topLevel": [
+    "ROOM#room1",
+    "ROOM#room2",
+  ],
   "universalKey": "ASSET#Test",
 }
 `;
