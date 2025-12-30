@@ -3,7 +3,6 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { excludeUndefined } from "@tonylb/mtw-utilities/ts/lists"
 import { AssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardKey } from "@tonylb/mtw-wml/ts/standardize/components/reference"
-import { mapKeyToFormat } from "@tonylb/mtw-wml/ts/standardize/components/utils/references"
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
 
 type RecursiveFetchImportArgument = {
@@ -51,17 +50,17 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
     })
     if (removeLocalKeys) {
         const allKeys = newStandard._components
-            .map((component) => (component._key))
+            .map((component) => (component.reference))
         newStandard._components = newStandard._components
             .map((component) => {
                 const returnValue = component.clone()
-                returnValue._key = mapKeyToFormat('universal')(returnValue._key)
+                returnValue._key = undefined
                 return returnValue.withMapping(allKeys).remapReferences('universal')
             })
         newStandard._topLevel = newStandard._topLevel?.toFormat('universal')
     }
     const allStubKeys = standard._components
-        .filter((component) => (!fullKeys.find((checkKey) => (new StandardKey(checkKey).equals(component._key)))))
+        .filter((component) => (!fullKeys.find((checkKey) => (new StandardKey(checkKey).equals(component.standardKey)))))
         .map((component) => (component.universalKey))
         .filter(excludeUndefined)
 
@@ -112,7 +111,7 @@ export const recursiveFetchImports = async ({ assetId, jsonHelper, fullKeys, stu
     )
 
     newStandard._components = merged._components
-    return newStandard.generateImplicitParents()._updateTopLevelFromComponents().generateImplicitParents().finalize()
+    return newStandard.finalize()
 
 }
 

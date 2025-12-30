@@ -365,13 +365,13 @@ describe('CharactersDataSource', () => {
                 {
                     AssetId: 'CHARACTER#char-001',
                     DataCategory: assetUUID,
-                    key: 'char-001',
+                    key: 'char001',
                     shortName: 'Alpha'
                 },
                 {
                     AssetId: 'CHARACTER#char-002',
                     DataCategory: assetUUID,
-                    key: 'char-002',
+                    key: 'char002',
                     shortName: 'Beta'
                 }
             ])
@@ -381,10 +381,10 @@ describe('CharactersDataSource', () => {
             expect(snapshot.streamKey).toBe(assetUUID)
             expect((snapshot as any).characters).toEqual(deIndentWML(`
                 <Asset uuid=(asset-uuid-456)>
-                    <Character uuid=(char-001) key=(char-001)>
+                    <Character uuid=(char-001) key=(char001)>
                         <ShortName>Alpha</ShortName>
                     </Character>
-                    <Character uuid=(char-002) key=(char-002)>
+                    <Character uuid=(char-002) key=(char002)>
                         <ShortName>Beta</ShortName>
                     </Character>
                 </Asset>
@@ -402,7 +402,7 @@ describe('CharactersDataSource', () => {
                 {
                     AssetId: 'CHARACTER#char-001',
                     DataCategory: testStreamKey,
-                    key: 'char-001',
+                    key: 'char001',
                     shortName: 'Test Character'
                 }
             ])
@@ -415,7 +415,7 @@ describe('CharactersDataSource', () => {
             expect(snapshot).toHaveProperty('timestamp')
             expect(snapshot.characters).toEqual(deIndentWML(`
                 <Asset uuid=(integration-test-asset)>
-                    <Character uuid=(char-001) key=(char-001)>
+                    <Character uuid=(char-001) key=(char001)>
                         <ShortName>Test Character</ShortName>
                     </Character>
                 </Asset>
