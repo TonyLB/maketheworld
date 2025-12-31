@@ -28,7 +28,7 @@ const getCurrentRoom = async (CharacterId: EphemeraCharacterId) => {
             // Transform characters to the format expected by parseCommand
             // Note: We need to resolve character references to get actual character data
             const characters = roomComponent.characters.payload.map(characterRef => {
-                const characterData = characterRef.plain().toJSON()
+                const characterData = characterRef.toJSON()
                 const characterId = typeof characterData === 'string' ? characterData : characterData.universalKey || ''
                 // For now, return a basic structure - in a real implementation, 
                 // we'd need to resolve the character to get the actual name
