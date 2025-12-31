@@ -106,23 +106,17 @@ export class SchemaOrganization {
      * @returns Array of StandardKey objects representing all descendant components
      */
     implicitDescendantsOfAncestor(ancestorKey: StandardKey): StandardKey[] {
-        // Use arrays to track visited and collected keys (avoids MapByKey.add() calling sortedOutput during recursion)
-        const visited: StandardKey[] = []
-        const visitedStrings: Set<string> = new Set() // String-based tracking for faster/safer checks
-        const descendantKeys: StandardKey[] = []
-        
-        // Helper to create a unique string representation for a key
-        const keyToString = (key: StandardKey): string => {
-            return `${key.universalKey || ''}:${key.key || ''}`
-        }
+        // Use MapByKey to track visited keys - handles key merging automatically
+        let visited = new MapByKey<boolean>([])
+        // Use MapByKey for descendantKeys - provides deduplication and key merging
+        let descendantKeys = new MapByKey<StandardKey>([])
         
         const isVisited = (key: StandardKey): boolean => {
-            const keyStr = keyToString(key)
-            return visitedStrings.has(keyStr)
+            return visited.lookup(key) === true
         }
         
         const isCollected = (key: StandardKey): boolean => {
-            return descendantKeys.some(d => d.equals(key))
+            return descendantKeys.lookup(key) !== undefined
         }
         
         const collectDescendants = (parentKey: StandardKey, depth: number = 0) => {
@@ -137,9 +131,7 @@ export class SchemaOrganization {
             }
             
             // Mark as visited
-            const parentKeyStr = keyToString(parentKey)
-            visited.push(parentKey)
-            visitedStrings.add(parentKeyStr)
+            visited = visited.add(parentKey, true)
             
             // Find all components whose implicitParent equals parentKey
             const directDescendants = this._organization
@@ -153,7 +145,7 @@ export class SchemaOrganization {
             directDescendants.forEach(descendant => {
                 // Check if already collected
                 if (!isCollected(descendant)) {
-                    descendantKeys.push(descendant)
+                    descendantKeys = descendantKeys.add(descendant, descendant)
                 }
                 collectDescendants(descendant, depth + 1)
             })
@@ -161,8 +153,8 @@ export class SchemaOrganization {
         
         collectDescendants(ancestorKey)
         
-        // Return the collected keys
-        return descendantKeys
+        // Return the collected keys (extract keys from MapByKey entries)
+        return descendantKeys.sortedOutput().map(entry => entry.payload)
     }
 
     /**
