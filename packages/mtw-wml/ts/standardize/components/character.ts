@@ -156,33 +156,6 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         return returnValue
     }
 
-    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        if (!(incoming instanceof StandardCharacter)) {
-            throw new Error('Mismatched component types in diff')
-        }
-        // Check explicitParent differences separately
-        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
-        const hasExplicitParentDiff = explicitParentDiff !== undefined
-        if (deepEqual(this.toJSON(), incoming.toJSON()) && !hasExplicitParentDiff) {
-            return undefined
-        }
-        const base = this.clone()
-        base._payload = new StandardCharacterPayload()
-        base._payload._shortName = this._payload._shortName
-            ? this._payload._shortName.diff(incoming._payload._shortName)
-            : incoming._payload._shortName
-        base._payload._pronouns = this._payload._pronouns
-            ? this._payload._pronouns.diff(incoming._payload._pronouns)
-            : incoming._payload._pronouns
-        base._payload._name = this._payload._name
-            ? this._payload._name.diff(incoming._payload._name)
-            : incoming._payload._name
-        base._payload._image = this._payload._image ?? incoming._payload._image
-        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
-        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
-        return base
-    }
-
 }
 
 export default StandardCharacter

@@ -180,25 +180,6 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         return !(this.messages.diff(incoming.messages)?.payload?.length)
     }
 
-    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        if (!(incoming instanceof StandardMoment)) {
-            throw new Error('Mismatched component types in diff')
-        }
-        // Check explicitParent differences separately
-        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
-        const hasExplicitParentDiff = explicitParentDiff !== undefined
-        const messagesDiff = this._payload._messages.diff(incoming._payload._messages) ?? new ReferenceList([])
-        if (deepEqual(this.toJSON(), incoming.toJSON()) && !messagesDiff.payload.length && !hasExplicitParentDiff) {
-            return undefined
-        }
-        const base = this.clone()
-        base._payload = new StandardMomentPayload()
-        base._payload._messages = messagesDiff
-        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
-        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
-        return base
-    }
-
 }
 
 export default StandardMoment

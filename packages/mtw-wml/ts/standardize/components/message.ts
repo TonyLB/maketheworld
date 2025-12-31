@@ -179,31 +179,6 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         return returnValue
     }
 
-    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        if (!(incoming instanceof StandardMessage)) {
-            throw new Error('Mismatched component types in diff')
-        }
-        // Check explicitParent differences separately
-        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
-        const hasExplicitParentDiff = explicitParentDiff !== undefined
-        const roomsDiff = this.rooms.diff(incoming.rooms) ?? new ReferenceList([])
-        if (deepEqual(this._payload.description?.toJSON(), incoming._payload.description?.toJSON()) &&
-            !roomsDiff.payload.length &&
-            !hasExplicitParentDiff
-        ) {
-            return undefined
-        }
-        const base = this.clone()
-        base._payload = new StandardMessagePayload()
-        base._payload._description = this._payload._description
-            ? this._payload._description.diff(incoming._payload._description)
-            : incoming._payload._description
-        base._payload._rooms = roomsDiff
-        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
-        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
-        return base
-    }
-
     override equals(incoming: StandardComponent): boolean {
         if (!(incoming instanceof StandardMessage)) {
             return false

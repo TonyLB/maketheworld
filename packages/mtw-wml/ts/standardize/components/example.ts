@@ -183,32 +183,6 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         return deepEqual(this.toJSON(), incoming.toJSON())
     }
 
-    override diff(incoming: StandardComponent): StandardComponent | undefined {
-        if (!(incoming instanceof StandardExample)) {
-            throw new Error('Mismatched component types in diff')
-        }
-        // Check explicitParent differences separately
-        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
-        const hasExplicitParentDiff = explicitParentDiff !== undefined
-        if (deepEqual(this.toJSON(), incoming.toJSON()) && !hasExplicitParentDiff) {
-            return undefined
-        }
-        const base = this.clone()
-        base._payload = new StandardExamplePayload()
-        base._payload._name = this._payload._name
-            ? this._payload._name.diff(incoming._payload._name)
-            : incoming._payload._name
-        base._payload._summary = this._payload._summary
-            ? this._payload._summary.diff(incoming._payload._summary)
-            : incoming._payload._summary
-        base._payload._description = this._payload._description
-            ? this._payload._description.diff(incoming._payload._description)
-            : incoming._payload._description
-        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
-        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
-        return base
-    }
-
 }
 
 export default StandardExample
