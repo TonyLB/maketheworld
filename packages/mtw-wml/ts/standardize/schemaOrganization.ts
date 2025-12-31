@@ -9,7 +9,7 @@ import { StandardExplicitParent, StandardExplicitParentSimple, StandardExplicitP
 import { excludeUndefined } from "../lib/lists"
 import { unique } from "../list"
 import { KeyLookup } from "./keyLookup"
-import { StandardReference, referenceSortOrder } from "./components/reference"
+import { StandardReference, referenceSortOrder, MapByKey } from "./components/reference"
 
 export class SchemaOrganization {
     private _organization: Array<{ key: StandardKey; implicitParent?: StandardKey }>
@@ -51,7 +51,7 @@ export class SchemaOrganization {
     getChildrenOfParent(parent: StandardKey | undefined): StandardReference[] {
         return this.components
             .filter((component) => {
-                const componentKey = component.standardKey?.plain
+                const componentKey = component.standardKey
                 if (!componentKey) {
                     return false
                 }
@@ -96,6 +96,65 @@ export class SchemaOrganization {
         return implicitParent
             ? Boolean(parentCandidate && implicitParent.equals(parentCandidate))
             : typeof parentCandidate === "undefined"
+    }
+
+    /**
+     * Returns all components that are strictly descendants of the given ancestor
+     * in the implicitParent hierarchy. Uses MapByKey for efficient lookups and deduplication.
+     * 
+     * @param ancestorKey - The StandardKey of the ancestor component
+     * @returns Array of StandardKey objects representing all descendant components
+     */
+    implicitDescendantsOfAncestor(ancestorKey: StandardKey): StandardKey[] {
+        // Use MapByKey to track visited keys - handles key merging automatically
+        let visited = new MapByKey<boolean>([])
+        // Use MapByKey for descendantKeys - provides deduplication and key merging
+        let descendantKeys = new MapByKey<StandardKey>([])
+        
+        const isVisited = (key: StandardKey): boolean => {
+            return visited.lookup(key) === true
+        }
+        
+        const isCollected = (key: StandardKey): boolean => {
+            return descendantKeys.lookup(key) !== undefined
+        }
+        
+        const collectDescendants = (parentKey: StandardKey, depth: number = 0) => {
+            // Safety check for infinite recursion
+            if (depth > 50) {
+                throw new Error(`Maximum recursion depth exceeded in implicitDescendantsOfAncestor. ParentKey: ${parentKey.key || parentKey.universalKey}, Depth: ${depth}`)
+            }
+            
+            // Check if we've already visited this key
+            if (isVisited(parentKey)) {
+                return
+            }
+            
+            // Mark as visited
+            visited = visited.add(parentKey, true)
+            
+            // Find all components whose implicitParent equals parentKey
+            const directDescendants = this._organization
+                .filter(entry => {
+                    const implicitParent = entry.implicitParent
+                    return implicitParent && implicitParent.equals(parentKey)
+                })
+                .map(entry => entry.key)
+            
+            // Add to results (with deduplication) and recurse
+            directDescendants.forEach(descendant => {
+                // Check if already collected
+                if (!isCollected(descendant)) {
+                    descendantKeys = descendantKeys.add(descendant, descendant)
+                }
+                collectDescendants(descendant, depth + 1)
+            })
+        }
+        
+        collectDescendants(ancestorKey)
+        
+        // Return the collected keys (extract keys from MapByKey entries)
+        return descendantKeys.sortedOutput().map(entry => entry.payload)
     }
 
     /**
@@ -245,7 +304,7 @@ export class SchemaOrganization {
                 // For Asset-level, use AssetUUID; for components, use StandardKey
                 const parentKey: StandardKey | AssetUUID | undefined = entity.universalKey?.startsWith('ASSET#')
                     ? entity.universalKey as AssetUUID
-                    : ('standardKey' in entity && entity.standardKey?.plain) ? entity.standardKey.plain : undefined
+                    : ('standardKey' in entity && entity.standardKey) ? entity.standardKey : undefined
                 
                 if (parentKey) {
                     // Collect references with 'Direct' or 'Position' types
@@ -304,7 +363,7 @@ export class SchemaOrganization {
         // Collect explicitParent edges (from <Parent> tags) - only for components
         return this.components.reduce<Array<{ parent: StandardKey | AssetUUID; child: StandardKey }>>(
             (acc, component) => {
-                const childKey = component.standardKey?.plain
+                const childKey = component.standardKey
                 if (!childKey) {
                     return acc
                 }
@@ -556,7 +615,7 @@ export class SchemaOrganization {
             const implicitParentSyntheticUUID = commonAncestry.length > 0 ? commonAncestry[commonAncestry.length - 1] : this.assetUUID
             const implicitParentKey = implicitParentSyntheticUUID.startsWith('ASSET#')
                 ? undefined
-                : currentGraph.nodes[implicitParentSyntheticUUID]?.standardKey?.plain
+                : currentGraph.nodes[implicitParentSyntheticUUID]?.standardKey
 
             const keysToUpdateForImplicit = scc
                 .filter(key => !isSchemaAssetUUID(key))
@@ -674,7 +733,7 @@ export class SchemaOrganization {
                 // No explicit parent - cannot be part of explicit parent cycle
                 return _
             }
-            const componentKey = component.standardKey?.plain
+            const componentKey = component.standardKey
             if (!componentKey) {
                 return _
             }
@@ -713,7 +772,7 @@ export class SchemaOrganization {
     private _calculateExplicitParents(): Array<{ key: StandardKey; parent: StandardKey | undefined }> {
         return this.components.reduce<Array<{ key: StandardKey; parent: StandardKey | undefined }>>(
             (organization, component) => {
-                const componentKey = component.standardKey?.plain
+                const componentKey = component.standardKey
                 if (!componentKey) {
                     return organization
                 }

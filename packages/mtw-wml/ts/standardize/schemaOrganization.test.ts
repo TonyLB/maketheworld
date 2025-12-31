@@ -1853,5 +1853,138 @@ describe('SchemaOrganization', () => {
             }
         })
     })
+
+    describe('implicitDescendantsOfAncestor', () => {
+        it('should return empty array for component with no descendants', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(ROOM#room1) key=(room1) />
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const keyLookup = new KeyLookup(form._components)
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const room1Key = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+            const descendants = organization.implicitDescendantsOfAncestor(room1Key)
+
+            expect(descendants).toEqual([])
+        })
+
+        it('should return direct children for basic hierarchy', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(ROOM#room1) key=(room1)>
+                        <Feature uuid=(FEATURE#feature1) key=(feature1) />
+                        <Feature uuid=(FEATURE#feature2) key=(feature2) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const keyLookup = new KeyLookup(form._components)
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const room1Key = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+            const descendants = organization.implicitDescendantsOfAncestor(room1Key)
+
+            expect(descendants.length).toBe(2)
+            const descendantKeys = descendants.map(d => d.key).sort()
+            expect(descendantKeys).toEqual(['feature1', 'feature2'])
+        })
+
+        it('should return all descendants for nested hierarchy', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(ROOM#room1) key=(room1)>
+                        <Feature uuid=(FEATURE#feature1) key=(feature1)>
+                            <Example uuid=(EXAMPLE#example1) key=(example1) />
+                        </Feature>
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const keyLookup = new KeyLookup(form._components)
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const room1Key = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+            const descendants = organization.implicitDescendantsOfAncestor(room1Key)
+
+            expect(descendants.length).toBe(2)
+            const descendantKeys = descendants.map(d => d.key).sort()
+            expect(descendantKeys).toEqual(['example1', 'feature1'])
+        })
+
+        it('should not include components with undefined implicitParent (asset-level)', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(ROOM#room1) key=(room1)>
+                        <Feature uuid=(FEATURE#feature1) key=(feature1) />
+                    </Room>
+                    <Room uuid=(ROOM#room2) key=(room2)>
+                        <Feature key=(feature1) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const keyLookup = new KeyLookup(form._components)
+
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const room1Key = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+            const descendants = organization.implicitDescendantsOfAncestor(room1Key)
+
+            // room1 has no descendants, so should return empty
+            expect(descendants).toEqual([])
+            // room2 is asset-level (not a descendant of room1)
+            expect(descendants.find(d => d.key === 'room2')).toBeUndefined()
+        })
+
+        it('should handle multiple children at same level', () => {
+            const testWML = deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(ROOM#room1) key=(room1)>
+                        <Feature uuid=(FEATURE#feature1) key=(feature1) />
+                        <Example uuid=(EXAMPLE#example1) key=(example1) />
+                        <Character uuid=(CHARACTER#char1) key=(char1) />
+                    </Room>
+                </Asset>
+            `)
+            const form = new StandardForm(testWML)
+            const keyLookup = new KeyLookup(form._components)
+            const organization = new SchemaOrganization({
+                components: form._components,
+                assetUUID: form._universalKey,
+                topLevel: form._topLevel,
+                keyLookup
+            })
+
+            const room1Key = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
+            const descendants = organization.implicitDescendantsOfAncestor(room1Key)
+
+            expect(descendants.length).toBe(3)
+            const descendantKeys = descendants.map(d => d.key).sort()
+            expect(descendantKeys).toEqual(['char1', 'example1', 'feature1'])
+        })
+    })
 })
 

@@ -4215,6 +4215,123 @@ describe('StandardForm', () => {
             const room = result._components.find(c => c.key === 'room1') as StandardRoom
             expect(room.features?.payload.length).toBe(0)
         })
+
+        describe('cascade option', () => {
+            it('should remove component and all descendants when cascade=true', () => {
+                const form = new StandardForm(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(ROOM#room1) key=(room1)>
+                            <Example uuid=(EXAMPLE#example1) key=(example1) />
+                            <Example uuid=(EXAMPLE#example2) key=(example2) />
+                        </Room>
+                    </Asset>
+                `))
+                
+                const room1Ref = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
+                const result = form.removeComponent(room1Ref, { cascade: true })
+                
+                // Room and both Examples should be removed
+                expect(result._components.length).toBe(0)
+                expect(result._components.find(c => c.key === 'room1')).toBeUndefined()
+                expect(result._components.find(c => c.key === 'example1')).toBeUndefined()
+                expect(result._components.find(c => c.key === 'example2')).toBeUndefined()
+            })
+
+            it('should remove nested hierarchy when cascade=true', () => {
+                const form = new StandardForm(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(ROOM#room1) key=(room1)>
+                            <Feature uuid=(FEATURE#feature1) key=(feature1)>
+                                <Example uuid=(EXAMPLE#example1) key=(example1) />
+                            </Feature>
+                        </Room>
+                    </Asset>
+                `))
+                
+                const room1Ref = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
+                const result = form.removeComponent(room1Ref, { cascade: true })
+                
+                // Room, Feature, and Example should all be removed
+                expect(result._components.length).toBe(0)
+                expect(result._components.find(c => c.key === 'room1')).toBeUndefined()
+                expect(result._components.find(c => c.key === 'feature1')).toBeUndefined()
+                expect(result._components.find(c => c.key === 'example1')).toBeUndefined()
+            })
+
+            it('should only remove component when cascade=false', () => {
+                const form = new StandardForm(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(ROOM#room1) key=(room1)>
+                            <Example uuid=(EXAMPLE#example1) key=(example1) />
+                        </Room>
+                    </Asset>
+                `))
+                
+                const room1Ref = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
+                const result = form.removeComponent(room1Ref, { cascade: false })
+                
+                // Only Room should be removed, Example should remain
+                expect(result._components.length).toBe(1)
+                expect(result._components.find(c => c.key === 'room1')).toBeUndefined()
+                expect(result._components.find(c => c.key === 'example1')).toBeDefined()
+            })
+
+            it('should behave same as cascade=false when component has no descendants', () => {
+                const form = new StandardForm(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(ROOM#room1) key=(room1) />
+                        <Room uuid=(ROOM#room2) key=(room2) />
+                    </Asset>
+                `))
+                
+                const room1Ref = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
+                const result = form.removeComponent(room1Ref, { cascade: true })
+                
+                // Only room1 should be removed
+                expect(result._components.length).toBe(1)
+                expect(result._components.find(c => c.key === 'room1')).toBeUndefined()
+                expect(result._components.find(c => c.key === 'room2')).toBeDefined()
+            })
+
+            it('should remove component and descendants from topLevel when cascade=true', () => {
+                const form = new StandardForm(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(ROOM#room1) key=(room1)>
+                            <Example uuid=(EXAMPLE#example1) key=(example1) />
+                        </Room>
+                    </Asset>
+                `))
+                
+                const room1Ref = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
+                const result = form.removeComponent(room1Ref, { cascade: true })
+                
+                // topLevel should be empty or undefined
+                expect(result._topLevel).toBeUndefined()
+            })
+
+            it('should remove references to all removed components when cascade=true', () => {
+                const form = new StandardForm(deIndentWML(`
+                    <Asset uuid=(test)>
+                        <Room uuid=(ROOM#room1) key=(room1)>
+                            <Feature uuid=(FEATURE#feature1) key=(feature1) />
+                            <Example uuid=(EXAMPLE#example1) key=(example1) />
+                        </Room>
+                        <Room uuid=(ROOM#room2) key=(room2) />
+                    </Asset>
+                `))
+                
+                const room1Ref = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
+                const result = form.removeComponent(room1Ref, { cascade: true })
+                
+                // room1, feature1, and example1 should all be removed (all are descendants of room1)
+                expect(result._components.find(c => c.key === 'room1')).toBeUndefined()
+                expect(result._components.find(c => c.key === 'feature1')).toBeUndefined()
+                expect(result._components.find(c => c.key === 'example1')).toBeUndefined()
+                
+                // room2 should still exist
+                expect(result._components.find(c => c.key === 'room2')).toBeDefined()
+            })
+        })
     })
 
 })

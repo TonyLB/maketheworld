@@ -117,10 +117,6 @@ export class StandardKey implements StandardEditablePayload<StandardKeyData> {
         return returnValue
     }
 
-    get plain(): StandardKey {
-        return this.clone()
-    }
-
     toFormat(format: ReferenceFormat): StandardKey {
         if (format === 'both') {
             return this.clone()
@@ -138,8 +134,8 @@ export class StandardKey implements StandardEditablePayload<StandardKeyData> {
         }
         return returnValue
     }
-}
 
+}
 
 export const standardReferenceDeserialize = (incoming: StandardReferenceData): Exclude<StandardReferenceData, string> => {
     if (typeof incoming === 'string') {
@@ -858,6 +854,42 @@ export class ReferenceList {
 }
 
 /**
+ * Sort order function for StandardKey objects.
+ * 
+ * Sorting rules:
+ * 1. Keys with `universalKey` come before keys without
+ * 2. For keys with `universalKey`: Use `referenceSortOrder` logic (compares by tag then key)
+ * 3. For keys without `universalKey` (local-only): Sort alphabetically by local `key`
+ * 
+ * @param keyA - First key to compare
+ * @param keyB - Second key to compare
+ * @returns Negative if A < B, positive if A > B, zero if equal
+ */
+export const keySortOrder = (keyA: StandardKey, keyB: StandardKey): number => {
+    // Keys with universalKey come before keys without
+    const hasUniversalKeyA = Boolean(keyA.universalKey)
+    const hasUniversalKeyB = Boolean(keyB.universalKey)
+    
+    if (hasUniversalKeyA && !hasUniversalKeyB) {
+        return -1
+    }
+    if (!hasUniversalKeyA && hasUniversalKeyB) {
+        return 1
+    }
+    
+    // Both have universalKey or both don't
+    if (hasUniversalKeyA && hasUniversalKeyB) {
+        // Use referenceSortOrder logic for keys with universalKey
+        return referenceSortOrder(keyA, keyB)
+    } else {
+        // Both are local-only - sort alphabetically by local key
+        const keyAStr = keyA.key ?? ''
+        const keyBStr = keyB.key ?? ''
+        return keyAStr.localeCompare(keyBStr)
+    }
+}
+
+/**
  * Simple sort order for references that compares by tag and key only (no nested hierarchy).
  * Use this when sorting references that are already at the same hierarchy level.
  * For sorting components with nested parent-child relationships, use `SchemaOrganization.sortOrder()`.
@@ -936,6 +968,239 @@ export const referenceSortOrder = (
         const keyAStr = keyA.key ?? ''
         const keyBStr = keyB.key ?? ''
         return keyAStr.localeCompare(keyBStr)
+    }
+}
+
+/**
+ * Generic class for mapping payloads by StandardKey using dual Map storage.
+ * Provides efficient O(1) lookups by both universalKey and local key.
+ * 
+ * @template Payload - The type of payload to store
+ */
+export class MapByKey<Payload> {
+    private _byUniversalKey: Map<ComponentUUID, { key: StandardKey; payload: Payload }>
+    private _byKey: Map<string, { key: StandardKey; payload: Payload }>
+
+    constructor(
+        entries: Array<{ key: StandardKey; payload: Payload }> | MapByKey<Payload>
+    ) {
+        this._byUniversalKey = new Map()
+        this._byKey = new Map()
+
+        if (entries instanceof MapByKey) {
+            // Clone from another MapByKey
+            entries._byUniversalKey.forEach((entry, uuid) => {
+                this._byUniversalKey.set(uuid, { key: entry.key.clone(), payload: entry.payload })
+            })
+            entries._byKey.forEach((entry, key) => {
+                this._byKey.set(key, { key: entry.key.clone(), payload: entry.payload })
+            })
+            return
+        }
+
+        // Populate from array of entries using reduce
+        const { byUniversalKey, byKey } = entries.reduce(
+            (acc, { key, payload }) => {
+                const entry = { key: key.clone(), payload }
+
+                // Add to _byUniversalKey if universalKey exists
+                if (key.universalKey) {
+                    const existing = acc.byUniversalKey.get(key.universalKey)
+                    if (existing && existing.payload !== payload) {
+                        throw new Error(
+                            `Conflict: universalKey ${key.universalKey} maps to different payloads. ` +
+                            `Existing: ${JSON.stringify(existing.payload)}, New: ${JSON.stringify(payload)}`
+                        )
+                    }
+                    acc.byUniversalKey.set(key.universalKey, entry)
+                }
+
+                // Add to _byKey if key exists
+                if (key.key) {
+                    const existing = acc.byKey.get(key.key)
+                    if (existing && existing.payload !== payload) {
+                        throw new Error(
+                            `Conflict: key "${key.key}" maps to different payloads. ` +
+                            `Existing: ${JSON.stringify(existing.payload)}, New: ${JSON.stringify(payload)}`
+                        )
+                    }
+                    acc.byKey.set(key.key, entry)
+                }
+
+                return acc
+            },
+            {
+                byUniversalKey: new Map<ComponentUUID, { key: StandardKey; payload: Payload }>(),
+                byKey: new Map<string, { key: StandardKey; payload: Payload }>()
+            }
+        )
+
+        this._byUniversalKey = byUniversalKey
+        this._byKey = byKey
+    }
+
+    /**
+     * Look up a payload by StandardKey.
+     * Checks both Maps and validates consistency.
+     * 
+     * @param key - The StandardKey to look up
+     * @returns The payload if found, undefined otherwise
+     * @throws Error if both Maps have different payloads for the same key (data inconsistency)
+     */
+    lookup(key: StandardKey): Payload | undefined {
+        let universalEntry: { key: StandardKey; payload: Payload } | undefined
+        let keyEntry: { key: StandardKey; payload: Payload } | undefined
+
+        if (key.universalKey) {
+            universalEntry = this._byUniversalKey.get(key.universalKey)
+        }
+
+        if (key.key) {
+            keyEntry = this._byKey.get(key.key)
+        }
+
+        // Conflict detection: both Maps have entries but different payloads
+        if (universalEntry && keyEntry && universalEntry.payload !== keyEntry.payload) {
+            throw new Error(
+                `Data inconsistency: universalKey ${key.universalKey} and key "${key.key}" ` +
+                `map to different payloads. Universal: ${JSON.stringify(universalEntry.payload)}, ` +
+                `Key: ${JSON.stringify(keyEntry.payload)}`
+            )
+        }
+
+        // Return payload from whichever Map has it (or undefined if neither)
+        return universalEntry?.payload ?? keyEntry?.payload
+    }
+
+    /**
+     * Returns all entries (key-value pairs) in sorted order.
+     * Combines entries from both Maps, deduplicating by payload identity.
+     * 
+     * @param sortOrder - Optional custom sort function (defaults to keySortOrder)
+     * @returns Array of entries sorted by key
+     */
+    sortedOutput(
+        sortOrder?: (a: StandardKey, b: StandardKey) => number
+    ): Array<{ key: StandardKey; payload: Payload }> {
+        const sortFn = sortOrder ?? keySortOrder
+
+        // Collect all entries from _byUniversalKey using reduce
+        // Store entries in an array, we'll deduplicate by StandardKey equality
+        const entries: Array<{ key: StandardKey; payload: Payload }> = Array.from(this._byUniversalKey.values())
+
+        // Process _byKey entries: combine with universalKey entries or add as local-only
+        Array.from(this._byKey.values()).forEach(entry => {
+            // Find existing entry by checking if any key equals this entry's key
+            const existingIndex = entries.findIndex(existing => existing.key.equals(entry.key))
+            if (existingIndex >= 0) {
+                // Combine: create StandardKey with both universalKey and key
+                const existing = entries[existingIndex]
+                const combinedKey = existing.key.merge(entry.key)
+                // Update the entry with combined key, keeping the existing payload
+                entries[existingIndex] = { key: combinedKey, payload: existing.payload }
+            } else {
+                // Local-only entry - add it
+                entries.push(entry)
+            }
+        })
+
+        // Sort entries
+        entries.sort((a, b) => sortFn(a.key, b.key))
+
+        return entries
+    }
+
+    /**
+     * Add or update an entry in the map.
+     * Returns a new MapByKey instance (functional pattern).
+     * 
+     * @param key - The StandardKey for the entry
+     * @param payload - The payload to store
+     * @returns New MapByKey instance with the entry added/updated
+     */
+    add(key: StandardKey, payload: Payload): MapByKey<Payload> {
+        const entries = this.sortedOutput()
+        const existingIndex = entries.findIndex((entry) => entry.key.equals(key))
+        
+        if (existingIndex >= 0) {
+            // Update existing entry
+            entries[existingIndex] = { key: key.clone(), payload }
+        } else {
+            // Add new entry
+            entries.push({ key: key.clone(), payload })
+        }
+
+        return new MapByKey(entries)
+    }
+
+    /**
+     * Remove an entry from the map.
+     * Returns a new MapByKey instance (functional pattern).
+     * 
+     * @param key - The StandardKey to remove
+     * @returns New MapByKey instance with the entry removed
+     */
+    remove(key: StandardKey): MapByKey<Payload> {
+        const entries = this.sortedOutput()
+        const filtered = entries.filter((entry) => !entry.key.equals(key))
+        return new MapByKey(filtered)
+    }
+
+    /**
+     * Merge another MapByKey into this one.
+     * Returns a new MapByKey instance (functional pattern).
+     * Throws error on conflicts (same key mapping to different payloads).
+     * 
+     * When merging, if an incoming key matches multiple existing entries (e.g., 
+     * `{ key: 'room1', universalKey: 'ROOM#room1' }` matches both `{ key: 'room1' }` 
+     * and `{ universalKey: 'ROOM#room1' }`), all matching entries are merged into 
+     * a single entry with the combined key information.
+     * 
+     * @param other - The MapByKey to merge
+     * @returns New MapByKey instance with merged entries
+     * @throws Error if there are conflicts
+     */
+    merge(other: MapByKey<Payload>): MapByKey<Payload> {
+        const thisEntries = this.sortedOutput()
+        const otherEntries = other.sortedOutput()
+
+        const mergedEntries = otherEntries.reduce(
+            (acc, otherEntry) => {
+                // Find all entries that match the incoming key (they represent the same component)
+                const matches = acc.filter(entry => entry.key.equals(otherEntry.key))
+                
+                if (matches.length > 0) {
+                    // Check that all matching entries have the same payload
+                    const conflictingMatch = matches.find(match => match.payload !== otherEntry.payload)
+                    if (conflictingMatch) {
+                        throw new Error(
+                            `Merge conflict: StandardKey maps to different payloads. ` +
+                            `Key: ${JSON.stringify(conflictingMatch.key.toJSON())}, ` +
+                            `This payload: ${JSON.stringify(conflictingMatch.payload)}, ` +
+                            `Other payload: ${JSON.stringify(otherEntry.payload)}`
+                        )
+                    }
+                    
+                    // Merge all matching keys into one combined key
+                    const combinedKey = matches.reduce(
+                        (mergedKey, match) => mergedKey.merge(match.key),
+                        otherEntry.key.clone()
+                    )
+                    
+                    // Remove all matching entries and add the merged entry
+                    return [
+                        ...acc.filter(entry => !entry.key.equals(otherEntry.key)),
+                        { key: combinedKey, payload: otherEntry.payload }
+                    ]
+                } else {
+                    // No matches, add as new entry
+                    return [...acc, otherEntry]
+                }
+            },
+            thisEntries
+        )
+
+        return new MapByKey(mergedEntries)
     }
 }
 

@@ -98,7 +98,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key: mapKey } = options
-        const mapKeyPlain = mapKey.plain
+        const mapKeyPlain = mapKey
         
         // Process each position
         const positionSchemas = this.positions.map((position) => {
