@@ -186,8 +186,8 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
     get shortName() { return this._payload.shortName }
     get examples() { return this._payload.examples }
 
-    override removeReferences(references: StandardReference[]): StandardKnowledge {
-        return new StandardKnowledge(super.removeReferences(references) as StandardKnowledge)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardKnowledge(instance as StandardKnowledge) as this
     }
 
     override clone(): StandardKnowledge {
@@ -224,43 +224,6 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         }
         return !(this.examples.diff(incoming.examples)?.payload?.length) &&
             deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
-    }
-    
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardKnowledge(super.merge(incoming) as StandardKnowledge)
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardKnowledge(super.withKey(key) as StandardKnowledge)
-    }
-    
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardKnowledge(super.withUniversalKey(key) as StandardKnowledge)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardKnowledge(super.withFileName(key) as StandardKnowledge)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardKnowledge(super.withMapping(mapping) as StandardKnowledge)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardKnowledge(super.withImport(fromAsset) as StandardKnowledge)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardKnowledge(super.withOrigin(origin) as StandardKnowledge)
-    }
-
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardKnowledge(super.withChild(child) as StandardKnowledge)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardKnowledge(super.withExplicitParent(explicitParent) as StandardKnowledge)
     }
 
     override invert(): StandardKnowledge {

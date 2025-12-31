@@ -166,8 +166,8 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         super(props)
     }
 
-    override removeReferences(references: StandardReference[]): StandardExample {
-        return new StandardExample(super.removeReferences(references) as StandardExample)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardExample(instance as StandardExample) as this
     }
 
     override clone(): StandardExample {
@@ -181,10 +181,6 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
             return false
         }
         return deepEqual(this.toJSON(), incoming.toJSON())
-    }
-
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardExample(super.merge(incoming) as StandardExample)
     }
 
     override diff(incoming: StandardComponent): StandardComponent | undefined {
@@ -211,43 +207,6 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
         this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
         return base
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardExample(super.withKey(key) as StandardExample)
-    }
-
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardExample(super.withUniversalKey(key) as StandardExample)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardExample(super.withFileName(key) as StandardExample)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardExample(super.withMapping(mapping) as StandardExample)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardExample(super.withImport(fromAsset) as StandardExample)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardExample(super.withOrigin(origin) as StandardExample)
-    }
-
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardExample(super.withChild(child) as StandardExample)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardExample(super.withExplicitParent(explicitParent) as StandardExample)
-    }
-
-    override invert(): StandardExample {
-        return new StandardExample(super.invert() as StandardExample)
     }
 
 }

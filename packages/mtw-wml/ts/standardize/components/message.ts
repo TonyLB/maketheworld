@@ -169,8 +169,8 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
     get description() { return this._payload.description }
     get rooms() { return this._payload.rooms }
 
-    override removeReferences(references: StandardReference[]): StandardMessage {
-        return new StandardMessage(super.removeReferences(references) as StandardMessage)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardMessage(instance as StandardMessage) as this
     }
 
     override clone(): StandardMessage {
@@ -211,47 +211,6 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         const roomsDiff = this.rooms.diff(incoming.rooms) ?? new ReferenceList([])
         return !(roomsDiff.payload.length) &&
             deepEqual(this.description?.toJSON(), incoming.description?.toJSON())
-    }
-
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardMessage(super.merge(incoming) as StandardMessage)
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardMessage(super.withKey(key) as StandardMessage)
-    }
-    
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardMessage(super.withUniversalKey(key) as StandardMessage)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardMessage(super.withFileName(key) as StandardMessage)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardMessage(super.withMapping(mapping) as StandardMessage)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardMessage(super.withImport(fromAsset) as StandardMessage)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardMessage(super.withOrigin(origin) as StandardMessage)
-    }
-    
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardMessage(super.withChild(child) as StandardMessage)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardMessage(super.withExplicitParent(explicitParent) as StandardMessage)
-    }
-
-    override invert(): StandardMessage {
-        return new StandardMessage(super.invert() as StandardMessage)
     }
 
 }

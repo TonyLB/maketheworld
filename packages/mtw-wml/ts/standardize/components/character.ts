@@ -146,18 +146,14 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         super(props)
     }
 
-    override removeReferences(references: StandardReference[]): StandardCharacter {
-        return new StandardCharacter(super.removeReferences(references) as StandardCharacter)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardCharacter(instance as StandardCharacter) as this
     }
 
     override clone(): StandardCharacter {
         const returnValue = new StandardCharacter(this)
         returnValue._payload = new StandardCharacterPayload(this._payload)
         return returnValue
-    }
-
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardCharacter(super.merge(incoming) as StandardCharacter)
     }
 
     override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
@@ -185,43 +181,6 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
         this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
         return base
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardCharacter(super.withKey(key) as StandardCharacter)
-    }
-
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardCharacter(super.withUniversalKey(key) as StandardCharacter)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardCharacter(super.withFileName(key) as StandardCharacter)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardCharacter(super.withMapping(mapping) as StandardCharacter)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardCharacter(super.withImport(fromAsset) as StandardCharacter)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardCharacter(super.withOrigin(origin) as StandardCharacter)
-    }
-
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardCharacter(super.withChild(child) as StandardCharacter)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardCharacter(super.withExplicitParent(explicitParent) as StandardCharacter)
-    }
-
-    override invert(): StandardCharacter {
-        return new StandardCharacter(super.invert() as StandardCharacter)
     }
 
 }

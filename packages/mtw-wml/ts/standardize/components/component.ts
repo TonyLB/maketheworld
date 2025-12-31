@@ -181,10 +181,14 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             // (it's no longer used, but old data may still contain it)
         }
 
+        _wrap(instance: GeneratedComponentClass): this {
+            return instance as this
+        }
+
         withMapping(mapping: StandardReference[]): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             returnValue._mapping = mapping
-            return returnValue as StandardComponent
+            return this._wrap(returnValue)
         }
         get key(): string | undefined {
             if (!this._key) return undefined
@@ -219,7 +223,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (key.key) {
                 returnValue._key = new StandardExplicitKey(key.key)
             }
-            return returnValue as this
+            return this._wrap(returnValue)
         }
         get fileName(): string | undefined { return undefined }
         get tag(): ComponentTag { return this._payload.tag }
@@ -242,20 +246,20 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         get origin(): AssetUUID[] | undefined { return this._origin }
 
         clone(): StandardComponent {
-            return new GeneratedComponentClass(this)
+            return this._wrap(new GeneratedComponentClass(this))
         }
 
         mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): StandardComponent {
             const returnValue = this.clone() as GeneratedComponentClass
             returnValue._payload = returnValue._payload.mapContents(callback)
-            return returnValue
+            return this._wrap(returnValue)
         }
 
         remapReferences(mapTo): this {
             if (this._payload.remapReferences) {
                 const returnValue = this.clone() as GeneratedComponentClass
                 returnValue._payload = returnValue._payload.remapReferences?.({ mapTo, mappings: this._mapping ?? [] }) ?? returnValue._payload
-                return returnValue as this
+                return this._wrap(returnValue)
             }
             return this
         }
@@ -385,7 +389,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 returnValue.explicitParent = this.explicitParent ?? (incoming as any).explicitParent
             }
 
-            return returnValue as StandardComponent
+            return this._wrap(returnValue)
         }
 
         /**
@@ -522,7 +526,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             this._applyKeyDiffToComponent(base, incoming, keyDiff)
             // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
             this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
-            return base as StandardComponent
+            return this._wrap(base)
         }
 
         subset(options: StandardFormSubsetRequest): StandardComponent {
@@ -530,25 +534,25 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             returnValue._key = this._key ? new StandardExplicitKey(this._key) : undefined
             returnValue._universalKey = this._universalKey
             returnValue._payload = this._payload.subset(options)
-            return returnValue
+            return this._wrap(returnValue)
         }
 
         withKey(key: string): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             returnValue._key = new StandardExplicitKey(key)
-            return returnValue
+            return this._wrap(returnValue)
         }
 
         withUniversalKey(key: ComponentUUID | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             returnValue._universalKey = key
-            return returnValue
+            return this._wrap(returnValue)
         }
 
         withFileName(key: string | undefined): StandardComponent {
             const returnValue = new GeneratedComponentClass(this)
             // returnValue._key._fileName = key
-            return returnValue
+            return this._wrap(returnValue)
         }
 
         withChild(child: StandardReference): StandardComponent {
@@ -556,7 +560,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (returnValue._payload.withChild) {
                 returnValue._payload = returnValue._payload.withChild(child)
             }
-            return returnValue
+            return this._wrap(returnValue)
         }
 
         withImport(fromAsset: AssetUUID): StandardComponent {
@@ -568,13 +572,13 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         withOrigin(origin: AssetUUID[] | undefined): StandardComponent {
             const returnValue = this.clone() as GeneratedComponentClass
             returnValue._origin = origin
-            return returnValue
+            return this._wrap(returnValue)
         }
 
         withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
             const returnValue = this.clone() as GeneratedComponentClass
             returnValue.explicitParent = explicitParent ? new StandardExplicitParent(explicitParent) : undefined
-            return returnValue
+            return this._wrap(returnValue)
         }
 
         invert(): StandardComponent {
@@ -599,7 +603,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (this.explicitParent) {
                 returnValue.explicitParent = this.explicitParent.invert()
             }
-            return returnValue as StandardComponent
+            return this._wrap(returnValue)
         }
 
         assureReferences(children: StandardReference[]): StandardComponent {
@@ -609,7 +613,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 returnValue._payload = this._payload.assureReferences(children) as InstanceType<typeof Base>
             }
             // If payload doesn't have assureReferences, return instance unchanged
-            return returnValue as StandardComponent
+            return this._wrap(returnValue)
         }
 
         removeReferences(references: StandardReference[]): StandardComponent {
@@ -619,7 +623,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 returnValue._payload = this._payload.removeReferences(references) as InstanceType<typeof Base>
             }
             // If payload doesn't have removeReferences, return instance unchanged
-            return returnValue as StandardComponent
+            return this._wrap(returnValue)
         }
 
         isEmpty(): boolean {

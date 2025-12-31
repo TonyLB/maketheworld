@@ -289,8 +289,8 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         super(props)
     }
 
-    override removeReferences(references: StandardReference[]): StandardRoom {
-        return new StandardRoom(super.removeReferences(references) as StandardRoom)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardRoom(instance as StandardRoom) as this
     }
 
     override clone(): StandardRoom {
@@ -308,51 +308,6 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
             !(this.characters.diff(incoming.characters)?.payload.length) &&
             !(diffStandardExitList(this.exits, incoming.exits).length) &&
             deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
-    }
-
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardRoom(super.merge(incoming) as StandardRoom)
-    }
-
-    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        const diff = super.diff(incoming)
-        if (diff) {
-            return new StandardRoom(diff as StandardRoom)
-        }
-        return undefined
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardRoom(super.withKey(key) as StandardRoom)
-    }
-
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardRoom(super.withUniversalKey(key) as StandardRoom)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardRoom(super.withFileName(key) as StandardRoom)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardRoom(super.withMapping(mapping) as StandardRoom)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardRoom(super.withImport(fromAsset) as StandardRoom)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardRoom(super.withOrigin(origin) as StandardRoom)
-    }
-
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardRoom(super.withChild(child) as StandardRoom)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardRoom(super.withExplicitParent(explicitParent) as StandardRoom)
     }
 
 }
