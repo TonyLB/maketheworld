@@ -169,6 +169,17 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         
         return returnValue as this
     }
+
+    removeReferences(references: StandardReference[]): this {
+        const returnValue = new StandardKnowledgePayload(this)
+        
+        // Filter reference list by removing items that match any reference in the input
+        returnValue._examples = this._examples.filter(
+            item => !references.some(ref => item.sameKey(ref))
+        )
+        
+        return returnValue as this
+    }
 }
 
 export class StandardKnowledge extends componentClassFactory(StandardKnowledgePayload, 'StandardKnowledge') {

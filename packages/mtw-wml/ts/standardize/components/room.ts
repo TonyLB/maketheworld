@@ -183,6 +183,23 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
+    removeReferences(references: StandardReference[]): this {
+        const returnValue = new StandardRoomPayload(this)
+        
+        // Filter reference lists by removing items that match any reference in the input
+        returnValue._features = this._features.filter(
+            item => !references.some(ref => item.sameKey(ref))
+        )
+        returnValue._examples = this._examples.filter(
+            item => !references.some(ref => item.sameKey(ref))
+        )
+        returnValue._characters = this._characters.filter(
+            item => !references.some(ref => item.sameKey(ref))
+        )
+        
+        return returnValue as this
+    }
+
     subset({ requestType }): this {
         if (requestType === 'Full') {
             return new StandardRoomPayload(this) as this

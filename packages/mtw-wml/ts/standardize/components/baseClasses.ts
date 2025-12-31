@@ -66,5 +66,10 @@ export interface StandardComponent {
      * See AGENT.implementation.md for detailed documentation.
      */
     assureReferences(children: StandardReference[]): StandardComponent;
+    /**
+     * Removes matching references from the component's reference lists.
+     * Delegates to payload's removeReferences if available, otherwise returns instance unchanged.
+     */
+    removeReferences(references: StandardReference[]): StandardComponent;
     isEmpty(): boolean;
 }

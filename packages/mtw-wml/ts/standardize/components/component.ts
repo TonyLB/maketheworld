@@ -54,6 +54,10 @@ export interface ComponentConstructorMethods<D> {
      * See AGENT.implementation.md for detailed documentation.
      */
     assureReferences?(children: StandardReference[]): this;
+    /**
+     * Removes matching references from the component's reference lists.
+     */
+    removeReferences?(references: StandardReference[]): this;
     isEmpty?(): boolean;
 }
 
@@ -605,6 +609,16 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 returnValue._payload = this._payload.assureReferences(children) as InstanceType<typeof Base>
             }
             // If payload doesn't have assureReferences, return instance unchanged
+            return returnValue as StandardComponent
+        }
+
+        removeReferences(references: StandardReference[]): StandardComponent {
+            const returnValue = new GeneratedComponentClass(this)
+            // Delegate to payload if it has removeReferences method
+            if (this._payload.removeReferences && typeof this._payload.removeReferences === 'function') {
+                returnValue._payload = this._payload.removeReferences(references) as InstanceType<typeof Base>
+            }
+            // If payload doesn't have removeReferences, return instance unchanged
             return returnValue as StandardComponent
         }
 

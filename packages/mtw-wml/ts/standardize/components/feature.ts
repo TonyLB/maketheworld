@@ -168,6 +168,17 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         
         return returnValue as this
     }
+
+    removeReferences(references: StandardReference[]): this {
+        const returnValue = new StandardFeaturePayload(this)
+        
+        // Filter reference list by removing items that match any reference in the input
+        returnValue._examples = this._examples.filter(
+            item => !references.some(ref => item.sameKey(ref))
+        )
+        
+        return returnValue as this
+    }
 }
 
 export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {

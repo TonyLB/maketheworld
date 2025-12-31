@@ -147,6 +147,17 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         return returnValue as this
     }
 
+    removeReferences(references: StandardReference[]): this {
+        const returnValue = new StandardMomentPayload(this)
+        
+        // Filter reference list by removing items that match any reference in the input
+        returnValue._messages = this._messages.filter(
+            item => !references.some(ref => item.sameKey(ref))
+        )
+        
+        return returnValue as this
+    }
+
 }
 
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {

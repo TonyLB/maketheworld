@@ -1276,4 +1276,65 @@ describe('StandardRoom class', () => {
         })
     })
 
+    describe('removeReferences method', () => {
+        it('should remove matching references from all buckets', () => {
+            const room = new StandardRoom(deIndentWML(`
+                <Room key=(test)>
+                    <Feature key=(feat1) />
+                    <Feature key=(feat2) />
+                    <Example key=(ex1) />
+                    <Character key=(char1) />
+                </Room>
+            `))
+            const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            
+            const result = room._payload.removeReferences([featureRef, exampleRef])
+            
+            // Verify matching references were removed
+            expect(result.features.payload.length).toBe(1)
+            expect(result.features.payload[0].sameKey(new StandardReference({ tag: 'Feature', key: 'feat2' }))).toBe(true)
+            
+            expect(result.examples.payload.length).toBe(0)
+            
+            // Verify non-matching references were preserved
+            expect(result.characters.payload.length).toBe(1)
+            expect(result.characters.payload[0].sameKey(new StandardReference({ tag: 'Character', key: 'char1' }))).toBe(true)
+        })
+        
+        it('should return a clone without mutating the original', () => {
+            const room = new StandardRoom(deIndentWML(`
+                <Room key=(test)>
+                    <Feature key=(feat1) />
+                </Room>
+            `))
+            const originalFeaturesLength = room._payload.features.payload.length
+            const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
+            
+            const result = room._payload.removeReferences([featureRef])
+            
+            // Original should be unchanged
+            expect(room._payload.features.payload.length).toBe(originalFeaturesLength)
+            // Result should have the reference removed
+            expect(result.features.payload.length).toBe(0)
+            // They should be different objects
+            expect(result).not.toBe(room._payload)
+        })
+        
+        it('should return unchanged when references array is empty', () => {
+            const room = new StandardRoom(deIndentWML(`
+                <Room key=(test)>
+                    <Feature key=(feat1) />
+                </Room>
+            `))
+            
+            const result = room._payload.removeReferences([])
+            
+            // All references should be preserved
+            expect(result.features.payload.length).toBe(1)
+            expect(result.examples.payload.length).toBe(0)
+            expect(result.characters.payload.length).toBe(0)
+        })
+    })
+
 })

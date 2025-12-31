@@ -834,6 +834,10 @@ export class ReferenceList {
         return returnValue
     }
 
+    filter(predicate: (item: StandardReference) => boolean): ReferenceList {
+        return new ReferenceList(this._items.filter(predicate))
+    }
+
     toFormat(format: ReferenceFormat, mappings?: LookupMappings): ReferenceList {
         // First lookup if mappings provided
         const list = mappings ? this.lookup(mappings) : this

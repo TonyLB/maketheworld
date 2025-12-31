@@ -17,6 +17,8 @@
 import { StandardRoom } from './room'
 import { GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
+import StandardReference from './reference'
+import { deIndentWML } from '../../schema/utils'
 
 // Type for schema data that includes origin property
 type SchemaWithOrigin = SchemaTag & {
@@ -101,5 +103,38 @@ describe('componentClassFactory origin handling (via StandardRoom)', () => {
         
         const schema = room.schema
         expect((schema.data as SchemaWithOrigin).origin).toEqual([])
+    })
+})
+
+describe('componentClassFactory removeReferences delegation (via StandardRoom)', () => {
+    it('should delegate removeReferences to payload', () => {
+        const room = new StandardRoom(deIndentWML(`
+            <Room key=(test)>
+                <Feature key=(feat1) />
+                <Example key=(ex1) />
+            </Room>
+        `))
+        const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
+        
+        const result = room.removeReferences([featureRef]) as StandardRoom
+        
+        // Verify feature was removed
+        expect(result.features).toBeUndefined()
+        // Verify example was preserved
+        expect(result.examples.payload.length).toBe(1)
+        // Verify original is unchanged
+        expect(room.features.payload.length).toBe(1)
+    })
+    
+    it('should return unchanged component when payload does not implement removeReferences', () => {
+        // Components without reference lists should return unchanged
+        const room = new StandardRoom({ tag: 'Room', key: 'test' })
+        const original = room.clone()
+        
+        const result = room.removeReferences([new StandardReference({ tag: 'Feature', key: 'feat1' })])
+        
+        // Should return a clone (not mutate original)
+        expect(result).not.toBe(room)
+        expect(result).not.toBe(original)
     })
 })
