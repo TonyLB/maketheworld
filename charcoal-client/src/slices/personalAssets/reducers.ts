@@ -98,15 +98,10 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         }
     }
     if (isUpdateStandardPayloadRemoveComponent(payload)) {
-        const localStandardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
-            const editStandardized = new StandardForm(pendingEdit.edit)
-            return previous.merge(editStandardized)
-        }, base).merge(new StandardForm(state.edit))
-        const componentRemoved = localStandardForm._clone()
-        componentRemoved._components = componentRemoved._components.filter((component) => (
-            component.universalKey !== payload.componentKey &&
-            !(component._key.context ?? []).some((contextItem) => (contextItem.equals(new StandardKey(payload.componentKey))))
-        ))
+        // Create a StandardReference from the componentKey (ComponentUUID string)
+        const componentReference = new StandardReference(payload.componentKey)
+        // Remove the component with cascade to also remove sub-components
+        const componentRemoved = localStandardForm.removeComponent(componentReference, { cascade: true })
         const diff = localStandardForm.diff(componentRemoved)
         if (diff) {
             mergeToEdit(diff)
