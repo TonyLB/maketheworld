@@ -47,21 +47,24 @@ describe('RoomDescription', () => {
                     'CHARACTER#test': {
                         Assets: []
                     }
-                },
-                playerDataSource: {
-                    publicData: {
-                        subscribedStreams: {
-                            'test-player': {
-                                materializedView: {
-                                    type: 'Snapshot',
-                                    assets: [
-                                        {
-                                            AssetId: draftAssetId,
-                                            zone: 'Draft'
-                                        }
-                                    ],
-                                    characters: [],
-                                    settings: {}
+                }
+            },
+            playerDataSource: {
+                publicData: {
+                    activeStreamKeys: [],
+                    subscribedStreams: {
+                        'test-player': {
+                            materializedView: {
+                                type: 'Snapshot',
+                                assets: [
+                                    {
+                                        AssetId: draftAssetId,
+                                        zone: 'Draft'
+                                    }
+                                ],
+                                characters: [],
+                                settings: {
+                                    onboardCompleteTags: []
                                 }
                             }
                         }
@@ -81,7 +84,18 @@ describe('RoomDescription', () => {
                 activeCharacter: 'CHARACTER#test'
             },
             settings: {
-                PlayerName: 'test-player'
+                server: {
+                    ChatPrompt: 'What do you do?'
+                },
+                client: {
+                    TextEntryLines: 1,
+                    ShowNeighborhoodHeaders: false,
+                    AlwaysShowOnboarding: false
+                },
+                connection: {
+                    sessionId: '',
+                    playerName: 'test-player'
+                }
             },
             lifeLine: {}
         })

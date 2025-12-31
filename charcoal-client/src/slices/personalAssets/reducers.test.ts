@@ -16,14 +16,16 @@ describe('personalAsset slice reducers', () => {
         const editSchema = new Schema()
         editSchema.loadWML(editWML)
         const editStandardized = new StandardForm(editSchema.schema[0])
+        const standardizedJSON = standardized.toJSON()
         const newState = produce(
             {
                 inherited: {
-                    ...standardized.toJSON(),
-                    components: []
+                    universalKey: standardizedJSON.universalKey,
+                    components: [],
+                    metaData: standardizedJSON.metaData || []
                 },
-                base: standardized.toJSON(),
-                standard: standardized.toJSON(),
+                base: standardizedJSON,
+                standard: standardizedJSON,
                 edit: editStandardized.toJSON(),
                 pendingEdits: []
             },
@@ -102,11 +104,9 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(testRoom)>
-                            <Example uuid=(base)>
-                                <Replace><Name>Room</Name></Replace><With><Name>Update</Name></With>
-                            </Example>
-                        </Room>
+                        <Example uuid=(base) ref={0}>
+                            <Replace><Name>Room</Name></Replace><With><Name>Update</Name></With>
+                        </Example>
                     </Asset>
                 `)
             })
@@ -227,9 +227,9 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(testRoom)>
-                            <Example uuid=(base)><Remove><Name>Test Room</Name></Remove></Example>
-                        </Room>
+                        <Example uuid=(base) ref={0}>
+                            <Remove><Name>Test Room</Name></Remove>
+                        </Example>
                     </Asset>
                 `)
             })
@@ -387,7 +387,7 @@ describe('personalAsset slice reducers', () => {
             expect(transformWML(
                 `
                 <Asset uuid=(testAsset)>
-                    <Feature uuid=(Feature1)>
+                    <Feature uuid=(Feature1) key=(Feature1)>
                         <Example uuid=(base)>
                             <Name>Test Feature</Name>
                             <Description><Link to=(Feature1)>Link</Link></Description>

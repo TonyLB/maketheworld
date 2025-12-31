@@ -67,6 +67,30 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             // Add minimal reducers for testing
             personalAssets: (state = {}) => state,
             player: (state = {}) => state,
+            playerDataSource: (state = {}) => state,
+            settings: (state = {}) => state,
+        },
+        preloadedState: {
+            playerDataSource: {
+                publicData: {
+                    activeStreamKeys: [],
+                    subscribedStreams: {}
+                }
+            },
+            settings: {
+                server: {
+                    ChatPrompt: 'What do you do?'
+                },
+                client: {
+                    TextEntryLines: 1,
+                    ShowNeighborhoodHeaders: false,
+                    AlwaysShowOnboarding: false
+                },
+                connection: {
+                    sessionId: '',
+                    playerName: ''
+                }
+            }
         }
     })
     

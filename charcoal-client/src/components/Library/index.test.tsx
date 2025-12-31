@@ -51,6 +51,38 @@ const createTestAsset = (assetId: string, zone: string, shortName?: string): Ass
 // Helper to get proper libraryDataSource initial state
 const getLibraryDataSourceState = () => libraryDataSourceSlice.getInitialState()
 
+// Helper to create store with all required slices
+const createTestStore = (overrides: any = {}) => mockStore({
+    player: {
+        publicData: {
+            Assets: [],
+            Characters: []
+        }
+    },
+    libraryDataSource: getLibraryDataSourceState(),
+    playerDataSource: {
+        publicData: {
+            activeStreamKeys: [],
+            subscribedStreams: {}
+        }
+    },
+    settings: {
+        server: {
+            ChatPrompt: 'What do you do?'
+        },
+        client: {
+            TextEntryLines: 1,
+            ShowNeighborhoodHeaders: false,
+            AlwaysShowOnboarding: false
+        },
+        connection: {
+            sessionId: '',
+            playerName: ''
+        }
+    },
+    ...overrides
+})
+
 const TestWrapper: React.FunctionComponent<{ children: React.ReactNode; store: any }> = ({ children, store }) => {
     const theme = createTheme()
     return (
@@ -71,20 +103,12 @@ describe('Library - Multi-Draft Feature', () => {
         vi.clearAllMocks()
         vi.resetAllMocks()
         
-        store = mockStore({
-            player: {
-                publicData: {
-                    Assets: [],
-                    Characters: []
-                }
-            },
-            libraryDataSource: getLibraryDataSourceState()
-        })
+        store = createTestStore()
     })
 
     describe('Tab Filtering', () => {
         it('should display both Drafts and Assets tabs', () => {
-            store = mockStore({
+            store = createTestStore({
                 player: {
                     publicData: {
                         Assets: [
@@ -93,8 +117,7 @@ describe('Library - Multi-Draft Feature', () => {
                         ],
                         Characters: []
                     }
-                },
-                libraryDataSource: getLibraryDataSourceState()
+                }
             })
 
             render(
@@ -119,7 +142,27 @@ describe('Library - Multi-Draft Feature', () => {
                         Characters: []
                     }
                 },
-                libraryDataSource: getLibraryDataSourceState()
+                libraryDataSource: getLibraryDataSourceState(),
+                playerDataSource: {
+                    publicData: {
+                        activeStreamKeys: [],
+                        subscribedStreams: {}
+                    }
+                },
+                settings: {
+                    server: {
+                        ChatPrompt: 'What do you do?'
+                    },
+                    client: {
+                        TextEntryLines: 1,
+                        ShowNeighborhoodHeaders: false,
+                        AlwaysShowOnboarding: false
+                    },
+                    connection: {
+                        sessionId: '',
+                        playerName: ''
+                    }
+                }
             })
 
             render(
@@ -134,7 +177,7 @@ describe('Library - Multi-Draft Feature', () => {
         })
 
         it('should filter to show only Draft zone assets in Drafts tab', () => {
-            store = mockStore({
+            store = createTestStore({
                 player: {
                     publicData: {
                         Assets: [
@@ -145,8 +188,7 @@ describe('Library - Multi-Draft Feature', () => {
                         ],
                         Characters: []
                     }
-                },
-                libraryDataSource: getLibraryDataSourceState()
+                }
             })
 
             render(
@@ -163,7 +205,7 @@ describe('Library - Multi-Draft Feature', () => {
         })
 
         it('should filter to show only Personal zone assets in Assets tab', () => {
-            store = mockStore({
+            store = createTestStore({
                 player: {
                     publicData: {
                         Assets: [
@@ -174,8 +216,7 @@ describe('Library - Multi-Draft Feature', () => {
                         ],
                         Characters: []
                     }
-                },
-                libraryDataSource: getLibraryDataSourceState()
+                }
             })
 
             render(
@@ -196,7 +237,7 @@ describe('Library - Multi-Draft Feature', () => {
         })
 
         it('should handle empty Drafts tab gracefully', () => {
-            store = mockStore({
+            store = createTestStore({
                 player: {
                     publicData: {
                         Assets: [
@@ -204,8 +245,7 @@ describe('Library - Multi-Draft Feature', () => {
                         ],
                         Characters: []
                     }
-                },
-                libraryDataSource: getLibraryDataSourceState()
+                }
             })
 
             render(
@@ -221,7 +261,7 @@ describe('Library - Multi-Draft Feature', () => {
 
     describe('Card Display', () => {
         it('should display ShortName when available', () => {
-            store = mockStore({
+            store = createTestStore({
                 player: {
                     publicData: {
                         Assets: [
@@ -229,8 +269,7 @@ describe('Library - Multi-Draft Feature', () => {
                         ],
                         Characters: []
                     }
-                },
-                libraryDataSource: getLibraryDataSourceState()
+                }
             })
 
             render(
@@ -243,7 +282,7 @@ describe('Library - Multi-Draft Feature', () => {
         })
 
         it('should display fallback label when ShortName is missing', () => {
-            store = mockStore({
+            store = createTestStore({
                 player: {
                     publicData: {
                         Assets: [
@@ -251,8 +290,7 @@ describe('Library - Multi-Draft Feature', () => {
                         ],
                         Characters: []
                     }
-                },
-                libraryDataSource: getLibraryDataSourceState()
+                }
             })
 
             render(
@@ -267,7 +305,7 @@ describe('Library - Multi-Draft Feature', () => {
 
         it('should show Summary when available', () => {
             const summaryText = 'This is a test summary'
-            store = mockStore({
+            store = createTestStore({
                 player: {
                     publicData: {
                         Assets: [
@@ -280,8 +318,7 @@ describe('Library - Multi-Draft Feature', () => {
                         ],
                         Characters: []
                     }
-                },
-                libraryDataSource: getLibraryDataSourceState()
+                }
             })
 
             render(
@@ -296,14 +333,13 @@ describe('Library - Multi-Draft Feature', () => {
 
     describe('Create Draft Placeholder', () => {
         it('should show create draft placeholder in Drafts tab', () => {
-            store = mockStore({
+            store = createTestStore({
                 player: {
                     publicData: {
                         Assets: [],
                         Characters: []
                     }
-                },
-                libraryDataSource: getLibraryDataSourceState()
+                }
             })
 
             render(
@@ -316,7 +352,7 @@ describe('Library - Multi-Draft Feature', () => {
         })
 
         it('should not show create draft placeholder in Assets tab', () => {
-            store = mockStore({
+            store = createTestStore({
                 player: {
                     publicData: {
                         Assets: [
@@ -324,8 +360,7 @@ describe('Library - Multi-Draft Feature', () => {
                         ],
                         Characters: []
                     }
-                },
-                libraryDataSource: getLibraryDataSourceState()
+                }
             })
 
             render(
