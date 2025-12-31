@@ -117,10 +117,6 @@ export class StandardKey implements StandardEditablePayload<StandardKeyData> {
         return returnValue
     }
 
-    get plain(): StandardKey {
-        return this.clone()
-    }
-
     toFormat(format: ReferenceFormat): StandardKey {
         if (format === 'both') {
             return this.clone()
@@ -138,8 +134,8 @@ export class StandardKey implements StandardEditablePayload<StandardKeyData> {
         }
         return returnValue
     }
-}
 
+}
 
 export const standardReferenceDeserialize = (incoming: StandardReferenceData): Exclude<StandardReferenceData, string> => {
     if (typeof incoming === 'string') {
@@ -1089,33 +1085,26 @@ export class MapByKey<Payload> {
         const sortFn = sortOrder ?? keySortOrder
 
         // Collect all entries from _byUniversalKey using reduce
-        const entriesByPayload = Array.from(this._byUniversalKey.values()).reduce(
-            (acc, entry) => {
-                acc.set(entry.payload, entry)
-                return acc
-            },
-            new Map<Payload, { key: StandardKey; payload: Payload }>()
-        )
+        // Store entries in an array, we'll deduplicate by StandardKey equality
+        const entries: Array<{ key: StandardKey; payload: Payload }> = Array.from(this._byUniversalKey.values())
 
-        // Process _byKey entries: combine with universalKey entries or add as local-only using reduce
-        const finalEntries = Array.from(this._byKey.values()).reduce(
-            (acc, entry) => {
-                const existing = acc.get(entry.payload)
-                if (existing) {
-                    // Combine: create StandardKey with both universalKey and key
-                    const combinedKey = existing.key.merge(entry.key)
-                    acc.set(entry.payload, { key: combinedKey, payload: entry.payload })
-                } else {
-                    // Local-only entry
-                    acc.set(entry.payload, entry)
-                }
-                return acc
-            },
-            entriesByPayload
-        )
+        // Process _byKey entries: combine with universalKey entries or add as local-only
+        Array.from(this._byKey.values()).forEach(entry => {
+            // Find existing entry by checking if any key equals this entry's key
+            const existingIndex = entries.findIndex(existing => existing.key.equals(entry.key))
+            if (existingIndex >= 0) {
+                // Combine: create StandardKey with both universalKey and key
+                const existing = entries[existingIndex]
+                const combinedKey = existing.key.merge(entry.key)
+                // Update the entry with combined key, keeping the existing payload
+                entries[existingIndex] = { key: combinedKey, payload: existing.payload }
+            } else {
+                // Local-only entry - add it
+                entries.push(entry)
+            }
+        })
 
-        // Convert to array and sort
-        const entries = Array.from(finalEntries.values())
+        // Sort entries
         entries.sort((a, b) => sortFn(a.key, b.key))
 
         return entries
@@ -1162,6 +1151,11 @@ export class MapByKey<Payload> {
      * Returns a new MapByKey instance (functional pattern).
      * Throws error on conflicts (same key mapping to different payloads).
      * 
+     * When merging, if an incoming key matches multiple existing entries (e.g., 
+     * `{ key: 'room1', universalKey: 'ROOM#room1' }` matches both `{ key: 'room1' }` 
+     * and `{ universalKey: 'ROOM#room1' }`), all matching entries are merged into 
+     * a single entry with the combined key information.
+     * 
      * @param other - The MapByKey to merge
      * @returns New MapByKey instance with merged entries
      * @throws Error if there are conflicts
@@ -1169,30 +1163,42 @@ export class MapByKey<Payload> {
     merge(other: MapByKey<Payload>): MapByKey<Payload> {
         const thisEntries = this.sortedOutput()
         const otherEntries = other.sortedOutput()
-        const mergedEntries: Array<{ key: StandardKey; payload: Payload }> = []
 
-        // Add entries from this map
-        for (const entry of thisEntries) {
-            mergedEntries.push(entry)
-        }
-
-        // Add entries from other map, checking for conflicts
-        for (const otherEntry of otherEntries) {
-            const matchingEntry = mergedEntries.find((entry) => entry.key.equals(otherEntry.key))
-            if (matchingEntry) {
-                if (matchingEntry.payload !== otherEntry.payload) {
-                    throw new Error(
-                        `Merge conflict: StandardKey maps to different payloads. ` +
-                        `Key: ${JSON.stringify(matchingEntry.key.toJSON())}, ` +
-                        `This payload: ${JSON.stringify(matchingEntry.payload)}, ` +
-                        `Other payload: ${JSON.stringify(otherEntry.payload)}`
+        const mergedEntries = otherEntries.reduce(
+            (acc, otherEntry) => {
+                // Find all entries that match the incoming key (they represent the same component)
+                const matches = acc.filter(entry => entry.key.equals(otherEntry.key))
+                
+                if (matches.length > 0) {
+                    // Check that all matching entries have the same payload
+                    const conflictingMatch = matches.find(match => match.payload !== otherEntry.payload)
+                    if (conflictingMatch) {
+                        throw new Error(
+                            `Merge conflict: StandardKey maps to different payloads. ` +
+                            `Key: ${JSON.stringify(conflictingMatch.key.toJSON())}, ` +
+                            `This payload: ${JSON.stringify(conflictingMatch.payload)}, ` +
+                            `Other payload: ${JSON.stringify(otherEntry.payload)}`
+                        )
+                    }
+                    
+                    // Merge all matching keys into one combined key
+                    const combinedKey = matches.reduce(
+                        (mergedKey, match) => mergedKey.merge(match.key),
+                        otherEntry.key.clone()
                     )
+                    
+                    // Remove all matching entries and add the merged entry
+                    return [
+                        ...acc.filter(entry => !entry.key.equals(otherEntry.key)),
+                        { key: combinedKey, payload: otherEntry.payload }
+                    ]
+                } else {
+                    // No matches, add as new entry
+                    return [...acc, otherEntry]
                 }
-                // Same payload, skip duplicate
-                continue
-            }
-            mergedEntries.push(otherEntry)
-        }
+            },
+            thisEntries
+        )
 
         return new MapByKey(mergedEntries)
     }

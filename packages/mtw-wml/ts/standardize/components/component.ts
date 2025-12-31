@@ -305,7 +305,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             
             // Check if component should be rendered based on its parent context using OrganizationContext helper
             const targetStandardKey = target.standardKey
-            const isParentContextResult = options.organization?.isParentContext(targetStandardKey.plain, options.parent) ?? false
+            const isParentContextResult = options.organization?.isParentContext(targetStandardKey, options.parent) ?? false
             const shouldRender = isParentContextResult
             
             if (!shouldRender) {
@@ -314,7 +314,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             }
             
             // Pass the current component's StandardKey to children
-            const contextKey = targetStandardKey.plain
+            const contextKey = targetStandardKey
             const payload = target._payload.nestedSchema
                 ? target._payload.nestedSchema(lookup, { ...options, key: contextKey, parent: contextKey, mappings: target._mapping })
                 : target._payload.schema(target.key, target.universalKey, target._mapping)

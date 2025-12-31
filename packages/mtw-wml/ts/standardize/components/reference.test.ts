@@ -605,6 +605,23 @@ describe('MapByKey', () => {
             ]
             expect(() => new MapByKey(entries)).toThrow('Conflict: key')
         })
+
+        it('should merge keys when they are discovered to be shared', () => {
+            const entries = [
+                { key: new StandardKey({ key: 'room1' }), payload: 'payload1' },
+                { key: new StandardKey({ universalKey: 'ROOM#room1' }), payload: 'payload1' },
+                { key: new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' }), payload: 'payload1' }
+            ]
+            const map = new MapByKey(entries)
+            expect(map.lookup(new StandardKey({ key: 'room1' }))).toBe('payload1')
+            expect(map.lookup(new StandardKey({ universalKey: 'ROOM#room1' }))).toBe('payload1')
+            expect(map.lookup(new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' }))).toBe('payload1')
+            const sorted = map.sortedOutput()
+            expect(sorted.length).toBe(1)
+            expect(sorted[0].payload).toBe('payload1')
+            expect(sorted[0].key.key).toBe('room1')
+            expect(sorted[0].key.universalKey).toBe('ROOM#room1')
+        })
     })
 
     describe('lookup', () => {
@@ -704,21 +721,6 @@ describe('MapByKey', () => {
             expect(sorted1).toEqual(sorted2)
         })
 
-        it('should deduplicate entries that exist in both Maps (same payload, different key types)', () => {
-            // Create entries where same payload appears with both universalKey and key
-            const entries = [
-                { key: new StandardKey({ universalKey: 'ROOM#room1' }), payload: 'payload1' },
-                { key: new StandardKey({ key: 'room1' }), payload: 'payload1' }
-            ]
-            const map = new MapByKey(entries)
-            const sorted = map.sortedOutput()
-            
-            // Should have only one entry, with combined key
-            expect(sorted.length).toBe(1)
-            expect(sorted[0].payload).toBe('payload1')
-            expect(sorted[0].key.universalKey).toBe('ROOM#room1')
-            expect(sorted[0].key.key).toBe('room1')
-        })
     })
 
     describe('mutations', () => {
@@ -729,6 +731,21 @@ describe('MapByKey', () => {
             expect(map1).not.toBe(map2)
             expect(map2.lookup(new StandardKey({ key: 'room1' }))).toBe('payload1')
             expect(map1.lookup(new StandardKey({ key: 'room1' }))).toBeUndefined()
+        })
+
+        it('should merge keys on resolving add', () => {
+            const map1 = new MapByKey([
+                { key: new StandardKey({ key: 'room1' }), payload: 'payload1' },
+                { key: new StandardKey({ universalKey: 'ROOM#room1' }), payload: 'payload1' }
+            ])
+            const map2 = map1.add(new StandardKey({ universalKey: 'ROOM#room1', key: 'room1' }), 'payload1')
+            expect(map2.lookup(new StandardKey({ key: 'room1' }))).toBe('payload1')
+            expect(map2.lookup(new StandardKey({ universalKey: 'ROOM#room1' }))).toBe('payload1')
+            const sorted = map2.sortedOutput()
+            expect(sorted.length).toBe(1)
+            expect(sorted[0].payload).toBe('payload1')
+            expect(sorted[0].key.key).toBe('room1')
+            expect(sorted[0].key.universalKey).toBe('ROOM#room1')
         })
 
         it('should update existing entry in both Maps', () => {
@@ -773,6 +790,26 @@ describe('MapByKey', () => {
             
             expect(merged.lookup(new StandardKey({ key: 'room1' }))).toBe('payload1')
             expect(merged.lookup(new StandardKey({ key: 'room2' }))).toBe('payload2')
+        })
+
+        it('should merge keys correctly on merge of resolving key', () => {
+            const map1 = new MapByKey([
+                { key: new StandardKey({ key: 'room1' }), payload: 'payload1' },
+                { key: new StandardKey({ universalKey: 'ROOM#room1' }), payload: 'payload1' }
+            ])
+            const map2 = new MapByKey([
+                { key: new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' }), payload: 'payload1' }
+            ])
+
+            const merged = map1.merge(map2)
+            expect(merged.lookup(new StandardKey({ key: 'room1' }))).toBe('payload1')
+            expect(merged.lookup(new StandardKey({ universalKey: 'ROOM#room1' }))).toBe('payload1')
+            expect(merged.lookup(new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' }))).toBe('payload1')
+            const sorted = merged.sortedOutput()
+            expect(sorted.length).toBe(1)
+            expect(sorted[0].payload).toBe('payload1')
+            expect(sorted[0].key.key).toBe('room1')
+            expect(sorted[0].key.universalKey).toBe('ROOM#room1')
         })
 
         it('should throw error on merge conflicts', () => {

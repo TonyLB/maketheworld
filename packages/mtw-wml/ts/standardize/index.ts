@@ -1162,24 +1162,40 @@ export class StandardForm {
             return returnValue
         }
         
-        // Remove the component from _components
+        // Collect all components to remove
+        const componentsToRemove = [componentToRemove]
+        
+        // If cascade is enabled, find and add all descendant components
+        if (options?.cascade) {
+            const organization = returnValue._getSchemaOrganization()
+            const descendantKeys = organization.implicitDescendantsOfAncestor(componentToRemove.standardKey)
+            // Convert keys to components and add to removal list
+            for (const descendantKey of descendantKeys) {
+                const descendant = returnValue._lookup(descendantKey.toJSON())
+                if (descendant) {
+                    componentsToRemove.push(descendant)
+                }
+            }
+        }
+        
+        // Remove all components from _components
         returnValue._components = returnValue._components.filter(
-            (component) => !component.standardKey.equals(componentToRemove.standardKey)
+            (component) => !componentsToRemove.some(removed => removed.standardKey.equals(component.standardKey))
         )
         
-        // Remove references to the removed component from all remaining components
-        // removeReferences returns the component unchanged if the reference is not present
-        returnValue._components = returnValue._components.map((component) => 
-            component.removeReferences([reference])
+        // Remove references to all removed components from remaining components
+        const referencesToRemove = componentsToRemove.map(c => c.reference)
+        returnValue._components = returnValue._components.map((component) =>
+            component.removeReferences(referencesToRemove)
         )
         
         // Remove from _topLevel if present
         if (returnValue._topLevel) {
             const filteredTopLevel = returnValue._topLevel.payload.filter(
-                (ref) => !ref.sameKey(reference)
+                (ref) => !referencesToRemove.some(removedRef => ref.sameKey(removedRef))
             )
-            returnValue._topLevel = filteredTopLevel.length > 0 
-                ? new ReferenceList(filteredTopLevel) 
+            returnValue._topLevel = filteredTopLevel.length > 0
+                ? new ReferenceList(filteredTopLevel)
                 : undefined
         }
         
