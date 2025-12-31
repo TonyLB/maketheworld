@@ -57,14 +57,15 @@ describe('ComponentRender cache handler', () => {
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
-                <Character uuid=(TESS)><Name>Tess</Name></Character>
-                <Room uuid=(TestOne)>
+                <Character uuid=(TESS) ref={0}><Name>Tess</Name></Character>
+                <Example uuid=(rendered) ref={0}>
+                    <Name>Example Name</Name>
+                    <Summary>Summary</Summary>
+                    <Description>Description</Description>
+                </Example>
+                <Room uuid=(TestOne) ref={0}>
                     <ShortName>TestRoom</ShortName>
-                    <Example uuid=(rendered)>
-                        <Name>Example Name</Name>
-                        <Summary>Summary</Summary>
-                        <Description>Description</Description>
-                    </Example>
+                    <Example uuid=(rendered) />
                     <Character uuid=(TESS) />
                 </Room>
             </Asset>
@@ -113,12 +114,11 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
-                <Feature uuid=(TestOne)>
-                    <Example uuid=(rendered)>
-                        <Name>Example Name</Name>
-                        <Description>Description</Description>
-                    </Example>
-                </Feature>
+                <Example uuid=(rendered) ref={0}>
+                    <Name>Example Name</Name>
+                    <Description>Description</Description>
+                </Example>
+                <Feature uuid=(TestOne) ref={0}><Example uuid=(rendered) /></Feature>
             </Asset>
         `))
     })
@@ -167,13 +167,12 @@ describe('ComponentRender cache handler', () => {
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
-                <Knowledge uuid=(TestOne)>
-                    <Example uuid=(rendered)>
-                        <Name>Example Name</Name>
-                        <Summary>Summary</Summary>
-                        <Description>Description</Description>
-                    </Example>
-                </Knowledge>
+                <Example uuid=(rendered) key=(example1) ref={0}>
+                    <Name>Example Name</Name>
+                    <Summary>Summary</Summary>
+                    <Description>Description</Description>
+                </Example>
+                <Knowledge uuid=(TestOne) ref={0}><Example key=(example1) /></Knowledge>
             </Asset>
         `))
     })
@@ -244,15 +243,15 @@ describe('ComponentRender cache handler', () => {
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
-                <Room uuid=(TestRoomOne)>
+                <Room uuid=(TestRoomOne) ref={0}>
                     <ShortName>Test Room One</ShortName>
                     <Exit to=(ROOM#TestRoomTwo)>Other Room</Exit>
                 </Room>
-                <Room uuid=(TestRoomTwo)>
+                <Room uuid=(TestRoomTwo) ref={0}>
                     <ShortName>Test Room Two</ShortName>
                     <Exit to=(ROOM#TestRoomOne)>First Room</Exit>
                 </Room>
-                <Map uuid=(TestOne)>
+                <Map uuid=(TestOne) ref={0}>
                     <Name>Test Map</Name>
                     <Room uuid=(TestRoomOne)><Position x="0" y="0" /></Room>
                     <Room uuid=(TestRoomTwo)><Position x="100" y="0" /></Room>

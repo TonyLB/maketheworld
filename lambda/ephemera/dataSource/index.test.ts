@@ -86,7 +86,7 @@ describe('Ephemera DataSource receiveEvents', () => {
 
         it('should not send Perception message when component universalKey is missing', async () => {
             const roomComponent = new StandardRoom(deIndentWML(`
-                <Room key=(test-room)>
+                <Room key=(testRoom)>
                     <ShortName>Test Room</ShortName>
                 </Room>
             `))

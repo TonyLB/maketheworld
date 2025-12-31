@@ -1,3 +1,4 @@
+jest.mock('@aws-sdk/client-sfn')
 import { handler } from './app'
 import messageBus from './messageBus'
 

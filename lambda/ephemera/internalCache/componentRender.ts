@@ -195,7 +195,7 @@ export class ComponentRenderData {
 
             if (naiveFirstExample) {
                 const example = naiveFirstExample.clone();
-                example._key = new StandardKey(`EXAMPLE#rendered`);
+                example._universalKey = `EXAMPLE#rendered`;
                 formComponents.push(example.toJSON());
             }
 
@@ -213,7 +213,7 @@ export class ComponentRenderData {
             }
             if (naiveFirstExample) {
                 const example = naiveFirstExample.clone()
-                example._key = (new StandardKey(`EXAMPLE#rendered`))
+                example._universalKey = `EXAMPLE#rendered`;
                 return new StandardForm([
                     { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                     featureRow,
@@ -237,7 +237,7 @@ export class ComponentRenderData {
             }
             if (naiveFirstExample) {
                 const example = naiveFirstExample.clone()
-                example._key = (new StandardKey(`EXAMPLE#rendered`))
+                example._universalKey = `EXAMPLE#rendered`;
                 return new StandardForm([
                     { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                     knowledgeRow,
@@ -269,7 +269,7 @@ export class ComponentRenderData {
             // Figure out how to properly map room keys to EphemeraId during extraction phases above
             //
             const roomMetaPromise = Promise.all((merged?.positions ?? []).map(async (position) => {
-                const ephemeraId = position.room._payload.plain.universalKey as EphemeraRoomId
+                const ephemeraId = position.room.universalKey as EphemeraRoomId
                 const metaByAsset = await this._componentMeta(ephemeraId, unique(globalAssets || [], characterAssets) as AssetUUID[])
                 const roomMeta = allAssets
                     .map((assetId) => (metaByAsset[assetId] ? [metaByAsset[assetId]] : []))
@@ -283,7 +283,7 @@ export class ComponentRenderData {
                         .filter(excludeUndefined)
                         .filter((exit) => (Boolean(
                             merged &&
-                            merged.positions.find((position) => (position.room._payload.plain.equals(exit.to)))
+                            merged.positions.find((position) => (position.room.standardKey.equals(exit.to)))
                         )))
                         .map((exit) => ({ description: exit.description?._payload?.plain?.toJSON?.() ?? '' as string, to: exit.to.toJSON() as EphemeraRoomId })),
                     x: position.x,
@@ -302,7 +302,7 @@ export class ComponentRenderData {
                 positions: merged?.positions?.map((position) => ({
                     x: position.x,
                     y: position.y,
-                    room: position.room._payload.plain.universalKey as EphemeraRoomId
+                    room: position.room.universalKey as EphemeraRoomId
                 })) ?? [],
                 ...rest
             }
