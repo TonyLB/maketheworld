@@ -228,51 +228,14 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
     get images() { return this._payload.images }
     get positions() { return this._payload.positions }
 
-    override removeReferences(references: StandardReference[]): StandardMap {
-        return new StandardMap(super.removeReferences(references) as StandardMap)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardMap(instance as StandardMap) as this
     }
 
     override clone(): StandardMap {
         const returnValue = new StandardMap(this)
         returnValue._payload = new StandardMapPayload(this._payload)
         return returnValue
-    }
-
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardMap(super.merge(incoming) as StandardMap)
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardMap(super.withKey(key) as StandardMap)
-    }
-    
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardMap(super.withUniversalKey(key) as StandardMap)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardMap(super.withFileName(key) as StandardMap)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardMap(super.withMapping(mapping) as StandardMap)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardMap(super.withImport(fromAsset) as StandardMap)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardMap(super.withOrigin(origin) as StandardMap)
-    }
-
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardMap(super.withChild(child) as StandardMap)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardMap(super.withExplicitParent(explicitParent) as StandardMap)
     }
 
 }

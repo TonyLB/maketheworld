@@ -186,8 +186,8 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
     get shortName() { return this._payload.shortName }
     get examples() { return this._payload.examples }
 
-    override removeReferences(references: StandardReference[]): StandardKnowledge {
-        return new StandardKnowledge(super.removeReferences(references) as StandardKnowledge)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardKnowledge(instance as StandardKnowledge) as this
     }
 
     override clone(): StandardKnowledge {
@@ -196,71 +196,12 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         return returnValue
     }
 
-    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        if (!(incoming instanceof StandardKnowledge)) {
-            throw new Error('Mismatched component types in diff')
-        }
-        // Check explicitParent differences separately
-        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
-        const hasExplicitParentDiff = explicitParentDiff !== undefined
-        const examplesDiff = this.examples.diff(incoming.examples) ?? new ReferenceList([])
-        if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.payload.length && !hasExplicitParentDiff) {
-            return undefined
-        }
-        const base = this.clone()
-        base._payload = new StandardKnowledgePayload()
-        base._payload._shortName = this._payload._shortName
-            ? this._payload._shortName.diff(incoming._payload._shortName)
-            : incoming._payload._shortName
-        base._payload._examples = examplesDiff
-        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
-        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
-        return base
-    }
-
     override equals(incoming: StandardComponent): boolean {
         if (!(incoming instanceof StandardKnowledge)) {
             return false
         }
         return !(this.examples.diff(incoming.examples)?.payload?.length) &&
             deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
-    }
-    
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardKnowledge(super.merge(incoming) as StandardKnowledge)
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardKnowledge(super.withKey(key) as StandardKnowledge)
-    }
-    
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardKnowledge(super.withUniversalKey(key) as StandardKnowledge)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardKnowledge(super.withFileName(key) as StandardKnowledge)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardKnowledge(super.withMapping(mapping) as StandardKnowledge)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardKnowledge(super.withImport(fromAsset) as StandardKnowledge)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardKnowledge(super.withOrigin(origin) as StandardKnowledge)
-    }
-
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardKnowledge(super.withChild(child) as StandardKnowledge)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardKnowledge(super.withExplicitParent(explicitParent) as StandardKnowledge)
     }
 
     override invert(): StandardKnowledge {

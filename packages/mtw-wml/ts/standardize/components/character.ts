@@ -146,82 +146,14 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         super(props)
     }
 
-    override removeReferences(references: StandardReference[]): StandardCharacter {
-        return new StandardCharacter(super.removeReferences(references) as StandardCharacter)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardCharacter(instance as StandardCharacter) as this
     }
 
     override clone(): StandardCharacter {
         const returnValue = new StandardCharacter(this)
         returnValue._payload = new StandardCharacterPayload(this._payload)
         return returnValue
-    }
-
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardCharacter(super.merge(incoming) as StandardCharacter)
-    }
-
-    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        if (!(incoming instanceof StandardCharacter)) {
-            throw new Error('Mismatched component types in diff')
-        }
-        // Check explicitParent differences separately
-        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
-        const hasExplicitParentDiff = explicitParentDiff !== undefined
-        if (deepEqual(this.toJSON(), incoming.toJSON()) && !hasExplicitParentDiff) {
-            return undefined
-        }
-        const base = this.clone()
-        base._payload = new StandardCharacterPayload()
-        base._payload._shortName = this._payload._shortName
-            ? this._payload._shortName.diff(incoming._payload._shortName)
-            : incoming._payload._shortName
-        base._payload._pronouns = this._payload._pronouns
-            ? this._payload._pronouns.diff(incoming._payload._pronouns)
-            : incoming._payload._pronouns
-        base._payload._name = this._payload._name
-            ? this._payload._name.diff(incoming._payload._name)
-            : incoming._payload._name
-        base._payload._image = this._payload._image ?? incoming._payload._image
-        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
-        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
-        return base
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardCharacter(super.withKey(key) as StandardCharacter)
-    }
-
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardCharacter(super.withUniversalKey(key) as StandardCharacter)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardCharacter(super.withFileName(key) as StandardCharacter)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardCharacter(super.withMapping(mapping) as StandardCharacter)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardCharacter(super.withImport(fromAsset) as StandardCharacter)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardCharacter(super.withOrigin(origin) as StandardCharacter)
-    }
-
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardCharacter(super.withChild(child) as StandardCharacter)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardCharacter(super.withExplicitParent(explicitParent) as StandardCharacter)
-    }
-
-    override invert(): StandardCharacter {
-        return new StandardCharacter(super.invert() as StandardCharacter)
     }
 
 }

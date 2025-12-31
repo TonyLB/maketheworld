@@ -62,51 +62,14 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
 
 export class StandardImage extends componentClassFactory(StandardImagePayload, 'StandardImage') {
 
-    override removeReferences(references: StandardReference[]): StandardImage {
-        return new StandardImage(super.removeReferences(references) as StandardImage)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardImage(instance as StandardImage) as this
     }
 
     override clone(): StandardImage {
         const returnValue = new StandardImage(this)
         returnValue._payload = new StandardImagePayload(this._payload)
         return returnValue
-    }
-
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardImage(super.merge(incoming) as StandardImage)
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardImage(super.withKey(key) as StandardImage)
-    }
-    
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardImage(super.withUniversalKey(key) as StandardImage)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardImage(super.withFileName(key) as StandardImage)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardImage(super.withMapping(mapping) as StandardImage)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardImage(super.withImport(fromAsset) as StandardImage)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardImage(super.withOrigin(origin) as StandardImage)
-    }
-    
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardImage(super.withChild(child) as StandardImage)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardImage(super.withExplicitParent(explicitParent) as StandardImage)
     }
 
 }

@@ -185,8 +185,8 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
     get shortName() { return this._payload.shortName }
     get examples() { return this._payload.examples }
 
-    override removeReferences(references: StandardReference[]): StandardFeature {
-        return new StandardFeature(super.removeReferences(references) as StandardFeature)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardFeature(instance as StandardFeature) as this
     }
 
     override clone(): StandardFeature {
@@ -195,75 +195,12 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         return returnValue
     }
 
-    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        if (!(incoming instanceof StandardFeature)) {
-            throw new Error('Mismatched component types in diff')
-        }
-        // Check explicitParent differences separately
-        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
-        const hasExplicitParentDiff = explicitParentDiff !== undefined
-        const examplesDiff = this.examples.diff(incoming.examples) ?? new ReferenceList([])
-        if (deepEqual(this.toJSON(), incoming.toJSON()) && !examplesDiff.payload.length && !hasExplicitParentDiff) {
-            return undefined
-        }
-        const base = this.clone()
-        base._payload = new StandardFeaturePayload()
-        base._payload._shortName = this._payload._shortName
-            ? this._payload._shortName.diff(incoming._payload._shortName)
-            : incoming._payload._shortName
-        base._payload._examples = examplesDiff
-        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
-        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
-        return base
-    }
-
     override equals(incoming: StandardComponent): boolean {
         if (!(incoming instanceof StandardFeature)) {
             return false
         }
         return !(this.examples.diff(incoming.examples)?.payload?.length) &&
             deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
-    }
-
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardFeature(super.merge(incoming) as StandardFeature)
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardFeature(super.withKey(key) as StandardFeature)
-    }
-    
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardFeature(super.withUniversalKey(key) as StandardFeature)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardFeature(super.withFileName(key) as StandardFeature)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardFeature(super.withMapping(mapping) as StandardFeature)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardFeature(super.withImport(fromAsset) as StandardFeature)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardFeature(super.withOrigin(origin) as StandardFeature)
-    }
-    
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardFeature(super.withChild(child) as StandardFeature)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardFeature(super.withExplicitParent(explicitParent) as StandardFeature)
-    }
-
-    override invert(): StandardFeature {
-        return new StandardFeature(super.invert() as StandardFeature)
     }
 
 }

@@ -169,39 +169,14 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
     get description() { return this._payload.description }
     get rooms() { return this._payload.rooms }
 
-    override removeReferences(references: StandardReference[]): StandardMessage {
-        return new StandardMessage(super.removeReferences(references) as StandardMessage)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardMessage(instance as StandardMessage) as this
     }
 
     override clone(): StandardMessage {
         const returnValue = new StandardMessage(this)
         returnValue._payload = new StandardMessagePayload(this._payload)
         return returnValue
-    }
-
-    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        if (!(incoming instanceof StandardMessage)) {
-            throw new Error('Mismatched component types in diff')
-        }
-        // Check explicitParent differences separately
-        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
-        const hasExplicitParentDiff = explicitParentDiff !== undefined
-        const roomsDiff = this.rooms.diff(incoming.rooms) ?? new ReferenceList([])
-        if (deepEqual(this._payload.description?.toJSON(), incoming._payload.description?.toJSON()) &&
-            !roomsDiff.payload.length &&
-            !hasExplicitParentDiff
-        ) {
-            return undefined
-        }
-        const base = this.clone()
-        base._payload = new StandardMessagePayload()
-        base._payload._description = this._payload._description
-            ? this._payload._description.diff(incoming._payload._description)
-            : incoming._payload._description
-        base._payload._rooms = roomsDiff
-        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
-        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
-        return base
     }
 
     override equals(incoming: StandardComponent): boolean {
@@ -211,47 +186,6 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         const roomsDiff = this.rooms.diff(incoming.rooms) ?? new ReferenceList([])
         return !(roomsDiff.payload.length) &&
             deepEqual(this.description?.toJSON(), incoming.description?.toJSON())
-    }
-
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardMessage(super.merge(incoming) as StandardMessage)
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardMessage(super.withKey(key) as StandardMessage)
-    }
-    
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardMessage(super.withUniversalKey(key) as StandardMessage)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardMessage(super.withFileName(key) as StandardMessage)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardMessage(super.withMapping(mapping) as StandardMessage)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardMessage(super.withImport(fromAsset) as StandardMessage)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardMessage(super.withOrigin(origin) as StandardMessage)
-    }
-    
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardMessage(super.withChild(child) as StandardMessage)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardMessage(super.withExplicitParent(explicitParent) as StandardMessage)
-    }
-
-    override invert(): StandardMessage {
-        return new StandardMessage(super.invert() as StandardMessage)
     }
 
 }

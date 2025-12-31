@@ -163,8 +163,8 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {
     get messages() { return this._payload.messages }
 
-    override removeReferences(references: StandardReference[]): StandardMoment {
-        return new StandardMoment(super.removeReferences(references) as StandardMoment)
+    override _wrap(instance: StandardComponent): this {
+        return new StandardMoment(instance as StandardMoment) as this
     }
 
     override clone(): StandardMoment {
@@ -178,66 +178,6 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
             return false
         }
         return !(this.messages.diff(incoming.messages)?.payload?.length)
-    }
-
-    override merge(incoming: StandardComponent): StandardComponent {
-        return new StandardMoment(super.merge(incoming) as StandardMoment)
-    }
-
-    override diff(incoming: StandardComponent, options?: StandardDiffOptions): StandardComponent | undefined {
-        if (!(incoming instanceof StandardMoment)) {
-            throw new Error('Mismatched component types in diff')
-        }
-        // Check explicitParent differences separately
-        const explicitParentDiff = this.explicitParent?.diff(incoming.explicitParent)
-        const hasExplicitParentDiff = explicitParentDiff !== undefined
-        const messagesDiff = this._payload._messages.diff(incoming._payload._messages) ?? new ReferenceList([])
-        if (deepEqual(this.toJSON(), incoming.toJSON()) && !messagesDiff.payload.length && !hasExplicitParentDiff) {
-            return undefined
-        }
-        const base = this.clone()
-        base._payload = new StandardMomentPayload()
-        base._payload._messages = messagesDiff
-        // Apply explicitParent diff if it exists (pass pre-computed diff to avoid recalculation)
-        this._applyExplicitParentDiffToComponent(base, incoming, explicitParentDiff)
-        return base
-    }
-
-    override withKey(key: string): StandardComponent {
-        return new StandardMoment(super.withKey(key) as StandardMoment)
-    }
-    
-    override withUniversalKey(key: ComponentUUID): StandardComponent {
-        return new StandardMoment(super.withUniversalKey(key) as StandardMoment)
-    }
-
-    override withFileName(key: string): StandardComponent {
-        return new StandardMoment(super.withFileName(key) as StandardMoment)
-    }
-
-    override withMapping(mapping: StandardReference[]): StandardComponent {
-        return new StandardMoment(super.withMapping(mapping) as StandardMoment)
-    }
-
-    override withImport(fromAsset: AssetUUID): StandardComponent {
-        return new StandardMoment(super.withImport(fromAsset) as StandardMoment)
-    }
-
-    override withOrigin(origin: AssetUUID[]): StandardComponent {
-        return new StandardMoment(super.withOrigin(origin) as StandardMoment)
-    }
-
-    override withChild(child: StandardReference): StandardComponent {
-        return new StandardMoment(super.withChild(child) as StandardMoment)
-    }
-
-
-    override withExplicitParent(explicitParent: StandardExplicitParent | undefined): StandardComponent {
-        return new StandardMoment(super.withExplicitParent(explicitParent) as StandardMoment)
-    }
-
-    override invert(): StandardMoment {
-        return new StandardMoment(super.invert() as StandardMoment)
     }
 
 }
