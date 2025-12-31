@@ -36,6 +36,26 @@ In WML, components contain reference collections (like `features`, `examples`, `
 
 The constructor normalizes references to ensure minimum key information (removing context-dependent data).
 
+## MapByKey: Foundational Abstraction
+
+`MapByKey<Payload>` is a generic class that provides efficient key-based payload mapping using dual JavaScript `Map` storage. It maps payloads by `StandardKey` using two internal Maps:
+
+- `_byUniversalKey: Map<ComponentUUID, { key: StandardKey; payload: Payload }>` - maps ComponentUUID to entries
+- `_byKey: Map<string, { key: StandardKey; payload: Payload }>` - maps local key strings to entries
+
+This provides O(1) lookups by both `universalKey` and local `key`, making it suitable for operations that need to efficiently find payloads by either identifier type.
+
+### Potential Future Optimization
+
+`ReferenceList` could potentially be refactored to use `MapByKey<StandardReference>` internally to optimize performance:
+
+- **Current implementation**: Uses linear searches (O(n)) with `.find()` and `.some()` operations that call `sameKey()` for each comparison
+- **Potential optimization**: Using `MapByKey` would provide O(1) lookups instead of O(n) linear searches in operations like `merge()`, `diff()`, and `assureItem()`
+- **Implementation approach**: Would maintain `_items` array for backward compatibility (computed from `_mapByKey.sortedOutput()`)
+- **Benefits**: Significantly faster operations on large reference lists, especially when checking for existing items or merging lists
+
+This optimization is documented here for future consideration but is not currently implemented, as the current `ReferenceList` implementation is sufficient for current use cases.
+
 ## Usage in Component Payloads
 
 ### Storage
