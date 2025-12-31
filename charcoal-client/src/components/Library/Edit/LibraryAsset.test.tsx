@@ -69,7 +69,9 @@ const store = mockStore({
                     importDefaults: {},
                     importData: {
                         BASE: [inherited.schema]
-                    }
+                    },
+                    properties: {},
+                    loadedImages: {}
                 },
                 meta: {
                    currentState: 'FRESH',
@@ -78,7 +80,27 @@ const store = mockStore({
            }
        }
     },
-    player: {}
+    player: {},
+    playerDataSource: {
+        publicData: {
+            activeStreamKeys: [],
+            subscribedStreams: {}
+        }
+    },
+    settings: {
+        server: {
+            ChatPrompt: 'What do you do?'
+        },
+        client: {
+            TextEntryLines: 1,
+            ShowNeighborhoodHeaders: false,
+            AlwaysShowOnboarding: false
+        },
+        connection: {
+            sessionId: '',
+            playerName: ''
+        }
+    }
 })
 
 describe('LibraryAsset context provider', () => {

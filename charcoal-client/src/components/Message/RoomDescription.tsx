@@ -59,7 +59,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
             // Extract room data from Standard format structure - handle missing examples gracefully
             const firstExampleRef = component.examples.payload[0]
             if (firstExampleRef) {
-                const firstExample = parsedWML._lookup(firstExampleRef.plain().standardKey.toJSON())
+                const firstExample = parsedWML._lookup(firstExampleRef.standardKey.toJSON())
                 
                 if (firstExample && firstExample.universalKey) {
                     const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as any]
@@ -76,7 +76,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
             // Extract character references from StandardRoom and resolve them to StandardCharacter instances
             characters = component.characters.payload
                 .map(characterRef => {
-                    const resolvedCharacter = parsedWML._lookup(characterRef.plain().standardKey.toJSON())
+                    const resolvedCharacter = parsedWML._lookup(characterRef.standardKey.toJSON())
                     return resolvedCharacter
                 })
                 .filter((character): character is StandardCharacter => character instanceof StandardCharacter)

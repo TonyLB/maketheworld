@@ -58,18 +58,11 @@ describe('RoomCharacter', () => {
     it('should render StandardCharacter with name', () => {
         // Create a StandardCharacter with name using WML
         const character = new StandardCharacter(`
-            <Character key=(test-character)>
+            <Character key=(testCharacter)>
                 <Name>Test Character</Name>
                 <ShortName>Test</ShortName>
             </Character>
         `)
-
-        // Debug: Check what the StandardCharacter getters return
-        console.log('Character universalKey:', character.universalKey)
-        console.log('Character name:', character.name)
-        console.log('Character name.plainString:', character.name?.plainString)
-        console.log('Character image:', character.image)
-        console.log('Character image.fileURL:', character.image?.fileURL)
 
         render(
             <Provider store={store}>
@@ -86,7 +79,7 @@ describe('RoomCharacter', () => {
     it('should render StandardCharacter with image', () => {
         // Create a StandardCharacter with image using WML
         const character = new StandardCharacter(`
-            <Character key=(image-character)>
+            <Character key=(imageCharacter)>
                 <Name>Image Character</Name>
                 <ShortName>Image</ShortName>
                 <Image key=(test-image) />
@@ -105,7 +98,7 @@ describe('RoomCharacter', () => {
 
     it('should handle click and dispatch socketDispatchPromise', () => {
         const character = new StandardCharacter(`
-            <Character key=(clickable-character)>
+            <Character key=(clickableCharacter)>
                 <Name>Clickable Character</Name>
                 <ShortName>Clickable</ShortName>
             </Character>
@@ -129,7 +122,7 @@ describe('RoomCharacter', () => {
 
     it('should handle missing name gracefully', () => {
         const character = new StandardCharacter(`
-            <Character key=(no-name-character)>
+            <Character key=(noNameCharacter)>
                 <ShortName>Short</ShortName>
             </Character>
         `)
@@ -145,7 +138,7 @@ describe('RoomCharacter', () => {
 
     it('should handle missing image gracefully', () => {
         const character = new StandardCharacter(`
-            <Character key=(no-image-character)>
+            <Character key=(noImageCharacter)>
                 <Name>No Image Character</Name>
                 <ShortName>NoImage</ShortName>
             </Character>
@@ -162,7 +155,7 @@ describe('RoomCharacter', () => {
 
     it('should pass character ID to CharacterChip', () => {
         const character = new StandardCharacter(`
-            <Character key=(id-character)>
+            <Character key=(idCharacter)>
                 <Name>ID Character</Name>
                 <ShortName>ID</ShortName>
             </Character>

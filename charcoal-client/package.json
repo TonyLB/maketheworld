@@ -54,6 +54,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:watch": "vitest --watch",
+    "test:single": "vitest run",
     "introspect": "node introspect.js"
   },
   "browserslist": {
