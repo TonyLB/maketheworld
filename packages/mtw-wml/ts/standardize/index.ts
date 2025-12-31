@@ -1142,4 +1142,54 @@ export class StandardForm {
         return returnValue
     }
 
+    /**
+     * Removes a component from this StandardForm and removes all references to it.
+     * Returns a new StandardForm with the component removed (functional pattern, no mutation).
+     * 
+     * @param reference - The StandardReference identifying the component to remove
+     * @param options - Optional configuration object (cascade option deferred for future implementation)
+     * @returns A new StandardForm with the component and all its references removed
+     */
+    removeComponent(reference: StandardReference, options?: { cascade: boolean }): StandardForm {
+        // Clone the StandardForm (functional pattern)
+        const returnValue = this._clone()
+        
+        // Find the component to remove
+        const componentToRemove = returnValue._lookup(reference.standardKey.toJSON())
+        
+        // If component not found, return the cloned form unchanged
+        if (!componentToRemove) {
+            return returnValue
+        }
+        
+        // Remove the component from _components
+        returnValue._components = returnValue._components.filter(
+            (component) => !component.standardKey.equals(componentToRemove.standardKey)
+        )
+        
+        // Remove references to the removed component from all remaining components
+        // removeReferences returns the component unchanged if the reference is not present
+        returnValue._components = returnValue._components.map((component) => 
+            component.removeReferences([reference])
+        )
+        
+        // Remove from _topLevel if present
+        if (returnValue._topLevel) {
+            const filteredTopLevel = returnValue._topLevel.payload.filter(
+                (ref) => !ref.sameKey(reference)
+            )
+            returnValue._topLevel = filteredTopLevel.length > 0 
+                ? new ReferenceList(filteredTopLevel) 
+                : undefined
+        }
+        
+        // Invalidate caches
+        returnValue.invalidateCache()
+        
+        // Validate the result
+        returnValue.validate()
+        
+        return returnValue
+    }
+
 }
