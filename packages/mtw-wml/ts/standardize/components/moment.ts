@@ -163,6 +163,10 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {
     get messages() { return this._payload.messages }
 
+    override removeReferences(references: StandardReference[]): StandardMoment {
+        return new StandardMoment(super.removeReferences(references) as StandardMoment)
+    }
+
     override clone(): StandardMoment {
         const returnValue = new StandardMoment(this)
         returnValue._payload = new StandardMomentPayload(this._payload)

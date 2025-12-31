@@ -62,6 +62,10 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
 
 export class StandardImage extends componentClassFactory(StandardImagePayload, 'StandardImage') {
 
+    override removeReferences(references: StandardReference[]): StandardImage {
+        return new StandardImage(super.removeReferences(references) as StandardImage)
+    }
+
     override clone(): StandardImage {
         const returnValue = new StandardImage(this)
         returnValue._payload = new StandardImagePayload(this._payload)

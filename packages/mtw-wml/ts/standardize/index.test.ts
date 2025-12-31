@@ -990,12 +990,14 @@ describe('StandardForm', () => {
         const sideRoom = form._lookup('ROOM#sideRoom') as StandardRoom
         
         // Verify character counts
-        expect(mainRoom.characters.payload.length).toBe(3)
-        expect(sideRoom.characters.payload.length).toBe(2)
+        expect(mainRoom.characters).toBeDefined()
+        expect(mainRoom.characters!.payload.length).toBe(3)
+        expect(sideRoom.characters).toBeDefined()
+        expect(sideRoom.characters!.payload.length).toBe(2)
         
         // Verify character types (local vs universal)
-        const mainRoomKeys = mainRoom.characters.payload.map(ref => ref.key || ref.universalKey)
-        const sideRoomKeys = sideRoom.characters.payload.map(ref => ref.key || ref.universalKey)
+        const mainRoomKeys = mainRoom.characters!.payload.map(ref => ref.key || ref.universalKey)
+        const sideRoomKeys = sideRoom.characters!.payload.map(ref => ref.key || ref.universalKey)
         
         expect(mainRoomKeys).toContain('local1')
         expect(mainRoomKeys).toContain('CHARACTER#global1')
@@ -1032,9 +1034,9 @@ describe('StandardForm', () => {
         
         // Verify the round-trip preserved character references
         const room1 = form2._lookup('ROOM#room1') as StandardRoom
-        expect(room1.characters.payload.length).toBe(2)
+        expect(room1.characters!.payload.length).toBe(2)
         
-        const charKeys = room1.characters.payload.map(ref => ref.key || ref.universalKey)
+        const charKeys = room1.characters!.payload.map(ref => ref.key || ref.universalKey)
         expect(charKeys).toContain('local1')
         expect(charKeys).toContain('char1')
 
@@ -1169,9 +1171,9 @@ describe('StandardForm', () => {
         
         // Verify merged form contains characters from both sources
         const mergedRoom = mergedForm._lookup('ROOM#room1') as StandardRoom
-        expect(mergedRoom.characters.payload.length).toBe(4)
+        expect(mergedRoom.characters!.payload.length).toBe(4)
         
-        const mergedCharKeys = mergedRoom.characters.payload.map(ref => ref.key || ref.universalKey)
+        const mergedCharKeys = mergedRoom.characters!.payload.map(ref => ref.key || ref.universalKey)
         expect(mergedCharKeys).toContain('local1')
         expect(mergedCharKeys).toContain('local2')
         expect(mergedCharKeys).toContain('CHARACTER#char1')
@@ -3162,7 +3164,7 @@ describe('StandardForm', () => {
             const test = new StandardForm(testWML).finalize()
             const findRoom = test._lookup('ROOM#testRoom')
             expect(findRoom).toBeInstanceOf(StandardRoom)
-            expect((findRoom as StandardRoom).features.toJSON()).toEqual([
+            expect((findRoom as StandardRoom).features?.toJSON()).toEqual([
                 'FEATURE#testFeature'
             ])
         })
@@ -3237,12 +3239,14 @@ describe('StandardForm', () => {
             expect(char2).toBeInstanceOf(StandardCharacter)
             
             // Test that rooms have the correct character references
-            expect(room1.characters.payload.length).toBe(2)
-            expect(room2.characters.payload.length).toBe(2)
+            expect(room1.characters).toBeDefined()
+            expect(room1.characters!.payload.length).toBe(2)
+            expect(room2.characters).toBeDefined()
+            expect(room2.characters!.payload.length).toBe(2)
             
             // Test that character references include both local and universal keys
-            const room1CharKeys = room1.characters.payload.map(ref => ref.key || ref.universalKey)
-            const room2CharKeys = room2.characters.payload.map(ref => ref.key || ref.universalKey)
+            const room1CharKeys = room1.characters!.payload.map(ref => ref.key || ref.universalKey)
+            const room2CharKeys = room2.characters!.payload.map(ref => ref.key || ref.universalKey)
             
             expect(room1CharKeys).toContain('char3') // Local character in room1
             expect(room1CharKeys).toContain('CHARACTER#char1') // Universal character reference in room1

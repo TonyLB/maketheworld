@@ -289,6 +289,10 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         super(props)
     }
 
+    override removeReferences(references: StandardReference[]): StandardRoom {
+        return new StandardRoom(super.removeReferences(references) as StandardRoom)
+    }
+
     override clone(): StandardRoom {
         const returnValue = new StandardRoom(this)
         returnValue._payload = new StandardRoomPayload(this._payload)

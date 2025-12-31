@@ -169,6 +169,10 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
     get description() { return this._payload.description }
     get rooms() { return this._payload.rooms }
 
+    override removeReferences(references: StandardReference[]): StandardMessage {
+        return new StandardMessage(super.removeReferences(references) as StandardMessage)
+    }
+
     override clone(): StandardMessage {
         const returnValue = new StandardMessage(this)
         returnValue._payload = new StandardMessagePayload(this._payload)
