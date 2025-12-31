@@ -146,6 +146,10 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         super(props)
     }
 
+    override removeReferences(references: StandardReference[]): StandardCharacter {
+        return new StandardCharacter(super.removeReferences(references) as StandardCharacter)
+    }
+
     override clone(): StandardCharacter {
         const returnValue = new StandardCharacter(this)
         returnValue._payload = new StandardCharacterPayload(this._payload)

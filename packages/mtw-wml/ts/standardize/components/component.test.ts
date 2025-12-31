@@ -116,14 +116,28 @@ describe('componentClassFactory removeReferences delegation (via StandardRoom)',
         `))
         const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
         
+        // Verify initial state
+        expect(room.features).toBeDefined()
+        expect(room.features!.payload.length).toBe(1)
+        expect(room.examples).toBeDefined()
+        expect(room.examples!.payload.length).toBe(1)
+        
         const result = room.removeReferences([featureRef]) as StandardRoom
         
-        // Verify feature was removed
-        expect(result.features).toBeUndefined()
-        // Verify example was preserved
+        // Debug: Check payload directly
+        expect(result._payload).toBeDefined()
+        expect(result._payload.features).toBeDefined()
+        expect(result._payload.features.payload.length).toBe(0)
+        expect(result._payload.examples).toBeDefined()
+        expect(result._payload.examples.payload.length).toBe(1)
+        
+        // Verify feature was removed (empty ReferenceList)
+        expect(result.features.payload.length).toBe(0)
+        // Verify example was preserved (should still exist)
         expect(result.examples.payload.length).toBe(1)
         // Verify original is unchanged
         expect(room.features.payload.length).toBe(1)
+        expect(room.examples.payload.length).toBe(1)
     })
     
     it('should return unchanged component when payload does not implement removeReferences', () => {

@@ -185,6 +185,10 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
     get shortName() { return this._payload.shortName }
     get examples() { return this._payload.examples }
 
+    override removeReferences(references: StandardReference[]): StandardFeature {
+        return new StandardFeature(super.removeReferences(references) as StandardFeature)
+    }
+
     override clone(): StandardFeature {
         const returnValue = new StandardFeature(this)
         returnValue._payload = new StandardFeaturePayload(this._payload)

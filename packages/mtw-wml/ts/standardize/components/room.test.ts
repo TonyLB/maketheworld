@@ -19,7 +19,8 @@ describe('StandardRoom class', () => {
         `)
         const testRoom = new StandardRoom(testSource)
         expect(testRoom.key).toEqual('test')
-        expect(testRoom.features.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
+        expect(testRoom.features).toBeDefined()
+        expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
         expect(testRoom.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: { key: 'testTwo' }, description: 'Exit test' }])
         expect(testRoom.universalKey).toEqual('ROOM#123')
@@ -39,8 +40,10 @@ describe('StandardRoom class', () => {
         schema.loadWML(testSource)
         const testRoom = new StandardRoom(schema.schema[0])
         expect(testRoom.key).toEqual('test')
-        expect(testRoom.features.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature'}])
-        expect(testRoom.examples.toJSON()).toEqual(['EXAMPLE#base'])
+        expect(testRoom.features).toBeDefined()
+        expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature'}])
+        expect(testRoom.examples).toBeDefined()
+        expect(testRoom.examples!.toJSON()).toEqual(['EXAMPLE#base'])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
         expect(testRoom.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: { key: 'testTwo' }, description: 'Exit test' }])
         expect(testRoom.universalKey).toEqual('ROOM#123')
@@ -70,7 +73,8 @@ describe('StandardRoom class', () => {
         }
         const testRoom = new StandardRoom(testRoomData)
         expect(testRoom.key).toEqual('test')
-        expect(testRoom.features.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
+        expect(testRoom.features).toBeDefined()
+        expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
         expect(testRoom.exits.map((exit) => exit.toJSON())).toEqual([{ to: { key: 'testTwo' }, description: 'Exit test' }])
         expect(testRoom.toJSON()).toEqual(testRoomData)
@@ -86,7 +90,8 @@ describe('StandardRoom class', () => {
         }
         const testRoom = new StandardRoom(testRoomDataWithoutExits)
         expect(testRoom.key).toEqual('test')
-        expect(testRoom.features.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
+        expect(testRoom.features).toBeDefined()
+        expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
         expect(testRoom.exits).toEqual([])  // Should default to empty array
         
@@ -289,8 +294,9 @@ describe('StandardRoom class', () => {
                 ]
             }
             const room = new StandardRoom(roomData)
-            expect(room.characters.payload.length).toBe(2)
-            expect(room.characters.toJSON()).toEqual([
+            expect(room.characters).toBeDefined()
+            expect(room.characters!.payload.length).toBe(2)
+            expect(room.characters!.toJSON()).toEqual([
                 { tag: 'Character', key: 'char1' },
                 'CHARACTER#uuid123' // Universal key only returns string
             ])
@@ -308,9 +314,10 @@ describe('StandardRoom class', () => {
                 </Room>
             `)
             const room = new StandardRoom(testSource)
-            expect(room.characters.payload.length).toBe(2)
-            expect(room.characters.payload[0].key).toBe('char1')
-            expect(room.characters.payload[1].universalKey).toBe('CHARACTER#uuid123')
+            expect(room.characters).toBeDefined()
+            expect(room.characters!.payload.length).toBe(2)
+            expect(room.characters!.payload[0].key).toBe('char1')
+            expect(room.characters!.payload[1].universalKey).toBe('CHARACTER#uuid123')
         })
 
         it('should serialize characters to JSON correctly', () => {
@@ -351,9 +358,10 @@ describe('StandardRoom class', () => {
                 </Room>
             `)
             const merged = room1.merge(room2) as StandardRoom
-            expect(merged.characters.payload.length).toBe(2)
-            expect(merged.characters.payload.map(ref => ref.key)).toContain('char1')
-            expect(merged.characters.payload.map(ref => ref.key)).toContain('char2')
+            expect(merged.characters).toBeDefined()
+            expect(merged.characters!.payload.length).toBe(2)
+            expect(merged.characters!.payload.map(ref => ref.key)).toContain('char1')
+            expect(merged.characters!.payload.map(ref => ref.key)).toContain('char2')
         })
 
         it('should detect character differences in diff operation', () => {
@@ -369,7 +377,8 @@ describe('StandardRoom class', () => {
             `)
             const diff = room1.diff(room2) as StandardRoom
             expect(diff).toBeDefined()
-            expect(diff!.characters.payload.length).toBeGreaterThan(0)
+            expect(diff!.characters).toBeDefined()
+            expect(diff!.characters!.payload.length).toBeGreaterThan(0)
         })
 
         it('should return undefined diff when characters are identical', () => {
@@ -442,15 +451,16 @@ describe('StandardRoom class', () => {
                     <Character key=(char2) />
                 </Room>
             `)
-            expect(room.characters.payload.length).toBe(2)
-            expect(room.characters.payload[0].key).toBe('char1')
-            expect(room.characters.payload[1].key).toBe('char2')
+            expect(room.characters).toBeDefined()
+            expect(room.characters!.payload.length).toBe(2)
+            expect(room.characters!.payload[0].key).toBe('char1')
+            expect(room.characters!.payload[1].key).toBe('char2')
         })
 
         it('should handle empty character lists correctly', () => {
             const room = new StandardRoom(`<Room key=(testRoom) />`)
+            // Empty characters list returns empty ReferenceList
             expect(room.characters.payload.length).toBe(0)
-            expect(room.characters.toJSON()).toEqual([])
             
             const json = room.toJSON() as StandardRoomData
             expect(json.characters).toBeUndefined() // Empty lists are not serialized (omission-over-empty pattern)

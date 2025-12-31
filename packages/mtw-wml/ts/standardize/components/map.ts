@@ -228,6 +228,10 @@ export class StandardMap extends componentClassFactory(StandardMapPayload, 'Stan
     get images() { return this._payload.images }
     get positions() { return this._payload.positions }
 
+    override removeReferences(references: StandardReference[]): StandardMap {
+        return new StandardMap(super.removeReferences(references) as StandardMap)
+    }
+
     override clone(): StandardMap {
         const returnValue = new StandardMap(this)
         returnValue._payload = new StandardMapPayload(this._payload)

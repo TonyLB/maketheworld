@@ -186,6 +186,10 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
     get shortName() { return this._payload.shortName }
     get examples() { return this._payload.examples }
 
+    override removeReferences(references: StandardReference[]): StandardKnowledge {
+        return new StandardKnowledge(super.removeReferences(references) as StandardKnowledge)
+    }
+
     override clone(): StandardKnowledge {
         const returnValue = new StandardKnowledge(this)
         returnValue._payload = new StandardKnowledgePayload(this._payload)

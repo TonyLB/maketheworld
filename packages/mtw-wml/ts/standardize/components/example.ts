@@ -166,6 +166,10 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         super(props)
     }
 
+    override removeReferences(references: StandardReference[]): StandardExample {
+        return new StandardExample(super.removeReferences(references) as StandardExample)
+    }
+
     override clone(): StandardExample {
         const returnValue = new StandardExample(this)
         returnValue._payload = new StandardExamplePayload(this._payload)
