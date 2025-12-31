@@ -14,7 +14,7 @@ This document describes the **abstract concept** of Component types in WML and t
    - **Focus**: How components have unique identity, support additive merging, and serve dual roles as both references and content definitions.
 
 2. **Understand edit operations and their mathematical properties**
-   - **Why**: Components support invertible edit operations (`Add`, `Remove`, `Replace`), and understanding how these operations merge and interact is crucial for implementing or modifying component behavior.
+   - **Why**: Components support invertible edit operations (`Add`, `Remove`), and understanding how these operations merge and interact is crucial for implementing or modifying component behavior. (Note: `Replace` operations are no longer supported at component/reference level - they are expressed as `Add` + `Remove` pairs.)
    - **Read**: 
      - [`AGENT.editAlgebra.md`](./AGENT.editAlgebra.md) - Mathematical properties of component edit operations (inversion, reference vs. data payload distinction, non-associativity)
      - [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md) - Mathematical properties of ReferenceList merge and diff operations (non-associativity, non-idempotency, inversion)

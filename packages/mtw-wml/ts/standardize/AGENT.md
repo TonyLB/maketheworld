@@ -375,12 +375,14 @@ const assetWithEdits = new StandardForm({
 - **Extensions**: Support for additional asset operations
 
 #### **Explicit Parent Control for Sub-Components**
-**Context**: When merging assets, sub-components (like Examples) are positioned based on their `implicitParent` relationships, which are determined through graph-based topological resolution. This means that a top-level Example in an edit asset will be promoted to the top level in the merged result, even if it was originally nested within a Room/Feature/Knowledge.
+**Context**: When serializing assets to WML/JSON schema, sub-components (like Examples) are positioned in the tree structure based on their parent relationships, which are determined through `SchemaOrganization` using graph-based topological resolution. This means that a top-level Example in an edit asset will appear at the top level in the serialized schema, even if it was originally nested within a Room/Feature/Knowledge.
 
-**Current Behavior** (as of Nov 2025):
+**Current Behavior** (as of 2025):
 - Examples can exist at top level (Asset parent) or nested (Room/Feature/Knowledge parent)
-- When an Example appears at top level in an edit merge, it gets promoted to top level in result
-- Parent relationships are determined via `implicitParent` using graph-based topological resolution
+- When an Example appears at top level in an edit merge, it appears at top level in the serialized schema
+- Parent relationships for tree structure are determined via `SchemaOrganization.getImplicitParent()` using graph-based topological resolution
+- `SchemaOrganization` is used for converting the data-centric `StandardForm` structure into a hierarchical tree for serialization (WML/JSON output)
+- Note: `StandardForm` operations (merge, diff, subset) work on the data-centric structure and don't require tree organization
 
 **Proposed Enhancement**: Add optional `<Parent>` tag to explicitly control component positioning:
 

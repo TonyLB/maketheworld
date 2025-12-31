@@ -204,6 +204,5 @@ static create(format: string): GeneratedV2EditableClass {
 
 ## Related Documentation
 
-- **[StandardComponent Edit Pattern Planning](../standardize/components/AGENT.edits.planning.md)**: Overview of edit pattern challenges and solutions
 - **[StandardExit Implementation](../standardize/components/exit.ts)**: Current StandardExit implementation using standardEditableFactory
 - **[Editable Generic System](./index.ts)**: Core editable factory implementation and v2 architecture
