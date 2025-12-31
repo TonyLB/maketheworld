@@ -20,6 +20,43 @@ This document covers implementation details, architectural patterns, and compone
 
 **Developer Note**: Current `fileURL` handling is temporary. Feel free to insert temporary stub implementations for images in order to progress on other functionality.
 
+## Architecture: Data-Centric Storage vs. Tree-Structure Serialization
+
+### Separation of Concerns
+
+**Status**: ✅ **COMPLETE** - Migration to separate data-centric storage from tree-structure serialization is complete.
+
+The component system maintains a clear separation between:
+- **Data-centric manipulation**: `StandardForm` stores components in a flat list and performs operations (merge, diff, subset) on this data-centric structure
+- **Tree-structure serialization**: `SchemaOrganization` converts the flat component data into a hierarchical tree structure for WML/JSON serialization and human readability
+
+### Key Architectural Principles
+
+- **StandardForm operations are data-centric**: Merge, diff, and subset operations work on flat component lists without requiring tree structure
+- **SchemaOrganization is for serialization**: Used primarily when converting `StandardForm` to schema (WML/JSON output) and for ordering NDJSON data to match tree ordering
+- **On-demand tree conversion**: Tree structure is computed only when needed for serialization, not during manipulation operations
+- **Explicit parent precedence**: When building tree structure, explicit parent relationships take precedence over implicit parentage
+
+### Key Components
+
+- **`SchemaOrganization`**: Converts flat component data into hierarchical tree structure for serialization
+  - Calculates implicit parents for tree ordering
+  - Provides `getImplicitParent()` and `getChildrenOfParent()` for tree construction
+  - Used in `StandardForm.schema` getter and `toNDJSON()` for ordering
+- **`OrganizationContext`**: Interface providing parentage queries for tree construction during schema generation
+- **`assureReferences()`**: Component method that ensures child references are present in parent's reference lists when rendering in parent context (used during schema generation)
+- **`isParentContext()`**: Helper method to determine if a component is rendering in its parent's context (used during schema generation)
+
+### Migration Status
+
+- ✅ `implicitParent` field removed from `StandardComponent` interface (no longer stored on components)
+- ✅ `StandardForm` operations (merge, diff, subset) work on data-centric structure without tree dependencies
+- ✅ `SchemaOrganization` used only for serialization (schema generation and NDJSON ordering)
+- ✅ `assureReferences` implemented for all component types with reference lists (used during schema generation)
+- ✅ `nestedSchema` uses `OrganizationContext` for on-demand reference assurance during tree construction
+- ✅ Component storage uses plain components only (no `StandardRemove`/`StandardReplace` wrappers)
+- ✅ Replace operations removed from component/reference level (expressed as Add+Remove pairs)
+
 ## Component Types
 
 ### **StandardExample** ✅
@@ -98,13 +135,14 @@ This principle ensures that:
 
 ### assureReferences Method
 
-The `assureReferences` method is the single point where `ref={0}` references are introduced in the component system. It ensures that child components that should be displayed in a parent context are present in the appropriate reference buckets.
+The `assureReferences` method is the single point where `ref={0}` references are introduced in the component system. It ensures that child components that should be displayed in a parent context are present in the appropriate reference buckets **during schema generation** (when converting data-centric structure to tree structure).
 
 #### Purpose
 
 - **Single source of `ref={0}`**: This is the ONLY place where `ref={0}` references should be introduced (though they can be deserialized from WML format)
 - **Component-specific dispatch**: Each component type handles its own bucket structure (e.g., Room dispatches to features/examples/characters based on component tag)
-- **Hierarchy assurance**: Ensures that components with implicit or explicit parentage appear in their parent's reference lists when rendering
+- **Tree structure assurance**: Ensures that components with implicit or explicit parentage appear in their parent's reference lists when building the tree structure for serialization
+- **Used during schema generation**: Called on-demand when `nestedSchema` is generating the hierarchical tree structure from the flat component data
 
 #### Method Signature
 
@@ -125,13 +163,19 @@ The `assureReferences` method is the single point where `ref={0}` references are
 
 Each component type implements its own dispatch logic:
 - **StandardRoom**: Dispatches to `features`, `examples`, `characters` based on the reference's `tag` property
-- Other components will have their own bucket structures (to be implemented in Phase 4.3)
+- **StandardFeature**: Dispatches to `examples` based on the reference's `tag` property
+- **StandardKnowledge**: Dispatches to `examples` based on the reference's `tag` property
+- **StandardMoment**: Dispatches to `messages` based on the reference's `tag` property
+- **StandardMessage**: Dispatches to `rooms` based on the reference's `tag` property
+- All component types with reference lists now implement `assureReferences` (migration complete)
 
 #### Relationship to Other Operations
 
 - **Non-zero refs elsewhere**: All other reference manipulation (merge, diff, withChild, etc.) should use non-zero refs
-- **Used by nestedSchema**: Will be called on-demand in `nestedSchema` (Phase 4.4) to ensure references are present when rendering in parent context
-- **Hierarchy integration**: Works with `SchemaOrganization` to determine which children should be assured based on implicit/explicit parentage
+- **Used by nestedSchema**: Called on-demand in `nestedSchema` via `OrganizationContext` to ensure references are present when building tree structure for serialization
+- **Tree construction integration**: Works with `SchemaOrganization` (via `OrganizationContext`) to determine which children should be assured based on implicit/explicit parentage when converting flat data to tree structure
+- **SchemaOrganization integration**: `StandardForm.schema` getter uses `SchemaOrganization.getChildrenOfParent()` to get asset-level children for tree construction and passes `OrganizationContext` to `nestedSchema` calls
+- **Not used in data operations**: `assureReferences` is not called during merge, diff, or subset operations - those work on the data-centric structure directly
 
 #### Implementation Pattern
 
