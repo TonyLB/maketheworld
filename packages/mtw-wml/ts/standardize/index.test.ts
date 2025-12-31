@@ -4101,4 +4101,120 @@ describe('StandardForm', () => {
         })
     })
 
+    describe('removeComponent', () => {
+        it('should remove a component from the StandardForm', () => {
+            const form = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(ROOM#room1) key=(room1) />
+                    <Room uuid=(ROOM#room2) key=(room2) />
+                </Asset>
+            `))
+            
+            const room1Ref = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
+            const result = form.removeComponent(room1Ref)
+            
+            expect(result._components.length).toBe(1)
+            expect(result._components[0].key).toBe('room2')
+            expect(result._components[0].universalKey).toBe('ROOM#room2')
+        })
+
+        it('should remove component from topLevel if present', () => {
+            const form = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(ROOM#room1) key=(room1) />
+                    <Room uuid=(ROOM#room2) key=(room2) />
+                </Asset>
+            `))
+            
+            const room1Ref = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
+            const result = form.removeComponent(room1Ref)
+            
+            expect(result._topLevel?.payload.length).toBe(1)
+            expect(result._topLevel?.payload[0].key).toBe('room2')
+            expect(result._topLevel?.payload[0].universalKey).toBe('ROOM#room2')
+        })
+
+        it('should return unchanged form when component is not found', () => {
+            const form = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(ROOM#room1) key=(room1) />
+                </Asset>
+            `))
+            
+            const nonExistentRef = new StandardReference({ tag: 'Room', key: 'nonexistent', universalKey: 'ROOM#nonexistent' })
+            const result = form.removeComponent(nonExistentRef)
+            
+            expect(result._components.length).toBe(1)
+            expect(result._components[0].key).toBe('room1')
+        })
+
+        it('should remove references from multiple components', () => {
+            const form = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Feature uuid=(FEATURE#feature1) key=(feature1) />
+                    <Room uuid=(ROOM#room1) key=(room1)>
+                        <Feature key=(feature1) />
+                    </Room>
+                    <Room uuid=(ROOM#room2) key=(room2)>
+                        <Feature key=(feature1) />
+                    </Room>
+                </Asset>
+            `))
+            
+            const feature1Ref = new StandardReference({ tag: 'Feature', key: 'feature1', universalKey: 'FEATURE#feature1' })
+            const result = form.removeComponent(feature1Ref)
+            
+            // Feature should be removed
+            expect(result._components.find(c => c.key === 'feature1')).toBeUndefined()
+            
+            // Both rooms should exist but without feature references
+            const room1 = result._components.find(c => c.key === 'room1') as StandardRoom
+            const room2 = result._components.find(c => c.key === 'room2') as StandardRoom
+            expect(room1.features?.payload.length).toBe(0)
+            expect(room2.features?.payload.length).toBe(0)
+        })
+
+        it('should follow functional pattern and not mutate original', () => {
+            const form = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room uuid=(ROOM#room1) key=(room1) />
+                    <Room uuid=(ROOM#room2) key=(room2) />
+                </Asset>
+            `))
+            
+            const originalComponentCount = form._components.length
+            const room1Ref = new StandardReference({ tag: 'Room', key: 'room1', universalKey: 'ROOM#room1' })
+            const result = form.removeComponent(room1Ref)
+            
+            // Original should be unchanged
+            expect(form._components.length).toBe(originalComponentCount)
+            expect(form._components.find(c => c.key === 'room1')).toBeDefined()
+            
+            // Result should be different
+            expect(result._components.length).toBe(1)
+            expect(result._components.find(c => c.key === 'room1')).toBeUndefined()
+        })
+
+        it('should handle removing component referenced by universalKey only', () => {
+            const form = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Feature uuid=(FEATURE#feature1) />
+                    <Room uuid=(ROOM#room1) key=(room1)>
+                        <Feature uuid=(FEATURE#feature1) />
+                    </Room>
+                </Asset>
+            `))
+            
+            const feature1Ref = new StandardReference({ tag: 'Feature', universalKey: 'FEATURE#feature1' })
+            const result = form.removeComponent(feature1Ref)
+            
+            // Feature should be removed
+            expect(result._components.find(c => c.universalKey === 'FEATURE#feature1')).toBeUndefined()
+            
+            // Room should still exist but without the feature reference
+            const room = result._components.find(c => c.key === 'room1') as StandardRoom
+            expect(room.features?.payload.length).toBe(0)
+        })
+    })
+
 })
