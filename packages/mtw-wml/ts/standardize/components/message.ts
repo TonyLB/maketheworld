@@ -152,6 +152,17 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         
         return returnValue as this
     }
+
+    removeReferences(references: StandardReference[]): this {
+        const returnValue = new StandardMessagePayload(this)
+        
+        // Filter reference list by removing items that match any reference in the input
+        returnValue._rooms = this._rooms.filter(
+            item => !references.some(ref => item.sameKey(ref))
+        )
+        
+        return returnValue as this
+    }
 }
 
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {

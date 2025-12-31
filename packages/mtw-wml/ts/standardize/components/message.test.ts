@@ -266,4 +266,41 @@ describe('StandardMessage class', () => {
         })
     })
 
+    describe('removeReferences method', () => {
+        it('should remove matching references from rooms bucket', () => {
+            const message = new StandardMessage(deIndentWML(`
+                <Message key=(test)>
+                    <Room key=(room1) />
+                    <Room key=(room2) />
+                </Message>
+            `))
+            const roomRef = new StandardReference({ tag: 'Room', key: 'room1' })
+            
+            const result = message._payload.removeReferences([roomRef])
+            
+            // Verify matching reference was removed
+            expect(result.rooms.payload.length).toBe(1)
+            expect(result.rooms.payload[0].sameKey(new StandardReference({ tag: 'Room', key: 'room2' }))).toBe(true)
+        })
+        
+        it('should return a clone without mutating the original', () => {
+            const message = new StandardMessage(deIndentWML(`
+                <Message key=(test)>
+                    <Room key=(room1) />
+                </Message>
+            `))
+            const originalRoomsLength = message._payload.rooms.payload.length
+            const roomRef = new StandardReference({ tag: 'Room', key: 'room1' })
+            
+            const result = message._payload.removeReferences([roomRef])
+            
+            // Original should be unchanged
+            expect(message._payload.rooms.payload.length).toBe(originalRoomsLength)
+            // Result should have the reference removed
+            expect(result.rooms.payload.length).toBe(0)
+            // They should be different objects
+            expect(result).not.toBe(message._payload)
+        })
+    })
+
 })

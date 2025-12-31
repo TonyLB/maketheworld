@@ -225,5 +225,42 @@ describe('StandardMoment class', () => {
             expect(result.messages.payload[0].sameKey(messageRef)).toBe(true)
         })
     })
+
+    describe('removeReferences method', () => {
+        it('should remove matching references from messages bucket', () => {
+            const moment = new StandardMoment(deIndentWML(`
+                <Moment key=(test)>
+                    <Message key=(msg1) />
+                    <Message key=(msg2) />
+                </Moment>
+            `))
+            const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
+            
+            const result = moment._payload.removeReferences([messageRef])
+            
+            // Verify matching reference was removed
+            expect(result.messages.payload.length).toBe(1)
+            expect(result.messages.payload[0].sameKey(new StandardReference({ tag: 'Message', key: 'msg2' }))).toBe(true)
+        })
+        
+        it('should return a clone without mutating the original', () => {
+            const moment = new StandardMoment(deIndentWML(`
+                <Moment key=(test)>
+                    <Message key=(msg1) />
+                </Moment>
+            `))
+            const originalMessagesLength = moment._payload.messages.payload.length
+            const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
+            
+            const result = moment._payload.removeReferences([messageRef])
+            
+            // Original should be unchanged
+            expect(moment._payload.messages.payload.length).toBe(originalMessagesLength)
+            // Result should have the reference removed
+            expect(result.messages.payload.length).toBe(0)
+            // They should be different objects
+            expect(result).not.toBe(moment._payload)
+        })
+    })
     
 })

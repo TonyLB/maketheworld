@@ -245,5 +245,42 @@ describe('StandardFeature class', () => {
             expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
         })
     })
+
+    describe('removeReferences method', () => {
+        it('should remove matching references from examples bucket', () => {
+            const feature = new StandardFeature(deIndentWML(`
+                <Feature key=(test)>
+                    <Example key=(ex1) />
+                    <Example key=(ex2) />
+                </Feature>
+            `))
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            
+            const result = feature._payload.removeReferences([exampleRef])
+            
+            // Verify matching reference was removed
+            expect(result.examples.payload.length).toBe(1)
+            expect(result.examples.payload[0].sameKey(new StandardReference({ tag: 'Example', key: 'ex2' }))).toBe(true)
+        })
+        
+        it('should return a clone without mutating the original', () => {
+            const feature = new StandardFeature(deIndentWML(`
+                <Feature key=(test)>
+                    <Example key=(ex1) />
+                </Feature>
+            `))
+            const originalExamplesLength = feature._payload.examples.payload.length
+            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            
+            const result = feature._payload.removeReferences([exampleRef])
+            
+            // Original should be unchanged
+            expect(feature._payload.examples.payload.length).toBe(originalExamplesLength)
+            // Result should have the reference removed
+            expect(result.examples.payload.length).toBe(0)
+            // They should be different objects
+            expect(result).not.toBe(feature._payload)
+        })
+    })
     
 })
