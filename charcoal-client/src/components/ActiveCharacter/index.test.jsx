@@ -27,7 +27,26 @@ const store = mockStore({
             charactersInPlay: {}
         }
     },
-    player: { Settings: { guestId: '12345' }},
+    playerDataSource: {
+        publicData: {
+            activeStreamKeys: [],
+            subscribedStreams: {
+                'test-player': {
+                    materializedView: {
+                        type: 'Snapshot',
+                        assets: [],
+                        characters: [],
+                        settings: { guestId: '12345' }
+                    }
+                }
+            }
+        }
+    },
+    settings: {
+        connection: {
+            playerName: 'test-player'
+        }
+    },
     messages: [],
     characters: {},
     UI: {
