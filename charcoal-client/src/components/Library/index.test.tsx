@@ -52,36 +52,71 @@ const createTestAsset = (assetId: string, zone: string, shortName?: string): Ass
 const getLibraryDataSourceState = () => libraryDataSourceSlice.getInitialState()
 
 // Helper to create store with all required slices
-const createTestStore = (overrides: any = {}) => mockStore({
-    player: {
-        publicData: {
-            Assets: [],
-            Characters: []
+const createTestStore = (overrides: any = {}) => {
+    const playerName = overrides.settings?.connection?.playerName || 'test-player'
+    const assets = overrides.player?.publicData?.Assets || []
+    const characters = overrides.player?.publicData?.Characters || []
+    
+    // Map assets from player.publicData.Assets to playerDataSource structure
+    // Only if playerDataSource is not explicitly provided in overrides
+    let playerDataSource = overrides.playerDataSource
+    if (!playerDataSource && (assets.length > 0 || characters.length > 0)) {
+        playerDataSource = {
+            publicData: {
+                activeStreamKeys: [],
+                subscribedStreams: {
+                    [playerName]: {
+                        materializedView: {
+                            type: 'Snapshot' as const,
+                            assets: assets,
+                            characters: characters,
+                            settings: {}
+                        }
+                    }
+                }
+            }
         }
-    },
-    libraryDataSource: getLibraryDataSourceState(),
-    playerDataSource: {
-        publicData: {
-            activeStreamKeys: [],
-            subscribedStreams: {}
+    } else if (!playerDataSource) {
+        playerDataSource = {
+            publicData: {
+                activeStreamKeys: [],
+                subscribedStreams: {}
+            }
         }
-    },
-    settings: {
-        server: {
-            ChatPrompt: 'What do you do?'
+    }
+    
+    const baseStore = {
+        player: {
+            publicData: {
+                Assets: [],
+                Characters: []
+            }
         },
-        client: {
-            TextEntryLines: 1,
-            ShowNeighborhoodHeaders: false,
-            AlwaysShowOnboarding: false
-        },
-        connection: {
-            sessionId: '',
-            playerName: ''
+        libraryDataSource: getLibraryDataSourceState(),
+        playerDataSource,
+        settings: {
+            server: {
+                ChatPrompt: 'What do you do?'
+            },
+            client: {
+                TextEntryLines: 1,
+                ShowNeighborhoodHeaders: false,
+                AlwaysShowOnboarding: false
+            },
+            connection: {
+                sessionId: '',
+                playerName: playerName
+            }
         }
-    },
-    ...overrides
-})
+    }
+    
+    return mockStore({
+        ...baseStore,
+        ...overrides,
+        // Ensure playerDataSource from our logic takes precedence over overrides.playerDataSource
+        playerDataSource
+    })
+}
 
 const TestWrapper: React.FunctionComponent<{ children: React.ReactNode; store: any }> = ({ children, store }) => {
     const theme = createTheme()
@@ -299,8 +334,8 @@ describe('Library - Multi-Draft Feature', () => {
                 </TestWrapper>
             )
 
-            // Should show UUID-based fallback
-            expect(screen.getByText(/Untitled draft-1/i)).toBeInTheDocument()
+            // Should show simple fallback (UUIDs are not human-readable, so we just use "Untitled")
+            expect(screen.getByText('Untitled')).toBeInTheDocument()
         })
 
         it('should show Summary when available', () => {

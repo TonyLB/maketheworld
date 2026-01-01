@@ -32,7 +32,7 @@
 //   TO-DO:  That.
 //
 
-import React, { useContext, ReactChild, ReactChildren, FunctionComponent } from 'react'
+import React, { useContext, FunctionComponent, ReactNode } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 //
@@ -79,7 +79,7 @@ const ActiveCharacterContext = React.createContext<ActiveCharacterContextType>({
 
 type ActiveCharacterProps = {
     CharacterId: EphemeraCharacterId;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
 }
 
 export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ CharacterId, children }) => {
