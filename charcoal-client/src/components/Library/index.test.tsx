@@ -334,8 +334,8 @@ describe('Library - Multi-Draft Feature', () => {
                 </TestWrapper>
             )
 
-            // Should show UUID-based fallback
-            expect(screen.getByText(/Untitled draft-1/i)).toBeInTheDocument()
+            // Should show simple fallback (UUIDs are not human-readable, so we just use "Untitled")
+            expect(screen.getByText('Untitled')).toBeInTheDocument()
         })
 
         it('should show Summary when available', () => {
