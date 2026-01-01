@@ -406,7 +406,7 @@ describe('personalAsset slice reducers', () => {
             )).toEqual({
                 base: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Feature uuid=(Feature1)>
+                        <Feature uuid=(Feature1) key=(Feature1)>
                             <Example uuid=(base)>
                                 <Name>Test Feature</Name>
                                 <Description><Link to=(Feature1)>Link</Link></Description>
@@ -416,7 +416,7 @@ describe('personalAsset slice reducers', () => {
                 `),
                 standard: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Feature uuid=(Feature1)>
+                        <Feature uuid=(Feature1) key=(clockTower)>
                             <Example uuid=(base)>
                                 <Name>Test Feature</Name>
                                 <Description><Link to=(clockTower)>Link</Link></Description>
@@ -426,7 +426,7 @@ describe('personalAsset slice reducers', () => {
                 `),
                 calculated: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Feature uuid=(Feature1)>
+                        <Feature uuid=(Feature1) key=(clockTower)>
                             <Example uuid=(base)>
                                 <Name>Test Feature</Name>
                                 <Description><Link to=(clockTower)>Link</Link></Description>
@@ -436,20 +436,9 @@ describe('personalAsset slice reducers', () => {
                 `),
                 edit: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Feature uuid=(Feature1)>
-                            <Example uuid=(base)>
-                                <Name>Test Feature</Name>
-                                <Description><Link to=(clockTower)>Link</Link></Description>
-                            </Example>
+                        <Feature uuid=(Feature1) key=(Feature1) ref={0}>
+                            <Replace><Key>Feature1</Key></Replace><With><Key>clockTower</Key></With>
                         </Feature>
-                        <Remove>
-                            <Feature uuid=(Feature1)>
-                                <Example uuid=(base)>
-                                    <Name>Test Feature</Name>
-                                    <Description><Link to=(Feature1)>Link</Link></Description>
-                                </Example>
-                            </Feature>
-                        </Remove>
                     </Asset>
                 `)
             })

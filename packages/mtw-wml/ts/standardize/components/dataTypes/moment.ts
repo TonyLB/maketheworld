@@ -17,7 +17,7 @@ export const isStandardMomentData = (arg: any): arg is StandardMomentData => {
         (!('messages' in arg) || (Array.isArray(arg.messages) && arg.messages.every(isStandardReferenceData))),
         checkTypes(arg, { },
         {
-            key: 'string',
+            key: 'key',
             universalKey: 'string'
         })
     )

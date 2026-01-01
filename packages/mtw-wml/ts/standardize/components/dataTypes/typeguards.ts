@@ -2,12 +2,13 @@ import { isRenderTreeNode } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaTreeNode } from "../../../schema"
 import { isStandardLiteralData } from "../../literal"
 import { isStandardReferenceData } from "./reference"
+import { editWrappedTypeguard } from "@tonylb/mtw-base/ts/editable"
 
 export const checkAll = (...items: boolean[]): boolean => (
     items.reduce<boolean>((previous, item) => (previous && item), true)
 )
 
-type CheckType = 'node' | 'tree' | 'referenceList' | 'renderTree' | 'literal' | 'string' | 'number' | 'boolean'
+type CheckType = 'node' | 'tree' | 'referenceList' | 'renderTree' | 'literal' | 'string' | 'number' | 'boolean' | 'key'
 
 export const checkTypes = (item: any, requiredList: Record<string, CheckType>, optionalList?: Record<string, CheckType>): boolean => {
     const checkSingleType = (value: any, type: CheckType): boolean => {
@@ -31,6 +32,10 @@ export const checkTypes = (item: any, requiredList: Record<string, CheckType>, o
                     return false
                 }
                 return value.every(isStandardReferenceData)
+            case 'key':
+                // key can be string or StandardEditableData<string> (for Replace/Remove structures)
+                return typeof value === 'string' || 
+                    editWrappedTypeguard((x: any): x is string => typeof x === 'string')(value)
             default:
                 return typeof(value) === type
         }

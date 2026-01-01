@@ -23,7 +23,7 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
         (!('exits' in arg) || (Array.isArray(arg.exits) && arg.exits.every(isStandardExitData))),
         checkTypes(arg, { },
         {
-            key: 'string',
+            key: 'key',
             universalKey: 'string',
             shortName: 'literal',
             examples: 'referenceList',

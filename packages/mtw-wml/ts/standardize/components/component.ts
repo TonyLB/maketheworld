@@ -467,9 +467,14 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (this.universalKey && incoming.universalKey && this.universalKey !== incoming.universalKey) {
                 throw new Error(`Mismatched universalKeys in StandardComponent diff (${this.key} vs ${incoming.key})`)
             }
-            // Keys must match for diff to be meaningful
+            // Keys must match for diff to be meaningful, UNLESS universalKeys match (rename case)
+            // Defensive check: Components should already be matched by universalKey by StandardForm.diff()
+            // This check should never fail in normal operation, but protects against bugs or direct calls
             if (this.key && incoming.key && this.key !== incoming.key) {
-                throw new Error(`Mismatched keys in StandardComponent diff (${this.key} vs ${incoming.key})`)
+                // Allow diff if universalKeys match (this is a rename, not a mismatch)
+                if (!(this.universalKey && incoming.universalKey && this.universalKey === incoming.universalKey)) {
+                    throw new Error(`Mismatched keys in StandardComponent diff (${this.key} vs ${incoming.key})`)
+                }
             }
             // Check _key differences separately - handle undefined cases properly
             // If this._key is undefined and incoming._key is defined, StandardExplicitKey.diff returns incoming
@@ -515,12 +520,29 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 if (merged) {
                     base._payload = (merged as any)._payload
                 } else {
-                    // Merge resulted in no-op, return undefined
-                    return undefined
+                    // Merge returned undefined, meaning a.invert().merge(b) = undefined
+                    // Mathematically, this means there are no differences in the payload
+                    // Check if we have key or explicitParent differences - if not, return undefined
+                    if (!hasKeyDiff && !hasExplicitParentDiff) {
+                        // No differences at all (payload merge returned undefined, no key/parent diff)
+                        return undefined
+                    }
+                    // We have key or explicitParent differences but no payload differences
+                    // Create an empty payload instance (empty diff means no payload changes)
+                    // The key/parent diffs will be applied separately below
+                    base._payload = new Base() as InstanceType<typeof Base>
                 }
             } else {
-                // Fallback: use incoming component's payload (this is a simple diff approximation)
-                base._payload = (incoming as any)._payload
+                // Component type doesn't support invert() - cannot compute proper diff
+                // If there are no differences detected, return undefined
+                // Otherwise, this is an error condition - we can't compute the diff properly
+                if (otherDiff && !hasKeyDiff && !hasExplicitParentDiff) {
+                    return undefined
+                }
+                // Cannot compute diff for component type without invert() - this should not happen
+                // in normal operation, but if it does, we return undefined rather than incorrect diff
+                console.warn(`Cannot compute diff for component type without invert() method: ${this.tag}`)
+                return undefined
             }
             // Apply _key diff if it exists (pass pre-computed diff to avoid recalculation)
             this._applyKeyDiffToComponent(base, incoming, keyDiff)

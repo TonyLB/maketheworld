@@ -19,7 +19,7 @@ export const isStandardMessageData = (arg: any): arg is StandardMessageData => {
     return checkAll(
         ('tag' in arg && arg.tag === 'Message'),
         checkTypes(arg, {
-            key: 'string',
+            key: 'key',
             rooms: 'referenceList'
         },
         {
