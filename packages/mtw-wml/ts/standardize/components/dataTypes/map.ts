@@ -24,7 +24,7 @@ export const isStandardMapData = (arg: any): arg is StandardMapData => {
             images: 'tree'
         },
         {
-            key: 'string',
+            key: 'key',
             universalKey: 'string',
             name: 'literal',
         }),

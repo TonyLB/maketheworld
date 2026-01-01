@@ -18,7 +18,7 @@ export const isStandardFeatureData = (arg: any): arg is StandardFeatureData => {
         ('tag' in arg && arg.tag === 'Feature'),
         checkTypes(arg, {},
         {
-            key: 'string',
+            key: 'key',
             universalKey: 'string',
             shortName: 'literal'
         })

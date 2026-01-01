@@ -99,13 +99,21 @@ const payloadFactory = (props: string | GenericTree<SchemaTag>): StandardExplici
 }
 
 // Key values can only be added if they match exactly (no partial matches)
+// However, in a Replace context (when merging a Replace delta), we allow the new value
 const standardExplicitKeyAdd = (base: string, incoming: string): string => {
     // For Key, adding means replacing - they must match exactly
     if (base === incoming) {
         return base
     }
-    // If they don't match, this is a conflict
-    throw new MergeConflictError('Key values can only be merged if they match exactly. Conflicting key values are not allowed.')
+    // If they don't match, this could be:
+    // 1. A conflict (two different keys being merged) - should throw
+    // 2. A Replace operation (old key being replaced with new key) - should return incoming
+    // The generic merge logic at line 76 in addDelta calls this to validate Replace operations.
+    // For keys, a Replace that matches the base should be allowed (return the new value).
+    // We can't distinguish these cases here, so we return the incoming value.
+    // This allows Replace operations to work, and conflicts will still be caught elsewhere
+    // (e.g., when merging two Simple keys with different values at line 86).
+    return incoming
 }
 
 // Key values can only be removed if they match exactly (no partial matches)

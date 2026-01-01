@@ -14,7 +14,7 @@ export const isStandardImageData = (arg: any): arg is StandardImageData => {
         ('tag' in arg && arg.tag === 'Image'),
         checkTypes(
             arg,
-            { key: 'string' },
+            { key: 'key' },
             {}
         )
     )

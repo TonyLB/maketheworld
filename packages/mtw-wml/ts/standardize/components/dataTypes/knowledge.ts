@@ -17,7 +17,7 @@ export const isStandardKnowledgeData = (arg: any): arg is StandardKnowledgeData 
     return checkAll(
         ('tag' in arg && arg.tag === 'Knowledge'),
         checkTypes(arg, {}, { 
-            key: 'string', 
+            key: 'key', 
             universalKey: 'string',
             shortName: 'literal'
         })

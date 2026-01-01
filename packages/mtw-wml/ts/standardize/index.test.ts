@@ -2243,6 +2243,65 @@ describe('StandardForm', () => {
             })
         })
 
+        describe('key changes', () => {
+            it('should show key change in diff when component is renamed', () => {
+                const base = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(Feature1)><ShortName>Test</ShortName></Feature></Asset>`)
+                const incoming = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(clockTower)><ShortName>Test</ShortName></Feature></Asset>`)
+                const diff = base.diff(incoming)
+                expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Feature uuid=(Feature1) key=(Feature1) ref={0}>
+                            <Replace><Key>Feature1</Key></Replace><With><Key>clockTower</Key></With>
+                        </Feature>
+                    </Asset>
+                `))
+            })
+
+            it('should show key addition in diff when component gains a local key', () => {
+                const base = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1)><ShortName>Test</ShortName></Feature></Asset>`)
+                const incoming = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(clockTower)><ShortName>Test</ShortName></Feature></Asset>`)
+                const diff = base.diff(incoming)
+                // Should show key being added - lookup by universalKey since base has no local key
+                const component = diff._lookup('FEATURE#Feature1')
+                expect(component).toBeDefined()
+                expect(component?.key).toBe('clockTower')
+            })
+
+            it('should show key removal in diff when component loses a local key', () => {
+                const base = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(clockTower)><ShortName>Test</ShortName></Feature></Asset>`)
+                const incoming = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1)><ShortName>Test</ShortName></Feature></Asset>`)
+                const diff = base.diff(incoming)
+                // Should show key being removed - lookup by universalKey since incoming has no local key
+                const component = diff._lookup('FEATURE#Feature1')
+                expect(component).toBeDefined()
+                // The key should be removed (undefined or showing Remove semantics)
+                // When key is removed, the component in diff might still have the old key or be undefined
+                // Check that the key diff shows removal
+                const keyJSON = component?._key?.toJSON()
+                if (keyJSON && typeof keyJSON === 'object' && keyJSON.tag === 'Remove') {
+                    expect(keyJSON.match).toBe('clockTower')
+                } else {
+                    // Or the key might be undefined
+                    expect(component?.key).toBeUndefined()
+                }
+            })
+
+            it('should show both key change and content changes in diff', () => {
+                const base = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(Feature1)><ShortName>Old Name</ShortName></Feature></Asset>`)
+                const incoming = new StandardForm(`<Asset uuid=(Test)><Feature uuid=(Feature1) key=(clockTower)><ShortName>New Name</ShortName></Feature></Asset>`)
+                const diff = base.diff(incoming)
+                expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                    <Asset uuid=(Test)>
+                        <Feature uuid=(Feature1) key=(Feature1) ref={0}>
+                            <Replace><Key>Feature1</Key></Replace><With><Key>clockTower</Key></With>
+                            <Replace><ShortName>Old Name</ShortName></Replace>
+                            <With><ShortName>New Name</ShortName></With>
+                        </Feature>
+                    </Asset>
+                `))
+            })
+        })
+
     })
 
     describe('subset method', () => {

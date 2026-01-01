@@ -23,7 +23,7 @@ export const isStandardCharacterData = (arg: any): arg is StandardCharacterData 
         ('tag' in arg && arg.tag === 'Character'),
         checkTypes(arg, {},
         {
-            key: 'string',
+            key: 'key',
             universalKey: 'string',
             shortName: 'literal',
             pronouns: 'literal',
