@@ -99,21 +99,13 @@ const payloadFactory = (props: string | GenericTree<SchemaTag>): StandardExplici
 }
 
 // Key values can only be added if they match exactly (no partial matches)
-// However, in a Replace context (when merging a Replace delta), we allow the new value
 const standardExplicitKeyAdd = (base: string, incoming: string): string => {
     // For Key, adding means replacing - they must match exactly
     if (base === incoming) {
         return base
     }
-    // If they don't match, this could be:
-    // 1. A conflict (two different keys being merged) - should throw
-    // 2. A Replace operation (old key being replaced with new key) - should return incoming
-    // The generic merge logic at line 76 in addDelta calls this to validate Replace operations.
-    // For keys, a Replace that matches the base should be allowed (return the new value).
-    // We can't distinguish these cases here, so we return the incoming value.
-    // This allows Replace operations to work, and conflicts will still be caught elsewhere
-    // (e.g., when merging two Simple keys with different values at line 86).
-    return incoming
+    // If they don't match, this is a conflict
+    throw new MergeConflictError('Key values can only be merged if they match exactly. Conflicting key values are not allowed.')
 }
 
 // Key values can only be removed if they match exactly (no partial matches)
@@ -228,6 +220,26 @@ export class StandardExplicitKeySimple implements StandardEditableWrapper<Standa
         return this.payload 
     }
     merge(other: StandardEditableWrapper<StandardExplicitKeySimpleBase>): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined {
+        // Special case: If other is a Replace and this matches the Replace's match, apply the Replace
+        // 
+        // Why this is needed: The generic merge logic in addDelta (line 76) validates Replace operations
+        // by calling add(baseAdd, incomingAdd) to ensure they point to the same component (for references).
+        // For keys, this validation throws a MergeConflictError because standardExplicitKeyAdd requires
+        // exact matches. However, for keys, a Replace operation that matches the base SHOULD be allowed
+        // (it's a valid key rename, not a conflict). We handle this here by detecting Replace operations
+        // and applying them directly, bypassing the generic merge's reference-oriented validation.
+        //
+        // This handles the case where a diff produces a Replace key (e.g., renaming Feature1 to clockTower)
+        // that needs to be merged with the base key. Without this special case, the merge would fail with
+        // a conflict error even though the Replace is valid.
+        if (other instanceof StandardExplicitKeyReplace) {
+            const thisValue = this.payload.toJSON()
+            const replaceMatch = other.match.toJSON()
+            if (thisValue === replaceMatch) {
+                // This matches the Replace's match - apply the Replace by returning the payload as Simple
+                return new StandardExplicitKeySimple(other.payload)
+            }
+        }
         return fromDelta(merge(this._delta, other._delta))
     }
     diff(other: StandardEditableWrapper<StandardExplicitKeySimpleBase>): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined {
