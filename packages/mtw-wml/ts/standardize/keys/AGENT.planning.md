@@ -55,10 +55,12 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 **Goal**: Establish the new directory structure and create placeholder/type definitions.
 
 1. ✅ **Create `ts/standardize/keys` directory** - Already done
-2. **Define data types for Facets**
-   - Create `dataTypes/facet.ts` with `StandardFacetData` type definition
-   - Define payload structure for different Facet types (Mark Facets, Position Facets, etc.)
-   - Consider how Facet types/kinds are represented (enum? string union? tagged type?)
+2. ✅ **Define data types for Facets**
+   - Created `dataTypes/facet.ts` with `StandardFacetData` type definition
+   - Defined payload structure for different Facet types (PositionPayload, MarkFacetPayload, ExitPayload)
+   - Implemented discriminator field approach using `type` field in payloads (e.g., `type: 'PositionFacet'`)
+   - Implemented type guards: `isPositionPayload`, `isMarkFacetPayload`, `isExitPayload`, `isStandardFacetPayload`, `isStandardFacetData`
+   - Created comprehensive unit tests in `dataTypes/facet.test.ts`
 3. **Create initial type definitions**
    - Define `StandardFacet` class interface/structure (similar to `StandardReference`)
    - Define `FacetList` class interface/structure (similar to `ReferenceList`)
