@@ -61,10 +61,12 @@ The work is broken down into tactically-sized chunks that can be addressed incre
    - Implemented discriminator field approach using `type` field in payloads (e.g., `type: 'PositionFacet'`)
    - Implemented type guards: `isPositionPayload`, `isMarkFacetPayload`, `isExitPayload`, `isStandardFacetPayload`, `isStandardFacetData`
    - Created comprehensive unit tests in `dataTypes/facet.test.ts`
-3. **Create initial type definitions**
-   - Define `StandardFacet` class interface/structure (similar to `StandardReference`)
-   - Define `FacetList` class interface/structure (similar to `ReferenceList`)
-   - Document key differences from Reference (payload data, type/kind field)
+3. ✅ **Create initial type definitions**
+   - Created `abstract.ts` with `StandardFacet` and `FacetList` interface definitions (similar to `StandardReference` and `ReferenceList`)
+   - Defined `FacetListData<TPayload>` type for serialization
+   - Created `AGENT.md` with overview of keys directory ecosystem
+   - Created `AGENT.facets.md` with comprehensive Facet documentation including key differences from References
+   - Documented composition pattern, payload types, and Replace operations
 
 ### Phase 2: Move Existing Key/Reference Code
 
