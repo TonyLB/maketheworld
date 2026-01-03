@@ -1,4 +1,6 @@
-import { ReferenceList, StandardKey, StandardReference, referenceSortOrder, MapByKey, keySortOrder } from './reference';
+import { ReferenceList } from './reference';
+import StandardReference, { referenceSortOrder, MapByKey } from '../keys/reference';
+import { StandardKey, keySortOrder } from '../keys/key';
 import { deIndentWML } from '../../schema/utils';
 import { Schema, schemaToWML } from '../../schema';
 import { StandardKeyData, StandardReferenceData } from './dataTypes/reference';

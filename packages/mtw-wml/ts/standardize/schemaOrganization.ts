@@ -1,7 +1,7 @@
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
 import { ComponentTag } from "./components/dataTypes/abstract"
-import { StandardKey } from "./components/reference"
-import { ReferenceList } from "./components/reference"
+import { StandardKey } from "./keys/key"
+import { ReferenceList } from "./keys/referenceList"
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
@@ -9,7 +9,7 @@ import { StandardExplicitParent, StandardExplicitParentSimple, StandardExplicitP
 import { excludeUndefined } from "../lib/lists"
 import { unique } from "../list"
 import { KeyLookup } from "./keyLookup"
-import { StandardReference, referenceSortOrder, MapByKey } from "./components/reference"
+import StandardReference, { referenceSortOrder, MapByKey } from "./keys/reference"
 
 export class SchemaOrganization {
     private _organization: Array<{ key: StandardKey; implicitParent?: StandardKey }>

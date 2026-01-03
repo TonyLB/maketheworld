@@ -2,7 +2,8 @@ import { Schema, schemaToWML } from "../schema"
 import { deIndentWML } from "../schema/utils"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
 import StandardRoom from "./components/room"
-import { StandardKey, StandardReference } from "./components/reference"
+import StandardReference from "./keys/reference"
+import { StandardKey } from "./keys/key"
 
 const componentTemplates: ComponentProcessingTemplate[] = [
     { 

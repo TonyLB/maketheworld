@@ -3,7 +3,7 @@ import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { isStandardNDJSONLine, StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
-import { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/reference'
+import { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 
 type AssetDataCache = {
     AssetId: `ASSET#${string}`;

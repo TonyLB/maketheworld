@@ -1,5 +1,5 @@
 import { RenderTreeNode } from "@tonylb/mtw-base/ts/renderTree";
-import StandardReference from "../components/reference";
+import StandardReference from "../keys/reference";
 import { ReferenceFormat } from "../components/utils/references";
 
 export interface StandardRenderElement {

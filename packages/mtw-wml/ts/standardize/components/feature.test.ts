@@ -3,7 +3,8 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardFeatureData } from "./dataTypes/feature"
 import StandardFeature from './feature'
 import { mergeTest } from "./utils/testing"
-import StandardReference, { StandardKey } from "./reference"
+import StandardReference from "../keys/reference"
+import { StandardKey } from "../keys/key"
 
 describe('StandardFeature class', () => {
 

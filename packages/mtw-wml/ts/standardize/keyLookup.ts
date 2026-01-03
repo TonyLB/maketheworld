@@ -1,5 +1,5 @@
 import { StandardComponent } from "./components/baseClasses"
-import { StandardKey } from "./components/reference"
+import { StandardKey } from "./keys/key"
 
 export class KeyLookup {
     private components: StandardComponent[]

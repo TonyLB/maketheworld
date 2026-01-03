@@ -3,7 +3,7 @@ import { StandardRender, StandardRenderRemove, StandardRenderReplace, StandardRe
 import { EditWrappedStandardNode } from "../dataTypes/abstract"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
-import StandardReference from "../reference"
+import StandardReference from "../../keys/reference"
 
 export const extractStandardRender = <D extends SchemaTag>(node: EditWrappedStandardNode<D, SchemaOutputTag> | undefined, typeguard: (data: SchemaTag) => data is D, errorMessage: string): StandardRender | undefined => {
     if (!node) {

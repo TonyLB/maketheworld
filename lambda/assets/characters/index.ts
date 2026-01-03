@@ -11,7 +11,7 @@ import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { CharacterEventSerializer, CharacterEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
 import { isAssetsComponentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 
 // Types for the characters data source
 export type CharacterEventPayload = {

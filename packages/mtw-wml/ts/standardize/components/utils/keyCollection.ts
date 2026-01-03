@@ -1,4 +1,5 @@
-import { StandardKey } from "../reference"
+import { StandardKey } from "../../keys/key"
+import StandardReference from "../../keys/reference"
 
 /**
  * KeyCollection manages a deduplicated collection of StandardKey appearances.

@@ -1,6 +1,7 @@
 import { StandardRenderLink } from './link';
 import { GenericTreeNode, GenericTreeNodeFiltered } from '@tonylb/mtw-base/ts/genericTree';
-import StandardReference, { StandardKey } from '../components/reference';
+import StandardReference from '../keys/reference';
+import { StandardKey } from '../keys/key';
 import { SchemaLinkTag } from '@tonylb/mtw-base/ts/schema/renderTree';
 import { SchemaOutputTag } from '@tonylb/mtw-base/ts/schema';
 

@@ -1,5 +1,5 @@
 import { KeyCollection } from "./keyCollection"
-import { StandardKey } from "../reference"
+import { StandardKey } from "../../keys/key"
 
 describe('KeyCollection', () => {
     describe('constructor', () => {

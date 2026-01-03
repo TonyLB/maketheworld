@@ -1,5 +1,5 @@
 import { StandardAuthorizationResource } from "./resource"
-import StandardReference from "../components/reference"
+import StandardReference from "../keys/reference"
 import { StandardAuthorizationItem } from "./components/baseClasses"
 import StandardGrant from "./components/grant"
 import { schemaToWML } from "../../schema"

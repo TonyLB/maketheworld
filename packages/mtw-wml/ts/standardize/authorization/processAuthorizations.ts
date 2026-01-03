@@ -5,7 +5,7 @@ import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplaceP
 import { isSchemaGrant } from "@tonylb/mtw-base/ts/schema/authorization"
 import StandardGrant from "./components/grant"
 import { StandardAuthorizationResource } from "./resource"
-import StandardReference from "../components/reference"
+import StandardReference from "../keys/reference"
 import { StandardAuthorizationItem } from "./components/baseClasses"
 
 //

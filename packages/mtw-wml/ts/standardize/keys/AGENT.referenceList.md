@@ -123,8 +123,9 @@ This independent storage enables precise control over reference collections and 
 ## Related Documentation
 
 - [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md) - Mathematical properties of ReferenceList merge and diff operations
-- [`reference.ts`](./reference.ts) - Implementation of `ReferenceList`, `StandardReference`, and `StandardKey`
-- [`AGENT.md`](./AGENT.md) - Conceptual overview of Components and references
-- [`AGENT.editAlgebra.md`](./AGENT.editAlgebra.md) - Mathematical properties of component edit operations
-- [`editableList.ts`](./editableList.ts) - Factory pattern for editable list operations (used for content, not asset structure)
-
+- [`referenceList.ts`](./referenceList.ts) - Implementation of `ReferenceList`
+- [`reference.ts`](./reference.ts) - Implementation of `StandardReference`
+- [`key.ts`](./key.ts) - Implementation of `StandardKey`
+- [`../components/AGENT.md`](../components/AGENT.md) - Conceptual overview of Components and references
+- [`../components/AGENT.editAlgebra.md`](../components/AGENT.editAlgebra.md) - Mathematical properties of component edit operations
+- [`../components/editableList.ts`](../components/editableList.ts) - Factory pattern for editable list operations (used for content, not asset structure)

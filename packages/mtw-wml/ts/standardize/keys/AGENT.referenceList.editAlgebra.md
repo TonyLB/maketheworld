@@ -4,7 +4,7 @@
 
 This document describes the **mathematical properties and relationships** of edit operations on `ReferenceList` instances using the numeric `ref` property model. It focuses on the algebra of how reference list edits relate to each other, including how merges and diffs operate on collections of references as simple arithmetic operations.
 
-For current implementation details, see [`reference.ts`](./reference.ts). For general ReferenceList usage, see [`AGENT.referenceList.md`](./AGENT.referenceList.md).
+For current implementation details, see [`referenceList.ts`](./referenceList.ts). For general ReferenceList usage, see [`AGENT.referenceList.md`](./AGENT.referenceList.md).
 
 ## Core Concept
 
@@ -128,7 +128,8 @@ Result: `<Room key=(feat1) ref={-1}>`, `<Room key=(feat2) ref={-1}>`, `<Room key
 ## Related Documentation
 
 - [`AGENT.referenceList.md`](./AGENT.referenceList.md) - General ReferenceList overview and usage
-- [`reference.ts`](./reference.ts) - Implementation of `ReferenceList`, `StandardReference`, and `StandardKey`
-- [`AGENT.editAlgebra.md`](./AGENT.editAlgebra.md) - Mathematical properties of component edit operations
-- [`AGENT.md`](./AGENT.md) - Conceptual overview of Components and references
-
+- [`referenceList.ts`](./referenceList.ts) - Implementation of `ReferenceList`
+- [`reference.ts`](./reference.ts) - Implementation of `StandardReference`
+- [`key.ts`](./key.ts) - Implementation of `StandardKey`
+- [`../components/AGENT.editAlgebra.md`](../components/AGENT.editAlgebra.md) - Mathematical properties of component edit operations
+- [`../components/AGENT.md`](../components/AGENT.md) - Conceptual overview of Components and references

@@ -1,5 +1,5 @@
 import { KeyLookup } from './keyLookup'
-import { StandardKey } from './components/reference'
+import { StandardKey } from './keys/key'
 import StandardRoom from './components/room'
 import StandardFeature from './components/feature'
 import { StandardComponent } from './components/baseClasses'

@@ -3,7 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardExampleData } from "./dataTypes/example"
 import StandardExample from './example'
-import StandardReference from "./reference"
+import StandardReference from "../keys/reference"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 
 const mergeTest = (base: string, incoming: string): string => {

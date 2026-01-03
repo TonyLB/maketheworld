@@ -72,23 +72,23 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 
 **Goal**: Relocate existing code to the new directory structure without breaking functionality.
 
-1. **Move `StandardKey`**
-   - Move class from `components/reference.ts` to `keys/key.ts` (or `keys/index.ts`)
-   - Update all imports across codebase
-   - Run tests to ensure no regressions
-2. **Move `StandardReference`**
-   - Move class from `components/reference.ts` to `keys/reference.ts` (or consolidate with key.ts)
-   - Update all imports across codebase
-   - Run tests to ensure no regressions
-3. **Move `ReferenceList`**
-   - Move class from `components/reference.ts` to `keys/referenceList.ts`
-   - Move related documentation (`AGENT.referenceList.md`, `AGENT.referenceList.editAlgebra.md`)
-   - Update all imports across codebase
-   - Run tests to ensure no regressions
-4. **Update data type exports**
-   - Move `StandardKeyData`, `StandardReferenceData`, `ReferenceListData` to `keys/dataTypes/`
-   - Update imports in data type files
-   - Ensure backward compatibility for exports
+1. ✅ **Move `StandardKey`**
+   - ✅ Move class from `components/reference.ts` to `keys/key.ts` (or `keys/index.ts`)
+   - ✅ Update all imports across codebase
+   - ✅ Run tests to ensure no regressions
+2. ✅ **Move `StandardReference`**
+   - ✅ Move class from `components/reference.ts` to `keys/reference.ts` (or consolidate with key.ts)
+   - ✅ Update all imports across codebase
+   - ✅ Run tests to ensure no regressions
+3. ✅ **Move `ReferenceList`**
+   - ✅ Move class from `components/reference.ts` to `keys/referenceList.ts`
+   - ✅ Move related documentation (`AGENT.referenceList.md`, `AGENT.referenceList.editAlgebra.md`)
+   - ✅ Update all imports across codebase
+   - ✅ Run tests to ensure no regressions
+4. ✅ **Update data type exports**
+   - ✅ Move `StandardKeyData`, `StandardReferenceData`, `ReferenceListData` to `keys/dataTypes/`
+   - ✅ Update imports in data type files
+   - ✅ Ensure backward compatibility for exports
 
 ### Phase 3: Implement StandardFacet Core
 

@@ -1,7 +1,7 @@
 import { StandardRenderSimple, StandardRenderRemove, StandardRenderReplace, StandardRender, StandardRenderSimpleCompareDirection } from './index'
 import { Schema, schemaToWML } from '../../schema'
 import { deIndentWML } from '../../schema/utils'
-import StandardReference from '../components/reference'
+import StandardReference from '../keys/reference'
 
 describe('StandardRenderRemove', () => {
     it('should create an instance from valid incoming schema', () => {

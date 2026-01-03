@@ -1,7 +1,7 @@
 import { mergeToComponentList, mergeUniversalKeyMappings, UniversalKeyMapping } from './mergeToComponentList'
 import { StandardComponent } from './components/baseClasses'
 import StandardRoom from './components/room'
-import { StandardKey } from './components/reference'
+import { StandardKey } from './keys/key'
 
 describe('mergeToComponentList', () => {
     it('should add a new component if no match is found', () => {
