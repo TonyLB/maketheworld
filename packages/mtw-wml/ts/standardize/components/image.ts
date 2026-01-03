@@ -4,7 +4,8 @@ import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import { StandardImageData } from "./dataTypes/image"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image";
-import StandardReference, { StandardKey } from "./reference";
+import StandardReference from "./reference";
+import { StandardKey } from "../keys/key";
 import { StandardExplicitParent } from "../explicit";
 
 export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData> {

@@ -6,7 +6,8 @@ import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePay
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { isSimplePositionData, StandardPositionData } from "./dataTypes/position";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
-import StandardReference, { StandardKey } from "./reference";
+import StandardReference from "./reference";
+import { StandardKey } from "../keys/key";
 
 export class StandardPositionSimpleBase implements StandardEditablePayload<StandardPositionData> {
     room: StandardKey;

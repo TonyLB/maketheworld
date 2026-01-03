@@ -1,13 +1,13 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree";
 import { isStandardComponentData, StandardComponentNonEditData } from "./components/dataTypes";
-import { StandardBaseData, ComponentTag } from "./components/dataTypes/abstract";
+import { StandardBaseData } from "./components/dataTypes/abstract";
 
 import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
-import { StandardKey } from "./components/reference";
-import { ReferenceListData, StandardKeyData } from "./components/dataTypes/reference";
+import { StandardKey } from "./keys/key";
+import { ReferenceListData } from "./components/dataTypes/reference";
 import { StandardComponentReferenceKey } from "./components/baseClasses";
 
 /**

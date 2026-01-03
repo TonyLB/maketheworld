@@ -3,7 +3,8 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardRoomData } from "./dataTypes/room"
 import StandardRoom from './room'
 import { mergeTest } from "./utils/testing"
-import StandardReference, { StandardKey } from "./reference"
+import StandardReference from "./reference"
+import { StandardKey } from "../keys/key"
 import { StandardExplicitParent } from "../explicit"
 
 describe('StandardRoom class', () => {

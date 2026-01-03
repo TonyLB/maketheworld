@@ -1,7 +1,7 @@
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardComponent } from "./components/baseClasses"
 import { excludeUndefined } from "../lib/lists"
-import { StandardKey } from "./components/reference"
+import { StandardKey } from "./keys/key"
 import { unique } from "@tonylb/mtw-base/ts/utils/lists"
 
 const mergeHelper = (base: StandardComponent, value: StandardComponent): StandardComponent | undefined => {

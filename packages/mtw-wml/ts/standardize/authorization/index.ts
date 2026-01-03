@@ -2,7 +2,7 @@ import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericT
 import { AssetUUID, isSchemaAsset, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardAuthorizationItem } from "./components/baseClasses"
 import { isStandardAuthorizationCollection, StandardAuthorizationCollectionData } from "./components/dataTypes"
-import StandardReference, { StandardKey, referenceSortOrder } from "../components/reference"
+import StandardReference, { referenceSortOrder } from "../components/reference"
 import { isSchemaTreeNode, nodeFromWML } from "../../schema"
 import { excludeUndefined } from "../../lib/lists"
 import processAuthorizations from "./processAuthorizations"

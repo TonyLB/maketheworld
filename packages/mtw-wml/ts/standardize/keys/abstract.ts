@@ -2,7 +2,8 @@ import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "../components/dataTypes/abstract";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
-import { StandardReference, StandardKey, LookupMappings } from "../components/reference";
+import { StandardReference, LookupMappings } from "../components/reference";
+import { StandardKey } from "./key";
 import { ReferenceFormat } from "../components/utils/references";
 import { StandardFacetPayload, StandardFacetData } from "./dataTypes/facet";
 

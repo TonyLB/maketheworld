@@ -1,6 +1,7 @@
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardComponent, NestedSchemaOptions } from "../baseClasses"
-import StandardReference, { StandardKey } from "../reference"
+import StandardReference from "../reference"
+import { StandardKey } from "../../keys/key"
 import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 export const renderReference = ({ lookup, options }: { lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions }) => (reference: StandardReference): GenericTreeNode<SchemaTag> | undefined => {

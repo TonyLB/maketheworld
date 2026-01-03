@@ -1,6 +1,6 @@
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
 import { ComponentTag } from "./components/dataTypes/abstract"
-import { StandardKey } from "./components/reference"
+import { StandardKey } from "./keys/key"
 import { ReferenceList } from "./components/reference"
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"

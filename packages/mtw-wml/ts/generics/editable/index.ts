@@ -4,7 +4,7 @@ import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from '@tonylb/mtw-base/ts/schema/edit';
 import { isSchemaTreeNode, treeFromWML } from '../../schema';
 import { ReferenceFormat } from '../../standardize/components/utils/references';
-import StandardReference, { StandardKey } from '../../standardize/components/reference';
+import StandardReference from '../../standardize/components/reference';
 
 export interface StandardEditablePayload<DataType> {
     clone: () => StandardEditablePayload<DataType>;

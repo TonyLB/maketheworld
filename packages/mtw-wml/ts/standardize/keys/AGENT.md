@@ -18,7 +18,7 @@
 
 - **Data Structures**: See [`dataTypes/`](./dataTypes/) for serialization formats
 - **Core Types**: `StandardKey`, `StandardReference`, `ReferenceList`, `StandardFacet`, `FacetList`
-- **Directory Structure**: `dataTypes/` for serialization, `abstract.ts` for interfaces, implementation files
+- **Directory Structure**: `dataTypes/` for serialization, `abstract.ts` for interfaces, `key.ts` for StandardKey implementation
 
 ## Integration Points
 
@@ -46,6 +46,7 @@
   - See [`./AGENT.facets.md`](./AGENT.facets.md) for Facet details
   - Review [`./AGENT.planning.md`](./AGENT.planning.md) for implementation roadmap
 - **Key Files**: 
+  - `key.ts` - StandardKey class implementation
   - `abstract.ts` - Interface definitions
   - `dataTypes/facet.ts` - Facet serialization types
 - **Related Documentation**: 
@@ -54,15 +55,18 @@
 
 ## Development Notes
 
-- **Current State**: Phase 1 in progress - type definitions and Facet data types complete
+- **Current State**: Phase 1 complete, Phase 2 in progress - StandardKey moved to keys directory
 - **Future Plans**: 
-  - Phase 2: Move existing Key/Reference code to this directory
+  - Phase 2: Move remaining Key/Reference code to this directory (StandardReference, ReferenceList)
   - Phase 3: Implement StandardFacet core class
   - Phase 4: Implement FacetList class
 - **Implementation Status**:
   - ✅ Phase 1, Item 1: Directory created
   - ✅ Phase 1, Item 2: Facet data types defined
-  - 🔄 Phase 1, Item 3: Type definitions (in progress)
-  - ⏳ Phase 2: Move existing code (pending)
+  - ✅ Phase 1, Item 3: Type definitions complete
+  - ✅ Phase 2, Item 1: StandardKey moved to `keys/key.ts`
+  - ⏳ Phase 2, Item 2: Move StandardReference (pending)
+  - ⏳ Phase 2, Item 3: Move ReferenceList (pending)
+  - ⏳ Phase 2, Item 4: Move data types (pending)
   - ⏳ Phase 3: StandardFacet implementation (pending)
   - ⏳ Phase 4: FacetList implementation (pending)

@@ -6,7 +6,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { isRenderTree, RenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ComponentUUID, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
-import { StandardKey } from "../components/reference"
+import { StandardKey } from "../keys/key"
 import { StandardKeyData } from "../components/dataTypes/reference"
 import { isLegalKey } from "../utils"
 

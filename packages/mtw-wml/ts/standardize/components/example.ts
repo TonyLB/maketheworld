@@ -13,7 +13,7 @@ import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
-import { StandardKey } from "./reference"
+import { StandardKey } from "../keys/key"
 import StandardReference from "./reference"
 import { StandardExplicitParent } from "../explicit"
 
