@@ -292,7 +292,99 @@ Before adding a new component type, you should understand:
 
 **Note**: This step may require changes in the `@tonylb/mtw-base` package, which is a separate package. If you don't have access to modify that package, coordinate with the maintainer or document this as a prerequisite.
 
-#### Step 2: Component Type System (`standardize/components/dataTypes/abstract.ts`)
+#### Step 2: Schema Converter Registration (`schema/converters/components.ts`)
+
+**Location**: `packages/mtw-wml/ts/schema/converters/components.ts`
+
+**Purpose**: Register the component tag in the WML schema converter system so that `<{ComponentName}>` tags can be parsed from WML strings. Without this step, parsing WML will fail with "Cannot read properties of undefined (reading 'initialize')" errors.
+
+**Tasks**:
+1. **Add prefix key to PrefixKey type** (if component uses typed UUIDs):
+   - **Location**: `packages/mtw-utilities/ts/types.ts`
+   - Add the component's prefix key (uppercase) to the `PrefixKey` type union
+   - The prefix key should match the component's universal key prefix (e.g., `'MARK'` for Mark components)
+   - Example:
+     ```typescript
+     type PrefixKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'CONNECTION' | 'SESSION' | 'MARK'
+     ```
+   - **Note**: This is required for `enforceTypedKey()` and `stripTypedKey()` functions to work correctly. Without this, TypeScript compilation will fail with errors like "Argument of type 'MARK' is not assignable to parameter of type 'PrefixKey'".
+
+2. **Import schema types**:
+   - Import `isSchema{ComponentName}` and `Schema{ComponentName}Tag` from `@tonylb/mtw-base/ts/schema/{location}` (e.g., `worldState.ts` for world-state components, `components.ts` for standard components)
+
+3. **Add to componentTemplates**:
+   - Add component entry to `componentTemplates` object with property validation template
+   - Include standard component properties: `uuid`, `key`, `from`, `origin`, `ref`
+   - Example:
+     ```typescript
+     Mark: {
+         uuid: { type: ParsePropertyTypes.Key },
+         key: { type: ParsePropertyTypes.Key },
+         from: { type: ParsePropertyTypes.Asset },
+         origin: { type: ParsePropertyTypes.AssetList },
+         ref: { type: ParsePropertyTypes.Expression }
+     }
+     ```
+
+4. **Add to componentConverters**:
+   - Add `{ComponentName}` entry to `componentConverters` object
+   - Implement `initialize` function that validates properties and returns `Schema{ComponentName}Tag`
+   - Handle `uuid` with appropriate typed key enforcement (e.g., `enforceTypedKey('MARK')(uuid)`)
+   - Handle `ref` with `validateExpressionAsNonNegativeInteger` if present
+   - Example:
+     ```typescript
+     Mark: {
+         initialize: ({ parseOpen }): SchemaMarkTag => {
+             const { uuid, ref, ...rest } = validateProperties(componentTemplates.Mark)(parseOpen)
+             const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
+             return {
+                 tag: 'Mark',
+                 uuid: uuid ? enforceTypedKey('MARK')(uuid) : undefined,
+                 ...(refValue !== undefined ? { ref: refValue } : {}),
+                 ...rest
+             }
+         }
+     }
+     ```
+
+4. **Add to componentPrintMap**:
+   - Add `{ComponentName}` entry to `componentPrintMap` object
+   - Implement print map function that renders the component tag with properties
+   - Use `tagRender()` helper function
+   - Strip typed key prefix from `uuid` using `stripTypedKey('{PREFIX}')`
+   - Example:
+     ```typescript
+     Mark: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+         if (!isSchemaMark(tag)) {
+             return [{ printMode: PrintMode.naive, output: '' }]
+         }
+         return tagRender({
+             ...args,
+             tag: 'Mark',
+             properties: [
+                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MARK')(tag.uuid) : '' },
+                 ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
+                 { key: 'from', type: 'key', value: tag.from ?? '' },
+                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
+                 ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
+             ],
+             node: { data: tag, children }
+         })
+     }
+     ```
+
+**Reference Examples**: See how `Room`, `Feature`, `Knowledge`, or `Map` are registered in `components.ts` - follow the same pattern for property validation, typed key enforcement, and print map rendering.
+
+**Common Pitfalls**:
+- **Forgetting to add prefix key to PrefixKey type** - will cause TypeScript compilation errors when using `enforceTypedKey()` or `stripTypedKey()`
+- Forgetting to import `isSchema{ComponentName}` and `Schema{ComponentName}Tag` - will cause TypeScript errors
+- Using wrong typed key prefix (e.g., `'MARK'` not `'Mark'`) - must match the component's universal key prefix and be uppercase
+- Missing property in `componentTemplates` - will cause validation errors during parsing
+- Missing print map entry - component won't serialize correctly to WML
+
+**Note**: The converter map is automatically exported and used by the schema parsing system. Once registered here, `<{ComponentName}>` tags in WML will be parsed correctly.
+
+#### Step 3: Component Type System (`standardize/components/dataTypes/abstract.ts`)
 
 **Location**: `packages/mtw-wml/ts/standardize/components/dataTypes/abstract.ts`
 
@@ -314,7 +406,7 @@ export const componentTagFromUpperCase = (tag: Uppercase<ComponentTag>): Compone
 }
 ```
 
-#### Step 3: Component Data Types (`standardize/components/dataTypes/`)
+#### Step 4: Component Data Types (`standardize/components/dataTypes/`)
 
 **Location**: Create `packages/mtw-wml/ts/standardize/components/dataTypes/{componentName}.ts` (e.g., `mark.ts`)
 
@@ -359,7 +451,7 @@ export const isStandardKnowledgeData = (arg: any): arg is StandardKnowledgeData 
 - **Component with references**: `room.ts` - Multiple `ReferenceList` properties
 - **Component with complex properties**: `example.ts`, `character.ts` - Uses `StandardRender`, `EditWrappedStandardNode`, etc.
 
-#### Step 4: Component Implementation (`standardize/components/`)
+#### Step 5: Component Implementation (`standardize/components/`)
 
 **Location**: Create `packages/mtw-wml/ts/standardize/components/{componentName}.ts` (e.g., `mark.ts`)
 
@@ -404,7 +496,7 @@ export const isStandardKnowledgeData = (arg: any): arg is StandardKnowledgeData 
 - Follow omission-over-empty principle in `toJSON()` - omit empty arrays/objects
 - Use `excludeUndefined` helper when filtering optional fields in schema generation
 
-#### Step 5: Factory Integration (`standardize/componentFactory.ts`)
+#### Step 6: Factory Integration (`standardize/componentFactory.ts`)
 
 **Location**: `packages/mtw-wml/ts/standardize/componentFactory.ts`
 
@@ -452,7 +544,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 }
 ```
 
-#### Step 7: Write Unit Tests
+#### Step 8: Write Unit Tests
 
 **Location**: Create `packages/mtw-wml/ts/standardize/components/{componentName}.test.ts` (e.g., `mark.test.ts`)
 
@@ -527,19 +619,20 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 
 #### General Pitfalls
 
-1. **Missing Type Exports**: Forgetting to export data type and type guard from `dataTypes/index.ts`
-2. **Factory Integration**: Forgetting to add component to `standardComponentFactory()` - component won't be created from schema
-3. **Template Registration**: Forgetting to add to `COMPONENT_TEMPLATES` - component won't be processed correctly
-4. **Type Guard Registration**: Forgetting to add to `isStandardComponent()` - type checks will fail
-5. **Case Sensitivity**: Component tags are case-sensitive - ensure consistent casing (`'Mark'` not `'mark'`)
-6. **Schema Type Guard**: Must import and use correct `isSchema{ComponentName}` from `@tonylb/mtw-base`
-7. **Omission-over-Empty**: Always omit empty arrays/objects in `toJSON()` - don't include `field: []`
+1. **Missing Schema Converter**: Forgetting to register component in `schema/converters/components.ts` - WML parsing will fail with "Cannot read properties of undefined" errors
+2. **Missing Type Exports**: Forgetting to export data type and type guard from `dataTypes/index.ts`
+3. **Factory Integration**: Forgetting to add component to `standardComponentFactory()` - component won't be created from schema
+4. **Template Registration**: Forgetting to add to `COMPONENT_TEMPLATES` - component won't be processed correctly
+5. **Type Guard Registration**: Forgetting to add to `isStandardComponent()` - type checks will fail
+6. **Case Sensitivity**: Component tags are case-sensitive - ensure consistent casing (`'Mark'` not `'mark'`)
+7. **Schema Type Guard**: Must import and use correct `isSchema{ComponentName}` from `@tonylb/mtw-base`
+8. **Omission-over-Empty**: Always omit empty arrays/objects in `toJSON()` - don't include `field: []`
 
 ### Verification Checklist
 
 After completing all steps, verify your implementation:
 
-- [ ] Component can be parsed from WML string: `<{ComponentName} key="test">...</{ComponentName}>`
+- [ ] Component can be parsed from WML string: `<{ComponentName} key="test">...</{ComponentName}>` (requires Step 2: Schema Converter Registration)
 - [ ] Component can be created from JSON data: `{ tag: '{ComponentName}', key: 'test', ... }`
 - [ ] Component appears in `standardComponentFactory()` lookups
 - [ ] Component appears in `COMPONENT_TEMPLATES` array
@@ -561,7 +654,7 @@ After completing all steps, verify your implementation:
 - [`AGENT.md`](./AGENT.md) - Conceptual overview and navigation guide
 - [`AGENT.usage.md`](./AGENT.usage.md) - Practical code examples and usage patterns
 - [`dataTypes/AGENT.md`](./dataTypes/AGENT.md) - Serialization vs. Manipulation Types architecture
-- [`../keys/AGENT.planning.md`](../keys/AGENT.planning.md) - Phase 4.5 provides a concrete example of adding `StandardMark` component
+- [`../keys/AGENT.planning.md`](../keys/AGENT.planning.md) - Phase 4.5 provides a concrete example of adding `StandardMark` component, including schema converter registration (Step 2)
 - **Reference Implementation Examples**:
   - Simple component: `knowledge.ts`, `feature.ts`
   - Component with references: `room.ts`

@@ -5,6 +5,7 @@ import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaParent, isSchemaKey, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaMark, SchemaMarkTag } from "@tonylb/mtw-base/ts/schema/worldState"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaMapContents, SchemaTag, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
@@ -50,6 +51,13 @@ const componentTemplates = {
         y: { required: true, type: ParsePropertyTypes.Literal },
     },
     Map: {
+        uuid: { type: ParsePropertyTypes.Key },
+        key: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
+        origin: { type: ParsePropertyTypes.AssetList },
+        ref: { type: ParsePropertyTypes.Expression }
+    },
+    Mark: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         from: { type: ParsePropertyTypes.Asset },
@@ -283,6 +291,18 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 children: children.filter(({ data }) => (isSchemaMapContents(data))),
             }
         }
+    },
+    Mark: {
+        initialize: ({ parseOpen }): SchemaMarkTag => {
+            const { uuid, ref, ...rest } = validateProperties(componentTemplates.Mark)(parseOpen)
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            return {
+                tag: 'Mark',
+                uuid: uuid ? enforceTypedKey('MARK')(uuid) : undefined,
+                ...(refValue !== undefined ? { ref: refValue } : {}),
+                ...rest
+            }
+        }
     }
 }
 
@@ -402,6 +422,23 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MAP')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key ?? '' },
+                { key: 'from', type: 'key', value: tag.from ?? '' },
+                ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
+                ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
+            ],
+            node: { data: tag, children }
+        })
+    },
+    Mark: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        if (!isSchemaMark(tag)) {
+            return [{ printMode: PrintMode.naive, output: '' }]
+        }
+        return tagRender({
+            ...args,
+            tag: 'Mark',
+            properties: [
+                { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MARK')(tag.uuid) : '' },
+                ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
                 ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])

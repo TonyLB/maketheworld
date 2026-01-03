@@ -177,34 +177,52 @@ The work is broken down into tactically-sized chunks that can be addressed incre
    - ✅ `ComponentTag` type union automatically includes `'Mark'` (derived from `SchemaWithKey["tag"]`)
    - ✅ Added `'MARK': 'Mark'` case to `componentTagFromUpperCase()` function
 
-3. **Component data types** (`standardize/components/dataTypes/mark.ts`)
-   - Create `StandardMarkData` type (extends `StandardBaseData`)
-   - Create `isStandardMarkData` type guard
-   - Export from `dataTypes/index.ts`
+3. ✅ **Component data types** (`standardize/components/dataTypes/mark.ts`)
+   - ✅ Create `StandardMarkData` type (extends `StandardBaseData`)
+     - ✅ Include `shortName?: StandardEditableData<string>` field (for `<ShortName>` tag, stored as `StandardLiteral`)
+     - ✅ Include `description?: RenderTree` field (for `<Description>` tag, stored as `StandardRender`)
+     - ✅ Follow pattern similar to Example component (which has `name`, `summary`, `description` as `StandardRender`)
+     - ✅ Mark will have `shortName` as `StandardLiteral` (like Room/Feature/Knowledge/Character) and `description` as `StandardRender` (like Example)
+   - ✅ Create `isStandardMarkData` type guard
+     - ✅ Use `checkAll` and `checkTypes` pattern (see `isStandardKnowledgeData` for ShortName pattern, `isStandardExampleData` for Description pattern)
+     - ✅ Check for `tag === 'Mark'`
+     - ✅ Validate `shortName: 'literal'` and `description: 'renderTree'` in `checkTypes`
+   - ✅ Export from `dataTypes/index.ts`
+     - ✅ Add `StandardMarkData` and `isStandardMarkData` to exports
+     - ✅ Add `StandardMarkData` to `StandardComponentNonEditData` union type
+     - ✅ Add `isStandardMarkData` to `isStandardComponentData` type guard function
 
-4. **Component implementation** (`standardize/components/mark.ts`)
-   - Create `StandardMarkPayload` class implementing `ComponentConstructorMethods<StandardMarkData>`
-     - Implement `fromJSON()`, `fromSchema()`, `toJSON()`, `schema()`, `merge()`, `subset()`, etc.
-     - Mark is a simple component (similar to StandardKnowledge/StandardFeature structure)
-     - May have basic properties like `shortName` if needed, or can be minimal
-   - Create `StandardMark` component class using `componentClassFactory` pattern
-   - Follow existing component patterns (see `StandardKnowledge` or `StandardFeature` as examples)
+4. ✅ **Component implementation** (`standardize/components/worldState.ts`)
+   - ✅ Create `StandardMarkPayload` class implementing `ComponentConstructorMethods<StandardMarkData>`
+     - ✅ Implement `fromJSON()`, `fromSchema()`, `toJSON()`, `schema()`, `merge()`, `subset()`, etc.
+     - ✅ Include `_shortName?: StandardLiteral` field (parsed from `<ShortName>` tag in WML)
+     - ✅ Include `_description?: StandardRender` field (parsed from `<Description>` tag in WML)
+     - ✅ Mark is a simple component (similar to StandardKnowledge/StandardFeature structure, but with both ShortName and Description)
+     - ✅ Follow existing component patterns:
+       - ✅ ShortName handling: See `StandardRoom`, `StandardFeature`, `StandardKnowledge` (use `StandardLiteral`, parse from `<ShortName>` tag)
+       - ✅ Description handling: See `StandardExample` (use `StandardRender`, parse from `<Description>` tag)
+   - ✅ Create `StandardMark` component class using `componentClassFactory` pattern
+   - ✅ Follow existing component patterns (see `StandardKnowledge` or `StandardFeature` for ShortName, `StandardExample` for Description)
+   - **Note**: Implemented in `worldState.ts` to match schema organization and prepare for future world-state components (Lens, etc.)
 
-5. **Factory integration** (`standardize/componentFactory.ts`)
-   - Import `StandardMark` and `isStandardMarkData`
-   - Add Mark case to `standardComponentFactory()` function
-   - Handle both JSON data and schema tree inputs
+5. ✅ **Factory integration** (`standardize/componentFactory.ts`)
+   - ✅ Import `StandardMark` and `isStandardMarkData`
+   - ✅ Add Mark case to `standardComponentFactory()` function
+   - ✅ Handle both JSON data and schema tree inputs
 
-6. **Processing integration** (`standardize/index.ts`)
-   - Add `{ key: 'Mark', legalParents: [...] }` to `COMPONENT_TEMPLATES` array
-   - Determine appropriate `legalParents` for Mark (likely `['Example', 'Asset']` or similar)
-   - Add `StandardMark` to `isStandardComponent()` type guard function
+6. ✅ **Processing integration** (`standardize/index.ts`)
+   - ✅ Add `{ key: 'Mark', legalParents: ['Example', 'Asset'] }` to `COMPONENT_TEMPLATES` array
+   - ✅ Determine appropriate `legalParents` for Mark (set to `['Example', 'Asset']`)
+   - ✅ Add `StandardMark` to `isStandardComponent()` type guard function
 
-7. **Write unit tests** (`standardize/components/mark.test.ts`)
-   - Test construction from JSON and WML schema
-   - Test serialization/deserialization
-   - Test merge/diff operations
-   - Test schema generation
+7. ✅ **Write unit tests** (`standardize/components/worldState.test.ts`)
+   - ✅ Test construction from JSON and WML schema
+   - ✅ Test serialization/deserialization
+   - ✅ Test merge/diff operations
+   - ✅ Test schema generation
+   - ✅ Test payload methods (isEmpty, invert, mapContents, remapReferences)
+   - ✅ Test edge cases (empty component, only ShortName, only Description)
+   - **Note**: Test file is `worldState.test.ts` to match component file organization
 
 **Success Criteria**:
 - `<Mark>` tags can be parsed from WML
@@ -213,7 +231,7 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 - Mark components appear correctly in component factory lookups
 - All tests pass
 
-**Note**: This phase establishes the minimal infrastructure needed for Mark components. Additional properties or functionality can be added later as needed. The primary goal is to enable Mark components to exist so they can be referenced via Facets in Phase 5.
+**Note**: This phase establishes the minimal infrastructure needed for Mark components. Mark components will include `ShortName` (as `StandardLiteral`) and `Description` (as `StandardRender`) tags, following the pattern established by other components like Room/Feature (for ShortName) and Example (for Description). Additional properties or functionality can be added later as needed. The primary goal is to enable Mark components to exist so they can be referenced via Facets in Phase 5.
 
 ### Phase 5: Integrate Facets into Component System
 
