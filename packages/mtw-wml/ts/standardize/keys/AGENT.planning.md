@@ -133,14 +133,18 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 
 **Goal**: Create a collection type for managing Facets, similar to `ReferenceList`.
 
-1. **Implement `FacetList<TPayload>` class**
-   - Generic class: `FacetList<TPayload extends StandardFacetPayload>`
-   - Similar structure to `ReferenceList`
-   - Store collection of `StandardFacet<TPayload>` objects
-   - Constructor(s) for arrays, JSON, schema trees
-   - Deduplication logic (by facet key + type)
-   - `toJSON()`, `clone()`, `equals()` methods
-   - Type-safe access: `FacetList<PositionPayload>`, `FacetList<MarkFacetPayload>`, etc.
+1. ✅ **Implement `FacetList<TPayload>` class**
+   - ✅ Generic class: `FacetList<TPayload extends StandardFacetPayload>`
+   - ✅ Similar structure to `ReferenceList`
+   - ✅ Store collection of `StandardFacet<TPayload>` objects
+   - ✅ Constructor(s) for arrays, JSON (schema trees require StandardFacetData format first)
+   - ✅ Deduplication logic (by facet key using `sameKey()` and `merge()`)
+   - ✅ `toJSON()`, `clone()`, `equals()` methods
+   - ✅ `items` and `length` getters
+   - ✅ `schema` getter for schema generation
+   - ✅ Type-safe access: `FacetList<PositionPayload>`, `FacetList<MarkFacetPayload>`, etc.
+   - ✅ Reference normalization in constructor (ensures minimum key information format)
+   - ✅ Preserves Replace operations during normalization
 2. **Implement FacetList operations**
    - `merge()` - Combine two FacetLists (combines ref arithmetic with payload Replace logic)
    - `diff()` - Compute difference between two FacetLists

@@ -10,6 +10,9 @@ export { ReferenceList, default as ReferenceListDefault } from "./referenceList"
 // Export facet types
 export { StandardFacet } from "./facet";
 
+// Export facet list types
+export { FacetList, default as FacetListDefault } from "./facetList";
+
 // Export data types
 export * from "./dataTypes/reference";
 export * from "./dataTypes/facet";
