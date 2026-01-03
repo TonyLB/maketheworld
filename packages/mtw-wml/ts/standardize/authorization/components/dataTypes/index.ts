@@ -1,4 +1,4 @@
-import { isStandardReferenceData, StandardReferenceData } from "../../../components/dataTypes/reference";
+import { isStandardReferenceData, StandardReferenceData } from "../../../keys/dataTypes/reference";
 import { checkAll } from "../../../components/dataTypes/typeguards";
 import { isStandardGrant, StandardGrantData } from './grant'
 import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema";

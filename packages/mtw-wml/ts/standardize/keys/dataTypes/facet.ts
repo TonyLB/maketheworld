@@ -1,5 +1,5 @@
 import checkTypes, { CheckTypes } from "@tonylb/mtw-base/ts/utils/checkTypes";
-import { StandardReferenceData, isStandardReferenceData } from "../../components/dataTypes/reference";
+import { StandardReferenceData, isStandardReferenceData } from "./reference";
 
 /**
  * PositionPayload: Payload for Position Facets

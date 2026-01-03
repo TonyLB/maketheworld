@@ -23,7 +23,7 @@
 ## Integration Points
 
 - **Dependencies**: 
-  - Uses data types from `../components/dataTypes/reference` (temporary until Phase 2, item 4)
+  - Data types located in `dataTypes/reference.ts` (StandardKeyData, StandardReferenceData, ReferenceListData)
   - Integrates with component system via StandardComponent interface
 - **Cross-References**: 
   - [`./AGENT.facets.md`](./AGENT.facets.md) - Detailed Facet documentation
@@ -48,7 +48,9 @@
 - **Key Files**: 
   - `key.ts` - StandardKey class implementation
   - `reference.ts` - StandardReference class implementation
+  - `referenceList.ts` - ReferenceList class implementation
   - `abstract.ts` - Interface definitions
+  - `dataTypes/reference.ts` - Key/Reference serialization types (StandardKeyData, StandardReferenceData, ReferenceListData)
   - `dataTypes/facet.ts` - Facet serialization types
 - **Related Documentation**: 
   - [`../components/AGENT.md`](../components/AGENT.md) - Component system
@@ -56,9 +58,8 @@
 
 ## Development Notes
 
-- **Current State**: Phase 1 complete, Phase 2 in progress - StandardKey and StandardReference moved to keys directory
+- **Current State**: Phase 1 and Phase 2 complete - All Key/Reference code moved to keys directory
 - **Future Plans**: 
-  - Phase 2: Move remaining Key/Reference code to this directory (ReferenceList, data types)
   - Phase 3: Implement StandardFacet core class
   - Phase 4: Implement FacetList class
 - **Implementation Status**:
@@ -67,7 +68,7 @@
   - ✅ Phase 1, Item 3: Type definitions complete
   - ✅ Phase 2, Item 1: StandardKey moved to `keys/key.ts`
   - ✅ Phase 2, Item 2: StandardReference moved to `keys/reference.ts`
-  - ⏳ Phase 2, Item 3: Move ReferenceList (pending)
-  - ⏳ Phase 2, Item 4: Move data types (pending)
+  - ✅ Phase 2, Item 3: ReferenceList moved to `keys/referenceList.ts`
+  - ✅ Phase 2, Item 4: Data types moved to `keys/dataTypes/reference.ts`
   - ⏳ Phase 3: StandardFacet implementation (pending)
   - ⏳ Phase 4: FacetList implementation (pending)

@@ -2,7 +2,7 @@ import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit";
 import { ComponentTag, componentTagFromUpperCase } from "../components/dataTypes/abstract";
-import { isStandardKeyData, isStandardReferenceData, StandardReferenceData } from "../components/dataTypes/reference";
+import { isStandardKeyData, isStandardReferenceData, StandardReferenceData } from "./dataTypes/reference";
 import { ReferenceFormat } from "../components/utils/references";
 import { treeFromWML } from "../../schema";
 import { StandardKey, keySortOrder } from "./key";

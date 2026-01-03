@@ -7,7 +7,7 @@ import { isRenderTree, RenderTree, renderTreeToSchema } from "@tonylb/mtw-base/t
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ComponentUUID, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardKey } from "../keys/key"
-import { StandardKeyData } from "../components/dataTypes/reference"
+import { StandardKeyData } from "../keys/dataTypes/reference"
 import { isLegalKey } from "../utils"
 
 //

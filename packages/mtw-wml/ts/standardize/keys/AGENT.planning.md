@@ -85,10 +85,10 @@ The work is broken down into tactically-sized chunks that can be addressed incre
    - ✅ Move related documentation (`AGENT.referenceList.md`, `AGENT.referenceList.editAlgebra.md`)
    - ✅ Update all imports across codebase
    - ✅ Run tests to ensure no regressions
-4. **Update data type exports**
-   - Move `StandardKeyData`, `StandardReferenceData`, `ReferenceListData` to `keys/dataTypes/`
-   - Update imports in data type files
-   - Ensure backward compatibility for exports
+4. ✅ **Update data type exports**
+   - ✅ Move `StandardKeyData`, `StandardReferenceData`, `ReferenceListData` to `keys/dataTypes/`
+   - ✅ Update imports in data type files
+   - ✅ Ensure backward compatibility for exports
 
 ### Phase 3: Implement StandardFacet Core
 

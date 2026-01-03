@@ -7,7 +7,7 @@ import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardKey } from "./keys/key";
-import { ReferenceListData } from "./components/dataTypes/reference";
+import { ReferenceListData } from "./keys/dataTypes/reference";
 import { StandardComponentReferenceKey } from "./components/baseClasses";
 
 /**

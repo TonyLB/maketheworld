@@ -1,7 +1,7 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { ComponentUUID, SchemaTag, SchemaWithKey, AssetUUID } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
-import { StandardKeyData } from "./reference";
+import { StandardKeyData } from "../../keys/dataTypes/reference";
 import { StandardEditablePayload } from "../../../generics/editable";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 

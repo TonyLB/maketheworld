@@ -1,6 +1,6 @@
 import { ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag, componentTagFromUpperCase } from "../components/dataTypes/abstract";
-import { StandardKeyData, StandardReferenceData } from "../components/dataTypes/reference";
+import { StandardKeyData, StandardReferenceData } from "./dataTypes/reference";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { StandardEditablePayload } from "../../generics/editable";
 import { ReferenceFormat } from "../components/utils/references";

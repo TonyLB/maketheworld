@@ -1,6 +1,6 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { isStandardReferenceData, StandardReferenceData } from "../components/dataTypes/reference";
+import { isStandardReferenceData, StandardReferenceData } from "./dataTypes/reference";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { ReferenceFormat } from "../components/utils/references";
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists";

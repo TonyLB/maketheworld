@@ -2,7 +2,7 @@ import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import type { StandardComponentData, StandardComponentTag } from "../../baseClasses"
 import { isSchemaTreeNode } from "../../../schema"
 import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
-import { StandardKeyData } from "./reference"
+import { StandardKeyData } from "../../keys/dataTypes/reference"
 
 import { isStandardCharacterData, StandardCharacterData } from "./character"
 
@@ -19,7 +19,7 @@ import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
-import { ReferenceListData } from "./reference"
+import { ReferenceListData } from "../../keys/dataTypes/reference"
 
 export { isStandardCharacterData, isStandardExampleData, isStandardRoomData, isStandardFeatureData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardImageData }
 

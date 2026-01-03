@@ -9,7 +9,7 @@ import {
     ExitPayload,
     StandardFacetData
 } from './facet'
-import { StandardReferenceData } from '../../components/dataTypes/reference'
+import { StandardReferenceData } from './reference'
 
 describe('isPositionPayload', () => {
     it('should accept valid PositionPayload with required fields', () => {
