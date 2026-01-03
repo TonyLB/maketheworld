@@ -145,12 +145,14 @@ The work is broken down into tactically-sized chunks that can be addressed incre
    - ✅ Type-safe access: `FacetList<PositionPayload>`, `FacetList<MarkFacetPayload>`, etc.
    - ✅ Reference normalization in constructor (ensures minimum key information format)
    - ✅ Preserves Replace operations during normalization
-2. **Implement FacetList operations**
-   - `merge()` - Combine two FacetLists (combines ref arithmetic with payload Replace logic)
-   - `diff()` - Compute difference between two FacetLists
-   - `invert()` - Invert edit operations
-   - `mapContents()`, `toFormat()`, `lookup()` - Transform operations
-   - FacetList merge/diff algebra combines ref-based operations with payload Replace semantics
+2. ✅ **Implement FacetList operations**
+   - ✅ `merge()` - Combine two FacetLists (combines ref arithmetic with payload Replace logic)
+   - ✅ `diff()` - Compute difference between two FacetLists
+   - ✅ `invert()` - Invert edit operations
+   - ✅ `mapContents()`, `toFormat()`, `lookup()` - Transform operations
+   - ✅ FacetList merge/diff algebra combines ref-based operations with payload Replace semantics
+   - ✅ All operations preserve `_payloadTypeGuard` when creating new instances
+   - ✅ Added `invert()` method to `StandardFacet` class (required for FacetList.invert())
 3. **Write unit tests for `FacetList`**
    - Test construction and serialization
    - Test merge/diff/invert operations

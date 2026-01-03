@@ -44,6 +44,7 @@ export interface StandardFacet<TPayload extends StandardFacetPayload = StandardF
     // Merge/diff operations (combines ref arithmetic with payload Replace logic)
     merge(incoming: StandardFacet<TPayload>): StandardFacet<TPayload> | undefined;
     diff(incoming: StandardFacet<TPayload>): StandardFacet<TPayload> | undefined;
+    invert(): StandardFacet<TPayload>;
     
     // Schema generation
     schema: GenericTree<SchemaTag>;

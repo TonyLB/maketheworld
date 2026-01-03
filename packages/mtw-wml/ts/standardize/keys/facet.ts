@@ -303,6 +303,21 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
         }
     }
 
+    invert(): StandardFacet<TPayload> {
+        // Invert the reference (ref arithmetic)
+        const invertedReference = this._reference.invert();
+        const result = new StandardFacet<TPayload>({
+            reference: invertedReference.toJSON(),
+            payload: this._payload
+        });
+        // If this was a Replace, the inverted version should also be a Replace
+        if (this._isReplace && this._matchPayload !== undefined) {
+            (result as any)._matchPayload = this._matchPayload;
+            (result as any)._isReplace = true;
+        }
+        return result;
+    }
+
     // Schema generation
     get schema(): GenericTree<SchemaTag> {
         // If this is a Replace operation, generate Replace schema
