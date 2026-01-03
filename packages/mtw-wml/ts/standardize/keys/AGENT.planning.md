@@ -166,14 +166,16 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 
 **Prerequisites**: Phase 4 (FacetList) must be complete.
 
-1. **Schema layer support** (`@tonylb/mtw-base` package)
-   - Add `isSchemaMark` type guard function
-   - Add Mark to schema component type definitions
-   - Ensure Mark tags can be parsed from WML
+1. ✅ **Schema layer support** (`@tonylb/mtw-base` package)
+   - ✅ Created `packages/mtw-base/ts/schema/worldState.ts` file for world-state components (Mark, and eventually Lens, etc.)
+   - ✅ Added `SchemaMarkTag` type definition and `isSchemaMark` type guard function
+   - ✅ Added Mark to schema component type definitions (SchemaTagType, SchemaComponent, SchemaWithKey, SchemaTag unions)
+   - ✅ Added Mark to importable types and SchemaAssetLegalContents
+   - ✅ Mark tags can now be parsed from WML
 
-2. **Component type system** (`standardize/components/dataTypes/abstract.ts`)
-   - Add `'Mark'` to `ComponentTag` type union
-   - Add `'MARK': 'Mark'` case to `componentTagFromUpperCase()` function
+2. ✅ **Component type system** (`standardize/components/dataTypes/abstract.ts`)
+   - ✅ `ComponentTag` type union automatically includes `'Mark'` (derived from `SchemaWithKey["tag"]`)
+   - ✅ Added `'MARK': 'Mark'` case to `componentTagFromUpperCase()` function
 
 3. **Component data types** (`standardize/components/dataTypes/mark.ts`)
    - Create `StandardMarkData` type (extends `StandardBaseData`)

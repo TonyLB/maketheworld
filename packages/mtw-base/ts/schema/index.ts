@@ -7,9 +7,10 @@ import { isSchemaEdit, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, is
 import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaExampleTag, SchemaNameTag, SchemaSummaryTag } from "./example"
 import { isSchemaImage, SchemaImageTag } from "./image"
 import { isSchemaImport, isSchemaMeta, SchemaImportTag, SchemaMetaTag } from "./metaData"
+import { isSchemaMark, SchemaMarkTag } from "./worldState"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaWhitespaceTag } from "./renderTree"
 
-export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaGrantTag | SchemaExitTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag | SchemaMapTag | SchemaRoomTag | SchemaMessageTag | SchemaMomentTag | SchemaExampleTag | SchemaShortNameTag | SchemaSummaryTag
+export type SchemaAssetLegalContents = SchemaCharacterTag | SchemaGrantTag | SchemaExitTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag | SchemaMapTag | SchemaMarkTag | SchemaRoomTag | SchemaMessageTag | SchemaMomentTag | SchemaExampleTag | SchemaShortNameTag | SchemaSummaryTag
 
 
 export const isSchemaLiteralTag = (item: SchemaTag): item is SchemaShortNameTag => (
@@ -56,6 +57,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaKnowledgeTag |
     SchemaPositionTag |
     SchemaMapTag |
+    SchemaMarkTag |
     SchemaStringTag |
     SchemaWhitespaceTag |
     SchemaMessageTag |
@@ -82,7 +84,7 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaMomentTag |
     SchemaEditTag
 
-export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaCharacter(value) || isSchemaGrant(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaMeta(value) || isSchemaMap(value) || isSchemaRoom(value) || isSchemaMessage(value) || isSchemaMoment(value) || isSchemaExample(value) || isSchemaRemove(value) || isSchemaReplace(value) || isSchemaImport(value) || isSchemaShortName(value) || isSchemaSummary(value))
+export const isSchemaAssetContents = (value: SchemaTag): value is SchemaAssetLegalContents => (isSchemaCharacter(value) || isSchemaGrant(value) || isSchemaExit(value) || isSchemaFeature(value) || isSchemaKnowledge(value) || isSchemaImage(value) || isSchemaImport(value) || isSchemaMeta(value) || isSchemaMap(value) || isSchemaMark(value) || isSchemaRoom(value) || isSchemaMessage(value) || isSchemaMoment(value) || isSchemaExample(value) || isSchemaRemove(value) || isSchemaReplace(value) || isSchemaImport(value) || isSchemaShortName(value) || isSchemaSummary(value))
 export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room', 'Name'].includes(value.tag))
 
 export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
@@ -92,20 +94,20 @@ export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithConte
     ['Asset', 'Story', 'Example', 'Room', 'Feature', 'Knowledge', 'Description', 'Summary', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'ShortName', 'Replace', 'ReplaceMatch', 'ReplacePayload'].includes(value.tag)
 )
 
-export const isImportable = (value: SchemaTag): value is SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaMapTag | SchemaMessageTag | SchemaMomentTag => (
-    ['Example', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment'].includes(value?.tag)
+export const isImportable = (value: SchemaTag): value is SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaMapTag | SchemaMessageTag | SchemaMomentTag | SchemaMarkTag => (
+    ['Example', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Mark'].includes(value?.tag)
 )
 export const isImportableTag = (tag: string): boolean => (
-    ['Example', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment'].includes(tag)
+    ['Example', 'Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Mark'].includes(tag)
 )
 
-export type SchemaWithKey = SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMessageTag | SchemaMomentTag
+export type SchemaWithKey = SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaMessageTag | SchemaMomentTag
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
-    ['Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Message', 'Moment'].includes(value.tag)
+    ['Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Message', 'Moment'].includes(value.tag)
 )
-export type SchemaComponent = SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMessageTag | SchemaMomentTag
+export type SchemaComponent = SchemaExampleTag | SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaMessageTag | SchemaMomentTag
 export const isSchemaComponentTag = (tag: string): tag is SchemaComponent["tag"] => (
-    ['Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Message', 'Moment'].includes(tag)
+    ['Example', 'Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Message', 'Moment'].includes(tag)
 )
 export const isSchemaComponent = (value: SchemaTag): value is SchemaComponent => (
     isSchemaComponentTag(value.tag)
@@ -147,6 +149,7 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
         isSchemaKnowledge(value) ||
         isSchemaPosition(value) ||
         isSchemaMap(value) ||
+        isSchemaMark(value) ||
         isSchemaString(value) ||
         isSchemaMessage(value) ||
         isSchemaMoment(value) ||
