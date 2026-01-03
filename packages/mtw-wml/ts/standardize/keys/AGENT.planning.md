@@ -94,32 +94,40 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 
 **Goal**: Implement the core `StandardFacet` class with basic functionality.
 
-1. **Implement `StandardFacet<TPayload>` class**
-   - Generic class parameterized by payload type: `StandardFacet<TPayload extends StandardFacetPayload>`
-   - **Compose** a `StandardReference` (following the StandardReference/StandardKey composition pattern)
-   - Getters to access composed reference: `reference`, `standardKey`, `ref`, `tag`, etc. (similar to `StandardReference.standardKey`)
-   - Typed payload data storage and access
-   - Constructor(s) for different input formats (JSON, schema tree, etc.)
-   - Handle Replace operations for payload changes (which `StandardReference` rejects)
-   - `toJSON()`, `clone()`, `equals()`, `sameKey()` methods
-   - `merge()` and `diff()` methods that combine ref arithmetic (from reference) with payload Replace logic
-   - Schema generation supporting both ref-based Add/Remove and payload Replace operations
-2. **Implement Facet payload types**
-   - Define concrete payload structures for different Facet kinds:
-     - `PositionPayload`: `{ type: 'PositionFacet', x: number; y: number }`
-     - `MarkFacetPayload`: `{ type: 'MarkFacet', narrative: string; embedding?: number[]; ... }`
-     - `ExitPayload`: `{ type: 'ExitFacet', description?: string }`
-   - Payload types implement `StandardFacetPayload` interface/type
-   - Implement payload validation
-   - Implement type guards: `isPositionPayload(arg: any): arg is PositionPayload`, etc.
-   - Type guards use discriminator fields (e.g., `type: 'PositionFacet'`) in payloads
-3. **Write unit tests for `StandardFacet`**
-   - Test construction from various formats
-   - Test serialization/deserialization
-   - Test equality and key matching
-   - Test payload access and modification
-   - Test ref-based Add/Remove operations
-   - Test payload Replace operations
+1. ✅ **Implement `StandardFacet<TPayload>` class**
+   - ✅ Generic class parameterized by payload type: `StandardFacet<TPayload extends StandardFacetPayload>`
+   - ✅ **Compose** a `StandardReference` (following the StandardReference/StandardKey composition pattern)
+   - ✅ Getters to access composed reference: `reference`, `standardKey`, `ref`, `tag`, etc. (similar to `StandardReference.standardKey`)
+   - ✅ Typed payload data storage and access
+   - ✅ Constructor(s) for different input formats (JSON, StandardFacetData, Replace JSON structure, cloning)
+   - ✅ Handle Replace operations for payload changes (which `StandardReference` rejects)
+   - ✅ `toJSON()`, `clone()`, `equals()`, `sameKey()` methods
+   - ✅ `merge()` and `diff()` methods that combine ref arithmetic (from reference) with payload Replace logic
+   - ✅ Schema generation supporting both ref-based Add/Remove and payload Replace operations
+   - ✅ Comprehensive unit tests covering all functionality
+   - **Note**: GenericTree<SchemaTag> and WML string construction are limited - primary construction is via StandardFacetData format
+2. ✅ **Implement Facet payload types** - **COMPLETED IN PHASE 1**
+   - ✅ Define concrete payload structures for different Facet kinds:
+     - ✅ `PositionPayload`: `{ type: 'PositionFacet', x: number; y: number }`
+     - ✅ `MarkFacetPayload`: `{ type: 'MarkFacet', narrative: string; embedding?: number[]; ... }`
+     - ✅ `ExitPayload`: `{ type: 'ExitFacet', description?: string }`
+   - ✅ Payload types implement `StandardFacetPayload` interface/type
+   - ✅ Implement payload validation
+   - ✅ Implement type guards: `isPositionPayload(arg: any): arg is PositionPayload`, etc.
+   - ✅ Type guards use discriminator fields (e.g., `type: 'PositionFacet'`) in payloads
+   - **Design Decision**: Payloads are stored as plain JSON data (not payload classes)
+     - **Rationale**: Current payloads are simple flat structures (primitives only, no nested objects)
+     - Merge logic uses Replace semantics (incoming wins) - no complex field-level merging needed
+     - Equality comparison via `JSON.stringify` is sufficient for current requirements
+     - Keeps code lean and avoids unnecessary abstraction
+     - **Future Consideration**: If payloads gain nested structures (e.g., `StandardRender`, `StandardReference`) or require complex merge logic, consider introducing payload classes following the pattern used by component payloads (e.g., `StandardExamplePayload`, `StandardPositionSimpleBase`)
+3. ✅ **Write unit tests for `StandardFacet`**
+   - ✅ Test construction from various formats
+   - ✅ Test serialization/deserialization
+   - ✅ Test equality and key matching
+   - ✅ Test payload access and modification
+   - ✅ Test ref-based Add/Remove operations
+   - ✅ Test payload Replace operations
 
 ### Phase 4: Implement FacetList
 
