@@ -218,31 +218,90 @@ export class FacetList<TPayload extends StandardFacetPayload = StandardFacetPayl
         return true
     }
 
-    // Stub implementations for Phase 4, Task 2
-    // NOTE: When implementing these methods, ensure they preserve this._payloadTypeGuard
-    // when creating new FacetList instances (e.g., new FacetList(items, this._payloadTypeGuard))
     merge(incoming: FacetList<TPayload>): FacetList<TPayload> {
-        throw new Error('FacetList.merge() not yet implemented - see Phase 4, Task 2')
+        if (!(incoming instanceof FacetList)) {
+            throw new Error('Cannot merge with non-FacetList instance')
+        }
+        
+        // Find unmatched base items (items in this not in incoming)
+        const unmatchedBaseItems = this._items.filter(item => !incoming._items.some(otherItem => item.sameKey(otherItem)))
+        
+        // Find matched items (items with same key in both lists)
+        const matchedOtherItems: { base: StandardFacet<TPayload>, incoming: StandardFacet<TPayload> }[] = incoming._items.map((incomingItem) => {
+            const base = this._items.find(item => item.sameKey(incomingItem))
+            if (base) {
+                return { incoming: incomingItem, base }
+            }
+            return { incoming: incomingItem, base: undefined }
+        })
+        .filter((value): value is { base: StandardFacet<TPayload>, incoming: StandardFacet<TPayload> } => typeof value.base !== 'undefined')
+        
+        // Find unmatched incoming items (items in incoming not in this)
+        const unmatchedOtherItems = incoming._items.filter(item => !this._items.some(baseItem => baseItem.sameKey(item)))
+        
+        // Merge matched items using StandardFacet.merge() which handles ref arithmetic + payload Replace
+        const mergedItems = [
+            ...unmatchedBaseItems,
+            ...matchedOtherItems.map(({ base, incoming }) => base.merge(incoming)),
+            ...unmatchedOtherItems
+        ].filter(excludeUndefined)
+        
+        return new FacetList(mergedItems, this._payloadTypeGuard)
     }
 
     diff(incoming: FacetList<TPayload>): FacetList<TPayload> {
-        throw new Error('FacetList.diff() not yet implemented - see Phase 4, Task 2')
+        if (!(incoming instanceof FacetList)) {
+            throw new Error('Cannot diff with non-FacetList instance')
+        }
+        
+        // Find unmatched base items (items in this not in incoming) - invert them
+        const unmatchedBaseItems = this._items.filter(item => !incoming._items.some(otherItem => item.sameKey(otherItem)))
+        
+        // Find matched items (items with same key in both lists) - diff them
+        const matchedOtherItems: { base: StandardFacet<TPayload>, incoming: StandardFacet<TPayload> }[] = incoming._items.map((incomingItem) => {
+            const base = this._items.find(item => item.sameKey(incomingItem))
+            if (base) {
+                return { incoming: incomingItem, base }
+            }
+            return { incoming: incomingItem, base: undefined }
+        })
+        .filter((value): value is { base: StandardFacet<TPayload>, incoming: StandardFacet<TPayload> } => typeof value.base !== 'undefined')
+        
+        // Find unmatched incoming items (items in incoming not in this) - include as-is
+        const unmatchedOtherItems = incoming._items.filter(item => !this._items.some(baseItem => baseItem.sameKey(item)))
+        
+        // Diff matched items using StandardFacet.diff() which handles ref arithmetic + payload Replace
+        const diffedItems = [
+            ...unmatchedBaseItems.map(item => item.invert()),
+            ...matchedOtherItems.map(({ base, incoming }) => base.diff(incoming)),
+            ...unmatchedOtherItems
+        ].filter(excludeUndefined)
+        
+        return new FacetList(diffedItems, this._payloadTypeGuard)
     }
 
     invert(): FacetList<TPayload> {
-        throw new Error('FacetList.invert() not yet implemented - see Phase 4, Task 2')
+        // Map each item through StandardFacet.invert()
+        const invertedItems = this._items.map(item => item.invert())
+        return new FacetList(invertedItems, this._payloadTypeGuard)
     }
 
     mapContents(callback: (facet: StandardFacet<TPayload>) => StandardFacet<TPayload>): FacetList<TPayload> {
-        throw new Error('FacetList.mapContents() not yet implemented - see Phase 4, Task 2')
+        // Map _items through the callback
+        const mappedItems = this._items.map(callback)
+        return new FacetList(mappedItems, this._payloadTypeGuard)
     }
 
     toFormat(format: ReferenceFormat): FacetList<TPayload> {
-        throw new Error('FacetList.toFormat() not yet implemented - see Phase 4, Task 2')
+        // Map each item through StandardFacet.toFormat(format)
+        const formattedItems = this._items.map(item => item.toFormat(format))
+        return new FacetList(formattedItems, this._payloadTypeGuard)
     }
 
     lookup(mappings: LookupMappings): FacetList<TPayload> {
-        throw new Error('FacetList.lookup() not yet implemented - see Phase 4, Task 2')
+        // Map each item through StandardFacet.lookup(mappings)
+        const lookedUpItems = this._items.map(item => item.lookup(mappings))
+        return new FacetList(lookedUpItems, this._payloadTypeGuard)
     }
 }
 
