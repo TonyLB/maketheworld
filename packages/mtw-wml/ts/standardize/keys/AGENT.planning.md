@@ -153,23 +153,81 @@ The work is broken down into tactically-sized chunks that can be addressed incre
    - Test lookup and transformation methods
    - Document edit algebra properties (ref arithmetic + payload Replace)
 
+### Phase 4.5: Implement StandardMark Component
+
+**Goal**: Create the `StandardMark` component infrastructure to enable Mark Facets in Examples. This phase is necessary before Phase 5 because Examples need to reference Mark components via Facets, but Mark components must exist first.
+
+**Prerequisites**: Phase 4 (FacetList) must be complete.
+
+1. **Schema layer support** (`@tonylb/mtw-base` package)
+   - Add `isSchemaMark` type guard function
+   - Add Mark to schema component type definitions
+   - Ensure Mark tags can be parsed from WML
+
+2. **Component type system** (`standardize/components/dataTypes/abstract.ts`)
+   - Add `'Mark'` to `ComponentTag` type union
+   - Add `'MARK': 'Mark'` case to `componentTagFromUpperCase()` function
+
+3. **Component data types** (`standardize/components/dataTypes/mark.ts`)
+   - Create `StandardMarkData` type (extends `StandardBaseData`)
+   - Create `isStandardMarkData` type guard
+   - Export from `dataTypes/index.ts`
+
+4. **Component implementation** (`standardize/components/mark.ts`)
+   - Create `StandardMarkPayload` class implementing `ComponentConstructorMethods<StandardMarkData>`
+     - Implement `fromJSON()`, `fromSchema()`, `toJSON()`, `schema()`, `merge()`, `subset()`, etc.
+     - Mark is a simple component (similar to StandardKnowledge/StandardFeature structure)
+     - May have basic properties like `shortName` if needed, or can be minimal
+   - Create `StandardMark` component class using `componentClassFactory` pattern
+   - Follow existing component patterns (see `StandardKnowledge` or `StandardFeature` as examples)
+
+5. **Factory integration** (`standardize/componentFactory.ts`)
+   - Import `StandardMark` and `isStandardMarkData`
+   - Add Mark case to `standardComponentFactory()` function
+   - Handle both JSON data and schema tree inputs
+
+6. **Processing integration** (`standardize/index.ts`)
+   - Add `{ key: 'Mark', legalParents: [...] }` to `COMPONENT_TEMPLATES` array
+   - Determine appropriate `legalParents` for Mark (likely `['Example', 'Asset']` or similar)
+   - Add `StandardMark` to `isStandardComponent()` type guard function
+
+7. **Write unit tests** (`standardize/components/mark.test.ts`)
+   - Test construction from JSON and WML schema
+   - Test serialization/deserialization
+   - Test merge/diff operations
+   - Test schema generation
+
+**Success Criteria**:
+- `<Mark>` tags can be parsed from WML
+- `StandardMark` instances can be created and manipulated
+- Mark components can be stored in `StandardForm`
+- Mark components appear correctly in component factory lookups
+- All tests pass
+
+**Note**: This phase establishes the minimal infrastructure needed for Mark components. Additional properties or functionality can be added later as needed. The primary goal is to enable Mark components to exist so they can be referenced via Facets in Phase 5.
+
 ### Phase 5: Integrate Facets into Component System
 
 **Goal**: Add Facet support to component classes, starting with Examples.
+
+**Prerequisites**: Phase 4 (FacetList) and Phase 4.5 (StandardMark Component) must be complete. Mark components must exist before Examples can reference them via Facets.
 
 1. **Add FacetList to Example component**
    - Add `marks: FacetList<MarkFacetPayload>` field to `StandardExamplePayload`
    - Update `StandardExampleData` type to include marks
    - Implement serialization/deserialization
    - Update merge/diff/invert operations
+   - Handle FacetList in `fromJSON()`, `fromSchema()`, `toJSON()`, `schema()`, `merge()`, etc.
 2. **Update component factory/schema handling**
-   - Support parsing Facets from WML schema
+   - Support parsing Facets from WML schema (Mark Facets within Example tags)
    - Support parsing Facets from JSON
-   - Update schema converters
+   - Update schema converters to handle Facet structures
+   - Ensure Facet references to Mark components resolve correctly
 3. **Write integration tests**
-   - Test Examples with Mark Facets
-   - Test serialization round-trip
+   - Test Examples with Mark Facets (referencing existing Mark components)
+   - Test serialization round-trip (WML → StandardForm → JSON → StandardForm → WML)
    - Test merge/diff operations with Facets
+   - Test that Mark Facets correctly reference Mark components via `StandardReference`
 
 ### Phase 6: Refactor Existing Patterns (Optional/Deferred)
 
@@ -197,7 +255,22 @@ Potential candidates for future consideration:
 2. **Update usage documentation**
    - Add examples of using Facets in `AGENT.usage.md`
    - Document Facet types and payload structures
-3. **Code cleanup**
+3. **Update "Adding a New Component Type" guide** ⚠️ **Do after Phase 5**
+   - Update `components/AGENT.implementation.md` "Adding a New Component Type" section
+   - **Rationale**: The addition of Facets changes the component implementation pattern significantly:
+     - Components can now have `FacetList<TPayload>` fields in addition to `ReferenceList` fields
+     - Payload classes need to handle FacetList in `fromJSON()`, `toJSON()`, `schema()`, `nestedSchema()`, `merge()`, etc.
+     - Data types need to include `FacetListData<TPayload>` in addition to `ReferenceListData`
+     - Schema generation needs to handle Facet structures from WML
+     - Merge/diff operations need to account for FacetList operations (ref arithmetic + payload Replace)
+   - **Approach**: After Phase 5 (integrating Facets into Example component), update the guide based on real implementation experience:
+     - Add step/guidance for components with FacetLists
+     - Document FacetList patterns (similar to how ReferenceList patterns are documented)
+     - Add examples from `StandardExample` implementation with Mark Facets
+     - Update Common Patterns section to include "Components with Facets" pattern
+     - Update Verification Checklist to include FacetList-specific checks
+   - **Reference**: Use `StandardExample` (with Mark Facets) as the reference implementation example
+4. **Code cleanup**
    - Remove deprecated patterns (if any)
    - Ensure consistent naming
    - Review and update comments
