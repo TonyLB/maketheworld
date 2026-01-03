@@ -4,7 +4,7 @@ import { ComponentTag } from "./dataTypes/abstract";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { StandardReferenceData } from "./dataTypes/reference";
-import StandardReference from "./reference";
+import StandardReference from "../keys/reference";
 import { StandardKey } from "../keys/key";
 import { StandardExplicitParent, StandardExplicitKey } from "../explicit";
 import { OrganizationContext } from "../schemaOrganization";

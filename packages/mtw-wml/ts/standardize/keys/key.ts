@@ -4,7 +4,7 @@ import { StandardKeyData, StandardReferenceData } from "../components/dataTypes/
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { StandardEditablePayload } from "../../generics/editable";
 import { ReferenceFormat } from "../components/utils/references";
-import { referenceSortOrder } from "../components/reference";
+import { referenceSortOrder } from "./reference";
 
 export class StandardKey implements StandardEditablePayload<StandardKeyData> {
     key?: string;

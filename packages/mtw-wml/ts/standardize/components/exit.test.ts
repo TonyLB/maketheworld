@@ -1,7 +1,7 @@
 import { deIndentWML } from '../../schema/utils'
 import { Schema, schemaToWML } from '../../schema'
 import { StandardExit, StandardExitData, StandardExitRemove } from './exit'
-import StandardReference from './reference'
+import StandardReference from '../keys/reference'
 
 describe('StandardExit', () => {
     it('should construct StandardExit from WML', () => {

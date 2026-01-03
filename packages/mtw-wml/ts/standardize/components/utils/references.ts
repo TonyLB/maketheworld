@@ -1,7 +1,7 @@
 import { unique } from "../../../list"
 import SchemaTagTree from "../../../tagTree/schema"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import StandardReference from "../reference"
+import StandardReference from "../../keys/reference"
 import { StandardKey } from "../../keys/key"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"

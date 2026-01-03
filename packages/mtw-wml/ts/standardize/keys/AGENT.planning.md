@@ -72,10 +72,10 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 
 **Goal**: Relocate existing code to the new directory structure without breaking functionality.
 
-1. **Move `StandardKey`**
-   - Move class from `components/reference.ts` to `keys/key.ts` (or `keys/index.ts`)
-   - Update all imports across codebase
-   - Run tests to ensure no regressions
+1. ✅ **Move `StandardKey`**
+   - ✅ Move class from `components/reference.ts` to `keys/key.ts` (or `keys/index.ts`)
+   - ✅ Update all imports across codebase
+   - ✅ Run tests to ensure no regressions
 2. **Move `StandardReference`**
    - Move class from `components/reference.ts` to `keys/reference.ts` (or consolidate with key.ts)
    - Update all imports across codebase

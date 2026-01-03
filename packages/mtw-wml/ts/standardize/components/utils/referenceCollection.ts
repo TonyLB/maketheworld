@@ -1,4 +1,4 @@
-import { StandardReference } from "../reference"
+import StandardReference from "../../keys/reference"
 import { StandardKey } from "../../keys/key"
 
 /**

@@ -24,7 +24,7 @@ import { deepEqual } from "../../lib/objects";
 import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { isStandardReferenceData, StandardReferenceData } from "./dataTypes/reference";
-import StandardReference from "./reference";
+import StandardReference from "../keys/reference";
 import { StandardKey } from "../keys/key";
 import { StandardExplicitParent, StandardExplicitKey, StandardExplicitKeySimple, StandardExplicitKeyRemove, StandardExplicitKeyReplace } from "../explicit";
 import SchemaTagTree from "../../tagTree/schema";

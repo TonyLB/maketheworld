@@ -3,7 +3,7 @@ import { StandardAuthorizationResource } from './resource'
 import { StandardGrant } from './components/grant'
 import { Schema } from '../../schema'
 import { StandardAuthRemove, StandardAuthReplace } from './components/edits'
-import StandardReference from '../components/reference'
+import StandardReference from '../keys/reference'
 
 describe("processAuthorizations", () => {
     it('should return an empty array when given an empty schema', () => {

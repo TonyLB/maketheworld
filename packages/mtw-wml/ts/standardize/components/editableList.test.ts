@@ -1,5 +1,5 @@
 import { editableListClassFactory } from './editableList'
-import { StandardReference } from './reference'
+import StandardReference from '../keys/reference'
 import StandardRoom from './room'
 import StandardFeature from './feature'
 

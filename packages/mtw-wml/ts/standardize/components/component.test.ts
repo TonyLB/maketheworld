@@ -17,7 +17,7 @@
 import { StandardRoom } from './room'
 import { GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
-import StandardReference from './reference'
+import StandardReference from '../keys/reference'
 import { deIndentWML } from '../../schema/utils'
 
 // Type for schema data that includes origin property

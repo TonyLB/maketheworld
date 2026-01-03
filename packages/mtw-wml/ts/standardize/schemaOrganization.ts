@@ -9,7 +9,7 @@ import { StandardExplicitParent, StandardExplicitParentSimple, StandardExplicitP
 import { excludeUndefined } from "../lib/lists"
 import { unique } from "../list"
 import { KeyLookup } from "./keyLookup"
-import { StandardReference, referenceSortOrder, MapByKey } from "./components/reference"
+import StandardReference, { referenceSortOrder, MapByKey } from "./keys/reference"
 
 export class SchemaOrganization {
     private _organization: Array<{ key: StandardKey; implicitParent?: StandardKey }>

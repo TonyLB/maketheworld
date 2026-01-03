@@ -3,7 +3,7 @@ import { deIndentWML } from "../../schema/utils"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import StandardKnowledge from './knowledge'
 import { mergeTest } from "./utils/testing"
-import StandardReference from "./reference"
+import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 
 describe('StandardKnowledge class', () => {

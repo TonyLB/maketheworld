@@ -3,7 +3,7 @@ import { StandardRenderElement, StandardRenderAbstract } from "./baseClasses"
 import { isSchemaLink, SchemaLinkTag } from "@tonylb/mtw-base/ts/schema/renderTree";
 import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
 import { isRenderTreeNode } from "@tonylb/mtw-base/ts/renderTree";
-import StandardReference from "../components/reference";
+import StandardReference from "../keys/reference";
 import { StandardKey } from "../keys/key";
 import { ReferenceFormat } from "../components/utils/references";
 

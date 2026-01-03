@@ -1,5 +1,5 @@
 import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import StandardReference from "../components/reference";
+import StandardReference from "../keys/reference";
 import { StandardAuthorizationItem } from "./components/baseClasses";
 import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isStandardAuthorizationData, isStandardAuthorizationResourceData, StandardAuthorizationData, StandardAuthorizationResourceData } from "./components/dataTypes";

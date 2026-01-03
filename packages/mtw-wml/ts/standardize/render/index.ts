@@ -11,7 +11,7 @@ import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit
 import { isRenderTreeNode, isSimpleRenderTree, RenderTree, RenderTreeNode, renderTreeToSchema, renderTreeToString, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
-import StandardReference from "../components/reference"
+import StandardReference from "../keys/reference"
 import { ReferenceFormat } from "../components/utils/references"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 

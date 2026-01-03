@@ -4,7 +4,7 @@ import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardMessageData } from "./dataTypes/message"
 import StandardMessage from './message'
 import { mergeTest } from './utils/testing'
-import StandardReference from "./reference"
+import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 

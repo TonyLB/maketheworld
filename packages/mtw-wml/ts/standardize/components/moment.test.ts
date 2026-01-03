@@ -2,7 +2,7 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { StandardMomentData } from "./dataTypes/moment"
 import StandardMoment from './moment'
-import StandardReference from "./reference"
+import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { mergeTest } from './utils/testing'
 

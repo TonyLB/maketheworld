@@ -1,6 +1,6 @@
 import { GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardComponent, NestedSchemaOptions } from "../baseClasses"
-import StandardReference from "../reference"
+import StandardReference from "../../keys/reference"
 import { StandardKey } from "../../keys/key"
 import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
