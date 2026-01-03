@@ -99,6 +99,17 @@
   - **Type Discrimination**: Facets use discriminator fields (`type: 'PositionFacet'`) in payloads; References use `tag` in the reference itself
   - **Composition**: Facets compose a `StandardReference` rather than extending it
   - **Generic Design**: Facets are generic over payload type for type safety
+- **Design Decisions**: 
+  - **Payload Storage**: Payloads are stored as plain JSON data (not payload classes)
+    - **Rationale**: Current payloads are simple flat structures (primitives only: numbers, strings, optional fields)
+    - Merge logic uses Replace semantics (incoming wins) - no complex field-level merging needed
+    - Equality comparison via `JSON.stringify` is sufficient for current requirements
+    - Keeps code lean and avoids unnecessary abstraction
+    - **Future Consideration**: If payloads gain nested structures (e.g., `StandardRender`, `StandardReference`) or require complex merge logic beyond Replace semantics, consider introducing payload classes following the pattern used by component payloads (e.g., `StandardExamplePayload`, `StandardPositionSimpleBase`). This would provide:
+      - Encapsulation of payload-specific merge logic
+      - Schema generation capabilities for complex payloads
+      - Better type safety and validation
+      - Consistency with component payload patterns
 - **Technical Debt**: 
   - Current ad-hoc patterns (StandardPosition, StandardExit) may be migrated to Facets in Phase 6
   - Implementation details will be refined during Phase 3/4

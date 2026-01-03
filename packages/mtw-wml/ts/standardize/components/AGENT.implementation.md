@@ -259,6 +259,314 @@ nestedSchema(lookup, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
 }
 ```
 
+## Adding a New Component Type
+
+This section provides a step-by-step guide for adding new component types to the WML system. This process establishes the necessary infrastructure so that new components can be parsed from WML, created programmatically, stored in `StandardForm`, and participate in merge/diff operations.
+
+### Prerequisites
+
+Before adding a new component type, you should understand:
+
+- **Component Architecture Pattern**: Components use a payload/class separation pattern (see "Component Architecture" section above)
+- **Data Types**: Components have data types defined in `dataTypes/` for serialization
+- **Factory Pattern**: Components are created via `standardComponentFactory()` in `componentFactory.ts`
+- **Reference System**: Components can reference other components via `ReferenceList` (see `StandardRoom` for examples)
+- **Schema Integration**: Components must integrate with the WML schema parsing system
+
+### Step-by-Step Checklist
+
+#### Step 1: Schema Layer Support (`@tonylb/mtw-base` package)
+
+**Location**: `packages/mtw-base/ts/schema/` (in the `@tonylb/mtw-base` package)
+
+**Tasks**:
+- Add schema type definition (e.g., `SchemaMarkTag`) to schema type definitions
+- Add `isSchema{ComponentName}` type guard function (e.g., `isSchemaMark`)
+- Add component tag to `SchemaComponent` union type
+- Add component tag to `isSchemaComponentTag()` function
+- Add component tag to `isSchemaComponent()` function
+- Add component tag to `isSchemaTag()` function
+- Ensure WML parser can parse the component tag from WML strings
+
+**Example Pattern**: Look at how `isSchemaRoom`, `isSchemaFeature`, or `isSchemaKnowledge` are implemented in `@tonylb/mtw-base/ts/schema/components.ts`
+
+**Note**: This step may require changes in the `@tonylb/mtw-base` package, which is a separate package. If you don't have access to modify that package, coordinate with the maintainer or document this as a prerequisite.
+
+#### Step 2: Component Type System (`standardize/components/dataTypes/abstract.ts`)
+
+**Location**: `packages/mtw-wml/ts/standardize/components/dataTypes/abstract.ts`
+
+**Tasks**:
+- Add component tag (e.g., `'Mark'`) to the `ComponentTag` type union
+- Add case to `componentTagFromUpperCase()` function: `case 'MARK': return 'Mark'`
+
+**Example**:
+```typescript
+export type ComponentTag = Exclude<SchemaWithKey["tag"], 'Asset' | 'Story'>
+// ComponentTag will automatically include 'Mark' if it's in SchemaWithKey
+
+export const componentTagFromUpperCase = (tag: Uppercase<ComponentTag>): ComponentTag => {
+    switch (tag) {
+        // ... existing cases ...
+        case 'MARK': return 'Mark'
+        default: throw new Error(`Unknown tag: ${tag}`)
+    }
+}
+```
+
+#### Step 3: Component Data Types (`standardize/components/dataTypes/`)
+
+**Location**: Create `packages/mtw-wml/ts/standardize/components/dataTypes/{componentName}.ts` (e.g., `mark.ts`)
+
+**Tasks**:
+- Create `Standard{ComponentName}Data` type extending `StandardBaseData`
+  - Must include `tag: '{ComponentName}'` literal type
+  - Include all component-specific properties
+  - Use appropriate types (`StandardEditableData<string>`, `StandardRender`, `ReferenceListData`, etc.)
+- Create `isStandard{ComponentName}Data` type guard function
+  - Use `checkAll()` and `checkTypes()` helpers (see `knowledge.ts` for pattern)
+  - Validate required and optional fields
+- Export from `dataTypes/index.ts`:
+  - Export the data type and type guard
+  - Add to `StandardComponentNonEditData` union type
+  - Add to `isStandardComponentData()` type guard function
+
+**Example** (from `knowledge.ts`):
+```typescript
+export type StandardKnowledgeData = {
+    tag: 'Knowledge';
+    shortName?: StandardEditableData<string>;
+    examples?: ReferenceListData;
+} & StandardBaseData
+
+export const isStandardKnowledgeData = (arg: any): arg is StandardKnowledgeData => {
+    if (typeof arg !== 'object') {
+        return false
+    }
+    return checkAll(
+        ('tag' in arg && arg.tag === 'Knowledge'),
+        checkTypes(arg, {}, { 
+            key: 'key', 
+            universalKey: 'string',
+            shortName: 'literal'
+        })
+    )
+}
+```
+
+**Reference Examples**:
+- **Simple component**: `knowledge.ts`, `feature.ts` - Basic properties with optional references
+- **Component with references**: `room.ts` - Multiple `ReferenceList` properties
+- **Component with complex properties**: `example.ts`, `character.ts` - Uses `StandardRender`, `EditWrappedStandardNode`, etc.
+
+#### Step 4: Component Implementation (`standardize/components/`)
+
+**Location**: Create `packages/mtw-wml/ts/standardize/components/{componentName}.ts` (e.g., `mark.ts`)
+
+**Tasks**:
+
+1. **Create Payload Class** (`Standard{ComponentName}Payload`):
+   - Implement `ComponentConstructorMethods<Standard{ComponentName}Data>`
+   - Store private fields for component data (prefixed with `_`)
+   - Implement constructor with optional `previous` parameter for cloning
+   - Implement `fromJSON()` - Parse from data type
+   - Implement `fromSchema()` - Parse from WML schema tree (use `treeNodeTypeguard(isSchema{ComponentName})`)
+   - Implement getters for public properties
+   - Implement `toJSON()` - Serialize to data type (follow omission-over-empty principle)
+   - Implement `schema()` - Generate schema tree from payload
+   - Implement `nestedSchema()` - Generate nested schema with organization context
+   - Implement `merge()` - Combine two payloads
+   - Implement `subset()` - Return empty payload
+   - Implement `referencedKeys()` - Return array of referenced component keys
+   - Implement `mapContents()`, `remapReferences()`, `withChild()` if needed
+   - Implement `isEmpty()` - Check if payload is empty
+   - Implement `invert()` - Invert edit operations
+   - Implement `assureReferences()` if component has reference lists (see `assureReferences` pattern)
+   - Implement `removeReferences()` if component has reference lists
+
+2. **Create Component Class** (`Standard{ComponentName}`):
+   - Use `componentClassFactory(Standard{ComponentName}Payload, 'Standard{ComponentName}')`
+   - Expose public getters that delegate to payload
+   - Override `_wrap()` method
+   - Override `clone()` method
+   - Override `equals()` method (compare payloads)
+   - Override `invert()` method if needed
+
+**Reference Examples**:
+- **Simple component**: `knowledge.ts`, `feature.ts` - Minimal structure, optional references
+- **Component with references**: `room.ts` - Multiple `ReferenceList` properties, `assureReferences()` implementation
+- **Component with complex properties**: `example.ts`, `character.ts` - `StandardRender`, nested structures
+
+**Key Patterns**:
+- Use `ReferenceList` for child references (see `room.ts` for multiple buckets)
+- Use `StandardRender` for rich text content (see `example.ts`)
+- Use `StandardLiteral` for simple string content (see `knowledge.ts`)
+- Follow omission-over-empty principle in `toJSON()` - omit empty arrays/objects
+- Use `excludeUndefined` helper when filtering optional fields in schema generation
+
+#### Step 5: Factory Integration (`standardize/componentFactory.ts`)
+
+**Location**: `packages/mtw-wml/ts/standardize/componentFactory.ts`
+
+**Tasks**:
+- Import `Standard{ComponentName}` and `isStandard{ComponentName}Data`
+- Import `isSchema{ComponentName}` from `@tonylb/mtw-base/ts/schema/components` (or appropriate location)
+- Add case to `standardComponentFactory()` function:
+  ```typescript
+  if ((!isSchemaTreeNode(arg) && isStandard{ComponentName}Data(arg)) || 
+      (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchema{ComponentName})(arg))) {
+      return new Standard{ComponentName}(arg)
+  }
+  ```
+
+**Example Pattern**: See existing cases in `componentFactory.ts` - each component has a conditional check for both JSON data and schema tree inputs.
+
+#### Step 6: Processing Integration (`standardize/index.ts`)
+
+**Location**: `packages/mtw-wml/ts/standardize/index.ts`
+
+**Tasks**:
+1. **Add to COMPONENT_TEMPLATES**:
+   - Add entry to `COMPONENT_TEMPLATES` array
+   - Format: `{ key: '{ComponentName}', legalParents?: [...] }`
+   - `legalParents` is optional - omit if component can appear at asset level
+   - Determine appropriate `legalParents` based on component's intended usage
+     - Examples: `{ key: 'Example', legalParents: ['Room', 'Feature', 'Knowledge', 'Asset'] }`
+     - Examples: `{ key: 'Knowledge' }` (no legalParents = can appear at asset level)
+
+2. **Add to isStandardComponent()**:
+   - Import `Standard{ComponentName}`
+   - Add `(value instanceof Standard{ComponentName) ||` to the type guard
+
+**Example**:
+```typescript
+const COMPONENT_TEMPLATES: ComponentProcessingTemplate[] = [
+    // ... existing entries ...
+    { key: 'Mark', legalParents: ['Example', 'Asset'] }
+]
+
+export const isStandardComponent = (value: any): value is StandardComponent => {
+    return (value instanceof StandardCharacter) ||
+        // ... existing checks ...
+        (value instanceof StandardMark)
+}
+```
+
+#### Step 7: Write Unit Tests
+
+**Location**: Create `packages/mtw-wml/ts/standardize/components/{componentName}.test.ts` (e.g., `mark.test.ts`)
+
+**Tasks**:
+- Test construction from JSON data
+- Test construction from WML schema (string input)
+- Test serialization (`toJSON()`)
+- Test deserialization round-trip (JSON → Component → JSON)
+- Test schema generation (`schema()` getter)
+- Test nested schema generation (`nestedSchema()`)
+- Test merge operations (`merge()`)
+- Test diff operations (via `equals()` or direct diff)
+- Test `isEmpty()` method
+- Test `invert()` method
+- Test `assureReferences()` if component has reference lists
+- Test reference handling if component has references
+
+**Test Patterns** (see existing test files):
+- Use WML strings for component construction in tests for readability
+- Use JSON objects for tests specifically targeting JSON structure
+- Test edge cases (empty components, missing optional fields, etc.)
+
+**Reference Examples**: `knowledge.test.ts`, `feature.test.ts`, `room.test.ts` - Examine these for test patterns and coverage.
+
+### Common Patterns and Pitfalls
+
+#### Simple Components (No References)
+
+**Example**: `StandardKnowledge`, `StandardFeature`
+
+**Pattern**:
+- Minimal payload class with basic properties (e.g., `shortName?: StandardLiteral`)
+- Optional `ReferenceList` for child components (e.g., `examples: ReferenceList`)
+- Simple `toJSON()` with omission-over-empty pattern
+- Straightforward `schema()` and `nestedSchema()` implementations
+
+**Common Pitfalls**:
+- Forgetting to omit empty arrays in `toJSON()` (use conditional spread: `...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {})`)
+- Not implementing `assureReferences()` for components with reference lists
+- Missing `isEmpty()` implementation
+
+#### Components with References
+
+**Example**: `StandardRoom` (has `features`, `examples`, `characters` reference lists)
+
+**Pattern**:
+- Multiple `ReferenceList` properties for different child types
+- `assureReferences()` implementation that dispatches to appropriate buckets based on child `tag`
+- `withChild()` implementation that routes to correct bucket
+- `nestedSchema()` uses organization context to get children and assure references
+
+**Common Pitfalls**:
+- Forgetting to implement `assureReferences()` - this is required for components with reference lists
+- Not filtering children by `tag` in `assureReferences()` - each bucket should only contain appropriate child types
+- Missing `removeReferences()` implementation
+- Incorrect bucket routing in `withChild()` - must match the dispatch logic in `assureReferences()`
+
+#### Components with Complex Properties
+
+**Example**: `StandardExample` (has `StandardRender` properties), `StandardCharacter` (has `EditWrappedStandardNode` for images)
+
+**Pattern**:
+- Use `StandardRender` for rich text content (name, description, etc.)
+- Use `EditWrappedStandardNode` for complex nested structures (images, etc.)
+- More complex `fromSchema()` implementations using `SchemaTagTree` filtering
+- More complex `schema()` generation with nested structure reconstruction
+
+**Common Pitfalls**:
+- Incorrect `StandardRender` reconstruction in `schema()` - use `rebuildSchemaFromStandardRender()` helper
+- Missing mapping parameter handling in `schema()` and `nestedSchema()` for Link remapping
+- Not handling edit wrappers (Remove/Replace) correctly in `fromSchema()`
+
+#### General Pitfalls
+
+1. **Missing Type Exports**: Forgetting to export data type and type guard from `dataTypes/index.ts`
+2. **Factory Integration**: Forgetting to add component to `standardComponentFactory()` - component won't be created from schema
+3. **Template Registration**: Forgetting to add to `COMPONENT_TEMPLATES` - component won't be processed correctly
+4. **Type Guard Registration**: Forgetting to add to `isStandardComponent()` - type checks will fail
+5. **Case Sensitivity**: Component tags are case-sensitive - ensure consistent casing (`'Mark'` not `'mark'`)
+6. **Schema Type Guard**: Must import and use correct `isSchema{ComponentName}` from `@tonylb/mtw-base`
+7. **Omission-over-Empty**: Always omit empty arrays/objects in `toJSON()` - don't include `field: []`
+
+### Verification Checklist
+
+After completing all steps, verify your implementation:
+
+- [ ] Component can be parsed from WML string: `<{ComponentName} key="test">...</{ComponentName}>`
+- [ ] Component can be created from JSON data: `{ tag: '{ComponentName}', key: 'test', ... }`
+- [ ] Component appears in `standardComponentFactory()` lookups
+- [ ] Component appears in `COMPONENT_TEMPLATES` array
+- [ ] Component passes `isStandardComponent()` type guard
+- [ ] Component can be stored in `StandardForm`
+- [ ] Component serializes correctly (`toJSON()`)
+- [ ] Component deserializes correctly (round-trip: JSON → Component → JSON)
+- [ ] Component generates correct schema (`schema()` getter)
+- [ ] Component generates correct nested schema (`nestedSchema()`)
+- [ ] Component merge operations work correctly
+- [ ] Component equals/diff operations work correctly
+- [ ] All unit tests pass
+- [ ] Component follows omission-over-empty principle in `toJSON()`
+- [ ] If component has references: `assureReferences()` works correctly
+- [ ] If component has references: references appear in correct buckets
+
+### Related Documentation
+
+- [`AGENT.md`](./AGENT.md) - Conceptual overview and navigation guide
+- [`AGENT.usage.md`](./AGENT.usage.md) - Practical code examples and usage patterns
+- [`dataTypes/AGENT.md`](./dataTypes/AGENT.md) - Serialization vs. Manipulation Types architecture
+- [`../keys/AGENT.planning.md`](../keys/AGENT.planning.md) - Phase 4.5 provides a concrete example of adding `StandardMark` component
+- **Reference Implementation Examples**:
+  - Simple component: `knowledge.ts`, `feature.ts`
+  - Component with references: `room.ts`
+  - Component with complex properties: `example.ts`, `character.ts`
+
 ## Testing
 
 ### Running Tests
