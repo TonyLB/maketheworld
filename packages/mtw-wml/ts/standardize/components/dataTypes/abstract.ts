@@ -36,6 +36,7 @@ export const componentTagFromUpperCase = (tag: Uppercase<ComponentTag>): Compone
         case 'MOMENT': return 'Moment'
         case 'IMAGE': return 'Image'
         case 'MAP': return 'Map'
+        case 'MARK': return 'Mark'
         default: throw new Error(`Unknown tag: ${tag}`)
     }
 }
