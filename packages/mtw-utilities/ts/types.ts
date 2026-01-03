@@ -8,7 +8,7 @@ export const splitType = (value: string) => {
     return ['', '']
 }
 
-type PrefixKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'CONNECTION' | 'SESSION'
+type PrefixKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'CONNECTION' | 'SESSION' | 'MARK'
 
 export const enforceTypedKey = <T extends PrefixKey>(key: T) => (value: string): `${T}#${string}` => {
     const [checkType, checkForTwoSections] = splitType(value)

@@ -1,5 +1,5 @@
 import { excludeUndefined } from "../../lib/lists"
-import { filterEditableTree, stripTagFromTree, wrappedNodeTypeGuard } from "../../schema/utils"
+import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
@@ -10,7 +10,6 @@ import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardMarkData } from "./dataTypes/mark"
 import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaShortName } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaMark } from "@tonylb/mtw-base/ts/schema/worldState"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
@@ -40,8 +39,11 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMark)(node)) {
             const tagTree = new SchemaTagTree(node.children)
-            const shortNameNode = stripTagFromTree(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaShortName) }), 'ShortName')
-            this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode) : undefined
+            const shortNameItem = tagTree
+                .filter({ match: 'ShortName' })
+                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
+                .tree
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
             const descriptionItem = tagTree
                 .filter({ match: 'Description' })
                 .prune({ match: 'Description' })
@@ -57,11 +59,12 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
     get description() { return this._description }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardMarkData, 'key' | 'universalKey'> {
-        return {
-            tag: 'Mark',
-            shortName: this?.shortName?.toJSON(),
-            description: this?.description?.toJSON()
+        const result: Omit<StandardMarkData, 'key' | 'universalKey'> = {
+            tag: 'Mark' as const,
+            ...(this?.shortName ? { shortName: this.shortName.toJSON() } : {}),
+            ...(this?.description ? { description: this.description.toJSON() } : {})
         }
+        return result
     }
 
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {

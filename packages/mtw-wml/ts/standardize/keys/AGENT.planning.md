@@ -215,11 +215,14 @@ The work is broken down into tactically-sized chunks that can be addressed incre
    - ✅ Determine appropriate `legalParents` for Mark (set to `['Example', 'Asset']`)
    - ✅ Add `StandardMark` to `isStandardComponent()` type guard function
 
-7. **Write unit tests** (`standardize/components/mark.test.ts`)
-   - Test construction from JSON and WML schema
-   - Test serialization/deserialization
-   - Test merge/diff operations
-   - Test schema generation
+7. ✅ **Write unit tests** (`standardize/components/worldState.test.ts`)
+   - ✅ Test construction from JSON and WML schema
+   - ✅ Test serialization/deserialization
+   - ✅ Test merge/diff operations
+   - ✅ Test schema generation
+   - ✅ Test payload methods (isEmpty, invert, mapContents, remapReferences)
+   - ✅ Test edge cases (empty component, only ShortName, only Description)
+   - **Note**: Test file is `worldState.test.ts` to match component file organization
 
 **Success Criteria**:
 - `<Mark>` tags can be parsed from WML
