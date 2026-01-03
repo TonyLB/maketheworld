@@ -1,5 +1,5 @@
 import { SchemaOrganization, createOrganizationContext } from './schemaOrganization'
-import { ReferenceList } from './components/reference'
+import { ReferenceList } from './keys/referenceList'
 import { StandardKey } from './keys/key'
 import StandardRoom from './components/room'
 import StandardFeature from './components/feature'

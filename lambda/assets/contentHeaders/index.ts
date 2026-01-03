@@ -21,7 +21,7 @@ import { WMLZoneEvent, isWMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBri
 import { Zone } from '@tonylb/mtw-asset-workspace'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
-import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 
 //
 // Replayable DataSource singleton for mtw.assets.contentHeaders
