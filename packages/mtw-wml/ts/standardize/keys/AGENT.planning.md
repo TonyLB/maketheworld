@@ -153,11 +153,12 @@ The work is broken down into tactically-sized chunks that can be addressed incre
    - ✅ FacetList merge/diff algebra combines ref-based operations with payload Replace semantics
    - ✅ All operations preserve `_payloadTypeGuard` when creating new instances
    - ✅ Added `invert()` method to `StandardFacet` class (required for FacetList.invert())
-3. **Write unit tests for `FacetList`**
-   - Test construction and serialization
-   - Test merge/diff/invert operations
-   - Test lookup and transformation methods
-   - Document edit algebra properties (ref arithmetic + payload Replace)
+3. ✅ **Write unit tests for `FacetList`**
+   - ✅ Test construction and serialization
+   - ✅ Test merge/diff/invert operations
+   - ✅ Test lookup and transformation methods
+   - ✅ Document edit algebra properties (ref arithmetic + payload Replace)
+   - ✅ Created comprehensive test suite in `facetList.test.ts` with 64 tests covering all functionality
 
 ### Phase 4.5: Implement StandardMark Component
 
