@@ -7,12 +7,18 @@ import { StandardFacetPayload } from "./facet";
  * FacetPayloadBase: Interface for facet payload classes that handle WML schema parsing and generation.
  * 
  * Different facet payload types require fundamentally different WML rendering patterns:
- * - **Exit facets**: `<Exit to=(target)>Name</Exit>` - reference embedded in tag properties, payload as content
- * - **Position facets**: `<Room to=(target)><Position x={0} y={100} /></Room>` - reference as parent tag, payload as child tag
- * - **Mark facets**: `<Mark uuid=(target)><Match>Condition</Match></Mark>` - reference as parent tag, payload as child tag
+ * - **Exit facets**: `<Exit to=(target)>Name</Exit>` - reference embedded in tag properties, payload as content. These create **new nodes** in the parent (Map) that don't enhance existing Room references.
+ * - **Position facets**: `<Room to=(target)><Position x={0} y={100} /></Room>` - reference as parent tag, payload as child tag. These **enhance existing Room references** rendered by the parent Map (either pre-existing Room renders or Room references from a `rooms` reference list).
+ * - **Mark facets**: `<Mark uuid=(target)><Match>Condition</Match></Mark>` - reference as parent tag, payload as child tag. These **enhance existing Mark references** rendered by the parent Example (from a `marks` reference list).
  * 
  * Following the precedent established by `StandardExitBase` and `StandardPositionSimpleBase`, each payload type
  * needs its own class with schema generation/parsing logic. This interface defines the contract these classes must implement.
+ * 
+ * **Parent Component Orchestration Pattern**: Parent components are responsible for orchestrating facet rendering:
+ * 1. Parent renders reference lists that may need facet enhancement (e.g., Map renders `rooms` reference list)
+ * 2. Parent applies facet rendering to each facet, passing optional `referenceRender` (pre-existing render if reference already in tree, or plain reference render if not)
+ * 3. Facet rendering returns either `newNode` (create new node like Exit) or `aggregatedNode` (enhanced reference render)
+ * 4. Parent zippers enhanced references with new nodes to produce final schema
  * 
  * @template TPayload - The specific payload type (extends StandardFacetPayload)
  */
@@ -31,40 +37,24 @@ export interface FacetPayloadBase<TPayload extends StandardFacetPayload> {
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): TPayload;
 
     /**
-     * Generate complete WML schema from reference and payload (standalone, without component content).
+     * Render facet for parent component orchestration.
      * 
-     * Generates the complete WML schema including both reference rendering and payload rendering.
-     * This method is used when the facet is rendered standalone, without any component content
-     * (e.g., a Position facet on a Map where the Room has no other content to render).
+     * Renders the facet structure for integration into a parent component's schema. Parent components
+     * orchestrate facet rendering by calling this method for each facet, optionally providing a
+     * pre-existing reference render if the reference is already present in the parent's schema tree.
      * 
-     * The schema generation handles both reference rendering and payload rendering based on the
-     * payload type. Reference may be embedded in tag properties (Exit) or as parent tag (Position/Mark),
-     * and payload may be tag content or child tag.
+     * The method returns either:
+     * - `newNode`: For facets that create new nodes (e.g., Exit facets return `<Exit>` tag)
+     * - `aggregatedNode`: For facets that enhance existing references (e.g., Position/Mark facets return enhanced tag with payload as child)
      * 
      * @param reference - The StandardReference for the target component
      * @param payload - The payload data to render
-     * @returns The complete WML schema tree
+     * @param referenceRender - Optional pre-existing render of the reference already in the parent's schema tree
+     *   (e.g., Room already rendered by Map as a child). If not provided, generate a plain reference render
+     *   (just the tag without children, e.g., `<Room to=(target)>` with no children).
+     * @returns An object with either `newNode` (for facets that create new nodes) or `aggregatedNode`
+     *   (for facets that enhance existing references), but not both. Exit-style facets return `newNode`;
+     *   Position/Mark-style facets return `aggregatedNode`.
      */
-    schema(reference: StandardReference, payload: TPayload): GenericTree<SchemaTag>;
-
-    /**
-     * Merge facet structure into existing component schema (used when component has content to render).
-     * 
-     * Merges the facet structure into an existing component schema. This method is used when
-     * a component has content to render in addition to the facet (e.g., a Map containing a Room
-     * with a Position facet where the Room also renders its component content like features/examples).
-     * 
-     * The implementation should merge the facet payload structure (e.g., Position child tag) into
-     * the existing component schema's children, preserving all existing component content.
-     * 
-     * **Use case example**: A Map has a Room with a Position facet, and the Room is also the implicit
-     * or explicit parent of other components (features, examples, etc.). The Room should render both
-     * the Position facet AND its component content at that point in the schema.
-     * 
-     * @param reference - The StandardReference for the target component
-     * @param payload - The payload data to merge
-     * @param componentSchema - The existing component schema with content to preserve
-     * @returns The merged component schema with facet structure integrated
-     */
-    nestedSchema(reference: StandardReference, payload: TPayload, componentSchema: GenericTreeNode<SchemaTag>): GenericTreeNode<SchemaTag>;
+    renderFacet(reference: StandardReference, payload: TPayload, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> };
 }
