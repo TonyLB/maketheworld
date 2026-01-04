@@ -234,146 +234,292 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 
 **Note**: This phase establishes the minimal infrastructure needed for Mark components. Mark components will include `ShortName` (as `StandardLiteral`) and `Description` (as `StandardRender`) tags, following the pattern established by other components like Room/Feature (for ShortName) and Example (for Description). Additional properties or functionality can be added later as needed. The primary goal is to enable Mark components to exist so they can be referenced via Facets in Phase 6.
 
-### Phase 5: Implement Payload Classes for Schema Serialization
+### Phase 5: Implement Payload Classes for Schema Serialization (First Iteration)
 
-**Goal**: Create payload classes with their own `fromSchema`, `schema`, and `nestedSchema` methods to handle the varied WML rendering patterns for different facet payload types.
+**Goal**: Create payload classes with facet rendering methods that support parent component orchestration. Facets can either create new nodes (like Exit) or enhance existing reference renders (like Position/Mark), allowing parent components to properly zipper facet payloads with reference lists.
 
 **Prerequisites**: Phase 3 (StandardFacet Core) and Phase 4 (FacetList) must be complete. This phase must be completed before Phase 6 (integrating Facets into components) because schema serialization/deserialization is required for component integration.
 
-**Rationale**: Different facet payload types require fundamentally different WML rendering patterns:
-- **Exit facets**: `<Exit to=(target)>Name</Exit>` - reference embedded in tag properties, payload as content
-- **Position facets**: `<Room to=(target)><Position x={0} y={100} /></Room>` - reference as parent tag, payload as child tag
-- **Mark facets**: `<Mark uuid=(target)><Match>Condition</Match></Mark>` - reference as parent tag, payload as child tag
+**Note - First Iteration**: This phase implements a **first iteration** of the payload rendering architecture. It focuses on the core rendering patterns (plain references + plain payloads) and does not fully address the complexity of edit operations (Remove/Replace) in combination with incoming `referenceRender` edits. After Phase 6 provides a working prototype in Examples, Phase 7 will examine edit functionality in detail and identify functional gaps based on real-world usage patterns.
 
-A single `renderFacet` function cannot handle these varied patterns elegantly. Following the precedent established by `StandardExitBase` and `StandardPositionSimpleBase`, each payload type should have its own class with schema generation/parsing logic.
+**Rationale**: Different facet payload types require fundamentally different WML rendering patterns and integration strategies:
+- **Exit facets**: `<Exit to=(target)>Name</Exit>` - reference embedded in tag properties, payload as content. These create **new nodes** in the parent (Map) that don't enhance existing Room references.
+- **Position facets**: `<Room to=(target)><Position x={0} y={100} /></Room>` - reference as parent tag, payload as child tag. These **enhance existing Room references** rendered by the parent Map (either pre-existing Room renders or Room references from a `rooms` reference list).
+- **Mark facets**: `<Mark uuid=(target)><Match>Condition</Match></Mark>` - reference as parent tag, payload as child tag. These **enhance existing Mark references** rendered by the parent Example (from a `marks` reference list).
 
-1. ✅ **Create payload base class interface**
-   - ✅ Define `FacetPayloadBase<TPayload>` interface with:
-     - ✅ `fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): TPayload` - Parse payload from WML schema
-     - ✅ `schema(reference: StandardReference, payload: TPayload): GenericTree<SchemaTag>` - Generate WML schema from payload (standalone, without component content)
-     - ✅ `nestedSchema(reference: StandardReference, payload: TPayload, componentSchema: GenericTreeNode<SchemaTag>): GenericTreeNode<SchemaTag>` - Merge facet structure into existing component schema (used when component has content to render)
-     - ✅ `schema` should handle both reference rendering and payload rendering based on payload type
-   - ✅ Document the interface contract and expected behavior
-   - ✅ Created `keys/dataTypes/facetPayloadBase.ts` with comprehensive JSDoc documentation
-   - ✅ Exported from `keys/index.ts` for use in subsequent tasks
+**Architecture Decision**: Parent components are responsible for orchestrating facet rendering:
+1. Parent renders reference lists that may need facet enhancement (e.g., Map renders `rooms` reference list)
+2. Parent applies facet rendering to each facet, passing optional `referenceRender` (pre-existing render if reference already in tree, or plain reference render if not)
+3. Facet rendering returns either `newNode` (create new node like Exit) or `aggregatedNode` (enhanced reference render)
+4. Parent zippers enhanced references with new nodes to produce final schema
 
-2. ✅ **Implement PositionPayload class**
-   - ✅ Create `keys/dataTypes/positionPayload.ts`
-   - ✅ Implement as both `StandardEditablePayload<PositionPayload>` and `FacetPayloadBase<PositionPayload>`
-   - ✅ StandardEditablePayload implementation:
-     - ✅ `clone()`, `toJSON()`, `schema` getter (generates just Position tag)
-     - ✅ Uses `standardEditableFactory` for automatic Remove/Replace wrapper generation
-     - ✅ Add/subtract/diff functions with Replace semantics (incoming wins)
-   - ✅ FacetPayloadBase implementation:
-     - ✅ `fromSchema()`: Parse `<Room to=(target)><Position x={0} y={100} /></Room>` structure
-     - ✅ `schema()`: Generate `<Room to=(target)><Position x={0} y={100} /></Room>` structure
-     - ✅ `nestedSchema()`: Merge Position child into existing Room component schema
-   - ✅ Write comprehensive unit tests for both interfaces
-   - ✅ Export from `keys/index.ts`
-   - **Design Decision**: Payloads are StandardEditable, which means Replace operations around a Facet actually replace the payload (not the whole facet, since references don't support Replace). StandardFacet will delegate payload Replace handling to StandardEditable wrappers in Task 5.
+This architecture explicitly handles edge cases:
+- Rooms parented to Map (reference already in tree): use existing reference render
+- Rooms not parented (reference not in tree): facet provides plain reference render
+- Rooms without positions: handled naturally (no facet for that room, just renders reference)
 
-3. **Implement MarkFacetPayloadBase class**
+1. **Refactor FacetPayloadBase interface to new architecture**
+   - Update `FacetPayloadBase<TPayload>` interface in `keys/dataTypes/facetPayloadBase.ts`:
+     - **Replace** `schema(reference, payload)` method with:
+       - `renderFacet(reference: StandardReference, payload: TPayload, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> }`
+       - `referenceRender` is optional: if provided, it's a pre-existing render of the reference already in the parent's schema tree (e.g., Room already rendered by Map as a child). If not provided, generate a plain reference render (just the `<Room>` tag without children).
+       - Return `newNode` for facets that create new nodes (Exit returns `<Exit>` tag)
+       - Return `aggregatedNode` for facets that enhance existing references (Position/Mark return enhanced `<Room>` or `<Mark>` tag with payload as child)
+     - **Keep** `fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): TPayload` - still needed for parsing
+     - **Remove** `nestedSchema()` method - no longer needed, `renderFacet` handles both cases
+   - Update JSDoc documentation to reflect new architecture:
+     - Document `referenceRender` parameter and when it's provided vs not
+     - Document `newNode` vs `aggregatedNode` return semantics
+     - Explain parent component orchestration pattern
+   - Update interface name if desired (keep `FacetPayloadBase` for now, but clarify it's for rendering orchestration)
+
+2. **Refactor StandardFacet and infrastructure for new architecture**
+   - Update `StandardFacet` class in `keys/facet.ts`:
+     - Remove or refactor `schema` getter - it's no longer appropriate with the new architecture (parent components orchestrate rendering)
+     - Remove or refactor `nestedSchema()` method - parent components handle schema generation
+     - Add helper method `renderFacet(referenceRender?: GenericTreeNode<SchemaTag>)` that delegates to payload class `renderFacet()`:
+       - Extract plain payload from StandardEditable wrappers if needed (for Replace operations)
+       - Call payload class `renderFacet(this._reference, this._payload, referenceRender)`
+       - Handle Replace operations: render both match and payload facets, wrap in Replace structure
+     - Update `_getPlainSchema()` private method - may need refactoring or removal depending on new architecture
+     - Keep `fromSchema()` logic for parsing - still needed
+   - Ensure `StandardFacet` maintains backward compatibility for existing construction patterns (StandardFacetData, cloning, etc.)
+   - Update `FacetList` if needed to support new rendering pattern (may need helper methods for parent component integration)
+   - Update unit tests to reflect new architecture:
+     - Test `renderFacet()` with and without `referenceRender`
+     - Test `newNode` vs `aggregatedNode` returns
+     - Test Replace operations with new rendering pattern
+
+3. **Refactor PositionPayload to align with new architecture**
+   - Update `keys/dataTypes/positionPayload.ts`:
+     - **Keep** `StandardEditablePayload` implementation (`clone`, `toJSON`, `schema` getter for payload Replace operations)
+     - **Replace** `FacetPayloadBase` methods:
+       - **Replace** `schema()` method with `renderFacet()`:
+         - If `referenceRender` provided: enhance it by adding `<Position>` child, return `{ aggregatedNode: enhancedRoomNode }`
+         - If `referenceRender` not provided: generate plain `<Room>` reference render, add `<Position>` child, return `{ aggregatedNode: roomNodeWithPosition }`
+         - Never return `newNode` (Position always enhances Room references)
+       - **Keep** `fromSchema()` for parsing
+       - **Remove** `nestedSchema()` method and `_facetSchema()` private method
+     - Remove the `Object.defineProperty` workaround for `schema` method (no longer needed with `renderFacet`)
+     - Update `callFacetPayloadBaseSchema` helper in `facet.ts` to call `renderFacet()` instead
+   - Update unit tests:
+     - Test `renderFacet()` with pre-existing Room render
+     - Test `renderFacet()` without reference render (plain Room tag)
+     - Test that it always returns `aggregatedNode` (never `newNode`)
+     - Test Replace operations
+   - Ensure StandardEditable functionality still works correctly
+
+4. **Implement MarkFacetPayload class**
    - Create `keys/dataTypes/markFacetPayload.ts`
-   - Implement `fromSchema()`: Parse `<Mark uuid=(target)><Match>Condition</Match></Mark>` structure
-     - Extract Mark reference from parent tag
-     - Extract Match child tag content (narrative string)
-     - Return `MarkFacetPayload` object
-   - Implement `schema()`: Generate `<Mark uuid=(target)><Match>Condition</Match></Mark>` structure
-     - Render reference as Mark parent tag
-     - Add Match child tag with narrative content
-   - Implement `nestedSchema()`: Merge Match child into existing Mark component schema
-     - Take existing Mark schema with component content (if any)
-     - Add Match child tag to Mark's children if not already present
-     - Preserve all existing Mark content
-   - Handle StandardLiteral rendering for Match tag content
-   - Write unit tests for parsing, generation, and nested schema merging
+   - Implement as both `StandardEditablePayload<MarkFacetPayload>` and `FacetPayloadBase<MarkFacetPayload>`
+   - StandardEditablePayload implementation:
+     - `clone()`, `toJSON()`, `schema` getter (generates just Match tag for payload Replace operations)
+     - Uses `standardEditableFactory` for automatic Remove/Replace wrapper generation
+   - FacetPayloadBase implementation:
+     - **Implement** `fromSchema()`: Parse `<Mark uuid=(target)><Match>Condition</Match></Mark>` structure
+       - Extract Mark reference from parent tag
+       - Extract Match child tag content (narrative string)
+       - Return `MarkFacetPayload` object
+     - **Implement** `renderFacet()`:
+       - If `referenceRender` provided: enhance it by adding `<Match>` child, return `{ aggregatedNode: enhancedMarkNode }`
+       - If `referenceRender` not provided: generate plain `<Mark>` reference render, add `<Match>` child, return `{ aggregatedNode: markNodeWithMatch }`
+       - Never return `newNode` (Mark facets always enhance Mark references)
+     - Handle StandardLiteral rendering for Match tag content
+   - Write unit tests for parsing, generation, and facet rendering (with/without reference render)
 
-4. **Implement ExitPayloadBase class**
+5. **Implement ExitPayload class**
    - Create `keys/dataTypes/exitPayload.ts`
-   - Implement `fromSchema()`: Parse `<Exit to=(target)>Name</Exit>` structure
-     - Extract target reference from `to` property
-     - Extract description from tag content (StandardLiteral)
-     - Return `ExitPayload` object
-   - Implement `schema()`: Generate `<Exit to=(target)>Name</Exit>` structure
-     - Render reference embedded in Exit tag `to` property (not as parent tag)
-     - Render payload description as tag content
-   - Implement `nestedSchema()`: Merge Exit tag into existing Room component schema
-     - Take existing Room schema with component content
-     - Add Exit tag as sibling/child in Room's children (Exit facets are typically siblings, not nested)
-     - Preserve all existing Room content
-     - Note: Exit facets have reference embedded in tag properties, so merging pattern may differ from Position/Mark
-   - Reference implementation: `StandardExitBase.schema` (lines 32-35 in `exit.ts`)
-   - Write unit tests for parsing, generation, and nested schema merging
+   - Implement as both `StandardEditablePayload<ExitPayload>` and `FacetPayloadBase<ExitPayload>`
+   - StandardEditablePayload implementation:
+     - `clone()`, `toJSON()`, `schema` getter (generates just Exit tag for payload Replace operations)
+     - Uses `standardEditableFactory` for automatic Remove/Replace wrapper generation
+   - FacetPayloadBase implementation:
+     - **Implement** `fromSchema()`: Parse `<Exit to=(target)>Name</Exit>` structure
+       - Extract target reference from `to` property
+       - Extract description from tag content (StandardLiteral)
+       - Return `ExitPayload` object
+     - **Implement** `renderFacet()`:
+       - **Always ignore** `referenceRender` parameter (Exit facets don't enhance Room references)
+       - Generate `<Exit to=(target)>Name</Exit>` structure with reference embedded in `to` property
+       - Return `{ newNode: exitNode }` (never return `aggregatedNode`)
+       - Exit facets create new nodes in the parent (Map), not enhancements to Room references
+     - Reference implementation: `StandardExitBase.schema` (lines 32-35 in `exit.ts`)
+   - Write unit tests for parsing, generation, and facet rendering (verify it always returns `newNode`)
 
-5. **Update StandardFacet to use payload classes**
-   - Add `_payloadClass` private property to `StandardFacet`
-   - Factory function to create appropriate payload class based on payload type
-   - Update `schema` getter to delegate to `_payloadClass.schema(this._reference, this._payload)`
-   - Update constructor to support parsing from `GenericTree<SchemaTag>` using payload class `fromSchema()`
-   - Handle Replace operations: payload class schema generation for both match and payload
-   - Update `nestedSchema()` method to delegate to `_payloadClass.nestedSchema(this._reference, this._payload, componentSchema)`
-     - Pass through the componentSchema parameter to payload class
-     - Handle Replace operations: use payload class nestedSchema for both match and payload
-   - Ensure backward compatibility: StandardFacetData construction still works
-   - Update unit tests to verify schema generation/parsing and nested schema merging through payload classes
-
-6. **Update FacetList to use payload classes**
-   - Ensure FacetList construction from schema trees uses payload classes via StandardFacet
-   - Verify schema generation works correctly with payload classes
-   - Update tests if needed
-
-7. **Write comprehensive integration tests**
-   - Test round-trip: WML → StandardFacet → WML for each payload type
+6. **Write comprehensive integration tests (first iteration - plain cases)**
+   - Test round-trip: WML → StandardFacet → WML for each payload type (plain cases only)
    - Test parsing edge cases (missing properties, empty content, etc.)
-   - Test Replace operations with schema generation
-   - Test `nestedSchema()` merging for each payload type:
-     - Position: Merge Position child into Room schema with content
-     - Mark: Merge Match child into Mark schema with content
-     - Exit: Merge Exit tag into Room schema with content
-   - Verify that different payload types render correctly in isolation (standalone)
-   - Verify that different payload types merge correctly with component content (nested)
+   - Test `renderFacet()` for each payload type with **plain references and plain payloads**:
+     - **Position**: Test with pre-existing Room render, test without (plain Room tag), verify always returns `aggregatedNode`
+     - **Mark**: Test with pre-existing Mark render, test without (plain Mark tag), verify always returns `aggregatedNode`
+     - **Exit**: Test that it ignores `referenceRender`, verify always returns `newNode`
+   - Test parent component orchestration patterns (mock parent components rendering reference lists then applying facets)
+   - Verify edge cases (plain references only):
+     - Rooms without positions (reference render only, no facet)
+     - Rooms with positions (enhanced reference render)
+     - Maps with Exits (new Exit nodes)
+     - Examples with Mark references but no facet payloads (reference render only)
+   - **Note**: Edit operation combinations (Remove/Replace in `referenceRender` + Remove/Replace in payload) will be addressed in Phase 7 after we have a working prototype to anchor our concerns
 
 **Success Criteria**:
-- Each payload type has its own class with `fromSchema()`, `schema()`, and `nestedSchema()` methods
-- StandardFacet delegates schema generation/parsing and nested schema merging to payload classes
+- Each payload type has its own class with `fromSchema()` and `renderFacet()` methods
+- `renderFacet()` correctly handles optional `referenceRender` parameter
+- Position and Mark payloads return `aggregatedNode` (enhance existing references)
+- Exit payload returns `newNode` (create new nodes)
+- StandardFacet provides `renderFacet()` helper that delegates to payload classes
+- Parent components can orchestrate facet rendering by:
+  1. Rendering reference lists first
+  2. Applying facet rendering with optional reference renders
+  3. Zippering enhanced references with new nodes
 - All three payload types (Position, Mark, Exit) correctly parse from and generate to WML
-- All three payload types correctly merge into component schemas with `nestedSchema()`
 - Round-trip tests pass: WML → StandardFacet → WML
-- Nested schema merging tests pass: Component schema + Facet → Merged schema
-- All existing StandardFacet tests still pass
-- Code follows patterns established by `StandardExitBase` and `StandardPositionSimpleBase`
+- Facet rendering tests pass: both with and without `referenceRender`
+- All existing StandardFacet tests still pass (backward compatibility maintained)
 
 **Key Files to Create/Modify**:
-- `keys/dataTypes/positionPayload.ts` (new)
-- `keys/dataTypes/markFacetPayload.ts` (new)
-- `keys/dataTypes/exitPayload.ts` (new)
-- `keys/facet.ts` (modify - add payload class support)
-- `keys/facet.test.ts` (modify - add schema parsing/generation tests)
+- `keys/dataTypes/facetPayloadBase.ts` (modify - update interface to `renderFacet()`)
+- `keys/dataTypes/positionPayload.ts` (modify - refactor to `renderFacet()`)
+- `keys/dataTypes/markFacetPayload.ts` (new - implement with `renderFacet()`)
+- `keys/dataTypes/exitPayload.ts` (new - implement with `renderFacet()`)
+- `keys/facet.ts` (modify - add `renderFacet()` helper, refactor schema generation)
+- `keys/facet.test.ts` (modify - update tests for new architecture)
 
-### Phase 6: Integrate Facets into Component System
+### Phase 6: Integrate Facets into Component System (Example Component - First Prototype)
 
-**Goal**: Add Facet support to component classes, starting with Examples.
+**Goal**: Add Facet support to Example component as the first prototype of the new facet rendering architecture. This will validate the parent component orchestration pattern before applying it to Map/Area components.
 
-**Prerequisites**: Phase 4 (FacetList), Phase 4.5 (StandardMark Component), and Phase 5 (Payload Classes) must be complete. Mark components must exist before Examples can reference them via Facets, and payload classes are needed for schema serialization.
+**Prerequisites**: Phase 4 (FacetList), Phase 4.5 (StandardMark Component), and Phase 5 (Payload Classes) must be complete. Mark components must exist before Examples can reference them via Facets, and the new `renderFacet()` architecture must be in place.
+
+**Architecture Pattern**: Example component will follow the parent component orchestration pattern:
+1. Example renders `marks` reference list first (creates `<Mark>` reference renders)
+2. Example applies `marks` facet rendering to each Mark reference (calls `renderFacet(referenceRender)`)
+3. Example zippers enhanced Mark references (`aggregatedNode` from facets) with any new nodes (Exit-style facets would return `newNode`, but Mark facets don't)
+4. Example returns final schema with enhanced Mark references
 
 1. **Add FacetList to Example component**
-   - Add `marks: FacetList<MarkFacetPayload>` field to `StandardExamplePayload`
-   - Update `StandardExampleData` type to include marks
-   - Implement serialization/deserialization
-   - Update merge/diff/invert operations
-   - Handle FacetList in `fromJSON()`, `fromSchema()`, `toJSON()`, `schema()`, `merge()`, etc.
-2. **Update component factory/schema handling**
-   - Support parsing Facets from WML schema (Mark Facets within Example tags)
-   - Support parsing Facets from JSON
-   - Update schema converters to handle Facet structures
-   - Ensure Facet references to Mark components resolve correctly
-3. **Write integration tests**
-   - Test Examples with Mark Facets (referencing existing Mark components)
-   - Test serialization round-trip (WML → StandardForm → JSON → StandardForm → WML)
-   - Test merge/diff operations with Facets
-   - Test that Mark Facets correctly reference Mark components via `StandardReference`
+   - Add `marks: FacetList<MarkFacetPayload>` field to `StandardExamplePayload` in `components/example.ts`
+   - Update `StandardExampleData` type in `dataTypes/example.ts` to include marks
+   - Implement serialization/deserialization:
+     - Update `fromJSON()`: Parse marks from JSON data
+     - Update `toJSON()`: Serialize marks to JSON
+     - Update `fromSchema()`: Parse Mark Facets from WML schema (Example tag with Mark children that have Match children)
+       - Use `MarkFacetPayload.fromSchema()` to parse each Mark facet
+       - Separate Mark references (for reference list) from Mark facets (for facet list)
+     - Update `schema()`: Generate marks reference list schema (just reference renders, no facets yet)
+   - Update merge/diff/invert operations to handle FacetList operations
 
-### Phase 7: Refactor Existing Patterns (Optional/Deferred)
+2. **Implement parent component orchestration in Example.nestedSchema()**
+   - Update `StandardExamplePayload.nestedSchema()` in `components/example.ts`:
+     - **Step 1**: Render `marks` reference list first:
+       - Get all Mark references (from `this.marks.items.map(facet => facet.reference)` or from organization)
+       - Render each Mark reference as a plain `<Mark>` tag (reference render)
+       - Store these reference renders in a Map keyed by Mark universalKey/key
+     - **Step 2**: Apply facet rendering to each Mark facet:
+       - For each facet in `this.marks.items`:
+         - Look up reference render for this facet's reference (from Step 1 Map)
+         - Call `facet.renderFacet(referenceRender)` to get `{ aggregatedNode }`
+         - Replace the reference render in Map with the aggregated node
+     - **Step 3**: Generate final schema:
+       - Take all aggregated nodes from Step 2 (enhanced Mark references)
+       - Add any `newNode` results (none for Mark facets, but pattern supports Exit-style facets)
+       - Combine with other Example content (Name, Summary, Description)
+       - Return final nested schema
+   - Handle edge cases:
+     - Mark references without facet payloads: just render as reference (no enhancement)
+     - Mark facets without corresponding reference: should this error, or create reference render? (likely error - facets should always have references)
+   - Handle Replace operations: facets with Replace operations should render Replace structure
+
+3. **Update component factory/schema handling**
+   - Ensure `StandardExample` factory supports parsing Facets from WML schema
+   - Update schema converters if needed to handle Facet structures in Example tags
+   - Ensure Facet references to Mark components resolve correctly (use StandardForm lookup)
+
+4. **Write comprehensive integration tests**
+   - Test Example with Mark Facets (referencing existing Mark components):
+     - Example with marks reference list only (no facets) - should render plain Mark references
+     - Example with marks facets - should render enhanced Mark references with Match children
+     - Example with both marks references and facets - should zipper correctly
+   - Test serialization round-trip: WML → StandardForm → JSON → StandardForm → WML
+   - Test merge/diff operations with Facets
+   - Test Replace operations on Mark Facets
+   - Test edge cases:
+     - Example with Mark reference but no facet payload
+     - Example with Mark facet but reference not in marks list (should this error?)
+   - Verify parent component orchestration pattern works correctly:
+     - Reference list rendered first
+     - Facet rendering applied to reference renders
+     - Final schema has enhanced references
+
+**Success Criteria**:
+- Example component has `marks: FacetList<MarkFacetPayload>` field
+- Example correctly parses Mark Facets from WML schema
+- Example correctly renders Mark Facets using parent component orchestration pattern
+- Example `nestedSchema()` properly zippers reference renders with facet enhancements
+- Mark references render as `<Mark>` tags
+- Mark Facets enhance Mark references with `<Match>` children
+- Round-trip serialization works: WML → StandardForm → JSON → StandardForm → WML
+- All tests pass
+- Pattern is documented and ready for replication in Map/Area components
+
+### Phase 7: Examine Edit Functionality in Facet Rendering
+
+**Goal**: After having a working prototype of facet rendering in Examples (Phase 6), examine the complexity of edit operations in the `renderFacet()` architecture and identify functional gaps, edge cases, and necessary foundation tools.
+
+**Prerequisites**: Phase 6 (Example component with FacetList) must be complete. This phase requires real-world usage patterns to anchor concerns about edit operation handling.
+
+**Rationale**: The first iteration (Phase 5) focuses on plain references + plain payloads. However, in practice, we need to handle complex combinations:
+- `referenceRender` may be wrapped in `<Remove>` or `<Replace>` tags from parent rendering
+- Payloads may be wrapped in StandardEditable Remove/Replace wrappers
+- Combinations of these edit operations create complex scenarios that need careful analysis
+
+1. **Identify real-world edit operation scenarios**
+   - Review Phase 6 implementation to find actual edit operation use cases
+   - Document combinations that occur in practice:
+     - Remove reference + plain payload
+     - Plain reference + Replace payload
+     - Replace reference (from parent) + plain payload
+     - Various other combinations as they arise
+   - Identify which combinations are semantically meaningful vs. which should error
+
+2. **Analyze functional gaps**
+   - Determine what the current `renderFacet()` implementation cannot handle
+   - Identify edge cases where edit operations conflict or create ambiguity
+   - Document questions that need answers:
+     - Should we enhance a Remove reference? (probably not - pass through)
+     - How do we handle Replace in `referenceRender` + Replace in payload?
+     - What's the semantics of Remove reference + Replace payload?
+   - Identify patterns that could be abstracted into reusable utilities
+
+3. **Design foundation tools (if needed)**
+   - Based on real-world gaps, design utility functions to help `renderFacet()` implementations
+   - Consider utilities for:
+     - Unwrapping edit-wrapped `referenceRender` nodes
+     - Unwrapping edit-wrapped payloads
+     - Rewrapping enhanced nodes in edit operations
+     - Decision trees for handling edit combinations
+   - Keep utilities minimal and focused on actual needs (don't over-engineer)
+
+4. **Update payload class implementations**
+   - Refactor `PositionPayload.renderFacet()` if needed to handle edit operations
+   - Update `MarkFacetPayload.renderFacet()` and `ExitPayload.renderFacet()` as needed
+   - Add unit tests for edit operation combinations
+
+5. **Update documentation**
+   - Document edit operation handling patterns
+   - Update JSDoc for `renderFacet()` to clarify edit operation behavior
+   - Add examples of edit operation scenarios
+
+**Success Criteria**:
+- Real-world edit operation scenarios are identified and documented
+- Functional gaps are clearly identified
+- Foundation tools are created (if needed) to support edit operations
+- Payload class implementations handle edit operations correctly
+- Comprehensive tests exist for edit operation combinations
+- Documentation clearly explains edit operation handling
+
+**Note**: This phase should be anchored to actual usage patterns from Phase 6. Don't try to solve every theoretical combination - focus on what's actually needed in practice.
+
+### Phase 8: Refactor Existing Patterns (Optional/Deferred)
 
 **Goal**: Consider whether existing ad-hoc patterns should migrate to Facets.
 
@@ -388,7 +534,7 @@ Potential candidates for future consideration:
 - `StandardExit` → Exit Facet on Rooms
 - Other "reference + data" patterns
 
-### Phase 8: Documentation and Cleanup
+### Phase 9: Documentation and Cleanup
 
 **Goal**: Ensure documentation is updated and code is clean.
 
@@ -400,6 +546,7 @@ Potential candidates for future consideration:
    - Add examples of using Facets in `AGENT.usage.md`
    - Document Facet types and payload structures
 3. **Update "Adding a New Component Type" guide** ⚠️ **Do after Phase 6**
+   - Update after Phase 6 or Phase 7, once edit operation patterns are stable
    - Update `components/AGENT.implementation.md` "Adding a New Component Type" section
    - **Rationale**: The addition of Facets changes the component implementation pattern significantly:
      - Components can now have `FacetList<TPayload>` fields in addition to `ReferenceList` fields
