@@ -289,24 +289,24 @@ This architecture explicitly handles edge cases:
      - ✅ Remove tests for `schema` getter and `nestedSchema()` method
      - ✅ Add placeholder tests for `renderFacet()` (skipped until payload classes are implemented in Tasks 3-5)
 
-3. **Refactor PositionPayload to align with new architecture**
-   - Update `keys/dataTypes/positionPayload.ts`:
-     - **Keep** `StandardEditablePayload` implementation (`clone`, `toJSON`, `schema` getter for payload Replace operations)
-     - **Replace** `FacetPayloadBase` methods:
-       - **Replace** `schema()` method with `renderFacet()`:
-         - If `referenceRender` provided: enhance it by adding `<Position>` child, return `{ aggregatedNode: enhancedRoomNode }`
-         - If `referenceRender` not provided: generate plain `<Room>` reference render, add `<Position>` child, return `{ aggregatedNode: roomNodeWithPosition }`
-         - Never return `newNode` (Position always enhances Room references)
-       - **Keep** `fromSchema()` for parsing
-       - **Remove** `nestedSchema()` method and `_facetSchema()` private method
-     - Remove the `Object.defineProperty` workaround for `schema` method (no longer needed with `renderFacet`)
-     - Update `callFacetPayloadBaseSchema` helper in `facet.ts` to call `renderFacet()` instead
-   - Update unit tests:
-     - Test `renderFacet()` with pre-existing Room render
-     - Test `renderFacet()` without reference render (plain Room tag)
-     - Test that it always returns `aggregatedNode` (never `newNode`)
-     - Test Replace operations
-   - Ensure StandardEditable functionality still works correctly
+3. ✅ **Refactor PositionPayload to align with new architecture**
+   - ✅ Update `keys/dataTypes/positionPayload.ts`:
+     - ✅ **Keep** `StandardEditablePayload` implementation (`clone`, `toJSON`, `schema` getter for payload Replace operations)
+     - ✅ **Replace** `FacetPayloadBase` methods:
+       - ✅ **Replace** `_facetSchema()` method with `renderFacet()`:
+         - ✅ If `referenceRender` provided: enhance it by adding `<Position>` child, return `{ aggregatedNode: enhancedRoomNode }`
+         - ✅ If `referenceRender` not provided: generate plain `<Room>` reference render, add `<Position>` child, return `{ aggregatedNode: roomNodeWithPosition }`
+         - ✅ Never return `newNode` (Position always enhances Room references)
+       - ✅ **Keep** `fromSchema()` for parsing
+       - ✅ **Remove** `nestedSchema()` method and `_facetSchema()` private method
+     - ✅ Remove the `Object.defineProperty` workaround comment (no longer needed with `renderFacet`)
+     - ✅ Remove `callFacetPayloadBaseSchema` helper export (no longer needed)
+   - ✅ Update unit tests:
+     - ✅ Test `renderFacet()` with pre-existing Room render
+     - ✅ Test `renderFacet()` without reference render (plain Room tag)
+     - ✅ Test that it always returns `aggregatedNode` (never `newNode`)
+     - ✅ Remove obsolete tests for `_facetSchema()` and `nestedSchema()`
+   - ✅ Ensure StandardEditable functionality still works correctly
 
 4. **Implement MarkFacetPayload class**
    - Create `keys/dataTypes/markFacetPayload.ts`
