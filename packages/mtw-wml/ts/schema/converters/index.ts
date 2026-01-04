@@ -11,6 +11,7 @@ import { messagingConverters, messagingPrintMap } from "./messaging"
 import { taggedMessageConverters, taggedMessagePrintMap } from "./taggedMessages"
 import { tagRender } from "./tagRender"
 import { exampleConverters, examplePrintMap } from "./example"
+import { worldStateConverters, worldStatePrintMap } from "./worldState"
 import { SchemaAssetTag } from "@tonylb/mtw-base/ts/schema/asset"
 import { isSchemaAsset, isSchemaAssetContents } from "@tonylb/mtw-base/ts/schema"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
@@ -45,6 +46,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
     ...messagingConverters,
     ...taggedMessageConverters,
     ...authorizationConverters,
+    ...worldStateConverters,
 }
 
 export const printMap: Record<string, PrintMapEntry> = {
@@ -70,7 +72,8 @@ export const printMap: Record<string, PrintMapEntry> = {
     ...importExportPrintMap,
     ...messagingPrintMap,
     ...taggedMessagePrintMap,
-    ...authorizationPrintMap
+    ...authorizationPrintMap,
+    ...worldStatePrintMap
 }
 
 export default converterMap

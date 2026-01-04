@@ -1,6 +1,9 @@
 import { SchemaImportableBase } from "./baseClasses";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
 import { ComponentUUID, isSchemaAssetUUID } from ".";
+import { literalTagFactory, SchemaLiteralTag } from "./literalTagFactory";
+
+export type SchemaMatchTag = SchemaLiteralTag<'Match'>
 
 export type SchemaMarkTag = {
     tag: 'Mark';
@@ -8,6 +11,9 @@ export type SchemaMarkTag = {
     key?: string;
     ref?: number;
 } & SchemaImportableBase
+
+const { typeGuard: isSchemaMatchTypeGuard } = literalTagFactory<'Match'>('Match')
+export const isSchemaMatch = isSchemaMatchTypeGuard
 
 export const isSchemaMark = (schema: any): schema is SchemaMarkTag => (
     checkTypes({
