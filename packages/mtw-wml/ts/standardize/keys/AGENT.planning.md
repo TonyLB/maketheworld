@@ -234,11 +234,13 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 
 **Note**: This phase establishes the minimal infrastructure needed for Mark components. Mark components will include `ShortName` (as `StandardLiteral`) and `Description` (as `StandardRender`) tags, following the pattern established by other components like Room/Feature (for ShortName) and Example (for Description). Additional properties or functionality can be added later as needed. The primary goal is to enable Mark components to exist so they can be referenced via Facets in Phase 6.
 
-### Phase 5: Implement Payload Classes for Schema Serialization
+### Phase 5: Implement Payload Classes for Schema Serialization (First Iteration)
 
 **Goal**: Create payload classes with facet rendering methods that support parent component orchestration. Facets can either create new nodes (like Exit) or enhance existing reference renders (like Position/Mark), allowing parent components to properly zipper facet payloads with reference lists.
 
 **Prerequisites**: Phase 3 (StandardFacet Core) and Phase 4 (FacetList) must be complete. This phase must be completed before Phase 6 (integrating Facets into components) because schema serialization/deserialization is required for component integration.
+
+**Note - First Iteration**: This phase implements a **first iteration** of the payload rendering architecture. It focuses on the core rendering patterns (plain references + plain payloads) and does not fully address the complexity of edit operations (Remove/Replace) in combination with incoming `referenceRender` edits. After Phase 6 provides a working prototype in Examples, Phase 7 will examine edit functionality in detail and identify functional gaps based on real-world usage patterns.
 
 **Rationale**: Different facet payload types require fundamentally different WML rendering patterns and integration strategies:
 - **Exit facets**: `<Exit to=(target)>Name</Exit>` - reference embedded in tag properties, payload as content. These create **new nodes** in the parent (Map) that don't enhance existing Room references.
@@ -344,20 +346,20 @@ This architecture explicitly handles edge cases:
      - Reference implementation: `StandardExitBase.schema` (lines 32-35 in `exit.ts`)
    - Write unit tests for parsing, generation, and facet rendering (verify it always returns `newNode`)
 
-6. **Write comprehensive integration tests**
-   - Test round-trip: WML → StandardFacet → WML for each payload type
+6. **Write comprehensive integration tests (first iteration - plain cases)**
+   - Test round-trip: WML → StandardFacet → WML for each payload type (plain cases only)
    - Test parsing edge cases (missing properties, empty content, etc.)
-   - Test Replace operations with facet rendering
-   - Test `renderFacet()` for each payload type:
+   - Test `renderFacet()` for each payload type with **plain references and plain payloads**:
      - **Position**: Test with pre-existing Room render, test without (plain Room tag), verify always returns `aggregatedNode`
      - **Mark**: Test with pre-existing Mark render, test without (plain Mark tag), verify always returns `aggregatedNode`
      - **Exit**: Test that it ignores `referenceRender`, verify always returns `newNode`
    - Test parent component orchestration patterns (mock parent components rendering reference lists then applying facets)
-   - Verify edge cases:
+   - Verify edge cases (plain references only):
      - Rooms without positions (reference render only, no facet)
      - Rooms with positions (enhanced reference render)
      - Maps with Exits (new Exit nodes)
      - Examples with Mark references but no facet payloads (reference render only)
+   - **Note**: Edit operation combinations (Remove/Replace in `referenceRender` + Remove/Replace in payload) will be addressed in Phase 7 after we have a working prototype to anchor our concerns
 
 **Success Criteria**:
 - Each payload type has its own class with `fromSchema()` and `renderFacet()` methods
@@ -459,7 +461,65 @@ This architecture explicitly handles edge cases:
 - All tests pass
 - Pattern is documented and ready for replication in Map/Area components
 
-### Phase 7: Refactor Existing Patterns (Optional/Deferred)
+### Phase 7: Examine Edit Functionality in Facet Rendering
+
+**Goal**: After having a working prototype of facet rendering in Examples (Phase 6), examine the complexity of edit operations in the `renderFacet()` architecture and identify functional gaps, edge cases, and necessary foundation tools.
+
+**Prerequisites**: Phase 6 (Example component with FacetList) must be complete. This phase requires real-world usage patterns to anchor concerns about edit operation handling.
+
+**Rationale**: The first iteration (Phase 5) focuses on plain references + plain payloads. However, in practice, we need to handle complex combinations:
+- `referenceRender` may be wrapped in `<Remove>` or `<Replace>` tags from parent rendering
+- Payloads may be wrapped in StandardEditable Remove/Replace wrappers
+- Combinations of these edit operations create complex scenarios that need careful analysis
+
+1. **Identify real-world edit operation scenarios**
+   - Review Phase 6 implementation to find actual edit operation use cases
+   - Document combinations that occur in practice:
+     - Remove reference + plain payload
+     - Plain reference + Replace payload
+     - Replace reference (from parent) + plain payload
+     - Various other combinations as they arise
+   - Identify which combinations are semantically meaningful vs. which should error
+
+2. **Analyze functional gaps**
+   - Determine what the current `renderFacet()` implementation cannot handle
+   - Identify edge cases where edit operations conflict or create ambiguity
+   - Document questions that need answers:
+     - Should we enhance a Remove reference? (probably not - pass through)
+     - How do we handle Replace in `referenceRender` + Replace in payload?
+     - What's the semantics of Remove reference + Replace payload?
+   - Identify patterns that could be abstracted into reusable utilities
+
+3. **Design foundation tools (if needed)**
+   - Based on real-world gaps, design utility functions to help `renderFacet()` implementations
+   - Consider utilities for:
+     - Unwrapping edit-wrapped `referenceRender` nodes
+     - Unwrapping edit-wrapped payloads
+     - Rewrapping enhanced nodes in edit operations
+     - Decision trees for handling edit combinations
+   - Keep utilities minimal and focused on actual needs (don't over-engineer)
+
+4. **Update payload class implementations**
+   - Refactor `PositionPayload.renderFacet()` if needed to handle edit operations
+   - Update `MarkFacetPayload.renderFacet()` and `ExitPayload.renderFacet()` as needed
+   - Add unit tests for edit operation combinations
+
+5. **Update documentation**
+   - Document edit operation handling patterns
+   - Update JSDoc for `renderFacet()` to clarify edit operation behavior
+   - Add examples of edit operation scenarios
+
+**Success Criteria**:
+- Real-world edit operation scenarios are identified and documented
+- Functional gaps are clearly identified
+- Foundation tools are created (if needed) to support edit operations
+- Payload class implementations handle edit operations correctly
+- Comprehensive tests exist for edit operation combinations
+- Documentation clearly explains edit operation handling
+
+**Note**: This phase should be anchored to actual usage patterns from Phase 6. Don't try to solve every theoretical combination - focus on what's actually needed in practice.
+
+### Phase 8: Refactor Existing Patterns (Optional/Deferred)
 
 **Goal**: Consider whether existing ad-hoc patterns should migrate to Facets.
 
@@ -474,7 +534,7 @@ Potential candidates for future consideration:
 - `StandardExit` → Exit Facet on Rooms
 - Other "reference + data" patterns
 
-### Phase 8: Documentation and Cleanup
+### Phase 9: Documentation and Cleanup
 
 **Goal**: Ensure documentation is updated and code is clean.
 
@@ -486,6 +546,7 @@ Potential candidates for future consideration:
    - Add examples of using Facets in `AGENT.usage.md`
    - Document Facet types and payload structures
 3. **Update "Adding a New Component Type" guide** ⚠️ **Do after Phase 6**
+   - Update after Phase 6 or Phase 7, once edit operation patterns are stable
    - Update `components/AGENT.implementation.md` "Adding a New Component Type" section
    - **Rationale**: The addition of Facets changes the component implementation pattern significantly:
      - Components can now have `FacetList<TPayload>` fields in addition to `ReferenceList` fields
