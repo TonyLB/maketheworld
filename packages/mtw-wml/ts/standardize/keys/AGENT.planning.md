@@ -308,23 +308,24 @@ This architecture explicitly handles edge cases:
      - ✅ Remove obsolete tests for `_facetSchema()` and `nestedSchema()`
    - ✅ Ensure StandardEditable functionality still works correctly
 
-4. **Implement MarkFacetPayload class**
-   - Create `keys/dataTypes/markFacetPayload.ts`
-   - Implement as both `StandardEditablePayload<MarkFacetPayload>` and `FacetPayloadBase<MarkFacetPayload>`
-   - StandardEditablePayload implementation:
-     - `clone()`, `toJSON()`, `schema` getter (generates just Match tag for payload Replace operations)
-     - Uses `standardEditableFactory` for automatic Remove/Replace wrapper generation
-   - FacetPayloadBase implementation:
-     - **Implement** `fromSchema()`: Parse `<Mark uuid=(target)><Match>Condition</Match></Mark>` structure
-       - Extract Mark reference from parent tag
-       - Extract Match child tag content (narrative string)
-       - Return `MarkFacetPayload` object
-     - **Implement** `renderFacet()`:
-       - If `referenceRender` provided: enhance it by adding `<Match>` child, return `{ aggregatedNode: enhancedMarkNode }`
-       - If `referenceRender` not provided: generate plain `<Mark>` reference render, add `<Match>` child, return `{ aggregatedNode: markNodeWithMatch }`
-       - Never return `newNode` (Mark facets always enhance Mark references)
-     - Handle StandardLiteral rendering for Match tag content
-   - Write unit tests for parsing, generation, and facet rendering (with/without reference render)
+4. ✅ **Implement MarkFacetPayload class**
+   - ✅ Create `keys/dataTypes/markFacetPayload.ts`
+   - ✅ Implement as both `StandardEditablePayload<MarkFacetPayload>` and `FacetPayloadBase<MarkFacetPayload>`
+   - ✅ StandardEditablePayload implementation:
+     - ✅ `clone()`, `toJSON()`, `schema` getter (generates just Match tag for payload Replace operations)
+     - ✅ Uses `standardEditableFactory` for automatic Remove/Replace wrapper generation
+   - ✅ FacetPayloadBase implementation:
+     - ✅ **Implement** `fromSchema()`: Parse `<Mark uuid=(target)><Match>Condition</Match></Mark>` structure
+       - ✅ Extract Mark reference from parent tag
+       - ✅ Extract Match child tag content (narrative string from String children)
+       - ✅ Return `MarkFacetPayload` object
+     - ✅ **Implement** `renderFacet()`:
+       - ✅ If `referenceRender` provided: enhance it by adding `<Match>` child, return `{ aggregatedNode: enhancedMarkNode }`
+       - ✅ If `referenceRender` not provided: generate plain `<Mark>` reference render, add `<Match>` child, return `{ aggregatedNode: markNodeWithMatch }`
+       - ✅ Never return `newNode` (Mark facets always enhance Mark references)
+     - ✅ Handle Match tag rendering with String children containing narrative
+   - ✅ Write unit tests for parsing, generation, and facet rendering (with/without reference render)
+   - ✅ Export from `keys/index.ts` with factory, typeguard, merge, and diff functions
 
 5. **Implement ExitPayload class**
    - Create `keys/dataTypes/exitPayload.ts`
