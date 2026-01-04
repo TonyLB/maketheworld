@@ -327,24 +327,25 @@ This architecture explicitly handles edge cases:
    - ✅ Write unit tests for parsing, generation, and facet rendering (with/without reference render)
    - ✅ Export from `keys/index.ts` with factory, typeguard, merge, and diff functions
 
-5. **Implement ExitPayload class**
-   - Create `keys/dataTypes/exitPayload.ts`
-   - Implement as both `StandardEditablePayload<ExitPayload>` and `FacetPayloadBase<ExitPayload>`
-   - StandardEditablePayload implementation:
-     - `clone()`, `toJSON()`, `schema` getter (generates just Exit tag for payload Replace operations)
-     - Uses `standardEditableFactory` for automatic Remove/Replace wrapper generation
-   - FacetPayloadBase implementation:
-     - **Implement** `fromSchema()`: Parse `<Exit to=(target)>Name</Exit>` structure
-       - Extract target reference from `to` property
-       - Extract description from tag content (StandardLiteral)
-       - Return `ExitPayload` object
-     - **Implement** `renderFacet()`:
-       - **Always ignore** `referenceRender` parameter (Exit facets don't enhance Room references)
-       - Generate `<Exit to=(target)>Name</Exit>` structure with reference embedded in `to` property
-       - Return `{ newNode: exitNode }` (never return `aggregatedNode`)
-       - Exit facets create new nodes in the parent (Map), not enhancements to Room references
-     - Reference implementation: `StandardExitBase.schema` (lines 32-35 in `exit.ts`)
-   - Write unit tests for parsing, generation, and facet rendering (verify it always returns `newNode`)
+5. ✅ **Implement ExitPayload class**
+   - ✅ Create `keys/dataTypes/exitPayload.ts`
+   - ✅ Implement as both `StandardEditablePayload<ExitPayload>` and `FacetPayloadBase<ExitPayload>`
+   - ✅ StandardEditablePayload implementation:
+     - ✅ `clone()`, `toJSON()`, `schema` getter (generates just Exit tag for payload Replace operations)
+     - ✅ Uses `standardEditableFactory` for automatic Remove/Replace wrapper generation
+   - ✅ FacetPayloadBase implementation:
+     - ✅ **Implement** `fromSchema()`: Parse `<Exit to=(target)>Name</Exit>` structure
+       - ✅ Extract target reference from `to` property
+       - ✅ Extract description from tag content (StandardLiteral)
+       - ✅ Return `ExitPayload` object
+     - ✅ **Implement** `renderFacet()`:
+       - ✅ **Always ignore** `referenceRender` parameter (Exit facets don't enhance Room references)
+       - ✅ Generate `<Exit to=(target)>Name</Exit>` structure with reference embedded in `to` property
+       - ✅ Return `{ newNode: exitNode }` (never return `aggregatedNode`)
+       - ✅ Exit facets create new nodes in the parent (Map), not enhancements to Room references
+     - ✅ Reference implementation: `StandardExitBase.schema` (lines 32-35 in `exit.ts`)
+   - ✅ Write unit tests for parsing, generation, and facet rendering (verify it always returns `newNode`)
+   - ✅ Export from `keys/index.ts` with factory, typeguard, merge, and diff functions
 
 6. **Write comprehensive integration tests (first iteration - plain cases)**
    - Test round-trip: WML → StandardFacet → WML for each payload type (plain cases only)
@@ -484,6 +485,7 @@ This architecture explicitly handles edge cases:
 2. **Analyze functional gaps**
    - Determine what the current `renderFacet()` implementation cannot handle
    - Identify edge cases where edit operations conflict or create ambiguity
+   - **Examine schema getter usage**: Review whether FacetPayload schema getters (used by StandardEditable for Replace operations) are actually necessary or if they can be simplified/stubbed. Since `renderFacet()` does the actual rendering work, the schema getter may only need minimal structure for Replace matching/comparison. Anchor this analysis to actual Replace operation usage patterns from Phase 6.
    - Document questions that need answers:
      - Should we enhance a Remove reference? (probably not - pass through)
      - How do we handle Replace in `referenceRender` + Replace in payload?
