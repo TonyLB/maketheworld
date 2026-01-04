@@ -121,6 +121,7 @@ The work is broken down into tactically-sized chunks that can be addressed incre
      - Equality comparison via `JSON.stringify` is sufficient for current requirements
      - Keeps code lean and avoids unnecessary abstraction
      - **Future Consideration**: If payloads gain nested structures (e.g., `StandardRender`, `StandardReference`) or require complex merge logic, consider introducing payload classes following the pattern used by component payloads (e.g., `StandardExamplePayload`, `StandardPositionSimpleBase`)
+     - **Update (Phase 5)**: This future consideration has been realized. Payload classes are now required for schema serialization/deserialization due to the varied WML rendering patterns needed for different facet types. See Phase 5 for implementation details.
 3. ✅ **Write unit tests for `StandardFacet`**
    - ✅ Test construction from various formats
    - ✅ Test serialization/deserialization
@@ -162,7 +163,7 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 
 ### Phase 4.5: Implement StandardMark Component
 
-**Goal**: Create the `StandardMark` component infrastructure to enable Mark Facets in Examples. This phase is necessary before Phase 5 because Examples need to reference Mark components via Facets, but Mark components must exist first.
+**Goal**: Create the `StandardMark` component infrastructure to enable Mark Facets in Examples. This phase is necessary before Phase 6 because Examples need to reference Mark components via Facets, but Mark components must exist first.
 
 **Prerequisites**: Phase 4 (FacetList) must be complete.
 
@@ -231,13 +232,105 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 - Mark components appear correctly in component factory lookups
 - All tests pass
 
-**Note**: This phase establishes the minimal infrastructure needed for Mark components. Mark components will include `ShortName` (as `StandardLiteral`) and `Description` (as `StandardRender`) tags, following the pattern established by other components like Room/Feature (for ShortName) and Example (for Description). Additional properties or functionality can be added later as needed. The primary goal is to enable Mark components to exist so they can be referenced via Facets in Phase 5.
+**Note**: This phase establishes the minimal infrastructure needed for Mark components. Mark components will include `ShortName` (as `StandardLiteral`) and `Description` (as `StandardRender`) tags, following the pattern established by other components like Room/Feature (for ShortName) and Example (for Description). Additional properties or functionality can be added later as needed. The primary goal is to enable Mark components to exist so they can be referenced via Facets in Phase 6.
 
-### Phase 5: Integrate Facets into Component System
+### Phase 5: Implement Payload Classes for Schema Serialization
+
+**Goal**: Create payload classes with their own `fromSchema` and `schema` methods to handle the varied WML rendering patterns for different facet payload types.
+
+**Prerequisites**: Phase 3 (StandardFacet Core) and Phase 4 (FacetList) must be complete. This phase must be completed before Phase 6 (integrating Facets into components) because schema serialization/deserialization is required for component integration.
+
+**Rationale**: Different facet payload types require fundamentally different WML rendering patterns:
+- **Exit facets**: `<Exit to=(target)>Name</Exit>` - reference embedded in tag properties, payload as content
+- **Position facets**: `<Room to=(target)><Position x={0} y={100} /></Room>` - reference as parent tag, payload as child tag
+- **Mark facets**: `<Mark uuid=(target)><Match>Condition</Match></Mark>` - reference as parent tag, payload as child tag
+
+A single `renderFacet` function cannot handle these varied patterns elegantly. Following the precedent established by `StandardExitBase` and `StandardPositionSimpleBase`, each payload type should have its own class with schema generation/parsing logic.
+
+1. **Create payload base class interface**
+   - Define `FacetPayloadBase<TPayload>` interface with:
+     - `fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): TPayload` - Parse payload from WML schema
+     - `schema(reference: StandardReference, payload: TPayload): GenericTree<SchemaTag>` - Generate WML schema from payload
+     - `schema` should handle both reference rendering and payload rendering based on payload type
+   - Document the interface contract and expected behavior
+
+2. **Implement PositionPayloadBase class**
+   - Create `keys/dataTypes/positionPayload.ts`
+   - Implement `fromSchema()`: Parse `<Room to=(target)><Position x={0} y={100} /></Room>` structure
+     - Extract Room reference from parent tag
+     - Extract Position child tag with x/y coordinates
+     - Return `PositionPayload` object
+   - Implement `schema()`: Generate `<Room to=(target)><Position x={0} y={100} /></Room>` structure
+     - Render reference as Room parent tag
+     - Add Position child tag with x/y properties
+   - Write unit tests for parsing and generation
+   - Reference implementation: `StandardPositionSimpleBase.schema` (lines 22-36 in `position.ts`)
+
+3. **Implement MarkFacetPayloadBase class**
+   - Create `keys/dataTypes/markFacetPayload.ts`
+   - Implement `fromSchema()`: Parse `<Mark uuid=(target)><Match>Condition</Match></Mark>` structure
+     - Extract Mark reference from parent tag
+     - Extract Match child tag content (narrative string)
+     - Return `MarkFacetPayload` object
+   - Implement `schema()`: Generate `<Mark uuid=(target)><Match>Condition</Match></Mark>` structure
+     - Render reference as Mark parent tag
+     - Add Match child tag with narrative content
+   - Handle StandardLiteral rendering for Match tag content
+   - Write unit tests for parsing and generation
+
+4. **Implement ExitPayloadBase class**
+   - Create `keys/dataTypes/exitPayload.ts`
+   - Implement `fromSchema()`: Parse `<Exit to=(target)>Name</Exit>` structure
+     - Extract target reference from `to` property
+     - Extract description from tag content (StandardLiteral)
+     - Return `ExitPayload` object
+   - Implement `schema()`: Generate `<Exit to=(target)>Name</Exit>` structure
+     - Render reference embedded in Exit tag `to` property (not as parent tag)
+     - Render payload description as tag content
+   - Reference implementation: `StandardExitBase.schema` (lines 32-35 in `exit.ts`)
+   - Write unit tests for parsing and generation
+
+5. **Update StandardFacet to use payload classes**
+   - Add `_payloadClass` private property to `StandardFacet`
+   - Factory function to create appropriate payload class based on payload type
+   - Update `schema` getter to delegate to `_payloadClass.schema(this._reference, this._payload)`
+   - Update constructor to support parsing from `GenericTree<SchemaTag>` using payload class `fromSchema()`
+   - Handle Replace operations: payload class schema generation for both match and payload
+   - Update `nestedSchema()` to use payload class
+   - Ensure backward compatibility: StandardFacetData construction still works
+   - Update unit tests to verify schema generation/parsing through payload classes
+
+6. **Update FacetList to use payload classes**
+   - Ensure FacetList construction from schema trees uses payload classes via StandardFacet
+   - Verify schema generation works correctly with payload classes
+   - Update tests if needed
+
+7. **Write comprehensive integration tests**
+   - Test round-trip: WML → StandardFacet → WML for each payload type
+   - Test parsing edge cases (missing properties, empty content, etc.)
+   - Test Replace operations with schema generation
+   - Verify that different payload types render correctly in isolation
+
+**Success Criteria**:
+- Each payload type has its own class with `fromSchema()` and `schema()` methods
+- StandardFacet delegates schema generation/parsing to payload classes
+- All three payload types (Position, Mark, Exit) correctly parse from and generate to WML
+- Round-trip tests pass: WML → StandardFacet → WML
+- All existing StandardFacet tests still pass
+- Code follows patterns established by `StandardExitBase` and `StandardPositionSimpleBase`
+
+**Key Files to Create/Modify**:
+- `keys/dataTypes/positionPayload.ts` (new)
+- `keys/dataTypes/markFacetPayload.ts` (new)
+- `keys/dataTypes/exitPayload.ts` (new)
+- `keys/facet.ts` (modify - add payload class support)
+- `keys/facet.test.ts` (modify - add schema parsing/generation tests)
+
+### Phase 6: Integrate Facets into Component System
 
 **Goal**: Add Facet support to component classes, starting with Examples.
 
-**Prerequisites**: Phase 4 (FacetList) and Phase 4.5 (StandardMark Component) must be complete. Mark components must exist before Examples can reference them via Facets.
+**Prerequisites**: Phase 4 (FacetList), Phase 4.5 (StandardMark Component), and Phase 5 (Payload Classes) must be complete. Mark components must exist before Examples can reference them via Facets, and payload classes are needed for schema serialization.
 
 1. **Add FacetList to Example component**
    - Add `marks: FacetList<MarkFacetPayload>` field to `StandardExamplePayload`
@@ -256,7 +349,7 @@ The work is broken down into tactically-sized chunks that can be addressed incre
    - Test merge/diff operations with Facets
    - Test that Mark Facets correctly reference Mark components via `StandardReference`
 
-### Phase 6: Refactor Existing Patterns (Optional/Deferred)
+### Phase 7: Refactor Existing Patterns (Optional/Deferred)
 
 **Goal**: Consider whether existing ad-hoc patterns should migrate to Facets.
 
@@ -271,7 +364,7 @@ Potential candidates for future consideration:
 - `StandardExit` → Exit Facet on Rooms
 - Other "reference + data" patterns
 
-### Phase 7: Documentation and Cleanup
+### Phase 8: Documentation and Cleanup
 
 **Goal**: Ensure documentation is updated and code is clean.
 
@@ -282,15 +375,15 @@ Potential candidates for future consideration:
 2. **Update usage documentation**
    - Add examples of using Facets in `AGENT.usage.md`
    - Document Facet types and payload structures
-3. **Update "Adding a New Component Type" guide** ⚠️ **Do after Phase 5**
+3. **Update "Adding a New Component Type" guide** ⚠️ **Do after Phase 6**
    - Update `components/AGENT.implementation.md` "Adding a New Component Type" section
    - **Rationale**: The addition of Facets changes the component implementation pattern significantly:
      - Components can now have `FacetList<TPayload>` fields in addition to `ReferenceList` fields
      - Payload classes need to handle FacetList in `fromJSON()`, `toJSON()`, `schema()`, `nestedSchema()`, `merge()`, etc.
      - Data types need to include `FacetListData<TPayload>` in addition to `ReferenceListData`
-     - Schema generation needs to handle Facet structures from WML
+     - Schema generation needs to handle Facet structures from WML (via payload classes from Phase 5)
      - Merge/diff operations need to account for FacetList operations (ref arithmetic + payload Replace)
-   - **Approach**: After Phase 5 (integrating Facets into Example component), update the guide based on real implementation experience:
+   - **Approach**: After Phase 6 (integrating Facets into Example component), update the guide based on real implementation experience:
      - Add step/guidance for components with FacetLists
      - Document FacetList patterns (similar to how ReferenceList patterns are documented)
      - Add examples from `StandardExample` implementation with Mark Facets
