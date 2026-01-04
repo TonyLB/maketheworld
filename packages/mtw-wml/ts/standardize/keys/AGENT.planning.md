@@ -236,7 +236,7 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 
 ### Phase 5: Implement Payload Classes for Schema Serialization
 
-**Goal**: Create payload classes with their own `fromSchema` and `schema` methods to handle the varied WML rendering patterns for different facet payload types.
+**Goal**: Create payload classes with their own `fromSchema`, `schema`, and `nestedSchema` methods to handle the varied WML rendering patterns for different facet payload types.
 
 **Prerequisites**: Phase 3 (StandardFacet Core) and Phase 4 (FacetList) must be complete. This phase must be completed before Phase 6 (integrating Facets into components) because schema serialization/deserialization is required for component integration.
 
@@ -247,12 +247,15 @@ The work is broken down into tactically-sized chunks that can be addressed incre
 
 A single `renderFacet` function cannot handle these varied patterns elegantly. Following the precedent established by `StandardExitBase` and `StandardPositionSimpleBase`, each payload type should have its own class with schema generation/parsing logic.
 
-1. **Create payload base class interface**
-   - Define `FacetPayloadBase<TPayload>` interface with:
-     - `fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): TPayload` - Parse payload from WML schema
-     - `schema(reference: StandardReference, payload: TPayload): GenericTree<SchemaTag>` - Generate WML schema from payload
-     - `schema` should handle both reference rendering and payload rendering based on payload type
-   - Document the interface contract and expected behavior
+1. ✅ **Create payload base class interface**
+   - ✅ Define `FacetPayloadBase<TPayload>` interface with:
+     - ✅ `fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): TPayload` - Parse payload from WML schema
+     - ✅ `schema(reference: StandardReference, payload: TPayload): GenericTree<SchemaTag>` - Generate WML schema from payload (standalone, without component content)
+     - ✅ `nestedSchema(reference: StandardReference, payload: TPayload, componentSchema: GenericTreeNode<SchemaTag>): GenericTreeNode<SchemaTag>` - Merge facet structure into existing component schema (used when component has content to render)
+     - ✅ `schema` should handle both reference rendering and payload rendering based on payload type
+   - ✅ Document the interface contract and expected behavior
+   - ✅ Created `keys/dataTypes/facetPayloadBase.ts` with comprehensive JSDoc documentation
+   - ✅ Exported from `keys/index.ts` for use in subsequent tasks
 
 2. **Implement PositionPayloadBase class**
    - Create `keys/dataTypes/positionPayload.ts`
@@ -263,7 +266,12 @@ A single `renderFacet` function cannot handle these varied patterns elegantly. F
    - Implement `schema()`: Generate `<Room to=(target)><Position x={0} y={100} /></Room>` structure
      - Render reference as Room parent tag
      - Add Position child tag with x/y properties
-   - Write unit tests for parsing and generation
+   - Implement `nestedSchema()`: Merge Position child into existing Room component schema
+     - Take existing Room schema with component content (features, examples, etc.)
+     - Add Position child tag to Room's children if not already present
+     - Preserve all existing Room content
+     - Reference implementation: `StandardMapPayload.nestedSchema` (lines 132-149 in `map.ts`) shows pattern for merging Position into Room schema
+   - Write unit tests for parsing, generation, and nested schema merging
    - Reference implementation: `StandardPositionSimpleBase.schema` (lines 22-36 in `position.ts`)
 
 3. **Implement MarkFacetPayloadBase class**
@@ -275,8 +283,12 @@ A single `renderFacet` function cannot handle these varied patterns elegantly. F
    - Implement `schema()`: Generate `<Mark uuid=(target)><Match>Condition</Match></Mark>` structure
      - Render reference as Mark parent tag
      - Add Match child tag with narrative content
+   - Implement `nestedSchema()`: Merge Match child into existing Mark component schema
+     - Take existing Mark schema with component content (if any)
+     - Add Match child tag to Mark's children if not already present
+     - Preserve all existing Mark content
    - Handle StandardLiteral rendering for Match tag content
-   - Write unit tests for parsing and generation
+   - Write unit tests for parsing, generation, and nested schema merging
 
 4. **Implement ExitPayloadBase class**
    - Create `keys/dataTypes/exitPayload.ts`
@@ -287,8 +299,13 @@ A single `renderFacet` function cannot handle these varied patterns elegantly. F
    - Implement `schema()`: Generate `<Exit to=(target)>Name</Exit>` structure
      - Render reference embedded in Exit tag `to` property (not as parent tag)
      - Render payload description as tag content
+   - Implement `nestedSchema()`: Merge Exit tag into existing Room component schema
+     - Take existing Room schema with component content
+     - Add Exit tag as sibling/child in Room's children (Exit facets are typically siblings, not nested)
+     - Preserve all existing Room content
+     - Note: Exit facets have reference embedded in tag properties, so merging pattern may differ from Position/Mark
    - Reference implementation: `StandardExitBase.schema` (lines 32-35 in `exit.ts`)
-   - Write unit tests for parsing and generation
+   - Write unit tests for parsing, generation, and nested schema merging
 
 5. **Update StandardFacet to use payload classes**
    - Add `_payloadClass` private property to `StandardFacet`
@@ -296,9 +313,11 @@ A single `renderFacet` function cannot handle these varied patterns elegantly. F
    - Update `schema` getter to delegate to `_payloadClass.schema(this._reference, this._payload)`
    - Update constructor to support parsing from `GenericTree<SchemaTag>` using payload class `fromSchema()`
    - Handle Replace operations: payload class schema generation for both match and payload
-   - Update `nestedSchema()` to use payload class
+   - Update `nestedSchema()` method to delegate to `_payloadClass.nestedSchema(this._reference, this._payload, componentSchema)`
+     - Pass through the componentSchema parameter to payload class
+     - Handle Replace operations: use payload class nestedSchema for both match and payload
    - Ensure backward compatibility: StandardFacetData construction still works
-   - Update unit tests to verify schema generation/parsing through payload classes
+   - Update unit tests to verify schema generation/parsing and nested schema merging through payload classes
 
 6. **Update FacetList to use payload classes**
    - Ensure FacetList construction from schema trees uses payload classes via StandardFacet
@@ -309,13 +328,20 @@ A single `renderFacet` function cannot handle these varied patterns elegantly. F
    - Test round-trip: WML → StandardFacet → WML for each payload type
    - Test parsing edge cases (missing properties, empty content, etc.)
    - Test Replace operations with schema generation
-   - Verify that different payload types render correctly in isolation
+   - Test `nestedSchema()` merging for each payload type:
+     - Position: Merge Position child into Room schema with content
+     - Mark: Merge Match child into Mark schema with content
+     - Exit: Merge Exit tag into Room schema with content
+   - Verify that different payload types render correctly in isolation (standalone)
+   - Verify that different payload types merge correctly with component content (nested)
 
 **Success Criteria**:
-- Each payload type has its own class with `fromSchema()` and `schema()` methods
-- StandardFacet delegates schema generation/parsing to payload classes
+- Each payload type has its own class with `fromSchema()`, `schema()`, and `nestedSchema()` methods
+- StandardFacet delegates schema generation/parsing and nested schema merging to payload classes
 - All three payload types (Position, Mark, Exit) correctly parse from and generate to WML
+- All three payload types correctly merge into component schemas with `nestedSchema()`
 - Round-trip tests pass: WML → StandardFacet → WML
+- Nested schema merging tests pass: Component schema + Facet → Merged schema
 - All existing StandardFacet tests still pass
 - Code follows patterns established by `StandardExitBase` and `StandardPositionSimpleBase`
 

@@ -16,6 +16,7 @@ export { FacetList, default as FacetListDefault } from "./facetList";
 // Export data types
 export * from "./dataTypes/reference";
 export * from "./dataTypes/facet";
+export * from "./dataTypes/facetPayloadBase";
 
 // Export abstract interfaces
 export type { StandardFacet as StandardFacetInterface, FacetList as FacetListInterface, FacetListData } from "./abstract";
