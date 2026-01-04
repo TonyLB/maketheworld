@@ -181,9 +181,10 @@ export class FacetList<TPayload extends StandardFacetPayload = StandardFacetPayl
         return this._items.map((item) => item.toJSON())
     }
 
-    get schema(): GenericTree<SchemaTag> {
-        return this._items.map(item => item.schema).flat(1).filter(isSchemaTreeNode)
-    }
+    // Note: schema getter removed - parent components now orchestrate facet rendering
+    // using renderFacet() directly on individual facets. This decision should be
+    // re-examined after the first Example prototype (Phase 6) provides real-world
+    // usage patterns to anchor concerns.
 
     clone(): FacetList<TPayload> {
         return new FacetList(this)

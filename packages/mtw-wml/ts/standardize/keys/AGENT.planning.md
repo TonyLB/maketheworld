@@ -273,22 +273,21 @@ This architecture explicitly handles edge cases:
      - ✅ Explain parent component orchestration pattern
    - ✅ Update interface name if desired (keep `FacetPayloadBase` for now, but clarify it's for rendering orchestration)
 
-2. **Refactor StandardFacet and infrastructure for new architecture**
-   - Update `StandardFacet` class in `keys/facet.ts`:
-     - Remove or refactor `schema` getter - it's no longer appropriate with the new architecture (parent components orchestrate rendering)
-     - Remove or refactor `nestedSchema()` method - parent components handle schema generation
-     - Add helper method `renderFacet(referenceRender?: GenericTreeNode<SchemaTag>)` that delegates to payload class `renderFacet()`:
-       - Extract plain payload from StandardEditable wrappers if needed (for Replace operations)
-       - Call payload class `renderFacet(this._reference, this._payload, referenceRender)`
-       - Handle Replace operations: render both match and payload facets, wrap in Replace structure
-     - Update `_getPlainSchema()` private method - may need refactoring or removal depending on new architecture
-     - Keep `fromSchema()` logic for parsing - still needed
-   - Ensure `StandardFacet` maintains backward compatibility for existing construction patterns (StandardFacetData, cloning, etc.)
-   - Update `FacetList` if needed to support new rendering pattern (may need helper methods for parent component integration)
-   - Update unit tests to reflect new architecture:
-     - Test `renderFacet()` with and without `referenceRender`
-     - Test `newNode` vs `aggregatedNode` returns
-     - Test Replace operations with new rendering pattern
+2. ✅ **Refactor StandardFacet and infrastructure for new architecture**
+   - ✅ Update `StandardFacet` class in `keys/facet.ts`:
+     - ✅ Remove `schema` getter - no longer appropriate with the new architecture (parent components orchestrate rendering)
+     - ✅ Remove `nestedSchema()` method - parent components handle schema generation
+     - ✅ Add helper method `renderFacet(referenceRender?: GenericTreeNode<SchemaTag>)` that delegates to payload class `renderFacet()`:
+       - ✅ Call payload class `renderFacet(this._reference, this._payload, referenceRender)` (payload classes implemented in Tasks 3-5)
+       - ✅ Handle Replace operations: render both match and payload facets, wrap in Replace structure
+     - ✅ Remove `_getPlainSchema()` private method - no longer needed
+     - ✅ Remove `_getNestedSchema()` private method - no longer needed
+     - ✅ Keep `fromSchema()` logic for parsing - still needed
+   - ✅ Ensure `StandardFacet` maintains backward compatibility for existing construction patterns (StandardFacetData, cloning, etc.)
+   - ✅ Update `FacetList`: Remove `schema` getter (with note to re-examine after Phase 6 Example prototype)
+   - ✅ Update unit tests to reflect new architecture:
+     - ✅ Remove tests for `schema` getter and `nestedSchema()` method
+     - ✅ Add placeholder tests for `renderFacet()` (skipped until payload classes are implemented in Tasks 3-5)
 
 3. **Refactor PositionPayload to align with new architecture**
    - Update `keys/dataTypes/positionPayload.ts`:

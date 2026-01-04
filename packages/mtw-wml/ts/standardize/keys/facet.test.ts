@@ -389,48 +389,25 @@ describe('StandardFacet', () => {
         });
     });
 
-    describe('Schema generation', () => {
-        it('should generate schema for plain facet', () => {
-            const facetData: StandardFacetData<PositionPayload> = {
-                reference: validReference,
-                payload: positionPayload
-            };
-            const facet = new StandardFacet(facetData);
-            const schema = facet.schema;
-            expect(schema).toBeDefined();
-            expect(Array.isArray(schema)).toBe(true);
+    describe('Facet rendering (renderFacet)', () => {
+        // Note: renderFacet() tests require payload classes to be implemented (Tasks 3-5)
+        // For now, these tests are skipped until payload classes are available
+        it.skip('should render facet without referenceRender', () => {
+            // TODO: Implement when payload classes are available
+            // Test that renderFacet() delegates to payload class renderFacet()
+            // Test that it returns newNode or aggregatedNode correctly
         });
 
-        it('should generate Replace schema for Replace facet', () => {
-            const matchData: StandardFacetData<PositionPayload> = {
-                reference: validReference,
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayload> = {
-                reference: validReference,
-                payload: positionPayload
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
-            };
-            const facet = new StandardFacet(replaceData);
-            const schema = facet.schema;
-            expect(schema).toBeDefined();
-            expect(schema[0].data.tag).toBe('Replace');
-            expect(schema[0].children.length).toBe(2);
+        it.skip('should render facet with referenceRender', () => {
+            // TODO: Implement when payload classes are available
+            // Test that renderFacet() uses referenceRender when provided
+            // Test that it enhances referenceRender correctly
         });
 
-        it('should generate nested schema', () => {
-            const facetData: StandardFacetData<PositionPayload> = {
-                reference: validReference,
-                payload: positionPayload
-            };
-            const facet = new StandardFacet(facetData);
-            const nested = facet.nestedSchema({ tag: 'Example' });
-            expect(nested).toBeDefined();
-            expect(nested[0].data.tag).toBe('Example');
+        it.skip('should handle Replace operations in renderFacet', () => {
+            // TODO: Implement when payload classes are available
+            // Test that Replace operations wrap match and payload results
+            // Test that Replace structure is correctly formatted
         });
     });
 

@@ -9,31 +9,6 @@ import { treeFromWML } from "../../schema";
 import { StandardReference, LookupMappings } from "./reference";
 import { StandardKey } from "./key";
 
-// Helper function to safely call FacetPayloadBase.schema() method
-// Handles both class instances (with methods) and plain objects (fallback to reference)
-function callFacetPayloadBaseSchema<TPayload extends StandardFacetPayload>(
-    payload: TPayload,
-    reference: StandardReference,
-    payloadData: TPayload
-): GenericTree<SchemaTag> {
-    // Try to call _facetSchema method directly (PositionPayload uses this to avoid conflict with getter)
-    if (typeof (payload as any)._facetSchema === 'function') {
-        return (payload as any)._facetSchema(reference, payloadData);
-    }
-    // Also try via FacetPayloadBase interface (for other implementations)
-    try {
-        const payloadBase = payload as unknown as FacetPayloadBase<TPayload>;
-        if (typeof payloadBase.schema === 'function') {
-            return payloadBase.schema(reference, payloadData);
-        }
-    } catch (e) {
-        // If payload doesn't implement FacetPayloadBase (e.g., plain object), fall through to fallback
-    }
-    // Fallback: if payload is a plain object or doesn't implement FacetPayloadBase, 
-    // just return reference schema (legacy behavior)
-    return reference.schema;
-}
-
 /**
  * StandardFacet: A first-class relational object that references a target component
  * and carries typed payload data. Composes a StandardReference for target reference
@@ -344,9 +319,9 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
         return result;
     }
 
-    // Schema generation
-    get schema(): GenericTree<SchemaTag> {
-        // If this is a Replace operation, generate Replace schema
+    // Facet rendering for parent component orchestration
+    renderFacet(referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+        // Handle Replace operations
         if (this._isReplace && this._matchPayload !== undefined) {
             const matchFacet = new StandardFacet<TPayload>({
                 reference: this._reference.toJSON(),
@@ -356,72 +331,46 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
                 reference: this._reference.toJSON(),
                 payload: this._payload
             });
-            return [{
-                data: { tag: 'Replace' as const },
-                children: [
-                    { data: { tag: 'ReplaceMatch' as const }, children: matchFacet._getPlainSchema() },
-                    { data: { tag: 'ReplacePayload' as const }, children: payloadFacet._getPlainSchema() }
-                ]
-            }];
-        }
-
-        // For plain facets or Remove facets, use reference schema
-        // The reference schema already handles Remove (negative ref)
-        // Payload is stored separately in component data, not in WML schema
-        return this._reference.schema;
-    }
-
-    private _getPlainSchema(): GenericTree<SchemaTag> {
-        // Generate schema with reference as the main structure
-        // Payload is stored in component data structure, not directly in WML schema
-        // The reference schema represents the target component
-        return this._reference.schema;
-    }
-
-    nestedSchema(tag: SchemaTag, componentSchema?: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
-        if (this._isReplace && this._matchPayload !== undefined) {
-            const matchFacet = new StandardFacet<TPayload>({
-                reference: this._reference.toJSON(),
-                payload: this._matchPayload
-            });
-            const payloadFacet = new StandardFacet<TPayload>({
-                reference: this._reference.toJSON(),
-                payload: this._payload
-            });
-            const matchSchema = matchFacet._getNestedSchema(tag, componentSchema);
-            const payloadSchema = payloadFacet._getNestedSchema(tag, componentSchema);
-            return [{
-                data: { tag: 'Replace' as const },
-                children: [
-                    {
-                        data: { tag: 'ReplaceMatch' as const },
-                        children: matchSchema
-                    },
-                    {
-                        data: { tag: 'ReplacePayload' as const },
-                        children: payloadSchema
-                    }
-                ]
-            }];
-        }
-        return this._getNestedSchema(tag, componentSchema);
-    }
-
-    private _getNestedSchema(tag: SchemaTag, componentSchema?: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
-        // Use FacetPayloadBase.nestedSchema() if componentSchema is provided
-        if (componentSchema) {
-            try {
-                const payloadBase = this._payload as unknown as FacetPayloadBase<TPayload>;
-                if (typeof payloadBase.nestedSchema === 'function') {
-                    const mergedSchema = payloadBase.nestedSchema(this._reference, this._payload, componentSchema);
-                    return [{ data: tag, children: [mergedSchema] }];
+            const matchResult = matchFacet._renderFacetPlain(referenceRender);
+            const payloadResult = payloadFacet._renderFacetPlain(referenceRender);
+            
+            // For Replace operations, wrap results in Replace structure
+            // Handle both newNode and aggregatedNode cases
+            const replaceMatch: GenericTreeNode<SchemaTag> = {
+                data: { tag: 'ReplaceMatch' as const },
+                children: matchResult.newNode ? [matchResult.newNode] : matchResult.aggregatedNode ? [matchResult.aggregatedNode] : []
+            };
+            const replacePayload: GenericTreeNode<SchemaTag> = {
+                data: { tag: 'ReplacePayload' as const },
+                children: payloadResult.newNode ? [payloadResult.newNode] : payloadResult.aggregatedNode ? [payloadResult.aggregatedNode] : []
+            };
+            
+            // Return aggregated node with Replace wrapper
+            // Note: For Replace operations, we return aggregatedNode containing Replace structure
+            // This allows parent components to handle Replace at the facet level
+            return {
+                aggregatedNode: {
+                    data: { tag: 'Replace' as const },
+                    children: [replaceMatch, replacePayload]
                 }
-            } catch (e) {
-                // If payload doesn't implement FacetPayloadBase, fall through to fallback
-            }
+            };
         }
-        // Fallback: wrap plain schema in tag
-        return [{ data: tag, children: this._getPlainSchema() }];
+        
+        // For non-Replace operations, delegate to payload class
+        return this._renderFacetPlain(referenceRender);
+    }
+
+    private _renderFacetPlain(referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+        // Cast payload to FacetPayloadBase and call renderFacet()
+        // Note: This assumes payload is a class instance implementing FacetPayloadBase
+        // Payload classes (implemented in Tasks 3-5) will implement FacetPayloadBase
+        // For now, this will fail at runtime until payload classes are implemented
+        // TODO: May need to refine this when payload classes are implemented in Tasks 3-5
+        const payloadBase = this._payload as unknown as FacetPayloadBase<TPayload>;
+        if (typeof payloadBase.renderFacet === 'function') {
+            return payloadBase.renderFacet(this._reference, this._payload, referenceRender);
+        }
+        throw new Error('Payload must implement FacetPayloadBase.renderFacet() - payload classes not yet implemented');
     }
 
     // Format conversion

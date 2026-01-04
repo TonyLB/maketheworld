@@ -276,40 +276,9 @@ describe('FacetList', () => {
             }
         });
 
-        it('should generate schema correctly', () => {
-            const list = new FacetList<PositionPayload>([
-                createPositionFacetData('room1', 10, 20)
-            ]);
-            
-            const schema = list.schema;
-            expect(Array.isArray(schema)).toBe(true);
-            expect(schema.length).toBeGreaterThan(0);
-        });
-
-        it('should include Replace tags in schema when facets have Replace operations', () => {
-            const matchData: StandardFacetData<PositionPayload> = {
-                reference: createReference('room1', 'Room'),
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayload> = {
-                reference: createReference('room1', 'Room'),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
-            };
-            
-            const list = new FacetList<PositionPayload>([replaceData]);
-            const schema = list.schema;
-            
-            // Schema should contain Replace tag
-            const hasReplace = schema.some(node => 
-                node.data && typeof node.data === 'object' && 'tag' in node.data && node.data.tag === 'Replace'
-            );
-            expect(hasReplace).toBe(true);
-        });
+        // Note: Schema generation tests removed - FacetList.schema getter was removed
+        // Parent components now orchestrate facet rendering using renderFacet() directly on individual facets
+        // This decision should be re-examined after Phase 6 (first Example prototype)
     });
 
     describe('Basic Accessors and Utilities', () => {
