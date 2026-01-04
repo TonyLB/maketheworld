@@ -1,12 +1,38 @@
-import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { ComponentTag } from "../components/dataTypes/abstract";
 import { StandardFacetData, StandardFacetPayload, isStandardFacetData, isStandardFacetPayload } from "./dataTypes/facet";
+import { FacetPayloadBase } from "./dataTypes/facetPayloadBase";
 import { ReferenceFormat } from "../components/utils/references";
 import { treeFromWML } from "../../schema";
 import { StandardReference, LookupMappings } from "./reference";
 import { StandardKey } from "./key";
+
+// Helper function to safely call FacetPayloadBase.schema() method
+// Handles both class instances (with methods) and plain objects (fallback to reference)
+function callFacetPayloadBaseSchema<TPayload extends StandardFacetPayload>(
+    payload: TPayload,
+    reference: StandardReference,
+    payloadData: TPayload
+): GenericTree<SchemaTag> {
+    // Try to call _facetSchema method directly (PositionPayload uses this to avoid conflict with getter)
+    if (typeof (payload as any)._facetSchema === 'function') {
+        return (payload as any)._facetSchema(reference, payloadData);
+    }
+    // Also try via FacetPayloadBase interface (for other implementations)
+    try {
+        const payloadBase = payload as unknown as FacetPayloadBase<TPayload>;
+        if (typeof payloadBase.schema === 'function') {
+            return payloadBase.schema(reference, payloadData);
+        }
+    } catch (e) {
+        // If payload doesn't implement FacetPayloadBase (e.g., plain object), fall through to fallback
+    }
+    // Fallback: if payload is a plain object or doesn't implement FacetPayloadBase, 
+    // just return reference schema (legacy behavior)
+    return reference.schema;
+}
 
 /**
  * StandardFacet: A first-class relational object that references a target component
@@ -352,7 +378,7 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
         return this._reference.schema;
     }
 
-    nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
+    nestedSchema(tag: SchemaTag, componentSchema?: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (this._isReplace && this._matchPayload !== undefined) {
             const matchFacet = new StandardFacet<TPayload>({
                 reference: this._reference.toJSON(),
@@ -362,20 +388,39 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
                 reference: this._reference.toJSON(),
                 payload: this._payload
             });
+            const matchSchema = matchFacet._getNestedSchema(tag, componentSchema);
+            const payloadSchema = payloadFacet._getNestedSchema(tag, componentSchema);
             return [{
                 data: { tag: 'Replace' as const },
                 children: [
                     {
                         data: { tag: 'ReplaceMatch' as const },
-                        children: [{ data: tag, children: matchFacet._getPlainSchema() }]
+                        children: matchSchema
                     },
                     {
                         data: { tag: 'ReplacePayload' as const },
-                        children: [{ data: tag, children: payloadFacet._getPlainSchema() }]
+                        children: payloadSchema
                     }
                 ]
             }];
         }
+        return this._getNestedSchema(tag, componentSchema);
+    }
+
+    private _getNestedSchema(tag: SchemaTag, componentSchema?: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+        // Use FacetPayloadBase.nestedSchema() if componentSchema is provided
+        if (componentSchema) {
+            try {
+                const payloadBase = this._payload as unknown as FacetPayloadBase<TPayload>;
+                if (typeof payloadBase.nestedSchema === 'function') {
+                    const mergedSchema = payloadBase.nestedSchema(this._reference, this._payload, componentSchema);
+                    return [{ data: tag, children: [mergedSchema] }];
+                }
+            } catch (e) {
+                // If payload doesn't implement FacetPayloadBase, fall through to fallback
+            }
+        }
+        // Fallback: wrap plain schema in tag
         return [{ data: tag, children: this._getPlainSchema() }];
     }
 

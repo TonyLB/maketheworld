@@ -257,22 +257,20 @@ A single `renderFacet` function cannot handle these varied patterns elegantly. F
    - ✅ Created `keys/dataTypes/facetPayloadBase.ts` with comprehensive JSDoc documentation
    - ✅ Exported from `keys/index.ts` for use in subsequent tasks
 
-2. **Implement PositionPayloadBase class**
-   - Create `keys/dataTypes/positionPayload.ts`
-   - Implement `fromSchema()`: Parse `<Room to=(target)><Position x={0} y={100} /></Room>` structure
-     - Extract Room reference from parent tag
-     - Extract Position child tag with x/y coordinates
-     - Return `PositionPayload` object
-   - Implement `schema()`: Generate `<Room to=(target)><Position x={0} y={100} /></Room>` structure
-     - Render reference as Room parent tag
-     - Add Position child tag with x/y properties
-   - Implement `nestedSchema()`: Merge Position child into existing Room component schema
-     - Take existing Room schema with component content (features, examples, etc.)
-     - Add Position child tag to Room's children if not already present
-     - Preserve all existing Room content
-     - Reference implementation: `StandardMapPayload.nestedSchema` (lines 132-149 in `map.ts`) shows pattern for merging Position into Room schema
-   - Write unit tests for parsing, generation, and nested schema merging
-   - Reference implementation: `StandardPositionSimpleBase.schema` (lines 22-36 in `position.ts`)
+2. ✅ **Implement PositionPayload class**
+   - ✅ Create `keys/dataTypes/positionPayload.ts`
+   - ✅ Implement as both `StandardEditablePayload<PositionPayload>` and `FacetPayloadBase<PositionPayload>`
+   - ✅ StandardEditablePayload implementation:
+     - ✅ `clone()`, `toJSON()`, `schema` getter (generates just Position tag)
+     - ✅ Uses `standardEditableFactory` for automatic Remove/Replace wrapper generation
+     - ✅ Add/subtract/diff functions with Replace semantics (incoming wins)
+   - ✅ FacetPayloadBase implementation:
+     - ✅ `fromSchema()`: Parse `<Room to=(target)><Position x={0} y={100} /></Room>` structure
+     - ✅ `schema()`: Generate `<Room to=(target)><Position x={0} y={100} /></Room>` structure
+     - ✅ `nestedSchema()`: Merge Position child into existing Room component schema
+   - ✅ Write comprehensive unit tests for both interfaces
+   - ✅ Export from `keys/index.ts`
+   - **Design Decision**: Payloads are StandardEditable, which means Replace operations around a Facet actually replace the payload (not the whole facet, since references don't support Replace). StandardFacet will delegate payload Replace handling to StandardEditable wrappers in Task 5.
 
 3. **Implement MarkFacetPayloadBase class**
    - Create `keys/dataTypes/markFacetPayload.ts`
