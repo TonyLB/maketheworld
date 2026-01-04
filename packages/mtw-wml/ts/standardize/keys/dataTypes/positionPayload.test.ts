@@ -1,12 +1,9 @@
 import { PositionPayload, factory, isStandardPositionPayloadData, merge, diff } from './positionPayload';
 import type { PositionPayload as PositionPayloadType } from './facet';
-import { FacetPayloadBase } from './facetPayloadBase';
 import { StandardReference } from '../reference';
-import { Schema, treeFromWML } from '../../../schema';
+import { treeFromWML } from '../../../schema';
 import { deIndentWML } from '../../../schema/utils';
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaRoom, isSchemaPosition } from "@tonylb/mtw-base/ts/schema/components";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
@@ -297,90 +294,8 @@ describe('PositionPayload - FacetPayloadBase implementation', () => {
         });
     });
 
-    describe('schema (FacetPayloadBase)', () => {
-        it('should generate Room+Position schema from reference with key and uuid', () => {
-            const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
-            const payloadData: PositionPayloadType = {
-                type: 'PositionFacet',
-                x: 10,
-                y: 20
-            };
-            const payload = new PositionPayload(payloadData);
-            // Call _facetSchema directly (since schema is a getter, not a method)
-            const schema = (payload as any)._facetSchema(reference, payloadData);
-            expect(schema.length).toBe(1);
-            const roomNode = schema[0];
-            expect(treeNodeTypeguard(isSchemaRoom)(roomNode)).toBe(true);
-            if (roomNode.data.tag === 'Room') {
-                expect(roomNode.data.key).toBe('testRoom');
-                expect(roomNode.data.uuid).toBe('ROOM#123');
-            }
-            const positionChild = roomNode.children.find(treeNodeTypeguard(isSchemaPosition));
-            expect(positionChild).toBeDefined();
-            if (positionChild && positionChild.data.tag === 'Position') {
-                expect(positionChild.data.x).toBe(10);
-                expect(positionChild.data.y).toBe(20);
-            }
-        });
-
-        it('should generate Room+Position schema from reference with uuid only', () => {
-            const reference = new StandardReference('ROOM#123', 'Room');
-            const payloadData: PositionPayloadType = {
-                type: 'PositionFacet',
-                x: 15,
-                y: 25
-            };
-            const payload = new PositionPayload(payloadData);
-            // Call _facetSchema directly (since schema is a getter, not a method)
-            const schema = (payload as any)._facetSchema(reference, payloadData);
-            expect(schema.length).toBe(1);
-            const roomNode = schema[0];
-            expect(treeNodeTypeguard(isSchemaRoom)(roomNode)).toBe(true);
-            if (roomNode.data.tag === 'Room') {
-                expect(roomNode.data.uuid).toBe('ROOM#123');
-            }
-            const positionChild = roomNode.children.find(treeNodeTypeguard(isSchemaPosition));
-            if (positionChild && positionChild.data.tag === 'Position') {
-                expect(positionChild.data.x).toBe(15);
-                expect(positionChild.data.y).toBe(25);
-            }
-        });
-
-        it('should round-trip schema generation and parsing', () => {
-            const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
-            const payloadData: PositionPayloadType = {
-                type: 'PositionFacet',
-                x: 10,
-                y: 20
-            };
-            const payload = new PositionPayload(payloadData);
-            // Call _facetSchema directly (since schema is a getter, not a method)
-            const generatedSchema = (payload as any)._facetSchema(reference, payloadData);
-            const parsedPayload = payload.fromSchema(generatedSchema, reference);
-            expect(parsedPayload.x).toBe(10);
-            expect(parsedPayload.y).toBe(20);
-        });
-    });
-
-    describe('nestedSchema', () => {
-        it('should merge Position into Room schema with no existing children', () => {
-            const reference = new StandardReference('ROOM#123', 'Room');
-            const payloadData: PositionPayloadType = {
-                type: 'PositionFacet',
-                x: 10,
-                y: 20
-            };
-            const payload = new PositionPayload(payloadData);
-            const roomSchema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123) />'))[0];
-            const merged = payload.nestedSchema(reference, payloadData, roomSchema);
-            expect(treeNodeTypeguard(isSchemaRoom)(merged)).toBe(true);
-            const positionChild = merged.children.find(treeNodeTypeguard(isSchemaPosition));
-            expect(positionChild).toBeDefined();
-            expect(positionChild?.data.x).toBe(10);
-            expect(positionChild?.data.y).toBe(20);
-        });
-
-        it('should merge Position into Room schema with existing children', () => {
+    describe('renderFacet', () => {
+        it('should render with pre-existing Room render', () => {
             const reference = new StandardReference('ROOM#123', 'Room');
             const payloadData: PositionPayloadType = {
                 type: 'PositionFacet',
@@ -394,41 +309,108 @@ describe('PositionPayload - FacetPayloadBase implementation', () => {
                     <Feature key=(testFeature) />
                 </Room>
             `))[0];
-            const merged = payload.nestedSchema(reference, payloadData, roomSchema);
-            expect(treeNodeTypeguard(isSchemaRoom)(merged)).toBe(true);
-            const positionChild = merged.children.find(treeNodeTypeguard(isSchemaPosition));
+            const result = payload.renderFacet(reference, payloadData, roomSchema);
+            
+            // Should return aggregatedNode (not newNode)
+            expect(result.aggregatedNode).toBeDefined();
+            expect(result.newNode).toBeUndefined();
+            
+            // Verify aggregatedNode is enhanced Room with Position child
+            const aggregatedNode = result.aggregatedNode!;
+            expect(treeNodeTypeguard(isSchemaRoom)(aggregatedNode)).toBe(true);
+            const positionChild = aggregatedNode.children.find(treeNodeTypeguard(isSchemaPosition));
             expect(positionChild).toBeDefined();
-            expect(positionChild?.data.x).toBe(10);
-            expect(positionChild?.data.y).toBe(20);
+            if (positionChild && positionChild.data.tag === 'Position') {
+                expect(positionChild.data.x).toBe(10);
+                expect(positionChild.data.y).toBe(20);
+            }
+            
             // Verify existing children are preserved
-            expect(merged.children.length).toBeGreaterThan(1);
-            const hasShortName = merged.children.some(child => child.data.tag === 'ShortName');
+            expect(aggregatedNode.children.length).toBeGreaterThan(1);
+            const hasShortName = aggregatedNode.children.some(child => child.data.tag === 'ShortName');
             expect(hasShortName).toBe(true);
-            const hasFeature = merged.children.some(child => child.data.tag === 'Feature');
+            const hasFeature = aggregatedNode.children.some(child => child.data.tag === 'Feature');
             expect(hasFeature).toBe(true);
         });
 
-        it('should not duplicate Position if already present', () => {
-            const reference = new StandardReference('ROOM#123', 'Room');
+        it('should render without reference render (plain Room tag)', () => {
+            const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
             const payloadData: PositionPayloadType = {
                 type: 'PositionFacet',
-                x: 10,
-                y: 20
+                x: 15,
+                y: 25
             };
             const payload = new PositionPayload(payloadData);
-            const roomSchema = treeFromWML(deIndentWML(`
-                <Room uuid=(ROOM#123)>
-                    <Position x="5" y="15" />
-                    <ShortName>Test Room</ShortName>
-                </Room>
-            `))[0];
-            const merged = payload.nestedSchema(reference, payloadData, roomSchema);
-            const positionChildren = merged.children.filter(treeNodeTypeguard(isSchemaPosition));
-            // Should preserve existing Position (not add duplicate)
-            expect(positionChildren.length).toBe(1);
+            const result = payload.renderFacet(reference, payloadData);
+            
+            // Should return aggregatedNode (not newNode)
+            expect(result.aggregatedNode).toBeDefined();
+            expect(result.newNode).toBeUndefined();
+            
+            // Verify aggregatedNode contains plain Room tag with Position child
+            const aggregatedNode = result.aggregatedNode!;
+            expect(treeNodeTypeguard(isSchemaRoom)(aggregatedNode)).toBe(true);
+            if (aggregatedNode.data.tag === 'Room') {
+                expect(aggregatedNode.data.key).toBe('testRoom');
+                expect(aggregatedNode.data.uuid).toBe('ROOM#123');
+            }
+            const positionChild = aggregatedNode.children.find(treeNodeTypeguard(isSchemaPosition));
+            expect(positionChild).toBeDefined();
+            if (positionChild && positionChild.data.tag === 'Position') {
+                expect(positionChild.data.x).toBe(15);
+                expect(positionChild.data.y).toBe(25);
+            }
         });
 
-        it('should throw error when componentSchema is not a Room', () => {
+        it('should render without reference render (uuid only)', () => {
+            const reference = new StandardReference('ROOM#456', 'Room');
+            const payloadData: PositionPayloadType = {
+                type: 'PositionFacet',
+                x: 30,
+                y: 40
+            };
+            const payload = new PositionPayload(payloadData);
+            const result = payload.renderFacet(reference, payloadData);
+            
+            // Should return aggregatedNode (not newNode)
+            expect(result.aggregatedNode).toBeDefined();
+            expect(result.newNode).toBeUndefined();
+            
+            // Verify aggregatedNode contains Room tag with Position child
+            const aggregatedNode = result.aggregatedNode!;
+            expect(treeNodeTypeguard(isSchemaRoom)(aggregatedNode)).toBe(true);
+            if (aggregatedNode.data.tag === 'Room') {
+                expect(aggregatedNode.data.uuid).toBe('ROOM#456');
+            }
+            const positionChild = aggregatedNode.children.find(treeNodeTypeguard(isSchemaPosition));
+            if (positionChild && positionChild.data.tag === 'Position') {
+                expect(positionChild.data.x).toBe(30);
+                expect(positionChild.data.y).toBe(40);
+            }
+        });
+
+        it('should always return aggregatedNode (never newNode)', () => {
+            const reference = new StandardReference('ROOM#789', 'Room');
+            const payloadData: PositionPayloadType = {
+                type: 'PositionFacet',
+                x: 50,
+                y: 60
+            };
+            const payload = new PositionPayload(payloadData);
+            
+            // Test without referenceRender
+            const result1 = payload.renderFacet(reference, payloadData);
+            expect(result1.aggregatedNode).toBeDefined();
+            expect(result1.newNode).toBeUndefined();
+            
+            // Test with referenceRender
+            const roomSchema = treeFromWML(deIndentWML('<Room uuid=(ROOM#789)><ShortName>Room</ShortName></Room>'))[0];
+            const result2 = payload.renderFacet(reference, payloadData, roomSchema);
+            expect(result2.aggregatedNode).toBeDefined();
+            expect(result2.newNode).toBeUndefined();
+        });
+
+        it('should throw error when referenceRender is not a Room', () => {
             const reference = new StandardReference('ROOM#123', 'Room');
             const payloadData: PositionPayloadType = {
                 type: 'PositionFacet',
@@ -437,7 +419,30 @@ describe('PositionPayload - FacetPayloadBase implementation', () => {
             };
             const payload = new PositionPayload(payloadData);
             const featureSchema = treeFromWML(deIndentWML('<Feature uuid=(FEATURE#123) />'))[0];
-            expect(() => payload.nestedSchema(reference, payloadData, featureSchema)).toThrow('Invalid componentSchema: expected Room tag');
+            expect(() => payload.renderFacet(reference, payloadData, featureSchema)).toThrow('Invalid referenceRender: expected Room tag');
+        });
+
+        it('should add Position as first child when referenceRender provided', () => {
+            const reference = new StandardReference('ROOM#123', 'Room');
+            const payloadData: PositionPayloadType = {
+                type: 'PositionFacet',
+                x: 100,
+                y: 200
+            };
+            const payload = new PositionPayload(payloadData);
+            const roomSchema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123)><ShortName>Room</ShortName></Room>'))[0];
+            const result = payload.renderFacet(reference, payloadData, roomSchema);
+            
+            const aggregatedNode = result.aggregatedNode!;
+            // Position should be first child
+            expect(aggregatedNode.children[0].data.tag).toBe('Position');
+            if (aggregatedNode.children[0].data.tag === 'Position') {
+                expect(aggregatedNode.children[0].data.x).toBe(100);
+                expect(aggregatedNode.children[0].data.y).toBe(200);
+            }
+            // Other children should follow
+            expect(aggregatedNode.children.length).toBe(2);
+            expect(aggregatedNode.children[1].data.tag).toBe('ShortName');
         });
     });
 });

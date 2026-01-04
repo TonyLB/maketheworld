@@ -7,14 +7,15 @@ import { StandardReference } from "../reference";
 import type { PositionPayload as PositionPayloadType } from "./facet";
 import { isPositionPayload } from "./facet";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
+import { FacetPayloadBase } from "./facetPayloadBase";
 
 /**
- * PositionPayload class: Implements StandardEditablePayload and provides FacetPayloadBase methods
+ * PositionPayload class: Implements StandardEditablePayload and FacetPayloadBase
  * 
  * StandardEditablePayload provides payload-level operations (clone, toJSON, schema for payload Replace operations)
- * FacetPayloadBase methods are provided separately (can't implement both interfaces directly due to schema property/method conflict)
+ * FacetPayloadBase provides renderFacet() for parent component orchestration
  */
-export class PositionPayload implements StandardEditablePayload<PositionPayloadType> {
+export class PositionPayload implements StandardEditablePayload<PositionPayloadType>, FacetPayloadBase<PositionPayloadType> {
     x: number;
     y: number;
 
@@ -42,9 +43,6 @@ export class PositionPayload implements StandardEditablePayload<PositionPayloadT
     /**
      * Generate schema for just the Position tag (not Room+Position)
      * This is used by StandardEditable wrappers for payload Replace operations
-     * 
-     * NOTE: This conflicts with FacetPayloadBase.schema() method.
-     * The FacetPayloadBase method is accessed via type assertion in StandardFacet.
      */
     get schema(): GenericTree<SchemaTag> {
         return [{
@@ -98,53 +96,50 @@ export class PositionPayload implements StandardEditablePayload<PositionPayloadT
         };
     }
 
-    // FacetPayloadBase.schema() method implementation
-    // Note: Cannot be declared as `schema()` method due to conflict with getter property above.
-    // Accessed via type assertion in StandardFacet helper function
-    _facetSchema(reference: StandardReference, payload: PositionPayloadType): GenericTree<SchemaTag> {
-        const roomSchema = reference.schema;
-        return roomSchema.map(node => {
-            if (treeNodeTypeguard(isSchemaRoom)(node)) {
-                return {
-                    ...node,
-                    children: [{
-                        data: { tag: 'Position' as const, x: payload.x, y: payload.y },
-                        children: []
-                    }]
-                };
-            }
-            throw new Error('Invalid reference schema: expected Room tag');
-        });
-    }
-
-    nestedSchema(reference: StandardReference, payload: PositionPayloadType, componentSchema: GenericTreeNode<SchemaTag>): GenericTreeNode<SchemaTag> {
-        if (!treeNodeTypeguard(isSchemaRoom)(componentSchema)) {
-            throw new Error('Invalid componentSchema: expected Room tag');
-        }
-
-        // Generate Position child tag from payload
+    // FacetPayloadBase implementation
+    renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+        // Create Position child tag from payload
         const positionChild: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Position' as const, x: payload.x, y: payload.y },
             children: []
         };
 
-        // Check if Room's children already contain a Position tag
-        const hasPosition = componentSchema.children.some(treeNodeTypeguard(isSchemaPosition));
+        let roomNode: GenericTreeNode<SchemaTag>;
 
-        if (!hasPosition) {
-            // Add Position to room's children (prepend to preserve other content)
-            return {
-                ...componentSchema,
+        if (referenceRender) {
+            // If referenceRender provided, enhance it by adding Position child
+            if (!treeNodeTypeguard(isSchemaRoom)(referenceRender)) {
+                throw new Error('Invalid referenceRender: expected Room tag');
+            }
+            roomNode = {
+                ...referenceRender,
                 children: [
                     positionChild,
-                    ...componentSchema.children
+                    ...referenceRender.children
+                ]
+            };
+        } else {
+            // If referenceRender not provided, generate plain Room reference render
+            const roomSchema = reference.schema;
+            if (roomSchema.length === 0) {
+                throw new Error('Invalid reference schema: empty');
+            }
+            const firstNode = roomSchema[0];
+            if (!treeNodeTypeguard(isSchemaRoom)(firstNode)) {
+                throw new Error('Invalid reference schema: expected Room tag');
+            }
+            // Create enhanced Room node with Position child
+            roomNode = {
+                ...firstNode,
+                children: [
+                    positionChild,
+                    ...firstNode.children
                 ]
             };
         }
 
-        // Position already exists, return unchanged (or could replace existing Position)
-        // For now, we preserve existing content
-        return componentSchema;
+        // Position facets always enhance Room references, so return aggregatedNode (never newNode)
+        return { aggregatedNode: roomNode };
     }
 }
 
@@ -205,16 +200,6 @@ const standardPositionPayloadDiff = (base: PositionPayloadType, incoming: Positi
         return { add: undefined, remove: undefined };
     }
     return { add: incoming, remove: base };
-};
-
-// Helper function to call FacetPayloadBase.schema() on PositionPayload
-// This avoids TypeScript conflicts while allowing runtime method access
-export const callFacetPayloadBaseSchema = (
-    payload: PositionPayload,
-    reference: StandardReference,
-    payloadData: PositionPayloadType
-): GenericTree<SchemaTag> => {
-    return (payload as any)._facetSchema(reference, payloadData);
 };
 
 // Create StandardEditable factory
