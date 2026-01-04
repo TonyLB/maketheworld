@@ -19,12 +19,18 @@ export class PositionPayload implements StandardEditablePayload<PositionPayloadT
     x: number;
     y: number;
 
-    constructor(data: PositionPayloadType) {
-        if (!isPositionPayload(data)) {
-            throw new Error('Invalid PositionPayload data');
+    constructor(data?: PositionPayloadType) {
+        if (data) {
+            if (!isPositionPayload(data)) {
+                throw new Error('Invalid PositionPayload data');
+            }
+            this.x = data.x;
+            this.y = data.y;
+        } else {
+            // Placeholder values for empty constructor (will be overridden by fromSchema)
+            this.x = 0;
+            this.y = 0;
         }
-        this.x = data.x;
-        this.y = data.y;
     }
 
     // StandardEditablePayload implementation

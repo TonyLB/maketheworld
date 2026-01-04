@@ -19,11 +19,14 @@ import { FacetPayloadBase } from "./facetPayloadBase";
 export class ExitPayload implements StandardEditablePayload<ExitPayloadType>, FacetPayloadBase<ExitPayloadType> {
     description?: string;
 
-    constructor(data: ExitPayloadType) {
-        if (!isExitPayload(data)) {
-            throw new Error('Invalid ExitPayload data');
+    constructor(data?: ExitPayloadType) {
+        if (data) {
+            if (!isExitPayload(data)) {
+                throw new Error('Invalid ExitPayload data');
+            }
+            this.description = data.description;
         }
-        this.description = data.description;
+        // No placeholder needed - description is optional
     }
 
     // StandardEditablePayload implementation
