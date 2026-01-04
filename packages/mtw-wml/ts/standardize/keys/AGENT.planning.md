@@ -347,19 +347,20 @@ This architecture explicitly handles edge cases:
    - ✅ Write unit tests for parsing, generation, and facet rendering (verify it always returns `newNode`)
    - ✅ Export from `keys/index.ts` with factory, typeguard, merge, and diff functions
 
-6. **Write comprehensive integration tests (first iteration - plain cases)**
-   - Test round-trip: WML → StandardFacet → WML for each payload type (plain cases only)
-   - Test parsing edge cases (missing properties, empty content, etc.)
-   - Test `renderFacet()` for each payload type with **plain references and plain payloads**:
-     - **Position**: Test with pre-existing Room render, test without (plain Room tag), verify always returns `aggregatedNode`
-     - **Mark**: Test with pre-existing Mark render, test without (plain Mark tag), verify always returns `aggregatedNode`
-     - **Exit**: Test that it ignores `referenceRender`, verify always returns `newNode`
-   - Test parent component orchestration patterns (mock parent components rendering reference lists then applying facets)
-   - Verify edge cases (plain references only):
-     - Rooms without positions (reference render only, no facet)
-     - Rooms with positions (enhanced reference render)
-     - Maps with Exits (new Exit nodes)
-     - Examples with Mark references but no facet payloads (reference render only)
+6. ✅ **Write comprehensive integration tests (first iteration - plain cases)**
+   - ✅ Test round-trip: WML → StandardFacet → WML for each payload type (plain cases only)
+   - ✅ Test parsing edge cases (missing properties, empty content, etc.)
+   - ✅ Test `renderFacet()` for each payload type with **plain references and plain payloads**:
+     - ✅ **Position**: Test with pre-existing Room render, test without (plain Room tag), verify always returns `aggregatedNode`
+     - ✅ **Mark**: Test with pre-existing Mark render, test without (plain Mark tag), verify always returns `aggregatedNode`
+     - ✅ **Exit**: Test that it ignores `referenceRender`, verify always returns `newNode`
+   - ✅ Test parent component orchestration patterns (mock parent components rendering reference lists then applying facets)
+   - ✅ Verify edge cases (plain references only):
+     - ✅ Rooms without positions (reference render only, no facet)
+     - ✅ Rooms with positions (enhanced reference render)
+     - ✅ Maps with Exits (new Exit nodes)
+     - ✅ Examples with Mark references but no facet payloads (reference render only)
+   - ✅ Created comprehensive integration test file: `keys/integration.test.ts` with all test coverage
    - **Note**: Edit operation combinations (Remove/Replace in `referenceRender` + Remove/Replace in payload) will be addressed in Phase 7 after we have a working prototype to anchor our concerns
 
 **Success Criteria**:
