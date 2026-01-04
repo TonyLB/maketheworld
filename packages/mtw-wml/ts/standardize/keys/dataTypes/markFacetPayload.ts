@@ -19,11 +19,16 @@ import { FacetPayloadBase } from "./facetPayloadBase";
 export class MarkFacetPayload implements StandardEditablePayload<MarkFacetPayloadType>, FacetPayloadBase<MarkFacetPayloadType> {
     narrative: string;
 
-    constructor(data: MarkFacetPayloadType) {
-        if (!isMarkFacetPayload(data)) {
-            throw new Error('Invalid MarkFacetPayload data');
+    constructor(data?: MarkFacetPayloadType) {
+        if (data) {
+            if (!isMarkFacetPayload(data)) {
+                throw new Error('Invalid MarkFacetPayload data');
+            }
+            this.narrative = data.narrative;
+        } else {
+            // Placeholder value for empty constructor (will be overridden by fromSchema)
+            this.narrative = '';
         }
-        this.narrative = data.narrative;
     }
 
     // StandardEditablePayload implementation
