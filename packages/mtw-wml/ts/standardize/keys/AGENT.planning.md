@@ -258,20 +258,20 @@ This architecture explicitly handles edge cases:
 - Rooms not parented (reference not in tree): facet provides plain reference render
 - Rooms without positions: handled naturally (no facet for that room, just renders reference)
 
-1. **Refactor FacetPayloadBase interface to new architecture**
-   - Update `FacetPayloadBase<TPayload>` interface in `keys/dataTypes/facetPayloadBase.ts`:
-     - **Replace** `schema(reference, payload)` method with:
-       - `renderFacet(reference: StandardReference, payload: TPayload, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> }`
-       - `referenceRender` is optional: if provided, it's a pre-existing render of the reference already in the parent's schema tree (e.g., Room already rendered by Map as a child). If not provided, generate a plain reference render (just the `<Room>` tag without children).
-       - Return `newNode` for facets that create new nodes (Exit returns `<Exit>` tag)
-       - Return `aggregatedNode` for facets that enhance existing references (Position/Mark return enhanced `<Room>` or `<Mark>` tag with payload as child)
-     - **Keep** `fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): TPayload` - still needed for parsing
-     - **Remove** `nestedSchema()` method - no longer needed, `renderFacet` handles both cases
-   - Update JSDoc documentation to reflect new architecture:
-     - Document `referenceRender` parameter and when it's provided vs not
-     - Document `newNode` vs `aggregatedNode` return semantics
-     - Explain parent component orchestration pattern
-   - Update interface name if desired (keep `FacetPayloadBase` for now, but clarify it's for rendering orchestration)
+1. ✅ **Refactor FacetPayloadBase interface to new architecture**
+   - ✅ Update `FacetPayloadBase<TPayload>` interface in `keys/dataTypes/facetPayloadBase.ts`:
+     - ✅ **Replace** `schema(reference, payload)` method with:
+       - ✅ `renderFacet(reference: StandardReference, payload: TPayload, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> }`
+       - ✅ `referenceRender` is optional: if provided, it's a pre-existing render of the reference already in the parent's schema tree (e.g., Room already rendered by Map as a child). If not provided, generate a plain reference render (just the `<Room>` tag without children).
+       - ✅ Return `newNode` for facets that create new nodes (Exit returns `<Exit>` tag)
+       - ✅ Return `aggregatedNode` for facets that enhance existing references (Position/Mark return enhanced `<Room>` or `<Mark>` tag with payload as child)
+     - ✅ **Keep** `fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): TPayload` - still needed for parsing
+     - ✅ **Remove** `nestedSchema()` method - no longer needed, `renderFacet` handles both cases
+   - ✅ Update JSDoc documentation to reflect new architecture:
+     - ✅ Document `referenceRender` parameter and when it's provided vs not
+     - ✅ Document `newNode` vs `aggregatedNode` return semantics
+     - ✅ Explain parent component orchestration pattern
+   - ✅ Update interface name if desired (keep `FacetPayloadBase` for now, but clarify it's for rendering orchestration)
 
 2. **Refactor StandardFacet and infrastructure for new architecture**
    - Update `StandardFacet` class in `keys/facet.ts`:
