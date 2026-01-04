@@ -17,6 +17,7 @@ export { FacetList, default as FacetListDefault } from "./facetList";
 export * from "./dataTypes/reference";
 export * from "./dataTypes/facet";
 export * from "./dataTypes/facetPayloadBase";
+export { PositionPayload, factory as positionPayloadFactory, isStandardPositionPayloadData, merge as positionPayloadMerge, diff as positionPayloadDiff } from "./dataTypes/positionPayload";
 
 // Export abstract interfaces
 export type { StandardFacet as StandardFacetInterface, FacetList as FacetListInterface, FacetListData } from "./abstract";
