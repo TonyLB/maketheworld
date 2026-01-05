@@ -2,12 +2,16 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { ComponentTag } from "../components/dataTypes/abstract";
-import { StandardFacetData, StandardFacetPayload, isStandardFacetData, isStandardFacetPayload } from "./dataTypes/facet";
+import { StandardFacetData, StandardFacetPayload, isStandardFacetData, isStandardFacetPayload, PositionPayload, MarkFacetPayload, ExitPayload, isPositionPayload, isMarkFacetPayload, isExitPayload } from "./dataTypes/facet";
 import { FacetPayloadBase } from "./dataTypes/facetPayloadBase";
+import { StandardEditablePayload } from "../../generics/editable";
 import { ReferenceFormat } from "../components/utils/references";
 import { treeFromWML } from "../../schema";
 import { StandardReference, LookupMappings } from "./reference";
 import { StandardKey } from "./key";
+import { PositionPayload as PositionPayloadClass } from "./dataTypes/positionPayload";
+import { MarkFacetPayload as MarkFacetPayloadClass } from "./dataTypes/markFacetPayload";
+import { ExitPayload as ExitPayloadClass } from "./dataTypes/exitPayload";
 
 /**
  * StandardFacet: A first-class relational object that references a target component
@@ -18,8 +22,8 @@ import { StandardKey } from "./key";
  */
 export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacetPayload> {
     private _reference: StandardReference;
-    private _payload: TPayload;
-    private _matchPayload: TPayload | undefined; // For Replace operations
+    private _payload: FacetPayloadBase<TPayload>; // Store payload class instance instead of plain JSON
+    private _matchPayload: FacetPayloadBase<TPayload> | undefined; // For Replace operations - store class instance
     private _isReplace: boolean; // Track if this is a Replace operation
 
     constructor(
@@ -29,8 +33,9 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
         // Handle StandardFacet instance directly (for cloning)
         if (arg instanceof StandardFacet) {
             this._reference = arg._reference.clone();
-            this._payload = arg._payload;
-            this._matchPayload = arg._matchPayload ? { ...arg._matchPayload } as TPayload : undefined;
+            // Payload is already a class instance, clone it (cast to StandardEditablePayload for clone method)
+            this._payload = this._asEditablePayload(arg._payload).clone() as FacetPayloadBase<TPayload>;
+            this._matchPayload = arg._matchPayload ? this._asEditablePayload(arg._matchPayload).clone() as FacetPayloadBase<TPayload> : undefined;
             this._isReplace = arg._isReplace;
             return;
         }
@@ -39,8 +44,9 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
         if (typeof arg === 'object' && arg !== null && 'tag' in arg && arg.tag === 'Replace' && 'match' in arg && 'payload' in arg) {
             const replaceData = arg as { tag: 'Replace'; match: StandardFacetData<TPayload>; payload: StandardFacetData<TPayload> };
             this._reference = new StandardReference(replaceData.payload.reference);
-            this._payload = replaceData.payload.payload;
-            this._matchPayload = replaceData.match.payload;
+            // Instantiate payload classes from JSON data
+            this._payload = this._instantiatePayloadClass(replaceData.payload.payload);
+            this._matchPayload = this._instantiatePayloadClass(replaceData.match.payload);
             this._isReplace = true;
             return;
         }
@@ -95,13 +101,38 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
         // Handle StandardFacetData (JSON format)
         if (isStandardFacetData(arg)) {
             this._reference = new StandardReference(arg.reference);
-            this._payload = arg.payload as TPayload;
+            // Instantiate payload class from JSON data
+            this._payload = this._instantiatePayloadClass(arg.payload);
             this._matchPayload = undefined;
             this._isReplace = false;
             return;
         }
 
         throw new Error(`Invalid argument to StandardFacet constructor: ${JSON.stringify(arg)}`);
+    }
+
+    /**
+     * Helper method to instantiate payload class from JSON data based on type discriminator
+     * @private
+     */
+    private _instantiatePayloadClass(payloadData: TPayload): FacetPayloadBase<TPayload> {
+        if (isPositionPayload(payloadData)) {
+            return new PositionPayloadClass(payloadData) as FacetPayloadBase<TPayload>;
+        } else if (isMarkFacetPayload(payloadData)) {
+            return new MarkFacetPayloadClass(payloadData) as FacetPayloadBase<TPayload>;
+        } else if (isExitPayload(payloadData)) {
+            return new ExitPayloadClass(payloadData) as FacetPayloadBase<TPayload>;
+        }
+        throw new Error(`Unknown payload type: ${(payloadData as any).type || 'undefined'}`);
+    }
+
+    /**
+     * Helper method to get StandardEditablePayload interface from FacetPayloadBase
+     * Payload classes implement both interfaces, so we can safely cast
+     * @private
+     */
+    private _asEditablePayload(payload: FacetPayloadBase<TPayload>): StandardEditablePayload<TPayload> {
+        return payload as unknown as StandardEditablePayload<TPayload>;
     }
 
     // Reference accessors (following StandardReference.standardKey pattern)
@@ -130,8 +161,10 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
     }
 
     // Payload access
+    // Returns payload class instance (not JSON)
+    // For API compatibility, type is TPayload but it's actually a class instance
     get payload(): TPayload {
-        return this._payload;
+        return this._payload as unknown as TPayload;
     }
 
     // Check if this is a Replace operation
@@ -140,8 +173,10 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
     }
 
     // Get match payload for Replace operations
+    // Returns payload class instance (not JSON)
+    // For API compatibility, type is TPayload but it's actually a class instance
     get matchPayload(): TPayload | undefined {
-        return this._matchPayload;
+        return this._matchPayload as unknown as TPayload | undefined;
     }
 
     // Core methods
@@ -150,22 +185,23 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
     }
 
     toJSON(): StandardFacetData<TPayload> | { tag: 'Replace'; match: StandardFacetData<TPayload>; payload: StandardFacetData<TPayload> } {
+        // Convert payload class instances back to JSON (cast to StandardEditablePayload for toJSON method)
         if (this._isReplace && this._matchPayload !== undefined) {
             return {
                 tag: 'Replace' as const,
                 match: {
                     reference: this._reference.toJSON(),
-                    payload: this._matchPayload
+                    payload: this._asEditablePayload(this._matchPayload).toJSON()
                 },
                 payload: {
                     reference: this._reference.toJSON(),
-                    payload: this._payload
+                    payload: this._asEditablePayload(this._payload).toJSON()
                 }
             };
         }
         return {
             reference: this._reference.toJSON(),
-            payload: this._payload
+            payload: this._asEditablePayload(this._payload).toJSON()
         };
     }
 
@@ -193,16 +229,16 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
     }
 
     // Helper method to compare payloads for equality
-    private payloadsEqual(a: TPayload | undefined, b: TPayload | undefined): boolean {
+    // Now handles payload class instances by converting to JSON for comparison
+    private payloadsEqual(a: FacetPayloadBase<TPayload> | undefined, b: FacetPayloadBase<TPayload> | undefined): boolean {
         if (a === undefined && b === undefined) {
             return true;
         }
         if (a === undefined || b === undefined) {
             return false;
         }
-        // Deep equality comparison using JSON.stringify
-        // This works for plain objects with primitive values
-        return JSON.stringify(a) === JSON.stringify(b);
+        // Convert class instances to JSON for comparison (cast to StandardEditablePayload for toJSON method)
+        return JSON.stringify(this._asEditablePayload(a).toJSON()) === JSON.stringify(this._asEditablePayload(b).toJSON());
     }
 
     // Merge/diff operations
@@ -221,11 +257,12 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
             }
             // If payloads differ, we still have a Replace operation
             // Create a new facet with the incoming payload and match as this payload
+            // Convert payload class instances to JSON for constructor (cast to StandardEditablePayload for toJSON method)
             const result = new StandardFacet<TPayload>({
                 reference: this._reference.toJSON(),
-                payload: incoming._payload
+                payload: this._asEditablePayload(incoming._payload).toJSON()
             });
-            (result as any)._matchPayload = this._payload;
+            (result as any)._matchPayload = this._asEditablePayload(this._payload).clone() as FacetPayloadBase<TPayload>;
             (result as any)._isReplace = true;
             return result;
         }
@@ -235,19 +272,21 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
 
         if (payloadsDiffer) {
             // Create Replace operation
+            // Convert payload class instances to JSON for constructor (cast to StandardEditablePayload for toJSON method)
             const result = new StandardFacet<TPayload>({
                 reference: mergedReference.toJSON(),
-                payload: incoming._payload
+                payload: this._asEditablePayload(incoming._payload).toJSON()
             });
-            (result as any)._matchPayload = this._payload;
+            (result as any)._matchPayload = this._asEditablePayload(this._payload).clone() as FacetPayloadBase<TPayload>;
             (result as any)._isReplace = true;
             return result;
         }
 
         // Payloads are the same, just merge reference
+        // Convert payload class instance to JSON for constructor (cast to StandardEditablePayload for toJSON method)
         const result = new StandardFacet<TPayload>({
             reference: mergedReference.toJSON(),
-            payload: this._payload
+            payload: this._asEditablePayload(this._payload).toJSON()
         });
         return result;
     }
@@ -268,36 +307,39 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
             }
 
             // If payloads differ, create Replace operation
+            // Convert payload class instances to JSON for constructor (cast to StandardEditablePayload for toJSON method)
             if (payloadsDiffer) {
                 const referenceData = diffReference ? diffReference.toJSON() : this._reference.toJSON();
                 const result = new StandardFacet<TPayload>({
                     reference: referenceData,
-                    payload: incoming._payload
+                    payload: this._asEditablePayload(incoming._payload).toJSON()
                 });
-                (result as any)._matchPayload = this._payload;
+                (result as any)._matchPayload = this._asEditablePayload(this._payload).clone() as FacetPayloadBase<TPayload>;
                 (result as any)._isReplace = true;
                 return result;
             }
 
             // Only reference changed, return reference diff only
+            // Convert payload class instance to JSON for constructor (cast to StandardEditablePayload for toJSON method)
             if (diffReference) {
                 return new StandardFacet<TPayload>({
                     reference: diffReference.toJSON(),
-                    payload: this._payload
+                    payload: this._asEditablePayload(this._payload).toJSON()
                 });
             }
 
             return undefined;
         } else {
             // Diff from this facet to nothing: invert
+            // Convert payload class instance to JSON for constructor (cast to StandardEditablePayload for toJSON method)
             const invertedReference = this._reference.invert();
             const result = new StandardFacet<TPayload>({
                 reference: invertedReference.toJSON(),
-                payload: this._payload
+                payload: this._asEditablePayload(this._payload).toJSON()
             });
             // If this was a Replace, the inverted version should also be a Replace
             if (this._isReplace && this._matchPayload !== undefined) {
-                (result as any)._matchPayload = this._matchPayload;
+                (result as any)._matchPayload = this._asEditablePayload(this._matchPayload).clone() as FacetPayloadBase<TPayload>;
                 (result as any)._isReplace = true;
             }
             return result;
@@ -306,14 +348,15 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
 
     invert(): StandardFacet<TPayload> {
         // Invert the reference (ref arithmetic)
+        // Convert payload class instance to JSON for constructor (cast to StandardEditablePayload for toJSON method)
         const invertedReference = this._reference.invert();
         const result = new StandardFacet<TPayload>({
             reference: invertedReference.toJSON(),
-            payload: this._payload
+            payload: this._asEditablePayload(this._payload).toJSON()
         });
         // If this was a Replace, the inverted version should also be a Replace
         if (this._isReplace && this._matchPayload !== undefined) {
-            (result as any)._matchPayload = this._matchPayload;
+            (result as any)._matchPayload = this._asEditablePayload(this._matchPayload).clone() as FacetPayloadBase<TPayload>;
             (result as any)._isReplace = true;
         }
         return result;
@@ -322,14 +365,15 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
     // Facet rendering for parent component orchestration
     renderFacet(referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
         // Handle Replace operations
+        // Convert payload class instances to JSON for constructor (cast to StandardEditablePayload for toJSON method)
         if (this._isReplace && this._matchPayload !== undefined) {
             const matchFacet = new StandardFacet<TPayload>({
                 reference: this._reference.toJSON(),
-                payload: this._matchPayload
+                payload: this._asEditablePayload(this._matchPayload).toJSON()
             });
             const payloadFacet = new StandardFacet<TPayload>({
                 reference: this._reference.toJSON(),
-                payload: this._payload
+                payload: this._asEditablePayload(this._payload).toJSON()
             });
             const matchResult = matchFacet._renderFacetPlain(referenceRender);
             const payloadResult = payloadFacet._renderFacetPlain(referenceRender);
@@ -361,40 +405,35 @@ export class StandardFacet<TPayload extends StandardFacetPayload = StandardFacet
     }
 
     private _renderFacetPlain(referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
-        // Cast payload to FacetPayloadBase and call renderFacet()
-        // Note: This assumes payload is a class instance implementing FacetPayloadBase
-        // Payload classes (implemented in Tasks 3-5) will implement FacetPayloadBase
-        // For now, this will fail at runtime until payload classes are implemented
-        // TODO: May need to refine this when payload classes are implemented in Tasks 3-5
-        const payloadBase = this._payload as unknown as FacetPayloadBase<TPayload>;
-        if (typeof payloadBase.renderFacet === 'function') {
-            return payloadBase.renderFacet(this._reference, this._payload, referenceRender);
-        }
-        throw new Error('Payload must implement FacetPayloadBase.renderFacet() - payload classes not yet implemented');
+        // Payload is now guaranteed to be a class instance with renderFacet() method
+        // Convert payload class instance to JSON for renderFacet() call (cast to StandardEditablePayload for toJSON method)
+        return this._payload.renderFacet(this._reference, this._asEditablePayload(this._payload).toJSON(), referenceRender);
     }
 
     // Format conversion
     toFormat(format: ReferenceFormat, mappings?: LookupMappings): StandardFacet<TPayload> {
+        // Convert payload class instance to JSON for constructor (cast to StandardEditablePayload for toJSON method)
         const formattedReference = this._reference.toFormat(format, mappings);
         const result = new StandardFacet<TPayload>({
             reference: formattedReference.toJSON(),
-            payload: this._payload
+            payload: this._asEditablePayload(this._payload).toJSON()
         });
         if (this._isReplace && this._matchPayload !== undefined) {
-            (result as any)._matchPayload = this._matchPayload;
+            (result as any)._matchPayload = this._asEditablePayload(this._matchPayload).clone() as FacetPayloadBase<TPayload>;
             (result as any)._isReplace = true;
         }
         return result;
     }
 
     lookup(mappings: LookupMappings): StandardFacet<TPayload> {
+        // Convert payload class instance to JSON for constructor (cast to StandardEditablePayload for toJSON method)
         const lookedUpReference = this._reference.lookup(mappings);
         const result = new StandardFacet<TPayload>({
             reference: lookedUpReference.toJSON(),
-            payload: this._payload
+            payload: this._asEditablePayload(this._payload).toJSON()
         });
         if (this._isReplace && this._matchPayload !== undefined) {
-            (result as any)._matchPayload = this._matchPayload;
+            (result as any)._matchPayload = this._asEditablePayload(this._matchPayload).clone() as FacetPayloadBase<TPayload>;
             (result as any)._isReplace = true;
         }
         return result;

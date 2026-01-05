@@ -151,7 +151,8 @@ describe('Facet Integration Tests', () => {
                 const originalWML = '<Room key=(room1)><Position x="10" y="20" /></Room>';
                 const facet = parseWMLToFacet(originalWML, 'Position');
                 
-                expect(facet.payload.type).toBe('PositionFacet');
+                // Payload is now a class instance - access type via toJSON(), properties directly
+                expect(facet.payload.toJSON().type).toBe('PositionFacet');
                 expect(facet.payload.x).toBe(10);
                 expect(facet.payload.y).toBe(20);
                 
@@ -167,7 +168,8 @@ describe('Facet Integration Tests', () => {
                 const originalWML = '<Room uuid=(test123)><Position x="15" y="25" /></Room>';
                 const facet = parseWMLToFacet(originalWML, 'Position');
                 
-                expect(facet.payload.type).toBe('PositionFacet');
+                // Payload is now a class instance - access type via toJSON(), properties directly
+                expect(facet.payload.toJSON().type).toBe('PositionFacet');
                 expect(facet.payload.x).toBe(15);
                 expect(facet.payload.y).toBe(25);
                 
@@ -182,7 +184,8 @@ describe('Facet Integration Tests', () => {
                 const originalWML = '<Mark uuid=(test123)><Match>Condition text</Match></Mark>';
                 const facet = parseWMLToFacet(originalWML, 'Mark');
                 
-                expect(facet.payload.type).toBe('MarkFacet');
+                // Payload is now a class instance - access type via toJSON(), properties directly
+                expect(facet.payload.toJSON().type).toBe('MarkFacet');
                 expect(facet.payload.narrative).toBe('Condition text');
                 
                 const generatedWML = facetToWML(facet);
@@ -194,7 +197,8 @@ describe('Facet Integration Tests', () => {
                 const originalWML = '<Mark uuid=(test456)><Match></Match></Mark>';
                 const facet = parseWMLToFacet(originalWML, 'Mark');
                 
-                expect(facet.payload.type).toBe('MarkFacet');
+                // Payload is now a class instance - access type via toJSON(), properties directly
+                expect(facet.payload.toJSON().type).toBe('MarkFacet');
                 expect(facet.payload.narrative).toBe('');
                 
                 const generatedWML = facetToWML(facet);
@@ -208,7 +212,8 @@ describe('Facet Integration Tests', () => {
                 const originalWML = '<Exit to=(ROOM#target1)>North Exit</Exit>';
                 const facet = parseWMLToFacet(originalWML, 'Exit');
                 
-                expect(facet.payload.type).toBe('ExitFacet');
+                // Payload is now a class instance - access type via toJSON(), properties directly
+                expect(facet.payload.toJSON().type).toBe('ExitFacet');
                 expect(facet.payload.description).toBe('North Exit');
                 
                 const generatedWML = facetToWML(facet);
@@ -220,7 +225,8 @@ describe('Facet Integration Tests', () => {
                 const originalWML = '<Exit to=(ROOM#target2) />';
                 const facet = parseWMLToFacet(originalWML, 'Exit');
                 
-                expect(facet.payload.type).toBe('ExitFacet');
+                // Payload is now a class instance - access type via toJSON(), properties directly
+                expect(facet.payload.toJSON().type).toBe('ExitFacet');
                 expect(facet.payload.description).toBeUndefined();
                 
                 const generatedWML = facetToWML(facet);
