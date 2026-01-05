@@ -1,13 +1,10 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isStandardFacetData, StandardFacetData, StandardFacetPayload } from "./dataTypes/facet";
-import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
-import { ReferenceFormat } from "../components/utils/references";
+import { ReferenceFormat } from "../../components/utils/references";
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists";
-import { isSchemaTreeNode } from "../../schema";
+import { isSchemaTreeNode } from "../../../schema";
 import { StandardFacet } from "./facet";
-import { LookupMappings } from "./reference";
-import { FacetListData } from "./abstract";
+import { LookupMappings } from "../reference";
+import { FacetListData } from "../abstract";
 
 /**
  * Helper to validate StandardFacetData with optional payload type guard

@@ -12,13 +12,13 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
-import { ComponentTag } from "../components/dataTypes/abstract";
+import { ComponentTag } from "../../components/dataTypes/abstract";
 import { StandardFacetData, StandardFacetPayload, isStandardFacetData } from "./dataTypes/facet";
-import { StandardEditablePayload } from "../../generics/editable";
-import { ReferenceFormat } from "../components/utils/references";
-import { StandardReference, LookupMappings } from "./reference";
-import { StandardKey } from "./key";
-import { treeFromWML, isSchemaTreeNode } from "../../schema";
+import { StandardEditablePayload } from "../../../generics/editable";
+import { ReferenceFormat } from "../../components/utils/references";
+import { StandardReference, LookupMappings } from "../reference";
+import { StandardKey } from "../key";
+import { treeFromWML, isSchemaTreeNode } from "../../../schema";
 
 /**
  * FacetConstructorMethods: Interface for payload classes used by facetClassFactory

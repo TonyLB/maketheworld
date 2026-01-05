@@ -8,19 +8,24 @@ export { StandardReference, LookupMappings, standardReferenceDeserialize, standa
 export { ReferenceList, default as ReferenceListDefault } from "./referenceList";
 
 // Export facet types
-export { StandardFacet } from "./facet";
-export { facetClassFactory, FacetConstructorMethods } from "./facetFactory";
+export { StandardFacet } from "./facets/facet";
+export { facetClassFactory, FacetConstructorMethods } from "./facets/facetFactory";
 
 // Export facet list types
-export { FacetList, default as FacetListDefault } from "./facetList";
+export { FacetList, default as FacetListDefault } from "./facets/facetList";
 
 // Export data types
 export * from "./dataTypes/reference";
-export * from "./dataTypes/facet";
-export * from "./dataTypes/facetPayloadBase";
-export { PositionPayload, factory as positionPayloadFactory, isStandardPositionPayloadData, merge as positionPayloadMerge, diff as positionPayloadDiff } from "./dataTypes/positionPayload";
-export { MarkFacetPayload, factory as markFacetPayloadFactory, isStandardMarkFacetPayloadData, merge as markFacetPayloadMerge, diff as markFacetPayloadDiff } from "./dataTypes/markFacetPayload";
-export { ExitPayload, factory as exitPayloadFactory, isStandardExitPayloadData, merge as exitPayloadMerge, diff as exitPayloadDiff } from "./dataTypes/exitPayload";
+export * from "./facets/dataTypes/facet";
+export * from "./facets/dataTypes/facetPayloadBase";
+export { PositionPayload, factory as positionPayloadFactory, isStandardPositionPayloadData, merge as positionPayloadMerge, diff as positionPayloadDiff } from "./facets/position";
+export { MarkFacetPayload, factory as markFacetPayloadFactory, isStandardMarkFacetPayloadData, merge as markFacetPayloadMerge, diff as markFacetPayloadDiff } from "./facets/mark";
+export { ExitPayload, factory as exitPayloadFactory, isStandardExitPayloadData, merge as exitPayloadMerge, diff as exitPayloadDiff } from "./facets/exit";
+
+// Export concrete facet classes
+export { StandardPositionFacet } from "./facets/position";
+export { StandardMarkFacet } from "./facets/mark";
+export { StandardExitFacet } from "./facets/exit";
 
 // Export abstract interfaces
 export type { StandardFacet as StandardFacetInterface, FacetList as FacetListInterface, FacetListData } from "./abstract";

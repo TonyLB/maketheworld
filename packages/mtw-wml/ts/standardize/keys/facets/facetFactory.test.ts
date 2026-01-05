@@ -1,11 +1,11 @@
 import { facetClassFactory } from './facetFactory';
-import { PositionPayload } from './dataTypes/positionPayload';
+import { PositionPayload } from './position';
 import { StandardFacetData, PositionPayload as PositionPayloadType } from './dataTypes/facet';
-import { StandardReferenceData } from './dataTypes/reference';
+import { StandardReferenceData } from '../dataTypes/reference';
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
-import { treeFromWML } from '../../schema';
-import { deIndentWML } from '../../schema/utils';
+import { treeFromWML } from '../../../schema';
+import { deIndentWML } from '../../../schema/utils';
 
 describe('facetClassFactory', () => {
     const TestFacetClass = facetClassFactory(PositionPayload, 'TestFacet');

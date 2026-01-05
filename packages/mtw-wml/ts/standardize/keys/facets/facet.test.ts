@@ -1,7 +1,7 @@
 import { StandardFacet } from './facet';
-import { StandardReference } from './reference';
+import { StandardReference } from '../reference';
 import { PositionPayload, MarkFacetPayload, ExitPayload, StandardFacetData } from './dataTypes/facet';
-import { StandardReferenceData } from './dataTypes/reference';
+import { StandardReferenceData } from '../dataTypes/reference';
 
 describe('StandardFacet', () => {
     const validReference: StandardReferenceData = {

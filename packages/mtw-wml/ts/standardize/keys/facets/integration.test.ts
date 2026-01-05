@@ -1,16 +1,16 @@
 import { StandardFacet } from './facet';
-import { StandardReference } from './reference';
-import { PositionPayload, MarkFacetPayload, ExitPayload, StandardFacetData } from './dataTypes/facet';
-import { PositionPayload as PositionPayloadClass } from './dataTypes/positionPayload';
-import { MarkFacetPayload as MarkFacetPayloadClass } from './dataTypes/markFacetPayload';
-import { ExitPayload as ExitPayloadClass } from './dataTypes/exitPayload';
-import { treeFromWML, schemaToWML } from '../../schema';
-import { deIndentWML } from '../../schema/utils';
+import { StandardReference } from '../reference';
+import { PositionPayload, MarkFacetPayload, ExitPayload } from './dataTypes/facet';
+import { PositionPayload as PositionPayloadClass } from './position';
+import { MarkFacetPayload as MarkFacetPayloadClass } from './mark';
+import { ExitPayload as ExitPayloadClass } from './exit';
+import { treeFromWML, schemaToWML } from '../../../schema';
+import { deIndentWML } from '../../../schema/utils';
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { isSchemaRoom, isSchemaPosition, isSchemaExit } from "@tonylb/mtw-base/ts/schema/components";
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
-import { GenericTreeNode, GenericTree } from "@tonylb/mtw-base/ts/genericTree";
+import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag, ComponentUUID } from "@tonylb/mtw-base/ts/schema";
 
 describe('Facet Integration Tests', () => {

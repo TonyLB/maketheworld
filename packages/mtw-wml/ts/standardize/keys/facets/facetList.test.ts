@@ -1,8 +1,8 @@
 import { FacetList } from './facetList';
 import { StandardFacet } from './facet';
 import { PositionPayload, MarkFacetPayload, ExitPayload, StandardFacetData, isPositionPayload, isMarkFacetPayload } from './dataTypes/facet';
-import { StandardReferenceData } from './dataTypes/reference';
-import { ComponentTag } from '../components/dataTypes/abstract';
+import { StandardReferenceData } from '../dataTypes/reference';
+import { ComponentTag } from '../../components/dataTypes/abstract';
 
 describe('FacetList', () => {
     // Helper function to create a valid reference

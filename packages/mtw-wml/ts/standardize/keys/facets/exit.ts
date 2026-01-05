@@ -1,14 +1,15 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { SchemaTag, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardEditablePayload, standardEditableFactory } from "../../../generics/editable";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../../lib/objects";
 import { StandardReference } from "../reference";
-import type { ExitPayload as ExitPayloadType } from "./facet";
-import { isExitPayload } from "./facet";
+import type { ExitPayload as ExitPayloadType } from "./dataTypes/facet";
+import { isExitPayload } from "./dataTypes/facet";
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
-import { FacetPayloadBase } from "./facetPayloadBase";
+import { FacetPayloadBase } from "./dataTypes/facetPayloadBase";
+import { facetClassFactory } from './facetFactory';
 
 /**
  * ExitPayload class: Implements StandardEditablePayload and FacetPayloadBase
@@ -174,3 +175,35 @@ export const {
     subtract: standardExitPayloadSubtract,
     diff: standardExitPayloadDiff
 });
+
+const exitReferenceFactory = (schema: GenericTree<SchemaTag>): StandardReference => {
+    // Find Exit tag (may be wrapped in ReplaceMatch/ReplacePayload)
+    const firstElement = schema[0];
+    let exitNode: GenericTreeNode<SchemaTag> | undefined;
+    
+    if (treeNodeTypeguard(isSchemaExit)(firstElement)) {
+        exitNode = firstElement;
+    } else {
+        // Try to find Exit in children if first element is a wrapper (e.g., ReplaceMatch, ReplacePayload)
+        const exitChild = firstElement.children?.find(child => 
+            treeNodeTypeguard(isSchemaExit)(child)
+        );
+        if (exitChild && treeNodeTypeguard(isSchemaExit)(exitChild)) {
+            exitNode = exitChild;
+        }
+    }
+    
+    if (!exitNode || !treeNodeTypeguard(isSchemaExit)(exitNode)) {
+        throw new Error('Exit tag not found in schema');
+    }
+    
+    const toValue = exitNode.data.to;
+    if (!toValue) {
+        throw new Error('Exit tag missing `to` property');
+    }
+    
+    // StandardReference constructor handles key/UUID parsing
+    return new StandardReference(toValue, 'Room');
+};
+
+export const StandardExitFacet = facetClassFactory(ExitPayload, 'ExitFacet', exitReferenceFactory);

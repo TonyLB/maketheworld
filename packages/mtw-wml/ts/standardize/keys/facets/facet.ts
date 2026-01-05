@@ -1,17 +1,17 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
-import { ComponentTag } from "../components/dataTypes/abstract";
+import { ComponentTag } from "../../components/dataTypes/abstract";
 import { StandardFacetData, StandardFacetPayload, isStandardFacetData, isStandardFacetPayload, PositionPayload, MarkFacetPayload, ExitPayload, isPositionPayload, isMarkFacetPayload, isExitPayload } from "./dataTypes/facet";
 import { FacetPayloadBase } from "./dataTypes/facetPayloadBase";
-import { StandardEditablePayload } from "../../generics/editable";
-import { ReferenceFormat } from "../components/utils/references";
-import { treeFromWML } from "../../schema";
-import { StandardReference, LookupMappings } from "./reference";
-import { StandardKey } from "./key";
-import { PositionPayload as PositionPayloadClass } from "./dataTypes/positionPayload";
-import { MarkFacetPayload as MarkFacetPayloadClass } from "./dataTypes/markFacetPayload";
-import { ExitPayload as ExitPayloadClass } from "./dataTypes/exitPayload";
+import { StandardEditablePayload } from "../../../generics/editable";
+import { ReferenceFormat } from "../../components/utils/references";
+import { treeFromWML } from "../../../schema";
+import { StandardReference, LookupMappings } from "../reference";
+import { StandardKey } from "../key";
+import { PositionPayload as PositionPayloadClass } from "./position";
+import { MarkFacetPayload as MarkFacetPayloadClass } from "./mark";
+import { ExitPayload as ExitPayloadClass } from "./exit";
 
 /**
  * StandardFacet: A first-class relational object that references a target component

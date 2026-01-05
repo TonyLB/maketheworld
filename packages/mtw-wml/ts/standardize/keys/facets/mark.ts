@@ -4,11 +4,12 @@ import { StandardEditablePayload, standardEditableFactory } from "../../../gener
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../../lib/objects";
 import { StandardReference } from "../reference";
-import type { MarkFacetPayload as MarkFacetPayloadType } from "./facet";
-import { isMarkFacetPayload } from "./facet";
+import type { MarkFacetPayload as MarkFacetPayloadType } from "./dataTypes/facet";
+import { isMarkFacetPayload } from "./dataTypes/facet";
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
-import { FacetPayloadBase } from "./facetPayloadBase";
+import { FacetPayloadBase } from "./dataTypes/facetPayloadBase";
+import { facetClassFactory } from './facetFactory';
 
 /**
  * MarkFacetPayload class: Implements StandardEditablePayload and FacetPayloadBase
@@ -228,3 +229,5 @@ export const {
     subtract: standardMarkFacetPayloadSubtract,
     diff: standardMarkFacetPayloadDiff
 });
+
+export const StandardMarkFacet = facetClassFactory(MarkFacetPayload, 'MarkFacet');
