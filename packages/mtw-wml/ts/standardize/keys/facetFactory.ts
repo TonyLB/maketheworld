@@ -9,14 +9,16 @@
 // NOTE: For easy access, the returned class should then be extended with getter
 // functions to pull data out of the private payload if needed.
 
-import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { ComponentTag } from "../components/dataTypes/abstract";
 import { StandardFacetData, StandardFacetPayload, isStandardFacetData } from "./dataTypes/facet";
 import { StandardEditablePayload } from "../../generics/editable";
 import { ReferenceFormat } from "../components/utils/references";
 import { StandardReference, LookupMappings } from "./reference";
 import { StandardKey } from "./key";
+import { treeFromWML, isSchemaTreeNode } from "../../schema";
 
 /**
  * FacetConstructorMethods: Interface for payload classes used by facetClassFactory
@@ -54,7 +56,7 @@ export interface FacetConstructorMethods<D extends StandardFacetPayload> {
 export const facetClassFactory = <
     D extends StandardFacetPayload,
     TBase extends new (...args: any[]) => FacetConstructorMethods<D>
->(Base: TBase, label: string) => {
+>(Base: TBase, label: string, referenceFactory?: (schema: GenericTree<SchemaTag>) => StandardReference) => {
     return class GeneratedFacetClass {
         _reference: StandardReference;
         _payload: InstanceType<typeof Base>;
@@ -62,7 +64,7 @@ export const facetClassFactory = <
         _isReplace: boolean;
 
         constructor(
-            arg: StandardFacetData<D> | GeneratedFacetClass | { tag: 'Replace'; match: StandardFacetData<D>; payload: StandardFacetData<D> }
+            arg: StandardFacetData<D> | GeneratedFacetClass | { tag: 'Replace'; match: StandardFacetData<D>; payload: StandardFacetData<D> } | GenericTree<SchemaTag> | string
         ) {
             // Handle GeneratedFacetClass instance (cloning)
             if (arg instanceof GeneratedFacetClass) {
@@ -92,7 +94,70 @@ export const facetClassFactory = <
                 return;
             }
 
-            throw new Error(`Invalid argument to ${label} constructor: ${JSON.stringify(arg)}`);
+            // Handle WML string (needs parsing)
+            if (typeof arg === 'string' && (arg.includes('<') || arg.includes('['))) {
+                const schema = treeFromWML(arg);
+                if (schema.length === 0) {
+                    throw new Error(`Invalid WML string in ${label} constructor: empty schema`);
+                }
+                // Continue with schema tree handling below
+                arg = schema;
+            }
+
+            // Handle GenericTree<SchemaTag>
+            if (Array.isArray(arg) && arg.length > 0 && arg.every(isSchemaTreeNode)) {
+                const schema = arg as GenericTree<SchemaTag>;
+                const firstElement = schema[0];
+
+                // Handle Replace-wrapped schemas
+                if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
+                    const replaceMatch = firstElement.children.find(treeNodeTypeguard(isSchemaReplaceMatch));
+                    const replacePayload = firstElement.children.find(treeNodeTypeguard(isSchemaReplacePayload));
+                    
+                    if (!replaceMatch || !replacePayload) {
+                        throw new Error(`Replace must have both a ReplaceMatch and a ReplacePayload in ${label} constructor`);
+                    }
+
+                    // Extract reference from ReplacePayload schema
+                    // Use referenceFactory if provided, else default to StandardReference(replacePayload.children[0])
+                    const reference = referenceFactory 
+                        ? referenceFactory(replacePayload.children)
+                        : new StandardReference(replacePayload.children);
+
+                    // Parse match payload
+                    const payloadInstance = new Base();
+                    const matchData = payloadInstance.fromSchema(replaceMatch.children, reference);
+
+                    // Parse payload
+                    const payloadData = payloadInstance.fromSchema(replacePayload.children, reference);
+
+                    // Construct facet with Replace structure
+                    this._reference = reference;
+                    this._payload = new Base(payloadData) as InstanceType<typeof Base>;
+                    this._matchPayload = new Base(matchData) as InstanceType<typeof Base>;
+                    this._isReplace = true;
+                    return;
+                }
+
+                // Handle plain schemas (no Replace wrapper)
+                // Extract reference
+                const reference = referenceFactory 
+                    ? referenceFactory(schema)
+                    : new StandardReference(schema);
+
+                // Parse payload
+                const payloadInstance = new Base();
+                const payloadData = payloadInstance.fromSchema(schema, reference);
+
+                // Construct facet normally
+                this._reference = reference;
+                this._payload = new Base(payloadData) as InstanceType<typeof Base>;
+                this._matchPayload = undefined;
+                this._isReplace = false;
+                return;
+            }
+
+            throw new Error(`Invalid argument to ${label} constructor: expected StandardFacetData, Replace structure, GeneratedFacetClass instance, WML string, or GenericTree<SchemaTag>, got ${JSON.stringify(arg)}`);
         }
 
         _wrap(instance: GeneratedFacetClass): this {

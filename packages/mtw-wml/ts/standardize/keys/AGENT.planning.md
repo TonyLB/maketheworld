@@ -511,14 +511,26 @@ Applying this pattern to facets will:
    - ✅ Export `facetClassFactory` from `keys/facetFactory.ts` and `keys/index.ts`
    - ✅ Write comprehensive unit tests in `keys/facetFactory.test.ts`
 
-2. **Create concrete facet classes**
+2. **Add WML/schema parsing to `facetClassFactory`**
+   - [x] Add optional `referenceFactory?: (schema: GenericTree<SchemaTag>) => StandardReference` parameter to factory function
+   - [x] Add imports: `treeFromWML`, `isSchemaTreeNode`, `isSchemaReplace`, `isSchemaReplaceMatch`, `isSchemaReplacePayload`, `treeNodeTypeguard`
+   - [x] Update constructor to accept `GenericTree<SchemaTag> | string` inputs
+   - [x] Implement WML string parsing (detect WML, parse to schema, validate non-empty)
+   - [x] Implement `GenericTree<SchemaTag>` handling (validate array, check isSchemaTreeNode)
+   - [x] Implement Replace-wrapped schema parsing (extract ReplaceMatch/ReplacePayload, parse reference, parse match/payload)
+   - [x] Implement plain schema parsing (extract reference with factory or default `new StandardReference(schema[0])`, parse payload)
+   - [x] Update error messages to reflect supported input types
+   - [x] Add comprehensive unit tests for WML/schema parsing (plain and Replace cases)
+   - [x] Update this planning document
+
+3. **Create concrete facet classes**
    - Create `StandardPositionFacet` extending `facetClassFactory(PositionPayloadClass, 'PositionFacet')`
    - Create `StandardMarkFacet` extending `facetClassFactory(MarkFacetPayloadClass, 'MarkFacet')`
    - Create `StandardExitFacet` extending `facetClassFactory(ExitPayloadClass, 'ExitFacet')`
    - Each class has concrete payload type - no generic parameter needed
    - Export from `keys/index.ts`
 
-3. **Create `standardFacetFactory` dispatcher**
+4. **Create `standardFacetFactory` dispatcher**
    - Create `keys/facetFactory.ts` (or add to existing factory file)
    - Implement `standardFacetFactory` function that:
      - Takes `StandardFacetData | GenericTree<SchemaTag>` argument
@@ -527,7 +539,7 @@ Applying this pattern to facets will:
      - Returns `undefined` if type cannot be determined
    - Similar structure to `standardComponentFactory` in `componentFactory.ts`
 
-4. **Update `FacetList` to work with concrete facet types**
+5. **Update `FacetList` to work with concrete facet types**
    - Evaluate options:
      - **Option A**: Make `FacetList` non-generic, store `StandardFacet[]` (loses type safety but simplest)
      - **Option B**: Create separate list classes (`PositionFacetList`, `MarkFacetList`, `ExitFacetList`) matching component pattern
@@ -536,26 +548,26 @@ Applying this pattern to facets will:
    - Update serialization/deserialization to work with concrete types
    - Update `merge()`, `diff()`, `invert()` operations
 
-5. **Update all StandardFacet consumers**
+6. **Update all StandardFacet consumers**
    - Update tests to use concrete facet classes where appropriate
    - Update integration tests to use `standardFacetFactory` for construction
    - Update any code that constructs facets directly (if any exists)
    - Ensure backward compatibility where possible (factory function can be used as drop-in replacement)
 
-6. **Remove generic StandardFacet implementation**
+7. **Remove generic StandardFacet implementation**
    - Remove old `StandardFacet<TPayload>` generic class from `keys/facet.ts`
    - Remove `_instantiatePayloadClass()` helper method
    - Remove `_asEditablePayload()` helper method
    - Remove all type casts (`as FacetPayloadBase`, `as unknown as StandardEditablePayload`, etc.)
    - Clean up imports and type definitions
 
-7. **Update type definitions and interfaces**
+8. **Update type definitions and interfaces**
    - Update `StandardFacet` type/interface definition in `keys/abstract.ts` if needed
    - Update exports in `keys/index.ts` to export concrete classes and factory
    - Ensure `StandardFacetData` type still works correctly
    - Update any type guards that reference `StandardFacet<TPayload>`
 
-8. **Write comprehensive tests**
+9. **Write comprehensive tests**
    - Test concrete facet class construction from various formats
    - Test `standardFacetFactory` dispatcher with all payload types
    - Test `FacetList` with concrete facet types
@@ -563,7 +575,7 @@ Applying this pattern to facets will:
    - Test serialization/deserialization with concrete types
    - Verify all existing tests still pass (may need updates for concrete types)
 
-9. **Update documentation**
+10. **Update documentation**
    - Update `AGENT.facets.md` to document factory pattern
    - Update examples to use concrete facet classes or factory function
    - Document migration from generic to concrete types (if needed)

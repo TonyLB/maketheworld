@@ -2,8 +2,10 @@ import { facetClassFactory } from './facetFactory';
 import { PositionPayload } from './dataTypes/positionPayload';
 import { StandardFacetData, PositionPayload as PositionPayloadType } from './dataTypes/facet';
 import { StandardReferenceData } from './dataTypes/reference';
-import { GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree';
+import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
+import { treeFromWML } from '../../schema';
+import { deIndentWML } from '../../schema/utils';
 
 describe('facetClassFactory', () => {
     const TestFacetClass = facetClassFactory(PositionPayload, 'TestFacet');
@@ -398,6 +400,118 @@ describe('facetClassFactory', () => {
             const facet = new TestFacetClass(replaceData);
             const formatted = facet.toFormat('universal');
             expect(formatted.isReplace).toBe(true);
+        });
+    });
+
+    describe('WML/Schema parsing', () => {
+        describe('Plain facet parsing', () => {
+            it('should construct from WML string (plain facet)', () => {
+                const wml = deIndentWML(`
+                    <Room key=(room1) uuid=(test123)>
+                        <Position x="10" y="20" />
+                    </Room>
+                `);
+                const facet = new TestFacetClass(wml);
+                expect(facet.payload.x).toBe(10);
+                expect(facet.payload.y).toBe(20);
+                expect(facet.reference.key).toBe('room1');
+                expect(facet.reference.universalKey).toBe('ROOM#test123');
+                expect(facet.isReplace).toBe(false);
+            });
+
+            it('should construct from GenericTree<SchemaTag> (plain facet)', () => {
+                const schema: GenericTree<SchemaTag> = treeFromWML(deIndentWML(`
+                    <Room key=(room1) uuid=(test123)>
+                        <Position x="15" y="25" />
+                    </Room>
+                `));
+                const facet = new TestFacetClass(schema);
+                expect(facet.payload.x).toBe(15);
+                expect(facet.payload.y).toBe(25);
+                expect(facet.reference.key).toBe('room1');
+                expect(facet.reference.universalKey).toBe('ROOM#test123');
+                expect(facet.isReplace).toBe(false);
+            });
+        });
+
+        describe('Replace-wrapped facet parsing', () => {
+            it('should construct from WML string (Replace-wrapped facet)', () => {
+                const wml = deIndentWML(`
+                    <Replace>
+                        <Room key=(room1) uuid=(test123)>
+                            <Position x="5" y="10" />
+                        </Room>
+                    </Replace>
+                    <With>
+                        <Room key=(room1) uuid=(test123)>
+                            <Position x="10" y="20" />
+                        </Room>
+                    </With>
+                `);
+                const facet = new TestFacetClass(wml);
+                expect(facet.isReplace).toBe(true);
+                expect(facet.matchPayload?.x).toBe(5);
+                expect(facet.matchPayload?.y).toBe(10);
+                expect(facet.payload.x).toBe(10);
+                expect(facet.payload.y).toBe(20);
+                expect(facet.reference.key).toBe('room1');
+                expect(facet.reference.universalKey).toBe('ROOM#test123');
+            });
+
+            it('should construct from GenericTree<SchemaTag> (Replace-wrapped facet)', () => {
+                const schema: GenericTree<SchemaTag> = treeFromWML(deIndentWML(`
+                    <Replace>
+                        <Room key=(room1) uuid=(test123)>
+                            <Position x="5" y="10" />
+                        </Room>
+                    </Replace>
+                    <With>
+                        <Room key=(room1) uuid=(test123)>
+                            <Position x="15" y="25" />
+                        </Room>
+                    </With>
+                `));
+                const facet = new TestFacetClass(schema);
+                expect(facet.isReplace).toBe(true);
+                expect(facet.matchPayload?.x).toBe(5);
+                expect(facet.matchPayload?.y).toBe(10);
+                expect(facet.payload.x).toBe(15);
+                expect(facet.payload.y).toBe(25);
+                expect(facet.reference.key).toBe('room1');
+                expect(facet.reference.universalKey).toBe('ROOM#test123');
+            });
+
+        });
+
+        describe('Default reference extraction', () => {
+            it('should use default reference extraction (Position/Mark style)', () => {
+                // TestFacetClass uses PositionPayload, which should use default extraction
+                const wml = deIndentWML(`
+                    <Room key=(room1) uuid=(test123)>
+                        <Position x="10" y="20" />
+                    </Room>
+                `);
+                const facet = new TestFacetClass(wml);
+                // Default extraction should read from Room tag attributes
+                expect(facet.reference.key).toBe('room1');
+                expect(facet.reference.universalKey).toBe('ROOM#test123');
+                expect(facet.reference.tag).toBe('Room');
+            });
+        });
+
+        describe('Error handling', () => {
+            it('should throw error for empty WML string', () => {
+                expect(() => new TestFacetClass('')).toThrow('Invalid argument');
+            });
+
+            it('should throw error for invalid WML string', () => {
+                expect(() => new TestFacetClass('not valid WML')).toThrow('Invalid argument');
+            });
+
+            it('should throw error for empty schema tree', () => {
+                const emptySchema: GenericTree<SchemaTag> = [];
+                expect(() => new TestFacetClass(emptySchema)).toThrow('Invalid argument');
+            });
         });
     });
 });
