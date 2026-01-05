@@ -465,6 +465,132 @@ This architecture explicitly handles edge cases:
 
 **Note**: This refactoring maintains the same external API for `StandardFacet` (same constructor signatures, same getters, same methods), but changes the internal representation from JSON objects to class instances. Serialization format (`StandardFacetData`) remains the same. Payload class instances expose properties directly (x, y, narrative, description), so code accessing `facet.payload.x` still works. The `type` discriminator property is only in JSON, so use `facet.payload.toJSON().type` to access it.
 
+### Phase 5 Task 8: Refactor StandardFacet to Factory Pattern
+
+**Goal**: Refactor `StandardFacet` from a generic class (`StandardFacet<TPayload>`) to concrete facet classes using a factory pattern (like `StandardComponent` uses `componentClassFactory`). This eliminates the need for runtime type discrimination and type casting hacks, simplifying the codebase and aligning with existing patterns.
+
+**Prerequisites**: Phase 5 Task 7 must be complete. This refactoring builds on the payload class instance infrastructure established in Task 7.
+
+**Problem**: The current generic `StandardFacet<TPayload>` approach requires significant internal complexity:
+- **Runtime type discrimination**: `_instantiatePayloadClass()` method uses type guards to select payload class at runtime
+- **Double casting bridge**: `_asEditablePayload()` helper uses `as unknown as` to bridge `FacetPayloadBase` and `StandardEditablePayload` (23+ occurrences throughout the class)
+- **Type mismatch in getters**: The `payload` getter returns `TPayload` but is actually `FacetPayloadBase<TPayload>`, requiring casts
+- **Per-method conversions**: Many methods must convert between JSON and class instances using helper methods
+
+This complexity makes the code harder to maintain and understand, especially compared to the cleaner factory pattern used by `StandardComponent`.
+
+**Rationale**: The `StandardComponent` factory pattern successfully eliminates similar complexity:
+- `componentClassFactory` generates concrete classes from payload class constructors (e.g., `StandardRoom`, `StandardExample`)
+- `standardComponentFactory` dispatches at construction time based on type guards (one-time, not per-operation)
+- No runtime type discrimination inside classes - payload type is known at construction
+- No casting needed - payload type is concrete throughout the class
+
+Applying this pattern to facets will:
+- Eliminate `_instantiatePayloadClass()` and `_asEditablePayload()` helpers
+- Remove all 23+ type casts throughout the codebase
+- Make payload types concrete at construction time (no generic type parameter needed)
+- Simplify each facet class (no generic complexity)
+- Align with existing architectural patterns
+- Maintain the same external API for consumers
+
+**Architecture Overview**: 
+- Create `facetClassFactory` function (similar to `componentClassFactory`) that generates a concrete facet class from a payload class constructor
+- Create concrete facet classes: `StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet`
+- Create `standardFacetFactory` dispatcher function (similar to `standardComponentFactory`) that takes `StandardFacetData` and uses type guards to instantiate the correct concrete class
+- Update `FacetList` to work with concrete facet types (either make it non-generic storing `StandardFacet[]`, or create separate list classes per facet type, or use a union type/base class approach)
+
+1. **Create `facetClassFactory` function**
+   - Create `keys/facetFactory.ts` (similar to `components/component.ts`)
+   - Define `FacetConstructorMethods<D>` interface (payload class methods needed by facets)
+   - Implement `facetClassFactory` that:
+     - Takes a payload class constructor and label string
+     - Returns a generated facet class with concrete payload type (no generic parameter)
+     - Implements `StandardFacet` interface (or base interface)
+     - Handles construction from `StandardFacetData`, cloning, WML parsing, etc.
+     - All payload operations work with concrete type (no casting needed)
+
+2. **Create concrete facet classes**
+   - Create `StandardPositionFacet` extending `facetClassFactory(PositionPayloadClass, 'PositionFacet')`
+   - Create `StandardMarkFacet` extending `facetClassFactory(MarkFacetPayloadClass, 'MarkFacet')`
+   - Create `StandardExitFacet` extending `facetClassFactory(ExitPayloadClass, 'ExitFacet')`
+   - Each class has concrete payload type - no generic parameter needed
+   - Export from `keys/index.ts`
+
+3. **Create `standardFacetFactory` dispatcher**
+   - Create `keys/facetFactory.ts` (or add to existing factory file)
+   - Implement `standardFacetFactory` function that:
+     - Takes `StandardFacetData | GenericTree<SchemaTag>` argument
+     - Uses type guards (`isPositionPayload`, `isMarkFacetPayload`, `isExitPayload`) to determine facet type
+     - Returns appropriate concrete facet class instance
+     - Returns `undefined` if type cannot be determined
+   - Similar structure to `standardComponentFactory` in `componentFactory.ts`
+
+4. **Update `FacetList` to work with concrete facet types**
+   - Evaluate options:
+     - **Option A**: Make `FacetList` non-generic, store `StandardFacet[]` (loses type safety but simplest)
+     - **Option B**: Create separate list classes (`PositionFacetList`, `MarkFacetList`, `ExitFacetList`) matching component pattern
+     - **Option C**: Keep generic but constrain to union type/base class (`FacetList<T extends StandardFacet>`)
+   - Update `FacetList` constructor to use `standardFacetFactory` for construction from JSON/schema
+   - Update serialization/deserialization to work with concrete types
+   - Update `merge()`, `diff()`, `invert()` operations
+
+5. **Update all StandardFacet consumers**
+   - Update tests to use concrete facet classes where appropriate
+   - Update integration tests to use `standardFacetFactory` for construction
+   - Update any code that constructs facets directly (if any exists)
+   - Ensure backward compatibility where possible (factory function can be used as drop-in replacement)
+
+6. **Remove generic StandardFacet implementation**
+   - Remove old `StandardFacet<TPayload>` generic class from `keys/facet.ts`
+   - Remove `_instantiatePayloadClass()` helper method
+   - Remove `_asEditablePayload()` helper method
+   - Remove all type casts (`as FacetPayloadBase`, `as unknown as StandardEditablePayload`, etc.)
+   - Clean up imports and type definitions
+
+7. **Update type definitions and interfaces**
+   - Update `StandardFacet` type/interface definition in `keys/abstract.ts` if needed
+   - Update exports in `keys/index.ts` to export concrete classes and factory
+   - Ensure `StandardFacetData` type still works correctly
+   - Update any type guards that reference `StandardFacet<TPayload>`
+
+8. **Write comprehensive tests**
+   - Test concrete facet class construction from various formats
+   - Test `standardFacetFactory` dispatcher with all payload types
+   - Test `FacetList` with concrete facet types
+   - Test backward compatibility (construction patterns still work)
+   - Test serialization/deserialization with concrete types
+   - Verify all existing tests still pass (may need updates for concrete types)
+
+9. **Update documentation**
+   - Update `AGENT.facets.md` to document factory pattern
+   - Update examples to use concrete facet classes or factory function
+   - Document migration from generic to concrete types (if needed)
+   - Update any architectural diagrams or descriptions
+
+**Success Criteria**:
+- ✅ Concrete facet classes (`StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet`) exist and work correctly
+- ✅ `facetClassFactory` generates facet classes from payload class constructors
+- ✅ `standardFacetFactory` dispatches correctly to create appropriate concrete facet instances
+- ✅ All type casts eliminated (no `as unknown as`, `as FacetPayloadBase`, etc.)
+- ✅ `_instantiatePayloadClass()` and `_asEditablePayload()` helper methods removed
+- ✅ `FacetList` works correctly with concrete facet types (whichever option chosen)
+- ✅ All existing tests updated and passing
+- ✅ External API remains compatible (consumers can use `standardFacetFactory` or concrete classes)
+- ✅ Code is simpler and easier to maintain (matches `StandardComponent` pattern)
+- ✅ Serialization/deserialization works correctly with concrete types
+
+**Key Files to Create/Modify**:
+- `keys/facetFactory.ts` (new - contains `facetClassFactory` function)
+- `keys/facet.ts` (modify - replace generic class with concrete classes, or move to separate files)
+- `keys/facetList.ts` (modify - update to work with concrete facet types)
+- `keys/index.ts` (modify - export concrete classes and factory)
+- `keys/abstract.ts` (modify - update interface definitions if needed)
+- `keys/facet.test.ts` (modify - update tests for concrete types)
+- `keys/facetList.test.ts` (modify - update tests for concrete types)
+- `keys/integration.test.ts` (modify - update to use factory or concrete classes)
+
+**Note**: This refactoring maintains the same external API for consumers (they can use `standardFacetFactory` similar to how they use `standardComponentFactory`). The internal implementation changes significantly, but the public interface remains compatible. Payload classes (`PositionPayloadClass`, `MarkFacetPayloadClass`, `ExitPayloadClass`) remain unchanged - only the facet wrapper changes from generic to concrete classes.
+
 ### Phase 6: Integrate Facets into Component System (Example Component - First Prototype)
 
 **Goal**: Add Facet support to Example component as the first prototype of the new facet rendering architecture. This will validate the parent component orchestration pattern before applying it to Map/Area components.
