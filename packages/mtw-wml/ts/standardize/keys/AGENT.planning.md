@@ -386,6 +386,70 @@ This architecture explicitly handles edge cases:
 - `keys/facet.ts` (modify - add `renderFacet()` helper, refactor schema generation)
 - `keys/facet.test.ts` (modify - update tests for new architecture)
 
+### Phase 5 Task 7: Refactor StandardFacet to Use Payload Class Instances
+
+**Goal**: Refactor `StandardFacet` to store and use payload class instances instead of plain JSON objects, enabling `renderFacet()` to work correctly by delegating to payload class methods.
+
+**Prerequisites**: Phase 5 Tasks 1-6 must be complete. Integration tests in `keys/integration.test.ts` currently fail because `StandardFacet` stores plain JSON payloads but needs class instances to call `renderFacet()`.
+
+**Problem**: Currently `StandardFacet` stores `_payload` as plain JSON objects (TypeScript types like `PositionPayload`, `MarkFacetPayload`, `ExitPayload`), but `renderFacet()` needs to call methods on payload class instances (`PositionPayload`, `MarkFacetPayload`, `ExitPayload` classes that implement `FacetPayloadBase`).
+
+**Rationale**: We created payload classes with `renderFacet()` methods in Phase 5 Tasks 3-5, but `StandardFacet` still stores plain JSON objects. This refactoring connects the two by having `StandardFacet` instantiate and store payload class instances.
+
+1. **Refactor StandardFacet constructor to instantiate payload classes**
+   - Update constructor to detect payload type from `type` discriminator field
+   - Instantiate appropriate payload class (`PositionPayload`, `MarkFacetPayload`, or `ExitPayload`) from JSON data
+   - Store class instance in `_payload` instead of plain JSON object
+   - Update `_matchPayload` handling to also use class instances for Replace operations
+   - Handle cloning to preserve class instances
+
+2. **Update StandardFacet.payload getter**
+   - Change return type to return payload class instance (not JSON)
+   - Ensure type safety is maintained for different payload types
+
+3. **Update StandardFacet.toJSON()**
+   - Convert payload class instance back to JSON using `toJSON()` method on payload class
+   - Convert `_matchPayload` class instance to JSON if present
+   - Ensure serialization format matches `StandardFacetData<TPayload>` structure
+
+4. **Update StandardFacet._renderFacetPlain()**
+   - Remove the TODO comment and error handling for missing `renderFacet()`
+   - Call `renderFacet()` directly on payload class instance (now guaranteed to exist)
+   - Simplify implementation since payload is now always a class instance
+
+5. **Update all StandardFacet methods that access payload**
+   - Review and update methods that read/write `_payload` to work with class instances
+   - Ensure `merge()`, `diff()`, `equals()`, and other operations work correctly with class instances
+   - Update any methods that create new facets to instantiate payload classes
+
+6. **Update FacetList to work with payload class instances**
+   - Review `FacetList` implementation to ensure it handles payload class instances correctly
+   - Update serialization/deserialization if needed
+
+7. **Update existing tests**
+   - Review `facet.test.ts` to ensure tests still pass with class instances
+   - Update any tests that directly access payload properties to use class instance methods
+
+8. **Verify integration tests pass**
+   - Run `keys/integration.test.ts` to verify all tests now pass
+   - Verify round-trip serialization still works correctly
+   - Verify `renderFacet()` works for all payload types
+
+**Success Criteria**:
+- `StandardFacet` stores payload class instances instead of plain JSON objects
+- `renderFacet()` works correctly by delegating to payload class methods
+- All integration tests in `keys/integration.test.ts` pass
+- All existing `StandardFacet` unit tests still pass
+- Serialization/deserialization (toJSON/fromJSON) works correctly
+- Type safety is maintained throughout
+
+**Key Files to Modify**:
+- `keys/facet.ts` (modify - refactor to use payload class instances)
+- `keys/facet.test.ts` (modify - update tests if needed)
+- `keys/facetList.ts` (modify - verify compatibility with payload class instances)
+
+**Note**: This refactoring maintains the same external API for `StandardFacet` (same constructor signatures, same getters, same methods), but changes the internal representation from JSON objects to class instances. Serialization format (`StandardFacetData`) remains the same.
+
 ### Phase 6: Integrate Facets into Component System (Example Component - First Prototype)
 
 **Goal**: Add Facet support to Example component as the first prototype of the new facet rendering architecture. This will validate the parent component orchestration pattern before applying it to Map/Area components.
