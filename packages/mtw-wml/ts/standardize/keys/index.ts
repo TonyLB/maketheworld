@@ -10,6 +10,7 @@ export { ReferenceList, default as ReferenceListDefault } from "./referenceList"
 // Export facet types
 export { StandardFacet } from "./facets/facet";
 export { facetClassFactory, FacetConstructorMethods } from "./facets/facetFactory";
+export { standardFacetFactory } from "./facets/standardFacetFactory";
 
 // Export facet list types
 export { FacetList, default as FacetListDefault } from "./facets/facetList";

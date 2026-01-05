@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
+import { SchemaTag, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
 import { StandardEditablePayload, standardEditableFactory } from "../../../generics/editable";
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../../lib/objects";
@@ -202,8 +202,13 @@ const exitReferenceFactory = (schema: GenericTree<SchemaTag>): StandardReference
         throw new Error('Exit tag missing `to` property');
     }
     
-    // StandardReference constructor handles key/UUID parsing
-    return new StandardReference(toValue, 'Room');
+    // StandardReference constructor: if toValue is a ComponentUUID string, pass it directly.
+    // If it's just a key, pass it as an object with key and tag.
+    if (typeof toValue === 'string' && isSchemaComponentUUID(toValue)) {
+        return new StandardReference(toValue, 'Room');
+    } else {
+        return new StandardReference({ key: toValue, tag: 'Room' });
+    }
 };
 
 export const StandardExitFacet = facetClassFactory(ExitPayload, 'ExitFacet', exitReferenceFactory);

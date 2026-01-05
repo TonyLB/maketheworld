@@ -523,21 +523,24 @@ Applying this pattern to facets will:
    - [x] Add comprehensive unit tests for WML/schema parsing (plain and Replace cases)
    - [x] Update this planning document
 
-3. **Create concrete facet classes**
-   - Create `StandardPositionFacet` extending `facetClassFactory(PositionPayloadClass, 'PositionFacet')`
-   - Create `StandardMarkFacet` extending `facetClassFactory(MarkFacetPayloadClass, 'MarkFacet')`
-   - Create `StandardExitFacet` extending `facetClassFactory(ExitPayloadClass, 'ExitFacet')`
-   - Each class has concrete payload type - no generic parameter needed
-   - Export from `keys/index.ts`
+3. ✅ **Create concrete facet classes**
+   - ✅ Create `StandardPositionFacet` extending `facetClassFactory(PositionPayloadClass, 'PositionFacet')`
+   - ✅ Create `StandardMarkFacet` extending `facetClassFactory(MarkFacetPayloadClass, 'MarkFacet')`
+   - ✅ Create `StandardExitFacet` extending `facetClassFactory(ExitPayloadClass, 'ExitFacet')`
+   - ✅ Each class has concrete payload type - no generic parameter needed
+   - ✅ Export from `keys/index.ts`
 
-4. **Create `standardFacetFactory` dispatcher**
-   - Create `keys/facetFactory.ts` (or add to existing factory file)
-   - Implement `standardFacetFactory` function that:
-     - Takes `StandardFacetData | GenericTree<SchemaTag>` argument
-     - Uses type guards (`isPositionPayload`, `isMarkFacetPayload`, `isExitPayload`) to determine facet type
-     - Returns appropriate concrete facet class instance
-     - Returns `undefined` if type cannot be determined
-   - Similar structure to `standardComponentFactory` in `componentFactory.ts`
+4. ✅ **Create `standardFacetFactory` dispatcher**
+   - ✅ Create `keys/facetFactory.ts` (or add to existing factory file)
+   - ✅ Implement `standardFacetFactory` function that:
+     - ✅ Takes `StandardFacetData | GenericTree<SchemaTag>` argument
+     - ✅ Uses type guards (`isPositionPayload`, `isMarkFacetPayload`, `isExitPayload`) to determine facet type
+     - ✅ Returns appropriate concrete facet class instance
+     - ✅ Returns `undefined` if type cannot be determined
+   - ✅ Similar structure to `standardComponentFactory` in `componentFactory.ts`
+   - ✅ Export from `keys/facets/facetFactory.ts`
+   - ✅ Export from `keys/index.ts`
+   - ✅ Write unit tests
 
 5. **Update `FacetList` to work with concrete facet types**
    - Evaluate options:
