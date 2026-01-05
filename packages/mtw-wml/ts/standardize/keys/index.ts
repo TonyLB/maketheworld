@@ -14,6 +14,7 @@ export { standardFacetFactory } from "./facets/standardFacetFactory";
 
 // Export facet list types
 export { FacetList, default as FacetListDefault } from "./facets/facetList";
+export { facetListClassFactory } from "./facets/facetListFactory";
 
 // Export data types
 export * from "./dataTypes/reference";
@@ -24,9 +25,9 @@ export { MarkFacetPayload, factory as markFacetPayloadFactory, isStandardMarkFac
 export { ExitPayload, factory as exitPayloadFactory, isStandardExitPayloadData, merge as exitPayloadMerge, diff as exitPayloadDiff } from "./facets/exit";
 
 // Export concrete facet classes
-export { StandardPositionFacet } from "./facets/position";
-export { StandardMarkFacet } from "./facets/mark";
-export { StandardExitFacet } from "./facets/exit";
+export { StandardPositionFacet, PositionFacetList } from "./facets/position";
+export { StandardMarkFacet, MarkFacetList } from "./facets/mark";
+export { StandardExitFacet, ExitFacetList } from "./facets/exit";
 
 // Export abstract interfaces
 export type { StandardFacet as StandardFacetInterface, FacetList as FacetListInterface, FacetListData } from "./abstract";

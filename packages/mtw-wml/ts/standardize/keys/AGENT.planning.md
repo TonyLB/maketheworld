@@ -542,14 +542,20 @@ Applying this pattern to facets will:
    - ✅ Export from `keys/index.ts`
    - ✅ Write unit tests
 
-5. **Update `FacetList` to work with concrete facet types**
-   - Evaluate options:
-     - **Option A**: Make `FacetList` non-generic, store `StandardFacet[]` (loses type safety but simplest)
-     - **Option B**: Create separate list classes (`PositionFacetList`, `MarkFacetList`, `ExitFacetList`) matching component pattern
-     - **Option C**: Keep generic but constrain to union type/base class (`FacetList<T extends StandardFacet>`)
-   - Update `FacetList` constructor to use `standardFacetFactory` for construction from JSON/schema
-   - Update serialization/deserialization to work with concrete types
-   - Update `merge()`, `diff()`, `invert()` operations
+5. ✅ **Update `FacetList` to work with concrete facet types**
+   - ✅ **Chosen approach: Option B** - Create separate list classes matching component pattern
+   - ✅ Created `facetListClassFactory` function in `keys/facets/facetListFactory.ts` that generates concrete list classes from facet class constructors
+   - ✅ Created concrete list classes:
+     - ✅ `PositionFacetList` using `facetListClassFactory(StandardPositionFacet, 'PositionFacetList')`
+     - ✅ `MarkFacetList` using `facetListClassFactory(StandardMarkFacet, 'MarkFacetList')`
+     - ✅ `ExitFacetList` using `facetListClassFactory(StandardExitFacet, 'ExitFacetList')`
+   - ✅ Updated constructor to use concrete facet class constructor directly (no dispatcher needed since type is known)
+   - ✅ Updated serialization/deserialization to work with concrete types
+   - ✅ Updated `merge()`, `diff()`, `invert()`, `mapContents()`, `toFormat()`, `lookup()` operations to work with concrete types
+   - ✅ Updated exports in `keys/index.ts` to export factory and concrete list classes
+   - ✅ Updated tests in `facetList.test.ts` to use concrete list classes instead of generic `FacetList<TPayload>`
+   - ✅ Removed type guard tests (no longer needed with concrete types)
+   - **Design Decision**: Each list class stores a specific concrete facet type (no generics), providing compile-time type safety without runtime type guards. This simplifies the codebase significantly compared to the generic approach (removes ~50 lines of validation/type-guard code).
 
 6. **Update all StandardFacet consumers**
    - Update tests to use concrete facet classes where appropriate

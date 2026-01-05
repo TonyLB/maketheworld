@@ -225,3 +225,7 @@ export const {
 });
 
 export const StandardPositionFacet = facetClassFactory(PositionPayload, 'PositionFacet');
+
+// Create concrete list class for PositionFacet
+import { facetListClassFactory } from './facetListFactory';
+export const PositionFacetList = facetListClassFactory(StandardPositionFacet, 'PositionFacetList');

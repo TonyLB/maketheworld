@@ -212,3 +212,7 @@ const exitReferenceFactory = (schema: GenericTree<SchemaTag>): StandardReference
 };
 
 export const StandardExitFacet = facetClassFactory(ExitPayload, 'ExitFacet', exitReferenceFactory);
+
+// Create concrete list class for ExitFacet
+import { facetListClassFactory } from './facetListFactory';
+export const ExitFacetList = facetListClassFactory(StandardExitFacet, 'ExitFacetList');

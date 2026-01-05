@@ -231,3 +231,7 @@ export const {
 });
 
 export const StandardMarkFacet = facetClassFactory(MarkFacetPayload, 'MarkFacet');
+
+// Create concrete list class for MarkFacet
+import { facetListClassFactory } from './facetListFactory';
+export const MarkFacetList = facetListClassFactory(StandardMarkFacet, 'MarkFacetList');
