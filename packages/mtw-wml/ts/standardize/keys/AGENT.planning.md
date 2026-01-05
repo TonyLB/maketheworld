@@ -499,15 +499,17 @@ Applying this pattern to facets will:
 - Create `standardFacetFactory` dispatcher function (similar to `standardComponentFactory`) that takes `StandardFacetData` and uses type guards to instantiate the correct concrete class
 - Update `FacetList` to work with concrete facet types (either make it non-generic storing `StandardFacet[]`, or create separate list classes per facet type, or use a union type/base class approach)
 
-1. **Create `facetClassFactory` function**
-   - Create `keys/facetFactory.ts` (similar to `components/component.ts`)
-   - Define `FacetConstructorMethods<D>` interface (payload class methods needed by facets)
-   - Implement `facetClassFactory` that:
-     - Takes a payload class constructor and label string
-     - Returns a generated facet class with concrete payload type (no generic parameter)
-     - Implements `StandardFacet` interface (or base interface)
-     - Handles construction from `StandardFacetData`, cloning, WML parsing, etc.
-     - All payload operations work with concrete type (no casting needed)
+1. ✅ **Create `facetClassFactory` function**
+   - ✅ Create `keys/facetFactory.ts` (similar to `components/component.ts`)
+   - ✅ Define `FacetConstructorMethods<D>` interface (payload class methods needed by facets)
+   - ✅ Implement `facetClassFactory` that:
+     - ✅ Takes a payload class constructor and label string
+     - ✅ Returns a generated facet class with concrete payload type (no generic parameter)
+     - ✅ Implements `StandardFacet` interface (or base interface)
+     - ✅ Handles construction from `StandardFacetData`, cloning, WML parsing, etc.
+     - ✅ All payload operations work with concrete type (no casting needed)
+   - ✅ Export `facetClassFactory` from `keys/facetFactory.ts` and `keys/index.ts`
+   - ✅ Write comprehensive unit tests in `keys/facetFactory.test.ts`
 
 2. **Create concrete facet classes**
    - Create `StandardPositionFacet` extending `facetClassFactory(PositionPayloadClass, 'PositionFacet')`
