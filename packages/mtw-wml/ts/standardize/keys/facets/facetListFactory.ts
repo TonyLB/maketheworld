@@ -137,6 +137,10 @@ export const facetListClassFactory = <
             throw new Error(`Invalid argument type for ${label} constructor`);
         }
 
+        _wrap(instance: GeneratedFacetListClass): this {
+            return instance as this;
+        }
+
         toJSON(): StandardEditableData<StandardFacetData<StandardFacetPayload>>[] {
             return this._items.map((item) => {
                 if (item instanceof FacetClass) {
@@ -147,7 +151,7 @@ export const facetListClassFactory = <
         }
 
         clone(): GeneratedFacetListClass {
-            return new GeneratedFacetListClass(this);
+            return this._wrap(new GeneratedFacetListClass(this));
         }
 
         get items(): TFacet[] {
@@ -210,7 +214,7 @@ export const facetListClassFactory = <
                 return undefined;
             }
 
-            return new GeneratedFacetListClass(mergedItems);
+            return this._wrap(new GeneratedFacetListClass(mergedItems));
         }
 
         diff(incoming: GeneratedFacetListClass): GeneratedFacetListClass | undefined {
@@ -245,31 +249,31 @@ export const facetListClassFactory = <
                 return undefined;
             }
 
-            return new GeneratedFacetListClass(diffedItems);
+            return this._wrap(new GeneratedFacetListClass(diffedItems));
         }
 
         invert(): GeneratedFacetListClass {
             // Map each item through facet.invert()
             const invertedItems = this._items.map(item => item.invert());
-            return new GeneratedFacetListClass(invertedItems);
+            return this._wrap(new GeneratedFacetListClass(invertedItems));
         }
 
         mapContents(callback: (facet: TFacet) => TFacet): GeneratedFacetListClass {
             // Map _items through the callback
             const mappedItems = this._items.map(callback);
-            return new GeneratedFacetListClass(mappedItems);
+            return this._wrap(new GeneratedFacetListClass(mappedItems));
         }
 
         toFormat(format: ReferenceFormat): GeneratedFacetListClass {
             // Map each item through facet.toFormat(format)
             const formattedItems = this._items.map(item => item.toFormat(format));
-            return new GeneratedFacetListClass(formattedItems);
+            return this._wrap(new GeneratedFacetListClass(formattedItems));
         }
 
         lookup(mappings: LookupMappings): GeneratedFacetListClass {
             // Map each item through facet.lookup(mappings)
             const lookedUpItems = this._items.map(item => item.lookup(mappings));
-            return new GeneratedFacetListClass(lookedUpItems);
+            return this._wrap(new GeneratedFacetListClass(lookedUpItems));
         }
     };
 };

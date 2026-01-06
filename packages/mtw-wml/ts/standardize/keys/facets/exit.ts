@@ -4,7 +4,7 @@ import { StandardEditablePayload, standardEditableFactory } from "../../../gener
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../../lib/objects";
 import { StandardReference } from "../reference";
-import type { ExitPayload as ExitPayloadType } from "./dataTypes/facet";
+import type { ExitPayload as ExitPayloadType, StandardFacetData } from "./dataTypes/facet";
 import { isExitPayload } from "./dataTypes/facet";
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
@@ -211,8 +211,26 @@ const exitReferenceFactory = (schema: GenericTree<SchemaTag>): StandardReference
     }
 };
 
-export const StandardExitFacet = facetClassFactory(ExitPayload, 'ExitFacet', exitReferenceFactory);
+export class StandardExitFacet extends facetClassFactory(ExitPayload, 'ExitFacet', exitReferenceFactory) {
+    constructor(
+        props: StandardFacetData<ExitPayloadType> | StandardExitFacet | { tag: 'Replace'; match: StandardFacetData<ExitPayloadType>; payload: StandardFacetData<ExitPayloadType> } | GenericTree<SchemaTag> | string
+    ) {
+        super(props);
+    }
+
+    override _wrap(instance: any): this {
+        return new StandardExitFacet(instance as StandardExitFacet) as this;
+    }
+}
 
 // Create concrete list class for ExitFacet
 import { facetListClassFactory } from './facetListFactory';
-export const ExitFacetList = facetListClassFactory(StandardExitFacet, 'ExitFacetList');
+export class ExitFacetList extends facetListClassFactory(StandardExitFacet, 'ExitFacetList') {
+    constructor(arg: any) {
+        super(arg);
+    }
+
+    override _wrap(instance: any): this {
+        return new ExitFacetList(instance as ExitFacetList) as this;
+    }
+}

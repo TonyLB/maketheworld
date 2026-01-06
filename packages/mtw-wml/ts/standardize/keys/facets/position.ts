@@ -4,7 +4,7 @@ import { StandardEditablePayload, standardEditableFactory } from "../../../gener
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../../lib/objects";
 import { StandardReference } from "../reference";
-import type { PositionPayload as PositionPayloadType } from "./dataTypes/facet";
+import type { PositionPayload as PositionPayloadType, StandardFacetData } from "./dataTypes/facet";
 import { isPositionPayload } from "./dataTypes/facet";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
 import { FacetPayloadBase } from "./dataTypes/facetPayloadBase";
@@ -224,8 +224,26 @@ export const {
     diff: standardPositionPayloadDiff
 });
 
-export const StandardPositionFacet = facetClassFactory(PositionPayload, 'PositionFacet');
+export class StandardPositionFacet extends facetClassFactory(PositionPayload, 'PositionFacet') {
+    constructor(
+        props: StandardFacetData<PositionPayloadType> | StandardPositionFacet | { tag: 'Replace'; match: StandardFacetData<PositionPayloadType>; payload: StandardFacetData<PositionPayloadType> } | GenericTree<SchemaTag> | string
+    ) {
+        super(props);
+    }
+
+    override _wrap(instance: any): this {
+        return new StandardPositionFacet(instance as StandardPositionFacet) as this;
+    }
+}
 
 // Create concrete list class for PositionFacet
 import { facetListClassFactory } from './facetListFactory';
-export const PositionFacetList = facetListClassFactory(StandardPositionFacet, 'PositionFacetList');
+export class PositionFacetList extends facetListClassFactory(StandardPositionFacet, 'PositionFacetList') {
+    constructor(arg: any) {
+        super(arg);
+    }
+
+    override _wrap(instance: any): this {
+        return new PositionFacetList(instance as PositionFacetList) as this;
+    }
+}

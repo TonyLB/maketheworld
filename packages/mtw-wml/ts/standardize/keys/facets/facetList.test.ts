@@ -14,7 +14,7 @@ describe('Concrete FacetList Classes', () => {
     });
 
     // Helper functions to create test facets
-    const createPositionFacet = (key: string, x: number, y: number, ref: number = 1): InstanceType<typeof StandardPositionFacet> => {
+    const createPositionFacet = (key: string, x: number, y: number, ref: number = 1): StandardPositionFacet => {
         const facetData: StandardFacetData<PositionPayload> = {
             reference: createReference(key, 'Room', ref),
             payload: { type: 'PositionFacet', x, y }
@@ -22,7 +22,7 @@ describe('Concrete FacetList Classes', () => {
         return new StandardPositionFacet(facetData);
     };
 
-    const createMarkFacet = (key: string, narrative: string, ref: number = 1): InstanceType<typeof StandardMarkFacet> => {
+    const createMarkFacet = (key: string, narrative: string, ref: number = 1): StandardMarkFacet => {
         const facetData: StandardFacetData<MarkFacetPayload> = {
             reference: createReference(key, 'Mark', ref),
             payload: { type: 'MarkFacet', narrative }
@@ -53,8 +53,8 @@ describe('Concrete FacetList Classes', () => {
             const list = new PositionFacetList([facet1, facet2]);
             
             expect(list.length).toBe(2);
-            const item0 = list.items[0] as InstanceType<typeof StandardPositionFacet>;
-            const item1 = list.items[1] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = list.items[0] as StandardPositionFacet;
+            const item1 = list.items[1] as StandardPositionFacet;
             expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 10, y: 20 });
             expect(item1.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 30, y: 40 });
         });
@@ -65,8 +65,8 @@ describe('Concrete FacetList Classes', () => {
             const list = new PositionFacetList([data1, data2]);
             
             expect(list.length).toBe(2);
-            const item0 = list.items[0] as InstanceType<typeof StandardPositionFacet>;
-            const item1 = list.items[1] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = list.items[0] as StandardPositionFacet;
+            const item1 = list.items[1] as StandardPositionFacet;
             expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 10, y: 20 });
             expect(item1.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 30, y: 40 });
         });
@@ -88,7 +88,7 @@ describe('Concrete FacetList Classes', () => {
             
             const list = new PositionFacetList([replaceData]);
             expect(list.length).toBe(1);
-            const item0 = list.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = list.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
             expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 10, y: 20 });
             expect(item0.matchPayload?.toJSON()).toEqual({ type: 'PositionFacet', x: 5, y: 10 });
@@ -124,7 +124,7 @@ describe('Concrete FacetList Classes', () => {
             
             const list = new PositionFacetList([data1, data2]);
             expect(list.length).toBe(1);
-            const item0 = list.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = list.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(3); // 1 + 2
         });
 
@@ -172,7 +172,7 @@ describe('Concrete FacetList Classes', () => {
             };
             
             const list = new PositionFacetList([replaceData]);
-            const item0 = list.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = list.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
             const json = list.toJSON();
             expect(json[0]).toHaveProperty('tag', 'Replace');
@@ -348,8 +348,8 @@ describe('Concrete FacetList Classes', () => {
             const merged = base.merge(incoming);
             expect(merged).toBeDefined();
             expect(merged!.length).toBe(2);
-            expect(merged!.items.some(f => (f as InstanceType<typeof StandardPositionFacet>).reference.key === 'room1')).toBe(true);
-            expect(merged!.items.some(f => (f as InstanceType<typeof StandardPositionFacet>).reference.key === 'room2')).toBe(true);
+            expect(merged!.items.some(f => (f as StandardPositionFacet).reference.key === 'room1')).toBe(true);
+            expect(merged!.items.some(f => (f as StandardPositionFacet).reference.key === 'room2')).toBe(true);
         });
 
         it('should merge lists with matching keys and same payload (ref arithmetic only)', () => {
@@ -365,7 +365,7 @@ describe('Concrete FacetList Classes', () => {
             const merged = base.merge(incoming);
             expect(merged).toBeDefined();
             expect(merged!.length).toBe(1);
-            const item0 = merged!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = merged!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(3); // 1 + 2
             expect(item0.isReplace).toBe(false);
         });
@@ -383,7 +383,7 @@ describe('Concrete FacetList Classes', () => {
             const merged = base.merge(incoming);
             expect(merged).toBeDefined();
             expect(merged!.length).toBe(1);
-            const item0 = merged!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = merged!.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
             expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 10, y: 20 });
             expect(item0.matchPayload?.toJSON()).toEqual({ type: 'PositionFacet', x: 5, y: 10 });
@@ -401,9 +401,9 @@ describe('Concrete FacetList Classes', () => {
             const merged = base.merge(incoming);
             expect(merged).toBeDefined();
             expect(merged!.length).toBe(3);
-            expect(merged!.items.some(f => (f as InstanceType<typeof StandardPositionFacet>).reference.key === 'room1')).toBe(true);
-            expect(merged!.items.some(f => (f as InstanceType<typeof StandardPositionFacet>).reference.key === 'room2')).toBe(true);
-            expect(merged!.items.some(f => (f as InstanceType<typeof StandardPositionFacet>).reference.key === 'room3')).toBe(true);
+            expect(merged!.items.some(f => (f as StandardPositionFacet).reference.key === 'room1')).toBe(true);
+            expect(merged!.items.some(f => (f as StandardPositionFacet).reference.key === 'room2')).toBe(true);
+            expect(merged!.items.some(f => (f as StandardPositionFacet).reference.key === 'room3')).toBe(true);
         });
 
         it('should handle ref arithmetic correctly', () => {
@@ -418,7 +418,7 @@ describe('Concrete FacetList Classes', () => {
             
             const merged = base.merge(incoming);
             expect(merged).toBeDefined();
-            const item0 = merged!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = merged!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(3); // 1 + 2
         });
 
@@ -434,7 +434,7 @@ describe('Concrete FacetList Classes', () => {
             
             const merged = base.merge(incoming);
             expect(merged).toBeDefined();
-            const item0 = merged!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = merged!.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
             expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 15, y: 25 });
         });
@@ -494,7 +494,7 @@ describe('Concrete FacetList Classes', () => {
             const diff = base.diff(incoming);
             expect(diff).toBeDefined();
             expect(diff!.length).toBe(1);
-            const item0 = diff!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = diff!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(1); // 2 - 1
             expect(item0.isReplace).toBe(false);
         });
@@ -512,7 +512,7 @@ describe('Concrete FacetList Classes', () => {
             const diff = base.diff(incoming);
             expect(diff).toBeDefined();
             expect(diff!.length).toBe(1);
-            const item0 = diff!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = diff!.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
             expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 10, y: 20 });
             expect(item0.matchPayload?.toJSON()).toEqual({ type: 'PositionFacet', x: 5, y: 10 });
@@ -527,7 +527,7 @@ describe('Concrete FacetList Classes', () => {
             const diff = base.diff(incoming);
             expect(diff).toBeDefined();
             expect(diff!.length).toBe(1);
-            const item0 = diff!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = diff!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(-1); // Inverted
         });
 
@@ -540,7 +540,7 @@ describe('Concrete FacetList Classes', () => {
             const diff = base.diff(incoming);
             expect(diff).toBeDefined();
             expect(diff!.length).toBe(1);
-            const item0 = diff!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = diff!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(1); // As-is
         });
 
@@ -556,7 +556,7 @@ describe('Concrete FacetList Classes', () => {
             
             const diff = base.diff(incoming);
             expect(diff).toBeDefined();
-            const item0 = diff!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = diff!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(1); // 2 - 1
         });
 
@@ -581,7 +581,7 @@ describe('Concrete FacetList Classes', () => {
             
             const inverted = list.invert();
             expect(inverted.length).toBe(1);
-            const item0 = inverted.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = inverted.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(-1);
         });
 
@@ -592,7 +592,7 @@ describe('Concrete FacetList Classes', () => {
             
             const inverted = list.invert();
             expect(inverted.length).toBe(1);
-            const item0 = inverted.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = inverted.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(1);
         });
 
@@ -616,7 +616,7 @@ describe('Concrete FacetList Classes', () => {
             
             // Note: Current implementation keeps match and payload the same when inverting Replace
             // The reference is inverted (ref arithmetic), but Replace match/payload are preserved
-            const item0 = inverted.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = inverted.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
             expect(item0.payload.toJSON()).toEqual(payloadData.payload);
             expect(item0.matchPayload?.toJSON()).toEqual(matchData.payload);
@@ -630,8 +630,8 @@ describe('Concrete FacetList Classes', () => {
             
             const inverted = list.invert();
             expect(inverted.length).toBe(2);
-            const item1 = inverted.items.find(f => (f as InstanceType<typeof StandardPositionFacet>).reference.key === 'room1') as InstanceType<typeof StandardPositionFacet> | undefined;
-            const item2 = inverted.items.find(f => (f as InstanceType<typeof StandardPositionFacet>).reference.key === 'room2') as InstanceType<typeof StandardPositionFacet> | undefined;
+            const item1 = inverted.items.find(f => (f as StandardPositionFacet).reference.key === 'room1') as StandardPositionFacet | undefined;
+            const item2 = inverted.items.find(f => (f as StandardPositionFacet).reference.key === 'room2') as StandardPositionFacet | undefined;
             expect(item1?.ref).toBe(-1);
             expect(item2?.ref).toBe(1);
         });
@@ -664,7 +664,7 @@ describe('Concrete FacetList Classes', () => {
             ]);
             
             const mapped = list.mapContents((facet) => {
-                const facetTyped = facet as InstanceType<typeof StandardPositionFacet>;
+                const facetTyped = facet as StandardPositionFacet;
                 const newPayload: PositionPayload = {
                     type: 'PositionFacet',
                     x: facetTyped.payload.x * 2,
@@ -678,7 +678,7 @@ describe('Concrete FacetList Classes', () => {
             });
             
             expect(mapped.length).toBe(1);
-            const mappedItem = mapped.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const mappedItem = mapped.items[0] as StandardPositionFacet;
             expect(mappedItem.payload.x).toBe(20);
             expect(mappedItem.payload.y).toBe(40);
         });
@@ -738,12 +738,12 @@ describe('Concrete FacetList Classes', () => {
             
             const merged = base.merge(incoming);
             expect(merged).toBeDefined();
-            const mergedItem0 = merged!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const mergedItem0 = merged!.items[0] as StandardPositionFacet;
             expect(mergedItem0.ref).toBe(3); // 1 + 2
             
             const diff = base.diff(incoming);
             expect(diff).toBeDefined();
-            const diffItem0 = diff!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const diffItem0 = diff!.items[0] as StandardPositionFacet;
             expect(diffItem0.ref).toBe(1); // 2 - 1
         });
 
@@ -760,12 +760,12 @@ describe('Concrete FacetList Classes', () => {
             
             const merged = base.merge(incoming);
             expect(merged).toBeDefined();
-            const mergedItem0 = merged!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const mergedItem0 = merged!.items[0] as StandardPositionFacet;
             expect(mergedItem0.isReplace).toBe(true);
             
             const diff = base.diff(incoming);
             expect(diff).toBeDefined();
-            const diffItem0 = diff!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const diffItem0 = diff!.items[0] as StandardPositionFacet;
             expect(diffItem0.isReplace).toBe(true);
         });
 
@@ -783,7 +783,7 @@ describe('Concrete FacetList Classes', () => {
             const merged = base.merge(incoming);
             // Ref cancels (1 + -1 = 0), but payloads differ, so should create Replace
             expect(merged).toBeDefined();
-            const item0 = merged!.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = merged!.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
         });
 
@@ -793,7 +793,7 @@ describe('Concrete FacetList Classes', () => {
             ]);
             
             const inverted = list.invert();
-            const invertedItem0 = inverted.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const invertedItem0 = inverted.items[0] as StandardPositionFacet;
             expect(invertedItem0.ref).toBe(-1);
             
             // Test Replace inversion
@@ -812,7 +812,7 @@ describe('Concrete FacetList Classes', () => {
             }]);
             
             const invertedReplace = replaceList.invert();
-            const replaceItem0 = invertedReplace.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const replaceItem0 = invertedReplace.items[0] as StandardPositionFacet;
             expect(replaceItem0.isReplace).toBe(true);
             // Note: Current implementation preserves match/payload order when inverting Replace
             // The reference ref is inverted, but Replace match/payload are kept as-is
@@ -830,8 +830,8 @@ describe('Concrete FacetList Classes', () => {
             // So the result won't be equal, but the items should have doubled refs
             expect(merged).toBeDefined();
             expect(merged!.length).toBe(1);
-            const mergedItem0 = merged!.items[0] as InstanceType<typeof StandardPositionFacet>;
-            const listItem0 = list.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const mergedItem0 = merged!.items[0] as StandardPositionFacet;
+            const listItem0 = list.items[0] as StandardPositionFacet;
             expect(mergedItem0.ref).toBe(2); // 1 + 1
             expect(mergedItem0.payload.toJSON()).toEqual(listItem0.payload.toJSON());
         });
@@ -854,7 +854,7 @@ describe('Concrete FacetList Classes', () => {
             ]);
             
             // TypeScript should allow access to PositionPayload properties
-            const item0 = list.items[0] as InstanceType<typeof StandardPositionFacet>;
+            const item0 = list.items[0] as StandardPositionFacet;
             expect(item0.payload.x).toBe(10);
             expect(item0.payload.y).toBe(20);
             expect(item0.payload.toJSON().type).toBe('PositionFacet');
@@ -866,7 +866,7 @@ describe('Concrete FacetList Classes', () => {
             ]);
             
             // TypeScript should allow access to MarkFacetPayload properties
-            const item0 = list.items[0] as InstanceType<typeof StandardMarkFacet>;
+            const item0 = list.items[0] as StandardMarkFacet;
             expect(item0.payload.narrative).toBe('A dark room');
             expect(item0.payload.toJSON().type).toBe('MarkFacet');
         });

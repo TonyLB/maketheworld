@@ -12,7 +12,7 @@ import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaRoom, isSchemaExit } from "@tonylb/mtw-base/ts/schema/components";
 import { isSchemaMark } from "@tonylb/mtw-base/ts/schema/worldState";
-import { StandardFacetData, isStandardFacetData, isPositionPayload, isMarkFacetPayload, isExitPayload } from "./dataTypes/facet";
+import { StandardFacetData, isStandardFacetData, isPositionPayload, isMarkFacetPayload, isExitPayload, PositionPayload, MarkFacetPayload, ExitPayload } from "./dataTypes/facet";
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { isSchemaTreeNode } from "../../../schema";
 import { StandardPositionFacet } from "./position";
@@ -41,18 +41,18 @@ import { StandardExitFacet } from "./exit";
  * const schema = treeFromWML('<Room key=(room1)><Position x={10} y={20} /></Room>');
  * const facet = standardFacetFactory(schema); // Returns StandardPositionFacet
  */
-export const standardFacetFactory = (arg: StandardFacetData | GenericTree<SchemaTag>): InstanceType<typeof StandardPositionFacet> | InstanceType<typeof StandardMarkFacet> | InstanceType<typeof StandardExitFacet> | undefined => {
+export const standardFacetFactory = (arg: StandardFacetData | GenericTree<SchemaTag>): StandardPositionFacet | StandardMarkFacet | StandardExitFacet | undefined => {
     // For JSON data (StandardFacetData), check payload type using payload type guards
     // GenericTree is an array, so check if it's NOT an array first
     if (!Array.isArray(arg) && isStandardFacetData(arg)) {
         if (isPositionPayload(arg.payload)) {
-            return new StandardPositionFacet(arg);
+            return new StandardPositionFacet(arg as StandardFacetData<PositionPayload>);
         }
         if (isMarkFacetPayload(arg.payload)) {
-            return new StandardMarkFacet(arg);
+            return new StandardMarkFacet(arg as StandardFacetData<MarkFacetPayload>);
         }
         if (isExitPayload(arg.payload)) {
-            return new StandardExitFacet(arg);
+            return new StandardExitFacet(arg as StandardFacetData<ExitPayload>);
         }
     }
     
