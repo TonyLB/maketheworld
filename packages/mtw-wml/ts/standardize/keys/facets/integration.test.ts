@@ -21,7 +21,7 @@ describe('Facet Integration Tests', () => {
     };
 
     // Test helper functions
-    const createPositionFacet = (reference: StandardReference, x: number, y: number): InstanceType<typeof StandardPositionFacet> => {
+    const createPositionFacet = (reference: StandardReference, x: number, y: number): StandardPositionFacet => {
         const payload: PositionPayload = {
             type: 'PositionFacet',
             x,
@@ -33,7 +33,7 @@ describe('Facet Integration Tests', () => {
         });
     };
 
-    const createMarkFacet = (reference: StandardReference, narrative: string): InstanceType<typeof StandardMarkFacet> => {
+    const createMarkFacet = (reference: StandardReference, narrative: string): StandardMarkFacet => {
         const payload: MarkFacetPayload = {
             type: 'MarkFacet',
             narrative
@@ -44,7 +44,7 @@ describe('Facet Integration Tests', () => {
         });
     };
 
-    const createExitFacet = (reference: StandardReference, description?: string): InstanceType<typeof StandardExitFacet> => {
+    const createExitFacet = (reference: StandardReference, description?: string): StandardExitFacet => {
         const payload: ExitPayload = {
             type: 'ExitFacet',
             description
@@ -55,7 +55,7 @@ describe('Facet Integration Tests', () => {
         });
     };
 
-    const parseWMLToFacet = (wml: string, payloadType: 'Position' | 'Mark' | 'Exit'): InstanceType<typeof StandardPositionFacet> | InstanceType<typeof StandardMarkFacet> | InstanceType<typeof StandardExitFacet> => {
+    const parseWMLToFacet = (wml: string, payloadType: 'Position' | 'Mark' | 'Exit'): StandardPositionFacet | StandardMarkFacet | StandardExitFacet => {
         const schema = treeFromWML(deIndentWML(wml));
         if (schema.length === 0) {
             throw new Error('Empty schema');
@@ -95,7 +95,7 @@ describe('Facet Integration Tests', () => {
         throw new Error(`Unknown payload type: ${payloadType}`);
     };
 
-    const facetToWML = (facet: InstanceType<typeof StandardPositionFacet> | InstanceType<typeof StandardMarkFacet> | InstanceType<typeof StandardExitFacet>): string => {
+    const facetToWML = (facet: StandardPositionFacet | StandardMarkFacet | StandardExitFacet): string => {
         const renderResult = facet.renderFacet();
         if (renderResult.aggregatedNode) {
             return schemaToWML([renderResult.aggregatedNode]);
@@ -131,7 +131,7 @@ describe('Facet Integration Tests', () => {
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
                 expect(facet.payload.toJSON().type).toBe('PositionFacet');
-                const positionFacet = facet as InstanceType<typeof StandardPositionFacet>;
+                const positionFacet = facet as StandardPositionFacet;
                 expect(positionFacet.payload.x).toBe(10);
                 expect(positionFacet.payload.y).toBe(20);
                 
@@ -149,7 +149,7 @@ describe('Facet Integration Tests', () => {
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
                 expect(facet.payload.toJSON().type).toBe('PositionFacet');
-                const positionFacet = facet as InstanceType<typeof StandardPositionFacet>;
+                const positionFacet = facet as StandardPositionFacet;
                 expect(positionFacet.payload.x).toBe(15);
                 expect(positionFacet.payload.y).toBe(25);
                 
@@ -166,7 +166,7 @@ describe('Facet Integration Tests', () => {
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
                 expect(facet.payload.toJSON().type).toBe('MarkFacet');
-                const markFacet = facet as InstanceType<typeof StandardMarkFacet>;
+                const markFacet = facet as StandardMarkFacet;
                 expect(markFacet.payload.narrative).toBe('Condition text');
                 
                 const generatedWML = facetToWML(facet);
@@ -180,7 +180,7 @@ describe('Facet Integration Tests', () => {
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
                 expect(facet.payload.toJSON().type).toBe('MarkFacet');
-                const markFacet = facet as InstanceType<typeof StandardMarkFacet>;
+                const markFacet = facet as StandardMarkFacet;
                 expect(markFacet.payload.narrative).toBe('');
                 
                 const generatedWML = facetToWML(facet);
@@ -196,7 +196,7 @@ describe('Facet Integration Tests', () => {
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
                 expect(facet.payload.toJSON().type).toBe('ExitFacet');
-                const exitFacet = facet as InstanceType<typeof StandardExitFacet>;
+                const exitFacet = facet as StandardExitFacet;
                 expect(exitFacet.payload.description).toBe('North Exit');
                 
                 const generatedWML = facetToWML(facet);
@@ -210,7 +210,7 @@ describe('Facet Integration Tests', () => {
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
                 expect(facet.payload.toJSON().type).toBe('ExitFacet');
-                const exitFacet = facet as InstanceType<typeof StandardExitFacet>;
+                const exitFacet = facet as StandardExitFacet;
                 expect(exitFacet.payload.description).toBeUndefined();
                 
                 const generatedWML = facetToWML(facet);
@@ -238,7 +238,7 @@ describe('Facet Integration Tests', () => {
             it('should handle empty Match tag (empty narrative)', () => {
                 const wml = '<Mark uuid=(test2)><Match></Match></Mark>';
                 const facet = parseWMLToFacet(wml, 'Mark');
-                const markFacet = facet as InstanceType<typeof StandardMarkFacet>;
+                const markFacet = facet as StandardMarkFacet;
                 expect(markFacet.payload.narrative).toBe('');
             });
 
@@ -253,7 +253,7 @@ describe('Facet Integration Tests', () => {
             it('should handle empty Exit tag content (undefined description)', () => {
                 const wml = '<Exit to=(ROOM#target1) />';
                 const facet = parseWMLToFacet(wml, 'Exit');
-                const exitFacet = facet as InstanceType<typeof StandardExitFacet>;
+                const exitFacet = facet as StandardExitFacet;
                 expect(exitFacet.payload.description).toBeUndefined();
             });
 

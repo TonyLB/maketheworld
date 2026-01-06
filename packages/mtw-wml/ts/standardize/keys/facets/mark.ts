@@ -4,7 +4,7 @@ import { StandardEditablePayload, standardEditableFactory } from "../../../gener
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../../lib/objects";
 import { StandardReference } from "../reference";
-import type { MarkFacetPayload as MarkFacetPayloadType } from "./dataTypes/facet";
+import type { MarkFacetPayload as MarkFacetPayloadType, StandardFacetData } from "./dataTypes/facet";
 import { isMarkFacetPayload } from "./dataTypes/facet";
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
@@ -230,8 +230,26 @@ export const {
     diff: standardMarkFacetPayloadDiff
 });
 
-export const StandardMarkFacet = facetClassFactory(MarkFacetPayload, 'MarkFacet');
+export class StandardMarkFacet extends facetClassFactory(MarkFacetPayload, 'MarkFacet') {
+    constructor(
+        props: StandardFacetData<MarkFacetPayloadType> | StandardMarkFacet | { tag: 'Replace'; match: StandardFacetData<MarkFacetPayloadType>; payload: StandardFacetData<MarkFacetPayloadType> } | GenericTree<SchemaTag> | string
+    ) {
+        super(props);
+    }
+
+    override _wrap(instance: any): this {
+        return new StandardMarkFacet(instance as StandardMarkFacet) as this;
+    }
+}
 
 // Create concrete list class for MarkFacet
 import { facetListClassFactory } from './facetListFactory';
-export const MarkFacetList = facetListClassFactory(StandardMarkFacet, 'MarkFacetList');
+export class MarkFacetList extends facetListClassFactory(StandardMarkFacet, 'MarkFacetList') {
+    constructor(arg: any) {
+        super(arg);
+    }
+
+    override _wrap(instance: any): this {
+        return new MarkFacetList(instance as MarkFacetList) as this;
+    }
+}
