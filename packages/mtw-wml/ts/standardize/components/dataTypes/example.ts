@@ -1,14 +1,15 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards"
-import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
+import { FacetListData } from "../../keys/abstract"
+import { MarkFacetPayload } from "../../keys/facets/dataTypes/facet"
 
 export type StandardExampleData = {
     tag: 'Example';
     name?: RenderTree;
     summary?: RenderTree;
     description?: RenderTree;
+    marks?: FacetListData<MarkFacetPayload>;
 } & StandardBaseData
 
 export type StandardExampleNDJSONData = {
@@ -16,6 +17,7 @@ export type StandardExampleNDJSONData = {
     name?: RenderTree;
     summary?: RenderTree;
     description?: RenderTree;
+    marks?: FacetListData<MarkFacetPayload>;
 } & StandardBaseData
 
 export const isStandardExampleData = (arg: any): arg is StandardExampleData => {
@@ -31,7 +33,8 @@ export const isStandardExampleData = (arg: any): arg is StandardExampleData => {
             universalKey: 'string',
             name: 'renderTree',
             summary: 'renderTree',
-            description: 'renderTree'
+            description: 'renderTree',
+            marks: 'facetList'
         })
     )
 }

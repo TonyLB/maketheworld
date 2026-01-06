@@ -645,17 +645,20 @@ Applying this pattern to facets will:
 3. Example zippers enhanced Mark references (`aggregatedNode` from facets) with any new nodes (Exit-style facets would return `newNode`, but Mark facets don't)
 4. Example returns final schema with enhanced Mark references
 
-1. **Add FacetList to Example component**
-   - Add `marks: FacetList<MarkFacetPayload>` field to `StandardExamplePayload` in `components/example.ts`
-   - Update `StandardExampleData` type in `dataTypes/example.ts` to include marks
-   - Implement serialization/deserialization:
-     - Update `fromJSON()`: Parse marks from JSON data
-     - Update `toJSON()`: Serialize marks to JSON
-     - Update `fromSchema()`: Parse Mark Facets from WML schema (Example tag with Mark children that have Match children)
-       - Use `MarkFacetPayload.fromSchema()` to parse each Mark facet
-       - Separate Mark references (for reference list) from Mark facets (for facet list)
-     - Update `schema()`: Generate marks reference list schema (just reference renders, no facets yet)
-   - Update merge/diff/invert operations to handle FacetList operations
+1. ✅ **Add FacetList to Example component** - **COMPLETED**
+   - ✅ Add `marks: MarkFacetList` field to `StandardExamplePayload` in `components/example.ts`
+   - ✅ Update `StandardExampleData` type in `dataTypes/example.ts` to include marks
+   - ✅ Add `facetList` type support to `typeguards.ts` for validation
+   - ✅ Implement serialization/deserialization:
+     - ✅ Update `fromJSON()`: Parse marks from JSON data
+     - ✅ Update `toJSON()`: Serialize marks to JSON (omits when empty)
+     - ✅ Update `fromSchema()`: Parse Mark Facets from WML schema (Example tag with Mark children that have Match children)
+       - ✅ Use `MarkFacetPayload.fromSchema()` to parse each Mark facet
+       - ✅ Only parse Marks with Match children as facets (plain Mark references not parsed as facets)
+     - ✅ Update `schema()`: Generate marks reference list schema (just reference renders, no Match children yet)
+   - ✅ Update merge/invert/mapContents/remapReferences/referencedKeys/isEmpty operations to handle FacetList
+   - ✅ Add marks getter to `StandardExample` component class
+   - ✅ Write comprehensive unit tests covering all MarkFacetList functionality
 
 2. **Implement parent component orchestration in Example.nestedSchema()**
    - Update `StandardExamplePayload.nestedSchema()` in `components/example.ts`:
@@ -698,6 +701,15 @@ Applying this pattern to facets will:
      - Reference list rendered first
      - Facet rendering applied to reference renders
      - Final schema has enhanced references
+
+5. **Investigate facet representation in referencedKeys()**
+   - Review current implementation: facets are represented as regular references (Link type) in `referencedKeys()`
+   - Consider whether facets need distinct representation:
+     - Facets carry additional payload data beyond plain references
+     - May need different reference type (e.g., `'Facet'`) or different structure
+     - Evaluate if payload data should be included in reference tracking
+   - Determine if current approach (treating facets as Links) is sufficient or if changes are needed
+   - Document findings and any necessary changes to reference tracking system
 
 **Success Criteria**:
 - Example component has `marks: FacetList<MarkFacetPayload>` field

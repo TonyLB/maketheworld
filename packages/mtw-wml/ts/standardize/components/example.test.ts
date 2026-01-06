@@ -5,6 +5,7 @@ import { StandardExampleData } from "./dataTypes/example"
 import StandardExample from './example'
 import StandardReference from "../keys/reference"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { StandardMarkFacet } from "../keys/facets/mark"
 
 const mergeTest = (base: string, incoming: string): string => {
     const baseStandard = new StandardExample(deIndentWML(base))
@@ -238,5 +239,368 @@ describe('StandardExample class', () => {
                 </Description>
             </Example>
         `))
+    })
+
+    describe('MarkFacetList functionality', () => {
+        it('should construct StandardExample from WML with Mark facets', () => {
+            const testSource = deIndentWML(`
+                <Example uuid=(123) key=(test)>
+                    <Name>Name Test</Name>
+                    <Mark uuid=(MARK#mark1)><Match>Condition narrative</Match></Mark>
+                </Example>
+            `)
+            const testExample = new StandardExample(testSource)
+            expect(testExample.key).toEqual('test')
+            expect(testExample.marks.length).toEqual(1)
+            const facet = testExample.marks.items[0] as StandardMarkFacet
+            expect((facet.reference as StandardReference).universalKey).toEqual('MARK#mark1')
+            expect(facet.payload.narrative).toEqual('Condition narrative')
+        })
+
+        it('should construct StandardExample from JSON with marks field', () => {
+            const testExampleData: StandardExampleData = {
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                }]
+            }
+            const testExample = new StandardExample(testExampleData)
+            expect(testExample.key).toEqual('test')
+            expect(testExample.marks.length).toEqual(1)
+            const facet = testExample.marks.items[0] as StandardMarkFacet
+            expect((facet.reference as StandardReference).universalKey).toEqual('MARK#mark1')
+            expect(facet.payload.narrative).toEqual('Condition narrative')
+        })
+
+        it('should handle empty marks array in JSON', () => {
+            const testExampleData: StandardExampleData = {
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: []
+            }
+            const testExample = new StandardExample(testExampleData)
+            expect(testExample.marks.length).toEqual(0)
+        })
+
+        it('should handle undefined marks in JSON', () => {
+            const testExampleData: StandardExampleData = {
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test']
+            }
+            const testExample = new StandardExample(testExampleData)
+            expect(testExample.marks.length).toEqual(0)
+        })
+
+        it('should serialize marks to JSON when non-empty', () => {
+            const testExample = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                }]
+            })
+            const json = testExample.toJSON() as StandardExampleData
+            expect(json.marks).toBeDefined()
+            expect(json.marks?.length).toEqual(1)
+        })
+
+        it('should omit marks from JSON when empty', () => {
+            const testExample = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test']
+            })
+            const json = testExample.toJSON() as StandardExampleData
+            expect(json.marks).toBeUndefined()
+        })
+
+        it('should generate plain Mark reference renders in schema (no Match children)', () => {
+            const testSource = deIndentWML(`
+                <Example uuid=(123) key=(test)>
+                    <Name>Name Test</Name>
+                    <Mark uuid=(MARK#mark1)><Match>Condition narrative</Match></Mark>
+                </Example>
+            `)
+            const testExample = new StandardExample(testSource)
+            const schema = testExample.schema
+            // Schema should contain plain Mark reference (no Match child in schema output)
+            const markChildren = schema.children.filter((child: any) => child.data?.tag === 'Mark')
+            expect(markChildren.length).toBeGreaterThan(0)
+            // The Mark should not have Match children in schema (that's for nestedSchema in Task 2)
+            const markNode = markChildren[0]
+            const hasMatch = markNode.children?.some((child: any) => child.data?.tag === 'Match')
+            expect(hasMatch).toBeFalsy()
+        })
+
+        it('should merge Examples with marks', () => {
+            const base = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Base narrative' }
+                }]
+            })
+            const incoming = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark2', universalKey: 'MARK#mark2' },
+                    payload: { type: 'MarkFacet', narrative: 'Incoming narrative' }
+                }]
+            })
+            const merged = base.merge(incoming) as StandardExample
+            expect(merged?.marks.length).toEqual(2)
+        })
+
+        it('should merge Example with marks into Example without marks', () => {
+            const base = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test']
+            })
+            const incoming = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Incoming narrative' }
+                }]
+            })
+            const merged = base.merge(incoming) as StandardExample
+            expect(merged?.marks.length).toEqual(1)
+        })
+
+        it('should merge Example without marks into Example with marks', () => {
+            const base = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Base narrative' }
+                }]
+            })
+            const incoming = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test']
+            })
+            const merged = base.merge(incoming) as StandardExample
+            expect(merged?.marks.length).toEqual(1)
+        })
+
+        it('should diff Examples with different marks', () => {
+            const base = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Base narrative' }
+                }]
+            })
+            const incoming = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark2', universalKey: 'MARK#mark2' },
+                    payload: { type: 'MarkFacet', narrative: 'Incoming narrative' }
+                }]
+            })
+            const diff = base.diff(incoming) as StandardExample | undefined
+            expect(diff).toBeDefined()
+            if (diff) {
+                const diffJSON = diff.toJSON() as StandardExampleData
+                expect(diffJSON.marks).toBeDefined()
+            }
+        })
+
+        it('should diff Example with marks vs Example without marks', () => {
+            const base = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Base narrative' }
+                }]
+            })
+            const incoming = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test']
+            })
+            const diff = base.diff(incoming) as StandardExample | undefined
+            expect(diff).toBeDefined()
+        })
+
+        it('should diff identical marks (should return undefined)', () => {
+            const base = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Same narrative' }
+                }]
+            })
+            const incoming = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Same narrative' }
+                }]
+            })
+            const diff = base.diff(incoming) as StandardExample | undefined
+            // If marks are identical, diff might still return something for other fields
+            // But marks should not be in the diff
+            if (diff) {
+                const diffJSON = diff.toJSON() as StandardExampleData
+                // Marks should not appear if they're identical
+                expect(diffJSON.marks).toBeUndefined()
+            }
+        })
+
+        it('should invert Example with marks', () => {
+            const testExample = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                }]
+            })
+            const inverted = testExample.invert() as StandardExample
+            // Marks are inverted (creates Remove operations with ref=-1)
+            expect(inverted.marks.length).toEqual(1)
+            const invertedFacet = inverted.marks.items[0] as StandardMarkFacet
+            expect(invertedFacet.ref).toEqual(-1)
+        })
+
+        it('should apply mapContents to marks', () => {
+            const testExample = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                }]
+            })
+            const callback = (tree: any) => tree // Identity callback
+            const mapped = testExample.mapContents(callback) as StandardExample
+            expect(mapped.marks.length).toEqual(1)
+        })
+
+        it('should remap references in marks', () => {
+            const testExample = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                }]
+            })
+            const mappings = [new StandardReference({ key: 'mark1', tag: 'Mark', universalKey: 'MARK#mark1' })]
+            const remapped = testExample.withMapping(mappings).remapReferences('universal') as StandardExample
+            const remappedFacet = remapped.marks.items[0] as StandardMarkFacet
+            expect((remappedFacet.reference as StandardReference).universalKey).toEqual('MARK#mark1')
+        })
+
+        it('should include marks in referencedKeys', () => {
+            const testExample = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                }]
+            })
+            const referencedKeys = testExample.referencedKeys()
+            const markKeys = referencedKeys.filter(key => key.reference.tag === 'Mark')
+            expect(markKeys.length).toBeGreaterThan(0)
+        })
+
+        it('should not parse Mark tags without Match children as facets', () => {
+            const testSource = deIndentWML(`
+                <Example uuid=(123) key=(test)>
+                    <Name>Name Test</Name>
+                    <Mark uuid=(MARK#mark1) />
+                </Example>
+            `)
+            const testExample = new StandardExample(testSource)
+            // Mark without Match child should not be parsed as facet
+            expect(testExample.marks.length).toEqual(0)
+        })
+
+        it('should handle Example with multiple Mark facets', () => {
+            const testSource = deIndentWML(`
+                <Example uuid=(123) key=(test)>
+                    <Name>Name Test</Name>
+                    <Mark uuid=(MARK#mark1)><Match>First condition</Match></Mark>
+                    <Mark uuid=(MARK#mark2)><Match>Second condition</Match></Mark>
+                </Example>
+            `)
+            const testExample = new StandardExample(testSource)
+            expect(testExample.marks.length).toEqual(2)
+            const facet0 = testExample.marks.items[0] as StandardMarkFacet
+            const facet1 = testExample.marks.items[1] as StandardMarkFacet
+            expect(facet0.payload.narrative).toEqual('First condition')
+            expect(facet1.payload.narrative).toEqual('Second condition')
+        })
+
+        it('should handle Example with both name/summary/description AND marks', () => {
+            const testExample = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                summary: ['Summary Test'],
+                description: ['Description Test'],
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                }]
+            })
+            expect(testExample.name?.toJSON()).toEqual(['Name Test'])
+            expect(testExample.summary?.toJSON()).toEqual(['Summary Test'])
+            expect(testExample.description?.toJSON()).toEqual(['Description Test'])
+            expect(testExample.marks.length).toEqual(1)
+        })
+
+        it('should consider marks in isEmpty check', () => {
+            const emptyExample = new StandardExample({
+                key: 'test',
+                tag: 'Example'
+            })
+            expect(emptyExample.isEmpty()).toBe(true)
+
+            const exampleWithMarks = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                }]
+            })
+            // isEmpty() checks name/summary/description AND marks
+            expect(exampleWithMarks.isEmpty()).toBe(false)
+        })
     })
 })
