@@ -557,11 +557,12 @@ Applying this pattern to facets will:
    - ✅ Removed type guard tests (no longer needed with concrete types)
    - **Design Decision**: Each list class stores a specific concrete facet type (no generics), providing compile-time type safety without runtime type guards. This simplifies the codebase significantly compared to the generic approach (removes ~50 lines of validation/type-guard code).
 
-6. **Update all StandardFacet consumers**
-   - Update tests to use concrete facet classes where appropriate
-   - Update integration tests to use `standardFacetFactory` for construction
-   - Update any code that constructs facets directly (if any exists)
-   - Ensure backward compatibility where possible (factory function can be used as drop-in replacement)
+6. ✅ **Update all StandardFacet consumers**
+   - ✅ Updated `facet.test.ts` to use concrete facet classes (`StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet`) instead of generic `StandardFacet<TPayload>`
+   - ✅ Updated `integration.test.ts` helper functions to use concrete facet classes
+   - ✅ All test files now use concrete classes directly (payload type is known at test definition time)
+   - ✅ Type annotations updated to use concrete types or union types
+   - **Note**: The generic `FacetList` class in `facetList.ts` still uses `new StandardFacet()` internally, but this will be addressed in sub-task 7 when the generic `StandardFacet` class is removed
 
 7. **Remove generic StandardFacet implementation**
    - Remove old `StandardFacet<TPayload>` generic class from `keys/facet.ts`
