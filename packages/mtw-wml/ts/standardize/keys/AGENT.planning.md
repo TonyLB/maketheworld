@@ -564,12 +564,15 @@ Applying this pattern to facets will:
    - ✅ Type annotations updated to use concrete types or union types
    - **Note**: The generic `FacetList` class in `facetList.ts` still uses `new StandardFacet()` internally, but this will be addressed in sub-task 7 when the generic `StandardFacet` class is removed
 
-7. **Remove generic StandardFacet implementation**
-   - Remove old `StandardFacet<TPayload>` generic class from `keys/facet.ts`
-   - Remove `_instantiatePayloadClass()` helper method
-   - Remove `_asEditablePayload()` helper method
-   - Remove all type casts (`as FacetPayloadBase`, `as unknown as StandardEditablePayload`, etc.)
-   - Clean up imports and type definitions
+7. ✅ **Remove generic StandardFacet implementation**
+   - ✅ Removed generic `StandardFacet<TPayload>` class from `keys/facets/facet.ts` (file deleted)
+   - ✅ Removed generic `FacetList<TPayload>` class from `keys/facets/facetList.ts` (file deleted)
+   - ✅ Removed `_instantiatePayloadClass()` helper method (eliminated with generic class)
+   - ✅ Removed `_asEditablePayload()` helper method (eliminated with generic class)
+   - ✅ Removed all type casts (`as FacetPayloadBase`, `as unknown as StandardEditablePayload`, etc.)
+   - ✅ Cleaned up exports in `keys/index.ts` (removed generic class exports)
+   - ✅ Interface definitions in `abstract.ts` remain (useful as type definitions for concrete classes)
+   - **Note**: Concrete facet classes (`StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet`) and concrete list classes (`PositionFacetList`, `MarkFacetList`, `ExitFacetList`) are now the standard implementation. Factory pattern is the standard approach.
 
 8. **Update type definitions and interfaces**
    - Update `StandardFacet` type/interface definition in `keys/abstract.ts` if needed

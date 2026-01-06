@@ -111,7 +111,7 @@ describe('StandardFacet (concrete classes)', () => {
         it('should throw error for invalid argument', () => {
             expect(() => {
                 new StandardPositionFacet({ invalid: 'data' } as any);
-            }).toThrow('Invalid argument to StandardFacet constructor');
+            }).toThrow('Invalid argument to PositionFacet constructor');
         });
     });
 
