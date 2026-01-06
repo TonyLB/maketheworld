@@ -574,25 +574,40 @@ Applying this pattern to facets will:
    - ✅ Interface definitions in `abstract.ts` remain (useful as type definitions for concrete classes)
    - **Note**: Concrete facet classes (`StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet`) and concrete list classes (`PositionFacetList`, `MarkFacetList`, `ExitFacetList`) are now the standard implementation. Factory pattern is the standard approach.
 
-8. **Update type definitions and interfaces**
-   - Update `StandardFacet` type/interface definition in `keys/abstract.ts` if needed
-   - Update exports in `keys/index.ts` to export concrete classes and factory
-   - Ensure `StandardFacetData` type still works correctly
-   - Update any type guards that reference `StandardFacet<TPayload>`
+8. ✅ **Update type definitions and interfaces**
+   - ✅ Updated `StandardFacet` interface in `keys/abstract.ts` to match concrete implementations:
+     - ✅ Removed `schema` property and `nestedSchema()` method (replaced with `renderFacet()`)
+     - ✅ Added `renderFacet()` method signature for parent component orchestration
+     - ✅ Added `isReplace` and `matchPayload` properties for Replace operations
+     - ✅ Updated `toJSON()` return type to include Replace structure
+     - ✅ Updated `diff()` method signature to accept `undefined` parameter
+     - ✅ Updated `toFormat()` method signature to include optional `mappings` parameter
+   - ✅ Verified `FacetList` interface matches concrete list class implementations (no changes needed)
+   - ✅ Verified exports in `keys/index.ts` are correct and complete (all concrete classes and factories exported)
+   - ✅ Verified `StandardFacetData` type works correctly with concrete classes (no changes needed)
+   - ✅ Verified no type guards reference `StandardFacet<TPayload>` (only payload/data type guards exist)
+   - **Note**: Interface definitions remain generic (using `TPayload` type parameter) since they're type definitions for concrete classes to implement
 
-9. **Write comprehensive tests**
-   - Test concrete facet class construction from various formats
-   - Test `standardFacetFactory` dispatcher with all payload types
-   - Test `FacetList` with concrete facet types
-   - Test backward compatibility (construction patterns still work)
-   - Test serialization/deserialization with concrete types
-   - Verify all existing tests still pass (may need updates for concrete types)
+9. ✅ **Write comprehensive tests**
+   - ✅ Verified test coverage for concrete facet class construction from various formats (`facet.test.ts` - covers StandardFacetData, Replace JSON structure, cloning, error cases for all payload types)
+   - ✅ Verified test coverage for `standardFacetFactory` dispatcher with all payload types (`facetFactory.test.ts` - covers Position/Mark/Exit payloads, JSON data input, schema tree input, error cases)
+   - ✅ Verified test coverage for `FacetList` with concrete facet types (`facetList.test.ts` - covers PositionFacetList, MarkFacetList, ExitFacetList, serialization, merge/diff/invert, transform operations)
+   - ✅ Verified test coverage for backward compatibility (construction patterns - StandardFacetData, Replace structure, cloning all work as expected)
+   - ✅ Verified test coverage for serialization/deserialization with concrete types (`integration.test.ts` - covers round-trip WML parsing/generation for all payload types, renderFacet() tests)
+   - ✅ All existing tests pass (tests were already updated in sub-task 6 to use concrete classes, integration tests from Phase 5 Task 6)
+   - **Note**: Comprehensive test coverage was established in previous tasks (sub-task 6 for concrete class tests, Phase 5 Task 6 for integration tests). This task verified completeness and that all tests pass.
 
-10. **Update documentation**
-   - Update `AGENT.facets.md` to document factory pattern
-   - Update examples to use concrete facet classes or factory function
-   - Document migration from generic to concrete types (if needed)
-   - Update any architectural diagrams or descriptions
+10. ✅ **Update documentation**
+   - ✅ Updated `AGENT.facets.md` to reflect completed implementation:
+     - ✅ Removed outdated status information ("implementation not yet created", etc.)
+     - ✅ Updated Technical Details section to reference concrete classes and implementation files
+     - ✅ Updated Usage Patterns section to mention concrete classes and `standardFacetFactory`
+     - ✅ Updated Development Notes to reflect current state (Phase 1-5 complete)
+     - ✅ Updated Design Decisions section (payload storage now uses class instances)
+     - ✅ Removed references to generic design, updated to reflect concrete classes via factory pattern
+   - ✅ Documentation remains focused on high-level concepts and usage patterns (no deep implementation details)
+   - ✅ Examples reference concrete classes at conceptual level (implementation details left to code)
+   - **Note**: Documentation style matches `components/AGENT.md` - focused on concepts and usage, not implementation mechanics
 
 **Success Criteria**:
 - ✅ Concrete facet classes (`StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet`) exist and work correctly

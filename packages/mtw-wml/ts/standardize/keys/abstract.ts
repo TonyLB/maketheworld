@@ -1,11 +1,11 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
+import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "../components/dataTypes/abstract";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { StandardReference, LookupMappings } from "./reference";
 import { StandardKey } from "./key";
 import { ReferenceFormat } from "../components/utils/references";
-import { StandardFacetPayload, StandardFacetData } from "./dataTypes/facet";
+import { StandardFacetPayload, StandardFacetData } from "./facets/dataTypes/facet";
 
 /**
  * FacetListData: Serialization format for FacetList collections
@@ -34,24 +34,25 @@ export interface StandardFacet<TPayload extends StandardFacetPayload = StandardF
     
     // Payload access
     readonly payload: TPayload;
+    readonly isReplace: boolean;
+    readonly matchPayload?: TPayload;
     
     // Core operations
     clone(): StandardFacet<TPayload>;
-    toJSON(): StandardFacetData<TPayload>;
+    toJSON(): StandardFacetData<TPayload> | { tag: 'Replace'; match: StandardFacetData<TPayload>; payload: StandardFacetData<TPayload> };
     equals(other: StandardFacet<TPayload>): boolean;
     sameKey(other: StandardFacet<TPayload>): boolean;
     
     // Merge/diff operations (combines ref arithmetic with payload Replace logic)
     merge(incoming: StandardFacet<TPayload>): StandardFacet<TPayload> | undefined;
-    diff(incoming: StandardFacet<TPayload>): StandardFacet<TPayload> | undefined;
+    diff(incoming: StandardFacet<TPayload> | undefined): StandardFacet<TPayload> | undefined;
     invert(): StandardFacet<TPayload>;
     
-    // Schema generation
-    schema: GenericTree<SchemaTag>;
-    nestedSchema(tag: SchemaTag): GenericTree<SchemaTag>;
+    // Facet rendering for parent component orchestration
+    renderFacet(referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> };
     
     // Format conversion
-    toFormat(format: ReferenceFormat): StandardFacet<TPayload>;
+    toFormat(format: ReferenceFormat, mappings?: LookupMappings): StandardFacet<TPayload>;
     lookup(mappings: LookupMappings): StandardFacet<TPayload>;
 }
 

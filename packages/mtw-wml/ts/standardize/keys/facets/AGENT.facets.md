@@ -27,9 +27,11 @@
   - `StandardFacetData<TPayload>` - Serialization format
   - `FacetListData<TPayload>` - Collection serialization format
 - **Core Interfaces**: 
-  - `StandardFacet<TPayload>` - Interface for individual Facets
-  - `FacetList<TPayload>` - Interface for Facet collections
-  - See [`abstract.ts`](./abstract.ts) for interface definitions
+  - `StandardFacet<TPayload>` - Interface for individual Facets (type definition in `abstract.ts`)
+  - `FacetList<TPayload>` - Interface for Facet collections (type definition in `abstract.ts`)
+  - Concrete implementations: `StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet` (facet classes)
+  - Concrete list implementations: `PositionFacetList`, `MarkFacetList`, `ExitFacetList` (list classes)
+  - See [`abstract.ts`](../abstract.ts) for interface definitions
 - **Type Guards**: `isPositionPayload`, `isMarkFacetPayload`, `isExitPayload`, `isStandardFacetPayload`, `isStandardFacetData`
 - **Configuration**: Payloads use discriminator field (`type: 'PositionFacet'`, etc.) for runtime type identification
 
@@ -59,13 +61,15 @@
   - Rooms referencing other Rooms with exit names (Exit Facets)
   - Examples referencing Marks with state descriptions (Mark Facets)
 - **Best Practices**: 
-  - Use type-safe FacetList generics: `FacetList<PositionPayload>`
+  - Use concrete facet classes (`StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet`) or `standardFacetFactory` dispatcher
+  - Use concrete list classes (`PositionFacetList`, `MarkFacetList`, `ExitFacetList`) for type-safe collections
   - Leverage payload type discrimination for runtime validation
   - Compose StandardReference rather than extending it
 - **Code Examples**: 
   - Type definitions in `abstract.ts`
   - Data type examples in `dataTypes/facet.ts`
-  - Implementation examples will be added in Phase 3/4
+  - Implementation examples in `position.ts`, `mark.ts`, `exit.ts`
+  - Test examples in `facet.test.ts`, `facetList.test.ts`, `integration.test.ts`
 
 ## Navigation Tips
 
@@ -73,11 +77,16 @@
   - Read this file for Facet concepts
   - Review [`./AGENT.planning.md`](./AGENT.planning.md) for implementation phases
   - See [`dataTypes/facet.ts`](./dataTypes/facet.ts) for serialization types
-  - Check [`abstract.ts`](./abstract.ts) for interface definitions
+  - Check [`../abstract.ts`](../abstract.ts) for interface definitions
 - **Key Files**: 
   - `dataTypes/facet.ts` - Payload types and type guards
   - `dataTypes/facet.test.ts` - Type guard tests
-  - `abstract.ts` - Interface definitions
+  - `abstract.ts` - Interface type definitions
+  - `position.ts` - StandardPositionFacet and PositionFacetList implementations
+  - `mark.ts` - StandardMarkFacet and MarkFacetList implementations
+  - `exit.ts` - StandardExitFacet and ExitFacetList implementations
+  - `facetFactory.ts` - Factory functions for creating facets
+  - `standardFacetFactory.ts` - Dispatcher function for creating facets from data
 - **Related Documentation**: 
   - [`./AGENT.md`](./AGENT.md) - Keys directory overview
   - [`../components/AGENT.referenceList.md`](../components/AGENT.referenceList.md) - Similar collection patterns
@@ -85,31 +94,24 @@
 ## Development Notes
 
 - **Current State**: 
-  - Phase 1, Item 2: Data types and type guards complete ✅
-  - Phase 1, Item 3: Interface definitions (in progress)
-  - Implementation classes not yet created (Phase 3/4)
-- **Future Plans**: 
-  - Phase 3: Implement StandardFacet class with full functionality
-  - Phase 4: Implement FacetList class
-  - Phase 5: Integrate Facets into component system (Examples initially)
-  - Phase 6: Consider migrating existing patterns (StandardPosition, StandardExit) to Facets
+  - Phase 1-4: Data types, interfaces, and core implementations complete ✅
+  - Phase 5: Payload classes and rendering architecture complete ✅
+  - Concrete facet classes (`StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet`) implemented via factory pattern
+  - Concrete list classes (`PositionFacetList`, `MarkFacetList`, `ExitFacetList`) implemented
+  - Factory pattern implementation complete (uses concrete classes, not generic classes)
 - **Key Differences from References**: 
   - **Payload Data**: Facets carry structured payload data (x/y coordinates, narrative, etc.) while References are just pointers
   - **Replace Operations**: Facets support Replace operations for payload changes; References only support Add/Remove
   - **Type Discrimination**: Facets use discriminator fields (`type: 'PositionFacet'`) in payloads; References use `tag` in the reference itself
   - **Composition**: Facets compose a `StandardReference` rather than extending it
-  - **Generic Design**: Facets are generic over payload type for type safety
+  - **Concrete Classes**: Facets use concrete classes (generated via factory pattern) rather than generic classes for type safety and simplicity
 - **Design Decisions**: 
-  - **Payload Storage**: Payloads are stored as plain JSON data (not payload classes)
-    - **Rationale**: Current payloads are simple flat structures (primitives only: numbers, strings, optional fields)
-    - Merge logic uses Replace semantics (incoming wins) - no complex field-level merging needed
-    - Equality comparison via `JSON.stringify` is sufficient for current requirements
-    - Keeps code lean and avoids unnecessary abstraction
-    - **Future Consideration**: If payloads gain nested structures (e.g., `StandardRender`, `StandardReference`) or require complex merge logic beyond Replace semantics, consider introducing payload classes following the pattern used by component payloads (e.g., `StandardExamplePayload`, `StandardPositionSimpleBase`). This would provide:
-      - Encapsulation of payload-specific merge logic
-      - Schema generation capabilities for complex payloads
-      - Better type safety and validation
-      - Consistency with component payload patterns
-- **Technical Debt**: 
-  - Current ad-hoc patterns (StandardPosition, StandardExit) may be migrated to Facets in Phase 6
-  - Implementation details will be refined during Phase 3/4
+  - **Payload Storage**: Payloads are stored as class instances (payload classes like `PositionPayload`, `MarkFacetPayload`, `ExitPayload`)
+    - Payload classes implement `FacetPayloadBase` interface for rendering and `StandardEditablePayload` for edit operations
+    - Provides encapsulation of payload-specific logic (rendering, schema generation, merge/diff)
+    - Enables schema serialization/deserialization for different facet types
+    - Supports parent component orchestration pattern for facet rendering
+- **Future Plans**: 
+  - Phase 6: Integrate Facets into component system (Examples initially)
+  - Phase 7: Examine edit functionality in facet rendering after real-world usage
+  - Phase 8: Consider migrating existing patterns (StandardPosition, StandardExit) to Facets (optional/deferred)
