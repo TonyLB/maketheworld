@@ -1,6 +1,6 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { StandardReference } from "../reference";
+import { StandardReference } from "../../reference";
 import { StandardFacetPayload } from "./facet";
 
 /**

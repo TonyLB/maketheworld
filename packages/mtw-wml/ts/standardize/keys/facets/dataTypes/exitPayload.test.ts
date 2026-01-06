@@ -1,8 +1,8 @@
-import { ExitPayload, factory, isStandardExitPayloadData, merge, diff } from './exitPayload';
+import { ExitPayload, factory, isStandardExitPayloadData, merge, diff } from '../exit';
 import type { ExitPayload as ExitPayloadType } from './facet';
-import { StandardReference } from '../reference';
-import { treeFromWML } from '../../../schema';
-import { deIndentWML } from '../../../schema/utils';
+import { StandardReference } from '../../reference';
+import { treeFromWML } from '../../../../schema';
+import { deIndentWML } from '../../../../schema/utils';
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";

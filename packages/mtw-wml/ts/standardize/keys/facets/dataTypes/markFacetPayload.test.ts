@@ -1,8 +1,8 @@
-import { MarkFacetPayload, factory, isStandardMarkFacetPayloadData, merge, diff } from './markFacetPayload';
+import { MarkFacetPayload, factory, isStandardMarkFacetPayloadData, merge, diff } from '../mark';
 import type { MarkFacetPayload as MarkFacetPayloadType } from './facet';
-import { StandardReference } from '../reference';
-import { treeFromWML } from '../../../schema';
-import { deIndentWML } from '../../../schema/utils';
+import { StandardReference } from '../../reference';
+import { treeFromWML } from '../../../../schema';
+import { deIndentWML } from '../../../../schema/utils';
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";

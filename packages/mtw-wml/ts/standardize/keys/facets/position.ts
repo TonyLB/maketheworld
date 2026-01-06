@@ -4,10 +4,11 @@ import { StandardEditablePayload, standardEditableFactory } from "../../../gener
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../../lib/objects";
 import { StandardReference } from "../reference";
-import type { PositionPayload as PositionPayloadType } from "./facet";
-import { isPositionPayload } from "./facet";
+import type { PositionPayload as PositionPayloadType } from "./dataTypes/facet";
+import { isPositionPayload } from "./dataTypes/facet";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
-import { FacetPayloadBase } from "./facetPayloadBase";
+import { FacetPayloadBase } from "./dataTypes/facetPayloadBase";
+import { facetClassFactory } from './facetFactory';
 
 /**
  * PositionPayload class: Implements StandardEditablePayload and FacetPayloadBase
@@ -222,3 +223,9 @@ export const {
     subtract: standardPositionPayloadSubtract,
     diff: standardPositionPayloadDiff
 });
+
+export const StandardPositionFacet = facetClassFactory(PositionPayload, 'PositionFacet');
+
+// Create concrete list class for PositionFacet
+import { facetListClassFactory } from './facetListFactory';
+export const PositionFacetList = facetListClassFactory(StandardPositionFacet, 'PositionFacetList');

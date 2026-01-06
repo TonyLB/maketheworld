@@ -1,9 +1,11 @@
-import { StandardFacet } from './facet';
-import { StandardReference } from './reference';
+import { StandardReference } from '../reference';
 import { PositionPayload, MarkFacetPayload, ExitPayload, StandardFacetData } from './dataTypes/facet';
-import { StandardReferenceData } from './dataTypes/reference';
+import { StandardReferenceData } from '../dataTypes/reference';
+import { StandardPositionFacet } from './position';
+import { StandardMarkFacet } from './mark';
+import { StandardExitFacet } from './exit';
 
-describe('StandardFacet', () => {
+describe('StandardFacet (concrete classes)', () => {
     const validReference: StandardReferenceData = {
         key: 'room1',
         tag: 'Room',
@@ -32,7 +34,7 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet = new StandardFacet(facetData);
+            const facet = new StandardPositionFacet(facetData);
             // Payload is now a class instance, use toJSON() for comparison
             expect(facet.payload.toJSON()).toEqual(positionPayload);
             expect(facet.reference.key).toBe('room1');
@@ -44,7 +46,7 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: markPayload
             };
-            const facet = new StandardFacet(facetData);
+            const facet = new StandardMarkFacet(facetData);
             // Payload is now a class instance, use toJSON() for comparison
             expect(facet.payload.toJSON()).toEqual(markPayload);
             expect(facet.payload.narrative).toBe('A dark room');
@@ -55,7 +57,7 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: exitPayload
             };
-            const facet = new StandardFacet(facetData);
+            const facet = new StandardExitFacet(facetData);
             // Payload is now a class instance, use toJSON() for comparison
             expect(facet.payload.toJSON()).toEqual(exitPayload);
             expect(facet.payload.description).toBe('A wooden door');
@@ -66,7 +68,7 @@ describe('StandardFacet', () => {
                 reference: 'ROOM#room1',
                 payload: positionPayload
             };
-            const facet = new StandardFacet(facetData);
+            const facet = new StandardPositionFacet(facetData);
             expect(facet.universalKey).toBe('ROOM#room1');
             // Payload is now a class instance, use toJSON() for comparison
             expect(facet.payload.toJSON()).toEqual(positionPayload);
@@ -77,8 +79,8 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const original = new StandardFacet(facetData);
-            const cloned = new StandardFacet(original);
+            const original = new StandardPositionFacet(facetData);
+            const cloned = new StandardPositionFacet(original);
             // Payload is now a class instance, use toJSON() for comparison
             expect(cloned.payload.toJSON()).toEqual(original.payload.toJSON());
             expect(cloned.reference.key).toBe(original.reference.key);
@@ -99,7 +101,7 @@ describe('StandardFacet', () => {
                 match: matchData,
                 payload: payloadData
             };
-            const facet = new StandardFacet(replaceData);
+            const facet = new StandardPositionFacet(replaceData);
             expect(facet.isReplace).toBe(true);
             // Payload is now a class instance, use toJSON() for comparison
             expect(facet.payload.toJSON()).toEqual(positionPayload);
@@ -108,8 +110,8 @@ describe('StandardFacet', () => {
 
         it('should throw error for invalid argument', () => {
             expect(() => {
-                new StandardFacet({ invalid: 'data' } as any);
-            }).toThrow('Invalid argument to StandardFacet constructor');
+                new StandardPositionFacet({ invalid: 'data' } as any);
+            }).toThrow('Invalid argument to PositionFacet constructor');
         });
     });
 
@@ -119,7 +121,7 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet = new StandardFacet(facetData);
+            const facet = new StandardPositionFacet(facetData);
             const json = facet.toJSON();
             expect(json).toEqual(facetData);
             expect('tag' in json).toBe(false);
@@ -139,7 +141,7 @@ describe('StandardFacet', () => {
                 match: matchData,
                 payload: payloadData
             };
-            const facet = new StandardFacet(replaceData);
+            const facet = new StandardPositionFacet(replaceData);
             const json = facet.toJSON();
             expect('tag' in json && json.tag === 'Replace').toBe(true);
             if ('tag' in json && json.tag === 'Replace') {
@@ -153,9 +155,9 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet = new StandardFacet(facetData);
+            const facet = new StandardPositionFacet(facetData);
             const json = facet.toJSON();
-            const roundTrip = new StandardFacet(json as StandardFacetData<PositionPayload>);
+            const roundTrip = new StandardPositionFacet(json as StandardFacetData<PositionPayload>);
             // Payload is now a class instance, use toJSON() for comparison
             expect(roundTrip.payload.toJSON()).toEqual(facet.payload.toJSON());
             expect(roundTrip.reference.key).toBe(facet.reference.key);
@@ -168,8 +170,8 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet1 = new StandardFacet(facetData);
-            const facet2 = new StandardFacet(facetData);
+            const facet1 = new StandardPositionFacet(facetData);
+            const facet2 = new StandardPositionFacet(facetData);
             expect(facet1.equals(facet2)).toBe(true);
         });
 
@@ -182,8 +184,8 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: { type: 'PositionFacet', x: 15, y: 25 }
             };
-            const facet1 = new StandardFacet(facetData1);
-            const facet2 = new StandardFacet(facetData2);
+            const facet1 = new StandardPositionFacet(facetData1);
+            const facet2 = new StandardPositionFacet(facetData2);
             expect(facet1.equals(facet2)).toBe(false);
         });
 
@@ -196,8 +198,8 @@ describe('StandardFacet', () => {
                 reference: { ...validReference, ref: 2 },
                 payload: { type: 'PositionFacet', x: 15, y: 25 }
             };
-            const facet1 = new StandardFacet(facetData1);
-            const facet2 = new StandardFacet(facetData2);
+            const facet1 = new StandardPositionFacet(facetData1);
+            const facet2 = new StandardPositionFacet(facetData2);
             expect(facet1.sameKey(facet2)).toBe(true);
         });
 
@@ -210,8 +212,8 @@ describe('StandardFacet', () => {
                 reference: { key: 'room2', tag: 'Room', universalKey: 'ROOM#room2', ref: 1 },
                 payload: positionPayload
             };
-            const facet1 = new StandardFacet(facetData1);
-            const facet2 = new StandardFacet(facetData2);
+            const facet1 = new StandardPositionFacet(facetData1);
+            const facet2 = new StandardPositionFacet(facetData2);
             expect(facet1.sameKey(facet2)).toBe(false);
         });
     });
@@ -222,7 +224,7 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet = new StandardFacet(facetData);
+            const facet = new StandardPositionFacet(facetData);
             expect(facet.reference).toBeInstanceOf(StandardReference);
             expect(facet.standardKey.key).toBe('room1');
             expect(facet.ref).toBe(1);
@@ -242,8 +244,8 @@ describe('StandardFacet', () => {
                 reference: { ...validReference, ref: 2 },
                 payload: positionPayload
             };
-            const facet1 = new StandardFacet(facetData1);
-            const facet2 = new StandardFacet(facetData2);
+            const facet1 = new StandardPositionFacet(facetData1);
+            const facet2 = new StandardPositionFacet(facetData2);
             const merged = facet1.merge(facet2);
             expect(merged).toBeDefined();
             expect(merged!.ref).toBe(3); // 1 + 2
@@ -261,8 +263,8 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet1 = new StandardFacet(facetData1);
-            const facet2 = new StandardFacet(facetData2);
+            const facet1 = new StandardPositionFacet(facetData1);
+            const facet2 = new StandardPositionFacet(facetData2);
             const merged = facet1.merge(facet2);
             expect(merged).toBeDefined();
             expect(merged!.isReplace).toBe(true);
@@ -280,8 +282,8 @@ describe('StandardFacet', () => {
                 reference: { key: 'room2', tag: 'Room', universalKey: 'ROOM#room2', ref: 1 },
                 payload: positionPayload
             };
-            const facet1 = new StandardFacet(facetData1);
-            const facet2 = new StandardFacet(facetData2);
+            const facet1 = new StandardPositionFacet(facetData1);
+            const facet2 = new StandardPositionFacet(facetData2);
             expect(() => {
                 facet1.merge(facet2);
             }).toThrow('Cannot change which component a facet points to');
@@ -296,8 +298,8 @@ describe('StandardFacet', () => {
                 reference: { ...validReference, ref: -1 },
                 payload: positionPayload
             };
-            const facet1 = new StandardFacet(facetData1);
-            const facet2 = new StandardFacet(facetData2);
+            const facet1 = new StandardPositionFacet(facetData1);
+            const facet2 = new StandardPositionFacet(facetData2);
             const merged = facet1.merge(facet2);
             expect(merged).toBeUndefined();
         });
@@ -311,8 +313,8 @@ describe('StandardFacet', () => {
                 reference: { ...validReference, ref: -1 },
                 payload: positionPayload
             };
-            const facet1 = new StandardFacet(facetData1);
-            const facet2 = new StandardFacet(facetData2);
+            const facet1 = new StandardPositionFacet(facetData1);
+            const facet2 = new StandardPositionFacet(facetData2);
             const merged = facet1.merge(facet2);
             expect(merged).toBeDefined();
             expect(merged!.isReplace).toBe(true);
@@ -328,8 +330,8 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet1 = new StandardFacet(facetData);
-            const facet2 = new StandardFacet(facetData);
+            const facet1 = new StandardPositionFacet(facetData);
+            const facet2 = new StandardPositionFacet(facetData);
             const diff = facet1.diff(facet2);
             expect(diff).toBeUndefined();
         });
@@ -343,8 +345,8 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet1 = new StandardFacet(facetData1);
-            const facet2 = new StandardFacet(facetData2);
+            const facet1 = new StandardPositionFacet(facetData1);
+            const facet2 = new StandardPositionFacet(facetData2);
             const diff = facet1.diff(facet2);
             expect(diff).toBeDefined();
             expect(diff!.isReplace).toBe(true);
@@ -362,8 +364,8 @@ describe('StandardFacet', () => {
                 reference: { ...validReference, ref: 2 },
                 payload: positionPayload
             };
-            const facet1 = new StandardFacet(facetData1);
-            const facet2 = new StandardFacet(facetData2);
+            const facet1 = new StandardPositionFacet(facetData1);
+            const facet2 = new StandardPositionFacet(facetData2);
             const diff = facet1.diff(facet2);
             expect(diff).toBeDefined();
             expect(diff!.ref).toBe(1); // 2 - 1
@@ -381,8 +383,8 @@ describe('StandardFacet', () => {
                 reference: { key: 'room2', tag: 'Room', universalKey: 'ROOM#room2', ref: 1 },
                 payload: positionPayload
             };
-            const facet1 = new StandardFacet(facetData1);
-            const facet2 = new StandardFacet(facetData2);
+            const facet1 = new StandardPositionFacet(facetData1);
+            const facet2 = new StandardPositionFacet(facetData2);
             expect(() => {
                 facet1.diff(facet2);
             }).toThrow('Cannot change which component a facet points to');
@@ -393,7 +395,7 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet = new StandardFacet(facetData);
+            const facet = new StandardPositionFacet(facetData);
             const diff = facet.diff(undefined);
             expect(diff).toBeDefined();
             expect(diff!.ref).toBe(-1); // Inverted
@@ -430,9 +432,9 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet = new StandardFacet(facetData);
+            const facet = new StandardPositionFacet(facetData);
             const formatted = facet.toFormat('key');
-            expect(formatted).toBeInstanceOf(StandardFacet);
+            expect(formatted).toBeInstanceOf(StandardPositionFacet);
             // Payload is now a class instance, use toJSON() for comparison
             expect(formatted.payload.toJSON()).toEqual(positionPayload);
         });
@@ -442,9 +444,9 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet = new StandardFacet(facetData);
+            const facet = new StandardPositionFacet(facetData);
             const lookedUp = facet.lookup([]);
-            expect(lookedUp).toBeInstanceOf(StandardFacet);
+            expect(lookedUp).toBeInstanceOf(StandardPositionFacet);
             // Payload is now a class instance, use toJSON() for comparison
             expect(lookedUp.payload.toJSON()).toEqual(positionPayload);
         });
@@ -456,7 +458,7 @@ describe('StandardFacet', () => {
                 reference: validReference,
                 payload: positionPayload
             };
-            const facet = new StandardFacet(facetData);
+            const facet = new StandardPositionFacet(facetData);
             const cloned = facet.clone();
             expect(cloned).not.toBe(facet);
             // Payload is now a class instance, use toJSON() for comparison
