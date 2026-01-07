@@ -540,6 +540,7 @@ describe('StandardExample class', () => {
             const referencedKeys = testExample.referencedKeys()
             const markKeys = referencedKeys.filter(key => key.reference.tag === 'Mark')
             expect(markKeys.length).toBeGreaterThan(0)
+            expect(markKeys.every(key => key.referenceType === 'Facet')).toBe(true)
         })
 
         it('should not parse Mark tags without Match children as facets', () => {

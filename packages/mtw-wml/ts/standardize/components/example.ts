@@ -155,9 +155,9 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             ...linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1)))
                 .map((reference) => ({ referenceType: 'Link' as const, reference })),
             ...this.marks.items.map((facet) => {
-                // TypeScript doesn't narrow the reference type correctly, so we need to assert
+                // Facets are structural relationships with associated payload data
                 const ref = facet.reference as StandardReference
-                return { referenceType: 'Link' as const, reference: ref }
+                return { referenceType: 'Facet' as const, reference: ref }
             })
         ]
     }

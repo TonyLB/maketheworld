@@ -11,6 +11,35 @@ import { unique } from "../list"
 import { KeyLookup } from "./keyLookup"
 import StandardReference, { referenceSortOrder, MapByKey } from "./keys/reference"
 
+type ParentChildTier = {
+    referenceTypes: Array<'Direct' | 'Position' | 'Facet'>;
+    refFilter: (ref: number) => boolean;
+    description: string; // For debugging/documentation
+}
+
+const PARENT_CHILD_TIERS: ParentChildTier[] = [
+    {
+        referenceTypes: ['Direct', 'Position'],
+        refFilter: (ref) => ref > 0,
+        description: 'Positive Direct/Position references'
+    },
+    {
+        referenceTypes: ['Direct', 'Position'],
+        refFilter: (ref) => ref < 0,
+        description: 'Negative Direct/Position references'
+    },
+    {
+        referenceTypes: ['Facet'],
+        refFilter: (ref) => ref > 0,
+        description: 'Positive Facet references'
+    },
+    {
+        referenceTypes: ['Facet'],
+        refFilter: (ref) => ref < 0,
+        description: 'Negative Facet references'
+    }
+];
+
 export class SchemaOrganization {
     private _organization: Array<{ key: StandardKey; implicitParent?: StandardKey }>
     private _explicitOrganization: Array<{ key: StandardKey; parent: StandardKey | undefined }>
@@ -280,6 +309,21 @@ export class SchemaOrganization {
         return graph.edges.some(edge => edge.to === componentSyntheticUUID)
     }
 
+    /**
+     * Gets parent-child edges for implicit parentage calculation.
+     * 
+     * Uses a four-tier preference system to determine parentage from references:
+     * 1. Positive Direct/Position references (highest priority)
+     * 2. Negative Direct/Position references
+     * 3. Positive Facet references
+     * 4. Negative Facet references (lowest priority)
+     * 
+     * For each child component, the system checks tiers in order and uses
+     * the first tier that has matching references. This allows facets to
+     * serve as a fallback when direct/position references are not available.
+     * 
+     * @returns Array of parent-child edge pairs for graph construction
+     */
     private _getParentChildEdges(): Array<{ parent: StandardKey | AssetUUID; child: StandardKey }> {
         // Create a pseudo-entity for Asset-level references from topLevel
         const topLevel = this._topLevel
@@ -307,9 +351,9 @@ export class SchemaOrganization {
                     : ('standardKey' in entity && entity.standardKey) ? entity.standardKey : undefined
                 
                 if (parentKey) {
-                    // Collect references with 'Direct' or 'Position' types
+                    // Collect references with 'Direct', 'Position', or 'Facet' types
                     const childReferences = entity.referencedKeys().filter(
-                        (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position'
+                        (ref) => ref.referenceType === 'Direct' || ref.referenceType === 'Position' || ref.referenceType === 'Facet'
                     )
                     const newRefs = childReferences.map(childRef => ({ parent: parentKey, childRef }))
                     return [...acc, ...newRefs]
@@ -340,18 +384,20 @@ export class SchemaOrganization {
             []
         )
         
-        // Phase 3: Apply global preference per group and flatten to edges
+        // Phase 3: Apply four-tier preference per group and flatten to edges
         const edges = groupedReferences.flatMap(group => {
-            // Check if ANY reference in the group has positive ref (addition)
-            const hasPositiveRef = group.some(item => item.childRef.reference.ref > 0)
+            // Map each tier to its matches, then find first non-empty tier
+            const tierResults = PARENT_CHILD_TIERS.map(tier => 
+                group.filter(item => {
+                    const refType = item.childRef.referenceType
+                    return (tier.referenceTypes as readonly string[]).includes(refType) &&
+                        tier.refFilter(item.childRef.reference.ref)
+                })
+            )
+            const selectedMatches = tierResults.find(matches => matches.length > 0) ?? []
             
-            // Filter based on preference: if positive refs exist, only use positive refs; otherwise use all (negative)
-            const filteredGroup = hasPositiveRef
-                ? group.filter(item => item.childRef.reference.ref > 0)
-                : group
-            
-            // Flatten to edge format
-            return filteredGroup.map(item => ({
+            // Map selected matches to edge format
+            return selectedMatches.map(item => ({
                 parent: item.parent,
                 child: item.childRef.reference.standardKey
             }))
