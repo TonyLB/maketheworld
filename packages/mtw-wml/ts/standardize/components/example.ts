@@ -3,24 +3,30 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
-import linkReferenceKeys, { ReferenceFormat } from "./utils/references"
+import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
+import linkReferenceKeys, { ReferenceFormat, childReferenceFactory } from "./utils/references"
 import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
 import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { StandardExplicitParent } from "../explicit"
+import { MarkFacetList, StandardMarkFacet, MarkFacetPayload as MarkFacetPayloadClass } from "../keys/facets/mark"
+import { MarkFacetPayload } from "../keys/facets/dataTypes/facet"
+import { filterEditableTree } from "../../schema/utils"
+import { FacetListData } from "../keys/abstract"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
     _summary?: StandardRender;
     _description?: StandardRender;
+    _marks: MarkFacetList;
     tag = 'Example' as const
 
     constructor(previous?: StandardExamplePayload) {
@@ -28,14 +34,19 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             this._name = previous._name
             this._summary = previous._summary
             this._description = previous._description
+            this._marks = previous._marks.clone()
+        }
+        else {
+            this._marks = new MarkFacetList([])
         }
     }
 
     fromJSON(props: StandardExampleData | StandardExampleNDJSONData) {
-        const { name, summary, description } = props
+        const { name, summary, description, marks } = props
         this._name = name ? new StandardRender(name) : undefined
         this._summary = summary ? new StandardRender(summary) : undefined
         this._description = description ? new StandardRender(description) : undefined
+        this._marks = new MarkFacetList(marks ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
@@ -53,6 +64,25 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             if (descriptionItem.length) {
                 this._description = new StandardRender(descriptionItem)
             }
+            
+            // Parse Mark facets (only Marks with Match children)
+            const markNodes = filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaMark) })
+            const parsedFacets = markNodes
+                .filter(markNode => markNode.children.some(treeNodeTypeguard(isSchemaMatch)))
+                .map(markNode => {
+                    // Extract reference from Mark tag
+                    const reference = childReferenceFactory(markNode)
+                    // Parse payload using MarkFacetPayload.fromSchema
+                    // fromSchema expects GenericTree<SchemaTag> and StandardReference
+                    const payloadClass = new MarkFacetPayloadClass()
+                    const payload = payloadClass.fromSchema([markNode], reference)
+                    // Create StandardMarkFacet
+                    return new StandardMarkFacet({
+                        reference: reference.toJSON(),
+                        payload
+                    })
+                })
+            this._marks = new MarkFacetList(parsedFacets)
             return
         }
         throw new Error('Schema mismatch in StandardExample constructor')
@@ -61,6 +91,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
     get name() { return this._name }
     get summary() { return this._summary }
     get description() { return this._description }
+    get marks() { return this._marks }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardExampleData, 'key' | 'universalKey'> {
         const { stripUIFields: stripUI } = options ?? {}
@@ -68,7 +99,8 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             tag: 'Example',
             name: this._name?.toJSON(),
             summary: this._summary?.toJSON(),
-            description: this._description?.toJSON()
+            description: this._description?.toJSON(),
+            ...(this.marks.length ? { marks: this.marks.toJSON() as unknown as FacetListData<MarkFacetPayload> } : {})
         }
     }
 
@@ -77,7 +109,8 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             tag: 'Example',
             name: this._name?.toJSON(),
             summary: this._summary?.toJSON(),
-            description: this._description?.toJSON()
+            description: this._description?.toJSON(),
+            ...(this.marks.length ? { marks: this.marks.toJSON() as unknown as FacetListData<MarkFacetPayload> } : {})
         }
     }
 
@@ -85,7 +118,12 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         const children = [
             rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, mappings),
             rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }, mappings),
-            rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, mappings)
+            rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, mappings),
+            ...this.marks.items.map(facet => {
+                // TypeScript doesn't narrow the reference type correctly, so we need to assert
+                const ref = facet.reference as StandardReference
+                return ref.schema
+            }).flat(1)
         ].filter(excludeUndefined)
         return {
             data: { tag: 'Example', key, uuid: universalKey },
@@ -106,6 +144,8 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         returnValue._name = (this._name && incoming._name) ? this._name.merge(incoming._name) : this._name ?? incoming._name
         returnValue._summary = (this._summary && incoming._summary) ? this._summary.merge(incoming._summary) : this._summary ?? incoming._summary
         returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
+        const mergedMarks = (this._marks && incoming._marks) ? this._marks.merge(incoming._marks) : this._marks ?? incoming._marks ?? new MarkFacetList([])
+        returnValue._marks = mergedMarks ?? new MarkFacetList([])
         return returnValue as this
     }
 
@@ -113,7 +153,12 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         const renderTrees = [this._name?.toJSON(), this._summary?.toJSON(), this._description?.toJSON()].filter(excludeUndefined)
         return [
             ...linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1)))
-                .map((reference) => ({ referenceType: 'Link' as const, reference }))
+                .map((reference) => ({ referenceType: 'Link' as const, reference })),
+            ...this.marks.items.map((facet) => {
+                // TypeScript doesn't narrow the reference type correctly, so we need to assert
+                const ref = facet.reference as StandardReference
+                return { referenceType: 'Link' as const, reference: ref }
+            })
         ]
     }
 
@@ -128,6 +173,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         if (returnValue._description) {
             returnValue._description = returnValue._description.mapContents((renderTree) => (schemaToRenderTree(callback(renderTreeToSchema(renderTree)))))
         }
+        returnValue._marks = this._marks.mapContents((facet) => facet)
         return returnValue as this
     }
     
@@ -136,6 +182,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         returnValue._name = returnValue._name?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
         returnValue._summary = returnValue._summary?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
         returnValue._description = returnValue._description?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
+        returnValue._marks = this._marks.lookup(props.mappings).toFormat(props.mapTo)
         return returnValue as this
     }
 
@@ -144,15 +191,48 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         returnValue._name = this._name ? this._name.invert() : undefined
         returnValue._summary = this._summary ? this._summary.invert() : undefined
         returnValue._description = this._description ? this._description.invert() : undefined
+        // Invert marks (creates Remove operations with ref=-1)
+        returnValue._marks = this._marks.invert()
         return returnValue as this
     }
 
     isEmpty(): boolean {
-        // An example is empty if it has no name, summary, or description
+        // An example is empty if it has no name, summary, description, or marks
         const hasName = Boolean(this._name)
         const hasSummary = Boolean(this._summary)
         const hasDescription = Boolean(this._description)
-        return !(hasName || hasSummary || hasDescription)
+        const hasMarks = this._marks.length > 0
+        return !(hasName || hasSummary || hasDescription || hasMarks)
+    }
+
+    nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+        const { key } = options
+
+        // Apply facet rendering: For each Mark facet, call renderFacet() without referenceRender parameter
+        // The facet will generate its own reference render internally and enhance it with Match children
+        const markNodes: GenericTreeNode<SchemaTag>[] = []
+        for (const facet of this.marks.items) {
+            const result = facet.renderFacet() // No referenceRender parameter - facet generates its own
+            if (result.aggregatedNode) {
+                markNodes.push(result.aggregatedNode)
+            } else if (result.newNode) {
+                // Handle Exit-style facets (not applicable for Mark facets, but pattern supports it)
+                markNodes.push(result.newNode)
+            }
+        }
+
+        // Combine with other Example content
+        const children = [
+            rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, options.mappings),
+            rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }, options.mappings),
+            rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, options.mappings),
+            ...markNodes
+        ].filter(excludeUndefined)
+
+        return {
+            data: { tag: 'Example', key: key.key ?? '', uuid: key.universalKey },
+            children
+        }
     }
 
 }
@@ -161,6 +241,7 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
     get name() { return this._payload.name }
     get summary() { return this._payload.summary }
     get description() { return this._payload.description }
+    get marks() { return this._payload.marks }
 
     constructor(props: string | StandardExampleData | StandardExampleNDJSONData | GenericTreeNode<SchemaTag> | StandardExample) {
         super(props)

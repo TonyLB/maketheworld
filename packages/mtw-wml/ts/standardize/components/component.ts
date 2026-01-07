@@ -305,9 +305,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             const target = removeContext ? this.invert() as this : this
             
             // Check if component should be rendered based on its parent context using OrganizationContext helper
+            // If no organization is provided, always render (default behavior)
+            // If organization is provided, only render if it's in parent context
             const targetStandardKey = target.standardKey
-            const isParentContextResult = options.organization?.isParentContext(targetStandardKey, options.parent) ?? false
-            const shouldRender = isParentContextResult
+            const shouldRender = !options.organization || options.organization.isParentContext(targetStandardKey, options.parent)
             
             if (!shouldRender) {
                 const reference = new StandardReference(targetStandardKey, target.tag).toFormat('key')
