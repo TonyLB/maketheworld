@@ -16,7 +16,7 @@ export type StandardToJSONOptions = {
 
 export type StandardComponentReferenceKey = {
     reference: StandardReference;
-    referenceType: 'Link' | 'Position' | 'Exit' | 'Direct' | 'Dependency';
+    referenceType: 'Link' | 'Position' | 'Exit' | 'Direct' | 'Dependency' | 'Facet';
 }
 
 export type NestedSchemaOptions = {

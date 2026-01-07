@@ -258,10 +258,15 @@ The cascade system uses a directed graph structure to define how component conne
 - **Start Nodes**: Initial traversal entry points for the graph
 
 **Connection Types**: Uses `StandardComponentReferenceKey['referenceType']` values:
+
+**Structural references** (define structural relationships):
+- `'Direct'`: Direct component relationships (e.g., Room contains Example)
 - `'Position'`: Components positioned within other components (e.g., rooms in maps)
-- `'Exit'`: Exit connections between components (e.g., room-to-room exits)
+- `'Facet'`: Structured relationships with associated data (e.g., Mark facets in Examples)
+
+**Non-structural references** (connections that don't define structure):
 - `'Link'`: General reference links between components
-- `'Direct'`: Direct component relationships
+- `'Exit'`: Exit connections between components (e.g., room-to-room exits)
 - `'Dependency'`: Component dependencies
 
 **Example**: Map editing cascade follows the pattern:

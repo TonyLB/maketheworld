@@ -701,25 +701,43 @@ Applying this pattern to facets will:
      - ✅ Final schema has enhanced Mark references with Match children
      - ✅ Name, Summary, Description combined correctly with Mark facets
 
-5. **Investigate facet representation in referencedKeys()**
-   - Review current implementation: facets are represented as regular references (Link type) in `referencedKeys()`
-   - Consider whether facets need distinct representation:
-     - Facets carry additional payload data beyond plain references
-     - May need different reference type (e.g., `'Facet'`) or different structure
-     - Evaluate if payload data should be included in reference tracking
-   - Determine if current approach (treating facets as Links) is sufficient or if changes are needed
-   - Document findings and any necessary changes to reference tracking system
+5. ✅ **Investigate facet representation in referencedKeys()** - **COMPLETED**
+   - ✅ Reviewed current implementation: facets were represented as regular references (Link type) in `referencedKeys()`
+   - ✅ Determined that facets need distinct representation as structural relationships
+   - ✅ Added `'Facet'` as a new reference type to `StandardComponentReferenceKey['referenceType']` union
+   - ✅ Updated `Example.referencedKeys()` to use `'Facet'` type for marks facets
+   - ✅ Documented structural vs. non-structural distinction:
+     - **Structural references**: `Direct`, `Position`, `Facet` (define structural relationships)
+     - **Non-structural references**: `Link`, `Exit`, `Dependency` (connections that don't define structure)
+   - ✅ Updated tests to verify marks facets use `'Facet'` reference type
+   - ✅ Updated documentation in `AGENT.md` to explain the distinction
+   - **Decision**: Facets are structural relationships with associated payload data, similar to how `Position` represents spatial positioning. They should be distinguished from non-structural references like `Link` and `Exit` for semantic clarity and code readability.
 
 **Success Criteria**:
-- Example component has `marks: FacetList<MarkFacetPayload>` field
-- Example correctly parses Mark Facets from WML schema
-- Example correctly renders Mark Facets using parent component orchestration pattern
-- Example `nestedSchema()` properly zippers reference renders with facet enhancements
-- Mark references render as `<Mark>` tags
-- Mark Facets enhance Mark references with `<Match>` children
-- Round-trip serialization works: WML → StandardForm → JSON → StandardForm → WML
-- All tests pass
-- Pattern is documented and ready for replication in Map/Area components
+- ✅ Example component has `marks: FacetList<MarkFacetPayload>` field
+- ✅ Example correctly parses Mark Facets from WML schema
+- ✅ Example correctly renders Mark Facets using parent component orchestration pattern
+- ✅ Example `nestedSchema()` properly zippers reference renders with facet enhancements
+- ✅ Mark references render as `<Mark>` tags
+- ✅ Mark Facets enhance Mark references with `<Match>` children
+- ✅ Round-trip serialization works: WML → StandardForm → JSON → StandardForm → WML
+- ✅ All tests pass
+- ✅ Pattern is documented and ready for replication in Map/Area components
+- ✅ `'Facet'` reference type added to `StandardComponentReferenceKey['referenceType']` union
+- ✅ `Example.referencedKeys()` returns marks facets with `referenceType: 'Facet'`
+- ✅ Tests verify that mark facets use `'Facet'` type
+- ✅ Documentation explains the structural vs. non-structural distinction
+
+5.5. **Implement preference tier system for parent/child calculation with facets** - **PLANNED**
+   - Similar to how remove references are handled, create a preference tier in the parent/child calculation system
+   - Preference order for implicit parent calculation:
+     1. Positive/non-remove `Direct`/`Position` references (highest priority)
+     2. Negative `Direct`/`Position` references
+     3. Positive `Facet` references
+     4. Negative `Facet` references (lowest priority)
+   - This allows implicit parent calculation to use facets as a fallback when direct/position references are not available
+   - Mirrors the existing pattern for handling remove references and provides a consistent approach for determining implicit parentage from various reference types
+   - **Note**: This will be implemented in a follow-up iteration after the initial `'Facet'` type addition (Phase 6, Task 5)
 
 ### Phase 7: Examine Edit Functionality in Facet Rendering
 
