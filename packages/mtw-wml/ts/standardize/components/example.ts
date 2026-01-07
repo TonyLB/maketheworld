@@ -3,7 +3,7 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
+import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
 import linkReferenceKeys, { ReferenceFormat, childReferenceFactory } from "./utils/references"
 import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
@@ -203,6 +203,36 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         const hasDescription = Boolean(this._description)
         const hasMarks = this._marks.length > 0
         return !(hasName || hasSummary || hasDescription || hasMarks)
+    }
+
+    nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
+        const { key } = options
+
+        // Apply facet rendering: For each Mark facet, call renderFacet() without referenceRender parameter
+        // The facet will generate its own reference render internally and enhance it with Match children
+        const markNodes: GenericTreeNode<SchemaTag>[] = []
+        for (const facet of this.marks.items) {
+            const result = facet.renderFacet() // No referenceRender parameter - facet generates its own
+            if (result.aggregatedNode) {
+                markNodes.push(result.aggregatedNode)
+            } else if (result.newNode) {
+                // Handle Exit-style facets (not applicable for Mark facets, but pattern supports it)
+                markNodes.push(result.newNode)
+            }
+        }
+
+        // Combine with other Example content
+        const children = [
+            rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, options.mappings),
+            rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }, options.mappings),
+            rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, options.mappings),
+            ...markNodes
+        ].filter(excludeUndefined)
+
+        return {
+            data: { tag: 'Example', key: key.key ?? '', uuid: key.universalKey },
+            children
+        }
     }
 
 }

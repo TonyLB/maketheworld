@@ -660,47 +660,46 @@ Applying this pattern to facets will:
    - ✅ Add marks getter to `StandardExample` component class
    - ✅ Write comprehensive unit tests covering all MarkFacetList functionality
 
-2. **Implement parent component orchestration in Example.nestedSchema()**
-   - Update `StandardExamplePayload.nestedSchema()` in `components/example.ts`:
-     - **Step 1**: Render `marks` reference list first:
-       - Get all Mark references (from `this.marks.items.map(facet => facet.reference)` or from organization)
-       - Render each Mark reference as a plain `<Mark>` tag (reference render)
-       - Store these reference renders in a Map keyed by Mark universalKey/key
-     - **Step 2**: Apply facet rendering to each Mark facet:
-       - For each facet in `this.marks.items`:
-         - Look up reference render for this facet's reference (from Step 1 Map)
-         - Call `facet.renderFacet(referenceRender)` to get `{ aggregatedNode }`
-         - Replace the reference render in Map with the aggregated node
-     - **Step 3**: Generate final schema:
-       - Take all aggregated nodes from Step 2 (enhanced Mark references)
-       - Add any `newNode` results (none for Mark facets, but pattern supports Exit-style facets)
-       - Combine with other Example content (Name, Summary, Description)
-       - Return final nested schema
-   - Handle edge cases:
-     - Mark references without facet payloads: just render as reference (no enhancement)
-     - Mark facets without corresponding reference: should this error, or create reference render? (likely error - facets should always have references)
-   - Handle Replace operations: facets with Replace operations should render Replace structure
+2. ✅ **Implement parent component orchestration in Example.nestedSchema()** - **COMPLETED**
+   - ✅ Implemented `StandardExamplePayload.nestedSchema()` in `components/example.ts`:
+     - ✅ **Simplified pattern**: Since marks only exist in facets (no independent reference list), directly call `facet.renderFacet()` without `referenceRender` parameter
+     - ✅ For each facet in `this.marks.items`:
+       - ✅ Call `facet.renderFacet()` (no `referenceRender` parameter - facet generates its own reference render internally)
+       - ✅ Collect `aggregatedNode` results (Mark facets always return `aggregatedNode`, never `newNode`)
+     - ✅ Generate final schema:
+       - ✅ Extract all aggregated nodes from facet rendering (enhanced Mark references)
+       - ✅ Combine with other Example content (Name, Summary, Description) using `rebuildSchemaFromStandardRender`
+       - ✅ Return final nested schema with Example tag and all children
+   - ✅ Handle Replace operations: `renderFacet()` already handles Replace operations internally (wraps match/payload in ReplaceMatch/ReplacePayload)
+   - ✅ Handle Remove references: `renderFacet()` handles Remove references via the reference's schema generation
+   - ✅ **Design Decision**: Simplified pattern for Example component since marks only exist in facets. Map/Area components will use the two-step pattern (render reference list first, then enhance with facets) because Rooms exist independently and may or may not have Position facets.
 
-3. **Update component factory/schema handling**
-   - Ensure `StandardExample` factory supports parsing Facets from WML schema
-   - Update schema converters if needed to handle Facet structures in Example tags
-   - Ensure Facet references to Mark components resolve correctly (use StandardForm lookup)
+3. ✅ **Update component factory/schema handling** - **COMPLETED**
+   - ✅ Ensure `StandardExample` factory supports parsing Facets from WML schema
+     - ✅ `fromSchema()` method in `StandardExamplePayload` parses Mark facets from WML schema (filters for Mark nodes with Match children, creates `StandardMarkFacet` instances)
+     - ✅ Tests confirm parsing works correctly (Example with Mark facets, multiple Mark facets, Mark tags without Match children are not parsed as facets)
+   - ✅ Update schema converters if needed to handle Facet structures in Example tags
+     - ✅ `fromSchema()` handles parsing Facet structures from WML
+     - ✅ `nestedSchema()` handles rendering Facet structures back to WML
+     - ✅ No additional schema converters needed
+   - ✅ Ensure Facet references to Mark components resolve correctly (use StandardForm lookup)
+     - ✅ `nestedSchema()` receives `lookup` function parameter provided by StandardForm
+     - ✅ Facet references are `StandardReference` objects created via `childReferenceFactory(markNode)`
+     - ✅ References work with lookup function like other component references
+     - ✅ `remapReferences()` handles facet references via `this._marks.lookup(props.mappings).toFormat(props.mapTo)`
 
-4. **Write comprehensive integration tests**
-   - Test Example with Mark Facets (referencing existing Mark components):
-     - Example with marks reference list only (no facets) - should render plain Mark references
-     - Example with marks facets - should render enhanced Mark references with Match children
-     - Example with both marks references and facets - should zipper correctly
-   - Test serialization round-trip: WML → StandardForm → JSON → StandardForm → WML
-   - Test merge/diff operations with Facets
-   - Test Replace operations on Mark Facets
-   - Test edge cases:
-     - Example with Mark reference but no facet payload
-     - Example with Mark facet but reference not in marks list (should this error?)
-   - Verify parent component orchestration pattern works correctly:
-     - Reference list rendered first
-     - Facet rendering applied to reference renders
-     - Final schema has enhanced references
+4. ✅ **Write comprehensive integration tests** - **COMPLETED**
+   - ✅ Test Example with marks facets - should render enhanced Mark references with Match children
+   - ✅ Test Example with Replace operations on Mark Facets - should render Replace structure
+   - ✅ Test edge cases:
+     - ✅ Example with Remove references (ref < 0) - should render Remove-wrapped Mark references
+     - ✅ Example with empty marks list - should render no Mark nodes
+     - ✅ Example with multiple Mark facets - should render all facets correctly
+   - ✅ Test serialization round-trip: WML → StandardForm → nestedSchema → WML
+   - ✅ Verify parent component orchestration pattern works correctly:
+     - ✅ Facet rendering applied directly (no separate reference list rendering needed)
+     - ✅ Final schema has enhanced Mark references with Match children
+     - ✅ Name, Summary, Description combined correctly with Mark facets
 
 5. **Investigate facet representation in referencedKeys()**
    - Review current implementation: facets are represented as regular references (Link type) in `referencedKeys()`

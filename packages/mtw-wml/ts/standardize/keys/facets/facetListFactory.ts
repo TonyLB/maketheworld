@@ -39,51 +39,50 @@ export interface FacetListItem {
  * @returns A generated list class that stores arrays of the concrete facet type
  */
 export const facetListClassFactory = <
-    TFacet extends FacetListItem,
-    TBase extends new (...args: any[]) => TFacet
+    TBase extends new (...args: any[]) => FacetListItem
 >(FacetClass: TBase, label: string) => {
     return class GeneratedFacetListClass {
-        _items: TFacet[] = [];
+        _items: InstanceType<TBase>[] = [];
 
         constructor(arg: any) {
             // Handle cloning from another list of the same type
             if (arg instanceof GeneratedFacetListClass) {
-                this._items = arg._items.map((item) => item.clone() as TFacet);
+                this._items = arg._items.map((item) => item.clone() as InstanceType<TBase>);
                 return;
             }
 
             // Handle array input
             if (Array.isArray(arg)) {
-                let items: TFacet[];
+                let items: InstanceType<TBase>[];
 
                 // Check if array contains concrete facet instances
                 if (arg.every((item) => item instanceof FacetClass)) {
-                    items = arg as TFacet[];
+                    items = arg as InstanceType<TBase>[];
                 }
                 // Check if array contains schema tree nodes
                 else if (arg.every(isSchemaTreeNode)) {
-                    items = arg.map((item) => new FacetClass([item]) as TFacet);
+                    items = arg.map((item) => new FacetClass([item]) as InstanceType<TBase>);
                 }
                 // Otherwise, treat as StandardFacetData (JSON) or Replace-wrapped data
                 else {
                     items = arg.map((item) => {
                         // Handle Replace-wrapped data structures
                         if (typeof item === 'object' && item !== null && 'tag' in item && item.tag === 'Replace') {
-                            return new FacetClass(item) as TFacet;
+                            return new FacetClass(item) as InstanceType<TBase>;
                         }
                         // Handle plain StandardFacetData
-                        return new FacetClass(item) as TFacet;
+                        return new FacetClass(item) as InstanceType<TBase>;
                     });
                 }
 
                 // Deduplication: Merge items with the same key
-                const swapSpace = items.reduce<TFacet[]>((previous, item) => {
+                const swapSpace = items.reduce<InstanceType<TBase>[]>((previous, item) => {
                     const unmatchedPrevious = previous.filter((prev) => !item.sameKey(prev));
                     const previousMatch = previous.find((prev) => item.sameKey(prev));
                     if (previousMatch) {
                         const merged = previousMatch.merge(item);
                         if (merged) {
-                            return [...unmatchedPrevious, merged as TFacet].filter(excludeUndefined);
+                            return [...unmatchedPrevious, merged as InstanceType<TBase>].filter(excludeUndefined);
                         }
                         return unmatchedPrevious;
                     }
@@ -97,7 +96,7 @@ export const facetListClassFactory = <
                 // Since facets compose StandardReference, we ensure the reference
                 // is in the minimum key information format
                 //
-                this._items = this._items.map<TFacet>((item) => {
+                this._items = this._items.map<InstanceType<TBase>>((item) => {
                     // Normalize the reference within the facet by calling mapContents
                     // This ensures the reference is in canonical form (handles string vs object form, preserves ref)
                     // The callback just passes through - the normalization happens in mapContents itself
@@ -120,7 +119,7 @@ export const facetListClassFactory = <
                             tag: 'Replace' as const,
                             match: normalizedMatch,
                             payload: normalizedPayload
-                        }) as TFacet;
+                        }) as InstanceType<TBase>;
                     } else {
                         // Handle plain facets
                         const facetData = facetJSON as StandardFacetData<StandardFacetPayload>;
@@ -128,7 +127,7 @@ export const facetListClassFactory = <
                             reference: normalizedReference.toJSON(),
                             payload: facetData.payload
                         };
-                        return new FacetClass(normalizedFacetData) as TFacet;
+                        return new FacetClass(normalizedFacetData) as InstanceType<TBase>;
                     }
                 });
                 return;
@@ -154,7 +153,7 @@ export const facetListClassFactory = <
             return this._wrap(new GeneratedFacetListClass(this));
         }
 
-        get items(): TFacet[] {
+        get items(): InstanceType<TBase>[] {
             return this._items;
         }
 
@@ -191,14 +190,14 @@ export const facetListClassFactory = <
             const unmatchedBaseItems = this._items.filter(item => !incoming._items.some(otherItem => item.sameKey(otherItem)));
 
             // Find matched items (items with same key in both lists)
-            const matchedOtherItems: { base: TFacet, incoming: TFacet }[] = incoming._items.map((incomingItem) => {
+            const matchedOtherItems: { base: InstanceType<TBase>, incoming: InstanceType<TBase> }[] = incoming._items.map((incomingItem) => {
                 const base = this._items.find(item => item.sameKey(incomingItem));
                 if (base) {
                     return { incoming: incomingItem, base };
                 }
                 return { incoming: incomingItem, base: undefined };
             })
-            .filter((value): value is { base: TFacet, incoming: TFacet } => typeof value.base !== 'undefined');
+            .filter((value): value is { base: InstanceType<TBase>, incoming: InstanceType<TBase> } => typeof value.base !== 'undefined');
 
             // Find unmatched incoming items (items in incoming not in this)
             const unmatchedOtherItems = incoming._items.filter(item => !this._items.some(baseItem => baseItem.sameKey(item)));
@@ -226,14 +225,14 @@ export const facetListClassFactory = <
             const unmatchedBaseItems = this._items.filter(item => !incoming._items.some(otherItem => item.sameKey(otherItem)));
 
             // Find matched items (items with same key in both lists) - diff them
-            const matchedOtherItems: { base: TFacet, incoming: TFacet }[] = incoming._items.map((incomingItem) => {
+            const matchedOtherItems: { base: InstanceType<TBase>, incoming: InstanceType<TBase> }[] = incoming._items.map((incomingItem) => {
                 const base = this._items.find(item => item.sameKey(incomingItem));
                 if (base) {
                     return { incoming: incomingItem, base };
                 }
                 return { incoming: incomingItem, base: undefined };
             })
-            .filter((value): value is { base: TFacet, incoming: TFacet } => typeof value.base !== 'undefined');
+            .filter((value): value is { base: InstanceType<TBase>, incoming: InstanceType<TBase> } => typeof value.base !== 'undefined');
 
             // Find unmatched incoming items (items in incoming not in this) - include as-is
             const unmatchedOtherItems = incoming._items.filter(item => !this._items.some(baseItem => baseItem.sameKey(item)));
@@ -258,7 +257,7 @@ export const facetListClassFactory = <
             return this._wrap(new GeneratedFacetListClass(invertedItems));
         }
 
-        mapContents(callback: (facet: TFacet) => TFacet): GeneratedFacetListClass {
+        mapContents(callback: (facet: InstanceType<TBase>) => InstanceType<TBase>): GeneratedFacetListClass {
             // Map _items through the callback
             const mappedItems = this._items.map(callback);
             return this._wrap(new GeneratedFacetListClass(mappedItems));

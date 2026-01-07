@@ -6,6 +6,10 @@ import StandardExample from './example'
 import StandardReference from "../keys/reference"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { StandardMarkFacet } from "../keys/facets/mark"
+import { StandardKey } from "../keys/key"
+import { StandardComponent } from "./baseClasses"
+import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState"
+import { isSchemaComponent } from "@tonylb/mtw-base/ts/schema"
 
 const mergeTest = (base: string, incoming: string): string => {
     const baseStandard = new StandardExample(deIndentWML(base))
@@ -601,6 +605,241 @@ describe('StandardExample class', () => {
             })
             // isEmpty() checks name/summary/description AND marks
             expect(exampleWithMarks.isEmpty()).toBe(false)
+        })
+
+        describe('nestedSchema', () => {
+            const mockLookup = (key: string | StandardKey): StandardComponent | undefined => {
+                // Return undefined for lookup - marks don't need to be looked up since they generate their own reference renders
+                return undefined
+            }
+
+            it('should render enhanced Mark references with Match children', () => {
+                const testExample = new StandardExample({
+                    key: 'test',
+                    tag: 'Example',
+                    name: ['Name Test'],
+                    marks: [{
+                        reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                        payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                    }]
+                })
+
+                const options = {
+                    key: new StandardKey({ key: 'test', universalKey: 'EXAMPLE#test' })
+                }
+                const nested = testExample.nestedSchema(mockLookup, options)
+
+                expect(nested.data.tag).toEqual('Example')
+                if (treeNodeTypeguard(isSchemaComponent)(nested)) {
+                    expect(nested.data.key).toEqual('test')
+                }
+
+                // Find Mark node in children
+                const markNode = nested.children.find(child => 
+                    treeNodeTypeguard(isSchemaMark)(child)
+                )
+                expect(markNode).toBeDefined()
+                if (markNode && treeNodeTypeguard(isSchemaMark)(markNode)) {
+                    // Mark should have Match child
+                    const matchNode = markNode.children.find(child =>
+                        treeNodeTypeguard(isSchemaMatch)(child)
+                    )
+                    expect(matchNode).toBeDefined()
+                    if (matchNode && treeNodeTypeguard(isSchemaMatch)(matchNode)) {
+                        // Match should have String child with narrative
+                        const stringNode = matchNode.children.find(child =>
+                            child.data.tag === 'String'
+                        )
+                        expect(stringNode).toBeDefined()
+                        if (stringNode && stringNode.data.tag === 'String') {
+                            expect(stringNode.data.value).toEqual('Condition narrative')
+                        }
+                    }
+                }
+            })
+
+            it('should combine Name, Summary, Description with Mark facets', () => {
+                const testExample = new StandardExample({
+                    key: 'test',
+                    tag: 'Example',
+                    name: ['Name Test'],
+                    summary: ['Summary Test'],
+                    description: ['Description Test'],
+                    marks: [{
+                        reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                        payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                    }]
+                })
+
+                const options = {
+                    key: new StandardKey({ key: 'test', universalKey: 'EXAMPLE#test' })
+                }
+                const nested = testExample.nestedSchema(mockLookup, options)
+
+                // Should have Name, Summary, Description, and Mark
+                const nameNode = nested.children.find(child => child.data.tag === 'Name')
+                const summaryNode = nested.children.find(child => child.data.tag === 'Summary')
+                const descriptionNode = nested.children.find(child => child.data.tag === 'Description')
+                const markNode = nested.children.find(child => treeNodeTypeguard(isSchemaMark)(child))
+
+                expect(nameNode).toBeDefined()
+                expect(summaryNode).toBeDefined()
+                expect(descriptionNode).toBeDefined()
+                expect(markNode).toBeDefined()
+            })
+
+            it('should handle multiple Mark facets', () => {
+                const testExample = new StandardExample({
+                    key: 'test',
+                    tag: 'Example',
+                    name: ['Name Test'],
+                    marks: [{
+                        reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                        payload: { type: 'MarkFacet', narrative: 'First condition' }
+                    }, {
+                        reference: { tag: 'Mark', key: 'mark2', universalKey: 'MARK#mark2' },
+                        payload: { type: 'MarkFacet', narrative: 'Second condition' }
+                    }]
+                })
+
+                const options = {
+                    key: new StandardKey({ key: 'test', universalKey: 'EXAMPLE#test' })
+                }
+                const nested = testExample.nestedSchema(mockLookup, options)
+
+                // Should have two Mark nodes
+                const markNodes = nested.children.filter(child =>
+                    treeNodeTypeguard(isSchemaMark)(child)
+                )
+                expect(markNodes.length).toEqual(2)
+            })
+
+            it('should handle empty marks list', () => {
+                const testExample = new StandardExample({
+                    key: 'test',
+                    tag: 'Example',
+                    name: ['Name Test']
+                })
+
+                const options = {
+                    key: new StandardKey({ key: 'test', universalKey: 'EXAMPLE#test' })
+                }
+                const nested = testExample.nestedSchema(mockLookup, options)
+
+                // Should have Name but no Mark nodes
+                const nameNode = nested.children.find(child => child.data.tag === 'Name')
+                const markNodes = nested.children.filter(child =>
+                    treeNodeTypeguard(isSchemaMark)(child)
+                )
+
+                expect(nameNode).toBeDefined()
+                expect(markNodes.length).toEqual(0)
+            })
+
+            it('should handle Replace operations on Mark Facets', () => {
+                // Create a Replace facet by merging two facets with different payloads
+                const baseExample = new StandardExample({
+                    key: 'test',
+                    tag: 'Example',
+                    name: ['Name Test'],
+                    marks: [{
+                        reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                        payload: { type: 'MarkFacet', narrative: 'Original condition' }
+                    }]
+                })
+
+                const incomingExample = new StandardExample({
+                    key: 'test',
+                    tag: 'Example',
+                    name: ['Name Test'],
+                    marks: [{
+                        reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                        payload: { type: 'MarkFacet', narrative: 'Updated condition' }
+                    }]
+                })
+
+                const merged = baseExample.merge(incomingExample) as StandardExample
+                const facet = merged.marks.items[0] as StandardMarkFacet
+
+                // The merged facet should be a Replace operation
+                expect(facet.isReplace).toBe(true)
+
+                const options = {
+                    key: new StandardKey({ key: 'test', universalKey: 'EXAMPLE#test' })
+                }
+                const nested = merged.nestedSchema(mockLookup, options)
+
+                // Should have Replace structure in Mark node
+                const markNode = nested.children.find(child =>
+                    treeNodeTypeguard(isSchemaMark)(child)
+                )
+                expect(markNode).toBeDefined()
+                if (markNode && treeNodeTypeguard(isSchemaMark)(markNode)) {
+                    // The Replace structure should be in the aggregatedNode from renderFacet
+                    // Check if there's a Replace tag (the renderFacet wraps ReplaceMatch/ReplacePayload in Replace)
+                    const hasReplace = markNode.children.some(child =>
+                        child.data.tag === 'Replace'
+                    )
+                    expect(hasReplace).toBe(true)
+                }
+            })
+
+            it('should handle Remove references (ref < 0)', () => {
+                // Create an inverted facet (which creates Remove operations)
+                const testExample = new StandardExample({
+                    key: 'test',
+                    tag: 'Example',
+                    name: ['Name Test'],
+                    marks: [{
+                        reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                        payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                    }]
+                })
+
+                const inverted = testExample.invert() as StandardExample
+                const facet = inverted.marks.items[0] as StandardMarkFacet
+
+                // Inverted facet should have ref < 0
+                expect(facet.ref).toBeLessThan(0)
+
+                const options = {
+                    key: new StandardKey({ key: 'test', universalKey: 'EXAMPLE#test' })
+                }
+                const nested = inverted.nestedSchema(mockLookup, options)
+
+                // Should have Mark node (renderFacet handles Remove via reference schema generation)
+                const markNode = nested.children.find(child =>
+                    treeNodeTypeguard(isSchemaMark)(child)
+                )
+                expect(markNode).toBeDefined()
+            })
+
+            it('should round-trip: WML → StandardForm → nestedSchema → WML', () => {
+                const testSource = deIndentWML(`
+                    <Example uuid=(EXAMPLE#test) key=(test)>
+                        <Name>Name Test</Name>
+                        <Summary>Summary Test</Summary>
+                        <Description>Description Test</Description>
+                        <Mark uuid=(MARK#mark1)><Match>Condition narrative</Match></Mark>
+                    </Example>
+                `)
+
+                const testExample = new StandardExample(testSource)
+                expect(testExample.marks.length).toEqual(1)
+
+                const options = {
+                    key: new StandardKey({ key: 'test', universalKey: 'EXAMPLE#test' })
+                }
+                const nested = testExample.nestedSchema(mockLookup, options)
+
+                // Convert back to WML and verify structure
+                const resultWML = schemaToWML([nested])
+                expect(resultWML).toContain('<Name>Name Test</Name>')
+                expect(resultWML).toContain('<Summary>Summary Test</Summary>')
+                expect(resultWML).toContain('<Description>Description Test</Description>')
+                expect(resultWML).toContain('<Mark')
+                expect(resultWML).toContain('<Match>Condition narrative</Match>')
+            })
         })
     })
 })
