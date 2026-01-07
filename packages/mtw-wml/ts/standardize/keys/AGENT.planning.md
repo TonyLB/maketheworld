@@ -728,16 +728,21 @@ Applying this pattern to facets will:
 - ✅ Tests verify that mark facets use `'Facet'` type
 - ✅ Documentation explains the structural vs. non-structural distinction
 
-5.5. **Implement preference tier system for parent/child calculation with facets** - **PLANNED**
-   - Similar to how remove references are handled, create a preference tier in the parent/child calculation system
-   - Preference order for implicit parent calculation:
+5.5. ✅ **Implement preference tier system for parent/child calculation with facets** - **COMPLETED**
+   - ✅ Implemented parameterized four-tier preference system in `SchemaOrganization._getParentChildEdges()`
+   - ✅ Created `ParentChildTier` type and `PARENT_CHILD_TIERS` configuration array
+   - ✅ Updated Phase 1 to collect `Direct`, `Position`, and `Facet` references
+   - ✅ Refactored Phase 3 to use functional approach (`map()` and `find()`) for tier selection
+   - ✅ Preference order for implicit parent calculation:
      1. Positive/non-remove `Direct`/`Position` references (highest priority)
      2. Negative `Direct`/`Position` references
      3. Positive `Facet` references
      4. Negative `Facet` references (lowest priority)
-   - This allows implicit parent calculation to use facets as a fallback when direct/position references are not available
-   - Mirrors the existing pattern for handling remove references and provides a consistent approach for determining implicit parentage from various reference types
-   - **Note**: This will be implemented in a follow-up iteration after the initial `'Facet'` type addition (Phase 6, Task 5)
+   - ✅ This allows implicit parent calculation to use facets as a fallback when direct/position references are not available
+   - ✅ Mirrors the existing pattern for handling remove references and provides a consistent approach for determining implicit parentage from various reference types
+   - ✅ Added comprehensive JSDoc documentation explaining the four-tier system
+   - **Implementation approach**: Parameterized tier configuration makes priority order explicit and easily modifiable. Uses functional programming (`map()` and `find()`) to compute and select the first tier with matches.
+   - **Note**: Unit tests will be added in a later phase after Remove/Replace edit issues with facets are resolved (Phase 7)
 
 ### Phase 7: Examine Edit Functionality in Facet Rendering
 
