@@ -7,6 +7,7 @@ import { StandardReference } from "../reference";
 import type { PositionPayload as PositionPayloadType, StandardFacetData } from "./dataTypes/facet";
 import { isPositionPayload } from "./dataTypes/facet";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
+import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
 import { FacetPayloadBase } from "./dataTypes/facetPayloadBase";
 import { facetClassFactory } from './facetFactory';
 
@@ -111,6 +112,11 @@ export class PositionPayload implements StandardEditablePayload<PositionPayloadT
             children: []
         };
 
+        // Handle Remove-wrapped referenceRender: pass through unchanged
+        if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
+            return { aggregatedNode: referenceRender };
+        }
+
         let roomNode: GenericTreeNode<SchemaTag>;
 
         if (referenceRender) {
@@ -132,6 +138,31 @@ export class PositionPayload implements StandardEditablePayload<PositionPayloadT
                 throw new Error('Invalid reference schema: empty');
             }
             const firstNode = roomSchema[0];
+            
+            // Handle Remove-wrapped reference from reference.schema (when ref < 0)
+            if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
+                // Extract inner Room node, enhance it, then wrap back in Remove
+                const innerRoom = firstNode.children[0];
+                if (!innerRoom || !treeNodeTypeguard(isSchemaRoom)(innerRoom)) {
+                    throw new Error('Invalid Remove-wrapped reference schema: expected Room tag inside Remove');
+                }
+                // Create enhanced Room node with Position child
+                const enhancedRoom: GenericTreeNode<SchemaTag> = {
+                    ...innerRoom,
+                    children: [
+                        positionChild,
+                        ...innerRoom.children
+                    ]
+                };
+                // Wrap back in Remove
+                return {
+                    aggregatedNode: {
+                        ...firstNode,
+                        children: [enhancedRoom]
+                    }
+                };
+            }
+            
             if (!treeNodeTypeguard(isSchemaRoom)(firstNode)) {
                 throw new Error('Invalid reference schema: expected Room tag');
             }

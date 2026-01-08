@@ -47,14 +47,32 @@ export interface FacetPayloadBase<TPayload extends StandardFacetPayload> {
      * - `newNode`: For facets that create new nodes (e.g., Exit facets return `<Exit>` tag)
      * - `aggregatedNode`: For facets that enhance existing references (e.g., Position/Mark facets return enhanced tag with payload as child)
      * 
-     * @param reference - The StandardReference for the target component
+     * **Edit Operation Handling:**
+     * 
+     * This method handles two types of edit operations:
+     * 
+     * 1. **Remove operations** (when `reference.ref < 0`):
+     *    - If `referenceRender` is provided and wrapped in `<Remove>`, pass it through unchanged (don't enhance - it's being removed)
+     *    - If `reference.schema` returns a Remove-wrapped reference (when `ref < 0`), extract the inner reference node,
+     *      enhance it with payload content, then wrap the enhanced node back in `<Remove>`
+     *    - Example: `<Remove><Mark uuid=(...)><Match>narrative</Match></Mark></Remove>`
+     * 
+     * 2. **Replace operations**:
+     *    - Replace operations are handled at the `StandardFacet` level (via `facetFactory.ts`), not in individual payload classes
+     *    - When a facet has `isReplace === true`, `StandardFacet.renderFacet()` constructs the Replace structure:
+     *      `<ReferenceNode><Replace><ReplaceMatch>old payload</ReplaceMatch><ReplacePayload>new payload</ReplacePayload></Replace></ReferenceNode>`
+     *    - Payload classes should not handle Replace operations directly; they only handle Remove operations
+     * 
+     * @param reference - The StandardReference for the target component. When `reference.ref < 0`, 
+     *   `reference.schema` will return a Remove-wrapped reference that must be preserved.
      * @param payload - The payload data to render
      * @param referenceRender - Optional pre-existing render of the reference already in the parent's schema tree
      *   (e.g., Room already rendered by Map as a child). If not provided, generate a plain reference render
      *   (just the tag without children, e.g., `<Room to=(target)>` with no children).
+     *   If this is Remove-wrapped, it will be passed through unchanged.
      * @returns An object with either `newNode` (for facets that create new nodes) or `aggregatedNode`
      *   (for facets that enhance existing references), but not both. Exit-style facets return `newNode`;
-     *   Position/Mark-style facets return `aggregatedNode`.
+     *   Position/Mark-style facets return `aggregatedNode`. Remove wrappers are preserved when present.
      */
     renderFacet(reference: StandardReference, payload: TPayload, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> };
 }

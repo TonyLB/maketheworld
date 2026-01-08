@@ -365,29 +365,94 @@ export const facetClassFactory = <
             return this._wrap(result);
         }
 
-        // Facet rendering for parent component orchestration
+        /**
+         * Render facet for parent component orchestration.
+         * 
+         * This method handles facet rendering at the `StandardFacet` level, including Replace operations.
+         * For non-Replace operations, it delegates to the payload class's `renderFacet()` method.
+         * 
+         * **Replace Operation Handling:**
+         * 
+         * When a facet has `isReplace === true`, this method constructs the Replace structure in the
+         * standard WML form where the reference node (e.g., Mark, Room) wraps the Replace/With tags,
+         * which contain the payload content (not full reference nodes).
+         * 
+         * Structure:
+         * ```
+         * <ReferenceNode uuid=(...)>
+         *   <Replace>
+         *     <ReplaceMatch>old payload content</ReplaceMatch>
+         *     <ReplacePayload>new payload content</ReplacePayload>
+         *   </Replace>
+         * </ReferenceNode>
+         * ```
+         * 
+         * Examples:
+         * - **Mark facet**: `<Mark uuid=(...)><Replace><ReplaceMatch><Match>old narrative</Match></ReplaceMatch><ReplacePayload><Match>new narrative</Match></ReplacePayload></Replace></Mark>`
+         * - **Position facet**: `<Room uuid=(...)><Replace><ReplaceMatch><Position x=5 y=10/></ReplaceMatch><ReplacePayload><Position x=15 y=20/></ReplacePayload></Replace></Room>`
+         * 
+         * The payload content is extracted using `matchPayload.schema` and `payload.schema` getters,
+         * which return only the payload tags (e.g., `<Match>`, `<Position>`), not the full reference structure.
+         * 
+         * **Non-Replace Operations:**
+         * 
+         * For non-Replace operations, this method delegates to the payload class's `renderFacet()` method,
+         * which handles Remove operations and normal rendering.
+         * 
+         * @param referenceRender - Optional pre-existing render of the reference already in the parent's schema tree.
+         *   For Replace operations, this is used as the base reference node structure (outer wrapper).
+         *   If not provided, the base reference node is generated from `this._reference.schema`.
+         * @returns An object with either `newNode` (for Exit-style facets) or `aggregatedNode` (for Position/Mark-style facets).
+         *   Replace operations always return `aggregatedNode` with the reference node wrapping the Replace structure.
+         */
         renderFacet(referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
             // Handle Replace operations
             if (this._isReplace && this._matchPayload !== undefined) {
-                // Call payload's renderFacet directly to avoid recursion
-                const matchResult = this._matchPayload.renderFacet(this._reference, this._matchPayload.toJSON(), referenceRender);
-                const payloadResult = this._payload.renderFacet(this._reference, this._payload.toJSON(), referenceRender);
+                // Get the base reference node structure (e.g., Mark, Room) from reference (for the outer wrapper)
+                let baseReferenceNode: GenericTreeNode<SchemaTag>;
+                if (referenceRender) {
+                    baseReferenceNode = referenceRender;
+                } else {
+                    const referenceSchema = this._reference.schema;
+                    if (referenceSchema.length === 0) {
+                        throw new Error('Invalid reference schema: empty');
+                    }
+                    baseReferenceNode = referenceSchema[0];
+                }
                 
-                // For Replace operations, wrap results in Replace structure
+                // Extract payload content (e.g., Match tags for Mark facets, Position tags for Position facets)
+                // from match and payload using their schema getters
+                const matchPayloadSchema = this._matchPayload.schema;
+                const payloadSchema = this._payload.schema;
+                
+                // Wrap payload content in ReplaceMatch/ReplacePayload
                 const replaceMatch: GenericTreeNode<SchemaTag> = {
                     data: { tag: 'ReplaceMatch' as const },
-                    children: matchResult.newNode ? [matchResult.newNode] : matchResult.aggregatedNode ? [matchResult.aggregatedNode] : []
+                    children: matchPayloadSchema
                 };
                 const replacePayload: GenericTreeNode<SchemaTag> = {
                     data: { tag: 'ReplacePayload' as const },
-                    children: payloadResult.newNode ? [payloadResult.newNode] : payloadResult.aggregatedNode ? [payloadResult.aggregatedNode] : []
+                    children: payloadSchema
+                };
+                
+                // Wrap ReplaceMatch/ReplacePayload in a Replace tag
+                const replaceTag: GenericTreeNode<SchemaTag> = {
+                    data: { tag: 'Replace' as const },
+                    children: [replaceMatch, replacePayload]
+                };
+                
+                // Add the Replace tag as a child of the reference node (standard form)
+                // The reference node (e.g., Mark, Room) wraps the Replace/With structure
+                const enhancedReferenceNode: GenericTreeNode<SchemaTag> = {
+                    ...baseReferenceNode,
+                    children: [
+                        replaceTag,
+                        ...baseReferenceNode.children
+                    ]
                 };
                 
                 return {
-                    aggregatedNode: {
-                        data: { tag: 'Replace' as const },
-                        children: [replaceMatch, replacePayload]
-                    }
+                    aggregatedNode: enhancedReferenceNode
                 };
             }
             

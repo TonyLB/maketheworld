@@ -8,6 +8,7 @@ import type { ExitPayload as ExitPayloadType, StandardFacetData } from "./dataTy
 import { isExitPayload } from "./dataTypes/facet";
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
+import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
 import { FacetPayloadBase } from "./dataTypes/facetPayloadBase";
 import { facetClassFactory } from './facetFactory';
 
@@ -98,6 +99,11 @@ export class ExitPayload implements StandardEditablePayload<ExitPayloadType>, Fa
 
     // FacetPayloadBase implementation
     renderFacet(reference: StandardReference, payload: ExitPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+        // Handle Remove-wrapped referenceRender: pass through unchanged (though Exit facets don't typically use referenceRender)
+        if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
+            return { aggregatedNode: referenceRender };
+        }
+
         // Exit facets always ignore referenceRender (they create new nodes, not enhancements)
         // Generate Exit tag with reference embedded in `to` property
         const toKey = reference.standardKey.toFormat('key');
@@ -110,6 +116,22 @@ export class ExitPayload implements StandardEditablePayload<ExitPayloadType>, Fa
                 children: []
             }] : []
         };
+
+        // Handle Remove-wrapped reference from reference.schema (when ref < 0)
+        // Exit facets create new nodes, so we wrap the new Exit node in Remove if needed
+        const exitSchema = reference.schema;
+        if (exitSchema.length > 0) {
+            const firstNode = exitSchema[0];
+            if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
+                // Wrap the new Exit node in Remove
+                return {
+                    newNode: {
+                        ...firstNode,
+                        children: [exitNode]
+                    }
+                };
+            }
+        }
 
         // Exit facets always create new nodes, so return newNode (never aggregatedNode)
         return { newNode: exitNode };
