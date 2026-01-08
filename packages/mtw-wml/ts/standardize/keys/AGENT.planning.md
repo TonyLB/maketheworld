@@ -670,7 +670,7 @@ Applying this pattern to facets will:
        - ✅ Extract all aggregated nodes from facet rendering (enhanced Mark references)
        - ✅ Combine with other Example content (Name, Summary, Description) using `rebuildSchemaFromStandardRender`
        - ✅ Return final nested schema with Example tag and all children
-   - ✅ Handle Replace operations: `renderFacet()` already handles Replace operations internally (wraps match/payload in ReplaceMatch/ReplacePayload)
+   - ✅ Handle Replace operations: `renderFacet()` already handles Replace operations internally (wraps match/payload in ReplaceMatch/ReplacePayload in internal schema representation, which renders as Replace/With in WML)
    - ✅ Handle Remove references: `renderFacet()` handles Remove references via the reference's schema generation
    - ✅ **Design Decision**: Simplified pattern for Example component since marks only exist in facets. Map/Area components will use the two-step pattern (render reference list first, then enhance with facets) because Rooms exist independently and may or may not have Position facets.
 
@@ -755,32 +755,88 @@ Applying this pattern to facets will:
 - Payloads may be wrapped in StandardEditable Remove/Replace wrappers
 - Combinations of these edit operations create complex scenarios that need careful analysis
 
-1. **Identify real-world edit operation scenarios**
-   - Review Phase 6 implementation to find actual edit operation use cases
-   - Document combinations that occur in practice:
-     - Remove reference + plain payload
-     - Plain reference + Replace payload
+1. ✅ **Identify real-world edit operation scenarios**
+   - ✅ Reviewed Phase 6 implementation and failing unit tests in `standardize/components/example.test.ts`
+   - ✅ Documented combinations that occur in practice from test failures:
+     - ✅ **Replace payload operations**: Two Mark facets with same reference but different narratives are merged into a Replace facet operation. This creates a payload-level Replace where the match payload (original narrative) and payload (updated narrative) both need to render as full Mark nodes with Match children. In WML, this appears as `<Replace>` and `<With>` tags (internally represented as ReplaceMatch/ReplacePayload in schema), which should be wrapped inside a Mark node in the standard form.
+     - ✅ **Remove reference operations**: When a Mark facet is inverted (via `invert()`), it creates a Remove operation with `ref < 0`. The reference's schema generation automatically wraps Remove-wrapped references when `ref < 0`, and `renderFacet()` needs to preserve this Remove wrapper around the final Mark node.
+   - ✅ Identified expected structures (both forms are valid and should be accepted):
+     - **Replace payload - Standard form**: `<Mark uuid=(...)><Replace><Mark>...</Mark></Replace><With><Mark>...</Mark></With></Mark>`
+     - **Replace payload - Alternative form**: `<Replace><Mark uuid=(...)>...</Mark></Replace><With><Mark uuid=(...)>...</Mark></With>`
+     - **Remove reference**: `<Remove><Mark uuid=(...)><Match>...</Match></Mark></Remove>`
+     - **Note**: The standard form (Replace nested inside Mark) is preferred for rendering, but the alternative form (Replace wrapping Mark nodes) is also clear, unambiguous, and should be legal for parsing. Both forms should be handled correctly.
+   - ✅ Functional gaps discovered:
+     - **Replace operation structure issue**: Current implementation returns `{ aggregatedNode: { tag: 'Replace', children: [ReplaceMatch, ReplacePayload] } }` (internal schema representation) but:
+       - The `<Replace>` and `<With>` tags (WML) / ReplaceMatch/ReplacePayload (internal schema) should contain full Mark nodes (with Match children), not just Match tags
+       - The standard WML form should have Mark wrapping Replace/With: `<Mark><Replace>...</Replace><With>...</With></Mark>`
+       - The alternative WML form (Replace/With wrapping Mark nodes) should also be accepted when parsing: `<Replace><Mark>...</Mark></Replace><With><Mark>...</Mark></With>`
+       - `renderFacet()` should generate the standard form (Mark wrapping Replace/With) for consistency
+       - `fromSchema()` should accept both forms when parsing
+     - **Remove operation handling issue**: When `ref < 0`, `reference.schema` returns Remove-wrapped reference, but `renderFacet()` may not correctly preserve the Remove wrapper when generating the final Mark node structure.
+   - ✅ Additional scenarios to investigate (not yet tested):
+     - Remove reference + Replace payload (semantic ambiguity - should this error?)
      - Replace reference (from parent) + plain payload
-     - Various other combinations as they arise
-   - Identify which combinations are semantically meaningful vs. which should error
+     - Replace reference (from parent) + Replace payload
+   - ✅ Identified that combinations need careful analysis to determine which are semantically meaningful vs. which should error
+
+   **Detailed Findings from Failing Tests:**
+   
+   **Test 1: `should handle Replace operations on Mark Facets`**
+   - **Scenario**: Merge two Examples with same Mark facet reference but different narratives (`'Original condition'` vs `'Updated condition'`)
+   - **Expected behavior**: Merged facet should have `isReplace === true` and `nestedSchema()` should render a Mark node with Replace structure inside
+   - **Current implementation issue**: `renderFacet()` for Replace operations (in `facetFactory.ts` lines 369-391) returns `{ aggregatedNode: { tag: 'Replace', children: [ReplaceMatch, ReplacePayload] } }` (internal schema), but:
+     - The `<Replace>` and `<With>` tags (WML) / ReplaceMatch/ReplacePayload (internal schema) should contain full Mark nodes (with Match children), not just Match tags
+     - The standard WML form should have Mark wrapping Replace/With: `<Mark><Replace><Mark>...</Mark></Replace><With><Mark>...</Mark></With></Mark>`
+     - When `referenceRender` is provided vs. generated, structure needs to be handled correctly
+     - Both forms should be accepted when parsing (fromSchema), but renderFacet should generate the standard form
+   - **Root cause**: The Replace operation structure needs to be corrected - Replace/With should be children of Mark in the standard form (not wrapping Mark), and both forms need to be supported
+   
+   **Test 2: `should handle Remove references (ref < 0)`**
+   - **Scenario**: Invert an Example with a Mark facet, which creates a Remove operation with `ref = -1`
+   - **Expected behavior**: Inverted facet should have `ref < 0` and `nestedSchema()` should render a Mark node (wrapped in Remove)
+   - **Current implementation behavior**: `reference.schema` for `ref < 0` returns `[{ tag: 'Remove', children: [MarkNode] }]`
+   - **Current implementation issue**: When `renderFacet()` is called without `referenceRender`, it generates a Mark node from `reference.schema`, but:
+     - The Remove wrapper from `reference.schema` may not be preserved correctly
+     - `renderFacet()` may need to detect Remove-wrapped references and preserve the wrapper around the final aggregated node
+     - The payload's `renderFacet()` implementation may not handle Remove-wrapped reference renders correctly
+   - **Root cause**: Remove wrapper preservation is not explicitly handled in the `renderFacet()` implementation
 
 2. **Analyze functional gaps**
-   - Determine what the current `renderFacet()` implementation cannot handle
+   - ✅ **Replace operation structure gap**: Current `renderFacet()` implementation cannot correctly structure Replace operations for facets. 
+     - **Standard WML form**: The `<Replace>` and `<With>` tags should be nested inside the Mark node (as children), not wrapping it. The Replace/With tags should contain full Mark nodes (with Match children), not just Match tags.
+     - **Alternative WML form**: The alternative form (`<Replace><Mark>...</Mark></Replace><With><Mark>...</Mark></With>`) should also be accepted when parsing, but `renderFacet()` should generate the standard form for consistency.
+     - Both forms are valid and unambiguous - the standard form is preferred for rendering, but parsing should handle both.
+   - ✅ **Remove operation preservation gap**: Current `renderFacet()` implementation does not explicitly preserve Remove wrappers when `ref < 0`. When `reference.schema` returns a Remove-wrapped reference, `renderFacet()` needs to detect and preserve this wrapper around the final aggregated node.
+   - ✅ **Reference render handling gap**: The current implementation does not handle Remove-wrapped `referenceRender` parameters. When a parent component passes a Remove-wrapped reference render, `renderFacet()` may not correctly pass it through. Note: Replace-wrapped reference renders will never be passed to `renderFacet()` because there is no `StandardComponentReplace` or `StandardReferenceReplace` type - components handle Replace operations by nesting them inside component content, not wrapping the whole component. However, Replace-wrapped components DO need to be handled in `fromSchema()` parsing because they are valid WML structures that users might write.
    - Identify edge cases where edit operations conflict or create ambiguity
    - **Examine schema getter usage**: Review whether FacetPayload schema getters (used by StandardEditable for Replace operations) are actually necessary or if they can be simplified/stubbed. Since `renderFacet()` does the actual rendering work, the schema getter may only need minimal structure for Replace matching/comparison. Anchor this analysis to actual Replace operation usage patterns from Phase 6.
    - Document questions that need answers:
-     - Should we enhance a Remove reference? (probably not - pass through)
-     - How do we handle Replace in `referenceRender` + Replace in payload?
-     - What's the semantics of Remove reference + Replace payload?
-   - Identify patterns that could be abstracted into reusable utilities
+     - ✅ Should we enhance a Remove reference? (probably not - pass through, but need to verify this is correct)
+     - ✅ **Replace structure forms**: Both standard form (Mark wrapping Replace) and alternative form (Replace wrapping Mark nodes) are valid and unambiguous. `renderFacet()` should generate the standard form for consistency, but `fromSchema()` should accept both forms when parsing. This is a design decision that affects both rendering and parsing.
+     - ✅ **Replace-wrapped components in fromSchema**: Replace-wrapped components need to be handled in `fromSchema()` parsing because they are valid WML structures. However, `renderFacet()` will never receive Replace-wrapped reference renders (no `StandardComponentReplace` or `StandardReferenceReplace` types exist - components handle Replace by nesting inside content).
+     - What's the semantics of Remove reference + Replace payload? (semantic ambiguity - should this error or be allowed?)
+   - Identify patterns that could be abstracted into reusable utilities:
+     - ✅ **Detecting Remove-wrapped reference renders**: Check if a reference render is wrapped in Remove to determine handling strategy (for `renderFacet()`). Note: Replace-wrapped reference renders will never be passed to `renderFacet()` (no such types exist), but Replace-wrapped components DO need to be handled in `fromSchema()` parsing.
+     - ✅ **Pass-through logic for Remove-wrapped references**: If a Remove-wrapped `referenceRender` is provided from parent, pass it through as-is (don't enhance - it's being removed). This might be as simple as "if Remove-wrapped, return it unchanged" rather than needing a separate unwrap utility.
+     - ✅ **Preserving Remove wrappers**: When `ref < 0` and `reference.schema` returns Remove-wrapped reference, preserve the wrapper around the final enhanced aggregated node
+     - ✅ **Rewrapping enhanced nodes in Remove**: Wrap enhanced nodes back in Remove structures when needed (for ref < 0 cases)
+     - ✅ **Parsing Replace-wrapped components in fromSchema**: Handle Replace-wrapped components when parsing WML (users might write them), but this is only needed in `fromSchema()`, not `renderFacet()`
+     - ✅ **Constructing correct Replace structures**: Build correct Replace operation structure for facets (Mark → Replace/With → Mark nodes in standard WML form) - this is for payload Replace operations, not component Replace
 
 3. **Design foundation tools (if needed)**
-   - Based on real-world gaps, design utility functions to help `renderFacet()` implementations
-   - Consider utilities for:
-     - Unwrapping edit-wrapped `referenceRender` nodes
-     - Unwrapping edit-wrapped payloads
-     - Rewrapping enhanced nodes in edit operations
-     - Decision trees for handling edit combinations
+   - ✅ Based on real-world gaps identified in Task 1, design utility functions to help `renderFacet()` implementations
+   - ✅ Utilities needed:
+     - ✅ **Detect Remove-wrapped reference renders**: Check if a reference render or reference schema is wrapped in Remove (for `renderFacet()` handling). Note: Replace-wrapped reference renders will never be passed to `renderFacet()` because there is no `StandardComponentReplace` or `StandardReferenceReplace` type.
+     - ✅ **Handle Remove-wrapped reference renders in renderFacet**: If a Remove-wrapped `referenceRender` is provided from parent, pass it through as-is (don't enhance - it's being removed). This might be as simple as checking for Remove wrapper and returning unchanged. For Remove-wrapped references from `reference.schema` (ref < 0), preserve the wrapper around the final enhanced aggregated node.
+     - ✅ **Handle Replace-wrapped components in fromSchema**: Parse Replace-wrapped components when reading WML (users might write them). This is only needed in `fromSchema()` parsing, not in `renderFacet()` generation, because `nestedSchema()` will never generate Replace-wrapped component references (components handle Replace by nesting inside content).
+     - ✅ **Construct Replace structures**: Build correct Replace operation structure for facets (standard WML form):
+       - Mark node (outer wrapper)
+       - `<Replace>` and `<With>` tags (children of Mark, WML representation)
+       - Full Mark nodes with Match children (children of Replace/With tags)
+       - Note: Internally, this is represented as ReplaceMatch/ReplacePayload in schema, but WML uses Replace/With
+     - ✅ **Parse both Replace forms in fromSchema**: Handle both standard form (Mark wrapping Replace) and alternative form (Replace wrapping Mark nodes) when parsing from WML schema. This is for payload Replace operations in facets, not component Replace operations.
+     - ✅ **Detect edit operations**: Utility to detect if a reference render or reference schema is wrapped in Remove/Replace
+     - ✅ **Decision trees for handling edit combinations**: Document which combinations are valid and how to handle them
    - Keep utilities minimal and focused on actual needs (don't over-engineer)
 
 4. **Update payload class implementations**
