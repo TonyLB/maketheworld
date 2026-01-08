@@ -862,10 +862,11 @@ Applying this pattern to facets will:
      - All existing tests still pass (no regressions)
      - All facet tests pass (301 tests passing)
 
-5. **Update documentation**
-   - Document edit operation handling patterns
-   - Update JSDoc for `renderFacet()` to clarify edit operation behavior
-   - Add examples of edit operation scenarios
+5. ✅ **Update documentation**
+   - ✅ Documented edit operation handling patterns in `FacetPayloadBase` interface JSDoc
+   - ✅ Updated JSDoc for `renderFacet()` in `FacetPayloadBase` to clarify Remove operation behavior
+   - ✅ Added JSDoc for `renderFacet()` in `facetFactory.ts` to document Replace operation handling
+   - ✅ Added examples of edit operation scenarios in JSDoc comments
 
 **Success Criteria**:
 - ✅ Real-world edit operation scenarios are identified and documented
@@ -873,7 +874,7 @@ Applying this pattern to facets will:
 - ✅ Foundation tools are created (if needed) to support edit operations
 - ✅ Payload class implementations handle edit operations correctly
 - ✅ Comprehensive tests exist for edit operation combinations
-- ⚠️ Documentation clearly explains edit operation handling (Task 5 - pending)
+- ✅ Documentation clearly explains edit operation handling
 
 **Note**: This phase should be anchored to actual usage patterns from Phase 6. Don't try to solve every theoretical combination - focus on what's actually needed in practice.
 
