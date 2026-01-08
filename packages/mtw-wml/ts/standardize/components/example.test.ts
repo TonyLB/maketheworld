@@ -10,6 +10,7 @@ import { StandardKey } from "../keys/key"
 import { StandardComponent } from "./baseClasses"
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState"
 import { isSchemaComponent } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
 
 const mergeTest = (base: string, incoming: string): string => {
     const baseStandard = new StandardExample(deIndentWML(base))
@@ -808,11 +809,33 @@ describe('StandardExample class', () => {
                 }
                 const nested = inverted.nestedSchema(mockLookup, options)
 
-                // Should have Mark node (renderFacet handles Remove via reference schema generation)
-                const markNode = nested.children.find(child =>
-                    treeNodeTypeguard(isSchemaMark)(child)
+                // Should have Remove-wrapped Mark node (renderFacet handles Remove via reference schema generation)
+                // When ref < 0, the reference schema returns Remove-wrapped, and renderFacet preserves it
+                // Find the Remove node that contains a Mark node (there may be other Remove nodes from Name/Summary/Description)
+                const removeNodes = nested.children.filter(child =>
+                    treeNodeTypeguard(isSchemaRemove)(child)
                 )
-                expect(markNode).toBeDefined()
+                expect(removeNodes.length).toBeGreaterThan(0)
+                // Find the Remove node that contains a Mark node
+                const removeNodeWithMark = removeNodes.find(removeNode => {
+                    if (treeNodeTypeguard(isSchemaRemove)(removeNode)) {
+                        return removeNode.children.some(child =>
+                            treeNodeTypeguard(isSchemaMark)(child)
+                        )
+                    }
+                    return false
+                })
+                expect(removeNodeWithMark).toBeDefined()
+                if (removeNodeWithMark && treeNodeTypeguard(isSchemaRemove)(removeNodeWithMark)) {
+                    // The Remove node should contain a Mark node
+                    const markNode = removeNodeWithMark.children.find(child =>
+                        treeNodeTypeguard(isSchemaMark)(child)
+                    )
+                    expect(markNode).toBeDefined()
+                    if (markNode) {
+                        expect(treeNodeTypeguard(isSchemaMark)(markNode)).toBe(true)
+                    }
+                }
             })
 
             it('should round-trip: WML → StandardForm → nestedSchema → WML', () => {

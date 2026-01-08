@@ -8,6 +8,7 @@ import type { MarkFacetPayload as MarkFacetPayloadType, StandardFacetData } from
 import { isMarkFacetPayload } from "./dataTypes/facet";
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
+import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
 import { FacetPayloadBase } from "./dataTypes/facetPayloadBase";
 import { facetClassFactory } from './facetFactory';
 
@@ -114,6 +115,11 @@ export class MarkFacetPayload implements StandardEditablePayload<MarkFacetPayloa
             }]
         };
 
+        // Handle Remove-wrapped referenceRender: pass through unchanged
+        if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
+            return { aggregatedNode: referenceRender };
+        }
+
         let markNode: GenericTreeNode<SchemaTag>;
 
         if (referenceRender) {
@@ -135,6 +141,44 @@ export class MarkFacetPayload implements StandardEditablePayload<MarkFacetPayloa
                 throw new Error('Invalid reference schema: empty');
             }
             const firstNode = markSchema[0];
+            
+            // Handle Remove-wrapped reference from reference.schema (when ref < 0)
+            if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
+                // Extract inner Mark node, enhance it, then wrap back in Remove
+                // firstNode.children is an array (GenericTree<SchemaTag>)
+                if (!firstNode.children || firstNode.children.length === 0) {
+                    throw new Error('Invalid Remove-wrapped reference schema: Remove node has no children');
+                }
+                const innerMark = firstNode.children[0];
+                if (!innerMark) {
+                    throw new Error('Invalid Remove-wrapped reference schema: Remove node has no Mark child');
+                }
+                // Verify innerMark is a Mark node
+                if (!treeNodeTypeguard(isSchemaMark)(innerMark)) {
+                    throw new Error(`Invalid Remove-wrapped reference schema: expected Mark tag inside Remove, got ${innerMark.data?.tag || 'unknown'}`);
+                }
+                // Create enhanced Mark node with Match child
+                // Explicitly preserve the data property to ensure it's recognized as a Mark node
+                const enhancedMark: GenericTreeNode<SchemaTag> = {
+                    data: { ...innerMark.data },
+                    children: [
+                        matchChild,
+                        ...innerMark.children
+                    ]
+                };
+                // Verify enhancedMark is still a Mark node
+                if (!treeNodeTypeguard(isSchemaMark)(enhancedMark)) {
+                    throw new Error('Failed to create valid Mark node in Remove wrapper');
+                }
+                // Wrap back in Remove - preserve the Remove node structure
+                return {
+                    aggregatedNode: {
+                        data: firstNode.data,
+                        children: [enhancedMark]
+                    }
+                };
+            }
+            
             if (!treeNodeTypeguard(isSchemaMark)(firstNode)) {
                 throw new Error('Invalid reference schema: expected Mark tag');
             }

@@ -3,13 +3,14 @@ import { standardFacetFactory } from './standardFacetFactory';
 import { PositionPayload } from './position';
 import { StandardFacetData, PositionPayload as PositionPayloadType, MarkFacetPayload, ExitPayload } from './dataTypes/facet';
 import { StandardReferenceData } from '../dataTypes/reference';
-import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
+import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { treeFromWML } from '../../../schema';
 import { deIndentWML } from '../../../schema/utils';
 import { StandardPositionFacet } from './position';
 import { StandardMarkFacet } from './mark';
 import { StandardExitFacet } from './exit';
+import { isSchemaReplace } from '@tonylb/mtw-base/ts/schema/edit';
 
 describe('facetClassFactory', () => {
     const TestFacetClass = facetClassFactory(PositionPayload, 'TestFacet');
@@ -358,7 +359,13 @@ describe('facetClassFactory', () => {
             const result = facet.renderFacet();
             expect(result).toHaveProperty('aggregatedNode');
             if (result.aggregatedNode) {
-                expect(result.aggregatedNode.data.tag).toBe('Replace');
+                // Replace operations should return Room node wrapping Replace/With containing Position tags
+                expect(result.aggregatedNode.data.tag).toBe('Room');
+                // Should have Replace child
+                const replaceChild = result.aggregatedNode.children.find(child =>
+                    treeNodeTypeguard(isSchemaReplace)(child)
+                );
+                expect(replaceChild).toBeDefined();
             }
         });
     });

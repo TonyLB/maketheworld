@@ -9,6 +9,7 @@ import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { isSchemaRoom, isSchemaPosition, isSchemaExit } from "@tonylb/mtw-base/ts/schema/components";
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
+import { isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit";
 import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag, ComponentUUID } from "@tonylb/mtw-base/ts/schema";
 
@@ -474,10 +475,15 @@ describe('Facet Integration Tests', () => {
 
             const result = replaceFacet!.renderFacet();
 
-            // Replace operations should return aggregatedNode with Replace structure
+            // Replace operations should return Room node wrapping Replace/With containing Position tags
             expect(result.aggregatedNode).toBeDefined();
             if (result.aggregatedNode) {
-                expect(result.aggregatedNode.data.tag).toBe('Replace');
+                expect(result.aggregatedNode.data.tag).toBe('Room');
+                // Should have Replace child
+                const replaceChild = result.aggregatedNode.children.find(child =>
+                    treeNodeTypeguard(isSchemaReplace)(child)
+                );
+                expect(replaceChild).toBeDefined();
             }
         });
 
@@ -492,9 +498,15 @@ describe('Facet Integration Tests', () => {
 
             const result = replaceFacet!.renderFacet();
 
+            // Replace operations should return Mark node wrapping Replace/With containing Match tags
             expect(result.aggregatedNode).toBeDefined();
             if (result.aggregatedNode) {
-                expect(result.aggregatedNode.data.tag).toBe('Replace');
+                expect(result.aggregatedNode.data.tag).toBe('Mark');
+                // Should have Replace child
+                const replaceChild = result.aggregatedNode.children.find(child =>
+                    treeNodeTypeguard(isSchemaReplace)(child)
+                );
+                expect(replaceChild).toBeDefined();
             }
         });
 
@@ -509,10 +521,15 @@ describe('Facet Integration Tests', () => {
 
             const result = replaceFacet!.renderFacet();
 
-            // Exit facets return aggregatedNode with Replace wrapper even though payload returns newNode
+            // Exit facets with Replace should return Room node wrapping Replace/With containing Exit tags
             expect(result.aggregatedNode).toBeDefined();
             if (result.aggregatedNode) {
-                expect(result.aggregatedNode.data.tag).toBe('Replace');
+                expect(result.aggregatedNode.data.tag).toBe('Room');
+                // Should have Replace child
+                const replaceChild = result.aggregatedNode.children.find(child =>
+                    treeNodeTypeguard(isSchemaReplace)(child)
+                );
+                expect(replaceChild).toBeDefined();
             }
         });
 
@@ -525,9 +542,15 @@ describe('Facet Integration Tests', () => {
             const roomRender = createMockRoomReference('room1', 'ROOM#123');
             const result = replaceFacet!.renderFacet(roomRender);
 
+            // Replace operations should return Room node (from referenceRender) wrapping Replace/With containing Position tags
             expect(result.aggregatedNode).toBeDefined();
             if (result.aggregatedNode) {
-                expect(result.aggregatedNode.data.tag).toBe('Replace');
+                expect(result.aggregatedNode.data.tag).toBe('Room');
+                // Should have Replace child
+                const replaceChild = result.aggregatedNode.children.find(child =>
+                    treeNodeTypeguard(isSchemaReplace)(child)
+                );
+                expect(replaceChild).toBeDefined();
             }
         });
     });
