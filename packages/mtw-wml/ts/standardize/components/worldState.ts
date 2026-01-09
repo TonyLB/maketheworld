@@ -10,7 +10,7 @@ import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardMarkData } from "./dataTypes/mark"
 import { StandardLensData } from "./dataTypes/lens"
-import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag, isSchemaComponent } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMark, isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
@@ -41,7 +41,9 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMark)(node)) {
-            const tagTree = new SchemaTagTree(node.children)
+            // Filter out component children to avoid including nested ShortName tags from child components
+            const nonComponentChildren = node.children.filter((child) => !isSchemaComponent(child.data))
+            const tagTree = new SchemaTagTree(nonComponentChildren)
             const shortNameItem = tagTree
                 .filter({ match: 'ShortName' })
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
@@ -185,7 +187,9 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaLens)(node)) {
-            const tagTree = new SchemaTagTree(node.children)
+            // Filter out component children to avoid including nested ShortName tags from child components
+            const nonComponentChildren = node.children.filter((child) => !isSchemaComponent(child.data))
+            const tagTree = new SchemaTagTree(nonComponentChildren)
             const shortNameItem = tagTree
                 .filter({ match: 'ShortName' })
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })

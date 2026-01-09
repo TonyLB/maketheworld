@@ -8,6 +8,7 @@ export type StandardRoomData = {
     tag: 'Room';
     shortName?: StandardEditableData<string>;
     exits?: StandardEditableData<StandardExitData>[];
+    lenses?: ReferenceListData;
     features?: ReferenceListData;
     examples?: ReferenceListData;
     characters?: ReferenceListData;
@@ -26,6 +27,7 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
             key: 'key',
             universalKey: 'string',
             shortName: 'literal',
+            lenses: 'referenceList',
             examples: 'referenceList',
             characters: 'referenceList'
         })

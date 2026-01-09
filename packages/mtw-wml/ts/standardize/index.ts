@@ -55,8 +55,8 @@ const COMPONENT_TEMPLATES: ComponentProcessingTemplate[] = [
     { key: 'Message', legalParents: ['Moment'] },
     { key: 'Moment' },
     { key: 'Example', legalParents: ['Room', 'Feature', 'Knowledge', 'Asset'] },
-    { key: 'Mark', legalParents: ['Example', 'Asset'] },
-    { key: 'Lens' }
+    { key: 'Mark', legalParents: ['Lens', 'Example', 'Asset'] },
+    { key: 'Lens', legalParents: ['Room', 'Asset'] }
 ]
 
 const getLegalParents = (componentTag: ComponentTag): (ComponentTag | 'Asset')[] | undefined => {

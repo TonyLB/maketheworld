@@ -16,6 +16,7 @@ import { AssetUUID, ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@ton
 import { isSchemaExit, isSchemaFeature, isSchemaRoom, isSchemaShortName } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaCharacter } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
 import { deepEqual } from "../../lib/objects"
 import { StandardLiteral } from "../literal"
 
@@ -27,6 +28,7 @@ import { StandardExplicitParent } from "../explicit"
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
     _exits: StandardExit[] = [];
+    _lenses: ReferenceList;
     _features: ReferenceList;
     _examples: ReferenceList;
     _characters: ReferenceList;
@@ -36,11 +38,13 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         if (previous) {
             this._shortName = previous._shortName
             this._exits = [...previous.exits]
+            this._lenses = previous._lenses.clone()
             this._features = previous._features.clone()
             this._examples = previous._examples.clone()
             this._characters = previous._characters.clone()
         }
         else {
+            this._lenses = new ReferenceList([])
             this._examples = new ReferenceList([])
             this._features = new ReferenceList([])
             this._characters = new ReferenceList([])
@@ -51,6 +55,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const { shortName } = props
         this._shortName = shortName ? new StandardLiteral(shortName) : undefined
         this._exits = props.exits?.map((exitData) => (StandardExit.create(exitData))) ?? []
+        this._lenses = new ReferenceList(props.lenses?.map((reference) => (new StandardReference(reference))) ?? [])
         this._features = new ReferenceList(props.features?.map((reference) => (new StandardReference(reference))) ?? [])
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
         this._characters = new ReferenceList(props.characters?.map((reference) => (new StandardReference(reference))) ?? [])
@@ -61,6 +66,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             const shortNameNode = stripTagFromTree(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaShortName) }), 'ShortName')
             this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode) : undefined
             this._exits = filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaExit) }).map((exitData) => (StandardExit.create([exitData])))
+            this._lenses = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaLens) }).map(childReferenceFactory))
             this._features = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaFeature) }).map(childReferenceFactory))
             this._examples = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaExample) }).map(childReferenceFactory))
             this._characters = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaCharacter) }).map(childReferenceFactory))
@@ -73,6 +79,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return this._shortName
     }
     get exits() { return this._exits }
+    get lenses() { return this._lenses }
     get features() { return this._features }
     get examples() { return this._examples }
     get characters() { return this._characters }
@@ -83,6 +90,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             tag: 'Room',
             shortName: this?.shortName?.toJSON(),
             ...(this.exits.length ? { exits: this.exits.map((exit) => exit.toJSON()) } : {}),
+            ...(this.lenses.payload.length ? { lenses: this.lenses.toJSON() } : {}),
             ...(this.features.payload.length ? { features: this.features.toJSON() } : {}),
             ...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {}),
             ...(this.characters.payload.length ? { characters: this.characters.toJSON() } : {})
@@ -94,6 +102,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             data: { tag: 'Room', key, uuid: universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...this.lenses.schema,
                 ...this.features.schema,
                 ...this.examples.schema,
                 ...this.characters.schema,
@@ -107,6 +116,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         
         // If organization is available, use assured references from organization
         // Otherwise, fall back to stored reference lists
+        let lensesToRender = this.lenses
         let featuresToRender = this.features
         let examplesToRender = this.examples
         let charactersToRender = this.characters
@@ -115,6 +125,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             // Get children from organization and assure references
             const children = options.organization.getChildrenOfParent(key) ?? []
             const assured = this.assureReferences(children)
+            lensesToRender = assured.lenses
             featuresToRender = assured.features
             examplesToRender = assured.examples
             charactersToRender = assured.characters
@@ -125,6 +136,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...lensesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...featuresToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...examplesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...charactersToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
@@ -137,6 +149,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const returnValue = new StandardRoomPayload()
         returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         returnValue._exits = mergeStandardExitList([...this.exits, ...incoming.exits])
+        returnValue._lenses = this._lenses.merge(incoming._lenses) ?? new ReferenceList([])
         returnValue._features = this._features.merge(incoming._features) ?? new ReferenceList([])
         returnValue._examples = this._examples.merge(incoming._examples) ?? new ReferenceList([])
         returnValue._characters = this._characters.merge(incoming._characters) ?? new ReferenceList([])
@@ -150,6 +163,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         // Invert each exit (StandardExit has invert() from v2StandardEditableFactory)
         returnValue._exits = this._exits.map((exit) => exit.invert() as StandardExit)
         // Invert each ReferenceList
+        returnValue._lenses = this._lenses.invert()
         returnValue._features = this._features.invert()
         returnValue._examples = this._examples.invert()
         returnValue._characters = this._characters.invert()
@@ -160,6 +174,11 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const returnValue = new StandardRoomPayload(this)
         
         // Filter and map children by type, creating references with ref={0}
+        const lensReferences = new ReferenceList(
+            children
+                .filter(child => child.tag === 'Lens')
+                .map(child => child.withRef(0))
+        )
         const featureReferences = new ReferenceList(
             children
                 .filter(child => child.tag === 'Feature')
@@ -178,6 +197,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         
         // Merge with existing buckets, preserving ref={0} references
         // cleanEmptyReferences: false ensures ref={0} entries are preserved when merging
+        returnValue._lenses = this._lenses.merge(lensReferences, { cleanEmptyReferences: false }) ?? this._lenses
         returnValue._features = this._features.merge(featureReferences, { cleanEmptyReferences: false }) ?? this._features
         returnValue._examples = this._examples.merge(exampleReferences, { cleanEmptyReferences: false }) ?? this._examples
         returnValue._characters = this._characters.merge(characterReferences, { cleanEmptyReferences: false }) ?? this._characters
@@ -189,6 +209,9 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const returnValue = new StandardRoomPayload(this)
         
         // Filter reference lists by removing items that match any reference in the input
+        returnValue._lenses = this._lenses.filter(
+            item => !references.some(ref => item.sameKey(ref))
+        )
         returnValue._features = this._features.filter(
             item => !references.some(ref => item.sameKey(ref))
         )
@@ -222,6 +245,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                     const exitReference = new StandardReference(exitKey, 'Room')
                     return { referenceType: 'Exit' as const, reference: exitReference }
                 }),
+            ...this.lenses.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, reference }))
@@ -246,6 +270,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardRoomPayload(this)
+        returnValue._lenses = returnValue._lenses.toFormat(props.mapTo, props.mappings)
         returnValue._examples = returnValue._examples.toFormat(props.mapTo, props.mappings)
         returnValue._features = returnValue._features.toFormat(props.mapTo, props.mappings)
         returnValue._exits = returnValue._exits.map((exit) => exit.remapReferences(props))
@@ -254,7 +279,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     withChild(child: StandardReference): this {
         const returnValue = new StandardRoomPayload(this)
-        if (child.tag === 'Feature') {
+        if (child.tag === 'Lens') {
+            returnValue._lenses = returnValue._lenses.assureItem(child)
+        }
+        else if (child.tag === 'Feature') {
             returnValue._features = returnValue._features.assureItem(child)
         }
         else if (child.tag === 'Example') {
@@ -270,19 +298,21 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     }
 
     isEmpty(): boolean {
-        // A room is empty if it has no shortName, no exits, and no references (features, examples, characters)
+        // A room is empty if it has no shortName, no exits, and no references (lenses, features, examples, characters)
         const hasShortName = Boolean(this._shortName)
         const hasExits = this._exits.length > 0
+        const hasLenses = this._lenses.payload.length > 0
         const hasFeatures = this._features.payload.length > 0
         const hasExamples = this._examples.payload.length > 0
         const hasCharacters = this._characters.payload.length > 0
-        return !(hasShortName || hasExits || hasFeatures || hasExamples || hasCharacters)
+        return !(hasShortName || hasExits || hasLenses || hasFeatures || hasExamples || hasCharacters)
     }
 }
 
 export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {
     get shortName() { return this._payload.shortName }
     get exits() { return this._payload.exits }
+    get lenses() { return this._payload.lenses }
     get features() { return this._payload.features }
     get examples() { return this._payload.examples }
     get characters() { return this._payload.characters }
@@ -305,7 +335,8 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         if (!(incoming instanceof StandardRoom)) {
             return false
         }
-        return !(this.features.diff(incoming.features)?.payload.length) &&
+        return !(this.lenses.diff(incoming.lenses)?.payload.length) &&
+            !(this.features.diff(incoming.features)?.payload.length) &&
             !(this.examples.diff(incoming.examples)?.payload.length) &&
             !(this.characters.diff(incoming.characters)?.payload.length) &&
             !(diffStandardExitList(this.exits, incoming.exits).length) &&
