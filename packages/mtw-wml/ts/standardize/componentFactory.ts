@@ -9,15 +9,15 @@ import StandardMap from "./components/map"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
 import StandardRoom from "./components/room"
-import StandardMark from "./components/worldState"
+import StandardMark, { StandardLens } from "./components/worldState"
 import { isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaTreeNode } from "../schema"
 import { StandardComponentData } from "./baseClasses"
-import { isStandardCharacterData, isStandardExampleData, isStandardFeatureData, isStandardImageData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardRoomData, isStandardMarkData } from "./components/dataTypes"
+import { isStandardCharacterData, isStandardExampleData, isStandardFeatureData, isStandardImageData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardRoomData, isStandardMarkData, isStandardLensData } from "./components/dataTypes"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
-import { isSchemaMark } from "@tonylb/mtw-base/ts/schema/worldState"
+import { isSchemaMark, isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
 
 //
 // standardComponentFactory takes an incoming argument that can apply to any of the StandardComponent classes,
@@ -53,6 +53,9 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
     }
     if ((!isSchemaTreeNode(arg) && isStandardMarkData(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaMark)(arg))) {
         return new StandardMark(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardLensData(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaLens)(arg))) {
+        return new StandardLens(arg)
     }
     return undefined
 }

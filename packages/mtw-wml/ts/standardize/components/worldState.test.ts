@@ -2,7 +2,8 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardMarkData } from "./dataTypes/mark"
-import StandardMark from './worldState'
+import { StandardLensData } from "./dataTypes/lens"
+import StandardMark, { StandardLens } from './worldState'
 import { mergeTest } from "./utils/testing"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
@@ -461,6 +462,384 @@ describe('StandardMark class', () => {
         expect(testMark.shortName).toBeUndefined()
         expect(testMark.description?.toJSON()).toEqual(['Test description.'])
         expect(testMark._payload.isEmpty()).toBe(false)
+    })
+
+})
+
+describe('StandardLens class', () => {
+
+    it('should construct StandardLens from WML', () => {
+        const testSource = deIndentWML(`
+            <Lens uuid=(001) key=(test) />
+        `)
+        const testLens = new StandardLens(testSource)
+        expect(testLens.key).toEqual('test')
+        expect(schemaToWML([testLens.schema])).toEqual(testSource)
+    })
+
+    it('should construct StandardLens from WML with ShortName', () => {
+        const testSource = deIndentWML(`
+            <Lens key=(test)><ShortName>Test Lens</ShortName></Lens>
+        `)
+        const testLens = new StandardLens(testSource)
+        expect(testLens.key).toEqual('test')
+        expect(testLens.shortName?.toJSON()).toEqual('Test Lens')
+        expect(schemaToWML([testLens.schema])).toEqual(testSource)
+    })
+
+    it('should construct StandardLens from WML with Description', () => {
+        const testSource = deIndentWML(`
+            <Lens key=(test)><Description>Test description.</Description></Lens>
+        `)
+        const testLens = new StandardLens(testSource)
+        expect(testLens.key).toEqual('test')
+        expect(testLens.description?.toJSON()).toEqual(['Test description.'])
+        expect(schemaToWML([testLens.schema])).toEqual(testSource)
+    })
+
+    it('should construct StandardLens from WML with ShortName and Description', () => {
+        const testSource = deIndentWML(`
+            <Lens key=(test)>
+                <ShortName>Test Lens</ShortName>
+                <Description>Test description.</Description>
+            </Lens>
+        `)
+        const testLens = new StandardLens(testSource)
+        expect(testLens.key).toEqual('test')
+        expect(testLens.shortName?.toJSON()).toEqual('Test Lens')
+        expect(testLens.description?.toJSON()).toEqual(['Test description.'])
+        expect(schemaToWML([testLens.schema])).toEqual(testSource)
+    })
+
+    it('should construct StandardLens from WML with Mark references', () => {
+        const testSource = deIndentWML(`
+            <Lens key=(test)>
+                <ShortName>Test Lens</ShortName>
+                <Mark key=(mark1) />
+            </Lens>
+        `)
+        const testLens = new StandardLens(testSource)
+        expect(testLens.key).toEqual('test')
+        expect(testLens.marks.payload.length).toEqual(1)
+        expect(testLens.marks.payload[0].key).toEqual('mark1')
+        expect(testLens.marks.payload[0].tag).toEqual('Mark')
+        expect(schemaToWML([testLens.schema])).toEqual(testSource)
+    })
+
+    it('should construct StandardLens from WML with multiple Mark references', () => {
+        const testSource = deIndentWML(`
+            <Lens key=(test)>
+                <ShortName>Test Lens</ShortName>
+                <Mark key=(mark1) />
+                <Mark key=(mark2) />
+            </Lens>
+        `)
+        const testLens = new StandardLens(testSource)
+        expect(testLens.key).toEqual('test')
+        expect(testLens.marks.payload.length).toEqual(2)
+        expect(testLens.marks.payload[0].key).toEqual('mark1')
+        expect(testLens.marks.payload[1].key).toEqual('mark2')
+        expect(schemaToWML([testLens.schema])).toEqual(testSource)
+    })
+
+    it('should construct StandardLens from schema', () => {
+        const schema = new Schema()
+        const testSource = deIndentWML(`
+            <Lens key=(test)>
+                <ShortName>Test Lens</ShortName>
+                <Description>Test description.</Description>
+                <Mark key=(mark1) />
+            </Lens>
+        `)
+        schema.loadWML(testSource)
+        const testLens = new StandardLens(schema.schema[0])
+        expect(testLens.key).toEqual('test')
+        expect(testLens.shortName?.toJSON()).toEqual('Test Lens')
+        expect(testLens.description?.toJSON()).toEqual(['Test description.'])
+        expect(testLens.marks.payload.length).toEqual(1)
+        expect(schemaToWML([testLens.schema])).toEqual(testSource)
+    })
+
+    it('should construct StandardLens from StandardLensData', () => {
+        const testLensData: StandardLensData = {
+            key: 'test',
+            tag: 'Lens'
+        }
+        const testLens = new StandardLens(testLensData)
+        expect(testLens.key).toEqual('test')
+        expect(testLens.toJSON()).toEqual(testLensData)
+    })
+
+    it('should construct StandardLens from StandardLensData with shortName', () => {
+        const testLensData: StandardLensData = {
+            key: 'test',
+            tag: 'Lens',
+            shortName: 'Test Lens'
+        }
+        const testLens = new StandardLens(testLensData)
+        expect(testLens.key).toEqual('test')
+        expect(testLens.shortName?.toJSON()).toEqual('Test Lens')
+        expect(testLens.toJSON()).toEqual(testLensData)
+    })
+
+    it('should construct StandardLens from StandardLensData with description', () => {
+        const testLensData: StandardLensData = {
+            key: 'test',
+            tag: 'Lens',
+            description: ['Test description.']
+        }
+        const testLens = new StandardLens(testLensData)
+        expect(testLens.key).toEqual('test')
+        expect(testLens.description?.toJSON()).toEqual(['Test description.'])
+        expect(testLens.toJSON()).toEqual(testLensData)
+    })
+
+    it('should construct StandardLens from StandardLensData with marks', () => {
+        const testLensData: StandardLensData = {
+            key: 'test',
+            tag: 'Lens',
+            marks: [{ key: 'mark1', tag: 'Mark' }]
+        }
+        const testLens = new StandardLens(testLensData)
+        expect(testLens.key).toEqual('test')
+        expect(testLens.marks.payload.length).toEqual(1)
+        expect(testLens.marks.payload[0].key).toEqual('mark1')
+        expect(testLens.marks.payload[0].tag).toEqual('Mark')
+    })
+
+    it('should construct StandardLens from StandardLensData with all fields', () => {
+        const testLensData: StandardLensData = {
+            key: 'test',
+            tag: 'Lens',
+            shortName: 'Test Lens',
+            description: ['Test description.'],
+            marks: [{ key: 'mark1', tag: 'Mark' }]
+        }
+        const testLens = new StandardLens(testLensData)
+        expect(testLens.key).toEqual('test')
+        expect(testLens.shortName?.toJSON()).toEqual('Test Lens')
+        expect(testLens.description?.toJSON()).toEqual(['Test description.'])
+        expect(testLens.marks.payload.length).toEqual(1)
+        expect(testLens.marks.payload[0].key).toEqual('mark1')
+    })
+
+    it('should serialize to WML correctly', () => {
+        const testLens = new StandardLens({
+            key: 'test',
+            tag: 'Lens',
+            shortName: 'Test Lens',
+            description: ['Test description.'],
+            marks: [{ key: 'mark1', tag: 'Mark' }]
+        })
+        const wml = schemaToWML([testLens.schema])
+        expect(wml).toContain('<Lens key=(test)>')
+        expect(wml).toContain('<ShortName>Test Lens</ShortName>')
+        expect(wml).toContain('<Description>Test description.</Description>')
+        expect(wml).toContain('<Mark key=(mark1) />')
+    })
+
+    it('should serialize to JSON correctly', () => {
+        const testLens = new StandardLens(`
+            <Lens key=(testLens)>
+                <ShortName>Test Lens</ShortName>
+                <Description>Test description.</Description>
+                <Mark key=(mark1) />
+            </Lens>
+        `)
+        expect(testLens.toJSON()).toEqual({
+            key: 'testLens',
+            tag: 'Lens',
+            shortName: 'Test Lens',
+            description: ['Test description.'],
+            marks: [{ key: 'mark1', tag: 'Mark' }]
+        })
+    })
+
+    it('should omit empty marks from JSON', () => {
+        const testLens = new StandardLens({
+            key: 'test',
+            tag: 'Lens',
+            shortName: 'Test Lens'
+        })
+        expect(testLens.toJSON()).toEqual({
+            key: 'test',
+            tag: 'Lens',
+            shortName: 'Test Lens'
+        })
+    })
+
+    it('should handle round-trip WML -> StandardLens -> WML', () => {
+        const testSource = deIndentWML(`
+            <Lens key=(test)>
+                <ShortName>Test Lens</ShortName>
+                <Description>Test description.</Description>
+                <Mark key=(mark1) />
+            </Lens>
+        `)
+        const testLens = new StandardLens(testSource)
+        expect(schemaToWML([testLens.schema])).toEqual(testSource)
+    })
+
+    it('should merge correctly', () => {
+        expect(mergeTest(
+            `<Lens key=(testLens)>
+                <ShortName>Original</ShortName>
+            </Lens>`,
+            StandardLens,
+            `<Lens key=(testLens)>
+                <Description>New description.</Description>
+            </Lens>`
+        )).toEqual(deIndentWML(`
+            <Lens key=(testLens)>
+                <ShortName>Original</ShortName>
+                <Description>New description.</Description>
+            </Lens>
+        `))
+    })
+
+    it('should merge marks correctly', () => {
+        expect(mergeTest(
+            `<Lens key=(testLens)>
+                <Mark key=(mark1) />
+            </Lens>`,
+            StandardLens,
+            `<Lens key=(testLens)>
+                <Mark key=(mark2) />
+            </Lens>`
+        )).toEqual(deIndentWML(`
+            <Lens key=(testLens)>
+                <Mark key=(mark1) />
+                <Mark key=(mark2) />
+            </Lens>
+        `))
+    })
+
+    it('should merge shortName correctly', () => {
+        expect(mergeTest(
+            `<Lens key=(testLens)>
+                <ShortName>Original</ShortName>
+            </Lens>`,
+            StandardLens,
+            `<Lens key=(testLens)>
+                <Replace><ShortName>Original</ShortName></Replace>
+                <With><ShortName>Updated</ShortName></With>
+            </Lens>`
+        )).toEqual(deIndentWML(`
+            <Lens key=(testLens)><ShortName>Updated</ShortName></Lens>
+        `))
+    })
+
+    it('should merge description correctly', () => {
+        expect(mergeTest(
+            `<Lens key=(testLens)>
+                <Description>Original description.</Description>
+            </Lens>`,
+            StandardLens,
+            `<Lens key=(testLens)>
+                <Description><Space />Additional text.</Description>
+            </Lens>`
+        )).toEqual(deIndentWML(`
+            <Lens key=(testLens)>
+                <Description>Original description. Additional text.</Description>
+            </Lens>
+        `))
+    })
+
+    it('should return true for isEmpty when all fields are empty', () => {
+        const testLens = new StandardLens({
+            key: 'test',
+            tag: 'Lens'
+        })
+        expect(testLens._payload.isEmpty()).toBe(true)
+    })
+
+    it('should return false for isEmpty when shortName exists', () => {
+        const testLens = new StandardLens({
+            key: 'test',
+            tag: 'Lens',
+            shortName: 'Test Lens'
+        })
+        expect(testLens._payload.isEmpty()).toBe(false)
+    })
+
+    it('should return false for isEmpty when description exists', () => {
+        const testLens = new StandardLens({
+            key: 'test',
+            tag: 'Lens',
+            description: ['Test description.']
+        })
+        expect(testLens._payload.isEmpty()).toBe(false)
+    })
+
+    it('should return false for isEmpty when marks exist', () => {
+        const testLens = new StandardLens({
+            key: 'test',
+            tag: 'Lens',
+            marks: [{ key: 'mark1', tag: 'Mark' }]
+        })
+        expect(testLens._payload.isEmpty()).toBe(false)
+    })
+
+    it('should invert correctly', () => {
+        const testLens = new StandardLens({
+            key: 'test',
+            tag: 'Lens',
+            shortName: 'Test Lens',
+            description: ['Test description.'],
+            marks: [{ key: 'mark1', tag: 'Mark' }]
+        })
+        const inverted = testLens._payload.invert()
+        expect(inverted.shortName?.toJSON()).toEqual({ tag: 'Remove', match: 'Test Lens' })
+        expect(inverted.description?.toJSON()).toEqual([{ data: { tag: 'Remove' }, children: ['Test description.'] }])
+        expect(inverted.marks.payload.length).toEqual(1)
+        expect(inverted.marks.payload[0].ref).toEqual(-1)
+    })
+
+    it('should handle empty Lens component', () => {
+        const testLens = new StandardLens({
+            key: 'test',
+            tag: 'Lens'
+        })
+        expect(testLens.shortName).toBeUndefined()
+        expect(testLens.description).toBeUndefined()
+        expect(testLens.marks.payload.length).toEqual(0)
+        expect(testLens._payload.isEmpty()).toBe(true)
+    })
+
+    it('should handle Lens with only ShortName', () => {
+        const testLens = new StandardLens({
+            key: 'test',
+            tag: 'Lens',
+            shortName: 'Test Lens'
+        })
+        expect(testLens.shortName?.toJSON()).toEqual('Test Lens')
+        expect(testLens.description).toBeUndefined()
+        expect(testLens.marks.payload.length).toEqual(0)
+        expect(testLens._payload.isEmpty()).toBe(false)
+    })
+
+    it('should handle Lens with only Description', () => {
+        const testLens = new StandardLens({
+            key: 'test',
+            tag: 'Lens',
+            description: ['Test description.']
+        })
+        expect(testLens.shortName).toBeUndefined()
+        expect(testLens.description?.toJSON()).toEqual(['Test description.'])
+        expect(testLens.marks.payload.length).toEqual(0)
+        expect(testLens._payload.isEmpty()).toBe(false)
+    })
+
+    it('should handle Lens with only marks', () => {
+        const testLens = new StandardLens({
+            key: 'test',
+            tag: 'Lens',
+            marks: [{ key: 'mark1', tag: 'Mark' }]
+        })
+        expect(testLens.shortName).toBeUndefined()
+        expect(testLens.description).toBeUndefined()
+        expect(testLens.marks.payload.length).toEqual(1)
+        expect(testLens._payload.isEmpty()).toBe(false)
     })
 
 })

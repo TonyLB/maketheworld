@@ -15,6 +15,7 @@ import { StandardMessageData, isStandardMessageData } from "./message"
 import { StandardMomentData, isStandardMomentData } from "./moment"
 import { StandardRoomData, isStandardRoomData } from "./room"
 import { StandardMarkData, isStandardMarkData } from "./mark"
+import { StandardLensData, isStandardLensData } from "./lens"
 
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -22,7 +23,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { ReferenceListData } from "../../keys/dataTypes/reference"
 
-export { isStandardCharacterData, isStandardExampleData, isStandardRoomData, isStandardFeatureData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardImageData, isStandardMarkData }
+export { isStandardCharacterData, isStandardExampleData, isStandardRoomData, isStandardFeatureData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardImageData, isStandardMarkData, isStandardLensData }
 
 export type StandardComponentNonEditData =
     StandardCharacterData |
@@ -34,7 +35,8 @@ export type StandardComponentNonEditData =
     StandardMessageData |
     StandardMomentData |
     StandardImageData |
-    StandardMarkData
+    StandardMarkData |
+    StandardLensData
 
 
 export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (typeof value !== 'string' && value.tag === tag)
@@ -49,7 +51,8 @@ export const isStandardComponentData = (value: any): value is StandardComponentD
     isStandardMessageData(value) ||
     isStandardMomentData(value) ||
     isStandardImageData(value) ||
-    isStandardMarkData(value)
+    isStandardMarkData(value) ||
+    isStandardLensData(value)
 )
 
 
