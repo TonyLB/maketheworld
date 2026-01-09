@@ -32,7 +32,7 @@ import StandardImage from "./components/image"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
 import StandardExample from "./components/example"
-import StandardMark from "./components/worldState"
+import StandardMark, { StandardLens } from "./components/worldState"
 import { StandardLiteral } from "./literal"
 import { StandardRender } from "./render"
 import { excludeUndefined } from "../lib/lists"
@@ -55,7 +55,8 @@ const COMPONENT_TEMPLATES: ComponentProcessingTemplate[] = [
     { key: 'Message', legalParents: ['Moment'] },
     { key: 'Moment' },
     { key: 'Example', legalParents: ['Room', 'Feature', 'Knowledge', 'Asset'] },
-    { key: 'Mark', legalParents: ['Example', 'Asset'] }
+    { key: 'Mark', legalParents: ['Example', 'Asset'] },
+    { key: 'Lens' }
 ]
 
 const getLegalParents = (componentTag: ComponentTag): (ComponentTag | 'Asset')[] | undefined => {
@@ -73,7 +74,8 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
         (value instanceof StandardMoment) ||
         (value instanceof StandardRoom) ||
         (value instanceof StandardExample) ||
-        (value instanceof StandardMark)
+        (value instanceof StandardMark) ||
+        (value instanceof StandardLens)
 }
 
 export const assertTypeguard = <T extends any, G extends T>(value: T, typeguard: (value: T) => value is G): G => {
