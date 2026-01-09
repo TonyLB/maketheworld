@@ -12,6 +12,7 @@ import StandardFeature from './components/feature'
 import StandardExample from './components/example'
 import { StandardLiteral } from './literal'
 import StandardMap from './components/map'
+import { StandardLens } from './components/worldState'
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
     return {
         ...jest.requireActual('@tonylb/mtw-utilities/ts/uuid/___mocks___/index')
@@ -301,6 +302,45 @@ describe('StandardForm', () => {
                 </Room>
             </Asset>
         `))
+    })
+
+    it('should correctly round-trip a room with lenses containing marks', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room uuid=(testRoom) key=(testRoom)>
+                    <ShortName>Test Room</ShortName>
+                    <Lens uuid=(lens1)>
+                        <ShortName>Test Lens</ShortName>
+                        <Description>This is a test lens.</Description>
+                        <Mark uuid=(mark1)>
+                            <ShortName>First Mark</ShortName>
+                            <Description>This is a first mark.</Description>
+                        </Mark>
+                        <Mark uuid=(mark2)>
+                            <ShortName>Second Mark</ShortName>
+                            <Description>This is a second mark.</Description>
+                        </Mark>
+                    </Lens>
+                </Room>
+            </Asset>
+        `)
+        const test = new StandardForm(testWML)
+        expect(schemaToWML([test.schema])).toEqual(testWML)
+        
+        // Verify the room has the lens reference
+        const room = test.byUniversalId['ROOM#testRoom'] as StandardRoom
+        expect(room).toBeDefined()
+        expect(room.lenses.payload.length).toEqual(1)
+        expect(room.lenses.payload[0].universalKey).toEqual('LENS#lens1')
+        expect(room.lenses.payload[0].tag).toEqual('Lens')
+        
+        // Verify the lens has the mark references
+        const lens = test.byUniversalId['LENS#lens1'] as StandardLens
+        expect(lens).toBeDefined()
+        expect(lens).toBeInstanceOf(StandardLens)
+        expect(lens.marks.payload.length).toEqual(2)
+        expect(lens.marks.payload[0].universalKey).toEqual('MARK#mark1')
+        expect(lens.marks.payload[1].universalKey).toEqual('MARK#mark2')
     })
 
     it('should correctly construct classes', () => {
