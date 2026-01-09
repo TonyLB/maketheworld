@@ -26,3 +26,22 @@ export const isSchemaMark = (schema: any): schema is SchemaMarkTag => (
         }
     })(schema)
 )
+
+export type SchemaLensTag = {
+    tag: 'Lens';
+    uuid?: ComponentUUID;
+    key?: string;
+    ref?: number;
+} & SchemaImportableBase
+
+export const isSchemaLens = (schema: any): schema is SchemaLensTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
+        values: {
+            tag: 'Lens',
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
+        }
+    })(schema)
+)

@@ -562,6 +562,14 @@ describe('schemaToWML', () => {
                         <Room key=(VORTEX) />Something happened
                     </Message>
                 </Moment>
+                <Lens uuid=(123-lens) key=(lens1)>
+                    <ShortName>Test Lens</ShortName>
+                    <Description>A test lens for parsing validation</Description>
+                    <Mark uuid=(123-mark) key=(mark1)>
+                        <ShortName>Test Mark</ShortName>
+                        <Description>A test mark inside the lens</Description>
+                    </Mark>
+                </Lens>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
