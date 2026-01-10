@@ -14,6 +14,7 @@ import StandardLiteralEditor from './StandardLiteralEditor'
 import { useLibraryAsset } from './LibraryAsset'
 import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
+import RoomLensEditor from './RoomLensEditor'
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { useDispatch } from 'react-redux'
@@ -93,7 +94,12 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                 .map((universalKey) => (<ExampleEditor componentId={universalKey} />)))
         }
         {
-            (component instanceof StandardRoom) && <RoomExitEditor RoomId={ComponentId || ''} />
+            (component instanceof StandardRoom) && (
+                <>
+                    <RoomExitEditor RoomId={ComponentId || ''} />
+                    <RoomLensEditor RoomId={ComponentId || ''} />
+                </>
+            )
         }
     </Box>
     : <Box />
