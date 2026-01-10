@@ -1,0 +1,510 @@
+import React, { FunctionComponent, useCallback, useMemo, useState } from "react"
+import Box from "@mui/material/Box"
+import List from "@mui/material/List"
+import ListItem from "@mui/material/ListItem"
+import ListItemButton from "@mui/material/ListItemButton"
+import ListItemIcon from "@mui/material/ListItemIcon"
+import ListItemText from "@mui/material/ListItemText"
+import IconButton from "@mui/material/IconButton"
+import Typography from "@mui/material/Typography"
+import Alert from "@mui/material/Alert"
+import { useLibraryAsset } from "../LibraryAsset"
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
+import SidebarTitle from "../SidebarTitle"
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
+import StandardMark, { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldState"
+import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
+import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
+import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
+import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import StandardLiteralEditor from "../StandardLiteralEditor"
+import StandardRenderEditor from "../StandardRenderEditor"
+import TitledBox from "../../../TitledBox"
+import LensSelectorDialog from "./LensSelectorDialog"
+import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
+import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { v4 as uuidv4 } from 'uuid'
+import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
+import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+
+type RoomLensEditorProps = {
+    RoomId: string
+}
+
+// Helper function to extract plain text from RenderTree for display
+const renderTreeToPlainText = (tree: RenderTree): string => {
+    if (!tree || tree.length === 0) return ''
+    return tree
+        .map(item => {
+            if (typeof item === 'string') {
+                return item
+            }
+            if (isSchemaString(item.data)) {
+                return item.data.value
+            }
+            // For other types, try to extract text from children
+            if (item.children && item.children.length > 0) {
+                return item.children
+                    .filter((child): child is string => typeof child === 'string')
+                    .join('')
+            }
+            return ''
+        })
+        .filter(Boolean)
+        .join(' ')
+        .trim()
+}
+
+const MarkListItem: FunctionComponent<{
+    mark: StandardMark
+    onDelete: () => void
+    disabled?: boolean
+}> = ({ mark, onDelete, disabled }) => {
+    const { readonly } = useLibraryAsset()
+    const isDisabled = readonly || disabled
+
+    const shortName = useMemo(() => {
+        const shortNameData = mark.shortName?._payload?.plain?.toJSON()
+        return typeof shortNameData === 'string' ? shortNameData : 'Untitled Mark'
+    }, [mark.shortName])
+
+    const descriptionText = useMemo(() => {
+        const descriptionTree = mark.description?.toJSON() || []
+        return renderTreeToPlainText(descriptionTree)
+    }, [mark.description])
+
+    return (
+        <ListItem
+            sx={{
+                border: '1px solid #e0e0e0',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                backgroundColor: 'white'
+            }}
+            secondaryAction={
+                <IconButton
+                    edge="end"
+                    aria-label="delete mark"
+                    onClick={onDelete}
+                    disabled={isDisabled}
+                    color="error"
+                    size="small"
+                >
+                    <DeleteIcon />
+                </IconButton>
+            }
+        >
+            <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 1 }}>
+                <Typography variant="body2" fontWeight="bold">
+                    {shortName}
+                </Typography>
+                {descriptionText && (
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        {descriptionText}
+                    </Typography>
+                )}
+            </Box>
+        </ListItem>
+    )
+}
+
+export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId }) => {
+    const { standardForm, updateStandard, readonly } = useLibraryAsset()
+    const [dialogOpen, setDialogOpen] = useState(false)
+
+    const room = useMemo(() => {
+        if (RoomId) {
+            const component = standardForm.byId[RoomId]
+            if (component && component instanceof StandardRoom) {
+                return component
+            }
+        }
+        return null
+    }, [RoomId, standardForm])
+
+    const lensReferences = useMemo(() => room?.lenses.payload || [], [room])
+    const lensCount = lensReferences.length
+
+    // Get the single lens component if there's exactly one
+    const singleLens = useMemo(() => {
+        if (lensCount !== 1) return null
+        const lensRef = lensReferences[0]
+        if (!lensRef || !lensRef.universalKey) return null
+        const component = standardForm.byUniversalId[lensRef.universalKey]
+        if (component && component instanceof StandardLens) {
+            return component
+        }
+        return null
+    }, [lensCount, lensReferences, standardForm])
+
+    // Get all lens components for multiple lenses view
+    const multipleLenses = useMemo(() => {
+        if (lensCount <= 1) return []
+        return lensReferences
+            .map(ref => {
+                if (!ref.universalKey) return null
+                const component = standardForm.byUniversalId[ref.universalKey]
+                if (component && component instanceof StandardLens) {
+                    return component
+                }
+                return null
+            })
+            .filter((lens): lens is StandardLens => lens !== null)
+    }, [lensCount, lensReferences, standardForm])
+
+    const createAndAddLens = useCallback(() => {
+        if (!room || readonly) return
+
+        // Generate a unique key
+        let nextIndex = 1
+        while (`Lens${nextIndex}` in standardForm.byId) { nextIndex++ }
+        const lensKey = `Lens${nextIndex}`
+        const lensUniversalKey = `LENS#${uuidv4()}` as ComponentUUID
+
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                const base = draft.byId[RoomId]
+                if (base instanceof StandardRoom) {
+                    // Create new lens component
+                    const newLens = new StandardLens({
+                        tag: 'Lens',
+                        key: lensKey,
+                        universalKey: lensUniversalKey
+                    })
+                    draft.byId[lensKey] = newLens
+
+                    // Add reference to room
+                    const lensReference = new StandardReference({
+                        universalKey: lensUniversalKey,
+                        tag: 'Lens'
+                    })
+                    base._payload._lenses = base._payload._lenses.assureItem(lensReference)
+                }
+                return draft
+            }
+        })
+    }, [room, RoomId, standardForm, updateStandard, readonly])
+
+    const addLensReference = useCallback((universalKey: ComponentUUID) => {
+        if (!room || readonly) return
+
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                const base = draft.byId[RoomId]
+                if (base instanceof StandardRoom) {
+                    const lensReference = new StandardReference({
+                        universalKey,
+                        tag: 'Lens'
+                    })
+                    base._payload._lenses = base._payload._lenses.assureItem(lensReference)
+                }
+                return draft
+            }
+        })
+    }, [room, RoomId, updateStandard, readonly])
+
+    const removeLensReference = useCallback((index: number) => {
+        if (!room || readonly) return
+
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                const base = draft.byId[RoomId]
+                if (base instanceof StandardRoom) {
+                    const newPayload = base._payload._lenses.payload.filter((_, i) => i !== index)
+                    base._payload._lenses = new ReferenceList(newPayload)
+                }
+                return draft
+            }
+        })
+    }, [room, RoomId, updateStandard, readonly])
+
+    const updateLensShortName = useCallback((newShortName: StandardLiteral) => {
+        if (!singleLens || readonly || !singleLens.universalKey) return
+
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                const lens = draft.byUniversalId[singleLens.universalKey!]
+                if (lens && lens instanceof StandardLens) {
+                    lens._payload._shortName = newShortName
+                }
+                return draft
+            }
+        })
+    }, [singleLens, updateStandard, readonly])
+
+    const updateLensDescription = useCallback((newDescription: StandardRender) => {
+        if (!singleLens || readonly || !singleLens.universalKey) return
+
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                const lens = draft.byUniversalId[singleLens.universalKey!]
+                if (lens && lens instanceof StandardLens) {
+                    lens._payload._description = newDescription
+                }
+                return draft
+            }
+        })
+    }, [singleLens, updateStandard, readonly])
+
+    const addMarkToLens = useCallback(() => {
+        if (!singleLens || readonly || !singleLens.universalKey) return
+
+        // Generate a unique key for the mark
+        let nextIndex = 1
+        while (`Mark${nextIndex}` in standardForm.byId) { nextIndex++ }
+        const markKey = `Mark${nextIndex}`
+        const markUniversalKey = `MARK#${uuidv4()}` as ComponentUUID
+
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                const lens = draft.byUniversalId[singleLens.universalKey!]
+                if (lens && lens instanceof StandardLens) {
+                    // Create new mark component
+                    const newMark = new StandardMark({
+                        tag: 'Mark',
+                        key: markKey,
+                        universalKey: markUniversalKey
+                    })
+                    draft.byId[markKey] = newMark
+
+                    // Add reference to lens
+                    const markReference = new StandardReference({
+                        universalKey: markUniversalKey,
+                        tag: 'Mark'
+                    })
+                    lens._payload._marks = lens._payload._marks.assureItem(markReference)
+                }
+                return draft
+            }
+        })
+    }, [singleLens, standardForm, updateStandard, readonly])
+
+    const removeMarkFromLens = useCallback((index: number) => {
+        if (!singleLens || readonly || !singleLens.universalKey) return
+
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                const lens = draft.byUniversalId[singleLens.universalKey!]
+                if (lens && lens instanceof StandardLens) {
+                    const newPayload = lens._payload._marks.payload.filter((_, i) => i !== index)
+                    lens._payload._marks = new ReferenceList(newPayload)
+                }
+                return draft
+            }
+        })
+    }, [singleLens, updateStandard, readonly])
+
+    // Get marks for single lens view
+    const marks = useMemo(() => {
+        if (!singleLens) return []
+        return singleLens.marks.payload
+            .map(ref => {
+                if (!ref.universalKey) return null
+                const component = standardForm.byUniversalId[ref.universalKey]
+                if (component && component instanceof StandardMark) {
+                    return component
+                }
+                return null
+            })
+            .filter((mark): mark is StandardMark => mark !== null)
+    }, [singleLens, standardForm])
+
+    // State for single lens editing
+    const [lensShortName, setLensShortName] = useState<StandardLiteral>(
+        singleLens?.shortName ?? new StandardLiteral('')
+    )
+    const [lensDescription, setLensDescription] = useState<StandardRender>(
+        singleLens?.description ?? new StandardRender([])
+    )
+
+    // Update state when singleLens changes
+    React.useEffect(() => {
+        if (singleLens) {
+            setLensShortName(singleLens.shortName ?? new StandardLiteral(''))
+            setLensDescription(singleLens.description ?? new StandardRender([]))
+        }
+    }, [singleLens])
+
+    // Debounced updates for lens fields
+    useDebouncedOnChange({
+        value: lensShortName,
+        delay: 1000,
+        onChange: updateLensShortName
+    })
+
+    useDebouncedOnChange({
+        value: lensDescription,
+        delay: 1000,
+        onChange: updateLensDescription
+    })
+
+    if (!room) {
+        return (
+            <SidebarTitle title="Lens" minHeight="5em">
+                <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
+                    Room not found
+                </Box>
+            </SidebarTitle>
+        )
+    }
+
+    // State 1: No lenses
+    if (lensCount === 0) {
+        return (
+            <>
+                <SidebarTitle title="Lens" minHeight="5em">
+                    <List>
+                        <ListItem>
+                            <ListItemButton
+                                onClick={() => setDialogOpen(true)}
+                                disabled={readonly}
+                                sx={{ justifyContent: 'center' }}
+                            >
+                                <ListItemIcon>
+                                    <AddIcon />
+                                </ListItemIcon>
+                                <ListItemText primary="Add Lens" />
+                            </ListItemButton>
+                        </ListItem>
+                    </List>
+                </SidebarTitle>
+                <LensSelectorDialog
+                    open={dialogOpen}
+                    onClose={() => setDialogOpen(false)}
+                    onSelectExisting={addLensReference}
+                    onCreateNew={createAndAddLens}
+                />
+            </>
+        )
+    }
+
+    // State 2: Single lens - full editing
+    if (lensCount === 1 && singleLens) {
+        return (
+            <SidebarTitle title="Lens" minHeight="5em">
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
+                    <TitledBox title="Short Name">
+                        <StandardLiteralEditor
+                            value={lensShortName}
+                            onChange={setLensShortName}
+                            placeholder="Enter lens short name..."
+                            size="small"
+                        />
+                    </TitledBox>
+
+                    <TitledBox title="Description">
+                        <StandardRenderEditor
+                            value={lensDescription}
+                            onChange={setLensDescription}
+                            validLinkTags={[]}
+                            toolbar={true}
+                        />
+                    </TitledBox>
+
+                    <TitledBox title="Marks">
+                        <List>
+                            {marks.map((mark, index) => {
+                                const markRef = singleLens.marks.payload[index]
+                                if (!markRef) return null
+                                return (
+                                    <MarkListItem
+                                        key={markRef.universalKey || index}
+                                        mark={mark}
+                                        onDelete={() => removeMarkFromLens(index)}
+                                        disabled={readonly}
+                                    />
+                                )
+                            })}
+                            <ListItem>
+                                <ListItemButton
+                                    onClick={addMarkToLens}
+                                    disabled={readonly}
+                                    sx={{ justifyContent: 'center' }}
+                                >
+                                    <ListItemIcon>
+                                        <AddIcon />
+                                    </ListItemIcon>
+                                    <ListItemText primary="Add Mark" />
+                                </ListItemButton>
+                            </ListItem>
+                        </List>
+                    </TitledBox>
+                </Box>
+            </SidebarTitle>
+        )
+    }
+
+    // State 3: Multiple lenses - read-only with delete
+    return (
+        <SidebarTitle title="Lens" minHeight="5em">
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                    <Typography variant="body2" fontWeight="bold" gutterBottom>
+                        Multiple Lenses Detected
+                    </Typography>
+                    <Typography variant="body2">
+                        This room has multiple lenses. Multiple lenses are not currently editable.
+                        We recommend removing all but one lens. You can delete lenses below to get down to a single lens for full editing.
+                    </Typography>
+                </Alert>
+
+                <List>
+                    {multipleLenses.map((lens, index) => {
+                        const lensRef = lensReferences[index]
+                        if (!lensRef) return null
+
+                        const shortName = lens.shortName?._payload?.plain?.toJSON()
+                        const shortNameStr = typeof shortName === 'string' ? shortName : 'Untitled Lens'
+                        const descriptionTree = lens.description?.toJSON() || []
+                        const descriptionText = renderTreeToPlainText(descriptionTree)
+
+                        return (
+                            <ListItem
+                                key={lensRef.universalKey || index}
+                                sx={{
+                                    border: '1px solid #e0e0e0',
+                                    borderRadius: '8px',
+                                    marginBottom: '8px',
+                                    backgroundColor: 'white'
+                                }}
+                                secondaryAction={
+                                    <IconButton
+                                        edge="end"
+                                        aria-label="delete lens"
+                                        onClick={() => removeLensReference(index)}
+                                        disabled={readonly}
+                                        color="error"
+                                    >
+                                        <DeleteIcon />
+                                    </IconButton>
+                                }
+                            >
+                                <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 1 }}>
+                                    <Typography variant="body1" fontWeight="bold">
+                                        {shortNameStr}
+                                    </Typography>
+                                    {descriptionText && (
+                                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                            {descriptionText}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </ListItem>
+                        )
+                    })}
+                </List>
+            </Box>
+        </SidebarTitle>
+    )
+}
+
+export default RoomLensEditor

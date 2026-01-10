@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from "react"
+import React, { FunctionComponent, ReactNode } from "react"
 
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -9,6 +9,7 @@ export type SidebardTitledBoxProps = {
     sidebarTitle: string;
     minHeight: string;
     sidebar?: boolean;
+    children: ReactNode;
 }
 
 export const SidebarTitledBox: FunctionComponent<SidebardTitledBoxProps> = ({ title, sidebarTitle, minHeight, sidebar=true, children }) => (

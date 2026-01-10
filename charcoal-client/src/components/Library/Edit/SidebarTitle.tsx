@@ -1,10 +1,10 @@
-import React, { FunctionComponent } from "react"
+import React, { FunctionComponent, ReactNode } from "react"
 
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import { blue } from "@mui/material/colors"
 
-export const SidebarTitle: FunctionComponent<{ title: string, minHeight: string }> = ({ title, minHeight, children }) => (
+export const SidebarTitle: FunctionComponent<{ title: string, minHeight: string, children: ReactNode }> = ({ title, minHeight, children }) => (
     <Box sx={{
         display: 'flex',
         flexDirection: 'row',
