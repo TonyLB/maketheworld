@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import React, { FunctionComponent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
@@ -57,7 +57,7 @@ export const mapTreeMemo = (standardForm: StandardForm, mapId: `MAP#${string}`):
             startNodes: ['map']
         }]
     }])
-    mapSubset._key = 'mapTree'
+    // Note: _key property doesn't exist on StandardForm - removed
     
     // Filter each room's exits to only include those whose target rooms exist in the subset
     mapSubset._components.forEach((component) => {
@@ -83,7 +83,11 @@ const localPositionsFromStandardForms = ({ inherited, local, mapId }: { inherite
         const mapComponent = standardForm.byUniversalId[mapId]
         if (mapComponent && mapComponent instanceof StandardMap) {
             return mapComponent.positions.map((position) => {
-                const roomComponent = standardForm._lookup(position.room._payload.plain.standardKey.toJSON())
+                const roomUniversalKey = position.room.universalKey
+                if (!roomUniversalKey) {
+                    return undefined
+                }
+                const roomComponent = standardForm.byUniversalId[roomUniversalKey]
                 if (roomComponent && roomComponent instanceof StandardRoom) {
                     return {
                         name: roomComponent.shortName?._payload.plain.toJSON() ?? '',
@@ -98,7 +102,7 @@ const localPositionsFromStandardForms = ({ inherited, local, mapId }: { inherite
     return [...(inherited ? localPositionsFromSingleStandardForm(inherited) : []), ...localPositionsFromSingleStandardForm(local)]
 }
 
-export const MapController: FunctionComponent<{ mapId: `MAP#${string}` }> = ({ children, mapId }) => {
+export const MapController: FunctionComponent<{ mapId: `MAP#${string}`; children?: ReactNode }> = ({ children, mapId }) => {
     const { AssetId, localStandardForm, inheritedStandardForm, standardForm, updateStandard } = useLibraryAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
@@ -258,7 +262,7 @@ export const MapController: FunctionComponent<{ mapId: `MAP#${string}` }> = ({ c
     </MapContext.Provider>
 }
 
-export const MapDisplayController: FunctionComponent<{ standardForm: StandardForm, mapId: `MAP#${string}` }> = ({ standardForm, mapId, children }) => {
+export const MapDisplayController: FunctionComponent<{ standardForm: StandardForm; mapId: `MAP#${string}`; children?: ReactNode }> = ({ standardForm, mapId, children }) => {
 
     //
     // Make local data and setters for node positions denormalized for display

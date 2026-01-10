@@ -1,4 +1,4 @@
-import React, { FunctionComponent, createContext, useCallback, useContext, useMemo, useState } from "react"
+import React, { FunctionComponent, ReactNode, createContext, useCallback, useContext, useMemo, useState } from "react"
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { v4 as uuidv4 } from 'uuid'
 import { Draft, produce } from "immer"
@@ -14,7 +14,7 @@ const EditHighlightContext = createContext<EditHighlightContextType>({
     setHighlight: () => {}
 })
 
-export const EditHighlight: FunctionComponent<{}> = ({ children }) => {
+export const EditHighlight: FunctionComponent<{ children?: ReactNode }> = ({ children }) => {
     const [highlightId, setHighlight] = useState('')
     return <EditHighlightContext.Provider value={{ highlightId, setHighlight }}>
         { children }
@@ -37,7 +37,7 @@ const EditContext = createContext<EditContextType>({
     setHighlight: () => {}
 })
 
-export const EditSchema: FunctionComponent<Omit<EditContextType, 'id' | 'setHighlight' | 'highlighted'>> = ({ inherited, value, onChange, children }) => {
+export const EditSchema: FunctionComponent<Omit<EditContextType, 'id' | 'setHighlight' | 'highlighted'> & { children?: ReactNode }> = ({ inherited, value, onChange, children }) => {
     const id = useMemo(() => (uuidv4()), [])
     const { highlighted } = useContext(EditContext)
     const { highlightId, setHighlight: contextSetHighlight } = useContext(EditHighlightContext)
@@ -57,6 +57,7 @@ export const EditSchemaNode: FunctionComponent<EditNodeContextType> = ({ node, o
 
 type EditChildrenArguments = {
     isEmpty?: (tree: GenericTree<SchemaTag>) => boolean;
+    children?: ReactNode;
 }
 
 export const EditChildren: FunctionComponent<EditChildrenArguments> = ({ isEmpty = () => false, children }) => {
@@ -84,6 +85,7 @@ export const EditChildren: FunctionComponent<EditChildrenArguments> = ({ isEmpty
 
 type EditSubListArguments = {
     index: number;
+    children?: ReactNode;
 }
 export const EditSubListSchema: FunctionComponent<EditSubListArguments> = ({ index, children }) => {
     const { value, onChange } = useEditContext()

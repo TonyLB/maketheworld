@@ -1,8 +1,9 @@
-import React, { FunctionComponent, useContext } from "react"
+import React, { FunctionComponent, ReactNode, useContext } from "react"
 
 type StandardFormContextType = {
     componentKey: string;
     tag: 'ShortName' | 'Name' | 'Summary' | 'Description' | 'Statement' | 'Fallthrough' | 'If' | 'Exits';
+    children?: ReactNode;
 }
 
 const StandardFormContext = React.createContext<StandardFormContextType>({

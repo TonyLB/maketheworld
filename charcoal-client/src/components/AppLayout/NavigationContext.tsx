@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useContext } from "react";
+import React, { FunctionComponent, ReactNode, useCallback, useContext } from "react";
 import { useSelector } from "react-redux";
 import { NavigateFunction, useLocation, useNavigate } from "react-router-dom";
 import { navigationTabSelected, navigationTabs, navigationTabSelectedIndex, NavigationTab } from "../../slices/UI/navigationTabs";
@@ -18,7 +18,7 @@ const NavigationContext = React.createContext<NavigationContextType>({
 })
 
 type NavigationContextProviderProps = {
-
+    children?: ReactNode;
 }
 
 export const NavigationContextProvider: FunctionComponent<NavigationContextProviderProps> = ({ children }) => {
