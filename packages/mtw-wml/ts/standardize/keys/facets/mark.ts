@@ -22,11 +22,12 @@ export class MarkFacetPayload implements StandardEditablePayload<MarkFacetPayloa
     narrative: string;
 
     constructor(data?: MarkFacetPayloadType) {
-        if (data) {
+        if (data !== undefined) {
             if (!isMarkFacetPayload(data)) {
                 throw new Error('Invalid MarkFacetPayload data');
             }
-            this.narrative = data.narrative;
+            // data is now a string (the narrative)
+            this.narrative = data;
         } else {
             // Placeholder value for empty constructor (will be overridden by fromSchema)
             this.narrative = '';
@@ -39,10 +40,8 @@ export class MarkFacetPayload implements StandardEditablePayload<MarkFacetPayloa
     }
 
     toJSON(): MarkFacetPayloadType {
-        return {
-            type: 'MarkFacet' as const,
-            narrative: this.narrative
-        };
+        // Return just the narrative string
+        return this.narrative;
     }
 
     /**
@@ -98,19 +97,17 @@ export class MarkFacetPayload implements StandardEditablePayload<MarkFacetPayloa
             .map(({ value }) => value)
             .join('');
 
-        return {
-            type: 'MarkFacet' as const,
-            narrative
-        };
+        // Return just the narrative string
+        return narrative;
     }
 
     // FacetPayloadBase implementation
     renderFacet(reference: StandardReference, payload: MarkFacetPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
-        // Create Match child tag from payload narrative
+        // payload is now a string (the narrative), use it directly
         const matchChild: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Match' as const },
             children: [{
-                data: { tag: 'String' as const, value: payload.narrative },
+                data: { tag: 'String' as const, value: payload },
                 children: []
             }]
         };
@@ -199,9 +196,11 @@ export class MarkFacetPayload implements StandardEditablePayload<MarkFacetPayloa
 
 // Factory function for creating MarkFacetPayload instances from various formats
 const payloadFactory = (props: MarkFacetPayloadType | GenericTree<SchemaTag>): StandardEditablePayload<MarkFacetPayloadType> | undefined => {
+    // Handle string input (payload format)
     if (isMarkFacetPayload(props)) {
         return new MarkFacetPayload(props);
     }
+    // Handle GenericTree<SchemaTag> input (schema parsing)
     if (Array.isArray(props) && props.length > 0) {
         // For GenericTree<SchemaTag>, we need a reference to parse
         // This factory is used by StandardEditable, so we'll handle plain Match tag parsing
@@ -213,10 +212,7 @@ const payloadFactory = (props: MarkFacetPayloadType | GenericTree<SchemaTag>): S
                 .filter(isSchemaString)
                 .map(({ value }) => value)
                 .join('');
-            return new MarkFacetPayload({
-                type: 'MarkFacet',
-                narrative
-            });
+            return new MarkFacetPayload(narrative);
         }
         // Also handle Mark+Match structure (for FacetPayloadBase.fromSchema compatibility)
         // This would typically be called from FacetPayloadBase.fromSchema, but included for completeness
@@ -229,10 +225,7 @@ const payloadFactory = (props: MarkFacetPayloadType | GenericTree<SchemaTag>): S
                     .filter(isSchemaString)
                     .map(({ value }) => value)
                     .join('');
-                return new MarkFacetPayload({
-                    type: 'MarkFacet',
-                    narrative
-                });
+                return new MarkFacetPayload(narrative);
             }
         }
     }
@@ -240,26 +233,37 @@ const payloadFactory = (props: MarkFacetPayloadType | GenericTree<SchemaTag>): S
 };
 
 // Add/subtract/diff functions for StandardEditable factory
-const standardMarkFacetPayloadAdd = (base: MarkFacetPayloadType, incoming: MarkFacetPayloadType): MarkFacetPayloadType => {
+// Now work with string payloads directly
+// Note: These functions may receive MarkFacetPayload instances or MarkFacetPayloadType (string)
+// We extract the data using toJSON() if needed
+const standardMarkFacetPayloadAdd = (base: MarkFacetPayloadType | MarkFacetPayload, incoming: MarkFacetPayloadType | MarkFacetPayload): MarkFacetPayloadType => {
+    // const baseData = base instanceof MarkFacetPayload ? base.toJSON() : base;
+    const incomingData = incoming instanceof MarkFacetPayload ? incoming.toJSON() : incoming;
     // Replace semantics: incoming wins
-    return incoming;
+    return incomingData;
 };
 
-const standardMarkFacetPayloadSubtract = (base: MarkFacetPayloadType, incoming: MarkFacetPayloadType): { add?: MarkFacetPayloadType, remove?: MarkFacetPayloadType } => {
-    if (deepEqual(base, incoming)) {
+const standardMarkFacetPayloadSubtract = (base: MarkFacetPayloadType | MarkFacetPayload, incoming: MarkFacetPayloadType | MarkFacetPayload): { add?: MarkFacetPayloadType, remove?: MarkFacetPayloadType } => {
+    const baseData = base instanceof MarkFacetPayload ? base.toJSON() : base;
+    const incomingData = incoming instanceof MarkFacetPayload ? incoming.toJSON() : incoming;
+    if (baseData === incomingData) {
         return { add: undefined, remove: undefined };
     }
     throw new MergeConflictError('Conflict during subtract operation');
 };
 
-const standardMarkFacetPayloadDiff = (base: MarkFacetPayloadType, incoming: MarkFacetPayloadType): { add?: MarkFacetPayloadType, remove?: MarkFacetPayloadType } => {
-    if (deepEqual(base, incoming)) {
+const standardMarkFacetPayloadDiff = (base: MarkFacetPayloadType | MarkFacetPayload, incoming: MarkFacetPayloadType | MarkFacetPayload): { add?: MarkFacetPayloadType, remove?: MarkFacetPayloadType } => {
+    const baseData = base instanceof MarkFacetPayload ? base.toJSON() : base;
+    const incomingData = incoming instanceof MarkFacetPayload ? incoming.toJSON() : incoming;
+    if (baseData === incomingData) {
         return { add: undefined, remove: undefined };
     }
-    return { add: incoming, remove: base };
+    return { add: incomingData, remove: baseData };
 };
 
 // Create StandardEditable factory
+// Note: The type signatures expect MarkFacetPayloadType (string), but addDelta passes MarkFacetPayload instances.
+// Our functions handle both by extracting data using toJSON() when needed.
 export const {
     constructorDelta: factory,
     typeguard: isStandardMarkFacetPayloadData,
@@ -269,9 +273,9 @@ export const {
     typeguard: isMarkFacetPayload,
     payloadFactory: payloadFactory,
     payload: MarkFacetPayload,
-    add: standardMarkFacetPayloadAdd,
-    subtract: standardMarkFacetPayloadSubtract,
-    diff: standardMarkFacetPayloadDiff
+    add: standardMarkFacetPayloadAdd as (base: MarkFacetPayloadType, incoming: MarkFacetPayloadType) => MarkFacetPayloadType,
+    subtract: standardMarkFacetPayloadSubtract as (base: MarkFacetPayloadType, incoming: MarkFacetPayloadType) => { add?: MarkFacetPayloadType, remove?: MarkFacetPayloadType },
+    diff: standardMarkFacetPayloadDiff as (base: MarkFacetPayloadType, incoming: MarkFacetPayloadType) => { add?: MarkFacetPayloadType, remove?: MarkFacetPayloadType }
 });
 
 export class StandardMarkFacet extends facetClassFactory(MarkFacetPayload, 'MarkFacet') {

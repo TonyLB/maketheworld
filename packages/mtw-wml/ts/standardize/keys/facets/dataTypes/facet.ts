@@ -1,12 +1,33 @@
+/**
+ * Facet Payload Types
+ * 
+ * IMPORTANT DESIGN DECISION: Facets are designed EXCLUSIVELY for homogeneous (single-type) lists.
+ * Each FacetList contains only one facet type (e.g., PositionFacetList only contains PositionFacet instances).
+ * 
+ * This design choice allows for:
+ * - Simple serialization format without `type` discriminator fields
+ * - Type inference from list context (no need for runtime type discrimination)
+ * - Compact JSON representation optimized for single-type collections
+ * 
+ * Payload types use simple formats:
+ * - PositionPayload: { x: number, y: number }
+ * - MarkFacetPayload: string
+ * - ExitPayload: string | undefined
+ * 
+ * The facet type is determined by the list class, not by a discriminator field in the payload.
+ */
+
 import checkTypes, { CheckTypes } from "@tonylb/mtw-base/ts/utils/checkTypes";
 import { StandardReferenceData, isStandardReferenceData } from "../../dataTypes/reference";
 
 /**
  * PositionPayload: Payload for Position Facets
  * Contains x, y coordinates for positioning a Room on a Map
+ * 
+ * Note: Type is inferred from list context (PositionFacetList), not from a discriminator field.
+ * Payload uses simple format: { x: number, y: number } with no `type` field.
  */
 export type PositionPayload = {
-    type: 'PositionFacet';
     x: number;
     y: number;
 }
@@ -14,41 +35,39 @@ export type PositionPayload = {
 /**
  * MarkFacetPayload: Payload for Mark Facets
  * Contains narrative description for referencing a Mark with state information
- * Note: Embeddings are handled in the lambda/assets data domain, not at WML parsing level
+ * 
+ * Note: Embeddings are handled in the lambda/assets data domain, not at WML parsing level.
+ * Type is inferred from list context (MarkFacetList), not from a discriminator field.
+ * Payload uses simple format: plain string with no `type` field.
  */
-export type MarkFacetPayload = {
-    type: 'MarkFacet';
-    narrative: string;
-}
+export type MarkFacetPayload = string
 
 /**
  * ExitPayload: Payload for Exit Facets
  * Contains optional description for Room exits
+ * 
+ * Note: Type is inferred from list context (ExitFacetList), not from a discriminator field.
+ * Payload uses simple format: string | undefined with no `type` field.
  */
-export type ExitPayload = {
-    type: 'ExitFacet';
-    description?: string;
-}
-
-/**
- * StandardFacetPayload: Base union type for all Facet payload types
- * Payloads are self-describing via the `type` discriminator field
- */
-export type StandardFacetPayload = PositionPayload | MarkFacetPayload | ExitPayload
+export type ExitPayload = string | undefined
 
 /**
  * StandardFacetData: Serialization format for Facets
  * Combines a StandardReferenceData (target component reference) with typed payload data
  * 
- * @template TPayload - The specific payload type (defaults to StandardFacetPayload union)
+ * IMPORTANT: This format is used only within homogeneous lists. The payload type is
+ * determined by the list context, not by a discriminator field in the payload.
+ * 
+ * @template TPayload - The specific payload type (string for MarkFacet, {x,y} for PositionFacet, string|undefined for ExitFacet)
  */
-export type StandardFacetData<TPayload extends StandardFacetPayload = StandardFacetPayload> = {
+export type StandardFacetData<TPayload> = {
     reference: StandardReferenceData;
     payload: TPayload;
 }
 
 /**
  * Type guard for PositionPayload
+ * Checks for object with x and y number properties (no type field needed - type inferred from context)
  */
 export const isPositionPayload = (arg: any): arg is PositionPayload => {
     if (typeof arg !== 'object' || arg === null) {
@@ -56,52 +75,33 @@ export const isPositionPayload = (arg: any): arg is PositionPayload => {
     }
     
     return checkTypes({
-        required: { type: CheckTypes.STRING, x: CheckTypes.NUMBER, y: CheckTypes.NUMBER },
+        required: { x: CheckTypes.NUMBER, y: CheckTypes.NUMBER },
         optional: {}
-    })(arg) && arg.type === 'PositionFacet'
+    })(arg)
 }
 
 /**
  * Type guard for MarkFacetPayload
+ * Checks for string type (no type field needed - type inferred from context)
  */
 export const isMarkFacetPayload = (arg: any): arg is MarkFacetPayload => {
-    if (typeof arg !== 'object' || arg === null) {
-        return false
-    }
-    
-    return checkTypes({
-        required: { type: CheckTypes.STRING, narrative: CheckTypes.STRING },
-        optional: {}
-    })(arg) && arg.type === 'MarkFacet'
+    return typeof arg === 'string'
 }
 
 /**
  * Type guard for ExitPayload
+ * Checks for string or undefined (no type field needed - type inferred from context)
  */
 export const isExitPayload = (arg: any): arg is ExitPayload => {
-    if (typeof arg !== 'object' || arg === null) {
-        return false
-    }
-    
-    return checkTypes({
-        required: { type: CheckTypes.STRING },
-        optional: { description: CheckTypes.STRING }
-    })(arg) && arg.type === 'ExitFacet'
-}
-
-/**
- * Type guard for StandardFacetPayload (union type)
- * Checks if the argument is any of the recognized payload types
- */
-export const isStandardFacetPayload = (arg: any): arg is StandardFacetPayload => {
-    return isPositionPayload(arg) || isMarkFacetPayload(arg) || isExitPayload(arg)
+    return typeof arg === 'string' || arg === undefined
 }
 
 /**
  * Type guard for StandardFacetData
- * Reuses isStandardReferenceData to validate the composed reference
+ * Validates structure only (has reference and payload properties with valid reference)
+ * Payload type validation is done by specific payload constructors based on context
  */
-export const isStandardFacetData = (arg: any): arg is StandardFacetData => {
+export const isStandardFacetData = (arg: any): arg is StandardFacetData<any> => {
     if (typeof arg !== 'object' || arg === null) {
         return false
     }
@@ -109,7 +109,6 @@ export const isStandardFacetData = (arg: any): arg is StandardFacetData => {
     return (
         'reference' in arg &&
         'payload' in arg &&
-        isStandardReferenceData(arg.reference) &&
-        isStandardFacetPayload(arg.payload)
+        isStandardReferenceData(arg.reference)
     )
 }

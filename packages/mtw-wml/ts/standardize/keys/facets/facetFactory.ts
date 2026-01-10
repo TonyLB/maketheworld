@@ -13,7 +13,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { ComponentTag } from "../../components/dataTypes/abstract";
-import { StandardFacetData, StandardFacetPayload, isStandardFacetData } from "./dataTypes/facet";
+import { StandardFacetData, isStandardFacetData } from "./dataTypes/facet";
 import { StandardEditablePayload } from "../../../generics/editable";
 import { ReferenceFormat } from "../../components/utils/references";
 import { StandardReference, LookupMappings } from "../reference";
@@ -25,8 +25,10 @@ import { treeFromWML, isSchemaTreeNode } from "../../../schema";
  * 
  * Documents the methods that payload classes must implement to be used with facetClassFactory.
  * Payload classes must implement both FacetPayloadBase and StandardEditablePayload interfaces.
+ * 
+ * @template D - The payload data type (string for MarkFacet, {x,y} for PositionFacet, string|undefined for ExitFacet)
  */
-export interface FacetConstructorMethods<D extends StandardFacetPayload> {
+export interface FacetConstructorMethods<D> {
     /**
      * Parse payload data from WML schema tree (from FacetPayloadBase)
      */
@@ -54,7 +56,7 @@ export interface FacetConstructorMethods<D extends StandardFacetPayload> {
 }
 
 export const facetClassFactory = <
-    D extends StandardFacetPayload,
+    D,
     TBase extends new (...args: any[]) => FacetConstructorMethods<D>
 >(Base: TBase, label: string, referenceFactory?: (schema: GenericTree<SchemaTag>) => StandardReference) => {
     return class GeneratedFacetClass {

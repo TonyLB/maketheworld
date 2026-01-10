@@ -18,9 +18,7 @@ import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { StandardExplicitParent } from "../explicit"
 import { MarkFacetList, StandardMarkFacet, MarkFacetPayload as MarkFacetPayloadClass } from "../keys/facets/mark"
-import { MarkFacetPayload } from "../keys/facets/dataTypes/facet"
 import { filterEditableTree } from "../../schema/utils"
-import { FacetListData } from "../keys/abstract"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
@@ -100,7 +98,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             name: this._name?.toJSON(),
             summary: this._summary?.toJSON(),
             description: this._description?.toJSON(),
-            ...(this.marks.length ? { marks: this.marks.toJSON() as unknown as FacetListData<MarkFacetPayload> } : {})
+            ...(this.marks.length ? { marks: this.marks.toJSON() } : {})
         }
     }
 
@@ -110,7 +108,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             name: this._name?.toJSON(),
             summary: this._summary?.toJSON(),
             description: this._description?.toJSON(),
-            ...(this.marks.length ? { marks: this.marks.toJSON() as unknown as FacetListData<MarkFacetPayload> } : {})
+            ...(this.marks.length ? { marks: this.marks.toJSON() } : {})
         }
     }
 

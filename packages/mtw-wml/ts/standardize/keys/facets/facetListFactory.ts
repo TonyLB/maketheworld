@@ -5,7 +5,7 @@ import { ReferenceFormat } from "../../components/utils/references";
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists";
 import { isSchemaTreeNode } from "../../../schema";
 import { LookupMappings } from "../reference";
-import { StandardFacetData, StandardFacetPayload } from "./dataTypes/facet";
+import { StandardFacetData } from "./dataTypes/facet";
 
 /**
  * FacetListItem: Interface for items in a FacetList
@@ -18,7 +18,8 @@ export interface FacetListItem {
     diff(incoming: this | undefined): this | undefined;
     invert(): this;
     equals(other: this): boolean;
-    toJSON(): StandardFacetData<StandardFacetPayload> | { tag: 'Replace'; match: StandardFacetData<StandardFacetPayload>; payload: StandardFacetData<StandardFacetPayload> };
+    // Payload type is specific to each facet list (string, {x,y}, string|undefined) - use any in interface
+    toJSON(): StandardFacetData<any> | { tag: 'Replace'; match: StandardFacetData<any>; payload: StandardFacetData<any> };
     toFormat(format: ReferenceFormat): this;
     lookup(mappings: LookupMappings): this;
     readonly reference: { mapContents(callback: (data: any) => any): any; toJSON(): any };
@@ -29,14 +30,19 @@ export interface FacetListItem {
 /**
  * FacetListClassFactory: Factory function that generates concrete list classes for facets
  * 
+ * IMPORTANT: Generated FacetList classes are homogeneous (single-type) collections.
+ * Each list contains only one facet type, enforced by the FacetClass parameter.
+ * This design allows for simple serialization without discriminator fields.
+ * 
  * Similar to editableListClassFactory but adapted for facets with:
  * - Reference normalization (like ReferenceList)
  * - Schema tree construction support
  * - Replace operation handling
+ * - Homogeneous list enforcement (all facets share the same payload type)
  * 
- * @param FacetClass - The concrete facet class constructor (e.g., StandardPositionFacet)
+ * @param FacetClass - The concrete facet class constructor (e.g., StandardPositionFacet). All items in the generated list will be instances of this class.
  * @param label - Label string for error messages (e.g., 'PositionFacetList')
- * @returns A generated list class that stores arrays of the concrete facet type
+ * @returns A generated list class that stores arrays of the concrete facet type (homogeneous collection)
  */
 export const facetListClassFactory = <
     TBase extends new (...args: any[]) => FacetListItem
@@ -106,12 +112,12 @@ export const facetListClassFactory = <
                     const facetJSON = item.toJSON();
                     if (typeof facetJSON === 'object' && facetJSON !== null && 'tag' in facetJSON && facetJSON.tag === 'Replace') {
                         // Handle Replace operations
-                        const replaceData = facetJSON as { tag: 'Replace'; match: StandardFacetData<StandardFacetPayload>; payload: StandardFacetData<StandardFacetPayload> };
-                        const normalizedMatch: StandardFacetData<StandardFacetPayload> = {
+                        const replaceData = facetJSON as { tag: 'Replace'; match: StandardFacetData<any>; payload: StandardFacetData<any> };
+                        const normalizedMatch: StandardFacetData<any> = {
                             reference: normalizedReference.toJSON(),
                             payload: replaceData.match.payload
                         };
-                        const normalizedPayload: StandardFacetData<StandardFacetPayload> = {
+                        const normalizedPayload: StandardFacetData<any> = {
                             reference: normalizedReference.toJSON(),
                             payload: replaceData.payload.payload
                         };
@@ -122,8 +128,8 @@ export const facetListClassFactory = <
                         }) as InstanceType<TBase>;
                     } else {
                         // Handle plain facets
-                        const facetData = facetJSON as StandardFacetData<StandardFacetPayload>;
-                        const normalizedFacetData: StandardFacetData<StandardFacetPayload> = {
+                        const facetData = facetJSON as StandardFacetData<any>;
+                        const normalizedFacetData: StandardFacetData<any> = {
                             reference: normalizedReference.toJSON(),
                             payload: facetData.payload
                         };
@@ -140,10 +146,10 @@ export const facetListClassFactory = <
             return instance as this;
         }
 
-        toJSON(): StandardEditableData<StandardFacetData<StandardFacetPayload>>[] {
+        toJSON(): StandardEditableData<StandardFacetData<any>>[] {
             return this._items.map((item) => {
                 if (item instanceof FacetClass) {
-                    return item.toJSON() as StandardEditableData<StandardFacetData<StandardFacetPayload>>;
+                    return item.toJSON() as StandardEditableData<StandardFacetData<any>>;
                 }
                 throw new Error(`Item in ${label} is not an instance of ${FacetClass.name}`);
             });

@@ -2,14 +2,13 @@ import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards"
 import { FacetListData } from "../../keys/abstract"
-import { MarkFacetPayload } from "../../keys/facets/dataTypes/facet"
 
 export type StandardExampleData = {
     tag: 'Example';
     name?: RenderTree;
     summary?: RenderTree;
     description?: RenderTree;
-    marks?: FacetListData<MarkFacetPayload>;
+    marks?: FacetListData<string>;  // MarkFacet uses string payload
 } & StandardBaseData
 
 export type StandardExampleNDJSONData = {
@@ -17,7 +16,7 @@ export type StandardExampleNDJSONData = {
     name?: RenderTree;
     summary?: RenderTree;
     description?: RenderTree;
-    marks?: FacetListData<MarkFacetPayload>;
+    marks?: FacetListData<string>;  // MarkFacet uses string payload
 } & StandardBaseData
 
 export const isStandardExampleData = (arg: any): arg is StandardExampleData => {

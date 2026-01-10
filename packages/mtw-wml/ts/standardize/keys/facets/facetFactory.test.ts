@@ -1,15 +1,11 @@
 import { facetClassFactory } from './facetFactory';
-import { standardFacetFactory } from './standardFacetFactory';
 import { PositionPayload } from './position';
-import { StandardFacetData, PositionPayload as PositionPayloadType, MarkFacetPayload, ExitPayload } from './dataTypes/facet';
+import { StandardFacetData, PositionPayload as PositionPayloadType } from './dataTypes/facet';
 import { StandardReferenceData } from '../dataTypes/reference';
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { treeFromWML } from '../../../schema';
 import { deIndentWML } from '../../../schema/utils';
-import { StandardPositionFacet } from './position';
-import { StandardMarkFacet } from './mark';
-import { StandardExitFacet } from './exit';
 import { isSchemaReplace } from '@tonylb/mtw-base/ts/schema/edit';
 
 describe('facetClassFactory', () => {
@@ -22,7 +18,6 @@ describe('facetClassFactory', () => {
     };
 
     const positionPayload: PositionPayloadType = {
-        type: 'PositionFacet',
         x: 10,
         y: 20
     };
@@ -58,7 +53,7 @@ describe('facetClassFactory', () => {
         it('should construct from Replace JSON structure', () => {
             const matchData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
@@ -153,7 +148,7 @@ describe('facetClassFactory', () => {
         it('should serialize Replace operations correctly', () => {
             const matchData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
@@ -192,7 +187,7 @@ describe('facetClassFactory', () => {
             };
             const facetData2: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 15, y: 25 }
+                payload: { x: 15, y: 25 }
             };
             const facet1 = new TestFacetClass(facetData1);
             const facet2 = new TestFacetClass(facetData2);
@@ -206,7 +201,7 @@ describe('facetClassFactory', () => {
             };
             const facetData2: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 15, y: 25 }
+                payload: { x: 15, y: 25 }
             };
             const facet1 = new TestFacetClass(facetData1);
             const facet2 = new TestFacetClass(facetData2);
@@ -238,15 +233,15 @@ describe('facetClassFactory', () => {
             };
             const facetData2: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 15, y: 25 }
+                payload: { x: 15, y: 25 }
             };
             const facet1 = new TestFacetClass(facetData1);
             const facet2 = new TestFacetClass(facetData2);
             const merged = facet1.merge(facet2);
             expect(merged).toBeDefined();
             expect(merged?.isReplace).toBe(true);
-            expect(merged?.matchPayload?.toJSON()).toEqual(positionPayload);
-            expect(merged?.payload.toJSON()).toEqual(facetData2.payload);
+            expect(merged?.matchPayload?.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(merged?.payload.toJSON()).toEqual({ x: 15, y: 25 });
         });
 
         it('should return undefined when references cancel out and payloads are same', () => {
@@ -284,15 +279,15 @@ describe('facetClassFactory', () => {
             };
             const facetData2: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 15, y: 25 }
+                payload: { x: 15, y: 25 }
             };
             const facet1 = new TestFacetClass(facetData1);
             const facet2 = new TestFacetClass(facetData2);
             const diff = facet1.diff(facet2);
             expect(diff).toBeDefined();
             expect(diff?.isReplace).toBe(true);
-            expect(diff?.matchPayload?.toJSON()).toEqual(positionPayload);
-            expect(diff?.payload.toJSON()).toEqual(facetData2.payload);
+            expect(diff?.matchPayload?.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(diff?.payload.toJSON()).toEqual({ x: 15, y: 25 });
         });
     });
 
@@ -311,7 +306,7 @@ describe('facetClassFactory', () => {
         it('should preserve Replace state when inverting', () => {
             const matchData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
@@ -344,7 +339,7 @@ describe('facetClassFactory', () => {
         it('should handle Replace operations', () => {
             const matchData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
@@ -397,7 +392,7 @@ describe('facetClassFactory', () => {
         it('should preserve Replace state in toFormat', () => {
             const matchData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
@@ -523,135 +518,6 @@ describe('facetClassFactory', () => {
                 const emptySchema: GenericTree<SchemaTag> = [];
                 expect(() => new TestFacetClass(emptySchema)).toThrow('Invalid argument');
             });
-        });
-    });
-});
-
-describe('standardFacetFactory', () => {
-    const validReference: StandardReferenceData = {
-        key: 'room1',
-        tag: 'Room',
-        ref: 1
-    };
-
-    describe('JSON data input (StandardFacetData)', () => {
-        it('should create StandardPositionFacet from Position payload', () => {
-            const facetData: StandardFacetData<PositionPayloadType> = {
-                reference: validReference,
-                payload: {
-                    type: 'PositionFacet',
-                    x: 10,
-                    y: 20
-                }
-            };
-            const facet = standardFacetFactory(facetData);
-            expect(facet).toBeInstanceOf(StandardPositionFacet);
-            expect(facet?.payload.toJSON()).toEqual(facetData.payload);
-        });
-
-        it('should create StandardMarkFacet from Mark payload', () => {
-            const facetData: StandardFacetData<MarkFacetPayload> = {
-                reference: {
-                    key: 'mark1',
-                    tag: 'Mark',
-                    ref: 1,
-                    universalKey: 'MARK#mark1'
-                },
-                payload: {
-                    type: 'MarkFacet',
-                    narrative: 'A dark room'
-                }
-            };
-            const facet = standardFacetFactory(facetData);
-            expect(facet).toBeInstanceOf(StandardMarkFacet);
-            expect(facet?.payload.toJSON()).toEqual(facetData.payload);
-        });
-
-        it('should create StandardExitFacet from Exit payload', () => {
-            const facetData: StandardFacetData<ExitPayload> = {
-                reference: validReference,
-                payload: {
-                    type: 'ExitFacet',
-                    description: 'A wooden door'
-                }
-            };
-            const facet = standardFacetFactory(facetData);
-            expect(facet).toBeInstanceOf(StandardExitFacet);
-            expect(facet?.payload.toJSON()).toEqual(facetData.payload);
-        });
-    });
-
-    describe('Schema tree input (GenericTree<SchemaTag>)', () => {
-        it('should create StandardPositionFacet from Room schema (Position facet)', () => {
-            const wml = '<Room key=(room1)><Position x="10" y="20" /></Room>';
-            const schema = treeFromWML(deIndentWML(wml));
-            const facet = standardFacetFactory(schema);
-            expect(facet).toBeInstanceOf(StandardPositionFacet);
-            expect(facet?.payload.toJSON()).toEqual({
-                type: 'PositionFacet',
-                x: 10,
-                y: 20
-            });
-        });
-
-        it('should create StandardMarkFacet from Mark schema (Mark facet)', () => {
-            const wml = '<Mark uuid=(mark1)><Match>Dark room</Match></Mark>';
-            const schema = treeFromWML(deIndentWML(wml));
-            const facet = standardFacetFactory(schema);
-            expect(facet).toBeInstanceOf(StandardMarkFacet);
-            expect(facet?.payload.toJSON()).toEqual({
-                type: 'MarkFacet',
-                narrative: 'Dark room'
-            });
-        });
-
-        it('should create StandardExitFacet from Exit schema (Exit facet)', () => {
-            const wml = '<Exit to=(room1)>North</Exit>';
-            const schema = treeFromWML(deIndentWML(wml));
-            const facet = standardFacetFactory(schema);
-            expect(facet).toBeInstanceOf(StandardExitFacet);
-            expect(facet?.payload.toJSON()).toEqual({
-                type: 'ExitFacet',
-                description: 'North'
-            });
-        });
-    });
-
-    describe('Error cases', () => {
-        it('should return undefined for invalid JSON data (missing payload type)', () => {
-            const invalidData = {
-                reference: validReference,
-                payload: {
-                    // Missing type field
-                    x: 10,
-                    y: 20
-                }
-            };
-            const facet = standardFacetFactory(invalidData as any);
-            expect(facet).toBeUndefined();
-        });
-
-        it('should return undefined for invalid schema tree (unknown root tag)', () => {
-            const wml = '<Example key=(example1)>Test</Example>';
-            const schema = treeFromWML(deIndentWML(wml));
-            const facet = standardFacetFactory(schema);
-            expect(facet).toBeUndefined();
-        });
-
-        it('should return undefined for null input', () => {
-            const facet = standardFacetFactory(null as any);
-            expect(facet).toBeUndefined();
-        });
-
-        it('should return undefined for undefined input', () => {
-            const facet = standardFacetFactory(undefined as any);
-            expect(facet).toBeUndefined();
-        });
-
-        it('should return undefined for empty schema tree', () => {
-            const emptySchema: GenericTree<SchemaTag> = [];
-            const facet = standardFacetFactory(emptySchema);
-            expect(facet).toBeUndefined();
         });
     });
 });

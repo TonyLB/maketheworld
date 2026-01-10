@@ -17,7 +17,7 @@ describe('Concrete FacetList Classes', () => {
     const createPositionFacet = (key: string, x: number, y: number, ref: number = 1): StandardPositionFacet => {
         const facetData: StandardFacetData<PositionPayload> = {
             reference: createReference(key, 'Room', ref),
-            payload: { type: 'PositionFacet', x, y }
+            payload: { x, y }
         };
         return new StandardPositionFacet(facetData);
     };
@@ -25,19 +25,19 @@ describe('Concrete FacetList Classes', () => {
     const createMarkFacet = (key: string, narrative: string, ref: number = 1): StandardMarkFacet => {
         const facetData: StandardFacetData<MarkFacetPayload> = {
             reference: createReference(key, 'Mark', ref),
-            payload: { type: 'MarkFacet', narrative }
+            payload: narrative
         };
         return new StandardMarkFacet(facetData);
     };
 
     const createPositionFacetData = (key: string, x: number, y: number): StandardFacetData<PositionPayload> => ({
         reference: createReference(key, 'Room'),
-        payload: { type: 'PositionFacet', x, y }
+        payload: { x, y }
     });
 
     const createMarkFacetData = (key: string, narrative: string): StandardFacetData<MarkFacetPayload> => ({
         reference: createReference(key, 'Mark'),
-        payload: { type: 'MarkFacet', narrative }
+        payload: narrative
     });
 
     describe('Construction', () => {
@@ -55,8 +55,8 @@ describe('Concrete FacetList Classes', () => {
             expect(list.length).toBe(2);
             const item0 = list.items[0] as StandardPositionFacet;
             const item1 = list.items[1] as StandardPositionFacet;
-            expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 10, y: 20 });
-            expect(item1.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 30, y: 40 });
+            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(item1.payload.toJSON()).toEqual({ x: 30, y: 40 });
         });
 
         it('should construct from array of StandardFacetData (JSON format)', () => {
@@ -67,18 +67,18 @@ describe('Concrete FacetList Classes', () => {
             expect(list.length).toBe(2);
             const item0 = list.items[0] as StandardPositionFacet;
             const item1 = list.items[1] as StandardPositionFacet;
-            expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 10, y: 20 });
-            expect(item1.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 30, y: 40 });
+            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(item1.payload.toJSON()).toEqual({ x: 30, y: 40 });
         });
 
         it('should construct from array with Replace operations', () => {
             const matchData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             };
             const replaceData = {
                 tag: 'Replace' as const,
@@ -90,8 +90,8 @@ describe('Concrete FacetList Classes', () => {
             expect(list.length).toBe(1);
             const item0 = list.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
-            expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 10, y: 20 });
-            expect(item0.matchPayload?.toJSON()).toEqual({ type: 'PositionFacet', x: 5, y: 10 });
+            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(item0.matchPayload?.toJSON()).toEqual({ x: 5, y: 10 });
         });
 
         it('should construct by cloning from another FacetList', () => {
@@ -115,11 +115,11 @@ describe('Concrete FacetList Classes', () => {
         it('should merge items with same key during construction (deduplication)', () => {
             const data1: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             };
             const data2: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room', 2),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             };
             
             const list = new PositionFacetList([data1, data2]);
@@ -138,7 +138,7 @@ describe('Concrete FacetList Classes', () => {
                     // Include extra fields that should be normalized
                     shortName: 'Room 1'
                 } as any,
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             };
             
             const list = new PositionFacetList([data]);
@@ -159,11 +159,11 @@ describe('Concrete FacetList Classes', () => {
         it('should preserve Replace operations during normalization', () => {
             const matchData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             };
             const replaceData = {
                 tag: 'Replace' as const,
@@ -213,7 +213,8 @@ describe('Concrete FacetList Classes', () => {
                 expect(item).toHaveProperty('reference');
                 expect(item).toHaveProperty('payload');
                 if ('payload' in item) {
-                    expect(item.payload).toEqual({ type: 'PositionFacet', x: 10, y: 20 });
+                    // item.payload is already the plain data from toJSON(), not a class instance
+                    expect(item.payload).toEqual({ x: 10, y: 20 });
                 }
             }
         });
@@ -233,11 +234,11 @@ describe('Concrete FacetList Classes', () => {
         it('should serialize Replace operations correctly', () => {
             const matchData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             };
             const replaceData = {
                 tag: 'Replace' as const,
@@ -258,11 +259,9 @@ describe('Concrete FacetList Classes', () => {
                 // Payload part should match (reference may be normalized)
                 const payload = json[0].payload;
                 expect(payload.payload).toEqual(payloadData.payload);
-                // Verify payload structure
+                // Verify payload structure (no type field - simple format)
                 if ('payload' in payload && typeof payload.payload === 'object') {
-                    expect(payload.payload).toHaveProperty('type', 'PositionFacet');
-                    expect(payload.payload).toHaveProperty('x', 10);
-                    expect(payload.payload).toHaveProperty('y', 20);
+                    expect(payload.payload).toEqual({ x: 10, y: 20 });
                 }
             }
         });
@@ -355,11 +354,11 @@ describe('Concrete FacetList Classes', () => {
         it('should merge lists with matching keys and same payload (ref arithmetic only)', () => {
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             const incoming = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 2),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             
             const merged = base.merge(incoming);
@@ -373,11 +372,11 @@ describe('Concrete FacetList Classes', () => {
         it('should merge lists with matching keys and different payload (creates Replace operation)', () => {
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             }]);
             const incoming = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             
             const merged = base.merge(incoming);
@@ -385,8 +384,8 @@ describe('Concrete FacetList Classes', () => {
             expect(merged!.length).toBe(1);
             const item0 = merged!.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
-            expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 10, y: 20 });
-            expect(item0.matchPayload?.toJSON()).toEqual({ type: 'PositionFacet', x: 5, y: 10 });
+            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(item0.matchPayload?.toJSON()).toEqual({ x: 5, y: 10 });
         });
 
         it('should preserve unmatched base items', () => {
@@ -409,11 +408,11 @@ describe('Concrete FacetList Classes', () => {
         it('should handle ref arithmetic correctly', () => {
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             const incoming = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 2),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             
             const merged = base.merge(incoming);
@@ -425,28 +424,28 @@ describe('Concrete FacetList Classes', () => {
         it('should handle payload Replace when payloads differ', () => {
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             }]);
             const incoming = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 15, y: 25 }
+                payload: { x: 15, y: 25 }
             }]);
             
             const merged = base.merge(incoming);
             expect(merged).toBeDefined();
             const item0 = merged!.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
-            expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 15, y: 25 });
+            expect(item0.payload.toJSON()).toEqual({ x: 15, y: 25 });
         });
 
         it('should filter out undefined results when merge cancels out', () => {
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             const incoming = new PositionFacetList([{
                 reference: createReference('room1', 'Room', -1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             
             const merged = base.merge(incoming);
@@ -484,11 +483,11 @@ describe('Concrete FacetList Classes', () => {
         it('should diff lists with matching keys and same payload (ref diff only)', () => {
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             const incoming = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 2),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             
             const diff = base.diff(incoming);
@@ -502,11 +501,11 @@ describe('Concrete FacetList Classes', () => {
         it('should diff lists with matching keys and different payload (creates Replace operation)', () => {
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             }]);
             const incoming = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             
             const diff = base.diff(incoming);
@@ -514,8 +513,8 @@ describe('Concrete FacetList Classes', () => {
             expect(diff!.length).toBe(1);
             const item0 = diff!.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
-            expect(item0.payload.toJSON()).toEqual({ type: 'PositionFacet', x: 10, y: 20 });
-            expect(item0.matchPayload?.toJSON()).toEqual({ type: 'PositionFacet', x: 5, y: 10 });
+            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(item0.matchPayload?.toJSON()).toEqual({ x: 5, y: 10 });
         });
 
         it('should invert unmatched base items', () => {
@@ -547,11 +546,11 @@ describe('Concrete FacetList Classes', () => {
         it('should handle ref arithmetic correctly in diff', () => {
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             const incoming = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 2),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             
             const diff = base.diff(incoming);
@@ -599,11 +598,11 @@ describe('Concrete FacetList Classes', () => {
         it('should invert list with Replace operations', () => {
             const matchData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             };
             const replaceData = {
                 tag: 'Replace' as const,
@@ -666,7 +665,6 @@ describe('Concrete FacetList Classes', () => {
             const mapped = list.mapContents((facet) => {
                 const facetTyped = facet as StandardPositionFacet;
                 const newPayload: PositionPayload = {
-                    type: 'PositionFacet',
                     x: facetTyped.payload.x * 2,
                     y: facetTyped.payload.y * 2
                 };
@@ -729,11 +727,11 @@ describe('Concrete FacetList Classes', () => {
             // Ref arithmetic: merge should add refs, diff should subtract
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             const incoming = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 2),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             
             const merged = base.merge(incoming);
@@ -751,11 +749,11 @@ describe('Concrete FacetList Classes', () => {
             // Facets support Replace operations, References don't
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             }]);
             const incoming = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             
             const merged = base.merge(incoming);
@@ -773,11 +771,11 @@ describe('Concrete FacetList Classes', () => {
             // When refs cancel but payloads differ, should create Replace
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             }]);
             const incoming = new PositionFacetList([{
                 reference: createReference('room1', 'Room', -1),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             }]);
             
             const merged = base.merge(incoming);
@@ -799,11 +797,11 @@ describe('Concrete FacetList Classes', () => {
             // Test Replace inversion
             const matchData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room2', 'Room'),
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room2', 'Room'),
-                payload: { type: 'PositionFacet', x: 10, y: 20 }
+                payload: { x: 10, y: 20 }
             };
             const replaceList = new PositionFacetList([{
                 tag: 'Replace' as const,
@@ -857,7 +855,7 @@ describe('Concrete FacetList Classes', () => {
             const item0 = list.items[0] as StandardPositionFacet;
             expect(item0.payload.x).toBe(10);
             expect(item0.payload.y).toBe(20);
-            expect(item0.payload.toJSON().type).toBe('PositionFacet');
+            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
         });
 
         it('should work with MarkFacetList (type-safe payload access)', () => {
@@ -868,7 +866,6 @@ describe('Concrete FacetList Classes', () => {
             // TypeScript should allow access to MarkFacetPayload properties
             const item0 = list.items[0] as StandardMarkFacet;
             expect(item0.payload.narrative).toBe('A dark room');
-            expect(item0.payload.toJSON().type).toBe('MarkFacet');
         });
 
         // Type guard tests removed - concrete classes provide compile-time type safety

@@ -5,15 +5,19 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { StandardReference, LookupMappings } from "./reference";
 import { StandardKey } from "./key";
 import { ReferenceFormat } from "../components/utils/references";
-import { StandardFacetPayload, StandardFacetData } from "./facets/dataTypes/facet";
+import { StandardFacetData } from "./facets/dataTypes/facet";
 
 /**
  * FacetListData: Serialization format for FacetList collections
  * Array of StandardEditableData wrapping StandardFacetData
  * 
- * @template TPayload - The specific payload type for all facets in the list
+ * IMPORTANT: FacetLists are homogeneous (single-type) collections. Each list contains only one facet type.
+ * The TPayload type parameter enforces this at compile time. All facets in a list share the same payload
+ * structure (e.g., all PositionFacet instances have {x,y}).
+ * 
+ * @template TPayload - The specific payload type for all facets in the list (string for MarkFacet, {x,y} for PositionFacet, string|undefined for ExitFacet)
  */
-export type FacetListData<TPayload extends StandardFacetPayload = StandardFacetPayload> = 
+export type FacetListData<TPayload> = 
     StandardEditableData<StandardFacetData<TPayload>>[]
 
 /**
@@ -21,9 +25,14 @@ export type FacetListData<TPayload extends StandardFacetPayload = StandardFacetP
  * Composes a StandardReference for target component reference
  * Carries typed payload data that varies by Facet type
  * 
- * @template TPayload - The specific payload type (extends StandardFacetPayload)
+ * IMPORTANT: Facets are designed exclusively for homogeneous lists. The facet type is determined by
+ * the list class (e.g., PositionFacetList → PositionFacet), not by a discriminator field in the payload.
+ * Payloads use a simple format without `type` fields, allowing for compact JSON representation.
+ * 
+ * @template TPayload - The payload data type for serialization (string for MarkFacet, {x,y} for PositionFacet, string|undefined for ExitFacet)
+ * Note: The `payload` property returns the payload class instance (MarkFacetPayload, PositionPayload, ExitPayload) for runtime access
  */
-export interface StandardFacet<TPayload extends StandardFacetPayload = StandardFacetPayload> {
+export interface StandardFacet<TPayload> {
     // Composed reference access (following StandardReference.standardKey pattern)
     readonly reference: StandardReference;
     readonly standardKey: StandardKey;
@@ -32,10 +41,10 @@ export interface StandardFacet<TPayload extends StandardFacetPayload = StandardF
     readonly key?: string;
     readonly universalKey?: ComponentUUID;
     
-    // Payload access
-    readonly payload: TPayload;
+    // Payload access - returns payload class instance (not data type) for runtime access
+    readonly payload: any;  // Payload class instance (MarkFacetPayload, PositionPayload, or ExitPayload)
     readonly isReplace: boolean;
-    readonly matchPayload?: TPayload;
+    readonly matchPayload?: any;  // Payload class instance
     
     // Core operations
     clone(): StandardFacet<TPayload>;
@@ -60,9 +69,21 @@ export interface StandardFacet<TPayload extends StandardFacetPayload = StandardF
  * FacetList: Interface for collections of Facets
  * Similar structure to ReferenceList but parameterized by payload type
  * 
- * @template TPayload - The specific payload type for all facets in the list
+ * IMPORTANT: FacetLists are homogeneous (single-type) collections. Unlike References which can mix
+ * types, each FacetList contains only one facet type. The TPayload type parameter enforces this
+ * restriction at compile time. This design allows for:
+ * - Simple serialization without discriminator fields (type is inferred from list context)
+ * - Compact JSON representation optimized for single-type collections
+ * - Type safety enforced by the list class (e.g., PositionFacetList only accepts PositionFacet instances)
+ * 
+ * Examples:
+ * - PositionFacetList<{x,y}> contains only StandardPositionFacet instances
+ * - MarkFacetList<string> contains only StandardMarkFacet instances
+ * - ExitFacetList<string|undefined> contains only StandardExitFacet instances
+ * 
+ * @template TPayload - The specific payload type for all facets in the list (string for MarkFacet, {x,y} for PositionFacet, string|undefined for ExitFacet)
  */
-export interface FacetList<TPayload extends StandardFacetPayload = StandardFacetPayload> {
+export interface FacetList<TPayload> {
     // Core operations
     clone(): FacetList<TPayload>;
     toJSON(): FacetListData<TPayload>;

@@ -1,7 +1,6 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardReference } from "../../reference";
-import { StandardFacetPayload } from "./facet";
 
 /**
  * FacetPayloadBase: Interface for facet payload classes that handle WML schema parsing and generation.
@@ -20,9 +19,9 @@ import { StandardFacetPayload } from "./facet";
  * 3. Facet rendering returns either `newNode` (create new node like Exit) or `aggregatedNode` (enhanced reference render)
  * 4. Parent zippers enhanced references with new nodes to produce final schema
  * 
- * @template TPayload - The specific payload type (extends StandardFacetPayload)
+ * @template TPayload - The specific payload type (string for MarkFacet, {x,y} for PositionFacet, string|undefined for ExitFacet)
  */
-export interface FacetPayloadBase<TPayload extends StandardFacetPayload> {
+export interface FacetPayloadBase<TPayload> {
     /**
      * Parse payload data from WML schema tree.
      * 

@@ -8,7 +8,19 @@
   - Payload data (PositionPayload, MarkFacetPayload, ExitPayload)
   - Composition with StandardReference
   - Replace operations for payload changes
-  - Type discrimination via payload `type` field
+
+## ⚠️ Important Design Restriction: Homogeneous Lists Only
+
+**Facets are designed EXCLUSIVELY for homogeneous (single-type) lists.** This is a fundamental design decision that affects the entire pattern:
+
+- **Each FacetList contains only one facet type**: `PositionFacetList` only contains `PositionFacet` instances, `MarkFacetList` only contains `MarkFacet` instances, etc.
+- **Type inference from list context**: The facet type is determined by the list class, not by a discriminator field in the payload
+- **Simple serialization format**: Payloads use a compact format without `type` discriminator fields:
+  - `PositionFacet`: `{ reference: StandardReferenceData, payload: { x: number, y: number } }`
+  - `MarkFacet`: `{ reference: StandardReferenceData, payload: string }`
+  - `ExitFacet`: `{ reference: StandardReferenceData, payload: string | undefined }`
+- **No mixed-type lists**: Unlike References which can mix types, FacetLists are always homogeneous
+- **Benefits**: This design enables compact JSON representation, type safety through list classes, and simplified serialization/deserialization logic
 
 ## Core Purpose
 
@@ -22,25 +34,30 @@
 ## Technical Details
 
 - **Data Structures**: 
-  - `StandardFacetPayload` - Union type for all payload types
-  - `PositionPayload`, `MarkFacetPayload`, `ExitPayload` - Concrete payload types
-  - `StandardFacetData<TPayload>` - Serialization format
-  - `FacetListData<TPayload>` - Collection serialization format
+  - `PositionPayload` - Simple object `{ x: number, y: number }` for Position facets
+  - `MarkFacetPayload` - Simple string for Mark facets (narrative description)
+  - `ExitPayload` - Simple `string | undefined` for Exit facets (optional description)
+  - `StandardFacetData<TPayload>` - Serialization format combining `StandardReferenceData` with typed payload
+  - `FacetListData<TPayload>` - Collection serialization format (array of `StandardFacetData<TPayload>`)
 - **Core Interfaces**: 
   - `StandardFacet<TPayload>` - Interface for individual Facets (type definition in `abstract.ts`)
   - `FacetList<TPayload>` - Interface for Facet collections (type definition in `abstract.ts`)
   - Concrete implementations: `StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet` (facet classes)
   - Concrete list implementations: `PositionFacetList`, `MarkFacetList`, `ExitFacetList` (list classes)
   - See [`abstract.ts`](../abstract.ts) for interface definitions
-- **Type Guards**: `isPositionPayload`, `isMarkFacetPayload`, `isExitPayload`, `isStandardFacetPayload`, `isStandardFacetData`
-- **Configuration**: Payloads use discriminator field (`type: 'PositionFacet'`, etc.) for runtime type identification
+- **Type Guards**: `isPositionPayload`, `isMarkFacetPayload`, `isExitPayload`, `isStandardFacetData`
+- **Serialization Format**: 
+  - **Simple payload format** (no `type` discriminator field) - type is inferred from list context
+  - `PositionFacet`: `{ reference: StandardReferenceData, payload: { x: number, y: number } }`
+  - `MarkFacet`: `{ reference: StandardReferenceData, payload: string }`
+  - `ExitFacet`: `{ reference: StandardReferenceData, payload: string | undefined }`
 
 ## Integration Points
 
 - **Dependencies**: 
   - Composes `StandardReference` for target component reference
-  - Uses `StandardFacetPayload` union type from `dataTypes/facet.ts`
-  - Integrates with component system (Examples will use Mark Facets)
+  - Payload types defined in `dataTypes/facet.ts` (no union type - each type is independent)
+  - Integrates with component system (Examples use Mark Facets)
 - **Cross-References**: 
   - [`../AGENT.md`](../AGENT.md) - Keys directory overview
   - [`../AGENT.referenceList.md`](../AGENT.referenceList.md) - ReferenceList patterns (similar structure)
@@ -60,9 +77,10 @@
   - Rooms referencing other Rooms with exit names (Exit Facets)
   - Examples referencing Marks with state descriptions (Mark Facets)
 - **Best Practices**: 
-  - Use concrete facet classes (`StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet`) or `standardFacetFactory` dispatcher
+  - **Use homogeneous lists only**: Each list contains only one facet type (e.g., `PositionFacetList` only contains `PositionFacet` instances)
+  - Use concrete facet classes (`StandardPositionFacet`, `StandardMarkFacet`, `StandardExitFacet`) directly
   - Use concrete list classes (`PositionFacetList`, `MarkFacetList`, `ExitFacetList`) for type-safe collections
-  - Leverage payload type discrimination for runtime validation
+  - Facet type is inferred from the list class - no `type` discriminator field needed in payloads
   - Compose StandardReference rather than extending it
 - **Code Examples**: 
   - Type definitions in `abstract.ts`
@@ -84,7 +102,6 @@
   - `mark.ts` - StandardMarkFacet and MarkFacetList implementations
   - `exit.ts` - StandardExitFacet and ExitFacetList implementations
   - `facetFactory.ts` - Factory functions for creating facets
-  - `standardFacetFactory.ts` - Dispatcher function for creating facets from data
 - **Related Documentation**: 
   - [`../AGENT.md`](../AGENT.md) - Keys directory overview
   - [`../AGENT.referenceList.md`](../AGENT.referenceList.md) - Similar collection patterns
@@ -100,7 +117,8 @@
 - **Key Differences from References**: 
   - **Payload Data**: Facets carry structured payload data (x/y coordinates, narrative, etc.) while References are just pointers
   - **Replace Operations**: Facets support Replace operations for payload changes; References only support Add/Remove
-  - **Type Discrimination**: Facets use discriminator fields (`type: 'PositionFacet'`) in payloads; References use `tag` in the reference itself
+  - **Type Inference**: Facet type is inferred from the list context (e.g., `PositionFacetList` → `PositionFacet`) rather than from a discriminator field. Payloads use a simple format with no `type` field.
+  - **Homogeneous Lists Only**: Facets are designed exclusively for single-type lists. Unlike References which can mix types, each FacetList contains only one facet type.
   - **Composition**: Facets compose a `StandardReference` rather than extending it
   - **Concrete Classes**: Facets use concrete classes (generated via factory pattern) rather than generic classes for type safety and simplicity
 - **Design Decisions**: 

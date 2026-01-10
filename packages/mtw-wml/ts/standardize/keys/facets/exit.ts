@@ -22,11 +22,12 @@ export class ExitPayload implements StandardEditablePayload<ExitPayloadType>, Fa
     description?: string;
 
     constructor(data?: ExitPayloadType) {
-        if (data) {
+        if (data !== undefined) {
             if (!isExitPayload(data)) {
                 throw new Error('Invalid ExitPayload data');
             }
-            this.description = data.description;
+            // data is now string | undefined (the description directly)
+            this.description = data;
         }
         // No placeholder needed - description is optional
     }
@@ -37,10 +38,8 @@ export class ExitPayload implements StandardEditablePayload<ExitPayloadType>, Fa
     }
 
     toJSON(): ExitPayloadType {
-        return {
-            type: 'ExitFacet' as const,
-            description: this.description
-        };
+        // Return just the description string (or undefined if missing)
+        return this.description;
     }
 
     /**
@@ -91,10 +90,8 @@ export class ExitPayload implements StandardEditablePayload<ExitPayloadType>, Fa
             .map(({ value }) => value)
             .join('') || undefined;
 
-        return {
-            type: 'ExitFacet' as const,
-            description
-        };
+        // Return just the description string (or undefined if missing)
+        return description;
     }
 
     // FacetPayloadBase implementation
@@ -109,10 +106,11 @@ export class ExitPayload implements StandardEditablePayload<ExitPayloadType>, Fa
         const toKey = reference.standardKey.toFormat('key');
         const toValue = toKey.key ?? toKey.universalKey ?? '';
 
+        // payload is now string | undefined (the description directly)
         const exitNode: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Exit' as const, to: toValue },
-            children: payload.description !== undefined ? [{
-                data: { tag: 'String' as const, value: payload.description },
+            children: payload !== undefined ? [{
+                data: { tag: 'String' as const, value: payload },
                 children: []
             }] : []
         };
@@ -140,9 +138,11 @@ export class ExitPayload implements StandardEditablePayload<ExitPayloadType>, Fa
 
 // Factory function for creating ExitPayload instances from various formats
 const payloadFactory = (props: ExitPayloadType | GenericTree<SchemaTag>): StandardEditablePayload<ExitPayloadType> | undefined => {
+    // Handle string | undefined input (payload format)
     if (isExitPayload(props)) {
         return new ExitPayload(props);
     }
+    // Handle GenericTree<SchemaTag> input (schema parsing)
     if (Array.isArray(props) && props.length > 0) {
         // For GenericTree<SchemaTag>, we need a reference to parse
         // This factory is used by StandardEditable, so we'll handle plain Exit tag parsing
@@ -154,36 +154,44 @@ const payloadFactory = (props: ExitPayloadType | GenericTree<SchemaTag>): Standa
                 .filter(isSchemaString)
                 .map(({ value }) => value)
                 .join('') || undefined;
-            return new ExitPayload({
-                type: 'ExitFacet',
-                description
-            });
+            return new ExitPayload(description);
         }
     }
     throw new Error('Invalid argument in ExitPayload factory');
 };
 
 // Add/subtract/diff functions for StandardEditable factory
-const standardExitPayloadAdd = (base: ExitPayloadType, incoming: ExitPayloadType): ExitPayloadType => {
+// Now work with string | undefined payloads directly
+// Note: These functions may receive ExitPayload instances or ExitPayloadType (string | undefined)
+// We extract the data using toJSON() if needed
+const standardExitPayloadAdd = (base: ExitPayloadType | ExitPayload, incoming: ExitPayloadType | ExitPayload): ExitPayloadType => {
+    const baseData = base instanceof ExitPayload ? base.toJSON() : base;
+    const incomingData = incoming instanceof ExitPayload ? incoming.toJSON() : incoming;
     // Replace semantics: incoming wins
-    return incoming;
+    return incomingData;
 };
 
-const standardExitPayloadSubtract = (base: ExitPayloadType, incoming: ExitPayloadType): { add?: ExitPayloadType, remove?: ExitPayloadType } => {
-    if (deepEqual(base, incoming)) {
+const standardExitPayloadSubtract = (base: ExitPayloadType | ExitPayload, incoming: ExitPayloadType | ExitPayload): { add?: ExitPayloadType, remove?: ExitPayloadType } => {
+    const baseData = base instanceof ExitPayload ? base.toJSON() : base;
+    const incomingData = incoming instanceof ExitPayload ? incoming.toJSON() : incoming;
+    if (baseData === incomingData) {
         return { add: undefined, remove: undefined };
     }
     throw new MergeConflictError('Conflict during subtract operation');
 };
 
-const standardExitPayloadDiff = (base: ExitPayloadType, incoming: ExitPayloadType): { add?: ExitPayloadType, remove?: ExitPayloadType } => {
-    if (deepEqual(base, incoming)) {
+const standardExitPayloadDiff = (base: ExitPayloadType | ExitPayload, incoming: ExitPayloadType | ExitPayload): { add?: ExitPayloadType, remove?: ExitPayloadType } => {
+    const baseData = base instanceof ExitPayload ? base.toJSON() : base;
+    const incomingData = incoming instanceof ExitPayload ? incoming.toJSON() : incoming;
+    if (baseData === incomingData) {
         return { add: undefined, remove: undefined };
     }
-    return { add: incoming, remove: base };
+    return { add: incomingData, remove: baseData };
 };
 
 // Create StandardEditable factory
+// Note: The type signatures expect ExitPayloadType (string | undefined), but addDelta passes ExitPayload instances.
+// Our functions handle both by extracting data using toJSON() when needed.
 export const {
     constructorDelta: factory,
     typeguard: isStandardExitPayloadData,
@@ -193,9 +201,9 @@ export const {
     typeguard: isExitPayload,
     payloadFactory: payloadFactory,
     payload: ExitPayload,
-    add: standardExitPayloadAdd,
-    subtract: standardExitPayloadSubtract,
-    diff: standardExitPayloadDiff
+    add: standardExitPayloadAdd as (base: ExitPayloadType, incoming: ExitPayloadType) => ExitPayloadType,
+    subtract: standardExitPayloadSubtract as (base: ExitPayloadType, incoming: ExitPayloadType) => { add?: ExitPayloadType, remove?: ExitPayloadType },
+    diff: standardExitPayloadDiff as (base: ExitPayloadType, incoming: ExitPayloadType) => { add?: ExitPayloadType, remove?: ExitPayloadType }
 });
 
 const exitReferenceFactory = (schema: GenericTree<SchemaTag>): StandardReference => {
