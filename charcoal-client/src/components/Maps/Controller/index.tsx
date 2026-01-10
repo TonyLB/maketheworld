@@ -108,7 +108,7 @@ export const MapController: FunctionComponent<{ mapId: `MAP#${string}` }> = ({ c
     // Create a StandardForm representation of the items relevant to the map
     //
     const editable: StandardForm = useMemo(() => (mapTreeMemo(localStandardForm, mapId)), [localStandardForm, mapId])
-    const inherited: StandardForm = useMemo(() => (mapTreeMemo(new StandardForm(inheritedStandardForm), mapId)), [inheritedStandardForm, mapId])
+    const inherited: StandardForm = useMemo(() => (mapTreeMemo(inheritedStandardForm, mapId)), [inheritedStandardForm, mapId])
 
     //
     // Make local data and setters for exit decorator source and drag location.

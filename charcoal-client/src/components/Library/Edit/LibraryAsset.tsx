@@ -47,7 +47,7 @@ type LibraryAssetContextType = {
     draftWML: string;
     standardForm: StandardForm;
     localStandardForm: StandardForm;
-    inheritedStandardForm: StandardFormData;
+    inheritedStandardForm: StandardForm;
     inheritedByAssetId: { assetId: string; standardForm: StandardFormData }[];
     updateStandard: (action: UpdateStandardPayload) => void;
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
@@ -65,7 +65,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     draftWML: '',
     standardForm: new StandardForm({ universalKey: 'ASSET#default', components: [], metaData: [] }),
     localStandardForm: new StandardForm({ universalKey: 'ASSET#default', components: [], metaData: [] }),
-    inheritedStandardForm: { universalKey: 'ASSET#default', components: [], metaData: [] },
+    inheritedStandardForm: new StandardForm({ universalKey: 'ASSET#default', components: [], metaData: [] }),
     inheritedByAssetId: [],
     updateStandard: () => {},
     properties: {},
@@ -91,7 +91,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const standardFormData = useSelector(getStandardForm(AssetId))
     const standardForm = useMemo(() => (new StandardForm(standardFormData)), [standardFormData])
     const pendingEdits = useSelector(getPendingEdits(AssetId))
-    const inheritedStandardForm = useSelector(getInherited(AssetId))
+    const inheritedStandardFormData = useSelector(getInherited(AssetId))
+    const inheritedStandardForm = useMemo(() => (new StandardForm(inheritedStandardFormData)), [inheritedStandardFormData])
     const inheritedByAssetId = useSelector(getInheritedByAssetId(AssetId))
     const loadedImages = useSelector(getLoadedImages(AssetId))
     const properties = useSelector(getProperties(AssetId))

@@ -49,7 +49,7 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
             }
             return undefined
         }
-        return [extractComponent(standardForm), extractComponent(new StandardForm(inheritedStandardForm))]
+        return [extractComponent(standardForm), extractComponent(inheritedStandardForm)]
     }, [universalKey, standardForm, inheritedStandardForm])
     const { tag } = component ?? {}
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
