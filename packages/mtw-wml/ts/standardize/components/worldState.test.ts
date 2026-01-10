@@ -126,9 +126,12 @@ describe('StandardMark class', () => {
             description: ['Test description.']
         })
         const wml = schemaToWML([testMark.schema])
-        expect(wml).toContain('<Mark key=(test)>')
-        expect(wml).toContain('<ShortName>Test Mark</ShortName>')
-        expect(wml).toContain('<Description>Test description.</Description>')
+        expect(wml).toEqual(deIndentWML(`
+            <Mark key=(test)>
+                <ShortName>Test Mark</ShortName>
+                <Description>Test description.</Description>
+            </Mark>
+        `))
     })
 
     it('should serialize to JSON correctly', () => {
@@ -632,10 +635,13 @@ describe('StandardLens class', () => {
             marks: [{ key: 'mark1', tag: 'Mark' }]
         })
         const wml = schemaToWML([testLens.schema])
-        expect(wml).toContain('<Lens key=(test)>')
-        expect(wml).toContain('<ShortName>Test Lens</ShortName>')
-        expect(wml).toContain('<Description>Test description.</Description>')
-        expect(wml).toContain('<Mark key=(mark1) />')
+        expect(wml).toEqual(deIndentWML(`
+            <Lens key=(test)>
+                <ShortName>Test Lens</ShortName>
+                <Description>Test description.</Description>
+                <Mark key=(mark1) />
+            </Lens>
+        `))
     })
 
     it('should serialize to JSON correctly', () => {
