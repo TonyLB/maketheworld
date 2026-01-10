@@ -57,7 +57,7 @@ describe('Facet Integration Tests', () => {
     };
 
     const parseWMLToFacet = (wml: string, payloadType: 'Position' | 'Mark' | 'Exit'): StandardPositionFacet | StandardMarkFacet | StandardExitFacet => {
-        const schema = treeFromWML(deIndentWML(wml));
+        const schema = treeFromWML(wml);
         if (schema.length === 0) {
             throw new Error('Empty schema');
         }
@@ -127,7 +127,7 @@ describe('Facet Integration Tests', () => {
     describe('Round-trip WML parsing/generation', () => {
         describe('PositionPayload', () => {
             it('should round-trip Position facet with key-based reference', () => {
-                const originalWML = '<Room key=(room1)><Position x="10" y="20" /></Room>';
+                const originalWML = deIndentWML(`<Room key=(room1)><Position x="10" y="20" /></Room>`);
                 const facet = parseWMLToFacet(originalWML, 'Position');
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
@@ -137,15 +137,13 @@ describe('Facet Integration Tests', () => {
                 expect(positionFacet.payload.y).toBe(20);
                 
                 const generatedWML = facetToWML(facet);
-                // Verify structure is preserved (allowing for formatting differences)
-                expect(generatedWML).toContain('Room');
-                expect(generatedWML).toContain('Position');
-                expect(generatedWML).toContain('x=');
-                expect(generatedWML).toContain('y=');
+                expect(generatedWML).toEqual(originalWML);
             });
 
             it('should round-trip Position facet with uuid-based reference', () => {
-                const originalWML = '<Room uuid=(test123)><Position x="15" y="25" /></Room>';
+                const originalWML = deIndentWML(`
+                    <Room uuid=(test123)><Position x="15" y="25" /></Room>
+                `);
                 const facet = parseWMLToFacet(originalWML, 'Position');
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
@@ -155,14 +153,13 @@ describe('Facet Integration Tests', () => {
                 expect(positionFacet.payload.y).toBe(25);
                 
                 const generatedWML = facetToWML(facet);
-                expect(generatedWML).toContain('Room');
-                expect(generatedWML).toContain('Position');
+                expect(generatedWML).toEqual(originalWML);
             });
         });
 
         describe('MarkFacetPayload', () => {
             it('should round-trip Mark facet', () => {
-                const originalWML = '<Mark uuid=(test123)><Match>Condition text</Match></Mark>';
+                const originalWML = deIndentWML(`<Mark uuid=(test123)><Match>Condition text</Match></Mark>`);
                 const facet = parseWMLToFacet(originalWML, 'Mark');
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
@@ -171,12 +168,11 @@ describe('Facet Integration Tests', () => {
                 expect(markFacet.payload.narrative).toBe('Condition text');
                 
                 const generatedWML = facetToWML(facet);
-                expect(generatedWML).toContain('Mark');
-                expect(generatedWML).toContain('Match');
+                expect(generatedWML).toEqual(originalWML);
             });
 
             it('should round-trip Mark facet with empty narrative', () => {
-                const originalWML = '<Mark uuid=(test456)><Match></Match></Mark>';
+                const originalWML = deIndentWML(`<Mark uuid=(test456)><Match></Match></Mark>`);
                 const facet = parseWMLToFacet(originalWML, 'Mark');
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
@@ -185,14 +181,13 @@ describe('Facet Integration Tests', () => {
                 expect(markFacet.payload.narrative).toBe('');
                 
                 const generatedWML = facetToWML(facet);
-                expect(generatedWML).toContain('Mark');
-                expect(generatedWML).toContain('Match');
+                expect(generatedWML).toEqual(originalWML);
             });
         });
 
         describe('ExitPayload', () => {
             it('should round-trip Exit facet with description', () => {
-                const originalWML = '<Exit to=(ROOM#target1)>North Exit</Exit>';
+                const originalWML = deIndentWML(`<Exit to=(ROOM#target1)>North Exit</Exit>`);
                 const facet = parseWMLToFacet(originalWML, 'Exit');
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
@@ -201,12 +196,11 @@ describe('Facet Integration Tests', () => {
                 expect(exitFacet.payload.description).toBe('North Exit');
                 
                 const generatedWML = facetToWML(facet);
-                expect(generatedWML).toContain('Exit');
-                expect(generatedWML).toContain('to=');
+                expect(generatedWML).toEqual(originalWML);
             });
 
             it('should round-trip Exit facet without description', () => {
-                const originalWML = '<Exit to=(ROOM#target2) />';
+                const originalWML = deIndentWML(`<Exit to=(ROOM#target2) />`);
                 const facet = parseWMLToFacet(originalWML, 'Exit');
                 
                 // Payload is now a class instance - access type via toJSON(), properties directly
@@ -215,8 +209,7 @@ describe('Facet Integration Tests', () => {
                 expect(exitFacet.payload.description).toBeUndefined();
                 
                 const generatedWML = facetToWML(facet);
-                expect(generatedWML).toContain('Exit');
-                expect(generatedWML).toContain('to=');
+                expect(generatedWML).toEqual(originalWML);
             });
         });
     });
@@ -224,7 +217,7 @@ describe('Facet Integration Tests', () => {
     describe('Parsing edge cases', () => {
         describe('PositionPayload', () => {
             it('should error when Position child is missing', () => {
-                const wml = '<Room key=(room1) />';
+                const wml = deIndentWML(`<Room key=(room1) />`);
                 expect(() => parseWMLToFacet(wml, 'Position')).toThrow();
             });
 
@@ -232,12 +225,16 @@ describe('Facet Integration Tests', () => {
 
         describe('MarkFacetPayload', () => {
             it('should error when Match child is missing', () => {
-                const wml = '<Mark uuid=(test1) />';
+                const wml = deIndentWML(`<Mark uuid=(test1) />`);
                 expect(() => parseWMLToFacet(wml, 'Mark')).toThrow();
             });
 
             it('should handle empty Match tag (empty narrative)', () => {
-                const wml = '<Mark uuid=(test2)><Match></Match></Mark>';
+                const wml = deIndentWML(`
+                    <Mark uuid=(test2)>
+                        <Match></Match>
+                    </Mark>
+                `);
                 const facet = parseWMLToFacet(wml, 'Mark');
                 const markFacet = facet as StandardMarkFacet;
                 expect(markFacet.payload.narrative).toBe('');
@@ -247,12 +244,12 @@ describe('Facet Integration Tests', () => {
 
         describe('ExitPayload', () => {
             it('should error when `to` property is missing', () => {
-                const wml = '<Exit>North</Exit>';
+                const wml = deIndentWML(`<Exit>North</Exit>`);
                 expect(() => parseWMLToFacet(wml, 'Exit')).toThrow();
             });
 
             it('should handle empty Exit tag content (undefined description)', () => {
-                const wml = '<Exit to=(ROOM#target1) />';
+                const wml = deIndentWML(`<Exit to=(ROOM#target1) />`);
                 const facet = parseWMLToFacet(wml, 'Exit');
                 const exitFacet = facet as StandardExitFacet;
                 expect(exitFacet.payload.description).toBeUndefined();
