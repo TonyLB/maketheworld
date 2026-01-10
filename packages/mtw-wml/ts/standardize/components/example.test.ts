@@ -269,7 +269,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                    payload: 'Condition narrative'
                 }]
             }
             const testExample = new StandardExample(testExampleData)
@@ -308,7 +308,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                    payload: 'Condition narrative'
                 }]
             })
             const json = testExample.toJSON() as StandardExampleData
@@ -351,7 +351,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Base narrative' }
+                    payload: 'Base narrative'
                 }]
             })
             const incoming = new StandardExample({
@@ -360,7 +360,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark2', universalKey: 'MARK#mark2' },
-                    payload: { type: 'MarkFacet', narrative: 'Incoming narrative' }
+                    payload: 'Incoming narrative'
                 }]
             })
             const merged = base.merge(incoming) as StandardExample
@@ -379,7 +379,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Incoming narrative' }
+                    payload: 'Incoming narrative'
                 }]
             })
             const merged = base.merge(incoming) as StandardExample
@@ -393,7 +393,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Base narrative' }
+                    payload: 'Base narrative'
                 }]
             })
             const incoming = new StandardExample({
@@ -412,7 +412,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Base narrative' }
+                    payload: 'Base narrative'
                 }]
             })
             const incoming = new StandardExample({
@@ -421,7 +421,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark2', universalKey: 'MARK#mark2' },
-                    payload: { type: 'MarkFacet', narrative: 'Incoming narrative' }
+                    payload: 'Incoming narrative'
                 }]
             })
             const diff = base.diff(incoming) as StandardExample | undefined
@@ -439,7 +439,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Base narrative' }
+                    payload: 'Base narrative'
                 }]
             })
             const incoming = new StandardExample({
@@ -458,7 +458,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Same narrative' }
+                    payload: 'Same narrative'
                 }]
             })
             const incoming = new StandardExample({
@@ -467,7 +467,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Same narrative' }
+                    payload: 'Same narrative'
                 }]
             })
             const diff = base.diff(incoming) as StandardExample | undefined
@@ -487,7 +487,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                    payload: 'Condition narrative'
                 }]
             })
             const inverted = testExample.invert() as StandardExample
@@ -504,7 +504,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                    payload: 'Condition narrative'
                 }]
             })
             const callback = (tree: any) => tree // Identity callback
@@ -519,7 +519,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                    payload: 'Condition narrative'
                 }]
             })
             const mappings = [new StandardReference({ key: 'mark1', tag: 'Mark', universalKey: 'MARK#mark1' })]
@@ -535,7 +535,7 @@ describe('StandardExample class', () => {
                 name: ['Name Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                    payload: 'Condition narrative'
                 }]
             })
             const referencedKeys = testExample.referencedKeys()
@@ -581,7 +581,7 @@ describe('StandardExample class', () => {
                 description: ['Description Test'],
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                    payload: 'Condition narrative'
                 }]
             })
             expect(testExample.name?.toJSON()).toEqual(['Name Test'])
@@ -602,7 +602,7 @@ describe('StandardExample class', () => {
                 tag: 'Example',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                    payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                    payload: 'Condition narrative'
                 }]
             })
             // isEmpty() checks name/summary/description AND marks
@@ -622,7 +622,7 @@ describe('StandardExample class', () => {
                     name: ['Name Test'],
                     marks: [{
                         reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                        payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                        payload: 'Condition narrative'
                     }]
                 })
 
@@ -669,7 +669,7 @@ describe('StandardExample class', () => {
                     description: ['Description Test'],
                     marks: [{
                         reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                        payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                        payload: 'Condition narrative'
                     }]
                 })
 
@@ -695,13 +695,13 @@ describe('StandardExample class', () => {
                     key: 'test',
                     tag: 'Example',
                     name: ['Name Test'],
-                    marks: [{
-                        reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                        payload: { type: 'MarkFacet', narrative: 'First condition' }
-                    }, {
-                        reference: { tag: 'Mark', key: 'mark2', universalKey: 'MARK#mark2' },
-                        payload: { type: 'MarkFacet', narrative: 'Second condition' }
-                    }]
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: 'First condition'
+                }, {
+                    reference: { tag: 'Mark', key: 'mark2', universalKey: 'MARK#mark2' },
+                    payload: 'Second condition'
+                }]
                 })
 
                 const options = {
@@ -744,10 +744,10 @@ describe('StandardExample class', () => {
                     key: 'test',
                     tag: 'Example',
                     name: ['Name Test'],
-                    marks: [{
-                        reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                        payload: { type: 'MarkFacet', narrative: 'Original condition' }
-                    }]
+                marks: [{
+                    reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
+                    payload: 'Original condition'
+                }]
                 })
 
                 const incomingExample = new StandardExample({
@@ -756,7 +756,7 @@ describe('StandardExample class', () => {
                     name: ['Name Test'],
                     marks: [{
                         reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                        payload: { type: 'MarkFacet', narrative: 'Updated condition' }
+                        payload: 'Updated condition'
                     }]
                 })
 
@@ -794,7 +794,7 @@ describe('StandardExample class', () => {
                     name: ['Name Test'],
                     marks: [{
                         reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
-                        payload: { type: 'MarkFacet', narrative: 'Condition narrative' }
+                        payload: 'Condition narrative'
                     }]
                 })
 

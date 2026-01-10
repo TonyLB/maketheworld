@@ -13,20 +13,13 @@ describe('StandardFacet (concrete classes)', () => {
     };
 
     const positionPayload: PositionPayload = {
-        type: 'PositionFacet',
         x: 10,
         y: 20
     };
 
-    const markPayload: MarkFacetPayload = {
-        type: 'MarkFacet',
-        narrative: 'A dark room'
-    };
+    const markPayload: MarkFacetPayload = 'A dark room';
 
-    const exitPayload: ExitPayload = {
-        type: 'ExitFacet',
-        description: 'A wooden door'
-    };
+    const exitPayload: ExitPayload = 'A wooden door';
 
     describe('Construction', () => {
         it('should construct from StandardFacetData with PositionPayload', () => {
@@ -36,7 +29,7 @@ describe('StandardFacet (concrete classes)', () => {
             };
             const facet = new StandardPositionFacet(facetData);
             // Payload is now a class instance, use toJSON() for comparison
-            expect(facet.payload.toJSON()).toEqual(positionPayload);
+            expect(facet.payload.toJSON()).toEqual({ x: 10, y: 20 });
             expect(facet.reference.key).toBe('room1');
             expect(facet.isReplace).toBe(false);
         });
@@ -48,7 +41,7 @@ describe('StandardFacet (concrete classes)', () => {
             };
             const facet = new StandardMarkFacet(facetData);
             // Payload is now a class instance, use toJSON() for comparison
-            expect(facet.payload.toJSON()).toEqual(markPayload);
+            expect(facet.payload.toJSON()).toBe('A dark room');
             expect(facet.payload.narrative).toBe('A dark room');
         });
 
@@ -59,7 +52,7 @@ describe('StandardFacet (concrete classes)', () => {
             };
             const facet = new StandardExitFacet(facetData);
             // Payload is now a class instance, use toJSON() for comparison
-            expect(facet.payload.toJSON()).toEqual(exitPayload);
+            expect(facet.payload.toJSON()).toBe('A wooden door');
             expect(facet.payload.description).toBe('A wooden door');
         });
 
@@ -71,7 +64,7 @@ describe('StandardFacet (concrete classes)', () => {
             const facet = new StandardPositionFacet(facetData);
             expect(facet.universalKey).toBe('ROOM#room1');
             // Payload is now a class instance, use toJSON() for comparison
-            expect(facet.payload.toJSON()).toEqual(positionPayload);
+            expect(facet.payload.toJSON()).toEqual({ x: 10, y: 20 });
         });
 
         it('should clone from another StandardFacet', () => {
@@ -90,7 +83,7 @@ describe('StandardFacet (concrete classes)', () => {
         it('should construct from Replace JSON structure', () => {
             const matchData: StandardFacetData<PositionPayload> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayload> = {
                 reference: validReference,
@@ -104,8 +97,8 @@ describe('StandardFacet (concrete classes)', () => {
             const facet = new StandardPositionFacet(replaceData);
             expect(facet.isReplace).toBe(true);
             // Payload is now a class instance, use toJSON() for comparison
-            expect(facet.payload.toJSON()).toEqual(positionPayload);
-            expect(facet.matchPayload?.toJSON()).toEqual({ type: 'PositionFacet', x: 5, y: 10 });
+            expect(facet.payload.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(facet.matchPayload?.toJSON()).toEqual({ x: 5, y: 10 });
         });
 
         it('should throw error for invalid argument', () => {
@@ -130,7 +123,7 @@ describe('StandardFacet (concrete classes)', () => {
         it('should serialize Replace facet to JSON', () => {
             const matchData: StandardFacetData<PositionPayload> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const payloadData: StandardFacetData<PositionPayload> = {
                 reference: validReference,
@@ -182,7 +175,7 @@ describe('StandardFacet (concrete classes)', () => {
             };
             const facetData2: StandardFacetData<PositionPayload> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 15, y: 25 }
+                payload: { x: 15, y: 25 }
             };
             const facet1 = new StandardPositionFacet(facetData1);
             const facet2 = new StandardPositionFacet(facetData2);
@@ -196,7 +189,7 @@ describe('StandardFacet (concrete classes)', () => {
             };
             const facetData2: StandardFacetData<PositionPayload> = {
                 reference: { ...validReference, ref: 2 },
-                payload: { type: 'PositionFacet', x: 15, y: 25 }
+                payload: { x: 15, y: 25 }
             };
             const facet1 = new StandardPositionFacet(facetData1);
             const facet2 = new StandardPositionFacet(facetData2);
@@ -250,14 +243,14 @@ describe('StandardFacet (concrete classes)', () => {
             expect(merged).toBeDefined();
             expect(merged!.ref).toBe(3); // 1 + 2
             // Payload is now a class instance, use toJSON() for comparison
-            expect(merged!.payload.toJSON()).toEqual(positionPayload);
+            expect(merged!.payload.toJSON()).toEqual({ x: 10, y: 20 });
             expect(merged!.isReplace).toBe(false);
         });
 
         it('should merge facets with same key and different payload (Replace operation)', () => {
             const facetData1: StandardFacetData<PositionPayload> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const facetData2: StandardFacetData<PositionPayload> = {
                 reference: validReference,
@@ -269,8 +262,8 @@ describe('StandardFacet (concrete classes)', () => {
             expect(merged).toBeDefined();
             expect(merged!.isReplace).toBe(true);
             // Payload is now a class instance, use toJSON() for comparison
-            expect(merged!.payload.toJSON()).toEqual(positionPayload);
-            expect(merged!.matchPayload?.toJSON()).toEqual({ type: 'PositionFacet', x: 5, y: 10 });
+            expect(merged!.payload.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(merged!.matchPayload?.toJSON()).toEqual({ x: 5, y: 10 });
         });
 
         it('should throw error when merging facets with different keys', () => {
@@ -307,7 +300,7 @@ describe('StandardFacet (concrete classes)', () => {
         it('should create Replace when ref cancels but payloads differ', () => {
             const facetData1: StandardFacetData<PositionPayload> = {
                 reference: { ...validReference, ref: 1 },
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const facetData2: StandardFacetData<PositionPayload> = {
                 reference: { ...validReference, ref: -1 },
@@ -319,8 +312,8 @@ describe('StandardFacet (concrete classes)', () => {
             expect(merged).toBeDefined();
             expect(merged!.isReplace).toBe(true);
             // Payload is now a class instance, use toJSON() for comparison
-            expect(merged!.payload.toJSON()).toEqual(positionPayload);
-            expect(merged!.matchPayload?.toJSON()).toEqual({ type: 'PositionFacet', x: 5, y: 10 });
+            expect(merged!.payload.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(merged!.matchPayload?.toJSON()).toEqual({ x: 5, y: 10 });
         });
     });
 
@@ -339,7 +332,7 @@ describe('StandardFacet (concrete classes)', () => {
         it('should return Replace operation when payloads differ', () => {
             const facetData1: StandardFacetData<PositionPayload> = {
                 reference: validReference,
-                payload: { type: 'PositionFacet', x: 5, y: 10 }
+                payload: { x: 5, y: 10 }
             };
             const facetData2: StandardFacetData<PositionPayload> = {
                 reference: validReference,
@@ -352,7 +345,7 @@ describe('StandardFacet (concrete classes)', () => {
             expect(diff!.isReplace).toBe(true);
             // Payload is now a class instance, use toJSON() for comparison
             expect(diff!.payload.toJSON()).toEqual(positionPayload);
-            expect(diff!.matchPayload?.toJSON()).toEqual({ type: 'PositionFacet', x: 5, y: 10 });
+            expect(diff!.matchPayload?.toJSON()).toEqual({ x: 5, y: 10 });
         });
 
         it('should return reference diff when only ref differs', () => {

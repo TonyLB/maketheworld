@@ -11,41 +11,29 @@ import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
 describe('MarkFacetPayload - StandardEditablePayload implementation', () => {
     describe('constructor and basic operations', () => {
         it('should create MarkFacetPayload from valid data', () => {
-            const data: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Test condition'
-            };
+            const data: MarkFacetPayloadType = 'Test condition';
             const payload = new MarkFacetPayload(data);
             expect(payload.narrative).toBe('Test condition');
         });
 
         it('should clone correctly', () => {
-            const data: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Test condition'
-            };
+            const data: MarkFacetPayloadType = 'Test condition';
             const payload = new MarkFacetPayload(data);
             const cloned = payload.clone();
             expect(cloned).not.toBe(payload);
             const clonedPayload = cloned as MarkFacetPayload;
             expect(clonedPayload.narrative).toBe('Test condition');
-            expect(cloned.toJSON()).toEqual(data);
+            expect(cloned.toJSON()).toBe(data);
         });
 
         it('should return correct JSON', () => {
-            const data: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Another condition'
-            };
+            const data: MarkFacetPayloadType = 'Another condition';
             const payload = new MarkFacetPayload(data);
-            expect(payload.toJSON()).toEqual(data);
+            expect(payload.toJSON()).toBe(data);
         });
 
         it('should generate Match tag schema', () => {
-            const data: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Test condition'
-            };
+            const data: MarkFacetPayloadType = 'Test condition';
             const payload = new MarkFacetPayload(data);
             const schema = payload.schema;
             expect(schema.length).toBe(1);
@@ -61,16 +49,13 @@ describe('MarkFacetPayload - StandardEditablePayload implementation', () => {
 
     describe('StandardEditable factory', () => {
         it('should create from plain payload data', () => {
-            const data: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Test condition'
-            };
+            const data: MarkFacetPayloadType = 'Test condition';
             const delta = factory(data);
             expect(delta).toBeDefined();
             expect(delta?.add).toBeDefined();
             if (delta?.add) {
                 const payloadData = delta.add.toJSON();
-                expect(payloadData.narrative).toBe('Test condition');
+                expect(payloadData).toBe('Test condition');
             }
         });
 
@@ -81,38 +66,29 @@ describe('MarkFacetPayload - StandardEditablePayload implementation', () => {
             expect(delta?.add).toBeDefined();
             if (delta?.add) {
                 const payloadData = delta.add.toJSON();
-                expect(payloadData.narrative).toBe('Test condition');
+                expect(payloadData).toBe('Test condition');
             }
         });
 
         it('should create from Remove structure', () => {
             const removeData: StandardEditableData<MarkFacetPayloadType> = {
                 tag: 'Remove',
-                match: {
-                    type: 'MarkFacet',
-                    narrative: 'Test condition'
-                }
+                match: 'Test condition'
             };
             const delta = factory(removeData);
             expect(delta).toBeDefined();
             expect(delta?.remove).toBeDefined();
             if (delta?.remove) {
                 const payloadData = delta.remove.toJSON();
-                expect(payloadData.narrative).toBe('Test condition');
+                expect(payloadData).toBe('Test condition');
             }
         });
 
         it('should create from Replace structure', () => {
             const replaceData: StandardEditableData<MarkFacetPayloadType> = {
                 tag: 'Replace',
-                match: {
-                    type: 'MarkFacet',
-                    narrative: 'Old condition'
-                },
-                payload: {
-                    type: 'MarkFacet',
-                    narrative: 'New condition'
-                }
+                match: 'Old condition',
+                payload: 'New condition'
             };
             const delta = factory(replaceData);
             expect(delta).toBeDefined();
@@ -121,53 +97,38 @@ describe('MarkFacetPayload - StandardEditablePayload implementation', () => {
             if (delta?.remove && delta?.add) {
                 const removeData = delta.remove.toJSON();
                 const addData = delta.add.toJSON();
-                expect(removeData.narrative).toBe('Old condition');
-                expect(addData.narrative).toBe('New condition');
+                expect(removeData).toBe('Old condition');
+                expect(addData).toBe('New condition');
             }
         });
 
         it('should validate typeguard correctly', () => {
-            const valid: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Test condition'
-            };
+            const valid: MarkFacetPayloadType = 'Test condition';
             expect(isStandardMarkFacetPayloadData(valid)).toBe(true);
 
-            const invalid = {
-                type: 'PositionFacet',
-                x: 10,
-                y: 20
-            };
+            const invalid = { x: 10, y: 20 };
             expect(isStandardMarkFacetPayloadData(invalid)).toBe(false);
         });
     });
 
     describe('StandardEditable merge operations', () => {
         it('should merge with Replace semantics (incoming wins)', () => {
-            const base: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Old condition'
-            };
-            const incoming: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'New condition'
-            };
+            const base: MarkFacetPayloadType = 'Old condition';
+            const incoming: MarkFacetPayloadType = 'New condition';
             const baseDelta = factory(base);
             const incomingDelta = factory(incoming);
             // Use type assertion to handle generic type constraints
             const merged = merge(baseDelta as any, incomingDelta as any) as any;
             if (merged?.add) {
-                const payload = merged.add as MarkFacetPayload;
-                const payloadData = payload.toJSON();
-                expect(payloadData.narrative).toBe('New condition');
+                // merge returns StandardEditableDataDelta<PayloadDataType<MarkFacetPayload>>,
+                // which is { add?: string, remove?: string } - plain data types, not class instances
+                const payloadData = merged.add as string;
+                expect(payloadData).toBe('New condition');
             }
         });
 
         it('should cancel when removing same payload', () => {
-            const payload: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Test condition'
-            };
+            const payload: MarkFacetPayloadType = 'Test condition';
             const addDelta = factory(payload);
             const removeDelta = factory({
                 tag: 'Remove',
@@ -178,32 +139,24 @@ describe('MarkFacetPayload - StandardEditablePayload implementation', () => {
         });
 
         it('should create Replace when payloads differ during merge', () => {
-            const base: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Old condition'
-            };
-            const incoming: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'New condition'
-            };
+            const base: MarkFacetPayloadType = 'Old condition';
+            const incoming: MarkFacetPayloadType = 'New condition';
             const baseDelta = factory(base);
             const incomingDelta = factory(incoming);
             const merged = merge(baseDelta as any, incomingDelta as any) as any;
             // When base is added and incoming is added, and they differ, should keep incoming
             if (merged?.add) {
-                const payload = merged.add as MarkFacetPayload;
-                const payloadData = payload.toJSON();
-                expect(payloadData.narrative).toBe('New condition');
+                // merge returns StandardEditableDataDelta<PayloadDataType<MarkFacetPayload>>,
+                // which is { add?: string, remove?: string } - plain data types, not class instances
+                const payloadData = merged.add as string;
+                expect(payloadData).toBe('New condition');
             }
         });
     });
 
     describe('StandardEditable diff operations', () => {
         it('should return empty when payloads are same', () => {
-            const payload: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Test condition'
-            };
+            const payload: MarkFacetPayloadType = 'Test condition';
             const baseDelta = factory(payload);
             const incomingDelta = factory(payload);
             const diffResult = diff(baseDelta as any, incomingDelta as any) as any;
@@ -211,24 +164,18 @@ describe('MarkFacetPayload - StandardEditablePayload implementation', () => {
         });
 
         it('should create Replace when payloads differ', () => {
-            const base: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Old condition'
-            };
-            const incoming: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'New condition'
-            };
+            const base: MarkFacetPayloadType = 'Old condition';
+            const incoming: MarkFacetPayloadType = 'New condition';
             const baseDelta = factory(base);
             const incomingDelta = factory(incoming);
             const diffResult = diff(baseDelta as any, incomingDelta as any) as any;
             if (diffResult?.remove && diffResult?.add) {
-                const removePayload = diffResult.remove as MarkFacetPayload;
-                const addPayload = diffResult.add as MarkFacetPayload;
-                const removeData = removePayload.toJSON();
-                const addData = addPayload.toJSON();
-                expect(removeData.narrative).toBe('Old condition');
-                expect(addData.narrative).toBe('New condition');
+                // diff returns StandardEditableDataDelta<PayloadDataType<MarkFacetPayload>>,
+                // which is { add?: string, remove?: string } - plain data types, not class instances
+                const removeData = diffResult.remove as string;
+                const addData = diffResult.add as string;
+                expect(removeData).toBe('Old condition');
+                expect(addData).toBe('New condition');
             }
         });
     });
@@ -239,61 +186,57 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
         it('should parse Mark with Match child (with key and uuid)', () => {
             const schema = treeFromWML(deIndentWML('<Mark key=(testMark) uuid=(MARK#123)><Match>Test condition</Match></Mark>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload({ type: 'MarkFacet', narrative: '' });
+            const payload = new MarkFacetPayload('');
             const result = payload.fromSchema(schema, reference);
-            expect(result.narrative).toBe('Test condition');
-            expect(result.type).toBe('MarkFacet');
+            expect(result).toBe('Test condition');
         });
 
         it('should parse Mark with Match child (uuid only)', () => {
             const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><Match>Another condition</Match></Mark>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload({ type: 'MarkFacet', narrative: '' });
+            const payload = new MarkFacetPayload('');
             const result = payload.fromSchema(schema, reference);
-            expect(result.narrative).toBe('Another condition');
+            expect(result).toBe('Another condition');
         });
 
         it('should parse Mark with Match child containing multiple String children', () => {
             // Match tags can have multiple String children (though typically just one)
             const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><Match>First part Second part</Match></Mark>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload({ type: 'MarkFacet', narrative: '' });
+            const payload = new MarkFacetPayload('');
             const result = payload.fromSchema(schema, reference);
             // String children should be joined
-            expect(result.narrative).toContain('First part');
-            expect(result.narrative).toContain('Second part');
+            expect(result).toContain('First part');
+            expect(result).toContain('Second part');
         });
 
         it('should throw error when Match child is missing', () => {
             const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123) />'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload({ type: 'MarkFacet', narrative: '' });
+            const payload = new MarkFacetPayload('');
             expect(() => payload.fromSchema(schema, reference)).toThrow('Invalid schema: Match child not found');
         });
 
         it('should throw error when Mark tag is missing', () => {
             const schema = treeFromWML(deIndentWML('<Match>Test condition</Match>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload({ type: 'MarkFacet', narrative: '' });
+            const payload = new MarkFacetPayload('');
             expect(() => payload.fromSchema(schema, reference)).toThrow('Invalid schema: Mark tag not found');
         });
 
         it('should handle empty Match content', () => {
             const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><Match></Match></Mark>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload({ type: 'MarkFacet', narrative: '' });
+            const payload = new MarkFacetPayload('');
             const result = payload.fromSchema(schema, reference);
-            expect(result.narrative).toBe('');
+            expect(result).toBe('');
         });
     });
 
     describe('renderFacet', () => {
         it('should render with pre-existing Mark render', () => {
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payloadData: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Test condition'
-            };
+            const payloadData: MarkFacetPayloadType = 'Test condition';
             const payload = new MarkFacetPayload(payloadData);
             const markSchema = treeFromWML(deIndentWML(`
                 <Mark uuid=(MARK#123)>
@@ -332,10 +275,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
 
         it('should render without reference render (plain Mark tag)', () => {
             const reference = new StandardReference({ key: 'testMark', universalKey: 'MARK#123', tag: 'Mark' });
-            const payloadData: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Another condition'
-            };
+            const payloadData: MarkFacetPayloadType = 'Another condition';
             const payload = new MarkFacetPayload(payloadData);
             const result = payload.renderFacet(reference, payloadData);
             
@@ -364,10 +304,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
 
         it('should render without reference render (uuid only)', () => {
             const reference = new StandardReference('MARK#456', 'Mark');
-            const payloadData: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Third condition'
-            };
+            const payloadData: MarkFacetPayloadType = 'Third condition';
             const payload = new MarkFacetPayload(payloadData);
             const result = payload.renderFacet(reference, payloadData);
             
@@ -394,10 +331,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
 
         it('should always return aggregatedNode (never newNode)', () => {
             const reference = new StandardReference('MARK#789', 'Mark');
-            const payloadData: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Fourth condition'
-            };
+            const payloadData: MarkFacetPayloadType = 'Fourth condition';
             const payload = new MarkFacetPayload(payloadData);
             
             // Test without referenceRender
@@ -414,10 +348,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
 
         it('should throw error when referenceRender is not a Mark', () => {
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payloadData: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Test condition'
-            };
+            const payloadData: MarkFacetPayloadType = 'Test condition';
             const payload = new MarkFacetPayload(payloadData);
             const roomSchema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123) />'))[0];
             expect(() => payload.renderFacet(reference, payloadData, roomSchema)).toThrow('Invalid referenceRender: expected Mark tag');
@@ -425,10 +356,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
 
         it('should add Match as first child when referenceRender provided', () => {
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payloadData: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: 'Final condition'
-            };
+            const payloadData: MarkFacetPayloadType = 'Final condition';
             const payload = new MarkFacetPayload(payloadData);
             const markSchema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><ShortName>Mark</ShortName></Mark>'))[0];
             const result = payload.renderFacet(reference, payloadData, markSchema);
@@ -453,13 +381,10 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
 
     describe('edge cases', () => {
         it('should handle empty narrative string', () => {
-            const data: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: ''
-            };
+            const data: MarkFacetPayloadType = '';
             const payload = new MarkFacetPayload(data);
             expect(payload.narrative).toBe('');
-            expect(payload.toJSON().narrative).toBe('');
+            expect(payload.toJSON()).toBe('');
             
             // Schema should still generate Match tag with empty String child
             const schema = payload.schema;
@@ -471,21 +396,15 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
 
         it('should handle long narrative strings', () => {
             const longNarrative = 'A'.repeat(1000);
-            const data: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: longNarrative
-            };
+            const data: MarkFacetPayloadType = longNarrative;
             const payload = new MarkFacetPayload(data);
             expect(payload.narrative).toBe(longNarrative);
-            expect(payload.toJSON().narrative).toBe(longNarrative);
+            expect(payload.toJSON()).toBe(longNarrative);
         });
 
         it('should handle special characters in narrative', () => {
             const specialNarrative = 'Test with "quotes" and <tags> and & symbols';
-            const data: MarkFacetPayloadType = {
-                type: 'MarkFacet',
-                narrative: specialNarrative
-            };
+            const data: MarkFacetPayloadType = specialNarrative;
             const payload = new MarkFacetPayload(data);
             expect(payload.narrative).toBe(specialNarrative);
             

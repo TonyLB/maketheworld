@@ -24,7 +24,6 @@ describe('Facet Integration Tests', () => {
     // Test helper functions
     const createPositionFacet = (reference: StandardReference, x: number, y: number): StandardPositionFacet => {
         const payload: PositionPayload = {
-            type: 'PositionFacet',
             x,
             y
         };
@@ -35,10 +34,7 @@ describe('Facet Integration Tests', () => {
     };
 
     const createMarkFacet = (reference: StandardReference, narrative: string): StandardMarkFacet => {
-        const payload: MarkFacetPayload = {
-            type: 'MarkFacet',
-            narrative
-        };
+        const payload: MarkFacetPayload = narrative;
         return new StandardMarkFacet({
             reference: reference.toJSON(),
             payload
@@ -46,10 +42,7 @@ describe('Facet Integration Tests', () => {
     };
 
     const createExitFacet = (reference: StandardReference, description?: string): StandardExitFacet => {
-        const payload: ExitPayload = {
-            type: 'ExitFacet',
-            description
-        };
+        const payload: ExitPayload = description;
         return new StandardExitFacet({
             reference: reference.toJSON(),
             payload
@@ -130,11 +123,11 @@ describe('Facet Integration Tests', () => {
                 const originalWML = deIndentWML(`<Room key=(room1)><Position x="10" y="20" /></Room>`);
                 const facet = parseWMLToFacet(originalWML, 'Position');
                 
-                // Payload is now a class instance - access type via toJSON(), properties directly
-                expect(facet.payload.toJSON().type).toBe('PositionFacet');
+                // Payload is now a class instance - access properties directly
                 const positionFacet = facet as StandardPositionFacet;
                 expect(positionFacet.payload.x).toBe(10);
                 expect(positionFacet.payload.y).toBe(20);
+                expect(positionFacet.payload.toJSON()).toEqual({ x: 10, y: 20 });
                 
                 const generatedWML = facetToWML(facet);
                 expect(generatedWML).toEqual(originalWML);
@@ -146,11 +139,11 @@ describe('Facet Integration Tests', () => {
                 `);
                 const facet = parseWMLToFacet(originalWML, 'Position');
                 
-                // Payload is now a class instance - access type via toJSON(), properties directly
-                expect(facet.payload.toJSON().type).toBe('PositionFacet');
+                // Payload is now a class instance - access properties directly
                 const positionFacet = facet as StandardPositionFacet;
                 expect(positionFacet.payload.x).toBe(15);
                 expect(positionFacet.payload.y).toBe(25);
+                expect(positionFacet.payload.toJSON()).toEqual({ x: 15, y: 25 });
                 
                 const generatedWML = facetToWML(facet);
                 expect(generatedWML).toEqual(originalWML);
@@ -162,10 +155,10 @@ describe('Facet Integration Tests', () => {
                 const originalWML = deIndentWML(`<Mark uuid=(test123)><Match>Condition text</Match></Mark>`);
                 const facet = parseWMLToFacet(originalWML, 'Mark');
                 
-                // Payload is now a class instance - access type via toJSON(), properties directly
-                expect(facet.payload.toJSON().type).toBe('MarkFacet');
+                // Payload is now a class instance - access properties directly
                 const markFacet = facet as StandardMarkFacet;
                 expect(markFacet.payload.narrative).toBe('Condition text');
+                expect(markFacet.payload.toJSON()).toBe('Condition text');
                 
                 const generatedWML = facetToWML(facet);
                 expect(generatedWML).toEqual(originalWML);
@@ -175,10 +168,10 @@ describe('Facet Integration Tests', () => {
                 const originalWML = deIndentWML(`<Mark uuid=(test456)><Match></Match></Mark>`);
                 const facet = parseWMLToFacet(originalWML, 'Mark');
                 
-                // Payload is now a class instance - access type via toJSON(), properties directly
-                expect(facet.payload.toJSON().type).toBe('MarkFacet');
+                // Payload is now a class instance - access properties directly
                 const markFacet = facet as StandardMarkFacet;
                 expect(markFacet.payload.narrative).toBe('');
+                expect(markFacet.payload.toJSON()).toBe('');
                 
                 const generatedWML = facetToWML(facet);
                 expect(generatedWML).toEqual(originalWML);
@@ -190,10 +183,10 @@ describe('Facet Integration Tests', () => {
                 const originalWML = deIndentWML(`<Exit to=(ROOM#target1)>North Exit</Exit>`);
                 const facet = parseWMLToFacet(originalWML, 'Exit');
                 
-                // Payload is now a class instance - access type via toJSON(), properties directly
-                expect(facet.payload.toJSON().type).toBe('ExitFacet');
+                // Payload is now a class instance - access properties directly
                 const exitFacet = facet as StandardExitFacet;
                 expect(exitFacet.payload.description).toBe('North Exit');
+                expect(exitFacet.payload.toJSON()).toBe('North Exit');
                 
                 const generatedWML = facetToWML(facet);
                 expect(generatedWML).toEqual(originalWML);
@@ -203,10 +196,10 @@ describe('Facet Integration Tests', () => {
                 const originalWML = deIndentWML(`<Exit to=(ROOM#target2) />`);
                 const facet = parseWMLToFacet(originalWML, 'Exit');
                 
-                // Payload is now a class instance - access type via toJSON(), properties directly
-                expect(facet.payload.toJSON().type).toBe('ExitFacet');
+                // Payload is now a class instance - access properties directly
                 const exitFacet = facet as StandardExitFacet;
                 expect(exitFacet.payload.description).toBeUndefined();
+                expect(exitFacet.payload.toJSON()).toBeUndefined();
                 
                 const generatedWML = facetToWML(facet);
                 expect(generatedWML).toEqual(originalWML);
@@ -262,7 +255,7 @@ describe('Facet Integration Tests', () => {
         describe('PositionPayload.renderFacet()', () => {
             it('should enhance pre-existing Room render with Position child', () => {
                 const reference = new StandardReference('ROOM#123', 'Room');
-                const payload = new PositionPayloadClass({ type: 'PositionFacet', x: 10, y: 20 });
+                const payload = new PositionPayloadClass({ x: 10, y: 20 });
                 const roomRender = createMockRoomReference('room1', 'ROOM#123');
                 roomRender.children.push({
                     data: { tag: 'ShortName' as const },
@@ -286,7 +279,7 @@ describe('Facet Integration Tests', () => {
 
             it('should generate plain Room reference render without referenceRender', () => {
                 const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
-                const payload = new PositionPayloadClass({ type: 'PositionFacet', x: 15, y: 25 });
+                const payload = new PositionPayloadClass({ x: 15, y: 25 });
 
                 const result = payload.renderFacet(reference, payload.toJSON());
 
@@ -304,7 +297,7 @@ describe('Facet Integration Tests', () => {
 
             it('should always return aggregatedNode (never newNode)', () => {
                 const reference = new StandardReference('ROOM#789', 'Room');
-                const payload = new PositionPayloadClass({ type: 'PositionFacet', x: 50, y: 60 });
+                const payload = new PositionPayloadClass({ x: 50, y: 60 });
 
                 const result1 = payload.renderFacet(reference, payload.toJSON());
                 expect(result1.aggregatedNode).toBeDefined();
@@ -320,7 +313,7 @@ describe('Facet Integration Tests', () => {
         describe('MarkFacetPayload.renderFacet()', () => {
             it('should enhance pre-existing Mark render with Match child', () => {
                 const reference = new StandardReference('MARK#123', 'Mark');
-                const payload = new MarkFacetPayloadClass({ type: 'MarkFacet', narrative: 'Test condition' });
+                const payload = new MarkFacetPayloadClass('Test condition');
                 const markRender = createMockMarkReference('MARK#123');
                 markRender.children.push({
                     data: { tag: 'ShortName' as const },
@@ -347,7 +340,7 @@ describe('Facet Integration Tests', () => {
 
             it('should generate plain Mark reference render without referenceRender', () => {
                 const reference = new StandardReference('MARK#456', 'Mark');
-                const payload = new MarkFacetPayloadClass({ type: 'MarkFacet', narrative: 'Another condition' });
+                const payload = new MarkFacetPayloadClass('Another condition');
 
                 const result = payload.renderFacet(reference, payload.toJSON());
 
@@ -362,7 +355,7 @@ describe('Facet Integration Tests', () => {
 
             it('should always return aggregatedNode (never newNode)', () => {
                 const reference = new StandardReference('MARK#789', 'Mark');
-                const payload = new MarkFacetPayloadClass({ type: 'MarkFacet', narrative: 'Condition text' });
+                const payload = new MarkFacetPayloadClass('Condition text');
 
                 const result1 = payload.renderFacet(reference, payload.toJSON());
                 expect(result1.aggregatedNode).toBeDefined();
@@ -378,7 +371,7 @@ describe('Facet Integration Tests', () => {
         describe('ExitPayload.renderFacet()', () => {
             it('should ignore referenceRender parameter', () => {
                 const reference = new StandardReference('ROOM#123', 'Room');
-                const payload = new ExitPayloadClass({ type: 'ExitFacet', description: 'North Exit' });
+                const payload = new ExitPayloadClass('North Exit');
                 const roomRender = createMockRoomReference('room1', 'ROOM#123');
 
                 const result1 = payload.renderFacet(reference, payload.toJSON());
@@ -393,7 +386,7 @@ describe('Facet Integration Tests', () => {
 
             it('should always return newNode (never aggregatedNode)', () => {
                 const reference = new StandardReference('ROOM#456', 'Room');
-                const payload = new ExitPayloadClass({ type: 'ExitFacet', description: 'East Exit' });
+                const payload = new ExitPayloadClass('East Exit');
 
                 const result1 = payload.renderFacet(reference, payload.toJSON());
                 expect(result1.newNode).toBeDefined();
@@ -407,7 +400,7 @@ describe('Facet Integration Tests', () => {
 
             it('should include Exit tag with correct `to` property', () => {
                 const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
-                const payload = new ExitPayloadClass({ type: 'ExitFacet', description: 'West Exit' });
+                const payload = new ExitPayloadClass('West Exit');
 
                 const result = payload.renderFacet(reference, payload.toJSON());
 
@@ -420,7 +413,7 @@ describe('Facet Integration Tests', () => {
 
             it('should include description in Exit tag content', () => {
                 const reference = new StandardReference('ROOM#789', 'Room');
-                const payload = new ExitPayloadClass({ type: 'ExitFacet', description: 'South Exit' });
+                const payload = new ExitPayloadClass('South Exit');
 
                 const result = payload.renderFacet(reference, payload.toJSON());
 
@@ -436,7 +429,7 @@ describe('Facet Integration Tests', () => {
 
             it('should have empty Exit tag when description is undefined', () => {
                 const reference = new StandardReference('ROOM#999', 'Room');
-                const payload = new ExitPayloadClass({ type: 'ExitFacet' });
+                const payload = new ExitPayloadClass(undefined);
 
                 const result = payload.renderFacet(reference, payload.toJSON());
 

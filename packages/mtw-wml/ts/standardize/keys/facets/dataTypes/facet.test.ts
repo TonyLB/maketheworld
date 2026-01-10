@@ -2,7 +2,6 @@ import {
     isPositionPayload,
     isMarkFacetPayload,
     isExitPayload,
-    isStandardFacetPayload,
     isStandardFacetData,
     PositionPayload,
     MarkFacetPayload,
@@ -12,35 +11,16 @@ import {
 import { StandardReferenceData } from '../../dataTypes/reference'
 
 describe('isPositionPayload', () => {
-    it('should accept valid PositionPayload with required fields', () => {
+    it('should accept valid PositionPayload with x and y fields', () => {
         const payload: PositionPayload = {
-            type: 'PositionFacet',
             x: 10,
             y: 20
         }
         expect(isPositionPayload(payload)).toBe(true)
     })
 
-    it('should reject missing type field', () => {
-        const payload = {
-            x: 10,
-            y: 20
-        }
-        expect(isPositionPayload(payload)).toBe(false)
-    })
-
-    it('should reject wrong type value', () => {
-        const payload = {
-            type: 'MarkFacet',
-            x: 10,
-            y: 20
-        }
-        expect(isPositionPayload(payload)).toBe(false)
-    })
-
     it('should reject missing x field', () => {
         const payload = {
-            type: 'PositionFacet',
             y: 20
         }
         expect(isPositionPayload(payload)).toBe(false)
@@ -48,7 +28,6 @@ describe('isPositionPayload', () => {
 
     it('should reject missing y field', () => {
         const payload = {
-            type: 'PositionFacet',
             x: 10
         }
         expect(isPositionPayload(payload)).toBe(false)
@@ -56,7 +35,6 @@ describe('isPositionPayload', () => {
 
     it('should reject wrong type for x', () => {
         const payload = {
-            type: 'PositionFacet',
             x: '10',
             y: 20
         }
@@ -65,7 +43,6 @@ describe('isPositionPayload', () => {
 
     it('should reject wrong type for y', () => {
         const payload = {
-            type: 'PositionFacet',
             x: 10,
             y: '20'
         }
@@ -90,42 +67,14 @@ describe('isPositionPayload', () => {
 })
 
 describe('isMarkFacetPayload', () => {
-    it('should accept valid MarkFacetPayload with required fields', () => {
-        const payload: MarkFacetPayload = {
-            type: 'MarkFacet',
-            narrative: 'A dark room'
-        }
+    it('should accept valid string payload', () => {
+        const payload: MarkFacetPayload = 'A dark room'
         expect(isMarkFacetPayload(payload)).toBe(true)
     })
 
-    it('should reject missing type field', () => {
-        const payload = {
-            narrative: 'A dark room'
-        }
-        expect(isMarkFacetPayload(payload)).toBe(false)
-    })
-
-    it('should reject wrong type value', () => {
-        const payload = {
-            type: 'PositionFacet',
-            narrative: 'A dark room'
-        }
-        expect(isMarkFacetPayload(payload)).toBe(false)
-    })
-
-    it('should reject missing narrative field', () => {
-        const payload = {
-            type: 'MarkFacet'
-        }
-        expect(isMarkFacetPayload(payload)).toBe(false)
-    })
-
-    it('should reject wrong type for narrative', () => {
-        const payload = {
-            type: 'MarkFacet',
-            narrative: 123
-        }
-        expect(isMarkFacetPayload(payload)).toBe(false)
+    it('should accept empty string', () => {
+        const payload: MarkFacetPayload = ''
+        expect(isMarkFacetPayload(payload)).toBe(true)
     })
 
     it('should reject null', () => {
@@ -136,8 +85,8 @@ describe('isMarkFacetPayload', () => {
         expect(isMarkFacetPayload(undefined)).toBe(false)
     })
 
-    it('should reject string', () => {
-        expect(isMarkFacetPayload('not an object')).toBe(false)
+    it('should reject object', () => {
+        expect(isMarkFacetPayload({ narrative: 'A dark room' })).toBe(false)
     })
 
     it('should reject number', () => {
@@ -146,54 +95,27 @@ describe('isMarkFacetPayload', () => {
 })
 
 describe('isExitPayload', () => {
-    it('should accept valid ExitPayload with required fields only', () => {
-        const payload: ExitPayload = {
-            type: 'ExitFacet'
-        }
+    it('should accept valid string payload', () => {
+        const payload: ExitPayload = 'A wooden door'
         expect(isExitPayload(payload)).toBe(true)
     })
 
-    it('should accept valid ExitPayload with optional description', () => {
-        const payload: ExitPayload = {
-            type: 'ExitFacet',
-            description: 'A wooden door'
-        }
+    it('should accept undefined (omitted description)', () => {
+        const payload: ExitPayload = undefined
         expect(isExitPayload(payload)).toBe(true)
     })
 
-    it('should reject missing type field', () => {
-        const payload = {
-            description: 'A wooden door'
-        }
-        expect(isExitPayload(payload)).toBe(false)
-    })
-
-    it('should reject wrong type value', () => {
-        const payload = {
-            type: 'PositionFacet',
-            description: 'A wooden door'
-        }
-        expect(isExitPayload(payload)).toBe(false)
-    })
-
-    it('should reject wrong type for description', () => {
-        const payload = {
-            type: 'ExitFacet',
-            description: 123
-        }
-        expect(isExitPayload(payload)).toBe(false)
+    it('should accept empty string', () => {
+        const payload: ExitPayload = ''
+        expect(isExitPayload(payload)).toBe(true)
     })
 
     it('should reject null', () => {
         expect(isExitPayload(null)).toBe(false)
     })
 
-    it('should reject undefined', () => {
-        expect(isExitPayload(undefined)).toBe(false)
-    })
-
-    it('should reject string', () => {
-        expect(isExitPayload('not an object')).toBe(false)
+    it('should reject object', () => {
+        expect(isExitPayload({ description: 'A wooden door' })).toBe(false)
     })
 
     it('should reject number', () => {
@@ -201,63 +123,7 @@ describe('isExitPayload', () => {
     })
 })
 
-describe('isStandardFacetPayload', () => {
-    it('should accept valid PositionPayload', () => {
-        const payload: PositionPayload = {
-            type: 'PositionFacet',
-            x: 10,
-            y: 20
-        }
-        expect(isStandardFacetPayload(payload)).toBe(true)
-    })
-
-    it('should accept valid MarkFacetPayload', () => {
-        const payload: MarkFacetPayload = {
-            type: 'MarkFacet',
-            narrative: 'A dark room'
-        }
-        expect(isStandardFacetPayload(payload)).toBe(true)
-    })
-
-    it('should accept valid ExitPayload', () => {
-        const payload: ExitPayload = {
-            type: 'ExitFacet',
-            description: 'A wooden door'
-        }
-        expect(isStandardFacetPayload(payload)).toBe(true)
-    })
-
-    it('should reject object without recognized type', () => {
-        const payload = {
-            type: 'UnknownFacet',
-            someField: 'value'
-        }
-        expect(isStandardFacetPayload(payload)).toBe(false)
-    })
-
-    it('should reject object without type field', () => {
-        const payload = {
-            someField: 'value'
-        }
-        expect(isStandardFacetPayload(payload)).toBe(false)
-    })
-
-    it('should reject null', () => {
-        expect(isStandardFacetPayload(null)).toBe(false)
-    })
-
-    it('should reject undefined', () => {
-        expect(isStandardFacetPayload(undefined)).toBe(false)
-    })
-
-    it('should reject string', () => {
-        expect(isStandardFacetPayload('not an object')).toBe(false)
-    })
-
-    it('should reject number', () => {
-        expect(isStandardFacetPayload(42)).toBe(false)
-    })
-})
+// isStandardFacetPayload removed - no longer needed since types are inferred from context
 
 describe('isStandardFacetData', () => {
     const validReference: StandardReferenceData = {
@@ -270,7 +136,6 @@ describe('isStandardFacetData', () => {
         const facetData: StandardFacetData<PositionPayload> = {
             reference: validReference,
             payload: {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             }
@@ -281,30 +146,31 @@ describe('isStandardFacetData', () => {
     it('should accept valid StandardFacetData with MarkFacetPayload', () => {
         const facetData: StandardFacetData<MarkFacetPayload> = {
             reference: validReference,
-            payload: {
-                type: 'MarkFacet',
-                narrative: 'A dark room'
-            }
+            payload: 'A dark room'
         }
         expect(isStandardFacetData(facetData)).toBe(true)
     })
 
-    it('should accept valid StandardFacetData with ExitPayload', () => {
+    it('should accept valid StandardFacetData with ExitPayload (string)', () => {
         const facetData: StandardFacetData<ExitPayload> = {
             reference: validReference,
-            payload: {
-                type: 'ExitFacet',
-                description: 'A wooden door'
-            }
+            payload: 'A wooden door'
+        }
+        expect(isStandardFacetData(facetData)).toBe(true)
+    })
+
+    it('should accept valid StandardFacetData with ExitPayload (undefined)', () => {
+        const facetData: StandardFacetData<ExitPayload> = {
+            reference: validReference,
+            payload: undefined
         }
         expect(isStandardFacetData(facetData)).toBe(true)
     })
 
     it('should accept valid StandardFacetData with ComponentUUID string reference', () => {
-        const facetData: StandardFacetData = {
+        const facetData: StandardFacetData<PositionPayload> = {
             reference: 'ROOM#room1',
             payload: {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             }
@@ -315,7 +181,6 @@ describe('isStandardFacetData', () => {
     it('should reject missing reference field', () => {
         const facetData = {
             payload: {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             }
@@ -327,7 +192,6 @@ describe('isStandardFacetData', () => {
         const facetData = {
             reference: { invalid: 'reference' },
             payload: {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             }
@@ -342,18 +206,7 @@ describe('isStandardFacetData', () => {
         expect(isStandardFacetData(facetData)).toBe(false)
     })
 
-    it('should reject invalid payload (not StandardFacetPayload)', () => {
-        const facetData = {
-            reference: validReference,
-            payload: {
-                type: 'UnknownFacet',
-                someField: 'value'
-            }
-        }
-        expect(isStandardFacetData(facetData)).toBe(false)
-    })
-
-    it('should reject payload without type field', () => {
+    it('should accept valid payload (PositionPayload format)', () => {
         const facetData = {
             reference: validReference,
             payload: {
@@ -361,7 +214,7 @@ describe('isStandardFacetData', () => {
                 y: 20
             }
         }
-        expect(isStandardFacetData(facetData)).toBe(false)
+        expect(isStandardFacetData(facetData)).toBe(true)
     })
 
     it('should reject null', () => {

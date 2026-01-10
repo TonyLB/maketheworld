@@ -41,8 +41,8 @@ export class PositionPayload implements StandardEditablePayload<PositionPayloadT
     }
 
     toJSON(): PositionPayloadType {
+        // Return just the x, y coordinates (no type field)
         return {
-            type: 'PositionFacet' as const,
             x: this.x,
             y: this.y
         };
@@ -97,11 +97,8 @@ export class PositionPayload implements StandardEditablePayload<PositionPayloadT
             throw new Error('Invalid schema: Position tag missing x or y coordinates');
         }
 
-        return {
-            type: 'PositionFacet' as const,
-            x,
-            y
-        };
+        // Return just the x, y coordinates (no type field)
+        return { x, y };
     }
 
     // FacetPayloadBase implementation
@@ -183,9 +180,11 @@ export class PositionPayload implements StandardEditablePayload<PositionPayloadT
 
 // Factory function for creating PositionPayload instances from various formats
 const payloadFactory = (props: PositionPayloadType | GenericTree<SchemaTag>): StandardEditablePayload<PositionPayloadType> | undefined => {
+    // Handle {x, y} object input (payload format)
     if (isPositionPayload(props)) {
         return new PositionPayload(props);
     }
+    // Handle GenericTree<SchemaTag> input (schema parsing)
     if (Array.isArray(props) && props.length > 0) {
         // For GenericTree<SchemaTag>, we need a reference to parse
         // This factory is used by StandardEditable, so we'll handle plain Position tag parsing
@@ -193,11 +192,7 @@ const payloadFactory = (props: PositionPayloadType | GenericTree<SchemaTag>): St
         if (treeNodeTypeguard(isSchemaPosition)(firstElement)) {
             const { x, y } = firstElement.data;
             if (typeof x === 'number' && typeof y === 'number') {
-                return new PositionPayload({
-                    type: 'PositionFacet',
-                    x,
-                    y
-                });
+                return new PositionPayload({ x, y });
             }
         }
         // Also handle Room+Position structure (for FacetPayloadBase.fromSchema compatibility)
@@ -208,11 +203,7 @@ const payloadFactory = (props: PositionPayloadType | GenericTree<SchemaTag>): St
             if (position && treeNodeTypeguard(isSchemaPosition)(position)) {
                 const { x, y } = position.data;
                 if (typeof x === 'number' && typeof y === 'number') {
-                    return new PositionPayload({
-                        type: 'PositionFacet',
-                        x,
-                        y
-                    });
+                    return new PositionPayload({ x, y });
                 }
             }
         }
@@ -221,26 +212,36 @@ const payloadFactory = (props: PositionPayloadType | GenericTree<SchemaTag>): St
 };
 
 // Add/subtract/diff functions for StandardEditable factory
-const standardPositionPayloadAdd = (base: PositionPayloadType, incoming: PositionPayloadType): PositionPayloadType => {
+// Note: These functions may receive PositionPayload instances or PositionPayloadType ({ x, y })
+// We extract the data using toJSON() if needed
+const standardPositionPayloadAdd = (base: PositionPayloadType | PositionPayload, incoming: PositionPayloadType | PositionPayload): PositionPayloadType => {
+    // const baseData = base instanceof PositionPayload ? base.toJSON() : base;
+    const incomingData = incoming instanceof PositionPayload ? incoming.toJSON() : incoming;
     // Replace semantics: incoming wins
-    return incoming;
+    return incomingData;
 };
 
-const standardPositionPayloadSubtract = (base: PositionPayloadType, incoming: PositionPayloadType): { add?: PositionPayloadType, remove?: PositionPayloadType } => {
-    if (deepEqual(base, incoming)) {
+const standardPositionPayloadSubtract = (base: PositionPayloadType | PositionPayload, incoming: PositionPayloadType | PositionPayload): { add?: PositionPayloadType, remove?: PositionPayloadType } => {
+    const baseData = base instanceof PositionPayload ? base.toJSON() : base;
+    const incomingData = incoming instanceof PositionPayload ? incoming.toJSON() : incoming;
+    if (deepEqual(baseData, incomingData)) {
         return { add: undefined, remove: undefined };
     }
     throw new MergeConflictError('Conflict during subtract operation');
 };
 
-const standardPositionPayloadDiff = (base: PositionPayloadType, incoming: PositionPayloadType): { add?: PositionPayloadType, remove?: PositionPayloadType } => {
-    if (deepEqual(base, incoming)) {
+const standardPositionPayloadDiff = (base: PositionPayloadType | PositionPayload, incoming: PositionPayloadType | PositionPayload): { add?: PositionPayloadType, remove?: PositionPayloadType } => {
+    const baseData = base instanceof PositionPayload ? base.toJSON() : base;
+    const incomingData = incoming instanceof PositionPayload ? incoming.toJSON() : incoming;
+    if (deepEqual(baseData, incomingData)) {
         return { add: undefined, remove: undefined };
     }
-    return { add: incoming, remove: base };
+    return { add: incomingData, remove: baseData };
 };
 
 // Create StandardEditable factory
+// Note: The type signatures expect PositionPayloadType ({ x, y }), but addDelta passes PositionPayload instances.
+// Our functions handle both by extracting data using toJSON() when needed.
 export const {
     constructorDelta: factory,
     typeguard: isStandardPositionPayloadData,
@@ -250,9 +251,9 @@ export const {
     typeguard: isPositionPayload,
     payloadFactory: payloadFactory,
     payload: PositionPayload,
-    add: standardPositionPayloadAdd,
-    subtract: standardPositionPayloadSubtract,
-    diff: standardPositionPayloadDiff
+    add: standardPositionPayloadAdd as (base: PositionPayloadType, incoming: PositionPayloadType) => PositionPayloadType,
+    subtract: standardPositionPayloadSubtract as (base: PositionPayloadType, incoming: PositionPayloadType) => { add?: PositionPayloadType, remove?: PositionPayloadType },
+    diff: standardPositionPayloadDiff as (base: PositionPayloadType, incoming: PositionPayloadType) => { add?: PositionPayloadType, remove?: PositionPayloadType }
 });
 
 export class StandardPositionFacet extends facetClassFactory(PositionPayload, 'PositionFacet') {

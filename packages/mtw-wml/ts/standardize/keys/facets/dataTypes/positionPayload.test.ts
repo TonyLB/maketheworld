@@ -11,7 +11,6 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
     describe('constructor and basic operations', () => {
         it('should create PositionPayload from valid data', () => {
             const data: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
@@ -22,7 +21,6 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
 
         it('should clone correctly', () => {
             const data: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
@@ -37,7 +35,6 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
 
         it('should return correct JSON', () => {
             const data: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 15,
                 y: 25
             };
@@ -47,7 +44,6 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
 
         it('should generate Position tag schema', () => {
             const data: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
@@ -65,7 +61,6 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
     describe('StandardEditable factory', () => {
         it('should create from plain payload data', () => {
             const data: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
@@ -95,7 +90,6 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
             const removeData: StandardEditableData<PositionPayloadType> = {
                 tag: 'Remove',
                 match: {
-                    type: 'PositionFacet',
                     x: 10,
                     y: 20
                 }
@@ -114,12 +108,10 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
             const replaceData: StandardEditableData<PositionPayloadType> = {
                 tag: 'Replace',
                 match: {
-                    type: 'PositionFacet',
                     x: 10,
                     y: 20
                 },
                 payload: {
-                    type: 'PositionFacet',
                     x: 30,
                     y: 40
                 }
@@ -140,14 +132,12 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
 
         it('should validate typeguard correctly', () => {
             const valid: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
             expect(isStandardPositionPayloadData(valid)).toBe(true);
 
             const invalid = {
-                type: 'MarkFacet',
                 narrative: 'test'
             };
             expect(isStandardPositionPayloadData(invalid)).toBe(false);
@@ -157,12 +147,10 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
     describe('StandardEditable merge operations', () => {
         it('should merge with Replace semantics (incoming wins)', () => {
             const base: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
             const incoming: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 30,
                 y: 40
             };
@@ -171,8 +159,9 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
             // Use type assertion to handle generic type constraints
             const merged = merge(baseDelta as any, incomingDelta as any) as any;
             if (merged?.add) {
-                const payload = merged.add as PositionPayload;
-                const payloadData = payload.toJSON();
+                // merge returns StandardEditableDataDelta<PayloadDataType<PositionPayload>>,
+                // which is { add?: { x, y }, remove?: { x, y } } - plain data types, not class instances
+                const payloadData = merged.add as PositionPayloadType;
                 expect(payloadData.x).toBe(30);
                 expect(payloadData.y).toBe(40);
             }
@@ -180,7 +169,6 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
 
         it('should cancel when removing same payload', () => {
             const payload: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
@@ -195,12 +183,10 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
 
         it('should create Replace when payloads differ during merge', () => {
             const base: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
             const incoming: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 30,
                 y: 40
             };
@@ -209,8 +195,9 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
             const merged = merge(baseDelta as any, incomingDelta as any) as any;
             // When base is added and incoming is added, and they differ, should keep incoming
             if (merged?.add) {
-                const payload = merged.add as PositionPayload;
-                const payloadData = payload.toJSON();
+                // merge returns StandardEditableDataDelta<PayloadDataType<PositionPayload>>,
+                // which is { add?: { x, y }, remove?: { x, y } } - plain data types, not class instances
+                const payloadData = merged.add as PositionPayloadType;
                 expect(payloadData.x).toBe(30);
                 expect(payloadData.y).toBe(40);
             }
@@ -220,7 +207,6 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
     describe('StandardEditable diff operations', () => {
         it('should return empty when payloads are same', () => {
             const payload: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
@@ -232,12 +218,10 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
 
         it('should create Replace when payloads differ', () => {
             const base: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
             const incoming: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 30,
                 y: 40
             };
@@ -245,10 +229,10 @@ describe('PositionPayload - StandardEditablePayload implementation', () => {
             const incomingDelta = factory(incoming);
             const diffResult = diff(baseDelta as any, incomingDelta as any) as any;
             if (diffResult?.remove && diffResult?.add) {
-                const removePayload = diffResult.remove as PositionPayload;
-                const addPayload = diffResult.add as PositionPayload;
-                const removeData = removePayload.toJSON();
-                const addData = addPayload.toJSON();
+                // diff returns StandardEditableDataDelta<PayloadDataType<PositionPayload>>,
+                // which is { add?: { x, y }, remove?: { x, y } } - plain data types, not class instances
+                const removeData = diffResult.remove as PositionPayloadType;
+                const addData = diffResult.add as PositionPayloadType;
                 expect(removeData.x).toBe(10);
                 expect(removeData.y).toBe(20);
                 expect(addData.x).toBe(30);
@@ -263,17 +247,16 @@ describe('PositionPayload - FacetPayloadBase implementation', () => {
         it('should parse Room with Position child (with key and uuid)', () => {
             const schema = treeFromWML(deIndentWML('<Room key=(testRoom) uuid=(ROOM#123)><Position x="10" y="20" /></Room>'));
             const reference = new StandardReference('ROOM#123', 'Room');
-            const payload = new PositionPayload({ type: 'PositionFacet', x: 0, y: 0 });
+            const payload = new PositionPayload({ x: 0, y: 0 });
             const result = payload.fromSchema(schema, reference);
             expect(result.x).toBe(10);
             expect(result.y).toBe(20);
-            expect(result.type).toBe('PositionFacet');
         });
 
         it('should parse Room with Position child (uuid only)', () => {
             const schema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123)><Position x="15" y="25" /></Room>'));
             const reference = new StandardReference('ROOM#123', 'Room');
-            const payload = new PositionPayload({ type: 'PositionFacet', x: 0, y: 0 });
+            const payload = new PositionPayload({ x: 0, y: 0 });
             const result = payload.fromSchema(schema, reference);
             expect(result.x).toBe(15);
             expect(result.y).toBe(25);
@@ -282,14 +265,14 @@ describe('PositionPayload - FacetPayloadBase implementation', () => {
         it('should throw error when Position child is missing', () => {
             const schema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123) />'));
             const reference = new StandardReference('ROOM#123', 'Room');
-            const payload = new PositionPayload({ type: 'PositionFacet', x: 0, y: 0 });
+            const payload = new PositionPayload({ x: 0, y: 0 });
             expect(() => payload.fromSchema(schema, reference)).toThrow('Invalid schema: Position child not found');
         });
 
         it('should throw error when Room tag is missing', () => {
             const schema = treeFromWML(deIndentWML('<Position x="10" y="20" />'));
             const reference = new StandardReference('ROOM#123', 'Room');
-            const payload = new PositionPayload({ type: 'PositionFacet', x: 0, y: 0 });
+            const payload = new PositionPayload({ x: 0, y: 0 });
             expect(() => payload.fromSchema(schema, reference)).toThrow('Invalid schema: Room tag not found');
         });
     });
@@ -298,7 +281,6 @@ describe('PositionPayload - FacetPayloadBase implementation', () => {
         it('should render with pre-existing Room render', () => {
             const reference = new StandardReference('ROOM#123', 'Room');
             const payloadData: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
@@ -336,7 +318,6 @@ describe('PositionPayload - FacetPayloadBase implementation', () => {
         it('should render without reference render (plain Room tag)', () => {
             const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
             const payloadData: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 15,
                 y: 25
             };
@@ -365,7 +346,6 @@ describe('PositionPayload - FacetPayloadBase implementation', () => {
         it('should render without reference render (uuid only)', () => {
             const reference = new StandardReference('ROOM#456', 'Room');
             const payloadData: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 30,
                 y: 40
             };
@@ -392,7 +372,6 @@ describe('PositionPayload - FacetPayloadBase implementation', () => {
         it('should always return aggregatedNode (never newNode)', () => {
             const reference = new StandardReference('ROOM#789', 'Room');
             const payloadData: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 50,
                 y: 60
             };
@@ -413,7 +392,6 @@ describe('PositionPayload - FacetPayloadBase implementation', () => {
         it('should throw error when referenceRender is not a Room', () => {
             const reference = new StandardReference('ROOM#123', 'Room');
             const payloadData: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 10,
                 y: 20
             };
@@ -425,7 +403,6 @@ describe('PositionPayload - FacetPayloadBase implementation', () => {
         it('should add Position as first child when referenceRender provided', () => {
             const reference = new StandardReference('ROOM#123', 'Room');
             const payloadData: PositionPayloadType = {
-                type: 'PositionFacet',
                 x: 100,
                 y: 200
             };
