@@ -42,10 +42,9 @@
   - Uses `StandardFacetPayload` union type from `dataTypes/facet.ts`
   - Integrates with component system (Examples will use Mark Facets)
 - **Cross-References**: 
-  - [`./AGENT.md`](./AGENT.md) - Keys directory overview
-  - [`./AGENT.planning.md`](./AGENT.planning.md) - Implementation roadmap
-  - [`../components/AGENT.referenceList.md`](../components/AGENT.referenceList.md) - ReferenceList patterns (similar structure)
-  - [`../components/AGENT.md`](../components/AGENT.md) - Component system overview
+  - [`../AGENT.md`](../AGENT.md) - Keys directory overview
+  - [`../AGENT.referenceList.md`](../AGENT.referenceList.md) - ReferenceList patterns (similar structure)
+  - [`../../components/AGENT.md`](../../components/AGENT.md) - Component system overview
 - **API Contracts**: 
   - Facets will be used in component payloads (e.g., `marks: FacetList<MarkFacetPayload>`)
   - Serialization follows same patterns as ReferenceList
@@ -75,7 +74,6 @@
 
 - **Getting Started**: 
   - Read this file for Facet concepts
-  - Review [`./AGENT.planning.md`](./AGENT.planning.md) for implementation phases
   - See [`dataTypes/facet.ts`](./dataTypes/facet.ts) for serialization types
   - Check [`../abstract.ts`](../abstract.ts) for interface definitions
 - **Key Files**: 
@@ -88,8 +86,8 @@
   - `facetFactory.ts` - Factory functions for creating facets
   - `standardFacetFactory.ts` - Dispatcher function for creating facets from data
 - **Related Documentation**: 
-  - [`./AGENT.md`](./AGENT.md) - Keys directory overview
-  - [`../components/AGENT.referenceList.md`](../components/AGENT.referenceList.md) - Similar collection patterns
+  - [`../AGENT.md`](../AGENT.md) - Keys directory overview
+  - [`../AGENT.referenceList.md`](../AGENT.referenceList.md) - Similar collection patterns
 
 ## Development Notes
 

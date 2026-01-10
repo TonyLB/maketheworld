@@ -654,7 +654,6 @@ After completing all steps, verify your implementation:
 - [`AGENT.md`](./AGENT.md) - Conceptual overview and navigation guide
 - [`AGENT.usage.md`](./AGENT.usage.md) - Practical code examples and usage patterns
 - [`dataTypes/AGENT.md`](./dataTypes/AGENT.md) - Serialization vs. Manipulation Types architecture
-- [`../keys/AGENT.planning.md`](../keys/AGENT.planning.md) - Phase 4.5 provides a concrete example of adding `StandardMark` component, including schema converter registration (Step 2)
 - **Reference Implementation Examples**:
   - Simple component: `knowledge.ts`, `feature.ts`
   - Component with references: `room.ts`

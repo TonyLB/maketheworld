@@ -26,7 +26,7 @@
   - Data types located in `dataTypes/reference.ts` (StandardKeyData, StandardReferenceData, ReferenceListData)
   - Integrates with component system via StandardComponent interface
 - **Cross-References**: 
-  - [`./AGENT.facets.md`](./AGENT.facets.md) - Detailed Facet documentation
+  - [`./facets/AGENT.facets.md`](./facets/AGENT.facets.md) - Detailed Facet documentation
   - [`../components/AGENT.md`](../components/AGENT.md) - Component system overview
   - [`../components/AGENT.referenceList.md`](../components/AGENT.referenceList.md) - ReferenceList patterns
 - **System Relationships**: Part of the WML standardization system, used by StandardComponent implementations
@@ -43,8 +43,7 @@
 
 - **Getting Started**: 
   - Read this file for overview
-  - See [`./AGENT.facets.md`](./AGENT.facets.md) for Facet details
-  - Review [`./AGENT.planning.md`](./AGENT.planning.md) for implementation roadmap
+  - See [`./facets/AGENT.facets.md`](./facets/AGENT.facets.md) for Facet details
 - **Key Files**: 
   - `key.ts` - StandardKey class implementation
   - `reference.ts` - StandardReference class implementation
