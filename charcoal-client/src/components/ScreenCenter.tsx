@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
-import React, { FunctionComponent } from "react";
+import React, { FunctionComponent, ReactNode } from "react";
 
-export const ScreenCenter: FunctionComponent<{}> = ({ children }) => (
+export const ScreenCenter: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
     <Box sx={{
         display: 'flex',
         flexDirection: 'column',

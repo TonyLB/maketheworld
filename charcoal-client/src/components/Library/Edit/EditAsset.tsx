@@ -60,6 +60,9 @@ import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { useDebouncedOnChange } from '../../../hooks/useDebounce'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
+import { splitType, enforceTypedKey } from '@tonylb/mtw-utilities/ts/types'
+import { v4 as uuidv4 } from 'uuid'
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 type AssetEditFormProps = {}
 
@@ -164,10 +167,14 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         updateStandard({
             type: 'update',
             update: (draft) => {
-                let nextIndex = 1
-                while (`${tag}${nextIndex}` in draft.byId) { nextIndex++ }
-                const defaultedKey = `${tag}${nextIndex}`
-                const component = standardComponentFactory({ tag, key: defaultedKey })
+                // Generate UUID and construct universalKey using enforceTypedKey
+                const tagUpper = tag.toUpperCase() as 'ROOM' | 'FEATURE' | 'KNOWLEDGE' | 'CHARACTER' | 'MAP' | 'IMAGE'
+                const enforceKey = enforceTypedKey(tagUpper)
+                const uuid = uuidv4()
+                const universalKey = enforceKey(uuid) as ComponentUUID
+                
+                // Create component without local key - only universalKey
+                const component = standardComponentFactory({ tag, universalKey })
                 if (component) {
                     draft._components = [...draft._components, component]
                 }
@@ -238,47 +245,62 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 <List dense>
                     <ListSubheader>Components</ListSubheader>
                     { characters.length
-                        ? characters.map((characterItem) => (<WMLComponentHeader
+                        ? characters.map((characterItem) => {
+                            const uuid = characterItem.universalKey ? splitType(characterItem.universalKey)[1] : characterItem.key
+                            return <WMLComponentHeader
                                 key={characterItem.key}
-                                ItemId={characterItem.universalKey ?? ''}
-                                onClick={() => { navigate(`Character/${characterItem.key}`)}}
+                                ItemId={characterItem.universalKey!}
+                                onClick={() => { navigate(`Character/${uuid}`)}}
                                 icon={<PersonIcon />}
-                            />))
+                            />
+                        })
                         : null
                     }
                     { maps.length
-                        ? maps.map((mapItem) => (<WMLComponentHeader
+                        ? maps.map((mapItem) => {
+                            const uuid = mapItem.universalKey ? splitType(mapItem.universalKey)[1] : mapItem.key
+                            return <WMLComponentHeader
                                 key={mapItem.key}
-                                ItemId={mapItem.universalKey ?? ''}
-                                onClick={() => { navigate(`Map/${mapItem.key}`)}}
+                                ItemId={mapItem.universalKey!}
+                                onClick={() => { navigate(`Map/${uuid}`)}}
                                 icon={<MapIcon />}
-                            />))
+                            />
+                        })
                         : null
                     }
                     { rooms.length
-                        ? rooms.map((room) => (<WMLComponentHeader
+                        ? rooms.map((room) => {
+                            const uuid = room.universalKey ? splitType(room.universalKey)[1] : room.key
+                            return <WMLComponentHeader
                                 key={room.key}
-                                ItemId={room.universalKey ?? ''}
-                                onClick={() => { navigate(`Room/${room.key}`)}}
-                            />))
+                                ItemId={room.universalKey!}
+                                onClick={() => { navigate(`Room/${uuid}`)}}
+                            />
+                        })
                         : null
                     }
                     { features.length
-                        ? features.map((feature) => (<WMLComponentHeader
+                        ? features.map((feature) => {
+                            const uuid = feature.universalKey ? splitType(feature.universalKey)[1] : feature.key
+                            return <WMLComponentHeader
                                 key={feature.key}
-                                ItemId={feature.universalKey ?? ''}
-                                onClick={() => { navigate(`Feature/${feature.key}`)}}
+                                ItemId={feature.universalKey!}
+                                onClick={() => { navigate(`Feature/${uuid}`)}}
                                 icon={<FeatureIcon />}
-                            />))
+                            />
+                        })
                         : null
                     }
                     { knowledges.length
-                        ? knowledges.map((knowledge) => (<WMLComponentHeader
+                        ? knowledges.map((knowledge) => {
+                            const uuid = knowledge.universalKey ? splitType(knowledge.universalKey)[1] : knowledge.key
+                            return <WMLComponentHeader
                                 key={knowledge.key}
-                                ItemId={knowledge.universalKey ?? ''}
-                                onClick={() => { navigate(`Knowledge/${knowledge.key}`)}}
+                                ItemId={knowledge.universalKey!}
+                                onClick={() => { navigate(`Knowledge/${uuid}`)}}
                                 icon={<KnowledgeIcon />}
-                            />))
+                            />
+                        })
                         : null
                     }
                     { images.length

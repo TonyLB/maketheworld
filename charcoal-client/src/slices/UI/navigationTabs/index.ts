@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction, createSelector, createAsyncThunk } from '@reduxjs/toolkit'
 import { EphemeraAssetId, EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { unique } from '../../../lib/lists';
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 import { Selector } from '../../../store'
 import { setIntent as activeCharacterSetIntent } from '../../activeCharacters';
@@ -49,7 +50,7 @@ type NavigationTabLibraryEdit = {
 type NavigationTabComponentEdit = {
     type: 'ComponentEdit';
     assetId: EphemeraAssetId;
-    componentId: string;
+    componentId: ComponentUUID;
 } & NavigationTabBase
 
 type NavigationTabKnowledge = {
@@ -101,7 +102,7 @@ export const closeTab = createAsyncThunk(
                             return []
                         }
                         if (dialogValue === 'Save') {
-                            dispatch(personalAssetSetIntent({ key: tab.assetId, intent: ['NEEDSAVE'] }))
+                            dispatch(personalAssetSetIntent({ key: tab.assetId, intent: ['WMLDIRTY'] }))
                         }
                     }
                     // Note: Library subscription is now managed on-demand in Library component
@@ -170,15 +171,6 @@ const navigationSlice = createSlice({
                 state.push(action.payload)
             }
         },
-        rename(state, action: PayloadAction<{ fromHRef: string; toHRef: string; componentId: string }>) {
-            const current = state.find(({ href }) => (href === action.payload.fromHRef))
-            if (current) {
-                current.href = action.payload.toHRef
-                if (current.type === 'ComponentEdit') {
-                    current.componentId = action.payload.componentId
-                }
-            }
-        },
         clear(state) {
             state = []
         }
@@ -198,7 +190,7 @@ const navigationSlice = createSlice({
     }
 })
 
-export const { add, rename, clear } = navigationSlice.actions
+export const { add, clear } = navigationSlice.actions
 
 export const navigationTabs: Selector<NavigationTab[]> = ({ UI: { navigationTabs = [] } }) => (navigationTabs)
 

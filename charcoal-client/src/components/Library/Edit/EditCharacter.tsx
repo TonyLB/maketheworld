@@ -2,22 +2,13 @@ import React, { FunctionComponent, useEffect, useMemo, useCallback, useState } f
 import { useDispatch, useSelector } from 'react-redux'
 import {
     Box,
-    Grid,
     Stack,
-    CircularProgress,
     IconButton,
     TextField,
-    Button,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem
+    Button
 } from '@mui/material'
-import Autocomplete from '@mui/material/Autocomplete'
 import UploadIcon from '@mui/icons-material/Upload'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
-import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
-import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import SaveIcon from '@mui/icons-material/Save'
 import {
     Routes,
@@ -52,6 +43,8 @@ import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
 import { SchemaImageTag } from '@tonylb/mtw-base/ts/schema/image'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { useUniversalKey } from '../../../hooks/useUniversalKey'
 
 const LiteralShortNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
     const { updateStandard } = useLibraryAsset()
@@ -67,7 +60,7 @@ const LiteralShortNameField: FunctionComponent<{ character: StandardCharacter }>
             updateStandard({
                 type: 'update',
                 update: (incoming: StandardForm) => {
-                    const base = incoming.byId[character.key]
+                    const base = incoming.byUniversalId[character.universalKey!]
                     if (base instanceof StandardCharacter) {
                         base._payload._shortName = debouncedTagValue ? new StandardLiteral(debouncedTagValue) : undefined
                     }
@@ -75,7 +68,7 @@ const LiteralShortNameField: FunctionComponent<{ character: StandardCharacter }>
                 }
             })
         }
-    }, [character.key, character.name, updateStandard, debouncedTagValue])
+    }, [character, updateStandard, debouncedTagValue])
 
     return <TextField
         required
@@ -128,20 +121,23 @@ type CharacterEditFormProps = {}
 
 const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
     const { updateStandard, standardForm, AssetId, status } = useLibraryAsset()
-    const { ComponentId } = useParams<{ ComponentId: string }>()
     const navigate = useNavigate()
+    const universalKey = useUniversalKey('CHARACTER')
 
     const character = useMemo(() => {
-        const character = standardForm.byId[ComponentId ?? '']
+        if (!universalKey) {
+            return undefined
+        }
+        const character = standardForm.byUniversalId[universalKey]
         if (character instanceof StandardCharacter) {
             return character
         }
         return undefined
-    }, [standardForm, ComponentId])
+    }, [standardForm, universalKey])
 
     const dispatch = useDispatch()
     const onDrop = useCallback((file: File) => {
-        if (character?.key) {
+        if (character?.key && universalKey) {
             const characterIconKey = `${character.key}Icon`
             //
             // If an Image exist, but not by the characterIcon default key, use it
@@ -157,7 +153,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                 updateStandard({
                     type: 'update',
                     update: (incoming: StandardForm) => {
-                        const base = incoming.byId[character.key]
+                        const base = incoming.byUniversalId[universalKey]
                         if (base instanceof StandardCharacter) {
                             base._payload._image = { data: { tag: 'Image', key: characterIconKey }, children: [] }
                         }
@@ -170,7 +166,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             dispatch(setIntent({ key: AssetId, intent: SCHEMADIRTY ? ['SCHEMADIRTY'] : ['WMLDIRTY', 'SCHEMADIRTY']}))
             dispatch(heartbeat)
         }
-    }, [dispatch, character, updateStandard])
+    }, [dispatch, character, universalKey, updateStandard, AssetId])
     const saveHandler = useCallback(() => {
         dispatch(addOnboardingComplete(['saveCharacter'], { requireSequence: true }))
         // save()
@@ -206,7 +202,7 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     fileTypes={['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/tiff']}
                     onFile={onDrop}
                 >
-                    <EditCharacterIcon ItemId={`CHARACTER#${character?.key || '123'}`} Name={schemaOutputToString(ignoreWrapped(character?.name)?.children ?? []) ?? ''} />
+                    <EditCharacterIcon ItemId={(universalKey || `CHARACTER#${character?.key || '123'}`) as `CHARACTER#${string}`} Name={schemaOutputToString(ignoreWrapped(character?.name)?.children ?? []) ?? ''} />
                 </FileWrapper>
                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
                     <LiteralShortNameField character={character} />
@@ -222,15 +218,17 @@ type EditCharacterProps = {}
 export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const { assetKey, updateStandard, standardForm } = useLibraryAsset()
+    
+    const universalKey = useUniversalKey('CHARACTER')
 
     const character = useSelector(getMyCharacterByKey(ComponentId)) as AssetClientPlayerCharacter
     useAutoPin({
-        href: `/Library/Edit/Character/${ComponentId}`,
+        href: `/Library/Edit/Asset/${assetKey}/Character/${ComponentId}`,
         label: `${ComponentId}`,
         type: 'ComponentEdit',
         iconName: 'Character',
         assetId: `ASSET#${assetKey}`,
-        componentId: ComponentId || ''
+        componentId: universalKey!
     })
     useOnboardingCheckpoint('editCharacter', { requireSequence: true })
 

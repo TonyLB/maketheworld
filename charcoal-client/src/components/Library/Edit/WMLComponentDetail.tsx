@@ -34,21 +34,23 @@ import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/charact
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { excludeUndefined } from '../../../lib/lists'
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { useUniversalKeyFromPath } from '../../../hooks/useUniversalKey'
 
-const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ ComponentId }) => {
+const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }> = ({ universalKey }) => {
     const { standardForm, inheritedStandardForm, updateStandard } = useLibraryAsset()
     const [component, inherited]: [StandardFeature | StandardKnowledge | StandardRoom | undefined, StandardFeature | StandardKnowledge | StandardRoom | undefined] = useMemo(() => {
         const extractComponent = (standardForm: StandardForm): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
-            if (ComponentId) {
-                const component = standardForm.byId[ComponentId]
+            if (universalKey) {
+                const component = standardForm.byUniversalId[universalKey]
                 if (component && (component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardRoom)) {
                     return component
                 }
             }
             return undefined
         }
-        return [extractComponent(standardForm), extractComponent(new StandardForm(inheritedStandardForm))]
-    }, [ComponentId, standardForm, inheritedStandardForm])
+        return [extractComponent(standardForm), extractComponent(inheritedStandardForm)]
+    }, [universalKey, standardForm, inheritedStandardForm])
     const { tag } = component ?? {}
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
@@ -71,7 +73,7 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
                             updateStandard({
                                 type: 'update',
                                 update: (incoming: StandardForm) => {
-                                    const base = incoming.byId[ComponentId]
+                                    const base = incoming.byUniversalId[universalKey]
                                     if (base instanceof StandardRoom || base instanceof StandardCharacter || base instanceof StandardFeature || base instanceof StandardKnowledge) {
                                         base._payload._shortName = newShortName
                                     }
@@ -96,8 +98,8 @@ const WMLComponentAppearance: FunctionComponent<{ ComponentId: string }> = ({ Co
         {
             (component instanceof StandardRoom) && (
                 <>
-                    <RoomExitEditor RoomId={ComponentId || ''} />
-                    <RoomLensEditor RoomId={ComponentId || ''} />
+                    <RoomExitEditor RoomId={universalKey} />
+                    <RoomLensEditor RoomId={universalKey} />
                 </>
             )
         }
@@ -115,8 +117,13 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const { ComponentId } = useParams<{ ComponentId: string }>()
     const location = useLocation()
     const tag = location.pathname.split('/').slice(-2)[0]
+    const universalKey = useUniversalKeyFromPath()
+    
     const componentName = useMemo(() => {
-        const component = standardForm.byId[ComponentId ?? '']
+        if (!universalKey) {
+            return ''
+        }
+        const component = standardForm.byUniversalId[universalKey]
         if (component) {
             if (hasShortName(component)) {
                 return component.shortName?._payload?.plain?.toJSON() ?? 'Untitled'
@@ -126,36 +133,43 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
             }
         }
         return ''
-    }, [standardForm, ComponentId])
+    }, [standardForm, universalKey])
+    
     useAutoPin({
         href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
         label: componentName || 'Untitled',
         type: 'ComponentEdit',
         iconName: 'Room',
         assetId: `ASSET#${assetKey}`,
-        componentId: ComponentId || ''
+        componentId: universalKey!
     })
     const onKeyChange = useCallback((toKey: string) => {
-        // updateStandard({
-        //     type: 'renameKey',
-        //     from: ComponentId ?? '',
-        //     to: toKey
-        // })
-        // dispatch(renameNavigationTab({
-        //     fromHRef: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
-        //     toHRef: `/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`,
-        //     componentId: toKey
-        // }))
-        // navigate(`/Library/Edit/Asset/${assetKey}/${tag}/${toKey}`)
-    }, [updateStandard, ComponentId, navigate, assetKey, dispatch, tag])
-    const nameValidate = useCallback((toKey: string) => (!(toKey !== ComponentId)), [ComponentId])
-    if (!(ComponentId && ComponentId in standardForm.byId)) {
+        if (!universalKey) return
+        // Simplified rename - just update local key, no navigation changes needed
+        updateStandard({
+            type: 'renameKey',
+            uuid: universalKey,
+            to: toKey
+        })
+        // No navigation needed - URL stays the same!
+    }, [updateStandard, universalKey])
+    const nameValidate = useCallback((toKey: string) => {
+        if (!universalKey) return false
+        const component = standardForm.byUniversalId[universalKey]
+        return !(toKey !== component?.key)
+    }, [universalKey, standardForm])
+    
+    if (!universalKey || !(universalKey in standardForm.byUniversalId)) {
         return <Box />
     }
+    
+    const component = standardForm.byUniversalId[universalKey]
+    const displayKey = component?.key || ComponentId || ''
+    
     return <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
         <LibraryBanner
             primary={componentName}
-            secondary={ComponentId}
+            secondary={displayKey}
             onChangeSecondary={onKeyChange}
             validateSecondary={nameValidate}
             icon={<HomeIcon />}
@@ -173,7 +187,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         />
         <Box sx={{ flexGrow: 1, position: "relative", width: "100%" }}>
             <Box sx={{ overflowY: 'auto' }}>
-                <WMLComponentAppearance ComponentId={ComponentId} />
+                <WMLComponentAppearance universalKey={universalKey} />
             </Box>
             <DraftLockout />
         </Box>

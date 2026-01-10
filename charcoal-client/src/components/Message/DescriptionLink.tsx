@@ -18,6 +18,7 @@ interface DescriptionLinkChipProps {
     onClick?: () => void;
     tooltipTitle?: string;
     active?: boolean;
+    children?: React.ReactNode;
 }
 
 export const DescriptionLinkActionChip: FunctionComponent<DescriptionLinkChipProps> = ({ text = '', children = [], onClick, tooltipTitle, active=true }) => {
