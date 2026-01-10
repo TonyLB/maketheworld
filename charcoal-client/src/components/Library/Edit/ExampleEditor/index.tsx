@@ -24,16 +24,16 @@ type ExampleEditorProps = {
 export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ componentId }) => {
     const { standardForm, localStandardForm, updateStandard } = useLibraryAsset()
     const component = useMemo<StandardExample>(() => {
-        const component = standardForm.byId[componentId]
+        const component = standardForm.byUniversalId[componentId]
         if (component && component instanceof StandardExample) {
             return component
         }
         return new StandardExample({
-            key: componentId,
+            universalKey: componentId,
             tag: 'Example'
         })
     }, [standardForm, componentId])
-    const inherited = !Boolean(localStandardForm.byId[componentId])
+    const inherited = !Boolean(localStandardForm.byUniversalId[componentId])
     const [name, setName] = useState((component.name ?? new StandardRender([])).plainString)
     useDebouncedOnChange({
         value: name,
@@ -42,7 +42,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
             updateStandard({
                 type: 'update',
                 update: (example: StandardForm) => {
-                    const newValue = example.byId[componentId]
+                    const newValue = example.byUniversalId[componentId]
                     if (newValue instanceof StandardExample) {
                         newValue._payload._name = new StandardRender([value])
                     }
@@ -59,7 +59,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
             updateStandard({
                 type: 'update',
                 update: (example: StandardForm) => {
-                    const newValue = example.byId[componentId]
+                    const newValue = example.byUniversalId[componentId]
                     if (newValue instanceof StandardExample) {
                         newValue._payload._summary = value
                     }
@@ -88,7 +88,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
 
     const localizeExample = useCallback(() => {
         console.log(`localStandardForm[${componentId}]: ${JSON.stringify(localStandardForm.toJSON(), null, 4)}`)
-        if (!(componentId in localStandardForm.byId)) {
+        if (!(componentId in localStandardForm.byUniversalId)) {
             const parentId = standardForm.byUniversalId[componentId]?._key?.context?.slice(-1)?.[0]
             updateStandard({
                 type: 'updateLocal',

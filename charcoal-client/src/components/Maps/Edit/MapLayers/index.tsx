@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import React, { FunctionComponent, ReactNode, useCallback, useContext, useMemo, useRef, useState } from 'react'
 
 
 import { Box, IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText, TextField } from '@mui/material'
@@ -31,6 +31,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { unique } from '@tonylb/mtw-base/ts/utils/lists'
 import { excludeUndefined } from '@tonylb/mtw-base/ts/utils/lists'
+import { splitType } from '@tonylb/mtw-utilities/ts/types'
 
 type MapLayersProps = {
     mapId: `MAP#${string}`;
@@ -43,7 +44,7 @@ type MapLayersContextType = {
 const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
-const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inherited?: boolean; newestRoom?: boolean }> = ({ roomId, name, inherited }) => {
+const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inherited?: boolean; newestRoom?: boolean, children?: ReactNode }> = ({ roomId, name, inherited, children }) => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const { standardForm, updateStandard, AssetId, assetKey } = useLibraryAsset()
@@ -141,7 +142,10 @@ const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inh
                 checkPoints={['renameNewRoom']}
                 condition={Boolean(name.match(/^Room[\d]+$/))}
             />
-            <IconButton ref={editRef} onClick={() => { navigate(`/Library/Edit/Asset/${assetKey}/Room/${roomId}`) }}><EditIcon /></IconButton>
+            <IconButton ref={editRef} onClick={() => { 
+                const uuid = splitType(roomId)[1]
+                navigate(`/Library/Edit/Asset/${assetKey}/Room/${uuid}`) 
+            }}><EditIcon /></IconButton>
             <TutorialPopover
                 anchorEl={editRef as any}
                 placement='top'
@@ -201,7 +205,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
         
         // Get rooms with local positions
         const positionedRooms = unique(localMapComponent.positions
-            .map((position) => position.room._payload.plain.universalKey)
+            .map((position) => position.room.universalKey)
             .filter((roomId): roomId is `ROOM#${string}` => 
                 Boolean(roomId && roomId.startsWith('ROOM#'))
             )
@@ -209,7 +213,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
         
         // Get rooms that have local exits connecting to positioned rooms
         const allPositionedRooms = mapComponent.positions
-            .map((position) => position.room._payload.plain.universalKey)
+            .map((position) => position.room.universalKey!)
             .filter(excludeUndefined)
             .map((roomId) => standardForm.byUniversalId[roomId as ComponentUUID])
             .filter(excludeUndefined)
@@ -227,7 +231,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
         // Helper function to get relevant exits from a room
         const getRelevantExits = (room: StandardRoom): StandardExit[] => {
             return room.exits.filter((exit) => {
-                const destinationId = exit._payload.plain.to
+                const destinationId = exit.payload?.to.universalKey
                 const destinationKey = destinationId.universalKey
                 return destinationKey && allPositionedRoomIds.includes(destinationKey as `ROOM#${string}`)
             })
@@ -255,7 +259,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
             
             // Check if this room has a position in the local map
             const position = localMapComponent.positions.find((pos) => 
-                pos.room._payload.plain.universalKey === roomId
+                pos.room.universalKey === roomId
             )
             
             return (

@@ -17,46 +17,44 @@ import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import SidebarTitle from "../SidebarTitle"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
-import { StandardExit } from "@tonylb/mtw-wml/ts/standardize/components/exit"
+import { StandardExit, StandardExitBase } from "@tonylb/mtw-wml/ts/standardize/components/exit"
+import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 
 type RoomExitEditorProps = {
-    RoomId: string;
+    RoomId: ComponentUUID;
 }
 
 const ExitTargetSelector: FunctionComponent<{ 
     target: string; 
-    RoomId: string; 
+    currentRoomKey: string | undefined;
     onChange: (target: string) => void;
     disabled?: boolean;
-}> = ({ target, RoomId, onChange, disabled }) => {
+}> = ({ target, currentRoomKey, onChange, disabled }) => {
     const { readonly, standardForm } = useLibraryAsset()
     
     const roomNamesInScope = useMemo<Record<string, string>>(() => {
-        const roomKeys = Object.values(standardForm.byId)
+        const rooms = Object.values(standardForm.byUniversalId)
             .filter((component): component is StandardRoom => (component instanceof StandardRoom))
-            .map(({ key }) => (key))
         
         const roomNamesInScope: Record<string, string> = {}
-        roomKeys
-            .filter(key => key !== RoomId) // Don't show current room as target
-            .forEach((key) => {
-                if (key) { // Ensure key is defined
-                    const component = standardForm.byId[key]
-                    if (component && component instanceof StandardRoom) {
-                        // Get room name from shortName or use key as fallback
-                        let roomName = key
-                        if (component.shortName) {
-                            const shortNameData = component.shortName.toJSON()
-                            if (typeof shortNameData === 'string') {
-                                roomName = shortNameData
-                            }
+        rooms
+            .filter(room => room.key !== currentRoomKey) // Don't show current room as target
+            .forEach((room) => {
+                if (room.key) { // Ensure key is defined
+                    // Get room name from shortName or use key as fallback
+                    let roomName = room.key
+                    if (room.shortName) {
+                        const shortNameData = room.shortName.toJSON()
+                        if (typeof shortNameData === 'string') {
+                            roomName = shortNameData
                         }
-                        roomNamesInScope[key] = roomName
                     }
+                    roomNamesInScope[room.key] = roomName
                 }
             })
         return roomNamesInScope
-    }, [RoomId, standardForm])
+    }, [currentRoomKey, standardForm])
 
     const handleChange = useCallback((event: SelectChangeEvent<string>) => {
         if (!readonly && !disabled) {
@@ -91,18 +89,18 @@ const ExitEditor: FunctionComponent<{
     onUpdate: (exit: StandardExit) => void;
     onDelete: () => void;
     disabled?: boolean;
-    currentRoomId: string;
-}> = ({ exit, onUpdate, onDelete, disabled, currentRoomId }) => {
+    currentRoomKey: string | undefined;
+}> = ({ exit, onUpdate, onDelete, disabled, currentRoomKey }) => {
     const { readonly } = useLibraryAsset()
     const isDisabled = readonly || disabled
 
     const handleDescriptionChange = useCallback((newDescription: string) => {
         if (!isDisabled) {
             // Create a new exit with updated description
-            const updatedExit = StandardExit.create({
-                to: exit.plain?.to.toJSON() || { tag: 'Room', key: '' },
-                description: newDescription ? newDescription : undefined
-            })
+            const updatedExit: StandardExit = exit.clone()
+            if ((updatedExit as any)._payload instanceof StandardExitBase) {
+                (updatedExit as any)._payload._description = new StandardLiteral(newDescription)
+            }
             onUpdate(updatedExit)
         }
     }, [exit, onUpdate, isDisabled])
@@ -170,7 +168,7 @@ const ExitEditor: FunctionComponent<{
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <ExitTargetSelector
                         target={currentTarget}
-                        RoomId={currentRoomId}
+                        currentRoomKey={currentRoomKey}
                         onChange={handleTargetChange}
                         disabled={isDisabled}
                     />
@@ -185,7 +183,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
 
     const room = useMemo(() => {
         if (RoomId) {
-            const component = standardForm.byId[RoomId]
+            const component = standardForm.byUniversalId[RoomId]
             if (component && component instanceof StandardRoom) {
                 return component
             }
@@ -201,7 +199,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
         updateStandard({
             type: 'update',
             update: (component) => {
-                const base = component.byId[RoomId]
+                const base = component.byUniversalId[RoomId]
                 if (base instanceof StandardRoom) {
                     // Create a new empty exit
                     const newExit = StandardExit.create({
@@ -221,7 +219,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
         updateStandard({
             type: 'update',
             update: (component) => {
-                const base = component.byId[RoomId]
+                const base = component.byUniversalId[RoomId]
                 if (base instanceof StandardRoom) {
                     base._payload._exits[index] = updatedExit
                 }
@@ -236,7 +234,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
         updateStandard({
             type: 'update',
             update: (component) => {
-                const base = component.byId[RoomId]
+                const base = component.byUniversalId[RoomId]
                 if (base instanceof StandardRoom) {
                     base._payload._exits.splice(index, 1)
                 }
@@ -264,7 +262,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
                         exit={exit}
                         onUpdate={(updatedExit) => updateExit(index, updatedExit)}
                         onDelete={() => deleteExit(index)}
-                        currentRoomId={RoomId}
+                        currentRoomKey={room.key}
                     />
                 ))}
                 <ListItem>

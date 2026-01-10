@@ -28,9 +28,10 @@ import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { v4 as uuidv4 } from 'uuid'
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { enforceTypedKey } from '@tonylb/mtw-utilities/ts/types'
 
 type RoomLensEditorProps = {
-    RoomId: string
+    RoomId: ComponentUUID
 }
 
 // Helper function to extract plain text from RenderTree for display
@@ -116,7 +117,7 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
 
     const room = useMemo(() => {
         if (RoomId) {
-            const component = standardForm.byId[RoomId]
+            const component = standardForm.byUniversalId[RoomId]
             if (component && component instanceof StandardRoom) {
                 return component
             }
@@ -157,24 +158,22 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
     const createAndAddLens = useCallback(() => {
         if (!room || readonly) return
 
-        // Generate a unique key
-        let nextIndex = 1
-        while (`Lens${nextIndex}` in standardForm.byId) { nextIndex++ }
-        const lensKey = `Lens${nextIndex}`
-        const lensUniversalKey = `LENS#${uuidv4()}` as ComponentUUID
+        // Generate UUID and construct universalKey using enforceTypedKey
+        const LensKey = enforceTypedKey('LENS')
+        const uuid = uuidv4()
+        const lensUniversalKey = LensKey(uuid) as ComponentUUID
 
         updateStandard({
             type: 'update',
             update: (draft: StandardForm) => {
-                const base = draft.byId[RoomId]
+                const base = draft.byUniversalId[RoomId]
                 if (base instanceof StandardRoom) {
-                    // Create new lens component
+                    // Create new lens component without local key - only universalKey
                     const newLens = new StandardLens({
                         tag: 'Lens',
-                        key: lensKey,
                         universalKey: lensUniversalKey
                     })
-                    draft.byId[lensKey] = newLens
+                    draft.byUniversalId[lensUniversalKey] = newLens
 
                     // Add reference to room
                     const lensReference = new StandardReference({
@@ -194,7 +193,7 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
         updateStandard({
             type: 'update',
             update: (draft: StandardForm) => {
-                const base = draft.byId[RoomId]
+                const base = draft.byUniversalId[RoomId]
                 if (base instanceof StandardRoom) {
                     const lensReference = new StandardReference({
                         universalKey,
@@ -213,7 +212,7 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
         updateStandard({
             type: 'update',
             update: (draft: StandardForm) => {
-                const base = draft.byId[RoomId]
+                const base = draft.byUniversalId[RoomId]
                 if (base instanceof StandardRoom) {
                     const newPayload = base._payload._lenses.payload.filter((_, i) => i !== index)
                     base._payload._lenses = new ReferenceList(newPayload)
@@ -256,24 +255,22 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
     const addMarkToLens = useCallback(() => {
         if (!singleLens || readonly || !singleLens.universalKey) return
 
-        // Generate a unique key for the mark
-        let nextIndex = 1
-        while (`Mark${nextIndex}` in standardForm.byId) { nextIndex++ }
-        const markKey = `Mark${nextIndex}`
-        const markUniversalKey = `MARK#${uuidv4()}` as ComponentUUID
+        // Generate UUID and construct universalKey using enforceTypedKey
+        const MarkKey = enforceTypedKey('MARK')
+        const uuid = uuidv4()
+        const markUniversalKey = MarkKey(uuid) as ComponentUUID
 
         updateStandard({
             type: 'update',
             update: (draft: StandardForm) => {
                 const lens = draft.byUniversalId[singleLens.universalKey!]
                 if (lens && lens instanceof StandardLens) {
-                    // Create new mark component
+                    // Create new mark component without local key - only universalKey
                     const newMark = new StandardMark({
                         tag: 'Mark',
-                        key: markKey,
                         universalKey: markUniversalKey
                     })
-                    draft.byId[markKey] = newMark
+                    draft.byUniversalId[markUniversalKey] = newMark
 
                     // Add reference to lens
                     const markReference = new StandardReference({

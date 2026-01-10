@@ -1,15 +1,12 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
-import { selectKeysByTag } from '@tonylb/mtw-wml/ts/schema/selectors/keysByTag'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
 import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
-import { ComponentUUID, isSchemaAsset, SchemaTag } from '@tonylb/mtw-base/ts/schema'
-import { ComponentTag } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
-import StandardReference, { StandardKey } from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 
 export const setDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction<{ value: string }>) => {
     state.draftWML = newDraft.payload.value
@@ -59,13 +56,6 @@ const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload):
 const isUpdateStandardPayloadUpdateLocal = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateLocal => (payload.type === 'updateLocal')
 const isUpdateStandardPayloadRemoveComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRemoveComponent => (payload.type === 'removeComponent')
 const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
-
-export const nextSyntheticKey = ({ schema, tag }: { schema: GenericTree<SchemaTag>, tag: ComponentTag | "Import" }): string => {
-    const keysByTag = selectKeysByTag(tag)(schema)
-    let nextIndex = 1
-    while (keysByTag.includes(`${tag}${nextIndex}`)) { nextIndex++ }
-    return `${tag}${nextIndex}`
-}
 
 export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
     const { payload } = action
