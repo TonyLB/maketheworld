@@ -1,8 +1,8 @@
 import { StandardReference } from '../reference';
 import { PositionPayload, MarkFacetPayload, ExitPayload } from './dataTypes/facet';
-import { PositionPayload as PositionPayloadClass, StandardPositionFacet } from './position';
-import { MarkFacetPayload as MarkFacetPayloadClass, StandardMarkFacet } from './mark';
-import { ExitPayload as ExitPayloadClass, StandardExitFacet } from './exit';
+import { PositionFacetPlainClass, StandardPositionFacet } from './position';
+import { MarkFacetPlainClass, StandardMarkFacet } from './mark';
+import { ExitFacetPlainClass, StandardExitFacet } from './exit';
 import { treeFromWML, schemaToWML } from '../../../schema';
 import { deIndentWML } from '../../../schema/utils';
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
@@ -255,14 +255,16 @@ describe('Facet Integration Tests', () => {
         describe('PositionPayload.renderFacet()', () => {
             it('should enhance pre-existing Room render with Position child', () => {
                 const reference = new StandardReference('ROOM#123', 'Room');
-                const payload = new PositionPayloadClass({ x: 10, y: 20 });
+                const payload = new PositionFacetPlainClass({ x: 10, y: 20 });
                 const roomRender = createMockRoomReference('room1', 'ROOM#123');
                 roomRender.children.push({
                     data: { tag: 'ShortName' as const },
                     children: [{ data: { tag: 'String' as const, value: 'Test Room' }, children: [] }]
                 });
 
-                const result = payload.renderFacet(reference, payload.toJSON(), roomRender);
+                // For v2 PlainClass, access the payload property and call toJSON() on it
+                const payloadData = (payload as any).payload?.toJSON() ?? payload.toJSON() as PositionPayload;
+                const result = payload.renderFacet(reference, payloadData, roomRender);
 
                 expect(result.aggregatedNode).toBeDefined();
                 expect(result.newNode).toBeUndefined();
@@ -279,9 +281,10 @@ describe('Facet Integration Tests', () => {
 
             it('should generate plain Room reference render without referenceRender', () => {
                 const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
-                const payload = new PositionPayloadClass({ x: 15, y: 25 });
+                const payload = new PositionFacetPlainClass({ x: 15, y: 25 });
+                const payloadData = (payload as any).payload?.toJSON() ?? payload.toJSON() as PositionPayload;
 
-                const result = payload.renderFacet(reference, payload.toJSON());
+                const result = payload.renderFacet(reference, payloadData);
 
                 expect(result.aggregatedNode).toBeDefined();
                 expect(result.newNode).toBeUndefined();
@@ -297,14 +300,15 @@ describe('Facet Integration Tests', () => {
 
             it('should always return aggregatedNode (never newNode)', () => {
                 const reference = new StandardReference('ROOM#789', 'Room');
-                const payload = new PositionPayloadClass({ x: 50, y: 60 });
+                const payload = new PositionFacetPlainClass({ x: 50, y: 60 });
+                const payloadData = (payload as any).payload?.toJSON() ?? payload.toJSON() as PositionPayload;
 
-                const result1 = payload.renderFacet(reference, payload.toJSON());
+                const result1 = payload.renderFacet(reference, payloadData);
                 expect(result1.aggregatedNode).toBeDefined();
                 expect(result1.newNode).toBeUndefined();
 
                 const roomRender = createMockRoomReference('room1', 'ROOM#789');
-                const result2 = payload.renderFacet(reference, payload.toJSON(), roomRender);
+                const result2 = payload.renderFacet(reference, payloadData, roomRender);
                 expect(result2.aggregatedNode).toBeDefined();
                 expect(result2.newNode).toBeUndefined();
             });
@@ -313,14 +317,16 @@ describe('Facet Integration Tests', () => {
         describe('MarkFacetPayload.renderFacet()', () => {
             it('should enhance pre-existing Mark render with Match child', () => {
                 const reference = new StandardReference('MARK#123', 'Mark');
-                const payload = new MarkFacetPayloadClass('Test condition');
+                const payload = new MarkFacetPlainClass('Test condition');
                 const markRender = createMockMarkReference('MARK#123');
                 markRender.children.push({
                     data: { tag: 'ShortName' as const },
                     children: [{ data: { tag: 'String' as const, value: 'Test Mark' }, children: [] }]
                 });
 
-                const result = payload.renderFacet(reference, payload.toJSON(), markRender);
+                // For v2 PlainClass, access the payload property and call toJSON() on it
+                const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string;
+                const result = payload.renderFacet(reference, payloadData, markRender);
 
                 expect(result.aggregatedNode).toBeDefined();
                 expect(result.newNode).toBeUndefined();
@@ -340,9 +346,10 @@ describe('Facet Integration Tests', () => {
 
             it('should generate plain Mark reference render without referenceRender', () => {
                 const reference = new StandardReference('MARK#456', 'Mark');
-                const payload = new MarkFacetPayloadClass('Another condition');
+                const payload = new MarkFacetPlainClass('Another condition');
+                const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string;
 
-                const result = payload.renderFacet(reference, payload.toJSON());
+                const result = payload.renderFacet(reference, payloadData);
 
                 expect(result.aggregatedNode).toBeDefined();
                 expect(result.newNode).toBeUndefined();
@@ -355,14 +362,15 @@ describe('Facet Integration Tests', () => {
 
             it('should always return aggregatedNode (never newNode)', () => {
                 const reference = new StandardReference('MARK#789', 'Mark');
-                const payload = new MarkFacetPayloadClass('Condition text');
+                const payload = new MarkFacetPlainClass('Condition text');
+                const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string;
 
-                const result1 = payload.renderFacet(reference, payload.toJSON());
+                const result1 = payload.renderFacet(reference, payloadData);
                 expect(result1.aggregatedNode).toBeDefined();
                 expect(result1.newNode).toBeUndefined();
 
                 const markRender = createMockMarkReference('MARK#789');
-                const result2 = payload.renderFacet(reference, payload.toJSON(), markRender);
+                const result2 = payload.renderFacet(reference, payloadData, markRender);
                 expect(result2.aggregatedNode).toBeDefined();
                 expect(result2.newNode).toBeUndefined();
             });
@@ -371,11 +379,13 @@ describe('Facet Integration Tests', () => {
         describe('ExitPayload.renderFacet()', () => {
             it('should ignore referenceRender parameter', () => {
                 const reference = new StandardReference('ROOM#123', 'Room');
-                const payload = new ExitPayloadClass('North Exit');
+                const payload = new ExitFacetPlainClass('North Exit');
+                // For Exit facets, toJSON() converts empty string back to undefined
+                const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string | undefined;
                 const roomRender = createMockRoomReference('room1', 'ROOM#123');
 
-                const result1 = payload.renderFacet(reference, payload.toJSON());
-                const result2 = payload.renderFacet(reference, payload.toJSON(), roomRender);
+                const result1 = payload.renderFacet(reference, payloadData);
+                const result2 = payload.renderFacet(reference, payloadData, roomRender);
 
                 // Both should return the same structure (referenceRender ignored)
                 expect(result1.newNode).toBeDefined();
@@ -386,23 +396,25 @@ describe('Facet Integration Tests', () => {
 
             it('should always return newNode (never aggregatedNode)', () => {
                 const reference = new StandardReference('ROOM#456', 'Room');
-                const payload = new ExitPayloadClass('East Exit');
+                const payload = new ExitFacetPlainClass('East Exit');
+                const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string | undefined;
 
-                const result1 = payload.renderFacet(reference, payload.toJSON());
+                const result1 = payload.renderFacet(reference, payloadData);
                 expect(result1.newNode).toBeDefined();
                 expect(result1.aggregatedNode).toBeUndefined();
 
                 const roomRender = createMockRoomReference('room2', 'ROOM#456');
-                const result2 = payload.renderFacet(reference, payload.toJSON(), roomRender);
+                const result2 = payload.renderFacet(reference, payloadData, roomRender);
                 expect(result2.newNode).toBeDefined();
                 expect(result2.aggregatedNode).toBeUndefined();
             });
 
             it('should include Exit tag with correct `to` property', () => {
                 const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
-                const payload = new ExitPayloadClass('West Exit');
+                const payload = new ExitFacetPlainClass('West Exit');
+                const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string | undefined;
 
-                const result = payload.renderFacet(reference, payload.toJSON());
+                const result = payload.renderFacet(reference, payloadData);
 
                 const newNode = result.newNode!;
                 expect(treeNodeTypeguard(isSchemaExit)(newNode)).toBe(true);
@@ -413,9 +425,10 @@ describe('Facet Integration Tests', () => {
 
             it('should include description in Exit tag content', () => {
                 const reference = new StandardReference('ROOM#789', 'Room');
-                const payload = new ExitPayloadClass('South Exit');
+                const payload = new ExitFacetPlainClass('South Exit');
+                const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string | undefined;
 
-                const result = payload.renderFacet(reference, payload.toJSON());
+                const result = payload.renderFacet(reference, payloadData);
 
                 const newNode = result.newNode!;
                 if (newNode.data.tag === 'Exit') {
@@ -429,9 +442,13 @@ describe('Facet Integration Tests', () => {
 
             it('should have empty Exit tag when description is undefined', () => {
                 const reference = new StandardReference('ROOM#999', 'Room');
-                const payload = new ExitPayloadClass(undefined);
+                // For Exit facets, undefined is converted to empty string for StandardLiteral compatibility
+                const payload = new ExitFacetPlainClass('');
+                // toJSON() converts empty string back to undefined for Exit facets
+                const payloadData = payload.toJSON() as string | undefined;
+                expect(payloadData).toBeUndefined();
 
-                const result = payload.renderFacet(reference, payload.toJSON());
+                const result = payload.renderFacet(reference, payloadData);
 
                 const newNode = result.newNode!;
                 if (newNode.data.tag === 'Exit') {

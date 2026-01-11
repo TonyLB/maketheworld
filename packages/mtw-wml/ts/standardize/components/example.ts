@@ -17,7 +17,7 @@ import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/rend
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { StandardExplicitParent } from "../explicit"
-import { MarkFacetList, StandardMarkFacet, MarkFacetPayload as MarkFacetPayloadClass } from "../keys/facets/mark"
+import { MarkFacetList, StandardMarkFacet, MarkFacetPlainClass as MarkFacetPayloadClass } from "../keys/facets/mark"
 import { filterEditableTree } from "../../schema/utils"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
@@ -70,9 +70,9 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
                 .map(markNode => {
                     // Extract reference from Mark tag
                     const reference = childReferenceFactory(markNode)
-                    // Parse payload using MarkFacetPayload.fromSchema
+                    // Parse payload using MarkFacetPlainClass.fromSchema
                     // fromSchema expects GenericTree<SchemaTag> and StandardReference
-                    const payloadClass = new MarkFacetPayloadClass()
+                    const payloadClass = new MarkFacetPayloadClass('')
                     const payload = payloadClass.fromSchema([markNode], reference)
                     // Create StandardMarkFacet
                     return new StandardMarkFacet({

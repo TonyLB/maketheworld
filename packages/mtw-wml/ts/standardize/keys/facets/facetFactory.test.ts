@@ -1,5 +1,11 @@
 import { facetClassFactory } from './facetFactory';
-import { PositionPayload } from './position';
+import { 
+    PositionEditableClass, 
+    createPositionFacetPayload,
+    PositionFacetPlainClass,
+    PositionFacetRemoveClass,
+    PositionFacetReplaceClass
+} from './position';
 import { StandardFacetData, PositionPayload as PositionPayloadType } from './dataTypes/facet';
 import { StandardReferenceData } from '../dataTypes/reference';
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree';
@@ -9,7 +15,16 @@ import { deIndentWML } from '../../../schema/utils';
 import { isSchemaReplace } from '@tonylb/mtw-base/ts/schema/edit';
 
 describe('facetClassFactory', () => {
-    const TestFacetClass = facetClassFactory(PositionPayload, 'TestFacet');
+    const TestFacetClass = facetClassFactory(
+        {
+            EditableClass: PositionEditableClass,
+            PlainClass: PositionFacetPlainClass,
+            RemoveClass: PositionFacetRemoveClass,
+            ReplaceClass: PositionFacetReplaceClass
+        },
+        createPositionFacetPayload,
+        'TestFacet'
+    );
     
     const validReference: StandardReferenceData = {
         key: 'room1',
@@ -66,8 +81,10 @@ describe('facetClassFactory', () => {
             };
             const facet = new TestFacetClass(replaceData);
             expect(facet.isReplace).toBe(true);
-            expect(facet.matchPayload?.toJSON()).toEqual(matchData.payload);
-            expect(facet.payload.toJSON()).toEqual(payloadData.payload);
+            // For Replace operations, payload is a ReplaceClass with match and payload properties
+            const replaceInstance = facet.payload as any;
+            expect(replaceInstance.match?.toJSON()).toEqual(matchData.payload);
+            expect(replaceInstance.payload?.toJSON()).toEqual(payloadData.payload);
         });
 
         it('should clone from another facet instance', () => {
@@ -104,10 +121,12 @@ describe('facetClassFactory', () => {
                 payload: positionPayload
             };
             const facet = new TestFacetClass(facetData);
-            expect(facet.payload.x).toBe(10);
-            expect(facet.payload.y).toBe(20);
+            // For non-Replace operations, payload is a PlainClass
+            expect(facet.payload.toJSON().x).toBe(10);
+            expect(facet.payload.toJSON().y).toBe(20);
             expect(facet.isReplace).toBe(false);
-            expect(facet.matchPayload).toBeUndefined();
+            // No matchPayload property anymore - Replace is encoded in payload instance
+            expect(facet.payload instanceof PositionFacetPlainClass).toBe(true);
         });
     });
 
@@ -240,8 +259,10 @@ describe('facetClassFactory', () => {
             const merged = facet1.merge(facet2);
             expect(merged).toBeDefined();
             expect(merged?.isReplace).toBe(true);
-            expect(merged?.matchPayload?.toJSON()).toEqual({ x: 10, y: 20 });
-            expect(merged?.payload.toJSON()).toEqual({ x: 15, y: 25 });
+            // For Replace operations, payload is a ReplaceClass
+            const replaceInstance = merged?.payload as any;
+            expect(replaceInstance.match?.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 15, y: 25 });
         });
 
         it('should return undefined when references cancel out and payloads are same', () => {
@@ -286,8 +307,10 @@ describe('facetClassFactory', () => {
             const diff = facet1.diff(facet2);
             expect(diff).toBeDefined();
             expect(diff?.isReplace).toBe(true);
-            expect(diff?.matchPayload?.toJSON()).toEqual({ x: 10, y: 20 });
-            expect(diff?.payload.toJSON()).toEqual({ x: 15, y: 25 });
+            // For Replace operations, payload is a ReplaceClass
+            const replaceInstance = diff?.payload as any;
+            expect(replaceInstance.match?.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 15, y: 25 });
         });
     });
 
@@ -320,7 +343,10 @@ describe('facetClassFactory', () => {
             const facet = new TestFacetClass(replaceData);
             const inverted = facet.invert();
             expect(inverted.isReplace).toBe(true);
-            expect(inverted.matchPayload).toBeDefined();
+            // For Replace operations, payload is a ReplaceClass
+            const replaceInstance = inverted.payload as any;
+            expect(replaceInstance.match).toBeDefined();
+            expect(replaceInstance.payload).toBeDefined();
         });
     });
 
@@ -418,8 +444,8 @@ describe('facetClassFactory', () => {
                     </Room>
                 `);
                 const facet = new TestFacetClass(wml);
-                expect(facet.payload.x).toBe(10);
-                expect(facet.payload.y).toBe(20);
+                expect(facet.payload.toJSON().x).toBe(10);
+                expect(facet.payload.toJSON().y).toBe(20);
                 expect(facet.reference.key).toBe('room1');
                 expect(facet.reference.universalKey).toBe('ROOM#test123');
                 expect(facet.isReplace).toBe(false);
@@ -456,10 +482,12 @@ describe('facetClassFactory', () => {
                 `);
                 const facet = new TestFacetClass(wml);
                 expect(facet.isReplace).toBe(true);
-                expect(facet.matchPayload?.x).toBe(5);
-                expect(facet.matchPayload?.y).toBe(10);
-                expect(facet.payload.x).toBe(10);
-                expect(facet.payload.y).toBe(20);
+                // For Replace operations, payload is a ReplaceClass
+                const replaceInstance = facet.payload as any;
+                expect(replaceInstance.match?.toJSON().x).toBe(5);
+                expect(replaceInstance.match?.toJSON().y).toBe(10);
+                expect(replaceInstance.payload?.toJSON().x).toBe(10);
+                expect(replaceInstance.payload?.toJSON().y).toBe(20);
                 expect(facet.reference.key).toBe('room1');
                 expect(facet.reference.universalKey).toBe('ROOM#test123');
             });
@@ -479,10 +507,12 @@ describe('facetClassFactory', () => {
                 `));
                 const facet = new TestFacetClass(schema);
                 expect(facet.isReplace).toBe(true);
-                expect(facet.matchPayload?.x).toBe(5);
-                expect(facet.matchPayload?.y).toBe(10);
-                expect(facet.payload.x).toBe(15);
-                expect(facet.payload.y).toBe(25);
+                // For Replace operations, payload is a ReplaceClass
+                const replaceInstance = facet.payload as any;
+                expect(replaceInstance.match?.toJSON().x).toBe(5);
+                expect(replaceInstance.match?.toJSON().y).toBe(10);
+                expect(replaceInstance.payload?.toJSON().x).toBe(15);
+                expect(replaceInstance.payload?.toJSON().y).toBe(25);
                 expect(facet.reference.key).toBe('room1');
                 expect(facet.reference.universalKey).toBe('ROOM#test123');
             });

@@ -1,4 +1,5 @@
-import { MarkFacetPayload, factory, isStandardMarkFacetPayloadData, merge, diff } from '../mark';
+import { MarkFacetPlainClass } from '../mark';
+import { EditableClass, PlainClass, RemoveClass, ReplaceClass, isStandardLiteralData } from '../../../literal';
 import type { MarkFacetPayload as MarkFacetPayloadType } from './facet';
 import { StandardReference } from '../../reference';
 import { treeFromWML } from '../../../../schema';
@@ -8,34 +9,33 @@ import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldSta
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
 
-describe('MarkFacetPayload - StandardEditablePayload implementation', () => {
+describe('MarkFacetPlainClass - StandardEditablePayload implementation', () => {
     describe('constructor and basic operations', () => {
-        it('should create MarkFacetPayload from valid data', () => {
+        it('should create MarkFacetPlainClass from valid data', () => {
             const data: MarkFacetPayloadType = 'Test condition';
-            const payload = new MarkFacetPayload(data);
-            expect(payload.narrative).toBe('Test condition');
+            const payload = new MarkFacetPlainClass(data);
+            expect(payload.toJSON()).toBe('Test condition');
         });
 
         it('should clone correctly', () => {
             const data: MarkFacetPayloadType = 'Test condition';
-            const payload = new MarkFacetPayload(data);
+            const payload = new MarkFacetPlainClass(data);
             const cloned = payload.clone();
             expect(cloned).not.toBe(payload);
-            const clonedPayload = cloned as MarkFacetPayload;
-            expect(clonedPayload.narrative).toBe('Test condition');
-            expect(cloned.toJSON()).toBe(data);
+            expect(cloned.toJSON()).toBe('Test condition');
         });
 
         it('should return correct JSON', () => {
             const data: MarkFacetPayloadType = 'Another condition';
-            const payload = new MarkFacetPayload(data);
-            expect(payload.toJSON()).toBe(data);
+            const payload = new MarkFacetPlainClass(data);
+            expect(payload.toJSON()).toBe('Another condition');
         });
 
         it('should generate Match tag schema', () => {
             const data: MarkFacetPayloadType = 'Test condition';
-            const payload = new MarkFacetPayload(data);
-            const schema = payload.schema;
+            const payload = new MarkFacetPlainClass(data);
+            // nestedSchema wraps String in Match tag
+            const schema = payload.nestedSchema({ tag: 'Match' });
             expect(schema.length).toBe(1);
             expect(schema[0].data.tag).toBe('Match');
             // Verify Match tag contains String child with narrative
@@ -47,146 +47,119 @@ describe('MarkFacetPayload - StandardEditablePayload implementation', () => {
         });
     });
 
-    describe('StandardEditable factory', () => {
+    describe('v2StandardEditableFactory (via StandardLiteral)', () => {
         it('should create from plain payload data', () => {
             const data: MarkFacetPayloadType = 'Test condition';
-            const delta = factory(data);
-            expect(delta).toBeDefined();
-            expect(delta?.add).toBeDefined();
-            if (delta?.add) {
-                const payloadData = delta.add.toJSON();
-                expect(payloadData).toBe('Test condition');
-            }
+            // Use EditableClass.create() to dispatch to correct class
+            const instance = EditableClass.create(data);
+            expect(instance).toBeInstanceOf(PlainClass);
+            expect(instance.toJSON()).toBe('Test condition');
         });
 
-        it('should create from Match tag schema', () => {
-            const schema = treeFromWML(deIndentWML('<Match>Test condition</Match>'));
-            const delta = factory(schema);
-            expect(delta).toBeDefined();
-            expect(delta?.add).toBeDefined();
-            if (delta?.add) {
-                const payloadData = delta.add.toJSON();
-                expect(payloadData).toBe('Test condition');
-            }
+        it('should create from String tag schema', () => {
+            // v2 classes work with String tags, not Match tags directly
+            const schema = treeFromWML(deIndentWML('<String>Test condition</String>'));
+            const instance = EditableClass.create(schema);
+            expect(instance).toBeInstanceOf(PlainClass);
+            expect(instance.toJSON()).toBe('Test condition');
         });
 
         it('should create from Remove structure', () => {
-            const removeData: StandardEditableData<MarkFacetPayloadType> = {
+            const removeData: StandardEditableData<string> = {
                 tag: 'Remove',
                 match: 'Test condition'
             };
-            const delta = factory(removeData);
-            expect(delta).toBeDefined();
-            expect(delta?.remove).toBeDefined();
-            if (delta?.remove) {
-                const payloadData = delta.remove.toJSON();
-                expect(payloadData).toBe('Test condition');
-            }
+            const instance = EditableClass.create(removeData);
+            expect(instance).toBeInstanceOf(RemoveClass);
+            const removeInstance = instance as any;
+            expect(removeInstance.match?.toJSON()).toBe('Test condition');
         });
 
         it('should create from Replace structure', () => {
-            const replaceData: StandardEditableData<MarkFacetPayloadType> = {
+            const replaceData: StandardEditableData<string> = {
                 tag: 'Replace',
                 match: 'Old condition',
                 payload: 'New condition'
             };
-            const delta = factory(replaceData);
-            expect(delta).toBeDefined();
-            expect(delta?.remove).toBeDefined();
-            expect(delta?.add).toBeDefined();
-            if (delta?.remove && delta?.add) {
-                const removeData = delta.remove.toJSON();
-                const addData = delta.add.toJSON();
-                expect(removeData).toBe('Old condition');
-                expect(addData).toBe('New condition');
-            }
+            const instance = EditableClass.create(replaceData);
+            expect(instance).toBeInstanceOf(ReplaceClass);
+            const replaceInstance = instance as any;
+            expect(replaceInstance.match?.toJSON()).toBe('Old condition');
+            expect(replaceInstance.payload?.toJSON()).toBe('New condition');
         });
 
         it('should validate typeguard correctly', () => {
-            const valid: MarkFacetPayloadType = 'Test condition';
-            expect(isStandardMarkFacetPayloadData(valid)).toBe(true);
+            const valid: string = 'Test condition';
+            expect(isStandardLiteralData(valid)).toBe(true);
 
             const invalid = { x: 10, y: 20 };
-            expect(isStandardMarkFacetPayloadData(invalid)).toBe(false);
+            expect(isStandardLiteralData(invalid)).toBe(false);
         });
     });
 
-    describe('StandardEditable merge operations', () => {
+    describe('v2 merge operations', () => {
         it('should merge with Replace semantics (incoming wins)', () => {
             const base: MarkFacetPayloadType = 'Old condition';
             const incoming: MarkFacetPayloadType = 'New condition';
-            const baseDelta = factory(base);
-            const incomingDelta = factory(incoming);
-            // Use type assertion to handle generic type constraints
-            const merged = merge(baseDelta as any, incomingDelta as any) as any;
-            if (merged?.add) {
-                // merge returns StandardEditableDataDelta<PayloadDataType<MarkFacetPayload>>,
-                // which is { add?: string, remove?: string } - plain data types, not class instances
-                const payloadData = merged.add as string;
-                expect(payloadData).toBe('New condition');
-            }
+            const baseInstance = EditableClass.create(base);
+            const incomingInstance = EditableClass.create(incoming);
+            const merged = baseInstance.merge(incomingInstance);
+            expect(merged).toBeInstanceOf(PlainClass);
+            expect(merged?.toJSON()).toBe('New condition');
         });
 
         it('should cancel when removing same payload', () => {
             const payload: MarkFacetPayloadType = 'Test condition';
-            const addDelta = factory(payload);
-            const removeDelta = factory({
+            const addInstance = EditableClass.create(payload);
+            const removeInstance = EditableClass.create({
                 tag: 'Remove',
                 match: payload
-            } as StandardEditableData<MarkFacetPayloadType>);
-            const merged = merge(addDelta as any, removeDelta as any) as any;
-            expect(merged).toEqual({ add: undefined, remove: undefined });
+            } as StandardEditableData<string>);
+            const merged = addInstance.merge(removeInstance);
+            expect(merged).toBeUndefined();
         });
 
         it('should create Replace when payloads differ during merge', () => {
             const base: MarkFacetPayloadType = 'Old condition';
             const incoming: MarkFacetPayloadType = 'New condition';
-            const baseDelta = factory(base);
-            const incomingDelta = factory(incoming);
-            const merged = merge(baseDelta as any, incomingDelta as any) as any;
-            // When base is added and incoming is added, and they differ, should keep incoming
-            if (merged?.add) {
-                // merge returns StandardEditableDataDelta<PayloadDataType<MarkFacetPayload>>,
-                // which is { add?: string, remove?: string } - plain data types, not class instances
-                const payloadData = merged.add as string;
-                expect(payloadData).toBe('New condition');
-            }
+            const baseInstance = EditableClass.create(base);
+            const incomingInstance = EditableClass.create(incoming);
+            const merged = baseInstance.merge(incomingInstance);
+            // When payloads differ, merge returns the incoming (Replace semantics)
+            expect(merged).toBeInstanceOf(PlainClass);
+            expect(merged?.toJSON()).toBe('New condition');
         });
     });
 
-    describe('StandardEditable diff operations', () => {
-        it('should return empty when payloads are same', () => {
+    describe('v2 diff operations', () => {
+        it('should return undefined when payloads are same', () => {
             const payload: MarkFacetPayloadType = 'Test condition';
-            const baseDelta = factory(payload);
-            const incomingDelta = factory(payload);
-            const diffResult = diff(baseDelta as any, incomingDelta as any) as any;
-            expect(diffResult).toEqual({ add: undefined, remove: undefined });
+            const baseInstance = EditableClass.create(payload);
+            const incomingInstance = EditableClass.create(payload);
+            const diffResult = baseInstance.diff(incomingInstance);
+            expect(diffResult).toBeUndefined();
         });
 
         it('should create Replace when payloads differ', () => {
             const base: MarkFacetPayloadType = 'Old condition';
             const incoming: MarkFacetPayloadType = 'New condition';
-            const baseDelta = factory(base);
-            const incomingDelta = factory(incoming);
-            const diffResult = diff(baseDelta as any, incomingDelta as any) as any;
-            if (diffResult?.remove && diffResult?.add) {
-                // diff returns StandardEditableDataDelta<PayloadDataType<MarkFacetPayload>>,
-                // which is { add?: string, remove?: string } - plain data types, not class instances
-                const removeData = diffResult.remove as string;
-                const addData = diffResult.add as string;
-                expect(removeData).toBe('Old condition');
-                expect(addData).toBe('New condition');
-            }
+            const baseInstance = EditableClass.create(base);
+            const incomingInstance = EditableClass.create(incoming);
+            const diffResult = baseInstance.diff(incomingInstance);
+            expect(diffResult).toBeInstanceOf(ReplaceClass);
+            const replaceInstance = diffResult as any;
+            expect(replaceInstance.match?.toJSON()).toBe('Old condition');
+            expect(replaceInstance.payload?.toJSON()).toBe('New condition');
         });
     });
 });
 
-describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
+describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
     describe('fromSchema', () => {
         it('should parse Mark with Match child (with key and uuid)', () => {
             const schema = treeFromWML(deIndentWML('<Mark key=(testMark) uuid=(MARK#123)><Match>Test condition</Match></Mark>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload('');
+            const payload = new MarkFacetPlainClass('');
             const result = payload.fromSchema(schema, reference);
             expect(result).toBe('Test condition');
         });
@@ -194,7 +167,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
         it('should parse Mark with Match child (uuid only)', () => {
             const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><Match>Another condition</Match></Mark>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload('');
+            const payload = new MarkFacetPlainClass('');
             const result = payload.fromSchema(schema, reference);
             expect(result).toBe('Another condition');
         });
@@ -203,7 +176,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
             // Match tags can have multiple String children (though typically just one)
             const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><Match>First part Second part</Match></Mark>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload('');
+            const payload = new MarkFacetPlainClass('');
             const result = payload.fromSchema(schema, reference);
             // String children should be joined
             expect(result).toContain('First part');
@@ -213,21 +186,21 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
         it('should throw error when Match child is missing', () => {
             const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123) />'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload('');
+            const payload = new MarkFacetPlainClass('');
             expect(() => payload.fromSchema(schema, reference)).toThrow('Invalid schema: Match child not found');
         });
 
         it('should throw error when Mark tag is missing', () => {
             const schema = treeFromWML(deIndentWML('<Match>Test condition</Match>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload('');
+            const payload = new MarkFacetPlainClass('');
             expect(() => payload.fromSchema(schema, reference)).toThrow('Invalid schema: Mark tag not found');
         });
 
         it('should handle empty Match content', () => {
             const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><Match></Match></Mark>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPayload('');
+            const payload = new MarkFacetPlainClass('');
             const result = payload.fromSchema(schema, reference);
             expect(result).toBe('');
         });
@@ -237,7 +210,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
         it('should render with pre-existing Mark render', () => {
             const reference = new StandardReference('MARK#123', 'Mark');
             const payloadData: MarkFacetPayloadType = 'Test condition';
-            const payload = new MarkFacetPayload(payloadData);
+            const payload = new MarkFacetPlainClass(payloadData);
             const markSchema = treeFromWML(deIndentWML(`
                 <Mark uuid=(MARK#123)>
                     <ShortName>Test Mark</ShortName>
@@ -276,7 +249,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
         it('should render without reference render (plain Mark tag)', () => {
             const reference = new StandardReference({ key: 'testMark', universalKey: 'MARK#123', tag: 'Mark' });
             const payloadData: MarkFacetPayloadType = 'Another condition';
-            const payload = new MarkFacetPayload(payloadData);
+            const payload = new MarkFacetPlainClass(payloadData);
             const result = payload.renderFacet(reference, payloadData);
             
             // Should return aggregatedNode (not newNode)
@@ -305,7 +278,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
         it('should render without reference render (uuid only)', () => {
             const reference = new StandardReference('MARK#456', 'Mark');
             const payloadData: MarkFacetPayloadType = 'Third condition';
-            const payload = new MarkFacetPayload(payloadData);
+            const payload = new MarkFacetPlainClass(payloadData);
             const result = payload.renderFacet(reference, payloadData);
             
             // Should return aggregatedNode (not newNode)
@@ -332,7 +305,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
         it('should always return aggregatedNode (never newNode)', () => {
             const reference = new StandardReference('MARK#789', 'Mark');
             const payloadData: MarkFacetPayloadType = 'Fourth condition';
-            const payload = new MarkFacetPayload(payloadData);
+            const payload = new MarkFacetPlainClass(payloadData);
             
             // Test without referenceRender
             const result1 = payload.renderFacet(reference, payloadData);
@@ -349,7 +322,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
         it('should throw error when referenceRender is not a Mark', () => {
             const reference = new StandardReference('MARK#123', 'Mark');
             const payloadData: MarkFacetPayloadType = 'Test condition';
-            const payload = new MarkFacetPayload(payloadData);
+            const payload = new MarkFacetPlainClass(payloadData);
             const roomSchema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123) />'))[0];
             expect(() => payload.renderFacet(reference, payloadData, roomSchema)).toThrow('Invalid referenceRender: expected Mark tag');
         });
@@ -357,7 +330,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
         it('should add Match as first child when referenceRender provided', () => {
             const reference = new StandardReference('MARK#123', 'Mark');
             const payloadData: MarkFacetPayloadType = 'Final condition';
-            const payload = new MarkFacetPayload(payloadData);
+            const payload = new MarkFacetPlainClass(payloadData);
             const markSchema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><ShortName>Mark</ShortName></Mark>'))[0];
             const result = payload.renderFacet(reference, payloadData, markSchema);
             
@@ -382,8 +355,8 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
     describe('edge cases', () => {
         it('should handle empty narrative string', () => {
             const data: MarkFacetPayloadType = '';
-            const payload = new MarkFacetPayload(data);
-            expect(payload.narrative).toBe('');
+            const payload = new MarkFacetPlainClass(data);
+            expect(payload.toJSON()).toBe('');
             expect(payload.toJSON()).toBe('');
             
             // Schema should still generate Match tag with empty String child
@@ -397,16 +370,15 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
         it('should handle long narrative strings', () => {
             const longNarrative = 'A'.repeat(1000);
             const data: MarkFacetPayloadType = longNarrative;
-            const payload = new MarkFacetPayload(data);
-            expect(payload.narrative).toBe(longNarrative);
+            const payload = new MarkFacetPlainClass(data);
             expect(payload.toJSON()).toBe(longNarrative);
         });
 
         it('should handle special characters in narrative', () => {
             const specialNarrative = 'Test with "quotes" and <tags> and & symbols';
             const data: MarkFacetPayloadType = specialNarrative;
-            const payload = new MarkFacetPayload(data);
-            expect(payload.narrative).toBe(specialNarrative);
+            const payload = new MarkFacetPlainClass(data);
+            expect(payload.toJSON()).toBe(specialNarrative);
             
             // Verify it can be rendered
             const reference = new StandardReference('MARK#123', 'Mark');
