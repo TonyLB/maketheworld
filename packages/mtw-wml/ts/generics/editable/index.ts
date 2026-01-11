@@ -239,6 +239,10 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         
         return false
     }
+    // Shared default implementation for _wrap method
+    const defaultWrap = <T extends GeneratedV2EditableClass>(instance: GeneratedV2EditableClass): T => {
+        return instance as T;
+    }
     // Concrete parent class with stub implementations (to allow InstanceType to work)
     class GeneratedV2EditableClass implements StandardEditableWrapper<FinalType> {
         constructor() {}
@@ -273,6 +277,11 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             throw new Error('remapReferences() must be implemented by concrete subclass');
         }
         
+        // _wrap method for type-safe wrapping (can be overridden by inheriting classes)
+        _wrap(instance: GeneratedV2EditableClass): GeneratedV2EditableClass {
+            return instance;
+        }
+        
         // Invert method implemented in abstract class using delta
         invert(): GeneratedV2EditableClass {
             const delta = this._delta;
@@ -287,7 +296,7 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             if (!inverted) {
                 throw new Error('Inversion produced undefined result - this should not happen with valid edit operations');
             }
-            return inverted;
+            return this._wrap(inverted);
         }
         
         // Nested schema method that returns the schema (same as schema getter for compatibility)
@@ -300,7 +309,8 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             const baseDelta = this._delta;
             const incomingDelta = (other as any)._delta;
             const mergedDelta = addDelta(props.add, props.subtract, props.diff)(baseDelta, incomingDelta);
-            return GeneratedV2EditableClass.fromDelta(mergedDelta);
+            const result = GeneratedV2EditableClass.fromDelta(mergedDelta);
+            return result ? this._wrap(result) : undefined;
         }
 
         // Diff method that operates on deltas
@@ -308,7 +318,8 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
             const baseDelta = this._delta;
             const incomingDelta = (other as any)._delta;
             const resultDelta = diffDelta(props.add, props.subtract, props.diff)(baseDelta, incomingDelta);
-            return GeneratedV2EditableClass.fromDelta(resultDelta);
+            const result = GeneratedV2EditableClass.fromDelta(resultDelta);
+            return result ? this._wrap(result) : undefined;
         }
         
         // Factory method that creates instances from delta objects
@@ -416,11 +427,10 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         }
         
         override clone(): GeneratedV2EditableClass {
-            if (this.payload) {
-                return new GeneratedV2EditablePlainClass(this.payload);
-            } else {
-                return new GeneratedV2EditablePlainClass([] as GenericTree<SchemaTag>);
-            }
+            const result = this.payload 
+                ? new GeneratedV2EditablePlainClass(this.payload)
+                : new GeneratedV2EditablePlainClass([] as GenericTree<SchemaTag>);
+            return this._wrap(result);
         }
         
         override get plain(): FinalType | undefined {
@@ -430,9 +440,14 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         override remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardReference[] }): GeneratedV2EditableClass {
             if (this.payload && 'remapReferences' in this.payload) {
                 const remappedPayload = (this.payload as any).remapReferences(props);
-                return new GeneratedV2EditablePlainClass(remappedPayload);
+                const result = new GeneratedV2EditablePlainClass(remappedPayload);
+                return this._wrap(result);
             }
             return this.clone();
+        }
+        
+        override _wrap(instance: GeneratedV2EditableClass): GeneratedV2EditableClass {
+            return defaultWrap(instance);
         }
     }
     
@@ -485,11 +500,10 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         }
         
         override clone(): GeneratedV2EditableClass {
-            if (this.match) {
-                return new GeneratedV2EditableRemoveClass(this.match);
-            } else {
-                return new GeneratedV2EditableRemoveClass([] as GenericTree<SchemaTag>);
-            }
+            const result = this.match
+                ? new GeneratedV2EditableRemoveClass(this.match)
+                : new GeneratedV2EditableRemoveClass([] as GenericTree<SchemaTag>);
+            return this._wrap(result);
         }
         
         override get plain(): FinalType | undefined {
@@ -499,9 +513,14 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         override remapReferences(props: { mapTo: ReferenceFormat, mappings: StandardReference[] }): GeneratedV2EditableClass {
             if (this.match && 'remapReferences' in this.match) {
                 const remappedMatch = (this.match as any).remapReferences(props);
-                return new GeneratedV2EditableRemoveClass(remappedMatch);
+                const result = new GeneratedV2EditableRemoveClass(remappedMatch);
+                return this._wrap(result);
             }
             return this.clone();
+        }
+        
+        override _wrap(instance: GeneratedV2EditableClass): GeneratedV2EditableClass {
+            return defaultWrap(instance);
         }
     }
     
@@ -573,14 +592,16 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         
         override clone(): GeneratedV2EditableClass {
             if (this.match && this.payload) {
-                const replaceData = { 
-                    tag: 'Replace' as const, 
-                    match: this.match.toJSON() as PayloadDataType<FinalType>, 
-                    payload: this.payload.toJSON() as PayloadDataType<FinalType> 
+                const replaceData = {
+                    tag: 'Replace' as const,
+                    match: this.match.toJSON() as PayloadDataType<FinalType>,
+                    payload: this.payload.toJSON() as PayloadDataType<FinalType>
                 };
-                return new GeneratedV2EditableReplaceClass(replaceData);
+                const result = new GeneratedV2EditableReplaceClass(replaceData);
+                return this._wrap(result);
             } else {
-                return new GeneratedV2EditableReplaceClass([] as GenericTree<SchemaTag>);
+                const result = new GeneratedV2EditableReplaceClass([] as GenericTree<SchemaTag>);
+                return this._wrap(result);
             }
         }
         
@@ -605,10 +626,15 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
                     match: remappedMatch?.toJSON() as PayloadDataType<FinalType>, 
                     payload: remappedPayload?.toJSON() as PayloadDataType<FinalType> 
                 };
-                return new GeneratedV2EditableReplaceClass(replaceData);
+                const result = new GeneratedV2EditableReplaceClass(replaceData);
+                return this._wrap(result);
             }
             
             return this.clone();
+        }
+        
+        override _wrap(instance: GeneratedV2EditableClass): GeneratedV2EditableClass {
+            return defaultWrap(instance);
         }
     }
     
