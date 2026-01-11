@@ -1,27 +1,27 @@
-import { StandardLiteral, StandardLiteralSimple, StandardLiteralRemove, StandardLiteralReplace } from './index'
+import { StandardLiteral, PlainClass, RemoveClass, ReplaceClass } from './index'
 
 describe('StandardLiteral', () => {
     it('should create a StandardLiteralSimple from string', () => {
         const literal = new StandardLiteral('test')
-        expect(literal._payload).toBeInstanceOf(StandardLiteralSimple)
+        expect(literal._payload).toBeInstanceOf(PlainClass)
         expect(literal.toJSON()).toBe('test')
     })
 
     it('should create a StandardLiteralRemove from string', () => {
         const literal = new StandardLiteral({ tag: 'Remove', match: 'test' })
-        expect(literal._payload).toBeInstanceOf(StandardLiteralRemove)
+        expect(literal._payload).toBeInstanceOf(RemoveClass)
         expect(literal.toJSON()).toEqual({ tag: 'Remove', match: 'test' })
     })
 
     it('should create a StandardLiteralReplace from string', () => {
         const literal = new StandardLiteral({ tag: 'Replace', payload: 'new', match: 'old' })
-        expect(literal._payload).toBeInstanceOf(StandardLiteralReplace)
+        expect(literal._payload).toBeInstanceOf(ReplaceClass)
         expect(literal.toJSON()).toEqual({ tag: 'Replace', match: 'old', payload: 'new' })
     })
 
     it('should create a StandardLiteralSimple from RenderTree', () => {
         const literal = new StandardLiteral(['test'])
-        expect(literal._payload).toBeInstanceOf(StandardLiteralSimple)
+        expect(literal._payload).toBeInstanceOf(PlainClass)
         expect(literal.toJSON()).toEqual('test')
     })
 
@@ -30,7 +30,7 @@ describe('StandardLiteral', () => {
         const literal2 = new StandardLiteral('test2')
         const merged = literal1.merge(literal2)
         expect(merged).toBeInstanceOf(StandardLiteral)
-        expect(merged?._payload).toBeInstanceOf(StandardLiteralSimple)
+        expect(merged?._payload).toBeInstanceOf(PlainClass)
         expect(merged?.toJSON()).toBe('test1test2')
     })
 
@@ -39,7 +39,7 @@ describe('StandardLiteral', () => {
         const literal2 = new StandardLiteral('test2')
         const diff = literal1.diff(literal2)
         expect(diff).toBeInstanceOf(StandardLiteral)
-        expect(diff?._payload).toBeInstanceOf(StandardLiteralReplace)
+        expect(diff?._payload).toBeInstanceOf(ReplaceClass)
         expect(diff?.toJSON()).toEqual({ tag: 'Replace', match: '1', payload: '2' })
     })
 
@@ -51,7 +51,7 @@ describe('StandardLiteral', () => {
         const merged = remove.merge(simple)
         // Should produce a Replace operation (different values)
         expect(merged).toBeInstanceOf(StandardLiteral)
-        expect(merged?._payload).toBeInstanceOf(StandardLiteralReplace)
+        expect(merged?._payload).toBeInstanceOf(ReplaceClass)
         expect(merged?.toJSON()).toEqual({ tag: 'Replace', match: 'One', payload: 'Two' })
     })
 
@@ -59,7 +59,7 @@ describe('StandardLiteral', () => {
         const literal = new StandardLiteral('test')
         const mapped = literal.mapContents(data => data.toUpperCase())
         expect(mapped).toBeInstanceOf(StandardLiteral)
-        expect(mapped._payload).toBeInstanceOf(StandardLiteralSimple)
+        expect(mapped._payload).toBeInstanceOf(PlainClass)
         expect(mapped.toJSON()).toBe('TEST')
     })
 
@@ -67,7 +67,7 @@ describe('StandardLiteral', () => {
         const literal = new StandardLiteral({ tag: 'Remove', match: 'test' })
         const mapped = literal.mapContents(data => data.toUpperCase())
         expect(mapped).toBeInstanceOf(StandardLiteral)
-        expect(mapped._payload).toBeInstanceOf(StandardLiteralRemove)
+        expect(mapped._payload).toBeInstanceOf(RemoveClass)
         expect(mapped.toJSON()).toEqual({ tag: 'Remove', match: 'TEST' })
     })
 
@@ -75,7 +75,7 @@ describe('StandardLiteral', () => {
         const literal = new StandardLiteral({ tag: 'Replace', payload: 'new', match: 'old' })
         const mapped = literal.mapContents(data => data.toUpperCase())
         expect(mapped).toBeInstanceOf(StandardLiteral)
-        expect(mapped._payload).toBeInstanceOf(StandardLiteralReplace)
+        expect(mapped._payload).toBeInstanceOf(ReplaceClass)
         expect(mapped.toJSON()).toEqual({ tag: 'Replace', match: 'OLD', payload: 'NEW' })
     })
 })
