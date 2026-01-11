@@ -1,5 +1,5 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
+import { v2StandardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
@@ -94,189 +94,39 @@ const standardLiteralDiff = (base: string, incoming: string): { add?: string, re
     }
 }
 
-export const { constructorDelta: factory, typeguard: isStandardLiteralData, merge, diff } = standardEditableFactory({
+export const { 
+    EditableClass, 
+    PlainClass, 
+    RemoveClass, 
+    ReplaceClass, 
+    dataTypeguard: isStandardLiteralData 
+} = v2StandardEditableFactory({
     typeguard: (value: any): value is string => (typeof value === 'string'),
     payloadFactory: payloadFactory,
     payload: StandardLiteralSimpleBase,
     add: standardLiteralAdd,
     subtract: standardLiteralSubtract,
     diff: standardLiteralDiff
-})
+}, 'StandardLiteral')
 
-const fromDelta = (delta: { add?: string, remove?: string }): StandardLiteralSimple | StandardLiteralRemove | StandardLiteralReplace | undefined => {
-    const { add, remove } = delta
-    if (add) {
-        if (remove) {
-            return new StandardLiteralReplace(new StandardLiteralSimpleBase(remove), new StandardLiteralSimpleBase(add))
-        }
-        return new StandardLiteralSimple(new StandardLiteralSimpleBase(add))
-    }
-    if (remove) {
-        return new StandardLiteralRemove(new StandardLiteralSimpleBase(remove))
-    }
-    return undefined
-}
-
-export class StandardLiteralSimple implements StandardEditableWrapper<StandardLiteralSimpleBase> {
-    payload: StandardLiteralSimpleBase
-    constructor(data: StandardLiteralSimpleBase | StandardEditableData<string> | RenderTree | GenericTree<SchemaTag> | string) {
-        if (data instanceof StandardLiteralSimpleBase) {
-            this.payload = data
-            return
-        }
-        const delta = factory(isRenderTree(data) ? renderTreeToSchema(data) : data)
-        if (delta && delta.add && !delta.remove) {
-            this.payload = delta.add
-            return
-        }
-        throw new Error('Invalid data in TestContentClass')
-    }
-    get schema() {
-        return this.payload.schema
-    }
-    nestedSchema(tag) {
-        return [{ data: tag, children: this.schema }]
-    }
-    get _delta(): StandardEditableDataDelta<string> {
-        return { add: this.payload.toJSON() }
-    }
-    clone() {
-        return new StandardLiteralSimple(this.payload)
-    }
-    toJSON: () => StandardEditableData<string> = () => this.payload.toJSON()
-    get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardLiteralSimpleBase>): StandardLiteralSimple | StandardLiteralRemove | StandardLiteralReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardLiteralSimpleBase>): StandardLiteralSimple | StandardLiteralRemove | StandardLiteralReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-}
-
-export class StandardLiteralRemove implements StandardEditableWrapper<StandardLiteralSimpleBase> {
-    match: StandardLiteralSimpleBase
-    constructor(data: StandardLiteralSimpleBase | StandardEditableData<string> | RenderTree | GenericTree<SchemaTag> | string) {
-        if (data instanceof StandardLiteralSimpleBase) {
-            this.match = data
-            return
-        }
-        const delta = factory(isRenderTree(data) ? renderTreeToSchema(data) : data)
-        if (delta && !delta.add && delta.remove) {
-            this.match = delta.remove
-            return
-        }
-        console.log(`Invalid data: ${JSON.stringify(data)}`)
-        throw new Error('Invalid data in TestRemoveClass')
-    }
-    get schema() {
-        return [{ data: { tag: 'Remove' as const }, children: this.match.schema }]
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Remove' as const },
-            children: [{ data: tag, children: this.match.schema }]
-        }]
-    }
-    get _delta(): StandardEditableDataDelta<string> {
-        return { remove: this.match.toJSON() }
-    }
-    clone() {
-        return new StandardLiteralRemove(this.match)
-    }
-    toJSON: () => StandardEditableData<string> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
-    get plain() { return this.match }
-    merge(other: StandardEditableWrapper<StandardLiteralSimpleBase>): StandardLiteralSimple | StandardLiteralRemove | StandardLiteralReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardLiteralSimpleBase>): StandardLiteralSimple | StandardLiteralRemove | StandardLiteralReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-}
-
-export class StandardLiteralReplace implements StandardEditableWrapper<StandardLiteralSimpleBase> {
-    match: StandardLiteralSimpleBase
-    payload: StandardLiteralSimpleBase
-    constructor(...args: [StandardEditableData<string> | RenderTree | GenericTree<SchemaTag> | string] | [StandardLiteralSimpleBase, StandardLiteralSimpleBase]) {
-        if (args.length === 2) {
-            this.match = args[0]
-            this.payload = args[1]
-            return
-        }
-        const delta = factory(isRenderTree(args[0]) ? renderTreeToSchema(args[0]) : args[0])
-        if (delta && delta.add && delta.remove) {
-            this.match = delta.remove
-            this.payload = delta.add
-            return
-        }
-        throw new Error('Invalid data in TestRemoveClass')
-    }
-    get schema() {
-        return [{ data: { tag: 'Replace' as const }, children: [
-            { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
-            { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
-        ] }]
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Replace' as const },
-            children: [
-                {
-                    data: { tag: 'ReplaceMatch' as const },
-                    children: [{ data: tag, children: this.match.schema }]
-                },
-                {
-                    data: { tag: 'ReplacePayload' as const },
-                    children: [{ data: tag, children: this.payload.schema }]
-                }
-            ]
-        }]
-    }
-    get _delta(): StandardEditableDataDelta<string> {
-        return { remove: this.match.toJSON(), add: this.payload.toJSON() }
-    }
-    clone() {
-        return new StandardLiteralReplace(this.match, this.payload)
-    }
-    toJSON: () => StandardEditableData<string> = () => ({ 
-        tag: 'Replace' as const,
-        match: this.match.toJSON(),
-        payload: this.payload.toJSON()
-    })
-    get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardLiteralSimpleBase>): StandardLiteralSimple | StandardLiteralRemove | StandardLiteralReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardLiteralSimpleBase>): StandardLiteralSimple | StandardLiteralRemove | StandardLiteralReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-}
 
 export class StandardLiteral {
-    _payload: StandardLiteralSimple | StandardLiteralRemove | StandardLiteralReplace;
+    _payload: InstanceType<typeof EditableClass>;
     
     constructor(arg: any) {
-        if (arg instanceof StandardLiteralSimple || arg instanceof StandardLiteralRemove || arg instanceof StandardLiteralReplace) {
+        // Handle existing v2 instance (for cloning/wrapping)
+        if (arg instanceof EditableClass) {
             this._payload = arg
             return
         }
-        const delta = factory(isRenderTree(arg) ? renderTreeToSchema(arg) : arg)
-        if (!delta) {
-            console.log(`Invalid argument to StandardLiteral constructor: ${JSON.stringify(arg, null, 4)}`)
-            throw new Error('Invalid argument to StandardLiteral constructor')
-        }
-        if (delta.add) {
-            if (delta.remove) {
-                this._payload = new StandardLiteralReplace(arg)
-                return
-            }
-            this._payload = new StandardLiteralSimple(arg)
-            return
-        }
-        if (delta.remove) {
-            this._payload = new StandardLiteralRemove(arg)
-            return
-        }
-        throw new Error('Invalid argument to StandardLiteral constructor')
+        
+        // Convert RenderTree to GenericTree<SchemaTag> before calling EditableClass.create()
+        // EditableClass.create() doesn't handle RenderTree directly
+        const convertedArg = isRenderTree(arg) ? renderTreeToSchema(arg) : arg
+        
+        // Use EditableClass.create() for dispatch
+        // Handles: string, StandardEditableData, GenericTree<SchemaTag>
+        this._payload = EditableClass.create(convertedArg)
     }
 
     get schema(): GenericTree<SchemaTag> {
@@ -284,6 +134,32 @@ export class StandardLiteral {
     }
 
     nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
+        // Override v2 nestedSchema to wrap content in tag (v2 base class just returns schema without wrapping)
+        // Handle PlainClass: wrap schema in tag
+        if (this._payload instanceof PlainClass) {
+            return [{ data: tag, children: this._payload.schema }]
+        }
+        // Handle RemoveClass: wrap match schema in tag, then wrap in Remove
+        if (this._payload instanceof RemoveClass) {
+            const match = (this._payload as any).match
+            return [{
+                data: { tag: 'Remove' as const },
+                children: [{ data: tag, children: match?.schema ?? [] }]
+            }]
+        }
+        // Handle ReplaceClass: wrap match and payload schemas in tag, then wrap in Replace
+        if (this._payload instanceof ReplaceClass) {
+            const match = (this._payload as any).match
+            const payload = (this._payload as any).payload
+            return [{
+                data: { tag: 'Replace' as const },
+                children: [
+                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: tag, children: match?.schema ?? [] }] },
+                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: tag, children: payload?.schema ?? [] }] }
+                ]
+            }]
+        }
+        // Fallback to v2 implementation (shouldn't happen)
         return this._payload.nestedSchema(tag)
     }
 
@@ -294,7 +170,7 @@ export class StandardLiteral {
     merge(incoming: StandardLiteral): StandardLiteral | undefined {
         const merged = this._payload.merge(incoming._payload)
         if (merged) {
-            return new StandardLiteral(this._payload.merge(incoming._payload))
+            return new StandardLiteral(merged)
         }
         return undefined
     }
@@ -305,44 +181,39 @@ export class StandardLiteral {
                 return new StandardLiteral(diff)
             }
             return undefined
-        }
-        else {
-            const reversedDelta = this._payload._delta
-            if (reversedDelta) {
-                if (reversedDelta.add) {
-                    return new StandardLiteral(new StandardLiteralRemove(new StandardLiteralSimpleBase(reversedDelta.add)))
-                }
-                if (reversedDelta.remove) {
-                    return new StandardLiteral(new StandardLiteralSimple(reversedDelta.remove))
-                }
-            }
-            return undefined
+        } else {
+            // Diff from this to nothing: invert
+            const inverted = this._payload.invert()
+            return new StandardLiteral(inverted)
         }
     }
     mapContents(callback: (incoming: string) => string): StandardLiteral {
-        if (this._payload instanceof StandardLiteralSimple) {
-            return new StandardLiteral(callback(this._payload.payload.data))
+        // Access the underlying data
+        const currentData = this._payload.plain?.data ?? ''
+        const mappedData = callback(currentData)
+        
+        // For Remove/Replace, need to handle match/payload separately
+        if (this._payload instanceof RemoveClass) {
+            const matchData = (this._payload as any).match?.data ?? ''
+            const mappedMatch = callback(matchData)
+            return new StandardLiteral({ tag: 'Remove', match: mappedMatch })
         }
-        if (this._payload instanceof StandardLiteralRemove) {
-            return new StandardLiteral(new StandardLiteralRemove(new StandardLiteralSimpleBase(callback(this._payload.match.data))))
+        if (this._payload instanceof ReplaceClass) {
+            const matchData = (this._payload as any).match?.data ?? ''
+            const payloadData = (this._payload as any).payload?.data ?? ''
+            return new StandardLiteral({ 
+                tag: 'Replace', 
+                match: callback(matchData), 
+                payload: callback(payloadData) 
+            })
         }
-        if (this._payload instanceof StandardLiteralReplace) {
-            return new StandardLiteral(new StandardLiteralReplace((new StandardLiteralSimple(callback(this._payload.match.data))).payload, (new StandardLiteralSimple(callback(this._payload.payload.data))).payload))
-        }
-        throw new Error('Invalid StandardLiteral payload')
+        // PlainClass
+        return new StandardLiteral(mappedData)
     }
 
     invert(): StandardLiteral {
-        if (this._payload instanceof StandardLiteralSimple) {
-            return new StandardLiteral(new StandardLiteralRemove(this._payload.payload))
-        }
-        if (this._payload instanceof StandardLiteralRemove) {
-            return new StandardLiteral(new StandardLiteralSimple(this._payload.match))
-        }
-        if (this._payload instanceof StandardLiteralReplace) {
-            return new StandardLiteral(new StandardLiteralReplace(this._payload.payload, this._payload.match))
-        }
-        throw new Error('Invalid StandardLiteral payload for invert')
+        const inverted = this._payload.invert()
+        return new StandardLiteral(inverted)
     }
 
 }
