@@ -104,6 +104,17 @@ export const {
 // Extended StandardPositionPayload v2 classes for Position facets with FacetPayloadBase methods
 
 export class PositionFacetPlainClass extends PositionPlainClass {
+    // Override _wrap to convert base class instances to appropriate extended facet classes
+    override _wrap(instance: any): PositionFacetPlainClass | PositionFacetRemoveClass | PositionFacetReplaceClass {
+        // If already an extended facet class, return as-is
+        if (instance instanceof PositionFacetPlainClass || instance instanceof PositionFacetRemoveClass || instance instanceof PositionFacetReplaceClass) {
+            return instance;
+        }
+        // Use the custom factory to dispatch to the correct extended class based on instance type
+        const data = instance.toJSON();
+        return createPositionFacetPayload(data);
+    }
+    
     // FacetPayloadBase methods
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): PositionPayloadType {
         if (node.length === 0) {
@@ -208,6 +219,17 @@ export class PositionFacetPlainClass extends PositionPlainClass {
 }
 
 export class PositionFacetRemoveClass extends PositionRemoveClass {
+    // Override _wrap to convert base class instances to appropriate extended facet classes
+    override _wrap(instance: any): PositionFacetPlainClass | PositionFacetRemoveClass | PositionFacetReplaceClass {
+        // If already an extended facet class, return as-is
+        if (instance instanceof PositionFacetPlainClass || instance instanceof PositionFacetRemoveClass || instance instanceof PositionFacetReplaceClass) {
+            return instance;
+        }
+        // Use the custom factory to dispatch to the correct extended class based on instance type
+        const data = instance.toJSON();
+        return createPositionFacetPayload(data);
+    }
+    
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): PositionPayloadType {
         const match = (this as any).match;
         if (match && match.x !== undefined && match.y !== undefined) {
@@ -286,6 +308,17 @@ export class PositionFacetRemoveClass extends PositionRemoveClass {
 }
 
 export class PositionFacetReplaceClass extends PositionReplaceClass {
+    // Override _wrap to convert base class instances to appropriate extended facet classes
+    override _wrap(instance: any): PositionFacetPlainClass | PositionFacetRemoveClass | PositionFacetReplaceClass {
+        // If already an extended facet class, return as-is
+        if (instance instanceof PositionFacetPlainClass || instance instanceof PositionFacetRemoveClass || instance instanceof PositionFacetReplaceClass) {
+            return instance;
+        }
+        // Use the custom factory to dispatch to the correct extended class based on instance type
+        const data = instance.toJSON();
+        return createPositionFacetPayload(data);
+    }
+    
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): PositionPayloadType {
         const payload = (this as any).payload;
         if (payload && payload.x !== undefined && payload.y !== undefined) {
@@ -395,7 +428,16 @@ export function createPositionFacetPayload(arg: any): PositionFacetPlainClass | 
             return new PositionFacetReplaceClass(schema);
         }
         else {
-            return new PositionFacetPlainClass(schema);
+            // Schema tree doesn't start with Remove/Replace - might be a full facet schema (e.g., <Room><Position.../>)
+            // Try to extract Position child using fromSchema
+            const tempPayload = new PositionFacetPlainClass({ x: 0, y: 0 });
+            try {
+                const extractedData = tempPayload.fromSchema(schema, new StandardReference('ROOM#temp', 'Room'));
+                return new PositionFacetPlainClass(extractedData);
+            } catch {
+                // If fromSchema fails, try passing schema directly (might be just Position tag)
+                return new PositionFacetPlainClass(schema);
+            }
         }
     }
     
@@ -404,7 +446,17 @@ export function createPositionFacetPayload(arg: any): PositionFacetPlainClass | 
         return new PositionFacetPlainClass(factoryProps);
     }
     
-    // Default to plain
+    // Default to plain - might be a schema tree that needs parsing
+    // Try to extract using fromSchema if it looks like a schema
+    if (Array.isArray(factoryProps) && factoryProps.length > 0) {
+        const tempPayload = new PositionFacetPlainClass({ x: 0, y: 0 });
+        try {
+            const extractedData = tempPayload.fromSchema(factoryProps, new StandardReference('ROOM#temp', 'Room'));
+            return new PositionFacetPlainClass(extractedData);
+        } catch {
+            // If fromSchema fails, pass as-is
+        }
+    }
     return new PositionFacetPlainClass(factoryProps);
 }
 

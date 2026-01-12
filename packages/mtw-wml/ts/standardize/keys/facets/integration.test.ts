@@ -155,9 +155,8 @@ describe('Facet Integration Tests', () => {
                 const originalWML = deIndentWML(`<Mark uuid=(test123)><Match>Condition text</Match></Mark>`);
                 const facet = parseWMLToFacet(originalWML, 'Mark');
                 
-                // Payload is now a class instance - access properties directly
+                // Payload is now a class instance - use toJSON() to get the string value
                 const markFacet = facet as StandardMarkFacet;
-                expect(markFacet.payload.narrative).toBe('Condition text');
                 expect(markFacet.payload.toJSON()).toBe('Condition text');
                 
                 const generatedWML = facetToWML(facet);
@@ -168,9 +167,8 @@ describe('Facet Integration Tests', () => {
                 const originalWML = deIndentWML(`<Mark uuid=(test456)><Match></Match></Mark>`);
                 const facet = parseWMLToFacet(originalWML, 'Mark');
                 
-                // Payload is now a class instance - access properties directly
+                // Payload is now a class instance - use toJSON() to get the string value
                 const markFacet = facet as StandardMarkFacet;
-                expect(markFacet.payload.narrative).toBe('');
                 expect(markFacet.payload.toJSON()).toBe('');
                 
                 const generatedWML = facetToWML(facet);
@@ -230,7 +228,7 @@ describe('Facet Integration Tests', () => {
                 `);
                 const facet = parseWMLToFacet(wml, 'Mark');
                 const markFacet = facet as StandardMarkFacet;
-                expect(markFacet.payload.narrative).toBe('');
+                expect(markFacet.payload.toJSON()).toBe('');
             });
 
         });

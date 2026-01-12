@@ -45,12 +45,19 @@ export const facetClassFactory = <D>(
                 return;
             }
 
-            // Handle Replace JSON structure: { tag: 'Replace', match: StandardFacetData, payload: StandardFacetData }
+            // Transform facet-level Replace to payload-level Replace
+            // Input: { tag: 'Replace', match: StandardFacetData, payload: StandardFacetData }
+            // Output: Extract reference from payload side, then push Replace structure down to payload level
             if (typeof arg === 'object' && arg !== null && 'tag' in arg && arg.tag === 'Replace' && 'match' in arg && 'payload' in arg) {
                 const replaceData = arg as { tag: 'Replace'; match: StandardFacetData<D>; payload: StandardFacetData<D> };
                 this._reference = new StandardReference(replaceData.payload.reference);
-                // Use createPayload to dispatch to correct extended class
-                this._payloadInstance = createPayload(replaceData.payload.payload);
+                // Construct payload-level Replace structure: { tag: 'Replace', match: <inner payload>, payload: <inner payload> }
+                // This allows createPayload to dispatch to the correct ReplaceClass
+                this._payloadInstance = createPayload({
+                    tag: 'Replace',
+                    match: replaceData.match.payload,
+                    payload: replaceData.payload.payload
+                });
                 return;
             }
 
@@ -226,7 +233,6 @@ export const facetClassFactory = <D>(
             
             // Merge payloads using v2 instance's merge method
             const mergedPayload = this.payload.merge(incoming.payload);
-            
             if (mergedReference === undefined && mergedPayload === undefined) {
                 // Both reference and payload cancelled out
                 return undefined;

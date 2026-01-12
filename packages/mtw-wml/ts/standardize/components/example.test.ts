@@ -259,7 +259,7 @@ describe('StandardExample class', () => {
             expect(testExample.marks.length).toEqual(1)
             const facet = testExample.marks.items[0] as StandardMarkFacet
             expect((facet.reference as StandardReference).universalKey).toEqual('MARK#mark1')
-            expect(facet.payload.narrative).toEqual('Condition narrative')
+            expect(facet.payload.toJSON()).toEqual('Condition narrative')
         })
 
         it('should construct StandardExample from JSON with marks field', () => {
@@ -277,7 +277,7 @@ describe('StandardExample class', () => {
             expect(testExample.marks.length).toEqual(1)
             const facet = testExample.marks.items[0] as StandardMarkFacet
             expect((facet.reference as StandardReference).universalKey).toEqual('MARK#mark1')
-            expect(facet.payload.narrative).toEqual('Condition narrative')
+            expect(facet.payload.toJSON()).toEqual('Condition narrative')
         })
 
         it('should handle empty marks array in JSON', () => {
@@ -568,8 +568,8 @@ describe('StandardExample class', () => {
             expect(testExample.marks.length).toEqual(2)
             const facet0 = testExample.marks.items[0] as StandardMarkFacet
             const facet1 = testExample.marks.items[1] as StandardMarkFacet
-            expect(facet0.payload.narrative).toEqual('First condition')
-            expect(facet1.payload.narrative).toEqual('Second condition')
+            expect(facet0.payload.toJSON()).toEqual('First condition')
+            expect(facet1.payload.toJSON()).toEqual('Second condition')
         })
 
         it('should handle Example with both name/summary/description AND marks', () => {

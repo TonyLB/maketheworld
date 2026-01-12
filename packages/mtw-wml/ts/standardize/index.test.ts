@@ -438,7 +438,7 @@ describe('StandardForm', () => {
         
         const facet = example.marks.items[0] as StandardMarkFacet
         expect((facet.reference as StandardReference).universalKey).toEqual('MARK#mark1')
-        expect(facet.payload.narrative).toEqual('Condition narrative')
+        expect(facet.payload.toJSON()).toEqual('Condition narrative')
         
         // Verify example content
         expect(example.name?.toJSON()).toEqual(['Example Name'])

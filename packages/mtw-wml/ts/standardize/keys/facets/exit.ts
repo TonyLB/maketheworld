@@ -34,6 +34,17 @@ export class ExitFacetPlainClass extends PlainClass {
         return literalJSON;
     }
     
+    // Override _wrap to convert base class instances to appropriate extended facet classes
+    override _wrap(instance: any): ExitFacetPlainClass | ExitFacetRemoveClass | ExitFacetReplaceClass {
+        // If already an extended facet class, return as-is
+        if (instance instanceof ExitFacetPlainClass || instance instanceof ExitFacetRemoveClass || instance instanceof ExitFacetReplaceClass) {
+            return instance;
+        }
+        // Use the custom factory to dispatch to the correct extended class based on instance type
+        const data = instance.toJSON();
+        return createExitFacetPayload(data);
+    }
+    
     // FacetPayloadBase methods
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): ExitPayloadType {
         if (node.length === 0) {
@@ -122,6 +133,17 @@ class ExitFacetRemoveClass extends RemoveClass {
         return literalJSON;
     }
     
+    // Override _wrap to convert base class instances to appropriate extended facet classes
+    override _wrap(instance: any): ExitFacetPlainClass | ExitFacetRemoveClass | ExitFacetReplaceClass {
+        // If already an extended facet class, return as-is
+        if (instance instanceof ExitFacetPlainClass || instance instanceof ExitFacetRemoveClass || instance instanceof ExitFacetReplaceClass) {
+            return instance;
+        }
+        // Use the custom factory to dispatch to the correct extended class based on instance type
+        const data = instance.toJSON();
+        return createExitFacetPayload(data);
+    }
+    
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): ExitPayloadType {
         const match = (this as any).match;
         if (match && match.data) {
@@ -207,6 +229,17 @@ class ExitFacetReplaceClass extends ReplaceClass {
             };
         }
         return literalJSON;
+    }
+    
+    // Override _wrap to convert base class instances to appropriate extended facet classes
+    override _wrap(instance: any): ExitFacetPlainClass | ExitFacetRemoveClass | ExitFacetReplaceClass {
+        // If already an extended facet class, return as-is
+        if (instance instanceof ExitFacetPlainClass || instance instanceof ExitFacetRemoveClass || instance instanceof ExitFacetReplaceClass) {
+            return instance;
+        }
+        // Use the custom factory to dispatch to the correct extended class based on instance type
+        const data = instance.toJSON();
+        return createExitFacetPayload(data);
     }
     
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): ExitPayloadType {

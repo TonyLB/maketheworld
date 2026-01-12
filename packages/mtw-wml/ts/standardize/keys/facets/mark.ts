@@ -19,6 +19,17 @@ export class MarkFacetPlainClass extends PlainClass {
         return [{ data: { tag: 'Match' as const }, children: this.schema }];
     }
     
+    // Override _wrap to convert base class instances to appropriate extended facet classes
+    override _wrap(instance: any): MarkFacetPlainClass | MarkFacetRemoveClass | MarkFacetReplaceClass {
+        // If already an extended facet class, return as-is
+        if (instance instanceof MarkFacetPlainClass || instance instanceof MarkFacetRemoveClass || instance instanceof MarkFacetReplaceClass) {
+            return instance;
+        }
+        // Use the custom factory to dispatch to the correct extended class based on instance type
+        const data = instance.toJSON();
+        return createMarkFacetPayload(data);
+    }
+    
     // FacetPayloadBase methods
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): MarkFacetPayloadType {
         if (node.length === 0) {
@@ -140,6 +151,17 @@ class MarkFacetRemoveClass extends RemoveClass {
             data: { tag: 'Remove' as const },
             children: [{ data: { tag: 'Match' as const }, children: match?.schema ?? [] }]
         }];
+    }
+    
+    // Override _wrap to convert base class instances to appropriate extended facet classes
+    override _wrap(instance: any): MarkFacetPlainClass | MarkFacetRemoveClass | MarkFacetReplaceClass {
+        // If already an extended facet class, return as-is
+        if (instance instanceof MarkFacetPlainClass || instance instanceof MarkFacetRemoveClass || instance instanceof MarkFacetReplaceClass) {
+            return instance;
+        }
+        // Use the custom factory to dispatch to the correct extended class based on instance type
+        const data = instance.toJSON();
+        return createMarkFacetPayload(data);
     }
     
     // FacetPayloadBase methods
@@ -269,6 +291,17 @@ class MarkFacetReplaceClass extends ReplaceClass {
                 { data: { tag: 'ReplacePayload' as const }, children: [{ data: { tag: 'Match' as const }, children: payload?.schema ?? [] }] }
             ]
         }];
+    }
+    
+    // Override _wrap to convert base class instances to appropriate extended facet classes
+    override _wrap(instance: any): MarkFacetPlainClass | MarkFacetRemoveClass | MarkFacetReplaceClass {
+        // If already an extended facet class, return as-is
+        if (instance instanceof MarkFacetPlainClass || instance instanceof MarkFacetRemoveClass || instance instanceof MarkFacetReplaceClass) {
+            return instance;
+        }
+        // Use the custom factory to dispatch to the correct extended class based on instance type
+        const data = instance.toJSON();
+        return createMarkFacetPayload(data);
     }
     
     // FacetPayloadBase methods
