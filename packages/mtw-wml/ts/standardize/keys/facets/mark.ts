@@ -448,11 +448,30 @@ function createMarkFacetPayload(arg: any): MarkFacetPlainClass | MarkFacetRemove
         }
         
         const firstElement = schema[0];
+        
+        // Check if first element is Remove or Replace directly
         if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
             return new MarkFacetRemoveClass(schema);
         }
         else if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
             return new MarkFacetReplaceClass(schema);
+        }
+        // Check if first element is a Mark node - extract payload children (the Mark's children contain the payload)
+        else if (treeNodeTypeguard(isSchemaMark)(firstElement)) {
+            // The payload is in the Mark's children - pass those children to createPayload recursively
+            // This handles Replace/Remove/Match structures nested inside the Mark
+            return createMarkFacetPayload(firstElement.children);
+        }
+        // Check if first element is a Match tag - extract String children and convert to string payload
+        else if (treeNodeTypeguard(isSchemaMatch)(firstElement)) {
+            // Extract String children from Match tag and join into narrative string
+            const narrative = firstElement.children
+                .map(({ data }) => data)
+                .filter(isSchemaString)
+                .map(({ value }) => value)
+                .join('');
+            // Create PlainClass with the extracted string
+            return new MarkFacetPlainClass(narrative);
         }
         else {
             return new MarkFacetPlainClass(schema);

@@ -19,6 +19,7 @@
 
 import checkTypes, { CheckTypes } from "@tonylb/mtw-base/ts/utils/checkTypes";
 import { StandardReferenceData, isStandardReferenceData } from "../../dataTypes/reference";
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 /**
  * PositionPayload: Payload for Position Facets
@@ -38,7 +39,7 @@ export type PositionPayload = {
  * 
  * Note: Embeddings are handled in the lambda/assets data domain, not at WML parsing level.
  * Type is inferred from list context (MarkFacetList), not from a discriminator field.
- * Payload uses simple format: plain string with no `type` field.
+ * Payload uses simple format: plain string (Remove/Replace operations are handled via StandardFacetData).
  */
 export type MarkFacetPayload = string
 
@@ -58,11 +59,14 @@ export type ExitPayload = string | undefined
  * IMPORTANT: This format is used only within homogeneous lists. The payload type is
  * determined by the list context, not by a discriminator field in the payload.
  * 
+ * The payload can be a plain value or StandardEditableData<TPayload> to support Remove/Replace
+ * operations at the payload level (e.g., { tag: 'Replace', match: oldValue, payload: newValue }).
+ * 
  * @template TPayload - The specific payload type (string for MarkFacet, {x,y} for PositionFacet, string|undefined for ExitFacet)
  */
 export type StandardFacetData<TPayload> = {
     reference: StandardReferenceData;
-    payload: TPayload;
+    payload: StandardEditableData<TPayload>;
 }
 
 /**

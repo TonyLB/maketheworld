@@ -12,6 +12,7 @@ import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/exam
 import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState"
+import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "../keys/key"
@@ -66,19 +67,37 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             // Parse Mark facets (only Marks with Match children)
             const markNodes = filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaMark) })
             const parsedFacets = markNodes
-                .filter(markNode => markNode.children.some(treeNodeTypeguard(isSchemaMatch)))
+                .filter(markNode => {
+                    // Check for Match children either directly or nested in ReplaceMatch/ReplacePayload
+                    const hasDirectMatch = markNode.children.some(treeNodeTypeguard(isSchemaMatch));
+                    // Check for ReplaceMatch/ReplacePayload as direct children
+                    const hasMatchInReplaceMatch = markNode.children.some(child => 
+                        treeNodeTypeguard(isSchemaReplaceMatch)(child) && 
+                        child.children.some(treeNodeTypeguard(isSchemaMatch))
+                    );
+                    const hasMatchInReplacePayload = markNode.children.some(child => 
+                        treeNodeTypeguard(isSchemaReplacePayload)(child) && 
+                        child.children.some(treeNodeTypeguard(isSchemaMatch))
+                    );
+                    // Check for Match nested inside a Replace wrapper (Replace contains ReplaceMatch/ReplacePayload)
+                    const hasMatchInReplaceWrapper = markNode.children.some(replaceChild => {
+                        if (treeNodeTypeguard(isSchemaReplace)(replaceChild)) {
+                            return replaceChild.children.some(child => {
+                                if (treeNodeTypeguard(isSchemaReplaceMatch)(child) || treeNodeTypeguard(isSchemaReplacePayload)(child)) {
+                                    return child.children.some(treeNodeTypeguard(isSchemaMatch));
+                                }
+                                return false;
+                            });
+                        }
+                        return false;
+                    });
+                    const hasMatch = hasDirectMatch || hasMatchInReplaceMatch || hasMatchInReplacePayload || hasMatchInReplaceWrapper;
+                    return hasMatch;
+                })
                 .map(markNode => {
-                    // Extract reference from Mark tag
-                    const reference = childReferenceFactory(markNode)
-                    // Parse payload using MarkFacetPlainClass.fromSchema
-                    // fromSchema expects GenericTree<SchemaTag> and StandardReference
-                    const payloadClass = new MarkFacetPayloadClass('')
-                    const payload = payloadClass.fromSchema([markNode], reference)
-                    // Create StandardMarkFacet
-                    return new StandardMarkFacet({
-                        reference: reference.toJSON(),
-                        payload
-                    })
+                    // Create StandardMarkFacet directly from schema - it will handle Replace/Remove/Plain dispatch
+                    // StandardMarkFacet constructor accepts GenericTree<SchemaTag> and handles parsing internally
+                    return new StandardMarkFacet([markNode])
                 })
             this._marks = new MarkFacetList(parsedFacets)
             return
