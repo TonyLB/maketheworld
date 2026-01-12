@@ -8,7 +8,7 @@ export type StandardExampleData = {
     name?: RenderTree;
     summary?: RenderTree;
     description?: RenderTree;
-    marks?: FacetListData<string>;  // MarkFacet uses string payload
+    marks?: FacetListData<string>;  // MarkFacet uses string payload (Remove/Replace handled via StandardFacetData)
 } & StandardBaseData
 
 export type StandardExampleNDJSONData = {
@@ -16,7 +16,7 @@ export type StandardExampleNDJSONData = {
     name?: RenderTree;
     summary?: RenderTree;
     description?: RenderTree;
-    marks?: FacetListData<string>;  // MarkFacet uses string payload
+    marks?: FacetListData<string>;  // MarkFacet uses string payload (Remove/Replace handled via StandardFacetData)
 } & StandardBaseData
 
 export const isStandardExampleData = (arg: any): arg is StandardExampleData => {

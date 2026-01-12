@@ -1,4 +1,5 @@
-import { ExitPayload, factory, isStandardExitPayloadData, merge, diff } from '../exit';
+import { ExitFacetPlainClass } from '../exit';
+import { EditableClass, PlainClass, RemoveClass, ReplaceClass, isStandardLiteralData } from '../../../literal';
 import type { ExitPayload as ExitPayloadType } from './facet';
 import { StandardReference } from '../../reference';
 import { treeFromWML } from '../../../../schema';
@@ -7,232 +8,196 @@ import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
-describe('ExitPayload - StandardEditablePayload implementation', () => {
+describe('ExitFacetPlainClass - StandardEditablePayload implementation', () => {
     describe('constructor and basic operations', () => {
-        it('should create ExitPayload from valid data with description', () => {
+        it('should create ExitFacetPlainClass from valid data with description', () => {
             const data: ExitPayloadType = 'North Exit';
-            const payload = new ExitPayload(data);
-            expect(payload.description).toBe('North Exit');
+            // For Exit facets, undefined is converted to empty string for StandardLiteral compatibility
+            const payload = new ExitFacetPlainClass(data ?? '');
+            // toJSON() converts empty string back to undefined for Exit facets
+            expect(payload.toJSON()).toBe('North Exit');
         });
 
-        it('should create ExitPayload from valid data without description', () => {
+        it('should create ExitFacetPlainClass from valid data without description', () => {
             const data: ExitPayloadType = undefined;
-            const payload = new ExitPayload(data);
-            expect(payload.description).toBeUndefined();
+            // Convert undefined to empty string for StandardLiteral
+            const payload = new ExitFacetPlainClass('');
+            // toJSON() converts empty string back to undefined
+            expect(payload.toJSON()).toBeUndefined();
         });
 
         it('should clone correctly', () => {
             const data: ExitPayloadType = 'South Exit';
-            const payload = new ExitPayload(data);
+            const payload = new ExitFacetPlainClass(data ?? '');
             const cloned = payload.clone();
             expect(cloned).not.toBe(payload);
-            const clonedPayload = cloned as ExitPayload;
-            expect(clonedPayload.description).toBe('South Exit');
-            expect(cloned.toJSON()).toEqual(data);
+            expect(cloned.toJSON()).toBe('South Exit');
         });
 
         it('should return correct JSON', () => {
             const data: ExitPayloadType = 'East Exit';
-            const payload = new ExitPayload(data);
+            const payload = new ExitFacetPlainClass(data ?? '');
             expect(payload.toJSON()).toBe('East Exit');
         });
 
         it('should return correct JSON without description', () => {
             const data: ExitPayloadType = undefined;
-            const payload = new ExitPayload(data);
+            const payload = new ExitFacetPlainClass('');
             expect(payload.toJSON()).toBeUndefined();
         });
 
-        it('should generate Exit tag schema with description', () => {
+        it('should generate String tag schema with description', () => {
             const data: ExitPayloadType = 'West Exit';
-            const payload = new ExitPayload(data);
+            const payload = new ExitFacetPlainClass(data ?? '');
             const schema = payload.schema;
+            // v2 PlainClass returns String tag schema (not Exit tag)
             expect(schema.length).toBe(1);
-            expect(schema[0].data.tag).toBe('Exit');
-            // Verify Exit tag has empty `to` property (reference-based)
-            if (schema[0].data.tag === 'Exit') {
-                expect(schema[0].data.to).toBe('');
-            }
-            // Verify Exit tag contains String child with description
-            expect(schema[0].children.length).toBe(1);
-            const stringChild = schema[0].children[0];
-            if (stringChild.data.tag === 'String') {
-                expect(stringChild.data.value).toBe('West Exit');
+            expect(schema[0].data.tag).toBe('String');
+            if (schema[0].data.tag === 'String') {
+                expect(schema[0].data.value).toBe('West Exit');
             }
         });
 
-        it('should generate Exit tag schema without description', () => {
+        it('should generate String tag schema without description', () => {
             const data: ExitPayloadType = undefined;
-            const payload = new ExitPayload(data);
+            const payload = new ExitFacetPlainClass('');
             const schema = payload.schema;
+            // v2 PlainClass returns String tag schema (not Exit tag)
             expect(schema.length).toBe(1);
-            expect(schema[0].data.tag).toBe('Exit');
-            // Verify Exit tag has empty `to` property
-            if (schema[0].data.tag === 'Exit') {
-                expect(schema[0].data.to).toBe('');
+            expect(schema[0].data.tag).toBe('String');
+            if (schema[0].data.tag === 'String') {
+                expect(schema[0].data.value).toBe('');
             }
-            // Verify Exit tag has no children
-            expect(schema[0].children.length).toBe(0);
         });
     });
 
-    describe('StandardEditable factory', () => {
+    describe('v2StandardEditableFactory (via StandardLiteral)', () => {
         it('should create from plain payload data', () => {
             const data: ExitPayloadType = 'North Exit';
-            const delta = factory(data);
-            expect(delta).toBeDefined();
-            expect(delta?.add).toBeDefined();
-            if (delta?.add) {
-                const payloadData = delta.add.toJSON();
-                expect(payloadData).toBe('North Exit');
-            }
+            // Use EditableClass.create() to dispatch to correct class
+            const instance = EditableClass.create(data ?? '');
+            expect(instance).toBeInstanceOf(PlainClass);
+            expect(instance.toJSON()).toBe('North Exit');
         });
 
-        it('should create from Exit tag schema', () => {
-            const schema = treeFromWML(deIndentWML('<Exit to=(ROOM#123)>North Exit</Exit>'));
-            const delta = factory(schema);
-            expect(delta).toBeDefined();
-            expect(delta?.add).toBeDefined();
-            if (delta?.add) {
-                const payloadData = delta.add.toJSON();
-                expect(payloadData).toBe('North Exit');
-            }
+        it('should create from String tag schema', () => {
+            // v2 classes work with String tags, not Exit tags
+            const schema = treeFromWML(deIndentWML('<String>North Exit</String>'));
+            const instance = EditableClass.create(schema);
+            expect(instance).toBeInstanceOf(PlainClass);
+            expect(instance.toJSON()).toBe('North Exit');
         });
 
-        it('should create from Exit tag schema without description', () => {
-            const schema = treeFromWML(deIndentWML('<Exit to=(ROOM#123) />'));
-            const delta = factory(schema);
-            expect(delta).toBeDefined();
-            expect(delta?.add).toBeDefined();
-            if (delta?.add) {
-                const payloadData = delta.add.toJSON();
-                expect(payloadData).toBeUndefined();
-            }
+        it('should create from String tag schema without description', () => {
+            // Empty string represents undefined for Exit facets
+            const schema = treeFromWML(deIndentWML('<String></String>'));
+            const instance = EditableClass.create(schema);
+            expect(instance).toBeInstanceOf(PlainClass);
+            expect(instance.toJSON()).toBe('');
         });
 
         it('should create from Remove structure', () => {
-            const removeData: StandardEditableData<ExitPayloadType> = {
+            const removeData: StandardEditableData<string> = {
                 tag: 'Remove',
                 match: 'South Exit'
             };
-            const delta = factory(removeData);
-            expect(delta).toBeDefined();
-            expect(delta?.remove).toBeDefined();
-            if (delta?.remove) {
-                const payloadData = delta.remove.toJSON();
-                expect(payloadData).toBe('South Exit');
-            }
+            const instance = EditableClass.create(removeData);
+            expect(instance).toBeInstanceOf(RemoveClass);
+            const removeInstance = instance as any;
+            expect(removeInstance.match?.toJSON()).toBe('South Exit');
         });
 
         it('should create from Replace structure', () => {
-            const replaceData: StandardEditableData<ExitPayloadType> = {
+            const replaceData: StandardEditableData<string> = {
                 tag: 'Replace',
                 match: 'Old Exit',
                 payload: 'New Exit'
             };
-            const delta = factory(replaceData);
-            expect(delta).toBeDefined();
-            expect(delta?.remove).toBeDefined();
-            expect(delta?.add).toBeDefined();
-            if (delta?.remove && delta?.add) {
-                const removeData = delta.remove.toJSON();
-                const addData = delta.add.toJSON();
-                expect(removeData).toBe('Old Exit');
-                expect(addData).toBe('New Exit');
-            }
+            const instance = EditableClass.create(replaceData);
+            expect(instance).toBeInstanceOf(ReplaceClass);
+            const replaceInstance = instance as any;
+            expect(replaceInstance.match?.toJSON()).toBe('Old Exit');
+            expect(replaceInstance.payload?.toJSON()).toBe('New Exit');
         });
 
         it('should validate typeguard correctly', () => {
-            const valid: ExitPayloadType = 'Test Exit';
-            expect(isStandardExitPayloadData(valid)).toBe(true);
+            const valid: string = 'Test Exit';
+            expect(isStandardLiteralData(valid)).toBe(true);
 
-            const validWithoutDescription: ExitPayloadType = undefined;
-            expect(isStandardExitPayloadData(validWithoutDescription)).toBe(true);
+            const validEmpty: string = '';
+            expect(isStandardLiteralData(validEmpty)).toBe(true);
 
             const invalid = {
                 x: 10,
                 y: 20
             };
-            expect(isStandardExitPayloadData(invalid)).toBe(false);
+            expect(isStandardLiteralData(invalid)).toBe(false);
         });
     });
 
-    describe('StandardEditable merge operations', () => {
+    describe('v2 merge operations', () => {
         it('should merge with Replace semantics (incoming wins)', () => {
             const base: ExitPayloadType = 'Old Exit';
             const incoming: ExitPayloadType = 'New Exit';
-            const baseDelta = factory(base);
-            const incomingDelta = factory(incoming);
-            // Use type assertion to handle generic type constraints
-            const merged = merge(baseDelta as any, incomingDelta as any) as any;
-            if (merged?.add) {
-                // merge returns StandardEditableDataDelta<PayloadDataType<ExitPayload>>,
-                // which is { add?: string | undefined, remove?: string | undefined } - plain data types, not class instances
-                const payloadData = merged.add as string;
-                expect(payloadData).toBe('New Exit');
-            }
+            const baseInstance = EditableClass.create(base ?? '');
+            const incomingInstance = EditableClass.create(incoming ?? '');
+            const merged = baseInstance.merge(incomingInstance);
+            expect(merged).toBeInstanceOf(PlainClass);
+            expect(merged?.toJSON()).toBe('New Exit');
         });
 
         it('should cancel when removing same payload', () => {
             const payload: ExitPayloadType = 'Test Exit';
-            const addDelta = factory(payload);
-            const removeDelta = factory({
+            const addInstance = EditableClass.create(payload ?? '');
+            const removeInstance = EditableClass.create({
                 tag: 'Remove',
-                match: payload
-            } as StandardEditableData<ExitPayloadType>);
-            const merged = merge(addDelta as any, removeDelta as any) as any;
-            expect(merged).toEqual({ add: undefined, remove: undefined });
+                match: payload ?? ''
+            } as StandardEditableData<string>);
+            const merged = addInstance.merge(removeInstance);
+            expect(merged).toBeUndefined();
         });
 
         it('should create Replace when payloads differ during merge', () => {
             const base: ExitPayloadType = 'Old Exit';
             const incoming: ExitPayloadType = 'New Exit';
-            const baseDelta = factory(base);
-            const incomingDelta = factory(incoming);
-            const merged = merge(baseDelta as any, incomingDelta as any) as any;
-            // When base is added and incoming is added, and they differ, should keep incoming
-            if (merged?.add) {
-                // merge returns StandardEditableDataDelta<PayloadDataType<ExitPayload>>,
-                // which is { add?: string | undefined, remove?: string | undefined } - plain data types, not class instances
-                const payloadData = merged.add as string;
-                expect(payloadData).toBe('New Exit');
-            }
+            const baseInstance = EditableClass.create(base ?? '');
+            const incomingInstance = EditableClass.create(incoming ?? '');
+            const merged = baseInstance.merge(incomingInstance);
+            // When payloads differ, merge returns the incoming (Replace semantics)
+            expect(merged).toBeInstanceOf(PlainClass);
+            expect(merged?.toJSON()).toBe('New Exit');
         });
     });
 
-    describe('StandardEditable diff operations', () => {
-        it('should return empty when payloads are same', () => {
+    describe('v2 diff operations', () => {
+        it('should return undefined when payloads are same', () => {
             const payload: ExitPayloadType = 'Test Exit';
-            const baseDelta = factory(payload);
-            const incomingDelta = factory(payload);
-            const diffResult = diff(baseDelta as any, incomingDelta as any) as any;
-            expect(diffResult).toEqual({ add: undefined, remove: undefined });
+            const baseInstance = EditableClass.create(payload ?? '');
+            const incomingInstance = EditableClass.create(payload ?? '');
+            const diffResult = baseInstance.diff(incomingInstance);
+            expect(diffResult).toBeUndefined();
         });
 
         it('should create Replace when payloads differ', () => {
             const base: ExitPayloadType = 'Old Exit';
             const incoming: ExitPayloadType = 'New Exit';
-            const baseDelta = factory(base);
-            const incomingDelta = factory(incoming);
-            const diffResult = diff(baseDelta as any, incomingDelta as any) as any;
-            if (diffResult?.remove && diffResult?.add) {
-                // diff returns StandardEditableDataDelta<PayloadDataType<ExitPayload>>,
-                // which is { add?: string | undefined, remove?: string | undefined } - plain data types, not class instances
-                const removeData = diffResult.remove as string;
-                const addData = diffResult.add as string;
-                expect(removeData).toBe('Old Exit');
-                expect(addData).toBe('New Exit');
-            }
+            const baseInstance = EditableClass.create(base ?? '');
+            const incomingInstance = EditableClass.create(incoming ?? '');
+            const diffResult = baseInstance.diff(incomingInstance);
+            expect(diffResult).toBeInstanceOf(ReplaceClass);
+            const replaceInstance = diffResult as any;
+            expect(replaceInstance.match?.toJSON()).toBe('Old Exit');
+            expect(replaceInstance.payload?.toJSON()).toBe('New Exit');
         });
     });
 });
 
-describe('ExitPayload - FacetPayloadBase implementation', () => {
+describe('ExitFacetPlainClass - FacetPayloadBase implementation', () => {
     describe('fromSchema', () => {
         it('should parse Exit tag with description (key and uuid)', () => {
             const schema = treeFromWML(deIndentWML('<Exit to=(ROOM#123)>North Exit</Exit>'));
             const reference = new StandardReference('ROOM#123', 'Room');
-            const payload = new ExitPayload();
+            const payload = new ExitFacetPlainClass('');
             const result = payload.fromSchema(schema, reference);
             expect(result).toBe('North Exit');
         });
@@ -240,7 +205,7 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
         it('should parse Exit tag with description (uuid only)', () => {
             const schema = treeFromWML(deIndentWML('<Exit to=(ROOM#456)>South Exit</Exit>'));
             const reference = new StandardReference('ROOM#456', 'Room');
-            const payload = new ExitPayload();
+            const payload = new ExitFacetPlainClass('');
             const result = payload.fromSchema(schema, reference);
             expect(result).toBe('South Exit');
         });
@@ -248,7 +213,7 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
         it('should parse Exit tag without description', () => {
             const schema = treeFromWML(deIndentWML('<Exit to=(ROOM#789) />'));
             const reference = new StandardReference('ROOM#789', 'Room');
-            const payload = new ExitPayload();
+            const payload = new ExitFacetPlainClass('');
             const result = payload.fromSchema(schema, reference);
             expect(result).toBeUndefined();
         });
@@ -257,7 +222,7 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
             // Exit tags can have multiple String children (though typically just one)
             const schema = treeFromWML(deIndentWML('<Exit to=(ROOM#123)>First part Second part</Exit>'));
             const reference = new StandardReference('ROOM#123', 'Room');
-            const payload = new ExitPayload();
+            const payload = new ExitFacetPlainClass('');
             const result = payload.fromSchema(schema, reference);
             // String children should be joined
             expect(result).toContain('First part');
@@ -267,14 +232,14 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
         it('should throw error when Exit tag is missing', () => {
             const schema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123) />'));
             const reference = new StandardReference('ROOM#123', 'Room');
-            const payload = new ExitPayload();
+            const payload = new ExitFacetPlainClass('');
             expect(() => payload.fromSchema(schema, reference)).toThrow('Invalid schema: Exit tag not found');
         });
 
         it('should handle empty Exit content', () => {
             const schema = treeFromWML(deIndentWML('<Exit to=(ROOM#123)></Exit>'));
             const reference = new StandardReference('ROOM#123', 'Room');
-            const payload = new ExitPayload();
+            const payload = new ExitFacetPlainClass('');
             const result = payload.fromSchema(schema, reference);
             expect(result).toBeUndefined();
         });
@@ -284,7 +249,7 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
         it('should render Exit tag with description (always returns newNode)', () => {
             const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
             const payloadData: ExitPayloadType = 'North Exit';
-            const payload = new ExitPayload(payloadData);
+            const payload = new ExitFacetPlainClass(payloadData ?? '');
             const result = payload.renderFacet(reference, payloadData);
             
             // Should return newNode (not aggregatedNode)
@@ -311,7 +276,7 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
         it('should render Exit tag without description', () => {
             const reference = new StandardReference('ROOM#456', 'Room');
             const payloadData: ExitPayloadType = undefined;
-            const payload = new ExitPayload(payloadData);
+            const payload = new ExitFacetPlainClass(payloadData ?? '');
             const result = payload.renderFacet(reference, payloadData);
             
             // Should return newNode (not aggregatedNode)
@@ -332,7 +297,7 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
         it('should ignore referenceRender parameter', () => {
             const reference = new StandardReference('ROOM#789', 'Room');
             const payloadData: ExitPayloadType = 'South Exit';
-            const payload = new ExitPayload(payloadData);
+            const payload = new ExitFacetPlainClass(payloadData ?? '');
             // Provide a referenceRender (should be ignored)
             const roomSchema = treeFromWML(deIndentWML('<Room uuid=(ROOM#789)><ShortName>Room</ShortName></Room>'))[0];
             const result = payload.renderFacet(reference, payloadData, roomSchema);
@@ -350,7 +315,7 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
         it('should always return newNode (never aggregatedNode)', () => {
             const reference = new StandardReference('ROOM#123', 'Room');
             const payloadData: ExitPayloadType = 'East Exit';
-            const payload = new ExitPayload(payloadData);
+            const payload = new ExitFacetPlainClass(payloadData ?? '');
             
             // Test without referenceRender
             const result1 = payload.renderFacet(reference, payloadData);
@@ -367,7 +332,7 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
         it('should use reference key format for `to` property', () => {
             const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
             const payloadData: ExitPayloadType = 'West Exit';
-            const payload = new ExitPayload(payloadData);
+            const payload = new ExitFacetPlainClass(payloadData ?? '');
             const result = payload.renderFacet(reference, payloadData);
             
             const newNode = result.newNode!;
@@ -382,7 +347,7 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
         it('should use reference universalKey when key not available', () => {
             const reference = new StandardReference('ROOM#456', 'Room');
             const payloadData: ExitPayloadType = 'Northwest Exit';
-            const payload = new ExitPayload(payloadData);
+            const payload = new ExitFacetPlainClass(payloadData ?? '');
             const result = payload.renderFacet(reference, payloadData);
             
             const newNode = result.newNode!;
@@ -398,31 +363,29 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
     describe('edge cases', () => {
         it('should handle empty description string', () => {
             const data: ExitPayloadType = '';
-            const payload = new ExitPayload(data);
-            expect(payload.description).toBe('');
+            const payload = new ExitFacetPlainClass(data ?? '');
             expect(payload.toJSON()).toBe('');
             
-            // Schema should still generate Exit tag with empty String child
+            // v2 PlainClass returns String tag schema (not Exit tag)
             const schema = payload.schema;
-            expect(schema[0].children[0].data.tag).toBe('String');
-            if (schema[0].children[0].data.tag === 'String') {
-                expect(schema[0].children[0].data.value).toBe('');
+            expect(schema[0].data.tag).toBe('String');
+            if (schema[0].data.tag === 'String') {
+                expect(schema[0].data.value).toBe('');
             }
         });
 
         it('should handle long description strings', () => {
             const longDescription = 'A'.repeat(1000);
             const data: ExitPayloadType = longDescription;
-            const payload = new ExitPayload(data);
-            expect(payload.description).toBe(longDescription);
+            const payload = new ExitFacetPlainClass(data ?? '');
             expect(payload.toJSON()).toBe(longDescription);
         });
 
         it('should handle special characters in description', () => {
             const specialDescription = 'Exit with "quotes" and <tags> and & symbols';
             const data: ExitPayloadType = specialDescription;
-            const payload = new ExitPayload(data);
-            expect(payload.description).toBe(specialDescription);
+            const payload = new ExitFacetPlainClass(data ?? '');
+            expect(payload.toJSON()).toBe(specialDescription);
             
             // Verify it can be rendered
             const reference = new StandardReference('ROOM#123', 'Room');
@@ -433,15 +396,12 @@ describe('ExitPayload - FacetPayloadBase implementation', () => {
         it('should handle merge with undefined description', () => {
             const base: ExitPayloadType = 'Old Exit';
             const incoming: ExitPayloadType = undefined;
-            const baseDelta = factory(base);
-            const incomingDelta = factory(incoming);
-            const merged = merge(baseDelta as any, incomingDelta as any) as any;
-            if (merged?.add) {
-                // merge returns StandardEditableDataDelta<PayloadDataType<ExitPayload>>,
-                // which is { add?: string | undefined, remove?: string | undefined } - plain data types, not class instances
-                const payloadData = merged.add as string | undefined;
-                expect(payloadData).toBeUndefined();
-            }
+            const baseInstance = EditableClass.create(base ?? '');
+            const incomingInstance = EditableClass.create('');
+            const merged = baseInstance.merge(incomingInstance);
+            // When merging with empty string (undefined), result should be empty string
+            expect(merged).toBeInstanceOf(PlainClass);
+            expect(merged?.toJSON()).toBe('');
         });
     });
 });

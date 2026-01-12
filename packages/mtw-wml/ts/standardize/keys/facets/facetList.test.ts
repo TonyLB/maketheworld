@@ -90,8 +90,10 @@ describe('Concrete FacetList Classes', () => {
             expect(list.length).toBe(1);
             const item0 = list.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
-            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
-            expect(item0.matchPayload?.toJSON()).toEqual({ x: 5, y: 10 });
+            // For Replace operations, payload is a ReplaceClass
+            const replaceInstance = item0.payload as any;
+            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(replaceInstance.match?.toJSON()).toEqual({ x: 5, y: 10 });
         });
 
         it('should construct by cloning from another FacetList', () => {
@@ -384,8 +386,10 @@ describe('Concrete FacetList Classes', () => {
             expect(merged!.length).toBe(1);
             const item0 = merged!.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
-            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
-            expect(item0.matchPayload?.toJSON()).toEqual({ x: 5, y: 10 });
+            // For Replace operations, payload is a ReplaceClass
+            const replaceInstance = item0.payload as any;
+            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(replaceInstance.match?.toJSON()).toEqual({ x: 5, y: 10 });
         });
 
         it('should preserve unmatched base items', () => {
@@ -513,8 +517,10 @@ describe('Concrete FacetList Classes', () => {
             expect(diff!.length).toBe(1);
             const item0 = diff!.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
-            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
-            expect(item0.matchPayload?.toJSON()).toEqual({ x: 5, y: 10 });
+            // For Replace operations, payload is a ReplaceClass
+            const replaceInstance = item0.payload as any;
+            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(replaceInstance.match?.toJSON()).toEqual({ x: 5, y: 10 });
         });
 
         it('should invert unmatched base items', () => {
@@ -617,8 +623,10 @@ describe('Concrete FacetList Classes', () => {
             // The reference is inverted (ref arithmetic), but Replace match/payload are preserved
             const item0 = inverted.items[0] as StandardPositionFacet;
             expect(item0.isReplace).toBe(true);
-            expect(item0.payload.toJSON()).toEqual(payloadData.payload);
-            expect(item0.matchPayload?.toJSON()).toEqual(matchData.payload);
+            // For Replace operations, payload is a ReplaceClass
+            const replaceInstance = item0.payload as any;
+            expect(replaceInstance.payload?.toJSON()).toEqual(payloadData.payload);
+            expect(replaceInstance.match?.toJSON()).toEqual(matchData.payload);
         });
 
         it('should invert list with mixed operations', () => {
@@ -664,9 +672,10 @@ describe('Concrete FacetList Classes', () => {
             
             const mapped = list.mapContents((facet) => {
                 const facetTyped = facet as StandardPositionFacet;
+                const currentPayload = facetTyped.payload.toJSON();
                 const newPayload: PositionPayload = {
-                    x: facetTyped.payload.x * 2,
-                    y: facetTyped.payload.y * 2
+                    x: currentPayload.x * 2,
+                    y: currentPayload.y * 2
                 };
                 const newData: StandardFacetData<PositionPayload> = {
                     reference: facetTyped.reference.toJSON(),
@@ -677,8 +686,9 @@ describe('Concrete FacetList Classes', () => {
             
             expect(mapped.length).toBe(1);
             const mappedItem = mapped.items[0] as StandardPositionFacet;
-            expect(mappedItem.payload.x).toBe(20);
-            expect(mappedItem.payload.y).toBe(40);
+            const mappedPayload = mappedItem.payload.toJSON();
+            expect(mappedPayload.x).toBe(20);
+            expect(mappedPayload.y).toBe(40);
         });
 
         // Type guard preservation tests removed - concrete classes don't use type guards
@@ -814,8 +824,10 @@ describe('Concrete FacetList Classes', () => {
             expect(replaceItem0.isReplace).toBe(true);
             // Note: Current implementation preserves match/payload order when inverting Replace
             // The reference ref is inverted, but Replace match/payload are kept as-is
-            expect(replaceItem0.payload.toJSON()).toEqual(payloadData.payload);
-            expect(replaceItem0.matchPayload?.toJSON()).toEqual(matchData.payload);
+            // For Replace operations, payload is a ReplaceClass
+            const replaceInstance = replaceItem0.payload as any;
+            expect(replaceInstance.payload?.toJSON()).toEqual(payloadData.payload);
+            expect(replaceInstance.match?.toJSON()).toEqual(matchData.payload);
         });
 
         it('should satisfy idempotency: merge(list, list) equals list (when no conflicts)', () => {
@@ -851,11 +863,12 @@ describe('Concrete FacetList Classes', () => {
                 createPositionFacetData('room1', 10, 20)
             ]);
             
-            // TypeScript should allow access to PositionPayload properties
+            // TypeScript should allow access to PositionPayload properties via toJSON()
             const item0 = list.items[0] as StandardPositionFacet;
-            expect(item0.payload.x).toBe(10);
-            expect(item0.payload.y).toBe(20);
-            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
+            const payload = item0.payload.toJSON();
+            expect(payload.x).toBe(10);
+            expect(payload.y).toBe(20);
+            expect(payload).toEqual({ x: 10, y: 20 });
         });
 
         it('should work with MarkFacetList (type-safe payload access)', () => {
@@ -863,9 +876,11 @@ describe('Concrete FacetList Classes', () => {
                 createMarkFacetData('mark1', 'A dark room')
             ]);
             
-            // TypeScript should allow access to MarkFacetPayload properties
+            // TypeScript should allow access to MarkFacetPayload properties via toJSON()
             const item0 = list.items[0] as StandardMarkFacet;
-            expect(item0.payload.narrative).toBe('A dark room');
+            // For Mark facets, payload is a PlainClass with string data
+            const payload = item0.payload.toJSON();
+            expect(payload).toBe('A dark room');
         });
 
         // Type guard tests removed - concrete classes provide compile-time type safety
