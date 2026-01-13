@@ -1,6 +1,5 @@
 import { excludeUndefined } from "../../lib/lists"
-import { filterEditableTree, stripTagFromTree, wrappedNodeTypeGuard } from "../../schema/utils"
-import SchemaTagTree from "../../tagTree/schema"
+import { findTaggedChildren, stripTagFromTree } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
@@ -13,10 +12,7 @@ import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { AssetUUID, ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaExit, isSchemaFeature, isSchemaRoom, isSchemaShortName } from "@tonylb/mtw-base/ts/schema/components"
-import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaCharacter } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
+import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
 import { StandardLiteral } from "../literal"
 
@@ -63,13 +59,13 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
-            const shortNameNode = stripTagFromTree(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaShortName) }), 'ShortName')
+            const shortNameNode = stripTagFromTree(findTaggedChildren({ children: node.children, tag: 'ShortName' }), 'ShortName')
             this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode) : undefined
-            this._exits = filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaExit) }).map((exitData) => (StandardExit.create([exitData])))
-            this._lenses = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaLens) }).map(childReferenceFactory))
-            this._features = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaFeature) }).map(childReferenceFactory))
-            this._examples = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaExample) }).map(childReferenceFactory))
-            this._characters = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaCharacter) }).map(childReferenceFactory))
+            this._exits = findTaggedChildren({ children: node.children, tag: 'Exit' }).map((exitData) => (StandardExit.create([exitData])))
+            this._lenses = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Lens' }).map(childReferenceFactory))
+            this._features = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Feature' }).map(childReferenceFactory))
+            this._examples = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Example' }).map(childReferenceFactory))
+            this._characters = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Character' }).map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')

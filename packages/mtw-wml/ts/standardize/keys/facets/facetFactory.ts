@@ -163,17 +163,13 @@ export const facetClassFactory = <D>(
             return this._payloadInstance;
         }
 
-        get isReplace(): boolean {
-            return this.payload instanceof payloadClasses.ReplaceClass;
-        }
-
         // Core methods
         clone(): GeneratedFacetClass {
             return this._wrap(new GeneratedFacetClass(this));
         }
 
         toJSON(): StandardFacetData<D> | { tag: 'Replace'; match: StandardFacetData<D>; payload: StandardFacetData<D> } {
-            if (this.isReplace) {
+            if (this.payload instanceof payloadClasses.ReplaceClass) {
                 const replaceInstance = this.payload as InstanceType<typeof payloadClasses.ReplaceClass>;
                 const match = (replaceInstance as any).match;
                 const payload = (replaceInstance as any).payload;
@@ -202,10 +198,12 @@ export const facetClassFactory = <D>(
             if (this._reference.ref !== other._reference.ref) {
                 return false;
             }
-            if (this.isReplace !== other.isReplace) {
+            const thisIsReplace = this.payload instanceof payloadClasses.ReplaceClass;
+            const otherIsReplace = other.payload instanceof payloadClasses.ReplaceClass;
+            if (thisIsReplace !== otherIsReplace) {
                 return false;
             }
-            if (this.isReplace) {
+            if (thisIsReplace) {
                 // For Replace operations, compare both match and payload
                 const thisReplace = this.payload as InstanceType<typeof payloadClasses.ReplaceClass>;
                 const otherReplace = other.payload as InstanceType<typeof payloadClasses.ReplaceClass>;
@@ -334,7 +332,7 @@ export const facetClassFactory = <D>(
          * 
          * **Replace Operation Handling:**
          * 
-         * When a facet has `isReplace === true`, this method constructs the Replace structure in the
+         * When a facet's payload is a `ReplaceClass` instance, this method constructs the Replace structure in the
          * standard WML form where the reference node (e.g., Mark, Room) wraps the Replace/With tags,
          * which contain the payload content (not full reference nodes).
          * 
@@ -368,7 +366,7 @@ export const facetClassFactory = <D>(
          */
         renderFacet(referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
             // Handle Replace operations - use v2 instance's schema (already handles Replace wrapping)
-            if (this.isReplace) {
+            if (this.payload instanceof payloadClasses.ReplaceClass) {
                 // Get the base reference node structure (e.g., Mark, Room) from reference (for the outer wrapper)
                 let baseReferenceNode: GenericTreeNode<SchemaTag>;
                 if (referenceRender) {

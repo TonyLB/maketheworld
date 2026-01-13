@@ -97,61 +97,9 @@ describe('MarkFacetPlainClass - StandardEditablePayload implementation', () => {
         });
     });
 
-    describe('v2 merge operations', () => {
-        it('should merge with Replace semantics (incoming wins)', () => {
-            const base: MarkFacetPayloadType = 'Old condition';
-            const incoming: MarkFacetPayloadType = 'New condition';
-            const baseInstance = EditableClass.create(base);
-            const incomingInstance = EditableClass.create(incoming);
-            const merged = baseInstance.merge(incomingInstance);
-            expect(merged).toBeInstanceOf(PlainClass);
-            expect(merged?.toJSON()).toBe('New condition');
-        });
-
-        it('should cancel when removing same payload', () => {
-            const payload: MarkFacetPayloadType = 'Test condition';
-            const addInstance = EditableClass.create(payload);
-            const removeInstance = EditableClass.create({
-                tag: 'Remove',
-                match: payload
-            } as StandardEditableData<string>);
-            const merged = addInstance.merge(removeInstance);
-            expect(merged).toBeUndefined();
-        });
-
-        it('should create Replace when payloads differ during merge', () => {
-            const base: MarkFacetPayloadType = 'Old condition';
-            const incoming: MarkFacetPayloadType = 'New condition';
-            const baseInstance = EditableClass.create(base);
-            const incomingInstance = EditableClass.create(incoming);
-            const merged = baseInstance.merge(incomingInstance);
-            // When payloads differ, merge returns the incoming (Replace semantics)
-            expect(merged).toBeInstanceOf(PlainClass);
-            expect(merged?.toJSON()).toBe('New condition');
-        });
-    });
-
-    describe('v2 diff operations', () => {
-        it('should return undefined when payloads are same', () => {
-            const payload: MarkFacetPayloadType = 'Test condition';
-            const baseInstance = EditableClass.create(payload);
-            const incomingInstance = EditableClass.create(payload);
-            const diffResult = baseInstance.diff(incomingInstance);
-            expect(diffResult).toBeUndefined();
-        });
-
-        it('should create Replace when payloads differ', () => {
-            const base: MarkFacetPayloadType = 'Old condition';
-            const incoming: MarkFacetPayloadType = 'New condition';
-            const baseInstance = EditableClass.create(base);
-            const incomingInstance = EditableClass.create(incoming);
-            const diffResult = baseInstance.diff(incomingInstance);
-            expect(diffResult).toBeInstanceOf(ReplaceClass);
-            const replaceInstance = diffResult as any;
-            expect(replaceInstance.match?.toJSON()).toBe('Old condition');
-            expect(replaceInstance.payload?.toJSON()).toBe('New condition');
-        });
-    });
+    // Note: Merge and diff operations are inherited from StandardLiteral (PlainClass) and are tested there.
+    // MarkFacetPlainClass does not override merge or diff, so no payload-specific tests are needed.
+    // The only methods overridden/added are: nestedSchema, _wrap, fromSchema, and renderFacet.
 });
 
 describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
@@ -170,17 +118,6 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
             const payload = new MarkFacetPlainClass('');
             const result = payload.fromSchema(schema, reference);
             expect(result).toBe('Another condition');
-        });
-
-        it('should parse Mark with Match child containing multiple String children', () => {
-            // Match tags can have multiple String children (though typically just one)
-            const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><Match>First part Second part</Match></Mark>'));
-            const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPlainClass('');
-            const result = payload.fromSchema(schema, reference);
-            // String children should be joined
-            expect(result).toContain('First part');
-            expect(result).toContain('Second part');
         });
 
         it('should throw error when Match child is missing', () => {

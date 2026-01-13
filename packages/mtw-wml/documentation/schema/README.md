@@ -33,3 +33,23 @@ which takes all appearances of a specific context tag (by key), reorders it to p
 everything **but** the Descriptions (possibly including conditions), and aggregates that content. It takes the place of previous
 denormalizations that tried to keep a running tally of "How would you render this world-item, if someone looked at it?", instead
 depending on Schema manipulation tools to be able to efficiently assemble that from the source-of-truth tree.
+
+## Edit Tags
+
+Edit tags (`Remove` and `Replace`/`With`) have a special structure in schema trees that differs from their WML syntax:
+
+### Remove Tags
+- **WML**: `<Remove>content</Remove>`
+- **Schema**: `{ tag: 'Remove', children: [content nodes] }`
+- Structure is straightforward: Remove wraps the content to be removed.
+
+### Replace Tags
+- **WML**: `<Replace>oldcontent</Replace><With>newcontent</With>` (siblings)
+- **Schema**: `{ tag: 'Replace', children: [
+    { tag: 'ReplaceMatch', children: [old content] },
+    { tag: 'ReplacePayload', children: [new content] }
+  ]}`
+- The parser transforms sibling `<Replace>` and `<With>` tags into a parent `Replace` node containing `ReplaceMatch` and `ReplacePayload` as children.
+- When working with schema trees, look for `ReplaceMatch` and `ReplacePayload` as children of `Replace` nodes, not as siblings.
+
+This transformation is handled automatically by the converters in `schema/converters/edit.ts`. When serializing back to WML, the print map converts the schema structure back to the sibling form.

@@ -6,6 +6,7 @@ import {
     PositionFacetRemoveClass,
     PositionFacetReplaceClass
 } from './position';
+const ReplaceClass = PositionFacetReplaceClass;
 import { StandardFacetData, PositionPayload as PositionPayloadType } from './dataTypes/facet';
 import { StandardReferenceData } from '../dataTypes/reference';
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree';
@@ -62,7 +63,7 @@ describe('facetClassFactory', () => {
             const facet = new TestFacetClass(facetData);
             expect(facet.payload.toJSON()).toEqual(positionPayload);
             expect(facet.reference.key).toBe('room1');
-            expect(facet.isReplace).toBe(false);
+            expect(facet.payload instanceof ReplaceClass).toBe(false);
         });
 
         it('should construct from Replace JSON structure', () => {
@@ -80,7 +81,7 @@ describe('facetClassFactory', () => {
                 payload: payloadData
             };
             const facet = new TestFacetClass(replaceData);
-            expect(facet.isReplace).toBe(true);
+            expect(facet.payload instanceof ReplaceClass).toBe(true);
             // For Replace operations, payload is a ReplaceClass with match and payload properties
             const replaceInstance = facet.payload as any;
             expect(replaceInstance.match?.toJSON()).toEqual(matchData.payload);
@@ -124,7 +125,7 @@ describe('facetClassFactory', () => {
             // For non-Replace operations, payload is a PlainClass
             expect(facet.payload.toJSON().x).toBe(10);
             expect(facet.payload.toJSON().y).toBe(20);
-            expect(facet.isReplace).toBe(false);
+            expect(facet.payload instanceof ReplaceClass).toBe(false);
             // No matchPayload property anymore - Replace is encoded in payload instance
             expect(facet.payload instanceof PositionFacetPlainClass).toBe(true);
         });
@@ -258,7 +259,7 @@ describe('facetClassFactory', () => {
             const facet2 = new TestFacetClass(facetData2);
             const merged = facet1.merge(facet2);
             expect(merged).toBeDefined();
-            expect(merged?.isReplace).toBe(true);
+            expect(merged?.payload instanceof ReplaceClass).toBe(true);
             // For Replace operations, payload is a ReplaceClass
             const replaceInstance = merged?.payload as any;
             expect(replaceInstance.match?.toJSON()).toEqual({ x: 10, y: 20 });
@@ -306,7 +307,7 @@ describe('facetClassFactory', () => {
             const facet2 = new TestFacetClass(facetData2);
             const diff = facet1.diff(facet2);
             expect(diff).toBeDefined();
-            expect(diff?.isReplace).toBe(true);
+            expect(diff?.payload instanceof ReplaceClass).toBe(true);
             // For Replace operations, payload is a ReplaceClass
             const replaceInstance = diff?.payload as any;
             expect(replaceInstance.match?.toJSON()).toEqual({ x: 10, y: 20 });
@@ -342,7 +343,7 @@ describe('facetClassFactory', () => {
             };
             const facet = new TestFacetClass(replaceData);
             const inverted = facet.invert();
-            expect(inverted.isReplace).toBe(true);
+            expect(inverted.payload instanceof ReplaceClass).toBe(true);
             // For Replace operations, payload is a ReplaceClass
             const replaceInstance = inverted.payload as any;
             expect(replaceInstance.match).toBeDefined();
@@ -431,7 +432,7 @@ describe('facetClassFactory', () => {
             };
             const facet = new TestFacetClass(replaceData);
             const formatted = facet.toFormat('universal');
-            expect(formatted.isReplace).toBe(true);
+            expect(formatted.payload instanceof ReplaceClass).toBe(true);
         });
     });
 
@@ -448,7 +449,7 @@ describe('facetClassFactory', () => {
                 expect(facet.payload.toJSON().y).toBe(20);
                 expect(facet.reference.key).toBe('room1');
                 expect(facet.reference.universalKey).toBe('ROOM#test123');
-                expect(facet.isReplace).toBe(false);
+                expect(facet.payload instanceof ReplaceClass).toBe(false);
             });
 
             it('should construct from GenericTree<SchemaTag> (plain facet)', () => {
@@ -462,7 +463,7 @@ describe('facetClassFactory', () => {
                 expect(facet.payload.y).toBe(25);
                 expect(facet.reference.key).toBe('room1');
                 expect(facet.reference.universalKey).toBe('ROOM#test123');
-                expect(facet.isReplace).toBe(false);
+                expect(facet.payload instanceof ReplaceClass).toBe(false);
             });
         });
 
@@ -481,7 +482,7 @@ describe('facetClassFactory', () => {
                     </With>
                 `);
                 const facet = new TestFacetClass(wml);
-                expect(facet.isReplace).toBe(true);
+                expect(facet.payload instanceof ReplaceClass).toBe(true);
                 // For Replace operations, payload is a ReplaceClass
                 const replaceInstance = facet.payload as any;
                 expect(replaceInstance.match?.toJSON().x).toBe(5);
@@ -506,7 +507,7 @@ describe('facetClassFactory', () => {
                     </With>
                 `));
                 const facet = new TestFacetClass(schema);
-                expect(facet.isReplace).toBe(true);
+                expect(facet.payload instanceof ReplaceClass).toBe(true);
                 // For Replace operations, payload is a ReplaceClass
                 const replaceInstance = facet.payload as any;
                 expect(replaceInstance.match?.toJSON().x).toBe(5);

@@ -1,8 +1,8 @@
 import { StandardReference } from '../reference';
 import { PositionPayload, MarkFacetPayload, ExitPayload } from './dataTypes/facet';
-import { PositionFacetPlainClass, StandardPositionFacet } from './position';
-import { MarkFacetPlainClass, StandardMarkFacet } from './mark';
-import { ExitFacetPlainClass, StandardExitFacet } from './exit';
+import { PositionFacetPlainClass, StandardPositionFacet, PositionFacetReplaceClass } from './position';
+import { MarkFacetPlainClass, StandardMarkFacet, MarkFacetReplaceClass } from './mark';
+import { ExitFacetPlainClass, StandardExitFacet, ExitFacetReplaceClass } from './exit';
 import { treeFromWML, schemaToWML } from '../../../schema';
 import { deIndentWML } from '../../../schema/utils';
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
@@ -476,7 +476,7 @@ describe('Facet Integration Tests', () => {
             const replaceFacet = matchFacet.merge(payloadFacet);
 
             expect(replaceFacet).toBeDefined();
-            expect(replaceFacet!.isReplace).toBe(true);
+            expect(replaceFacet!.payload instanceof PositionFacetReplaceClass).toBe(true);
 
             const result = replaceFacet!.renderFacet();
 
@@ -499,7 +499,7 @@ describe('Facet Integration Tests', () => {
             const replaceFacet = matchFacet.merge(payloadFacet);
 
             expect(replaceFacet).toBeDefined();
-            expect(replaceFacet!.isReplace).toBe(true);
+            expect(replaceFacet!.payload instanceof MarkFacetReplaceClass).toBe(true);
 
             const result = replaceFacet!.renderFacet();
 
@@ -522,7 +522,7 @@ describe('Facet Integration Tests', () => {
             const replaceFacet = matchFacet.merge(payloadFacet);
 
             expect(replaceFacet).toBeDefined();
-            expect(replaceFacet!.isReplace).toBe(true);
+            expect(replaceFacet!.payload instanceof ExitFacetReplaceClass).toBe(true);
 
             const result = replaceFacet!.renderFacet();
 

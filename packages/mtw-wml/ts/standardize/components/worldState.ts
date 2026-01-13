@@ -1,5 +1,5 @@
 import { excludeUndefined } from "../../lib/lists"
-import { filterEditableTree, wrappedNodeTypeGuard } from "../../schema/utils"
+import { findTaggedChildren, wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
@@ -201,7 +201,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
                 .tree
                 .filter(wrappedNodeTypeGuard(isSchemaOutputTag))
             this._description = descriptionItem.length ? new StandardRender(descriptionItem) : undefined
-            this._marks = new ReferenceList(filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaMark) }).map(childReferenceFactory))
+            this._marks = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Mark' }).map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardLens constructor')

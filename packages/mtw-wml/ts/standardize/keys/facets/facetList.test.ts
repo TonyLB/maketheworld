@@ -1,5 +1,5 @@
-import { PositionFacetList, StandardPositionFacet } from './position';
-import { MarkFacetList, StandardMarkFacet } from './mark';
+import { PositionFacetList, StandardPositionFacet, PositionFacetReplaceClass } from './position';
+import { MarkFacetList, StandardMarkFacet, MarkFacetReplaceClass } from './mark';
 import { PositionPayload, MarkFacetPayload, ExitPayload, StandardFacetData } from './dataTypes/facet';
 import { StandardReferenceData } from '../dataTypes/reference';
 import { ComponentTag } from '../../components/dataTypes/abstract';
@@ -89,7 +89,7 @@ describe('Concrete FacetList Classes', () => {
             const list = new PositionFacetList([replaceData]);
             expect(list.length).toBe(1);
             const item0 = list.items[0] as StandardPositionFacet;
-            expect(item0.isReplace).toBe(true);
+            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
             // For Replace operations, payload is a ReplaceClass
             const replaceInstance = item0.payload as any;
             expect(replaceInstance.payload?.toJSON()).toEqual({ x: 10, y: 20 });
@@ -175,7 +175,7 @@ describe('Concrete FacetList Classes', () => {
             
             const list = new PositionFacetList([replaceData]);
             const item0 = list.items[0] as StandardPositionFacet;
-            expect(item0.isReplace).toBe(true);
+            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
             const json = list.toJSON();
             expect(json[0]).toHaveProperty('tag', 'Replace');
         });
@@ -368,7 +368,7 @@ describe('Concrete FacetList Classes', () => {
             expect(merged!.length).toBe(1);
             const item0 = merged!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(3); // 1 + 2
-            expect(item0.isReplace).toBe(false);
+            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(false);
         });
 
         it('should merge lists with matching keys and different payload (creates Replace operation)', () => {
@@ -385,7 +385,7 @@ describe('Concrete FacetList Classes', () => {
             expect(merged).toBeDefined();
             expect(merged!.length).toBe(1);
             const item0 = merged!.items[0] as StandardPositionFacet;
-            expect(item0.isReplace).toBe(true);
+            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
             // For Replace operations, payload is a ReplaceClass
             const replaceInstance = item0.payload as any;
             expect(replaceInstance.payload?.toJSON()).toEqual({ x: 10, y: 20 });
@@ -438,7 +438,7 @@ describe('Concrete FacetList Classes', () => {
             const merged = base.merge(incoming);
             expect(merged).toBeDefined();
             const item0 = merged!.items[0] as StandardPositionFacet;
-            expect(item0.isReplace).toBe(true);
+            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
             expect(item0.payload.toJSON()).toEqual({ x: 15, y: 25 });
         });
 
@@ -499,7 +499,7 @@ describe('Concrete FacetList Classes', () => {
             expect(diff!.length).toBe(1);
             const item0 = diff!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(1); // 2 - 1
-            expect(item0.isReplace).toBe(false);
+            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(false);
         });
 
         it('should diff lists with matching keys and different payload (creates Replace operation)', () => {
@@ -516,7 +516,7 @@ describe('Concrete FacetList Classes', () => {
             expect(diff).toBeDefined();
             expect(diff!.length).toBe(1);
             const item0 = diff!.items[0] as StandardPositionFacet;
-            expect(item0.isReplace).toBe(true);
+            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
             // For Replace operations, payload is a ReplaceClass
             const replaceInstance = item0.payload as any;
             expect(replaceInstance.payload?.toJSON()).toEqual({ x: 10, y: 20 });
@@ -622,7 +622,7 @@ describe('Concrete FacetList Classes', () => {
             // Note: Current implementation keeps match and payload the same when inverting Replace
             // The reference is inverted (ref arithmetic), but Replace match/payload are preserved
             const item0 = inverted.items[0] as StandardPositionFacet;
-            expect(item0.isReplace).toBe(true);
+            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
             // For Replace operations, payload is a ReplaceClass
             const replaceInstance = item0.payload as any;
             expect(replaceInstance.payload?.toJSON()).toEqual(payloadData.payload);
@@ -769,12 +769,12 @@ describe('Concrete FacetList Classes', () => {
             const merged = base.merge(incoming);
             expect(merged).toBeDefined();
             const mergedItem0 = merged!.items[0] as StandardPositionFacet;
-            expect(mergedItem0.isReplace).toBe(true);
+            expect(mergedItem0.payload instanceof PositionFacetReplaceClass).toBe(true);
             
             const diff = base.diff(incoming);
             expect(diff).toBeDefined();
             const diffItem0 = diff!.items[0] as StandardPositionFacet;
-            expect(diffItem0.isReplace).toBe(true);
+            expect(diffItem0.payload instanceof PositionFacetReplaceClass).toBe(true);
         });
 
         it('should combine ref-based Add/Remove with payload Replace logic', () => {
@@ -792,7 +792,7 @@ describe('Concrete FacetList Classes', () => {
             // Ref cancels (1 + -1 = 0), but payloads differ, so should create Replace
             expect(merged).toBeDefined();
             const item0 = merged!.items[0] as StandardPositionFacet;
-            expect(item0.isReplace).toBe(true);
+            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
         });
 
         it('should invert both ref operations and Replace operations', () => {
@@ -821,7 +821,7 @@ describe('Concrete FacetList Classes', () => {
             
             const invertedReplace = replaceList.invert();
             const replaceItem0 = invertedReplace.items[0] as StandardPositionFacet;
-            expect(replaceItem0.isReplace).toBe(true);
+            expect(replaceItem0.payload instanceof PositionFacetReplaceClass).toBe(true);
             // Note: Current implementation preserves match/payload order when inverting Replace
             // The reference ref is inverted, but Replace match/payload are kept as-is
             // For Replace operations, payload is a ReplaceClass
