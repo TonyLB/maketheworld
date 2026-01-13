@@ -58,7 +58,7 @@ export interface FacetPayloadBase<TPayload> {
      * 
      * 2. **Replace operations**:
      *    - Replace operations are handled at the `StandardFacet` level (via `facetFactory.ts`), not in individual payload classes
-     *    - When a facet has `isReplace === true`, `StandardFacet.renderFacet()` constructs the Replace structure:
+     *    - When a facet's payload is a `ReplaceClass` instance, `StandardFacet.renderFacet()` constructs the Replace structure:
      *      `<ReferenceNode><Replace><ReplaceMatch>old payload</ReplaceMatch><ReplacePayload>new payload</ReplacePayload></Replace></ReferenceNode>`
      *    - Payload classes should not handle Replace operations directly; they only handle Remove operations
      * 

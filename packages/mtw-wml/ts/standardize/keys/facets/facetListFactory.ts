@@ -23,7 +23,6 @@ export interface FacetListItem {
     toFormat(format: ReferenceFormat): this;
     lookup(mappings: LookupMappings): this;
     readonly reference: { mapContents(callback: (data: any) => any): any; toJSON(): any };
-    readonly isReplace?: boolean;
     readonly matchPayload?: any;
 }
 

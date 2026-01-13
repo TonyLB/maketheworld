@@ -11,15 +11,13 @@ import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
 import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState"
-import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { StandardExplicitParent } from "../explicit"
 import { MarkFacetList, StandardMarkFacet, MarkFacetPlainClass as MarkFacetPayloadClass } from "../keys/facets/mark"
-import { findTaggedChildren } from "../../schema/utils"
+import { findTaggedChildren, recurseIntoEditable } from "../../schema/utils"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
@@ -68,16 +66,14 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             // findTaggedChildren handles Remove and Replace wrappers automatically
             const markNodes = findTaggedChildren({ children: node.children, tag: 'Mark' })
             
-            // Helper function to recursively check if a node contains Match children
-            // Uses findTaggedChildren to handle Remove and Replace wrappers automatically
+            // Helper function to check if a node contains Match children
+            // Uses recurseIntoEditable to unwrap edit wrappers, then checks each content node for Match children
             const hasMatchChild = (node: GenericTreeNode<SchemaTag>): boolean => {
-                // Use findTaggedChildren to find Match children (handles Remove/Replace wrappers)
-                const matchChildren = findTaggedChildren({ children: node.children, tag: 'Match' })
-                if (matchChildren.length > 0) {
-                    return true
-                }
-                // Recursively check nested structures (e.g., nested Mark nodes)
-                return node.children.some(hasMatchChild)
+                return recurseIntoEditable(node, (contentNode) => {
+                    // Check if this content node has Match children
+                    const matchChildren = findTaggedChildren({ children: contentNode.children, tag: 'Match' })
+                    return matchChildren.length > 0
+                }).some(result => result)
             }
             
             const parsedFacets = markNodes
