@@ -129,3 +129,4 @@ export const stripTagFromTree = (tree: GenericTree<SchemaTag>, tag: SchemaTag["t
 }
 
 export { findTaggedChildren } from './findTaggedChildren'
+export { recurseIntoEditable } from './recurseIntoEditable'

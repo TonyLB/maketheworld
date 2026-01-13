@@ -11,15 +11,15 @@ import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
 import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState"
-import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState"
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { StandardExplicitParent } from "../explicit"
 import { MarkFacetList, StandardMarkFacet, MarkFacetPlainClass as MarkFacetPayloadClass } from "../keys/facets/mark"
-import { filterEditableTree } from "../../schema/utils"
+import { findTaggedChildren } from "../../schema/utils"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
@@ -65,35 +65,23 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             }
             
             // Parse Mark facets (only Marks with Match children)
-            const markNodes = filterEditableTree({ tree: node.children, typeguard: treeNodeTypeguard(isSchemaMark) })
+            // findTaggedChildren handles Remove and Replace wrappers automatically
+            const markNodes = findTaggedChildren({ children: node.children, tag: 'Mark' })
+            
+            // Helper function to recursively check if a node contains Match children
+            // Uses findTaggedChildren to handle Remove and Replace wrappers automatically
+            const hasMatchChild = (node: GenericTreeNode<SchemaTag>): boolean => {
+                // Use findTaggedChildren to find Match children (handles Remove/Replace wrappers)
+                const matchChildren = findTaggedChildren({ children: node.children, tag: 'Match' })
+                if (matchChildren.length > 0) {
+                    return true
+                }
+                // Recursively check nested structures (e.g., nested Mark nodes)
+                return node.children.some(hasMatchChild)
+            }
+            
             const parsedFacets = markNodes
-                .filter(markNode => {
-                    // Check for Match children either directly or nested in ReplaceMatch/ReplacePayload
-                    const hasDirectMatch = markNode.children.some(treeNodeTypeguard(isSchemaMatch));
-                    // Check for ReplaceMatch/ReplacePayload as direct children
-                    const hasMatchInReplaceMatch = markNode.children.some(child => 
-                        treeNodeTypeguard(isSchemaReplaceMatch)(child) && 
-                        child.children.some(treeNodeTypeguard(isSchemaMatch))
-                    );
-                    const hasMatchInReplacePayload = markNode.children.some(child => 
-                        treeNodeTypeguard(isSchemaReplacePayload)(child) && 
-                        child.children.some(treeNodeTypeguard(isSchemaMatch))
-                    );
-                    // Check for Match nested inside a Replace wrapper (Replace contains ReplaceMatch/ReplacePayload)
-                    const hasMatchInReplaceWrapper = markNode.children.some(replaceChild => {
-                        if (treeNodeTypeguard(isSchemaReplace)(replaceChild)) {
-                            return replaceChild.children.some(child => {
-                                if (treeNodeTypeguard(isSchemaReplaceMatch)(child) || treeNodeTypeguard(isSchemaReplacePayload)(child)) {
-                                    return child.children.some(treeNodeTypeguard(isSchemaMatch));
-                                }
-                                return false;
-                            });
-                        }
-                        return false;
-                    });
-                    const hasMatch = hasDirectMatch || hasMatchInReplaceMatch || hasMatchInReplacePayload || hasMatchInReplaceWrapper;
-                    return hasMatch;
-                })
+                .filter(hasMatchChild)
                 .map(markNode => {
                     // Create StandardMarkFacet directly from schema - it will handle Replace/Remove/Plain dispatch
                     // StandardMarkFacet constructor accepts GenericTree<SchemaTag> and handles parsing internally
