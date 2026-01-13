@@ -414,7 +414,7 @@ export class StandardExitFacet extends facetClassFactory(
     exitReferenceFactory
 ) {
     constructor(
-        props: StandardFacetData<ExitPayloadType> | StandardExitFacet | { tag: 'Replace'; match: StandardFacetData<ExitPayloadType>; payload: StandardFacetData<ExitPayloadType> } | GenericTree<SchemaTag> | string
+        props: StandardFacetData<ExitPayloadType> | StandardExitFacet | GenericTree<SchemaTag> | string
     ) {
         super(props);
     }

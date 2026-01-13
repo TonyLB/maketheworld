@@ -82,18 +82,13 @@ describe('StandardFacet (concrete classes)', () => {
         });
 
         it('should construct from Replace JSON structure', () => {
-            const matchData: StandardFacetData<PositionPayload> = {
+            const replaceData: StandardFacetData<PositionPayload> = {
                 reference: validReference,
-                payload: { x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayload> = {
-                reference: validReference,
-                payload: positionPayload
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: positionPayload
+                }
             };
             const facet = new StandardPositionFacet(replaceData);
             expect(facet.payload instanceof PositionFacetReplaceClass).toBe(true);

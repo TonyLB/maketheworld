@@ -36,28 +36,12 @@ export const facetClassFactory = <D>(
         _payloadInstance: InstanceType<typeof payloadClasses.PlainClass> | InstanceType<typeof payloadClasses.RemoveClass> | InstanceType<typeof payloadClasses.ReplaceClass>;
 
         constructor(
-            arg: StandardFacetData<D> | GeneratedFacetClass | { tag: 'Replace'; match: StandardFacetData<D>; payload: StandardFacetData<D> } | GenericTree<SchemaTag> | string
+            arg: StandardFacetData<D> | GeneratedFacetClass | GenericTree<SchemaTag> | string
         ) {
             // Handle GeneratedFacetClass instance (cloning)
             if (arg instanceof GeneratedFacetClass) {
                 this._reference = arg._reference.clone();
                 this._payloadInstance = arg.payload.clone() as any;
-                return;
-            }
-
-            // Transform facet-level Replace to payload-level Replace
-            // Input: { tag: 'Replace', match: StandardFacetData, payload: StandardFacetData }
-            // Output: Extract reference from payload side, then push Replace structure down to payload level
-            if (typeof arg === 'object' && arg !== null && 'tag' in arg && arg.tag === 'Replace' && 'match' in arg && 'payload' in arg) {
-                const replaceData = arg as { tag: 'Replace'; match: StandardFacetData<D>; payload: StandardFacetData<D> };
-                this._reference = new StandardReference(replaceData.payload.reference);
-                // Construct payload-level Replace structure: { tag: 'Replace', match: <inner payload>, payload: <inner payload> }
-                // This allows createPayload to dispatch to the correct ReplaceClass
-                this._payloadInstance = createPayload({
-                    tag: 'Replace',
-                    match: replaceData.match.payload,
-                    payload: replaceData.payload.payload
-                });
                 return;
             }
 
@@ -126,7 +110,7 @@ export const facetClassFactory = <D>(
                 return;
             }
 
-            throw new Error(`Invalid argument to ${label} constructor: expected StandardFacetData, Replace structure, GeneratedFacetClass instance, WML string, or GenericTree<SchemaTag>, got ${JSON.stringify(arg)}`);
+            throw new Error(`Invalid argument to ${label} constructor: expected StandardFacetData, GeneratedFacetClass instance, WML string, or GenericTree<SchemaTag>, got ${JSON.stringify(arg)}`);
         }
 
         _wrap(instance: GeneratedFacetClass): this {

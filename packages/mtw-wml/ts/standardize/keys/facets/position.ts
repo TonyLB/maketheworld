@@ -471,7 +471,7 @@ export class StandardPositionFacet extends facetClassFactory(
     'PositionFacet'
 ) {
     constructor(
-        props: StandardFacetData<PositionPayloadType> | StandardPositionFacet | { tag: 'Replace'; match: StandardFacetData<PositionPayloadType>; payload: StandardFacetData<PositionPayloadType> } | GenericTree<SchemaTag> | string
+        props: StandardFacetData<PositionPayloadType> | StandardPositionFacet | GenericTree<SchemaTag> | string
     ) {
         super(props);
     }

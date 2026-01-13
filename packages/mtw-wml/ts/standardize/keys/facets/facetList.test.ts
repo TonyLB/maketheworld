@@ -72,18 +72,13 @@ describe('Concrete FacetList Classes', () => {
         });
 
         it('should construct from array with Replace operations', () => {
-            const matchData: StandardFacetData<PositionPayload> = {
+            const replaceData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayload> = {
-                reference: createReference('room1', 'Room'),
-                payload: { x: 10, y: 20 }
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: { x: 10, y: 20 }
+                }
             };
             
             const list = new PositionFacetList([replaceData]);
@@ -159,18 +154,13 @@ describe('Concrete FacetList Classes', () => {
         });
 
         it('should preserve Replace operations during normalization', () => {
-            const matchData: StandardFacetData<PositionPayload> = {
+            const replaceData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayload> = {
-                reference: createReference('room1', 'Room'),
-                payload: { x: 10, y: 20 }
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: { x: 10, y: 20 }
+                }
             };
             
             const list = new PositionFacetList([replaceData]);
@@ -242,18 +232,13 @@ describe('Concrete FacetList Classes', () => {
         });
 
         it('should serialize Replace operations correctly', () => {
-            const matchData: StandardFacetData<PositionPayload> = {
+            const replaceData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayload> = {
-                reference: createReference('room1', 'Room'),
-                payload: { x: 10, y: 20 }
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: { x: 10, y: 20 }
+                }
             };
             
             const list = new PositionFacetList([replaceData]);
@@ -545,18 +530,13 @@ describe('Concrete FacetList Classes', () => {
         });
 
         it('should invert list with Replace operations', () => {
-            const matchData: StandardFacetData<PositionPayload> = {
+            const replaceData: StandardFacetData<PositionPayload> = {
                 reference: createReference('room1', 'Room'),
-                payload: { x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayload> = {
-                reference: createReference('room1', 'Room'),
-                payload: { x: 10, y: 20 }
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: { x: 10, y: 20 }
+                }
             };
             
             const list = new PositionFacetList([replaceData]);
@@ -567,9 +547,10 @@ describe('Concrete FacetList Classes', () => {
             const item0 = inverted.items[0] as StandardPositionFacet;
             expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
             // For Replace operations, payload is a ReplaceClass
+            // Invert swaps match and payload: "Replace A with B" becomes "Replace B with A"
             const replaceInstance = item0.payload as any;
-            expect(replaceInstance.payload?.toJSON()).toEqual(payloadData.payload);
-            expect(replaceInstance.match?.toJSON()).toEqual(matchData.payload);
+            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 5, y: 10 });  // Original match becomes payload
+            expect(replaceInstance.match?.toJSON()).toEqual({ x: 10, y: 20 });   // Original payload becomes match
         });
 
         it('should invert list with mixed operations', () => {
@@ -708,18 +689,13 @@ describe('Concrete FacetList Classes', () => {
             expect(invertedItem0.ref).toBe(-1);
             
             // Test Replace inversion
-            const matchData: StandardFacetData<PositionPayload> = {
-                reference: createReference('room2', 'Room'),
-                payload: { x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayload> = {
-                reference: createReference('room2', 'Room'),
-                payload: { x: 10, y: 20 }
-            };
             const replaceList = new PositionFacetList([{
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
+                reference: createReference('room2', 'Room'),
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: { x: 10, y: 20 }
+                }
             }]);
             
             const invertedReplace = replaceList.invert();

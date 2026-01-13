@@ -67,25 +67,20 @@ describe('facetClassFactory', () => {
         });
 
         it('should construct from Replace JSON structure', () => {
-            const matchData: StandardFacetData<PositionPayloadType> = {
+            const replaceData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayloadType> = {
-                reference: validReference,
-                payload: positionPayload
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: positionPayload
+                }
             };
             const facet = new TestFacetClass(replaceData);
             expect(facet.payload instanceof ReplaceClass).toBe(true);
             // For Replace operations, payload is a ReplaceClass with match and payload properties
             const replaceInstance = facet.payload as any;
-            expect(replaceInstance.match?.toJSON()).toEqual(matchData.payload);
-            expect(replaceInstance.payload?.toJSON()).toEqual(payloadData.payload);
+            expect(replaceInstance.match?.toJSON()).toEqual({ x: 5, y: 10 });
+            expect(replaceInstance.payload?.toJSON()).toEqual(positionPayload);
         });
 
         it('should clone from another facet instance', () => {
@@ -166,18 +161,13 @@ describe('facetClassFactory', () => {
         });
 
         it('should serialize Replace operations correctly', () => {
-            const matchData: StandardFacetData<PositionPayloadType> = {
+            const replaceData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayloadType> = {
-                reference: validReference,
-                payload: positionPayload
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: positionPayload
+                }
             };
             const facet = new TestFacetClass(replaceData);
             const json = facet.toJSON();
@@ -291,18 +281,13 @@ describe('facetClassFactory', () => {
         });
 
         it('should preserve Replace state when inverting', () => {
-            const matchData: StandardFacetData<PositionPayloadType> = {
+            const replaceData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayloadType> = {
-                reference: validReference,
-                payload: positionPayload
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: positionPayload
+                }
             };
             const facet = new TestFacetClass(replaceData);
             const inverted = facet.invert();
@@ -327,18 +312,13 @@ describe('facetClassFactory', () => {
         });
 
         it('should handle Replace operations', () => {
-            const matchData: StandardFacetData<PositionPayloadType> = {
+            const replaceData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayloadType> = {
-                reference: validReference,
-                payload: positionPayload
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: positionPayload
+                }
             };
             const facet = new TestFacetClass(replaceData);
             const result = facet.renderFacet();
@@ -380,18 +360,13 @@ describe('facetClassFactory', () => {
         });
 
         it('should preserve Replace state in toFormat', () => {
-            const matchData: StandardFacetData<PositionPayloadType> = {
+            const replaceData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
-                payload: { x: 5, y: 10 }
-            };
-            const payloadData: StandardFacetData<PositionPayloadType> = {
-                reference: validReference,
-                payload: positionPayload
-            };
-            const replaceData = {
-                tag: 'Replace' as const,
-                match: matchData,
-                payload: payloadData
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: positionPayload
+                }
             };
             const facet = new TestFacetClass(replaceData);
             const formatted = facet.toFormat('universal');

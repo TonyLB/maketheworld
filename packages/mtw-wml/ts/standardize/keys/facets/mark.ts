@@ -498,7 +498,7 @@ export class StandardMarkFacet extends facetClassFactory(
     'MarkFacet'
 ) {
     constructor(
-        props: StandardFacetData<MarkFacetPayloadType> | StandardMarkFacet | { tag: 'Replace'; match: StandardFacetData<MarkFacetPayloadType>; payload: StandardFacetData<MarkFacetPayloadType> } | GenericTree<SchemaTag> | string
+        props: StandardFacetData<MarkFacetPayloadType> | StandardMarkFacet | GenericTree<SchemaTag> | string
     ) {
         super(props);
     }
