@@ -35,5 +35,39 @@ const semanticallyRepresentsTag = (node: GenericTreeNode<SchemaTag>, tag: Schema
 // even if they are wrapped in Remove or Replace tags. Wrappers are preserved in the results.
 //
 export const findTaggedChildren = (args: { children: GenericTree<SchemaTag>, tag: SchemaTag["tag"] }): GenericTree<SchemaTag> => {
-    return args.children.filter(node => semanticallyRepresentsTag(node, args.tag))
+    return args.children
+        .filter(node => semanticallyRepresentsTag(node, args.tag))
+        .map(node => {
+            // If this is a Remove node containing the target tag, filter its children to only include matching ones
+            if (treeNodeTypeguard(isSchemaRemove)(node)) {
+                const matchingChildren = node.children.filter(child => child.data.tag === args.tag)
+                if (matchingChildren.length > 0) {
+                    return {
+                        data: node.data,
+                        children: matchingChildren
+                    }
+                }
+            }
+            // If this is a Replace node containing the target tag, filter ReplaceMatch/ReplacePayload children
+            // Note: We preserve both ReplaceMatch and ReplacePayload even if empty, to maintain valid Replace structure
+            if (treeNodeTypeguard(isSchemaReplace)(node)) {
+                const filteredChildren = node.children.map(child => {
+                    if (treeNodeTypeguard(isSchemaReplaceMatch)(child) || treeNodeTypeguard(isSchemaReplacePayload)(child)) {
+                        const matchingGrandchildren = child.children.filter(grandchild => grandchild.data.tag === args.tag)
+                        // Always preserve ReplaceMatch/ReplacePayload structure, even if empty
+                        return {
+                            data: child.data,
+                            children: matchingGrandchildren
+                        }
+                    }
+                    return child
+                })
+                return {
+                    data: node.data,
+                    children: filteredChildren
+                }
+            }
+            // For direct matches, return as-is
+            return node
+        })
 }
