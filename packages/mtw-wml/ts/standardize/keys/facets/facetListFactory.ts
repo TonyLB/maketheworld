@@ -19,7 +19,7 @@ export interface FacetListItem {
     invert(): this;
     equals(other: this): boolean;
     // Payload type is specific to each facet list (string, {x,y}, string|undefined) - use any in interface
-    toJSON(): StandardFacetData<any> | { tag: 'Replace'; match: StandardFacetData<any>; payload: StandardFacetData<any> };
+    toJSON(): StandardFacetData<any>;
     toFormat(format: ReferenceFormat): this;
     lookup(mappings: LookupMappings): this;
     readonly reference: { mapContents(callback: (data: any) => any): any; toJSON(): any };
@@ -109,31 +109,11 @@ export const facetListClassFactory = <
 
                     // Reconstruct facet with normalized reference
                     const facetJSON = item.toJSON();
-                    if (typeof facetJSON === 'object' && facetJSON !== null && 'tag' in facetJSON && facetJSON.tag === 'Replace') {
-                        // Handle Replace operations
-                        const replaceData = facetJSON as { tag: 'Replace'; match: StandardFacetData<any>; payload: StandardFacetData<any> };
-                        const normalizedMatch: StandardFacetData<any> = {
-                            reference: normalizedReference.toJSON(),
-                            payload: replaceData.match.payload
-                        };
-                        const normalizedPayload: StandardFacetData<any> = {
-                            reference: normalizedReference.toJSON(),
-                            payload: replaceData.payload.payload
-                        };
-                        return new FacetClass({
-                            tag: 'Replace' as const,
-                            match: normalizedMatch,
-                            payload: normalizedPayload
-                        }) as InstanceType<TBase>;
-                    } else {
-                        // Handle plain facets
-                        const facetData = facetJSON as StandardFacetData<any>;
-                        const normalizedFacetData: StandardFacetData<any> = {
-                            reference: normalizedReference.toJSON(),
-                            payload: facetData.payload
-                        };
-                        return new FacetClass(normalizedFacetData) as InstanceType<TBase>;
-                    }
+                    const normalizedFacetData: StandardFacetData<any> = {
+                        reference: normalizedReference.toJSON(),
+                        payload: facetJSON.payload  // Already in correct format (may contain Replace)
+                    };
+                    return new FacetClass(normalizedFacetData) as InstanceType<TBase>;
                 });
                 return;
             }

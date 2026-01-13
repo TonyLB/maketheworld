@@ -168,23 +168,7 @@ export const facetClassFactory = <D>(
             return this._wrap(new GeneratedFacetClass(this));
         }
 
-        toJSON(): StandardFacetData<D> | { tag: 'Replace'; match: StandardFacetData<D>; payload: StandardFacetData<D> } {
-            if (this.payload instanceof payloadClasses.ReplaceClass) {
-                const replaceInstance = this.payload as InstanceType<typeof payloadClasses.ReplaceClass>;
-                const match = (replaceInstance as any).match;
-                const payload = (replaceInstance as any).payload;
-                return {
-                    tag: 'Replace' as const,
-                    match: {
-                        reference: this._reference.toJSON(),
-                        payload: match?.toJSON() ?? match
-                    },
-                    payload: {
-                        reference: this._reference.toJSON(),
-                        payload: payload?.toJSON() ?? payload
-                    }
-                };
-            }
+        toJSON(): StandardFacetData<D> {
             return {
                 reference: this._reference.toJSON(),
                 payload: this.payload.toJSON()

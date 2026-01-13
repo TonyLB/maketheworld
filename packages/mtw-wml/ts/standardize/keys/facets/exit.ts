@@ -219,17 +219,6 @@ class ExitFacetReplaceClass extends ReplaceClass {
         return value === '' ? undefined : value;
     }
     
-    override toJSON(): any {
-        const literalJSON = super.toJSON();
-        if (literalJSON && typeof literalJSON === 'object' && 'tag' in literalJSON && literalJSON.tag === 'Replace' && 'match' in literalJSON && 'payload' in literalJSON) {
-            return {
-                tag: 'Replace' as const,
-                match: ExitFacetReplaceClass.denormalizeFromLiteral(literalJSON.match),
-                payload: ExitFacetReplaceClass.denormalizeFromLiteral(literalJSON.payload)
-            };
-        }
-        return literalJSON;
-    }
     
     // Override _wrap to convert base class instances to appropriate extended facet classes
     override _wrap(instance: any): ExitFacetPlainClass | ExitFacetRemoveClass | ExitFacetReplaceClass {

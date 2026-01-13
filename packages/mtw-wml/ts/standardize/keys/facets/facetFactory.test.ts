@@ -181,11 +181,14 @@ describe('facetClassFactory', () => {
             };
             const facet = new TestFacetClass(replaceData);
             const json = facet.toJSON();
-            expect(json).toHaveProperty('tag', 'Replace');
-            if ('tag' in json && json.tag === 'Replace') {
-                expect(json.match).toEqual(matchData);
-                expect(json.payload).toEqual(payloadData);
-            }
+            expect(json).toEqual({
+                reference: validReference,
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: positionPayload
+                }
+            });
         });
     });
 

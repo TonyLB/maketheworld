@@ -2,8 +2,8 @@ import { StandardReference } from '../reference';
 import { PositionPayload, MarkFacetPayload, ExitPayload, StandardFacetData } from './dataTypes/facet';
 import { StandardReferenceData } from '../dataTypes/reference';
 import { StandardPositionFacet, PositionFacetReplaceClass } from './position';
-import { StandardMarkFacet, MarkFacetReplaceClass } from './mark';
-import { StandardExitFacet, ExitFacetReplaceClass } from './exit';
+import { StandardMarkFacet } from './mark';
+import { StandardExitFacet } from './exit';
 
 describe('StandardFacet (concrete classes)', () => {
     const validReference: StandardReferenceData = {
@@ -139,11 +139,15 @@ describe('StandardFacet (concrete classes)', () => {
             };
             const facet = new StandardPositionFacet(replaceData);
             const json = facet.toJSON();
-            expect('tag' in json && json.tag === 'Replace').toBe(true);
-            if ('tag' in json && json.tag === 'Replace') {
-                expect(json.match).toEqual(matchData);
-                expect(json.payload).toEqual(payloadData);
-            }
+            // Replace operations are now at payload level
+            expect(json).toEqual({
+                reference: validReference,
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: positionPayload
+                }
+            });
         });
 
         it('should round-trip serialize plain facet', () => {

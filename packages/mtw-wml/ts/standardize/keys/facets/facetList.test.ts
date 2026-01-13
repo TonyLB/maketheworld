@@ -1,6 +1,6 @@
 import { PositionFacetList, StandardPositionFacet, PositionFacetReplaceClass } from './position';
-import { MarkFacetList, StandardMarkFacet, MarkFacetReplaceClass } from './mark';
-import { PositionPayload, MarkFacetPayload, ExitPayload, StandardFacetData } from './dataTypes/facet';
+import { MarkFacetList, StandardMarkFacet } from './mark';
+import { PositionPayload, MarkFacetPayload, StandardFacetData } from './dataTypes/facet';
 import { StandardReferenceData } from '../dataTypes/reference';
 import { ComponentTag } from '../../components/dataTypes/abstract';
 
@@ -177,7 +177,15 @@ describe('Concrete FacetList Classes', () => {
             const item0 = list.items[0] as StandardPositionFacet;
             expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
             const json = list.toJSON();
-            expect(json[0]).toHaveProperty('tag', 'Replace');
+            // Replace operations are now at payload level
+            expect(json).toEqual([{
+                reference: createReference('room1', 'Room'),
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: { x: 10, y: 20 }
+                }
+            }]);
         });
 
         it('should throw error for invalid argument type', () => {
@@ -251,21 +259,15 @@ describe('Concrete FacetList Classes', () => {
             const list = new PositionFacetList([replaceData]);
             const json = list.toJSON();
             
-            expect(json[0]).toHaveProperty('tag', 'Replace');
-            if ('tag' in json[0] && json[0].tag === 'Replace') {
-                // Match data may be normalized (ref field may be omitted if it's 1)
-                const match = json[0].match;
-                expect(match.payload).toEqual(matchData.payload);
-                // Reference may be normalized, so verify structure without checking exact ref value
-                expect(match).toHaveProperty('reference');
-                // Payload part should match (reference may be normalized)
-                const payload = json[0].payload;
-                expect(payload.payload).toEqual(payloadData.payload);
-                // Verify payload structure (no type field - simple format)
-                if ('payload' in payload && typeof payload.payload === 'object') {
-                    expect(payload.payload).toEqual({ x: 10, y: 20 });
+            // Replace operations are now at payload level
+            expect(json).toEqual([{
+                reference: createReference('room1', 'Room'),
+                payload: {
+                    tag: 'Replace' as const,
+                    match: { x: 5, y: 10 },
+                    payload: { x: 10, y: 20 }
                 }
-            }
+            }]);
         });
 
         // Note: Schema generation tests removed - FacetList.schema getter was removed
