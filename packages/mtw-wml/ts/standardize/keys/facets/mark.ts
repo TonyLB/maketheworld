@@ -143,7 +143,7 @@ export class MarkFacetPlainClass extends PlainClass {
     }
 }
 
-class MarkFacetRemoveClass extends RemoveClass {
+export class MarkFacetRemoveClass extends RemoveClass {
     // Override nestedSchema to wrap match in Match tag, then in Remove
     override nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
         const match = (this as any).match;
@@ -279,7 +279,7 @@ class MarkFacetRemoveClass extends RemoveClass {
     }
 }
 
-class MarkFacetReplaceClass extends ReplaceClass {
+export class MarkFacetReplaceClass extends ReplaceClass {
     // Override nestedSchema to wrap match and payload in Match tags, then in Replace
     override nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
         const match = (this as any).match;

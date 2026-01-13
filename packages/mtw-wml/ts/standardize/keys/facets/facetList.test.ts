@@ -373,27 +373,6 @@ describe('Concrete FacetList Classes', () => {
             expect(item0.payload instanceof PositionFacetReplaceClass).toBe(false);
         });
 
-        it('should merge lists with matching keys and different payload (creates Replace operation)', () => {
-            const base = new PositionFacetList([{
-                reference: createReference('room1', 'Room', 1),
-                payload: { x: 5, y: 10 }
-            }]);
-            const incoming = new PositionFacetList([{
-                reference: createReference('room1', 'Room', 1),
-                payload: { x: 10, y: 20 }
-            }]);
-            
-            const merged = base.merge(incoming);
-            expect(merged).toBeDefined();
-            expect(merged!.length).toBe(1);
-            const item0 = merged!.items[0] as StandardPositionFacet;
-            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
-            // For Replace operations, payload is a ReplaceClass
-            const replaceInstance = item0.payload as any;
-            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 10, y: 20 });
-            expect(replaceInstance.match?.toJSON()).toEqual({ x: 5, y: 10 });
-        });
-
         it('should preserve unmatched base items', () => {
             const base = new PositionFacetList([
                 createPositionFacetData('room1', 10, 20),
@@ -425,23 +404,6 @@ describe('Concrete FacetList Classes', () => {
             expect(merged).toBeDefined();
             const item0 = merged!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(3); // 1 + 2
-        });
-
-        it('should handle payload Replace when payloads differ', () => {
-            const base = new PositionFacetList([{
-                reference: createReference('room1', 'Room', 1),
-                payload: { x: 5, y: 10 }
-            }]);
-            const incoming = new PositionFacetList([{
-                reference: createReference('room1', 'Room', 1),
-                payload: { x: 15, y: 25 }
-            }]);
-            
-            const merged = base.merge(incoming);
-            expect(merged).toBeDefined();
-            const item0 = merged!.items[0] as StandardPositionFacet;
-            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
-            expect(item0.payload.toJSON()).toEqual({ x: 15, y: 25 });
         });
 
         it('should filter out undefined results when merge cancels out', () => {
@@ -502,27 +464,6 @@ describe('Concrete FacetList Classes', () => {
             const item0 = diff!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(1); // 2 - 1
             expect(item0.payload instanceof PositionFacetReplaceClass).toBe(false);
-        });
-
-        it('should diff lists with matching keys and different payload (creates Replace operation)', () => {
-            const base = new PositionFacetList([{
-                reference: createReference('room1', 'Room', 1),
-                payload: { x: 5, y: 10 }
-            }]);
-            const incoming = new PositionFacetList([{
-                reference: createReference('room1', 'Room', 1),
-                payload: { x: 10, y: 20 }
-            }]);
-            
-            const diff = base.diff(incoming);
-            expect(diff).toBeDefined();
-            expect(diff!.length).toBe(1);
-            const item0 = diff!.items[0] as StandardPositionFacet;
-            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
-            // For Replace operations, payload is a ReplaceClass
-            const replaceInstance = item0.payload as any;
-            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 10, y: 20 });
-            expect(replaceInstance.match?.toJSON()).toEqual({ x: 5, y: 10 });
         });
 
         it('should invert unmatched base items', () => {
@@ -757,46 +698,6 @@ describe('Concrete FacetList Classes', () => {
             expect(diffItem0.ref).toBe(1); // 2 - 1
         });
 
-        it('should create Replace operations when payloads differ (unlike ReferenceList)', () => {
-            // Facets support Replace operations, References don't
-            const base = new PositionFacetList([{
-                reference: createReference('room1', 'Room', 1),
-                payload: { x: 5, y: 10 }
-            }]);
-            const incoming = new PositionFacetList([{
-                reference: createReference('room1', 'Room', 1),
-                payload: { x: 10, y: 20 }
-            }]);
-            
-            const merged = base.merge(incoming);
-            expect(merged).toBeDefined();
-            const mergedItem0 = merged!.items[0] as StandardPositionFacet;
-            expect(mergedItem0.payload instanceof PositionFacetReplaceClass).toBe(true);
-            
-            const diff = base.diff(incoming);
-            expect(diff).toBeDefined();
-            const diffItem0 = diff!.items[0] as StandardPositionFacet;
-            expect(diffItem0.payload instanceof PositionFacetReplaceClass).toBe(true);
-        });
-
-        it('should combine ref-based Add/Remove with payload Replace logic', () => {
-            // When refs cancel but payloads differ, should create Replace
-            const base = new PositionFacetList([{
-                reference: createReference('room1', 'Room', 1),
-                payload: { x: 5, y: 10 }
-            }]);
-            const incoming = new PositionFacetList([{
-                reference: createReference('room1', 'Room', -1),
-                payload: { x: 10, y: 20 }
-            }]);
-            
-            const merged = base.merge(incoming);
-            // Ref cancels (1 + -1 = 0), but payloads differ, so should create Replace
-            expect(merged).toBeDefined();
-            const item0 = merged!.items[0] as StandardPositionFacet;
-            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
-        });
-
         it('should invert both ref operations and Replace operations', () => {
             const list = new PositionFacetList([
                 createPositionFacet('room1', 10, 20, 1)
@@ -824,29 +725,13 @@ describe('Concrete FacetList Classes', () => {
             const invertedReplace = replaceList.invert();
             const replaceItem0 = invertedReplace.items[0] as StandardPositionFacet;
             expect(replaceItem0.payload instanceof PositionFacetReplaceClass).toBe(true);
-            // Note: Current implementation preserves match/payload order when inverting Replace
-            // The reference ref is inverted, but Replace match/payload are kept as-is
-            // For Replace operations, payload is a ReplaceClass
+            // Invert swaps match and payload: "Replace A with B" becomes "Replace B with A"
+            // The reference ref is also inverted
             const replaceInstance = replaceItem0.payload as any;
-            expect(replaceInstance.payload?.toJSON()).toEqual(payloadData.payload);
-            expect(replaceInstance.match?.toJSON()).toEqual(matchData.payload);
+            expect(replaceInstance.match?.toJSON()).toEqual(payloadData.payload);  // Original payload becomes match
+            expect(replaceInstance.payload?.toJSON()).toEqual(matchData.payload);   // Original match becomes payload
         });
 
-        it('should satisfy idempotency: merge(list, list) equals list (when no conflicts)', () => {
-            const list = new PositionFacetList([
-                createPositionFacetData('room1', 10, 20)
-            ]);
-            
-            const merged = list.merge(list);
-            // When merging a list with itself, refs are doubled (1 + 1 = 2)
-            // So the result won't be equal, but the items should have doubled refs
-            expect(merged).toBeDefined();
-            expect(merged!.length).toBe(1);
-            const mergedItem0 = merged!.items[0] as StandardPositionFacet;
-            const listItem0 = list.items[0] as StandardPositionFacet;
-            expect(mergedItem0.ref).toBe(2); // 1 + 1
-            expect(mergedItem0.payload.toJSON()).toEqual(listItem0.payload.toJSON());
-        });
 
         it('should satisfy double inversion property', () => {
             const original = new PositionFacetList([

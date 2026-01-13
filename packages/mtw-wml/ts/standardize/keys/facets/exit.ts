@@ -112,7 +112,7 @@ export class ExitFacetPlainClass extends PlainClass {
     }
 }
 
-class ExitFacetRemoveClass extends RemoveClass {
+export class ExitFacetRemoveClass extends RemoveClass {
     // Helper methods (same as PlainClass)
     private static normalizeForLiteral(value: ExitPayloadType): string {
         return value ?? '';
@@ -209,7 +209,7 @@ class ExitFacetRemoveClass extends RemoveClass {
     }
 }
 
-class ExitFacetReplaceClass extends ReplaceClass {
+export class ExitFacetReplaceClass extends ReplaceClass {
     // Helper methods (same as PlainClass)
     private static normalizeForLiteral(value: ExitPayloadType): string {
         return value ?? '';
