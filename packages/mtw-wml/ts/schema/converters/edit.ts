@@ -13,6 +13,27 @@ const editTemplates = {
     With: {}
 } as const
 
+//
+// Edit Tag Converters
+//
+// IMPORTANT: Replace/With Tag Transformation
+// 
+// In WML syntax, Replace and With are written as siblings:
+//   <Replace>oldcontent</Replace><With>newcontent</With>
+//
+// During parsing, this is transformed into a schema tree structure where:
+//   - <Replace> becomes a ReplaceMatch tag (with wrapper: 'Replace')
+//   - <With> becomes a ReplacePayload tag (with wrapper: 'Replace')
+//   - These are aggregated into a parent Replace node containing both as children
+//
+// So in the schema tree, you'll see:
+//   { tag: 'Replace', children: [
+//       { tag: 'ReplaceMatch', children: [old content] },
+//       { tag: 'ReplacePayload', children: [new content] }
+//   ]}
+//
+// When serializing back to WML, the print map converts this back to the sibling form.
+//
 export const editConverters: Record<string, ConverterMapEntry> = {
     Remove: {
         initialize: ({ parseOpen }): SchemaRemoveTag => {

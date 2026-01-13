@@ -151,6 +151,17 @@ edit tags allow the language to be used for both storage and transmission of mod
 - **`<Replace>`**: Specifies content to be replaced, paired with a `<With>` tag containing the new content
 - **`<Remove>`**: Marks content to be removed from the asset
 
+**Important Note for Schema Tree Work**: When working with schema trees (the internal `GenericTree<SchemaTag>` representation), 
+the structure mostly parallels WML syntax, but differs in some particulars:
+- **WML syntax**: `<Replace>oldcontent</Replace><With>newcontent</With>` (siblings)
+- **Schema tree**: A `Replace` node contains `ReplaceMatch` and `ReplacePayload` as children:
+  - `ReplaceMatch` contains the old content (from `<Replace>`)
+  - `ReplacePayload` contains the new content (from `<With>`)
+- When serializing back to WML, the schema structure becomes `<Replace>...</Replace><With>...</With>` as siblings
+
+This transformation happens automatically during parsing and serialization, but when working directly with schema trees
+(which most of the codebase does), you'll encounter `ReplaceMatch` and `ReplacePayload` as children of `Replace` nodes.
+
 Edit tags are processed by the standardization system to merge changes into the base content. For example:
 
 ```xml

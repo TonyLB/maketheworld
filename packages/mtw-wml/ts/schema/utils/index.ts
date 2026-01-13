@@ -127,3 +127,5 @@ export const stripTagFromTree = (tree: GenericTree<SchemaTag>, tag: SchemaTag["t
         }]
     }).flat(1)
 }
+
+export { findTaggedChildren } from './findTaggedChildren'
