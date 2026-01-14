@@ -4,15 +4,14 @@ import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, 
 import { StandardMomentData } from "./dataTypes/moment"
 import { childReferenceFactory, ReferenceFormat } from "./utils/references"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaMessage, isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
 import { ReferenceList } from "./reference"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { StandardExplicitParent } from "../explicit"
 import { excludeUndefined } from "../../lib/lists"
-import { wrappedNodeTypeGuard } from "../../schema/utils"
-import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
+import { findTaggedChildren } from "../../schema/utils"
 import { renderReference } from "./utils/schema"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
@@ -34,12 +33,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMoment)(node)) {
-            this._messages = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaMessage)).map((reference) => {
-                if (treeNodeTypeguard(isSchemaMessage)(reference) || treeNodeTypeguard(isSchemaRemove)(reference)) {
-                    return childReferenceFactory(reference)
-                }
-                throw new Error('Schema mismatch in StandardMoment constructor')
-            }))
+            this._messages = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Message' }).map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardMoment constructor')

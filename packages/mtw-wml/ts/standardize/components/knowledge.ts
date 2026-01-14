@@ -1,8 +1,8 @@
 import { excludeUndefined } from "../../lib/lists"
-import { findTaggedChildren, wrappedNodeTypeGuard } from "../../schema/utils"
+import { findTaggedChildren } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import { childReferenceFactory, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
@@ -10,14 +10,12 @@ import { ReferenceList } from "./reference"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardReferenceData } from "./dataTypes/reference"
-import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaKnowledge } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
 import { renderReference } from "./utils/schema"
 import { HasShortName } from "./abstract"
 import { StandardLiteral } from "../literal"
-import SchemaTagTree from "../../tagTree/schema"
 import { StandardExplicitParent } from "../explicit"
 
 export class StandardKnowledgePayload implements HasShortName, ComponentConstructorMethods<StandardKnowledgeData> {
@@ -45,7 +43,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         if (treeNodeTypeguard(isSchemaKnowledge)(node)) {
             const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
-            this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(childReferenceFactory))
+            this._examples = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Example' }).map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardKnowledge constructor')
