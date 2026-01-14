@@ -10,12 +10,12 @@ import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/
 import { StandardToJSONOptions } from "./baseClasses"
 import { AssetUUID, ComponentUUID, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaMessage, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaMessage } from "@tonylb/mtw-base/ts/schema/components"
 import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { ReferenceList } from "./reference"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
-import { wrappedNodeTypeGuard } from "../../schema/utils"
+import { findTaggedChildren } from "../../schema/utils"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { deepEqual } from "../../lib/objects"
 import { StandardExplicitParent } from "../explicit"
@@ -42,9 +42,10 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMessage)(node)) {
-            const descriptionItem = node.children.filter(wrappedNodeTypeGuard(isSchemaDescription))[0]
-            this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
-            this._rooms = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaRoom)).map(childReferenceFactory))
+            const descriptionNodes = findTaggedChildren({ children: node.children, tag: 'Description' })
+            const descriptionItem = descriptionNodes[0] as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
+            this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
+            this._rooms = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Room' }).map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardMessage constructor')
