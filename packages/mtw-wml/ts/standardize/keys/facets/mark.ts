@@ -343,16 +343,8 @@ export class MarkFacetReplaceClass extends ReplaceClass {
     }
 
     renderFacet(reference: StandardReference, payload: MarkFacetPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
-        // For Replace, extract the payload Match child (not match)
-        const nested = this.nestedSchema({ tag: 'Match' as const });
-        const replaceNode = nested[0];
-        const replacePayloadNode = replaceNode?.children?.find((child: GenericTreeNode<SchemaTag>) => 
-            child.data?.tag === 'ReplacePayload'
-        );
-        const payloadMatchChild = replacePayloadNode?.children?.[0] as GenericTreeNode<SchemaTag> | undefined;
-        if (!payloadMatchChild) {
-            throw new Error('Invalid nested schema structure for Replace');
-        }
+        // Use schema getter which already returns Replace-wrapped structure
+        const replaceSchema = this.schema[0];
 
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
@@ -367,7 +359,7 @@ export class MarkFacetReplaceClass extends ReplaceClass {
             markNode = {
                 ...referenceRender,
                 children: [
-                    payloadMatchChild,
+                    replaceSchema,
                     ...referenceRender.children
                 ]
             };
@@ -389,7 +381,7 @@ export class MarkFacetReplaceClass extends ReplaceClass {
                 const enhancedMark: GenericTreeNode<SchemaTag> = {
                     data: { ...innerMark.data },
                     children: [
-                        payloadMatchChild,
+                        replaceSchema,
                         ...innerMark.children
                     ]
                 };
@@ -410,7 +402,7 @@ export class MarkFacetReplaceClass extends ReplaceClass {
             markNode = {
                 ...firstNode,
                 children: [
-                    payloadMatchChild,
+                    replaceSchema,
                     ...firstNode.children
                 ]
             };

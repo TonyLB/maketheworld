@@ -281,76 +281,15 @@ export const facetClassFactory = <D>(
         /**
          * Render facet for parent component orchestration.
          * 
-         * This method handles facet rendering at the `StandardFacet` level, including Replace operations.
-         * For non-Replace operations, it delegates to the payload class's `renderFacet()` method.
-         * 
-         * **Replace Operation Handling:**
-         * 
-         * When a facet's payload is a `ReplaceClass` instance, this method constructs the Replace structure in the
-         * standard WML form where the reference node (e.g., Mark, Room) wraps the Replace/With tags,
-         * which contain the payload content (not full reference nodes).
-         * 
-         * Structure:
-         * ```
-         * <ReferenceNode uuid=(...)>
-         *   <Replace>
-         *     <ReplaceMatch>old payload content</ReplaceMatch>
-         *     <ReplacePayload>new payload content</ReplacePayload>
-         *   </Replace>
-         * </ReferenceNode>
-         * ```
-         * 
-         * Examples:
-         * - **Mark facet**: `<Mark uuid=(...)><Replace><ReplaceMatch><Match>old narrative</Match></ReplaceMatch><ReplacePayload><Match>new narrative</Match></ReplacePayload></Replace></Mark>`
-         * - **Position facet**: `<Room uuid=(...)><Replace><ReplaceMatch><Position x=5 y=10/></ReplaceMatch><ReplacePayload><Position x=15 y=20/></ReplacePayload></Replace></Room>`
-         * 
-         * The payload content is extracted using `matchPayload.schema` and `payload.schema` getters,
-         * which return only the payload tags (e.g., `<Match>`, `<Position>`), not the full reference structure.
-         * 
-         * **Non-Replace Operations:**
-         * 
-         * For non-Replace operations, this method delegates to the payload class's `renderFacet()` method,
-         * which handles Remove operations and normal rendering.
+         * This method delegates rendering to the payload class's `renderFacet()` method,
+         * which handles all cases including Plain, Remove, and Replace operations.
          * 
          * @param referenceRender - Optional pre-existing render of the reference already in the parent's schema tree.
-         *   For Replace operations, this is used as the base reference node structure (outer wrapper).
-         *   If not provided, the base reference node is generated from `this._reference.schema`.
+         *   If not provided, a plain reference render is generated from `this._reference.schema`.
          * @returns An object with either `newNode` (for Exit-style facets) or `aggregatedNode` (for Position/Mark-style facets).
-         *   Replace operations always return `aggregatedNode` with the reference node wrapping the Replace structure.
          */
         renderFacet(referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
-            // Handle Replace operations - use v2 instance's schema (already handles Replace wrapping)
-            if (this.payload instanceof payloadClasses.ReplaceClass) {
-                // Get the base reference node structure (e.g., Mark, Room) from reference (for the outer wrapper)
-                let baseReferenceNode: GenericTreeNode<SchemaTag>;
-                if (referenceRender) {
-                    baseReferenceNode = referenceRender;
-                } else {
-                    const referenceSchema = this._reference.schema;
-                    if (referenceSchema.length === 0) {
-                        throw new Error('Invalid reference schema: empty');
-                    }
-                    baseReferenceNode = referenceSchema[0];
-                }
-                
-                // Get payload schema from v2 instance (already wrapped in Replace)
-                const payloadSchema = this.payload.schema;
-                
-                // Add the Replace tag as a child of the reference node (standard form)
-                const enhancedReferenceNode: GenericTreeNode<SchemaTag> = {
-                    ...baseReferenceNode,
-                    children: [
-                        ...payloadSchema,
-                        ...baseReferenceNode.children
-                    ]
-                };
-                
-                return {
-                    aggregatedNode: enhancedReferenceNode
-                };
-            }
-            
-            // For non-Replace operations, delegate to payload class's renderFacet
+            // Delegate rendering to payload class's renderFacet (handles all cases including Replace)
             const payloadData = this.payload.toJSON();
             return this.payload.renderFacet(this._reference, payloadData, referenceRender);
         }

@@ -48,7 +48,7 @@ export interface FacetPayloadBase<TPayload> {
      * 
      * **Edit Operation Handling:**
      * 
-     * This method handles two types of edit operations:
+     * This method handles edit operations:
      * 
      * 1. **Remove operations** (when `reference.ref < 0`):
      *    - If `referenceRender` is provided and wrapped in `<Remove>`, pass it through unchanged (don't enhance - it's being removed)
@@ -57,10 +57,9 @@ export interface FacetPayloadBase<TPayload> {
      *    - Example: `<Remove><Mark uuid=(...)><Match>narrative</Match></Mark></Remove>`
      * 
      * 2. **Replace operations**:
-     *    - Replace operations are handled at the `StandardFacet` level (via `facetFactory.ts`), not in individual payload classes
-     *    - When a facet's payload is a `ReplaceClass` instance, `StandardFacet.renderFacet()` constructs the Replace structure:
-     *      `<ReferenceNode><Replace><ReplaceMatch>old payload</ReplaceMatch><ReplacePayload>new payload</ReplacePayload></Replace></ReferenceNode>`
-     *    - Payload classes should not handle Replace operations directly; they only handle Remove operations
+     *    - ReplaceClass instances should use their `schema` getter (which returns the Replace structure) and combine it with the reference node
+     *    - For Position/Mark facets: Reference node wraps the Replace structure as a child
+     *    - For Exit facets: Exit node contains the Replace structure as children
      * 
      * @param reference - The StandardReference for the target component. When `reference.ref < 0`, 
      *   `reference.schema` will return a Remove-wrapped reference that must be preserved.

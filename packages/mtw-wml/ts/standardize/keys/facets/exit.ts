@@ -271,12 +271,11 @@ export class ExitFacetReplaceClass extends ReplaceClass {
         const toKey = reference.standardKey.toFormat('key');
         const toValue = toKey.key ?? toKey.universalKey ?? '';
 
-        // For Replace, extract payload schema (the String tag)
-        const payloadInstance = (this as any).payload;
-        const stringSchema = payloadInstance?.schema ?? [];
+        // Use schema getter which already returns Replace-wrapped structure
+        const replaceSchema = this.schema[0];
         const exitNode: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Exit' as const, to: toValue },
-            children: stringSchema
+            children: [replaceSchema]
         };
 
         const exitSchema = reference.schema;
