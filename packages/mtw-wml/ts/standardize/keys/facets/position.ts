@@ -330,11 +330,8 @@ export class PositionFacetReplaceClass extends PositionReplaceClass {
     }
 
     renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
-        const payloadInstance = (this as any).payload;
-        const positionChild: GenericTreeNode<SchemaTag> = {
-            data: { tag: 'Position' as const, x: payloadInstance?.x ?? 0, y: payloadInstance?.y ?? 0 },
-            children: []
-        };
+        // Use schema getter which already returns Replace-wrapped structure
+        const replaceSchema = this.schema[0];
 
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
@@ -349,7 +346,7 @@ export class PositionFacetReplaceClass extends PositionReplaceClass {
             roomNode = {
                 ...referenceRender,
                 children: [
-                    positionChild,
+                    replaceSchema,
                     ...referenceRender.children
                 ]
             };
@@ -368,7 +365,7 @@ export class PositionFacetReplaceClass extends PositionReplaceClass {
                 const enhancedRoom: GenericTreeNode<SchemaTag> = {
                     ...innerRoom,
                     children: [
-                        positionChild,
+                        replaceSchema,
                         ...innerRoom.children
                     ]
                 };
@@ -386,7 +383,7 @@ export class PositionFacetReplaceClass extends PositionReplaceClass {
             roomNode = {
                 ...firstNode,
                 children: [
-                    positionChild,
+                    replaceSchema,
                     ...firstNode.children
                 ]
             };
@@ -471,7 +468,7 @@ export class StandardPositionFacet extends facetClassFactory(
     'PositionFacet'
 ) {
     constructor(
-        props: StandardFacetData<PositionPayloadType> | StandardPositionFacet | { tag: 'Replace'; match: StandardFacetData<PositionPayloadType>; payload: StandardFacetData<PositionPayloadType> } | GenericTree<SchemaTag> | string
+        props: StandardFacetData<PositionPayloadType> | StandardPositionFacet | GenericTree<SchemaTag> | string
     ) {
         super(props);
     }

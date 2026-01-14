@@ -143,7 +143,7 @@ export class MarkFacetPlainClass extends PlainClass {
     }
 }
 
-class MarkFacetRemoveClass extends RemoveClass {
+export class MarkFacetRemoveClass extends RemoveClass {
     // Override nestedSchema to wrap match in Match tag, then in Remove
     override nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
         const match = (this as any).match;
@@ -279,7 +279,7 @@ class MarkFacetRemoveClass extends RemoveClass {
     }
 }
 
-class MarkFacetReplaceClass extends ReplaceClass {
+export class MarkFacetReplaceClass extends ReplaceClass {
     // Override nestedSchema to wrap match and payload in Match tags, then in Replace
     override nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
         const match = (this as any).match;
@@ -343,16 +343,8 @@ class MarkFacetReplaceClass extends ReplaceClass {
     }
 
     renderFacet(reference: StandardReference, payload: MarkFacetPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
-        // For Replace, extract the payload Match child (not match)
-        const nested = this.nestedSchema({ tag: 'Match' as const });
-        const replaceNode = nested[0];
-        const replacePayloadNode = replaceNode?.children?.find((child: GenericTreeNode<SchemaTag>) => 
-            child.data?.tag === 'ReplacePayload'
-        );
-        const payloadMatchChild = replacePayloadNode?.children?.[0] as GenericTreeNode<SchemaTag> | undefined;
-        if (!payloadMatchChild) {
-            throw new Error('Invalid nested schema structure for Replace');
-        }
+        // Use schema getter which already returns Replace-wrapped structure
+        const replaceSchema = this.schema[0];
 
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
@@ -367,7 +359,7 @@ class MarkFacetReplaceClass extends ReplaceClass {
             markNode = {
                 ...referenceRender,
                 children: [
-                    payloadMatchChild,
+                    replaceSchema,
                     ...referenceRender.children
                 ]
             };
@@ -389,7 +381,7 @@ class MarkFacetReplaceClass extends ReplaceClass {
                 const enhancedMark: GenericTreeNode<SchemaTag> = {
                     data: { ...innerMark.data },
                     children: [
-                        payloadMatchChild,
+                        replaceSchema,
                         ...innerMark.children
                     ]
                 };
@@ -410,7 +402,7 @@ class MarkFacetReplaceClass extends ReplaceClass {
             markNode = {
                 ...firstNode,
                 children: [
-                    payloadMatchChild,
+                    replaceSchema,
                     ...firstNode.children
                 ]
             };
@@ -498,7 +490,7 @@ export class StandardMarkFacet extends facetClassFactory(
     'MarkFacet'
 ) {
     constructor(
-        props: StandardFacetData<MarkFacetPayloadType> | StandardMarkFacet | { tag: 'Replace'; match: StandardFacetData<MarkFacetPayloadType>; payload: StandardFacetData<MarkFacetPayloadType> } | GenericTree<SchemaTag> | string
+        props: StandardFacetData<MarkFacetPayloadType> | StandardMarkFacet | GenericTree<SchemaTag> | string
     ) {
         super(props);
     }

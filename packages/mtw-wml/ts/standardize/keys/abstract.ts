@@ -48,7 +48,7 @@ export interface StandardFacet<TPayload> {
     
     // Core operations
     clone(): StandardFacet<TPayload>;
-    toJSON(): StandardFacetData<TPayload> | { tag: 'Replace'; match: StandardFacetData<TPayload>; payload: StandardFacetData<TPayload> };
+    toJSON(): StandardFacetData<TPayload>;
     equals(other: StandardFacet<TPayload>): boolean;
     sameKey(other: StandardFacet<TPayload>): boolean;
     

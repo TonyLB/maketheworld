@@ -112,7 +112,7 @@ export class ExitFacetPlainClass extends PlainClass {
     }
 }
 
-class ExitFacetRemoveClass extends RemoveClass {
+export class ExitFacetRemoveClass extends RemoveClass {
     // Helper methods (same as PlainClass)
     private static normalizeForLiteral(value: ExitPayloadType): string {
         return value ?? '';
@@ -209,7 +209,7 @@ class ExitFacetRemoveClass extends RemoveClass {
     }
 }
 
-class ExitFacetReplaceClass extends ReplaceClass {
+export class ExitFacetReplaceClass extends ReplaceClass {
     // Helper methods (same as PlainClass)
     private static normalizeForLiteral(value: ExitPayloadType): string {
         return value ?? '';
@@ -219,17 +219,6 @@ class ExitFacetReplaceClass extends ReplaceClass {
         return value === '' ? undefined : value;
     }
     
-    override toJSON(): any {
-        const literalJSON = super.toJSON();
-        if (literalJSON && typeof literalJSON === 'object' && 'tag' in literalJSON && literalJSON.tag === 'Replace' && 'match' in literalJSON && 'payload' in literalJSON) {
-            return {
-                tag: 'Replace' as const,
-                match: ExitFacetReplaceClass.denormalizeFromLiteral(literalJSON.match),
-                payload: ExitFacetReplaceClass.denormalizeFromLiteral(literalJSON.payload)
-            };
-        }
-        return literalJSON;
-    }
     
     // Override _wrap to convert base class instances to appropriate extended facet classes
     override _wrap(instance: any): ExitFacetPlainClass | ExitFacetRemoveClass | ExitFacetReplaceClass {
@@ -282,12 +271,11 @@ class ExitFacetReplaceClass extends ReplaceClass {
         const toKey = reference.standardKey.toFormat('key');
         const toValue = toKey.key ?? toKey.universalKey ?? '';
 
-        // For Replace, extract payload schema (the String tag)
-        const payloadInstance = (this as any).payload;
-        const stringSchema = payloadInstance?.schema ?? [];
+        // Use schema getter which already returns Replace-wrapped structure
+        const replaceSchema = this.schema[0];
         const exitNode: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Exit' as const, to: toValue },
-            children: stringSchema
+            children: [replaceSchema]
         };
 
         const exitSchema = reference.schema;
@@ -425,7 +413,7 @@ export class StandardExitFacet extends facetClassFactory(
     exitReferenceFactory
 ) {
     constructor(
-        props: StandardFacetData<ExitPayloadType> | StandardExitFacet | { tag: 'Replace'; match: StandardFacetData<ExitPayloadType>; payload: StandardFacetData<ExitPayloadType> } | GenericTree<SchemaTag> | string
+        props: StandardFacetData<ExitPayloadType> | StandardExitFacet | GenericTree<SchemaTag> | string
     ) {
         super(props);
     }

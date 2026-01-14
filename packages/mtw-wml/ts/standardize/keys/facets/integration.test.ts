@@ -49,56 +49,6 @@ describe('Facet Integration Tests', () => {
         });
     };
 
-    const parseWMLToFacet = (wml: string, payloadType: 'Position' | 'Mark' | 'Exit'): StandardPositionFacet | StandardMarkFacet | StandardExitFacet => {
-        const schema = treeFromWML(wml);
-        if (schema.length === 0) {
-            throw new Error('Empty schema');
-        }
-
-        const firstNode = schema[0];
-
-        if (payloadType === 'Position') {
-            if (!treeNodeTypeguard(isSchemaRoom)(firstNode)) {
-                throw new Error('Expected Room tag for Position facet');
-            }
-            const roomData = firstNode.data;
-            // UUIDs in WML don't have type prefix, add it when constructing StandardReference
-            const uuidValue = roomData.uuid ? (roomData.uuid.includes('#') ? roomData.uuid : `ROOM#${roomData.uuid}`) : undefined;
-            const reference = new StandardReference({
-                key: roomData.key,
-                universalKey: uuidValue || (roomData.key ? `ROOM#${roomData.key}` : ''),
-                tag: 'Room'
-            });
-            return new StandardPositionFacet(schema);
-        } else if (payloadType === 'Mark') {
-            if (!treeNodeTypeguard(isSchemaMark)(firstNode)) {
-                throw new Error('Expected Mark tag for Mark facet');
-            }
-            return new StandardMarkFacet(schema);
-        } else if (payloadType === 'Exit') {
-            if (!treeNodeTypeguard(isSchemaExit)(firstNode)) {
-                throw new Error('Expected Exit tag for Exit facet');
-            }
-            const toValue = firstNode.data.to;
-            if (!toValue) {
-                throw new Error('Exit tag missing `to` property');
-            }
-            return new StandardExitFacet(schema);
-        }
-
-        throw new Error(`Unknown payload type: ${payloadType}`);
-    };
-
-    const facetToWML = (facet: StandardPositionFacet | StandardMarkFacet | StandardExitFacet): string => {
-        const renderResult = facet.renderFacet();
-        if (renderResult.aggregatedNode) {
-            return schemaToWML([renderResult.aggregatedNode]);
-        } else if (renderResult.newNode) {
-            return schemaToWML([renderResult.newNode]);
-        }
-        throw new Error('No node returned from renderFacet');
-    };
-
     const createMockRoomReference = (key: string, uuid?: ComponentUUID): GenericTreeNode<SchemaTag> => {
         // Use treeFromWML to ensure proper types
         // Strip type prefix from UUID for WML format
@@ -121,7 +71,7 @@ describe('Facet Integration Tests', () => {
         describe('PositionPayload', () => {
             it('should round-trip Position facet with key-based reference', () => {
                 const originalWML = deIndentWML(`<Room key=(room1)><Position x="10" y="20" /></Room>`);
-                const facet = parseWMLToFacet(originalWML, 'Position');
+                const facet = new StandardPositionFacet(originalWML);
                 
                 // Payload is now a class instance - access properties directly
                 const positionFacet = facet as StandardPositionFacet;
@@ -129,7 +79,10 @@ describe('Facet Integration Tests', () => {
                 expect(positionFacet.payload.y).toBe(20);
                 expect(positionFacet.payload.toJSON()).toEqual({ x: 10, y: 20 });
                 
-                const generatedWML = facetToWML(facet);
+                const renderResult = facet.renderFacet();
+                const generatedWML = renderResult.aggregatedNode 
+                    ? schemaToWML([renderResult.aggregatedNode])
+                    : schemaToWML([renderResult.newNode!]);
                 expect(generatedWML).toEqual(originalWML);
             });
 
@@ -137,7 +90,7 @@ describe('Facet Integration Tests', () => {
                 const originalWML = deIndentWML(`
                     <Room uuid=(test123)><Position x="15" y="25" /></Room>
                 `);
-                const facet = parseWMLToFacet(originalWML, 'Position');
+                const facet = new StandardPositionFacet(originalWML);
                 
                 // Payload is now a class instance - access properties directly
                 const positionFacet = facet as StandardPositionFacet;
@@ -145,7 +98,10 @@ describe('Facet Integration Tests', () => {
                 expect(positionFacet.payload.y).toBe(25);
                 expect(positionFacet.payload.toJSON()).toEqual({ x: 15, y: 25 });
                 
-                const generatedWML = facetToWML(facet);
+                const renderResult = facet.renderFacet();
+                const generatedWML = renderResult.aggregatedNode 
+                    ? schemaToWML([renderResult.aggregatedNode])
+                    : schemaToWML([renderResult.newNode!]);
                 expect(generatedWML).toEqual(originalWML);
             });
         });
@@ -153,25 +109,31 @@ describe('Facet Integration Tests', () => {
         describe('MarkFacetPayload', () => {
             it('should round-trip Mark facet', () => {
                 const originalWML = deIndentWML(`<Mark uuid=(test123)><Match>Condition text</Match></Mark>`);
-                const facet = parseWMLToFacet(originalWML, 'Mark');
+                const facet = new StandardMarkFacet(originalWML);
                 
                 // Payload is now a class instance - use toJSON() to get the string value
                 const markFacet = facet as StandardMarkFacet;
                 expect(markFacet.payload.toJSON()).toBe('Condition text');
                 
-                const generatedWML = facetToWML(facet);
+                const renderResult = facet.renderFacet();
+                const generatedWML = renderResult.aggregatedNode 
+                    ? schemaToWML([renderResult.aggregatedNode])
+                    : schemaToWML([renderResult.newNode!]);
                 expect(generatedWML).toEqual(originalWML);
             });
 
             it('should round-trip Mark facet with empty narrative', () => {
                 const originalWML = deIndentWML(`<Mark uuid=(test456)><Match></Match></Mark>`);
-                const facet = parseWMLToFacet(originalWML, 'Mark');
+                const facet = new StandardMarkFacet(originalWML);
                 
                 // Payload is now a class instance - use toJSON() to get the string value
                 const markFacet = facet as StandardMarkFacet;
                 expect(markFacet.payload.toJSON()).toBe('');
                 
-                const generatedWML = facetToWML(facet);
+                const renderResult = facet.renderFacet();
+                const generatedWML = renderResult.aggregatedNode 
+                    ? schemaToWML([renderResult.aggregatedNode])
+                    : schemaToWML([renderResult.newNode!]);
                 expect(generatedWML).toEqual(originalWML);
             });
         });
@@ -179,27 +141,33 @@ describe('Facet Integration Tests', () => {
         describe('ExitPayload', () => {
             it('should round-trip Exit facet with description', () => {
                 const originalWML = deIndentWML(`<Exit to=(ROOM#target1)>North Exit</Exit>`);
-                const facet = parseWMLToFacet(originalWML, 'Exit');
+                const facet = new StandardExitFacet(originalWML);
                 
                 // Payload is now a class instance - access properties directly
                 const exitFacet = facet as StandardExitFacet;
                 expect(exitFacet.payload.description).toBe('North Exit');
                 expect(exitFacet.payload.toJSON()).toBe('North Exit');
                 
-                const generatedWML = facetToWML(facet);
+                const renderResult = facet.renderFacet();
+                const generatedWML = renderResult.aggregatedNode 
+                    ? schemaToWML([renderResult.aggregatedNode])
+                    : schemaToWML([renderResult.newNode!]);
                 expect(generatedWML).toEqual(originalWML);
             });
 
             it('should round-trip Exit facet without description', () => {
                 const originalWML = deIndentWML(`<Exit to=(ROOM#target2) />`);
-                const facet = parseWMLToFacet(originalWML, 'Exit');
+                const facet = new StandardExitFacet(originalWML);
                 
                 // Payload is now a class instance - access properties directly
                 const exitFacet = facet as StandardExitFacet;
                 expect(exitFacet.payload.description).toBeUndefined();
                 expect(exitFacet.payload.toJSON()).toBeUndefined();
                 
-                const generatedWML = facetToWML(facet);
+                const renderResult = facet.renderFacet();
+                const generatedWML = renderResult.aggregatedNode 
+                    ? schemaToWML([renderResult.aggregatedNode])
+                    : schemaToWML([renderResult.newNode!]);
                 expect(generatedWML).toEqual(originalWML);
             });
         });
@@ -209,7 +177,7 @@ describe('Facet Integration Tests', () => {
         describe('PositionPayload', () => {
             it('should error when Position child is missing', () => {
                 const wml = deIndentWML(`<Room key=(room1) />`);
-                expect(() => parseWMLToFacet(wml, 'Position')).toThrow();
+                expect(() => new StandardPositionFacet(wml)).toThrow();
             });
 
         });
@@ -217,7 +185,7 @@ describe('Facet Integration Tests', () => {
         describe('MarkFacetPayload', () => {
             it('should error when Match child is missing', () => {
                 const wml = deIndentWML(`<Mark uuid=(test1) />`);
-                expect(() => parseWMLToFacet(wml, 'Mark')).toThrow();
+                expect(() => new StandardMarkFacet(wml)).toThrow();
             });
 
             it('should handle empty Match tag (empty narrative)', () => {
@@ -226,7 +194,7 @@ describe('Facet Integration Tests', () => {
                         <Match></Match>
                     </Mark>
                 `);
-                const facet = parseWMLToFacet(wml, 'Mark');
+                const facet = new StandardMarkFacet(wml);
                 const markFacet = facet as StandardMarkFacet;
                 expect(markFacet.payload.toJSON()).toBe('');
             });
@@ -236,12 +204,12 @@ describe('Facet Integration Tests', () => {
         describe('ExitPayload', () => {
             it('should error when `to` property is missing', () => {
                 const wml = deIndentWML(`<Exit>North</Exit>`);
-                expect(() => parseWMLToFacet(wml, 'Exit')).toThrow();
+                expect(() => new StandardExitFacet(wml)).toThrow();
             });
 
             it('should handle empty Exit tag content (undefined description)', () => {
                 const wml = deIndentWML(`<Exit to=(ROOM#target1) />`);
-                const facet = parseWMLToFacet(wml, 'Exit');
+                const facet = new StandardExitFacet(wml);
                 const exitFacet = facet as StandardExitFacet;
                 expect(exitFacet.payload.description).toBeUndefined();
             });
@@ -473,7 +441,8 @@ describe('Facet Integration Tests', () => {
             const reference = new StandardReference('ROOM#123', 'Room');
             const matchFacet = createPositionFacet(reference, 5, 10);
             const payloadFacet = createPositionFacet(reference, 15, 20);
-            const replaceFacet = matchFacet.merge(payloadFacet);
+            // Use diff() to create Replace operations (merge doesn't create Replace for plain values)
+            const replaceFacet = matchFacet.diff(payloadFacet);
 
             expect(replaceFacet).toBeDefined();
             expect(replaceFacet!.payload instanceof PositionFacetReplaceClass).toBe(true);
@@ -496,7 +465,8 @@ describe('Facet Integration Tests', () => {
             const reference = new StandardReference('MARK#123', 'Mark');
             const matchFacet = createMarkFacet(reference, 'Old condition');
             const payloadFacet = createMarkFacet(reference, 'New condition');
-            const replaceFacet = matchFacet.merge(payloadFacet);
+            // Use diff() to create Replace operations (merge doesn't create Replace for plain values)
+            const replaceFacet = matchFacet.diff(payloadFacet);
 
             expect(replaceFacet).toBeDefined();
             expect(replaceFacet!.payload instanceof MarkFacetReplaceClass).toBe(true);
@@ -519,7 +489,8 @@ describe('Facet Integration Tests', () => {
             const reference = new StandardReference('ROOM#123', 'Room');
             const matchFacet = createExitFacet(reference, 'Old exit');
             const payloadFacet = createExitFacet(reference, 'New exit');
-            const replaceFacet = matchFacet.merge(payloadFacet);
+            // Use diff() to create Replace operations (merge doesn't create Replace for plain values)
+            const replaceFacet = matchFacet.diff(payloadFacet);
 
             expect(replaceFacet).toBeDefined();
             expect(replaceFacet!.payload instanceof ExitFacetReplaceClass).toBe(true);
@@ -542,7 +513,8 @@ describe('Facet Integration Tests', () => {
             const reference = new StandardReference('ROOM#123', 'Room');
             const matchFacet = createPositionFacet(reference, 5, 10);
             const payloadFacet = createPositionFacet(reference, 15, 20);
-            const replaceFacet = matchFacet.merge(payloadFacet);
+            // Use diff() to create Replace operations (merge doesn't create Replace for plain values)
+            const replaceFacet = matchFacet.diff(payloadFacet);
 
             const roomRender = createMockRoomReference('room1', 'ROOM#123');
             const result = replaceFacet!.renderFacet(roomRender);
