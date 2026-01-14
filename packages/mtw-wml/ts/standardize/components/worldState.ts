@@ -35,7 +35,7 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
 
     fromJSON(props: StandardMarkData) {
         const { shortName, description } = props
-        this._shortName = shortName ? new StandardLiteral(shortName) : undefined
+        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._description = description ? new StandardRender(description) : undefined
     }
 
@@ -48,7 +48,7 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
                 .filter({ match: 'ShortName' })
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
             const descriptionItem = tagTree
                 .filter({ match: 'Description' })
                 .prune({ match: 'Description' })
@@ -180,7 +180,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
 
     fromJSON(props: StandardLensData) {
         const { shortName, description, marks } = props
-        this._shortName = shortName ? new StandardLiteral(shortName) : undefined
+        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._description = description ? new StandardRender(description) : undefined
         this._marks = new ReferenceList(marks?.map((reference) => (new StandardReference(reference))) ?? [])
     }
@@ -194,7 +194,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
                 .filter({ match: 'ShortName' })
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
             const descriptionItem = tagTree
                 .filter({ match: 'Description' })
                 .prune({ match: 'Description' })
@@ -224,7 +224,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Lens', key, uuid: universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, mappings),
                 ...this.marks.schema
             ].filter(excludeUndefined)
@@ -248,7 +248,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Lens', key: key.key ?? '', uuid: key.universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, options.mappings),
                 ...marksToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined)
             ].filter(excludeUndefined)

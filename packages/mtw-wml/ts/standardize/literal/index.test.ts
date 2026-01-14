@@ -78,4 +78,114 @@ describe('StandardLiteral', () => {
         expect(mapped._payload).toBeInstanceOf(ReplaceClass)
         expect(mapped.toJSON()).toEqual({ tag: 'Replace', match: 'OLD', payload: 'NEW' })
     })
+
+    describe('tag support', () => {
+        it('should store tag when provided in constructor', () => {
+            const literal = new StandardLiteral('test', { tag: 'ShortName' })
+            expect(literal._wrapperTag).toBe('ShortName')
+        })
+
+        it('should use stored tag in nestedSchema()', () => {
+            const literal = new StandardLiteral('test', { tag: 'ShortName' })
+            const schema = literal.nestedSchema()
+            expect(schema).toEqual([{ data: { tag: 'ShortName' }, children: [{ data: { tag: 'String', value: 'test' }, children: [] }] }])
+        })
+
+        it('should use explicit tag in nestedSchema() when provided (backward compatibility)', () => {
+            const literal = new StandardLiteral('test', { tag: 'ShortName' })
+            const schema = literal.nestedSchema({ tag: 'Pronouns' })
+            expect(schema).toEqual([{ data: { tag: 'Pronouns' }, children: [{ data: { tag: 'String', value: 'test' }, children: [] }] }])
+        })
+
+        it('should throw error when nestedSchema() called without tag and no stored tag', () => {
+            const literal = new StandardLiteral('test')
+            expect(() => literal.nestedSchema()).toThrow('nestedSchema() called without tag argument and no stored wrapper tag')
+        })
+
+        it('should preserve tag in merge when both operands have the same tag', () => {
+            const literal1 = new StandardLiteral('test1', { tag: 'ShortName' })
+            const literal2 = new StandardLiteral('test2', { tag: 'ShortName' })
+            const merged = literal1.merge(literal2)
+            expect(merged?._wrapperTag).toBe('ShortName')
+            expect(merged?.toJSON()).toBe('test1test2')
+        })
+
+        it('should not preserve tag in merge when operands have different tags', () => {
+            const literal1 = new StandardLiteral('test1', { tag: 'ShortName' })
+            const literal2 = new StandardLiteral('test2', { tag: 'Pronouns' })
+            const merged = literal1.merge(literal2)
+            expect(merged?._wrapperTag).toBeUndefined()
+            expect(merged?.toJSON()).toBe('test1test2')
+        })
+
+        it('should not preserve tag in merge when one operand has no tag', () => {
+            const literal1 = new StandardLiteral('test1', { tag: 'ShortName' })
+            const literal2 = new StandardLiteral('test2')
+            const merged = literal1.merge(literal2)
+            expect(merged?._wrapperTag).toBeUndefined()
+            expect(merged?.toJSON()).toBe('test1test2')
+        })
+
+        it('should preserve tag in invert()', () => {
+            const literal = new StandardLiteral('test', { tag: 'ShortName' })
+            const inverted = literal.invert()
+            expect(inverted._wrapperTag).toBe('ShortName')
+        })
+
+        it('should preserve tag in diff() when both operands have the same tag', () => {
+            const literal1 = new StandardLiteral('test1', { tag: 'ShortName' })
+            const literal2 = new StandardLiteral('test2', { tag: 'ShortName' })
+            const diff = literal1.diff(literal2)
+            expect(diff?._wrapperTag).toBe('ShortName')
+        })
+
+        it('should preserve tag in diff() when diffing to undefined', () => {
+            const literal = new StandardLiteral('test', { tag: 'ShortName' })
+            const diff = literal.diff(undefined)
+            expect(diff?._wrapperTag).toBe('ShortName')
+        })
+
+        it('should preserve tag in mapContents()', () => {
+            const literal = new StandardLiteral('test', { tag: 'ShortName' })
+            const mapped = literal.mapContents(data => data.toUpperCase())
+            expect(mapped._wrapperTag).toBe('ShortName')
+            expect(mapped.toJSON()).toBe('TEST')
+        })
+
+        it('should handle nestedSchema() with RemoveClass and stored tag', () => {
+            const literal = new StandardLiteral({ tag: 'Remove', match: 'old' }, { tag: 'ShortName' })
+            const schema = literal.nestedSchema()
+            expect(schema).toEqual([{
+                data: { tag: 'Remove' },
+                children: [{
+                    data: { tag: 'ShortName' },
+                    children: [{ data: { tag: 'String', value: 'old' }, children: [] }]
+                }]
+            }])
+        })
+
+        it('should handle nestedSchema() with ReplaceClass and stored tag', () => {
+            const literal = new StandardLiteral({ tag: 'Replace', match: 'old', payload: 'new' }, { tag: 'ShortName' })
+            const schema = literal.nestedSchema()
+            expect(schema).toEqual([{
+                data: { tag: 'Replace' },
+                children: [
+                    {
+                        data: { tag: 'ReplaceMatch' },
+                        children: [{
+                            data: { tag: 'ShortName' },
+                            children: [{ data: { tag: 'String', value: 'old' }, children: [] }]
+                        }]
+                    },
+                    {
+                        data: { tag: 'ReplacePayload' },
+                        children: [{
+                            data: { tag: 'ShortName' },
+                            children: [{ data: { tag: 'String', value: 'new' }, children: [] }]
+                        }]
+                    }
+                ]
+            }])
+        })
+    })
 })

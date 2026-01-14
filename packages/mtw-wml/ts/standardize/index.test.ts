@@ -3276,7 +3276,7 @@ describe('StandardForm', () => {
             `)
             expect(test.byId.testRoom).toBeInstanceOf(StandardRoom)
             const room = test.byId.testRoom.clone() as StandardRoom
-            room._payload._shortName = new StandardLiteral('Updated Room')
+            room._payload._shortName = new StandardLiteral('Updated Room', { tag: 'ShortName' })
             test.byId.testRoom = room
             expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
@@ -3310,7 +3310,7 @@ describe('StandardForm', () => {
             `)
             expect(test.byUniversalId[`ROOM#testRoom`]).toBeInstanceOf(StandardRoom)
             const room = test.byUniversalId[`ROOM#testRoom`].clone() as StandardRoom
-            room._payload._shortName = new StandardLiteral('Updated Room')
+            room._payload._shortName = new StandardLiteral('Updated Room', { tag: 'ShortName' })
             test.byUniversalId[`ROOM#testRoom`] = room
             expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>

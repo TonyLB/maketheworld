@@ -37,7 +37,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
 
     fromJSON(props: StandardKnowledgeData) {
         const { shortName } = props
-        this._shortName = shortName ? new StandardLiteral(shortName) : undefined
+        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
@@ -48,7 +48,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
                 .filter({ match: 'ShortName' })
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
             this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(childReferenceFactory))
             return
         }
@@ -70,7 +70,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         return {
             data: { tag: 'Knowledge', key, uuid: universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...this.examples.schema,
             ]
         }
@@ -93,7 +93,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         return {
             data: { tag: 'Knowledge', key: key.key ?? '', uuid: key.universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...examplesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
             ]
         }

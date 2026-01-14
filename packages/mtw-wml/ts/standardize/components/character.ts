@@ -34,8 +34,8 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 
     fromJSON(props: StandardCharacterData) {
         const { shortName, pronouns } = props
-        this._shortName = shortName ? new StandardLiteral(shortName) : undefined
-        this._pronouns = pronouns ? new StandardLiteral(pronouns) : undefined
+        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
+        this._pronouns = pronouns ? new StandardLiteral(pronouns, { tag: 'Pronouns' }) : undefined
         this._name = props.name ? new StandardRender(props.name) : undefined
         this._image = props.image
     }
@@ -47,12 +47,12 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
                 .filter({ match: 'ShortName' })
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
             const pronounsItem = tagTree
                 .filter({ match: 'Pronouns' })
                 .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                 .tree
-            this._pronouns = pronounsItem.length ? new StandardLiteral(pronounsItem) : undefined
+            this._pronouns = pronounsItem.length ? new StandardLiteral(pronounsItem, { tag: 'Pronouns' }) : undefined
             const nameItem = tagTree.filter({ match: 'Name' }).prune({ match: 'Name' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
             if (nameItem.length) {
                 this._name = new StandardRender(nameItem)
@@ -82,8 +82,8 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         return {
             data: { tag: 'Character', key, uuid: universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
-                ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema({ tag: 'Pronouns' }))).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema())).flat(1),
                 rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, mappings),
                 this.image
             ].filter(excludeUndefined).flat(1)
