@@ -1,5 +1,5 @@
 import { excludeUndefined } from "../../lib/lists"
-import { wrappedNodeTypeGuard } from "../../schema/utils"
+import { findTaggedChildren, wrappedNodeTypeGuard } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
@@ -37,18 +37,14 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
 
     fromJSON(props: StandardKnowledgeData) {
         const { shortName } = props
-        this._shortName = shortName ? new StandardLiteral(shortName) : undefined
+        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaKnowledge)(node)) {
-            const tagTree = new SchemaTagTree(node.children)
-            const shortNameItem = tagTree
-                .filter({ match: 'ShortName' })
-                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                .tree
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
+            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
             this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(childReferenceFactory))
             return
         }
@@ -70,7 +66,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         return {
             data: { tag: 'Knowledge', key, uuid: universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...this.examples.schema,
             ]
         }
@@ -93,7 +89,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         return {
             data: { tag: 'Knowledge', key: key.key ?? '', uuid: key.universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...examplesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
             ]
         }

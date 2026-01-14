@@ -147,7 +147,7 @@ export class StandardForm {
                 }
             }, [])
             // Extract Asset-level metadata from StandardFormData
-            this._shortName = args.shortName ? new StandardLiteral(args.shortName) : undefined
+            this._shortName = args.shortName ? new StandardLiteral(args.shortName, { tag: 'ShortName' }) : undefined
             this._summary = args.summary ? new StandardRender(args.summary) : undefined
             this._topLevel = args.topLevel ? new ReferenceList(args.topLevel) : undefined
 
@@ -165,7 +165,7 @@ export class StandardForm {
             this._universalKey = assetLine.universalKey
             
             // Extract Asset-level metadata from NDJSON header
-            this._shortName = (assetLine as any).shortName ? new StandardLiteral((assetLine as any).shortName) : undefined
+            this._shortName = (assetLine as any).shortName ? new StandardLiteral((assetLine as any).shortName, { tag: 'ShortName' }) : undefined
             this._summary = (assetLine as any).summary ? new StandardRender((assetLine as any).summary) : undefined
             this._topLevel = (assetLine as any).topLevel ? new ReferenceList((assetLine as any).topLevel) : undefined
             
@@ -201,14 +201,13 @@ export class StandardForm {
                 const tagTree = new SchemaTagTree(node.children)
                 const shortNameItem = tagTree
                     .filter({ and: [{ match: 'ShortName' }, { not: { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Character' }, { match: 'Knowledge' }, { match: 'Mark' }, { match: 'Lens' }] } }] })
-                    .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                     .tree
                 const summaryItem = tagTree
                     .filter({ and: [{ match: 'Summary' }, { not: { match: 'Example' } }] })
                     .prune({ match: 'Summary' })
                     .tree
                     .filter(wrappedNodeTypeGuard(isSchemaOutputTag))
-                this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
+                this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
                 this._summary = summaryItem.length ? new StandardRender(summaryItem) : undefined
 
                 const { components: componentFragments, topLevel: topLevelKeys } = processComponents({ 
@@ -488,7 +487,7 @@ export class StandardForm {
             data: { tag: 'Asset', uuid: this._universalKey, Story: undefined },
             children: [
                 ...metaData.filter(treeNodeTypeguard(isSchemaMeta)),
-                ...[this._shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...[this._shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...[rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }, mapKeys)].filter(excludeUndefined),
                 ...children
             ]

@@ -1,5 +1,5 @@
 import { excludeUndefined } from "../../lib/lists"
-import { findTaggedChildren, stripTagFromTree } from "../../schema/utils"
+import { findTaggedChildren } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
@@ -49,7 +49,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     fromJSON(props: StandardRoomData) {
         const { shortName } = props
-        this._shortName = shortName ? new StandardLiteral(shortName) : undefined
+        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._exits = props.exits?.map((exitData) => (StandardExit.create(exitData))) ?? []
         this._lenses = new ReferenceList(props.lenses?.map((reference) => (new StandardReference(reference))) ?? [])
         this._features = new ReferenceList(props.features?.map((reference) => (new StandardReference(reference))) ?? [])
@@ -59,8 +59,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
-            const shortNameNode = stripTagFromTree(findTaggedChildren({ children: node.children, tag: 'ShortName' }), 'ShortName')
-            this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode) : undefined
+            const shortNameNode = findTaggedChildren({ children: node.children, tag: 'ShortName' })
+            this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode, { tag: 'ShortName' }) : undefined
             this._exits = findTaggedChildren({ children: node.children, tag: 'Exit' }).map((exitData) => (StandardExit.create([exitData])))
             this._lenses = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Lens' }).map(childReferenceFactory))
             this._features = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Feature' }).map(childReferenceFactory))
@@ -97,7 +97,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Room', key, uuid: universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...this.lenses.schema,
                 ...this.features.schema,
                 ...this.examples.schema,
@@ -131,7 +131,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...lensesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...featuresToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...examplesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),

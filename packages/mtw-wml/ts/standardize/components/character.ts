@@ -7,8 +7,8 @@ import { AssetUUID, ComponentUUID, isSchemaCharacter, isSchemaOutputTag, SchemaT
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 import { StandardLiteral } from "../literal"
 import SchemaTagTree from "../../tagTree/schema"
-import { StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
-import { deepEqual } from "../../lib/objects"
+import { findTaggedChildren } from "../../schema/utils"
+import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardRender } from "../render"
@@ -34,8 +34,8 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 
     fromJSON(props: StandardCharacterData) {
         const { shortName, pronouns } = props
-        this._shortName = shortName ? new StandardLiteral(shortName) : undefined
-        this._pronouns = pronouns ? new StandardLiteral(pronouns) : undefined
+        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
+        this._pronouns = pronouns ? new StandardLiteral(pronouns, { tag: 'Pronouns' }) : undefined
         this._name = props.name ? new StandardRender(props.name) : undefined
         this._image = props.image
     }
@@ -43,16 +43,10 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaCharacter)(node)) {
             const tagTree = new SchemaTagTree(node.children)
-            const shortNameItem = tagTree
-                .filter({ match: 'ShortName' })
-                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                .tree
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem) : undefined
-            const pronounsItem = tagTree
-                .filter({ match: 'Pronouns' })
-                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                .tree
-            this._pronouns = pronounsItem.length ? new StandardLiteral(pronounsItem) : undefined
+            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
+            const pronounsItem = findTaggedChildren({ children: node.children, tag: 'Pronouns' })
+            this._pronouns = pronounsItem.length ? new StandardLiteral(pronounsItem, { tag: 'Pronouns' }) : undefined
             const nameItem = tagTree.filter({ match: 'Name' }).prune({ match: 'Name' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
             if (nameItem.length) {
                 this._name = new StandardRender(nameItem)
@@ -82,8 +76,8 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         return {
             data: { tag: 'Character', key, uuid: universalKey },
             children: [
-                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
-                ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema({ tag: 'Pronouns' }))).flat(1),
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema())).flat(1),
                 rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, mappings),
                 this.image
             ].filter(excludeUndefined).flat(1)

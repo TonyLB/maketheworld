@@ -1,10 +1,12 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
+import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { v2StandardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
-import { isRenderTree, RenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
+import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaTreeNode } from "../../schema"
 
 //
 // StandardLiteralSimpleBase holds the contents for a simple StandardLiteral
@@ -109,42 +111,106 @@ export const {
     diff: standardLiteralDiff
 }, 'StandardLiteral')
 
+// Helper function to strip wrapper tags from schema trees
+// Handles both cases:
+// 1. Wrapper tag at top level: <ShortName><Remove>...</Remove></ShortName>
+// 2. Edit tag at top level with wrapper inside: <Remove><ShortName>...</ShortName></Remove>
+const stripWrapperTag = (tree: GenericTree<SchemaTag>, expectedTag: SchemaTag["tag"]): GenericTree<SchemaTag> => {
+    if (tree.length === 0) {
+        return tree
+    }
+    
+    const firstNode = tree[0]
+    
+    // Case 1: Wrapper tag at top level - strip it and return children
+    if (firstNode.data.tag === expectedTag) {
+        return firstNode.children
+    }
+    
+    // Case 2: Remove tag at top level - strip wrapper tag from inside
+    if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
+        return [{
+            data: firstNode.data,
+            children: stripWrapperTag(firstNode.children, expectedTag)
+        }]
+    }
+    
+    // Case 3: Replace tag at top level - strip wrapper tag from ReplaceMatch and ReplacePayload children
+    if (treeNodeTypeguard(isSchemaReplace)(firstNode)) {
+        return [{
+            data: firstNode.data,
+            children: firstNode.children.map((child) => {
+                return {
+                    data: child.data,
+                    children: stripWrapperTag(child.children, expectedTag)
+                }
+            })
+        }]
+    }
+    
+    // If we get here, the wrapper tag wasn't found at the expected location
+    // This could be valid (already-stripped tree) or invalid (wrong tag)
+    // We'll let EditableClass.create() handle it - validation happens at component level
+    return tree
+}
 
 export class StandardLiteral {
     _payload: InstanceType<typeof EditableClass>;
+    _wrapperTag?: SchemaTag["tag"];
     
-    constructor(arg: any) {
+    constructor(arg: any, options?: { tag?: SchemaTag["tag"] }) {
+        // Handle existing StandardLiteral instance (for cloning/copying)
+        if (arg instanceof StandardLiteral) {
+            this._payload = arg._payload
+            // Preserve tag from source, or use provided tag, or no tag
+            this._wrapperTag = options?.tag ?? arg._wrapperTag
+            return
+        }
+        
         // Handle existing v2 instance (for cloning/wrapping)
         if (arg instanceof EditableClass) {
             this._payload = arg
+            this._wrapperTag = options?.tag
             return
         }
         
         // Convert RenderTree to GenericTree<SchemaTag> before calling EditableClass.create()
         // EditableClass.create() doesn't handle RenderTree directly
-        const convertedArg = isRenderTree(arg) ? renderTreeToSchema(arg) : arg
+        let convertedArg = isRenderTree(arg) ? renderTreeToSchema(arg) : arg
+        
+        // Strip wrapper tag if options.tag is provided and arg is a GenericTree<SchemaTag>
+        if (options?.tag && Array.isArray(convertedArg) && convertedArg.every(isSchemaTreeNode)) {
+            convertedArg = stripWrapperTag(convertedArg, options.tag)
+        }
         
         // Use EditableClass.create() for dispatch
         // Handles: string, StandardEditableData, GenericTree<SchemaTag>
         this._payload = EditableClass.create(convertedArg)
+        this._wrapperTag = options?.tag
     }
 
     get schema(): GenericTree<SchemaTag> {
         return this._payload.schema
     }
 
-    nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
+    nestedSchema(tag?: SchemaTag): GenericTree<SchemaTag> {
+        // Use provided tag, or fall back to stored wrapper tag
+        const tagToUse: SchemaTag | undefined = tag ?? (this._wrapperTag ? { tag: this._wrapperTag } as SchemaTag : undefined)
+        if (!tagToUse) {
+            throw new Error('nestedSchema() called without tag argument and no stored wrapper tag')
+        }
+        
         // Override v2 nestedSchema to wrap content in tag (v2 base class just returns schema without wrapping)
         // Handle PlainClass: wrap schema in tag
         if (this._payload instanceof PlainClass) {
-            return [{ data: tag, children: this._payload.schema }]
+            return [{ data: tagToUse, children: this._payload.schema }]
         }
         // Handle RemoveClass: wrap match schema in tag, then wrap in Remove
         if (this._payload instanceof RemoveClass) {
             const match = (this._payload as any).match
             return [{
                 data: { tag: 'Remove' as const },
-                children: [{ data: tag, children: match?.schema ?? [] }]
+                children: [{ data: tagToUse, children: match?.schema ?? [] }]
             }]
         }
         // Handle ReplaceClass: wrap match and payload schemas in tag, then wrap in Replace
@@ -154,13 +220,13 @@ export class StandardLiteral {
             return [{
                 data: { tag: 'Replace' as const },
                 children: [
-                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: tag, children: match?.schema ?? [] }] },
-                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: tag, children: payload?.schema ?? [] }] }
+                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: tagToUse, children: match?.schema ?? [] }] },
+                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: tagToUse, children: payload?.schema ?? [] }] }
                 ]
             }]
         }
         // Fallback to v2 implementation (shouldn't happen)
-        return this._payload.nestedSchema(tag)
+        return this._payload.nestedSchema(tagToUse)
     }
 
     toJSON(): StandardEditableData<string> {
@@ -170,7 +236,11 @@ export class StandardLiteral {
     merge(incoming: StandardLiteral): StandardLiteral | undefined {
         const merged = this._payload.merge(incoming._payload)
         if (merged) {
-            return new StandardLiteral(merged)
+            // Preserve tag if both operands have the same tag, otherwise no tag
+            const tagToPreserve = (this._wrapperTag && incoming._wrapperTag && this._wrapperTag === incoming._wrapperTag) 
+                ? this._wrapperTag 
+                : undefined
+            return new StandardLiteral(merged, tagToPreserve ? { tag: tagToPreserve } : undefined)
         }
         return undefined
     }
@@ -178,13 +248,17 @@ export class StandardLiteral {
         if (incoming) {
             const diff = this._payload.diff(incoming._payload)
             if (diff) {
-                return new StandardLiteral(diff)
+                // Preserve tag if both operands have the same tag, otherwise no tag
+                const tagToPreserve = (this._wrapperTag && incoming._wrapperTag && this._wrapperTag === incoming._wrapperTag) 
+                    ? this._wrapperTag 
+                    : undefined
+                return new StandardLiteral(diff, tagToPreserve ? { tag: tagToPreserve } : undefined)
             }
             return undefined
         } else {
             // Diff from this to nothing: invert
             const inverted = this._payload.invert()
-            return new StandardLiteral(inverted)
+            return new StandardLiteral(inverted, this._wrapperTag ? { tag: this._wrapperTag } : undefined)
         }
     }
     mapContents(callback: (incoming: string) => string): StandardLiteral {
@@ -196,7 +270,7 @@ export class StandardLiteral {
         if (this._payload instanceof RemoveClass) {
             const matchData = (this._payload as any).match?.data ?? ''
             const mappedMatch = callback(matchData)
-            return new StandardLiteral({ tag: 'Remove', match: mappedMatch })
+            return new StandardLiteral({ tag: 'Remove', match: mappedMatch }, this._wrapperTag ? { tag: this._wrapperTag } : undefined)
         }
         if (this._payload instanceof ReplaceClass) {
             const matchData = (this._payload as any).match?.data ?? ''
@@ -205,15 +279,15 @@ export class StandardLiteral {
                 tag: 'Replace', 
                 match: callback(matchData), 
                 payload: callback(payloadData) 
-            })
+            }, this._wrapperTag ? { tag: this._wrapperTag } : undefined)
         }
         // PlainClass
-        return new StandardLiteral(mappedData)
+        return new StandardLiteral(mappedData, this._wrapperTag ? { tag: this._wrapperTag } : undefined)
     }
 
     invert(): StandardLiteral {
         const inverted = this._payload.invert()
-        return new StandardLiteral(inverted)
+        return new StandardLiteral(inverted, this._wrapperTag ? { tag: this._wrapperTag } : undefined)
     }
 
 }

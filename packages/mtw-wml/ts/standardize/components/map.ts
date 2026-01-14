@@ -1,6 +1,7 @@
 import { excludeUndefined } from "../../lib/lists"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
+import { findTaggedChildren } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
@@ -39,7 +40,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     }
 
     fromJSON(props: StandardMapData) {
-        this._name = props.name ? new StandardLiteral(props.name) : undefined
+        this._name = props.name ? new StandardLiteral(props.name, { tag: 'Name' }) : undefined
         this._images = props.images ?? []
         this._positions = props.positions?.map((position) => (new StandardPosition(position))).filter(excludeUndefined) ?? []
     }
@@ -47,16 +48,13 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMap)(node)) {
             const tagTree = new SchemaTagTree(node.children)
-            const nameItem = tagTree
-                .filter({ match: 'Name' })
-                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                .tree
+            const nameItem = findTaggedChildren({ children: node.children, tag: 'Name' })
             const positionsTagTree = tagTree
                 .reordered([{ match: 'Room' }, { match: 'Position' }])
                 .prune({ not: { or: [{ match: 'Room' }, { match: 'Position' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }]}})
             const imagesTagTree = tagTree.filter({ match: 'Image' })
 
-            this._name = nameItem && nameItem.length > 0 ? new StandardLiteral(nameItem) : undefined
+            this._name = nameItem && nameItem.length > 0 ? new StandardLiteral(nameItem, { tag: 'Name' }) : undefined
             this._images = imagesTagTree.tree
             this._positions = positionsTagTree.tree
                 .map((position) => {
@@ -90,7 +88,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return {
             data: { tag: 'Map', key, uuid: universalKey },
             children: [
-                ...this.name ? this.name.nestedSchema({ tag: 'Name' }) : [],
+                ...this.name ? this.name.nestedSchema() : [],
                 ...this.images,
                 ...this.positions.map((position) => position.schema).filter(excludeUndefined).flat(1)
             ]
@@ -156,7 +154,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return {
             data: { tag: 'Map', key: mapKey.key ?? '', uuid: mapKey.universalKey },
             children: [
-                ...this.name ? this.name.nestedSchema({ tag: 'Name' }) : [],
+                ...this.name ? this.name.nestedSchema() : [],
                 ...this.images,
                 ...positionSchemas
             ]
