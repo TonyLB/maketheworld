@@ -7,8 +7,8 @@ import { AssetUUID, ComponentUUID, isSchemaCharacter, isSchemaOutputTag, SchemaT
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 import { StandardLiteral } from "../literal"
 import SchemaTagTree from "../../tagTree/schema"
-import { StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
-import { deepEqual } from "../../lib/objects"
+import { findTaggedChildren } from "../../schema/utils"
+import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardRender } from "../render"
@@ -43,15 +43,9 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaCharacter)(node)) {
             const tagTree = new SchemaTagTree(node.children)
-            const shortNameItem = tagTree
-                .filter({ match: 'ShortName' })
-                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                .tree
+            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
-            const pronounsItem = tagTree
-                .filter({ match: 'Pronouns' })
-                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                .tree
+            const pronounsItem = findTaggedChildren({ children: node.children, tag: 'Pronouns' })
             this._pronouns = pronounsItem.length ? new StandardLiteral(pronounsItem, { tag: 'Pronouns' }) : undefined
             const nameItem = tagTree.filter({ match: 'Name' }).prune({ match: 'Name' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
             if (nameItem.length) {

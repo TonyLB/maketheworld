@@ -43,12 +43,9 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
         if (treeNodeTypeguard(isSchemaMark)(node)) {
             // Filter out component children to avoid including nested ShortName tags from child components
             const nonComponentChildren = node.children.filter((child) => !isSchemaComponent(child.data))
-            const tagTree = new SchemaTagTree(nonComponentChildren)
-            const shortNameItem = tagTree
-                .filter({ match: 'ShortName' })
-                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                .tree
+            const shortNameItem = findTaggedChildren({ children: nonComponentChildren, tag: 'ShortName' })
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
+            const tagTree = new SchemaTagTree(nonComponentChildren)
             const descriptionItem = tagTree
                 .filter({ match: 'Description' })
                 .prune({ match: 'Description' })
@@ -189,12 +186,9 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         if (treeNodeTypeguard(isSchemaLens)(node)) {
             // Filter out component children to avoid including nested ShortName tags from child components
             const nonComponentChildren = node.children.filter((child) => !isSchemaComponent(child.data))
-            const tagTree = new SchemaTagTree(nonComponentChildren)
-            const shortNameItem = tagTree
-                .filter({ match: 'ShortName' })
-                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                .tree
+            const shortNameItem = findTaggedChildren({ children: nonComponentChildren, tag: 'ShortName' })
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
+            const tagTree = new SchemaTagTree(nonComponentChildren)
             const descriptionItem = tagTree
                 .filter({ match: 'Description' })
                 .prune({ match: 'Description' })

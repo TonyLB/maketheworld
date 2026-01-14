@@ -1,5 +1,5 @@
 import { excludeUndefined } from "../../lib/lists"
-import { findTaggedChildren, stripTagFromTree } from "../../schema/utils"
+import { findTaggedChildren } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
@@ -59,7 +59,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
-            const shortNameNode = stripTagFromTree(findTaggedChildren({ children: node.children, tag: 'ShortName' }), 'ShortName')
+            const shortNameNode = findTaggedChildren({ children: node.children, tag: 'ShortName' })
             this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode, { tag: 'ShortName' }) : undefined
             this._exits = findTaggedChildren({ children: node.children, tag: 'Exit' }).map((exitData) => (StandardExit.create([exitData])))
             this._lenses = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Lens' }).map(childReferenceFactory))

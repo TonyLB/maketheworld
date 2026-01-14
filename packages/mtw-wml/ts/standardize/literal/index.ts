@@ -1,10 +1,12 @@
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
+import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { v2StandardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
-import { isRenderTree, RenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
+import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaTreeNode } from "../../schema"
 
 //
 // StandardLiteralSimpleBase holds the contents for a simple StandardLiteral
@@ -109,6 +111,48 @@ export const {
     diff: standardLiteralDiff
 }, 'StandardLiteral')
 
+// Helper function to strip wrapper tags from schema trees
+// Handles both cases:
+// 1. Wrapper tag at top level: <ShortName><Remove>...</Remove></ShortName>
+// 2. Edit tag at top level with wrapper inside: <Remove><ShortName>...</ShortName></Remove>
+const stripWrapperTag = (tree: GenericTree<SchemaTag>, expectedTag: SchemaTag["tag"]): GenericTree<SchemaTag> => {
+    if (tree.length === 0) {
+        return tree
+    }
+    
+    const firstNode = tree[0]
+    
+    // Case 1: Wrapper tag at top level - strip it and return children
+    if (firstNode.data.tag === expectedTag) {
+        return firstNode.children
+    }
+    
+    // Case 2: Remove tag at top level - strip wrapper tag from inside
+    if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
+        return [{
+            data: firstNode.data,
+            children: stripWrapperTag(firstNode.children, expectedTag)
+        }]
+    }
+    
+    // Case 3: Replace tag at top level - strip wrapper tag from ReplaceMatch and ReplacePayload children
+    if (treeNodeTypeguard(isSchemaReplace)(firstNode)) {
+        return [{
+            data: firstNode.data,
+            children: firstNode.children.map((child) => {
+                return {
+                    data: child.data,
+                    children: stripWrapperTag(child.children, expectedTag)
+                }
+            })
+        }]
+    }
+    
+    // If we get here, the wrapper tag wasn't found at the expected location
+    // This could be valid (already-stripped tree) or invalid (wrong tag)
+    // We'll let EditableClass.create() handle it - validation happens at component level
+    return tree
+}
 
 export class StandardLiteral {
     _payload: InstanceType<typeof EditableClass>;
@@ -132,7 +176,12 @@ export class StandardLiteral {
         
         // Convert RenderTree to GenericTree<SchemaTag> before calling EditableClass.create()
         // EditableClass.create() doesn't handle RenderTree directly
-        const convertedArg = isRenderTree(arg) ? renderTreeToSchema(arg) : arg
+        let convertedArg = isRenderTree(arg) ? renderTreeToSchema(arg) : arg
+        
+        // Strip wrapper tag if options.tag is provided and arg is a GenericTree<SchemaTag>
+        if (options?.tag && Array.isArray(convertedArg) && convertedArg.every(isSchemaTreeNode)) {
+            convertedArg = stripWrapperTag(convertedArg, options.tag)
+        }
         
         // Use EditableClass.create() for dispatch
         // Handles: string, StandardEditableData, GenericTree<SchemaTag>

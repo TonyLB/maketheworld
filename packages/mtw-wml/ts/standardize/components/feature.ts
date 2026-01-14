@@ -1,5 +1,5 @@
 import { excludeUndefined } from "../../lib/lists"
-import { wrappedNodeTypeGuard } from "../../schema/utils"
+import { findTaggedChildren, wrappedNodeTypeGuard } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
@@ -43,11 +43,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
-            const tagTree = new SchemaTagTree(node.children)
-            const shortNameItem = tagTree
-                .filter({ match: 'ShortName' })
-                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                .tree
+            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
             this._examples = new ReferenceList(node.children.filter(wrappedNodeTypeGuard(isSchemaExample)).map(childReferenceFactory))
             return

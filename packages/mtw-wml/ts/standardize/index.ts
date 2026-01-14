@@ -201,7 +201,6 @@ export class StandardForm {
                 const tagTree = new SchemaTagTree(node.children)
                 const shortNameItem = tagTree
                     .filter({ and: [{ match: 'ShortName' }, { not: { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Character' }, { match: 'Knowledge' }, { match: 'Mark' }, { match: 'Lens' }] } }] })
-                    .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
                     .tree
                 const summaryItem = tagTree
                     .filter({ and: [{ match: 'Summary' }, { not: { match: 'Example' } }] })

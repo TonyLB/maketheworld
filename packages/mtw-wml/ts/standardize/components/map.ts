@@ -1,6 +1,7 @@
 import { excludeUndefined } from "../../lib/lists"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
+import { findTaggedChildren } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
@@ -47,10 +48,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMap)(node)) {
             const tagTree = new SchemaTagTree(node.children)
-            const nameItem = tagTree
-                .filter({ match: 'Name' })
-                .prune({ not: { or: [{ match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                .tree
+            const nameItem = findTaggedChildren({ children: node.children, tag: 'Name' })
             const positionsTagTree = tagTree
                 .reordered([{ match: 'Room' }, { match: 'Position' }])
                 .prune({ not: { or: [{ match: 'Room' }, { match: 'Position' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }]}})

@@ -187,5 +187,60 @@ describe('StandardLiteral', () => {
                 ]
             }])
         })
+
+        it('should strip wrapper tag from top level', () => {
+            const tree = [{
+                data: { tag: 'ShortName' },
+                children: [{ data: { tag: 'String', value: 'test' }, children: [] }]
+            }]
+            const literal = new StandardLiteral(tree, { tag: 'ShortName' })
+            expect(literal.toJSON()).toBe('test')
+            expect(literal._wrapperTag).toBe('ShortName')
+        })
+
+        it('should strip wrapper tag from inside Remove tag', () => {
+            const tree = [{
+                data: { tag: 'Remove' },
+                children: [{
+                    data: { tag: 'ShortName' },
+                    children: [{ data: { tag: 'String', value: 'test' }, children: [] }]
+                }]
+            }]
+            const literal = new StandardLiteral(tree, { tag: 'ShortName' })
+            expect(literal.toJSON()).toEqual({ tag: 'Remove', match: 'test' })
+            expect(literal._wrapperTag).toBe('ShortName')
+        })
+
+        it('should strip wrapper tag from inside Replace tag', () => {
+            const tree = [{
+                data: { tag: 'Replace' },
+                children: [
+                    {
+                        data: { tag: 'ReplaceMatch' },
+                        children: [{
+                            data: { tag: 'ShortName' },
+                            children: [{ data: { tag: 'String', value: 'old' }, children: [] }]
+                        }]
+                    },
+                    {
+                        data: { tag: 'ReplacePayload' },
+                        children: [{
+                            data: { tag: 'ShortName' },
+                            children: [{ data: { tag: 'String', value: 'new' }, children: [] }]
+                        }]
+                    }
+                ]
+            }]
+            const literal = new StandardLiteral(tree, { tag: 'ShortName' })
+            expect(literal.toJSON()).toEqual({ tag: 'Replace', match: 'old', payload: 'new' })
+            expect(literal._wrapperTag).toBe('ShortName')
+        })
+
+        it('should handle already-stripped trees (backward compatibility)', () => {
+            const tree = [{ data: { tag: 'String', value: 'test' }, children: [] }]
+            const literal = new StandardLiteral(tree, { tag: 'ShortName' })
+            expect(literal.toJSON()).toBe('test')
+            expect(literal._wrapperTag).toBe('ShortName')
+        })
     })
 })
