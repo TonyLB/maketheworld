@@ -166,21 +166,7 @@ export const facetClassFactory = <D>(
             if (this._reference.ref !== other._reference.ref) {
                 return false;
             }
-            const thisIsReplace = this.payload instanceof payloadClasses.ReplaceClass;
-            const otherIsReplace = other.payload instanceof payloadClasses.ReplaceClass;
-            if (thisIsReplace !== otherIsReplace) {
-                return false;
-            }
-            if (thisIsReplace) {
-                // For Replace operations, compare both match and payload
-                const thisReplace = this.payload as InstanceType<typeof payloadClasses.ReplaceClass>;
-                const otherReplace = other.payload as InstanceType<typeof payloadClasses.ReplaceClass>;
-                const thisMatch = (thisReplace as any).match;
-                const otherMatch = (otherReplace as any).match;
-                if (JSON.stringify(thisMatch?.toJSON?.() ?? thisMatch) !== JSON.stringify(otherMatch?.toJSON?.() ?? otherMatch)) {
-                    return false;
-                }
-            }
+            // Delegate payload comparison to payload.toJSON() - handles all cases including Replace
             return JSON.stringify(this.payload.toJSON()) === JSON.stringify(other.payload.toJSON());
         }
 

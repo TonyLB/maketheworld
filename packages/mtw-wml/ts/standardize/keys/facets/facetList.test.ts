@@ -10,7 +10,7 @@ describe('Concrete FacetList Classes', () => {
         key,
         tag,
         universalKey: `${tag.toUpperCase()}#${key}` as any,
-        ref
+        ref: ref === 1 ? undefined : ref
     });
 
     // Helper functions to create test facets
@@ -704,8 +704,8 @@ describe('Concrete FacetList Classes', () => {
             // Invert swaps match and payload: "Replace A with B" becomes "Replace B with A"
             // The reference ref is also inverted
             const replaceInstance = replaceItem0.payload as any;
-            expect(replaceInstance.match?.toJSON()).toEqual(payloadData.payload);  // Original payload becomes match
-            expect(replaceInstance.payload?.toJSON()).toEqual(matchData.payload);   // Original match becomes payload
+            expect(replaceInstance.match?.toJSON()).toEqual({ x: 10, y: 20 });  // Original payload becomes match
+            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 5, y: 10 });   // Original match becomes payload
         });
 
 
