@@ -93,7 +93,7 @@ When parsing `<Remove><Remove><Position>...</Position></Remove></Remove>`, the f
 ---
 
 ## Issue 4: Property Access on Payload Classes
-**Priority: Medium** | **Files Affected: 3** | **Failures: 4**
+**Status: ✅ RESOLVED** | **Priority: Medium** | **Files Affected: 3** | **Failures: 4**
 
 ### Problem
 Payload class instances don't expose direct property access (`.x`, `.y`, `.description`), even though `toJSON()` works correctly. Tests expect direct property access but get `undefined`.
@@ -113,20 +113,18 @@ Received: undefined
 ### Root Cause
 Payload classes (like `PositionFacetPlainClass`, `ExitFacetPlainClass`) wrap the actual payload data but don't expose it as direct properties. The payload is stored internally and only accessible via `toJSON()`.
 
-### Investigation Needed
-- Check if payload classes should expose properties via getters
-- Verify if tests should use `toJSON()` instead of direct property access
-- Check if this is a design decision or a missing feature
+### Resolution
+**Tests were using outdated syntax.** Payload classes are wrapper classes that don't expose properties directly. All affected tests were updated to use `toJSON()` for property access:
+- `facet.payload.x` → `facet.payload.toJSON().x`
+- `facet.payload.y` → `facet.payload.toJSON().y`
+- `facet.payload.description` → `facet.payload.toJSON()` (ExitPayload is a string, not an object with description property)
 
-### Potential Solutions
-1. Add getter properties to payload classes (e.g., `get x()`, `get y()`, `get description()`)
-2. Update tests to use `toJSON()` instead of direct property access
-3. Add a `plain` getter that returns the underlying payload object
+This aligns with the design where payload classes wrap data and expose it via `toJSON()`.
 
 ---
 
 ## Issue 5: Invert Operation Returns Wrong Payload Structure
-**Priority: Medium** | **Files Affected: 2** | **Failures: 2**
+**Status: ✅ RESOLVED** | **Priority: Medium** | **Files Affected: 2** | **Failures: 2**
 
 ### Problem
 When calling `facet.invert()`, the `payload.toJSON()` returns a Remove-wrapped structure `{tag: "Remove", match: {...}}` instead of the plain payload data.
@@ -145,15 +143,17 @@ Received: { tag: "Remove", match: { x: 10, y: 20 } }
 ### Root Cause
 The `invert()` method calls `payload.invert()`, which returns a Remove-wrapped payload (correct for edit operations), but the test expects the plain payload data.
 
-### Investigation Needed
-- Check if `invert()` should return a Remove-wrapped payload (for edit semantics) or plain payload
-- Verify if tests need to extract the payload from the Remove structure
-- Check if there's a `plain` property that should be used instead
+### Resolution
+**Tests were using outdated expectations.** The `invert()` operation correctly swaps add/remove in the delta, which means:
+- PlainClass (add only) → RemoveClass (remove only) when inverted
+- ReplaceClass (add + remove) → ReplaceClass with swapped match/payload when inverted
 
-### Potential Solutions
-1. Update tests to expect Remove-wrapped structure (if that's the correct behavior)
-2. Update tests to extract payload from `inverted.payload.match` or use `inverted.payload.plain`
-3. Change `invert()` behavior if it's incorrect
+All affected tests were updated:
+- `facetFactory.test.ts`: Renamed "should invert reference" to "should invert facet (both reference and payload)" and updated to expect Remove-wrapped structure
+- `facetFactory.test.ts`: Updated "should preserve Replace state when inverting" to "should invert Replace state (swap match and payload)" with explicit checks for swapped values
+- `facet.test.ts`: Updated "should invert when diffing from facet to nothing" to expect Remove-wrapped structure
+
+This aligns with the correct edit algebra semantics where inversion swaps add/remove operations.
 
 ---
 
