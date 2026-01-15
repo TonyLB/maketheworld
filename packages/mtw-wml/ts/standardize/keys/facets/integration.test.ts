@@ -73,10 +73,10 @@ describe('Facet Integration Tests', () => {
                 const originalWML = deIndentWML(`<Room key=(room1)><Position x="10" y="20" /></Room>`);
                 const facet = new StandardPositionFacet(originalWML);
                 
-                // Payload is now a class instance - access properties directly
+                // Payload is now a class instance - access properties via toJSON()
                 const positionFacet = facet as StandardPositionFacet;
-                expect(positionFacet.payload.x).toBe(10);
-                expect(positionFacet.payload.y).toBe(20);
+                expect(positionFacet.payload.toJSON().x).toBe(10);
+                expect(positionFacet.payload.toJSON().y).toBe(20);
                 expect(positionFacet.payload.toJSON()).toEqual({ x: 10, y: 20 });
                 
                 const renderResult = facet.renderFacet();
@@ -92,10 +92,10 @@ describe('Facet Integration Tests', () => {
                 `);
                 const facet = new StandardPositionFacet(originalWML);
                 
-                // Payload is now a class instance - access properties directly
+                // Payload is now a class instance - access properties via toJSON()
                 const positionFacet = facet as StandardPositionFacet;
-                expect(positionFacet.payload.x).toBe(15);
-                expect(positionFacet.payload.y).toBe(25);
+                expect(positionFacet.payload.toJSON().x).toBe(15);
+                expect(positionFacet.payload.toJSON().y).toBe(25);
                 expect(positionFacet.payload.toJSON()).toEqual({ x: 15, y: 25 });
                 
                 const renderResult = facet.renderFacet();
@@ -143,9 +143,8 @@ describe('Facet Integration Tests', () => {
                 const originalWML = deIndentWML(`<Exit to=(ROOM#target1)>North Exit</Exit>`);
                 const facet = new StandardExitFacet(originalWML);
                 
-                // Payload is now a class instance - access properties directly
+                // Payload is now a class instance - ExitPayload is a string, access via toJSON()
                 const exitFacet = facet as StandardExitFacet;
-                expect(exitFacet.payload.description).toBe('North Exit');
                 expect(exitFacet.payload.toJSON()).toBe('North Exit');
                 
                 const renderResult = facet.renderFacet();
@@ -159,9 +158,8 @@ describe('Facet Integration Tests', () => {
                 const originalWML = deIndentWML(`<Exit to=(ROOM#target2) />`);
                 const facet = new StandardExitFacet(originalWML);
                 
-                // Payload is now a class instance - access properties directly
+                // Payload is now a class instance - ExitPayload is a string, access via toJSON()
                 const exitFacet = facet as StandardExitFacet;
-                expect(exitFacet.payload.description).toBeUndefined();
                 expect(exitFacet.payload.toJSON()).toBeUndefined();
                 
                 const renderResult = facet.renderFacet();
@@ -211,7 +209,8 @@ describe('Facet Integration Tests', () => {
                 const wml = deIndentWML(`<Exit to=(ROOM#target1) />`);
                 const facet = new StandardExitFacet(wml);
                 const exitFacet = facet as StandardExitFacet;
-                expect(exitFacet.payload.description).toBeUndefined();
+                // ExitPayload is a string, access via toJSON()
+                expect(exitFacet.payload.toJSON()).toBeUndefined();
             });
 
         });

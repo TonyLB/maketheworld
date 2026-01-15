@@ -93,7 +93,7 @@ When parsing `<Remove><Remove><Position>...</Position></Remove></Remove>`, the f
 ---
 
 ## Issue 4: Property Access on Payload Classes
-**Priority: Medium** | **Files Affected: 3** | **Failures: 4**
+**Status: ✅ RESOLVED** | **Priority: Medium** | **Files Affected: 3** | **Failures: 4**
 
 ### Problem
 Payload class instances don't expose direct property access (`.x`, `.y`, `.description`), even though `toJSON()` works correctly. Tests expect direct property access but get `undefined`.
@@ -113,15 +113,13 @@ Received: undefined
 ### Root Cause
 Payload classes (like `PositionFacetPlainClass`, `ExitFacetPlainClass`) wrap the actual payload data but don't expose it as direct properties. The payload is stored internally and only accessible via `toJSON()`.
 
-### Investigation Needed
-- Check if payload classes should expose properties via getters
-- Verify if tests should use `toJSON()` instead of direct property access
-- Check if this is a design decision or a missing feature
+### Resolution
+**Tests were using outdated syntax.** Payload classes are wrapper classes that don't expose properties directly. All affected tests were updated to use `toJSON()` for property access:
+- `facet.payload.x` → `facet.payload.toJSON().x`
+- `facet.payload.y` → `facet.payload.toJSON().y`
+- `facet.payload.description` → `facet.payload.toJSON()` (ExitPayload is a string, not an object with description property)
 
-### Potential Solutions
-1. Add getter properties to payload classes (e.g., `get x()`, `get y()`, `get description()`)
-2. Update tests to use `toJSON()` instead of direct property access
-3. Add a `plain` getter that returns the underlying payload object
+This aligns with the design where payload classes wrap data and expose it via `toJSON()`.
 
 ---
 

@@ -54,7 +54,8 @@ describe('StandardFacet (concrete classes)', () => {
             const facet = new StandardExitFacet(facetData);
             // Payload is now a class instance, use toJSON() for comparison
             expect(facet.payload.toJSON()).toBe('A wooden door');
-            expect(facet.payload.description).toBe('A wooden door');
+            // For ExitPayload (string), description is the payload itself
+            expect(facet.payload.toJSON()).toBe('A wooden door');
         });
 
         it('should construct from StandardFacetData with ComponentUUID string reference', () => {

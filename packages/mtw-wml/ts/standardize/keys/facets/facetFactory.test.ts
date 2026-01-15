@@ -426,8 +426,9 @@ describe('facetClassFactory', () => {
                     </Room>
                 `));
                 const facet = new TestFacetClass(schema);
-                expect(facet.payload.x).toBe(15);
-                expect(facet.payload.y).toBe(25);
+                // Access properties via toJSON() since payload is a wrapper class
+                expect(facet.payload.toJSON().x).toBe(15);
+                expect(facet.payload.toJSON().y).toBe(25);
                 expect(facet.reference.key).toBe('room1');
                 expect(facet.reference.universalKey).toBe('ROOM#test123');
                 expect(facet.payload instanceof ReplaceClass).toBe(false);
