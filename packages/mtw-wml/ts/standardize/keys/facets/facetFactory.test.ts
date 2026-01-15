@@ -273,33 +273,43 @@ describe('facetClassFactory', () => {
     });
 
     describe('invert', () => {
-        it('should invert reference', () => {
+        it('should invert facet (both reference and payload)', () => {
             const facetData: StandardFacetData<PositionPayloadType> = {
                 reference: { ...validReference, ref: 1 },
                 payload: positionPayload
             };
             const facet = new TestFacetClass(facetData);
             const inverted = facet.invert();
+            // Reference should be inverted
             expect(inverted.ref).toBe(-1);
-            expect(inverted.payload.toJSON()).toEqual(positionPayload);
+            // Payload should be inverted: PlainClass becomes RemoveClass
+            expect(inverted.payload.toJSON()).toEqual({
+                tag: 'Remove',
+                match: positionPayload
+            });
         });
 
-        it('should preserve Replace state when inverting', () => {
+        it('should invert Replace state (swap match and payload)', () => {
+            const originalMatch = { x: 5, y: 10 };
             const replaceData: StandardFacetData<PositionPayloadType> = {
                 reference: validReference,
                 payload: {
                     tag: 'Replace' as const,
-                    match: { x: 5, y: 10 },
+                    match: originalMatch,
                     payload: positionPayload
                 }
             };
             const facet = new TestFacetClass(replaceData);
             const inverted = facet.invert();
+            // Should still be a ReplaceClass
             expect(inverted.payload instanceof ReplaceClass).toBe(true);
-            // For Replace operations, payload is a ReplaceClass
+            // For Replace operations, inversion swaps match and payload
             const replaceInstance = inverted.payload as any;
             expect(replaceInstance.match).toBeDefined();
             expect(replaceInstance.payload).toBeDefined();
+            // Old payload becomes new match, old match becomes new payload
+            expect(replaceInstance.match.toJSON()).toEqual(positionPayload);
+            expect(replaceInstance.payload.toJSON()).toEqual(originalMatch);
         });
     });
 

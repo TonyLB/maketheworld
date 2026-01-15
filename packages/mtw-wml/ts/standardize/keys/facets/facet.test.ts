@@ -54,8 +54,6 @@ describe('StandardFacet (concrete classes)', () => {
             const facet = new StandardExitFacet(facetData);
             // Payload is now a class instance, use toJSON() for comparison
             expect(facet.payload.toJSON()).toBe('A wooden door');
-            // For ExitPayload (string), description is the payload itself
-            expect(facet.payload.toJSON()).toBe('A wooden door');
         });
 
         it('should construct from StandardFacetData with ComponentUUID string reference', () => {
@@ -321,8 +319,11 @@ describe('StandardFacet (concrete classes)', () => {
             const diff = facet.diff(undefined);
             expect(diff).toBeDefined();
             expect(diff!.ref).toBe(-1); // Inverted
-            // Payload is now a class instance, use toJSON() for comparison
-            expect(diff!.payload.toJSON()).toEqual(positionPayload);
+            // Payload is inverted: PlainClass becomes RemoveClass
+            expect(diff!.payload.toJSON()).toEqual({
+                tag: 'Remove',
+                match: positionPayload
+            });
         });
     });
 
