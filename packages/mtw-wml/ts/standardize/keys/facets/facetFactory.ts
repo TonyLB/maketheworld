@@ -11,10 +11,9 @@
 
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { ComponentTag } from "../../components/dataTypes/abstract";
 import { StandardFacetData, isStandardFacetData } from "./dataTypes/facet";
-import { StandardEditablePayload } from "../../../generics/editable";
 import { ReferenceFormat } from "../../components/utils/references";
 import { StandardReference, LookupMappings } from "../reference";
 import { StandardKey } from "../key";
@@ -68,6 +67,22 @@ export const facetClassFactory = <D>(
                 const schema = arg as GenericTree<SchemaTag>;
                 const firstElement = schema[0];
 
+                // Handle Remove-wrapped schemas at facet level
+                if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
+                    // Extract the interior schema (children of Remove)
+                    const interiorSchema = firstElement.children;
+                    if (interiorSchema.length === 0) {
+                        throw new Error(`Remove wrapper must have children in ${label} constructor`);
+                    }
+                    // Parse interior as a normal facet (recursive call to constructor)
+                    const interiorFacet = new GeneratedFacetClass(interiorSchema);
+                    // Invert the resulting facet (both reference and payload)
+                    const invertedFacet = interiorFacet.invert();
+                    this._reference = invertedFacet._reference;
+                    this._payloadInstance = invertedFacet._payloadInstance;
+                    return;
+                }
+
                 // Handle Replace-wrapped schemas at facet level
                 if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
                     const replaceMatch = firstElement.children.find(treeNodeTypeguard(isSchemaReplaceMatch));
@@ -77,19 +92,34 @@ export const facetClassFactory = <D>(
                         throw new Error(`Replace must have both a ReplaceMatch and a ReplacePayload in ${label} constructor`);
                     }
 
-                    // Extract reference from ReplacePayload schema
-                    const reference = referenceFactory 
-                        ? referenceFactory(replacePayload.children)
-                        : new StandardReference(replacePayload.children);
-
-                    // Extract payload children from ReplacePayload (facet-specific logic)
-                    // The payload children are the children of the ReplacePayload tag
-                    const payloadChildren = replacePayload.children;
+                    // Parse ReplaceMatch.children as a normal facet
+                    const matchFacet = new GeneratedFacetClass(replaceMatch.children);
+                    // Parse ReplacePayload.children as a normal facet
+                    const payloadFacet = new GeneratedFacetClass(replacePayload.children);
                     
-                    // Use createPayload to dispatch to correct extended class
-                    // createPayload will handle Remove/Replace detection within the payload
-                    this._reference = reference;
-                    this._payloadInstance = createPayload(payloadChildren);
+                    // Validate that match and payload reference the same component
+                    if (!matchFacet.sameKey(payloadFacet)) {
+                        throw new Error(`Replace match and payload must reference the same component in ${label} constructor`);
+                    }
+                    
+                    // Call matchFacet.diff(payloadFacet) to get the difference
+                    const diffFacet = matchFacet.diff(payloadFacet);
+                    if (!diffFacet) {
+                        // No difference means no change - this shouldn't happen for a Replace, but handle it
+                        throw new Error(`Replace operation resulted in no difference in ${label} constructor`);
+                    }
+                    
+                    // Check if references match exactly (diffReference would be undefined in diff method)
+                    // We need to check this before calling diff, since diff returns a facet with a reference
+                    const referenceDiff = matchFacet._reference.diff(payloadFacet._reference);
+                    // If diffReference is undefined (references match exactly), use ref=0
+                    const finalReference = referenceDiff === undefined
+                        ? matchFacet._reference.withRef(0)
+                        : diffFacet._reference;
+                    
+                    // Use the diffPayload from the diff result
+                    this._reference = finalReference;
+                    this._payloadInstance = diffFacet._payloadInstance;
                     return;
                 }
 
@@ -289,8 +319,12 @@ export const facetClassFactory = <D>(
          * @returns An object with either `newNode` (for Exit-style facets) or `aggregatedNode` (for Position/Mark-style facets).
          */
         renderFacet(referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+            // If reference is negative (facet is being removed), invert the payload before rendering
+            // This ensures transitivity: removal of the facet also removes the payload
+            const payloadData = this._reference.ref < 0
+                ? this.payload.invert().toJSON()
+                : this.payload.toJSON();
             // Delegate rendering to payload class's renderFacet (handles all cases including Replace)
-            const payloadData = this.payload.toJSON();
             return this.payload.renderFacet(this._reference, payloadData, referenceRender);
         }
 
