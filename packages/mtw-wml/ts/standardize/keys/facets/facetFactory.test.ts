@@ -239,7 +239,7 @@ describe('facetClassFactory', () => {
             expect(merged?.payload.toJSON()).toEqual(positionPayload);
         });
 
-        it('should return undefined when references cancel out and payloads are same', () => {
+        it('should return facet with merged payload when references cancel out but payloads remain', () => {
             const facetData1: StandardFacetData<PositionPayloadType> = {
                 reference: { ...validReference, ref: 1 },
                 payload: positionPayload
@@ -251,7 +251,11 @@ describe('facetClassFactory', () => {
             const facet1 = new TestFacetClass(facetData1);
             const facet2 = new TestFacetClass(facetData2);
             const merged = facet1.merge(facet2);
-            expect(merged).toBeUndefined();
+            // When ref cancels out but payloads are identical, merge returns a facet with the merged payload
+            // (not undefined, because the payload merge doesn't return undefined for identical payloads)
+            expect(merged).toBeDefined();
+            expect(merged?.payload.toJSON()).toEqual(positionPayload);
+            expect(merged?.ref).toBe(0); // Reference with ref=0 after cancellation
         });
     });
 

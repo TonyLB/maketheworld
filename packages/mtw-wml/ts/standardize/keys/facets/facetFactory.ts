@@ -222,9 +222,9 @@ export const facetClassFactory = <D>(
             
             if (mergedReference === undefined) {
                 // Reference cancelled out, but payload remains
-                // Create result with original reference and merged payload
+                // Create result with reference at ref=0 (cancelled out) and merged payload
                 const result = new GeneratedFacetClass({
-                    reference: this._reference.toJSON(),
+                    reference: this._reference.withRef(0).toJSON(),
                     payload: mergedPayload?.toJSON() ?? this.payload.toJSON()
                 });
                 return this._wrap(result);
