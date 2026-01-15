@@ -6,7 +6,7 @@ import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldSta
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit";
 import { facetClassFactory } from './facetFactory';
-import { EditableClass, PlainClass, RemoveClass, ReplaceClass, isStandardLiteralData } from "../../literal";
+import { EditableClass, PlainClass, RemoveClass, ReplaceClass, isStandardLiteralData, StandardLiteral } from "../../literal";
 import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree";
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
 
@@ -454,16 +454,12 @@ function createMarkFacetPayload(arg: any): MarkFacetPlainClass | MarkFacetRemove
             // This handles Replace/Remove/Match structures nested inside the Mark
             return createMarkFacetPayload(firstElement.children);
         }
-        // Check if first element is a Match tag - extract String children and convert to string payload
+        // Check if first element is a Match tag - use StandardLiteral to strip wrapper
         else if (treeNodeTypeguard(isSchemaMatch)(firstElement)) {
-            // Extract String children from Match tag and join into narrative string
-            const narrative = firstElement.children
-                .map(({ data }) => data)
-                .filter(isSchemaString)
-                .map(({ value }) => value)
-                .join('');
-            // Create PlainClass with the extracted string
-            return new MarkFacetPlainClass(narrative);
+            // Use StandardLiteral with tag option to strip Match wrapper tag
+            const literal = new StandardLiteral(schema, { tag: 'Match' });
+            // Create PlainClass from the extracted string
+            return new MarkFacetPlainClass(literal.toJSON());
         }
         else {
             return new MarkFacetPlainClass(schema);
