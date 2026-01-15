@@ -121,6 +121,73 @@
   - **Homogeneous Lists Only**: Facets are designed exclusively for single-type lists. Unlike References which can mix types, each FacetList contains only one facet type.
   - **Composition**: Facets compose a `StandardReference` rather than extending it
   - **Concrete Classes**: Facets use concrete classes (generated via factory pattern) rather than generic classes for type safety and simplicity
+
+## Edit Operations and Separation of Concerns
+
+Facets support three levels of edit operations with clear separation of concerns:
+
+### Facet-Level Operations
+
+**Facet-level operations** are handled by the facet factory and affect the entire facet (both reference and payload):
+
+- **Remove-wrapped facets**: When a facet is wrapped in `<Remove>`, the factory:
+  1. Parses the interior as a normal facet
+  2. Inverts the entire facet (both reference and payload)
+  3. Result: `ref=-1` and inverted payload (e.g., Plain → Remove, Remove → Plain)
+  
+  Example: `<Remove><Mark uuid=(mark1)><Match>narrative</Match></Mark></Remove>`
+  - Parses interior: `ref=1`, `PlainClass("narrative")`
+  - Inverts: `ref=-1`, `RemoveClass("narrative")`
+
+- **Replace-wrapped facets**: When a facet is wrapped in `<Replace><With>`, the factory:
+  1. Parses ReplaceMatch and ReplacePayload as separate facets
+  2. Validates they reference the same component
+  3. Computes the difference using `matchFacet.diff(payloadFacet)`
+  4. If references match exactly, uses `ref=0` (unchanged reference in Replace context)
+  5. Result: Reference with appropriate ref value and `ReplaceClass` payload containing match and payload
+  
+  Example: `<Replace><Mark uuid=(mark1)><Match>old</Match></Mark></Replace><With><Mark uuid=(mark1)><Match>new</Match></Mark></With>`
+  - Parses match: `ref=1`, `PlainClass("old")`
+  - Parses payload: `ref=1`, `PlainClass("new")`
+  - Diffs: `ref=0`, `ReplaceClass(match="old", payload="new")`
+
+### Payload-Level Operations
+
+**Payload-level operations** are handled by payload classes and affect only the payload:
+
+- **Payload Remove**: `<Mark><Remove><Match>narrative</Match></Remove></Mark>`
+  - Reference: `ref=1` (unchanged)
+  - Payload: `RemoveClass("narrative")`
+
+- **Payload Replace**: Payload can contain its own Replace operations independent of facet-level operations
+
+### Separation of Concerns
+
+This separation ensures:
+- **No entanglement**: Reference and payload handle their own concerns independently
+- **Correct double-negative handling**: `<Remove><Mark><Remove>...</Remove></Mark></Remove>` correctly becomes `ref=-1`, `PlainClass` (inverted Remove → Plain)
+- **Proper Replace semantics**: Replace operations preserve both match and payload, not just the payload value
+- **Transitive removal**: When `ref < 0`, the payload is inverted during rendering (removal is transitive)
+
+### Edit Algebra Properties
+
+The `merge`, `diff`, and `invert` methods work with this separation:
+
+- **merge**: Combines reference ref values (arithmetic) and payload operations independently
+- **diff**: Computes difference in reference ref values and payload operations independently
+- **invert**: Inverts both reference (ref arithmetic) and payload (inverts payload operations)
+
+### Rendering Semantics
+
+When rendering a facet with `renderFacet()`:
+
+- **Normal rendering** (`ref >= 0`): Payload is rendered as-is
+- **Removal rendering** (`ref < 0`): Payload is **inverted before rendering** because removal is transitive
+  - Example: Facet with `ref=-1` and `PlainClass("narrative")` renders as:
+    ```xml
+    <Remove><Mark uuid=(...)><Remove><Match>narrative</Match></Remove></Mark></Remove>
+    ```
+  - The payload is inverted (Plain → Remove) to maintain correct semantics
 - **Design Decisions**: 
   - **Payload Storage**: Payloads are stored as class instances (payload classes like `PositionPayload`, `MarkFacetPayload`, `ExitPayload`)
     - Payload classes implement `FacetPayloadBase` interface for rendering and `StandardEditablePayload` for edit operations

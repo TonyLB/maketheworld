@@ -11,7 +11,7 @@ import { StandardFacetData, PositionPayload as PositionPayloadType } from './dat
 import { StandardReferenceData } from '../dataTypes/reference';
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
-import { treeFromWML } from '../../../schema';
+import { treeFromWML, schemaToWML } from '../../../schema';
 import { deIndentWML } from '../../../schema/utils';
 import { isSchemaReplace } from '@tonylb/mtw-base/ts/schema/edit';
 
@@ -333,6 +333,31 @@ describe('facetClassFactory', () => {
                 expect(replaceChild).toBeDefined();
             }
         });
+
+        it('should invert payload when reference is negative (transitivity)', () => {
+            // Facet with negative reference and PlainClass payload
+            const facetData: StandardFacetData<PositionPayloadType> = {
+                reference: { ...validReference, ref: -1 },
+                payload: positionPayload
+            };
+            const facet = new TestFacetClass(facetData);
+            const result = facet.renderFacet();
+            expect(result).toHaveProperty('aggregatedNode');
+            expect(result.aggregatedNode).toBeDefined();
+            
+            // Convert rendered schema to WML and compare against expected
+            const renderedWML = schemaToWML([result.aggregatedNode!]);
+            const expectedWML = deIndentWML(`
+                <Remove>
+                    <Room key=(room1) uuid=(ROOM#room1)>
+                        <Remove>
+                            <Position x="10" y="20" />
+                        </Remove>
+                    </Room>
+                </Remove>
+            `);
+            expect(renderedWML).toBe(expectedWML);
+        });
     });
 
     describe('toFormat and lookup', () => {
@@ -405,6 +430,47 @@ describe('facetClassFactory', () => {
             });
         });
 
+        describe('Remove-wrapped facet parsing', () => {
+            it('should construct from WML string (Remove-wrapped facet)', () => {
+                const wml = deIndentWML(`
+                    <Remove>
+                        <Room key=(room1) uuid=(test123)>
+                            <Position x="10" y="20" />
+                        </Room>
+                    </Remove>
+                `);
+                const facet = new TestFacetClass(wml);
+                // Remove-wrapped facet should have negative ref and RemoveClass payload
+                expect(facet.ref).toBe(-1);
+                expect(facet.payload instanceof PositionFacetRemoveClass).toBe(true);
+                const removeInstance = facet.payload as any;
+                expect(removeInstance.match?.toJSON().x).toBe(10);
+                expect(removeInstance.match?.toJSON().y).toBe(20);
+                expect(facet.reference.key).toBe('room1');
+                expect(facet.reference.universalKey).toBe('ROOM#test123');
+            });
+
+            it('should handle double-negative (Remove-wrapped Remove)', () => {
+                const wml = deIndentWML(`
+                    <Remove>
+                        <Room key=(room1) uuid=(test123)>
+                            <Remove>
+                                <Position x="10" y="20" />
+                            </Remove>
+                        </Room>
+                    </Remove>
+                `);
+                const facet = new TestFacetClass(wml);
+                // Double-negative should have negative ref and PlainClass payload (inverted Remove → Plain)
+                expect(facet.ref).toBe(-1);
+                expect(facet.payload instanceof PositionFacetPlainClass).toBe(true);
+                expect(facet.payload.toJSON().x).toBe(10);
+                expect(facet.payload.toJSON().y).toBe(20);
+                expect(facet.reference.key).toBe('room1');
+                expect(facet.reference.universalKey).toBe('ROOM#test123');
+            });
+        });
+
         describe('Replace-wrapped facet parsing', () => {
             it('should construct from WML string (Replace-wrapped facet)', () => {
                 const wml = deIndentWML(`
@@ -454,6 +520,24 @@ describe('facetClassFactory', () => {
                 expect(replaceInstance.payload?.toJSON().y).toBe(25);
                 expect(facet.reference.key).toBe('room1');
                 expect(facet.reference.universalKey).toBe('ROOM#test123');
+                // When references match exactly, ref should be 0
+                expect(facet.ref).toBe(0);
+            });
+
+            it('should error when Replace match and payload reference different components', () => {
+                const wml = deIndentWML(`
+                    <Replace>
+                        <Room key=(room1) uuid=(test123)>
+                            <Position x="5" y="10" />
+                        </Room>
+                    </Replace>
+                    <With>
+                        <Room key=(room2) uuid=(test456)>
+                            <Position x="10" y="20" />
+                        </Room>
+                    </With>
+                `);
+                expect(() => new TestFacetClass(wml)).toThrow('must reference the same component');
             });
 
         });
