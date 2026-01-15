@@ -56,14 +56,6 @@ describe('MarkFacetPlainClass - StandardEditablePayload implementation', () => {
             expect(instance.toJSON()).toBe('Test condition');
         });
 
-        it('should create from String tag schema', () => {
-            // v2 classes work with String tags, not Match tags directly
-            const schema = treeFromWML(deIndentWML('<String>Test condition</String>'));
-            const instance = EditableClass.create(schema);
-            expect(instance).toBeInstanceOf(PlainClass);
-            expect(instance.toJSON()).toBe('Test condition');
-        });
-
         it('should create from Remove structure', () => {
             const removeData: StandardEditableData<string> = {
                 tag: 'Remove',

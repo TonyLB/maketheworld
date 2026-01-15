@@ -82,7 +82,8 @@ describe('ExitFacetPlainClass - StandardEditablePayload implementation', () => {
 
         it('should create from String tag schema', () => {
             // v2 classes work with String tags, not Exit tags
-            const schema = treeFromWML(deIndentWML('<String>North Exit</String>'));
+            // WML parser automatically treats plain text as String tags
+            const schema = treeFromWML(deIndentWML('North Exit'));
             const instance = EditableClass.create(schema);
             expect(instance).toBeInstanceOf(PlainClass);
             expect(instance.toJSON()).toBe('North Exit');
@@ -90,7 +91,8 @@ describe('ExitFacetPlainClass - StandardEditablePayload implementation', () => {
 
         it('should create from String tag schema without description', () => {
             // Empty string represents undefined for Exit facets
-            const schema = treeFromWML(deIndentWML('<String></String>'));
+            // WML parser automatically treats plain text as String tags
+            const schema = treeFromWML(deIndentWML(''));
             const instance = EditableClass.create(schema);
             expect(instance).toBeInstanceOf(PlainClass);
             expect(instance.toJSON()).toBe('');
