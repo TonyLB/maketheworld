@@ -391,7 +391,9 @@ describe('Concrete FacetList Classes', () => {
             expect(item0.ref).toBe(3); // 1 + 2
         });
 
-        it('should filter out undefined results when merge cancels out', () => {
+        it('should preserve facet in list when facet merge returns facet with ref=0 (ref cancelled but payload remains)', () => {
+            // This tests list-specific behavior: when facet.merge() returns a facet (not undefined),
+            // the list should preserve it even if the facet has ref=0
             const base = new PositionFacetList([{
                 reference: createReference('room1', 'Room', 1),
                 payload: { x: 10, y: 20 }
@@ -402,8 +404,12 @@ describe('Concrete FacetList Classes', () => {
             }]);
             
             const merged = base.merge(incoming);
-            // When ref cancels out (1 + -1 = 0) and payloads are same, merge returns undefined
-            expect(merged).toBeUndefined();
+            // Facet merge returns a facet with ref=0 (not undefined) because payloads remain
+            // List merge should preserve this facet, not filter it out
+            expect(merged).toBeDefined();
+            expect(merged?.items.length).toBe(1);
+            expect(merged?.items[0].payload.toJSON()).toEqual({ x: 10, y: 20 });
+            expect(merged?.items[0].ref).toBe(0); // Reference with ref=0 after cancellation
         });
 
         // Type guard preservation tests removed - concrete classes don't use type guards

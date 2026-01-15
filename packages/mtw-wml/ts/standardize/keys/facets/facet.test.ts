@@ -260,20 +260,8 @@ describe('StandardFacet (concrete classes)', () => {
             }).toThrow('Cannot change which component a facet points to');
         });
 
-        it('should return undefined when merge cancels out (ref arithmetic)', () => {
-            const facetData1: StandardFacetData<PositionPayload> = {
-                reference: { ...validReference, ref: 1 },
-                payload: positionPayload
-            };
-            const facetData2: StandardFacetData<PositionPayload> = {
-                reference: { ...validReference, ref: -1 },
-                payload: positionPayload
-            };
-            const facet1 = new StandardPositionFacet(facetData1);
-            const facet2 = new StandardPositionFacet(facetData2);
-            const merged = facet1.merge(facet2);
-            expect(merged).toBeUndefined();
-        });
+        // Merge cancellation behavior (ref cancels out but payload remains) is tested in facetFactory.test.ts
+        // since it's generic behavior from facetClassFactory, not specific to StandardPositionFacet
     });
 
     describe('Diff operations', () => {
