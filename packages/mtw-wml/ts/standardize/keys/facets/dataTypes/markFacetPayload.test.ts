@@ -1,11 +1,12 @@
-import { MarkFacetPlainClass } from '../mark';
+import { MarkFacetPlainClass, MarkFacetRemoveClass } from '../mark';
 import { EditableClass, PlainClass, RemoveClass, ReplaceClass, isStandardLiteralData } from '../../../literal';
 import type { MarkFacetPayload as MarkFacetPayloadType } from './facet';
 import { StandardReference } from '../../reference';
-import { treeFromWML } from '../../../../schema';
+import { treeFromWML, schemaToWML } from '../../../../schema';
 import { deIndentWML } from '../../../../schema/utils';
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState";
+import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
 
@@ -315,6 +316,40 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
             const reference = new StandardReference('MARK#123', 'Mark');
             const result = payload.renderFacet(reference, data);
             expect(result.aggregatedNode).toBeDefined();
+        });
+    });
+});
+
+describe('MarkFacetRemoveClass - FacetPayloadBase implementation', () => {
+    describe('renderFacet', () => {
+        it('should handle double-negative case (ref=-1 with RemoveClass payload) - preserves nested Remove structure', () => {
+            // Double-negative case: reference has ref=-1 (Remove-wrapped Mark) 
+            // and payload is RemoveClass (Remove-wrapped Match)
+            // Expected: <Remove><Mark><Remove><Match>...</Match></Remove></Mark></Remove>
+            const reference = new StandardReference({ key: 'testMark', universalKey: 'MARK#123', tag: 'Mark', ref: -1 });
+            const payloadData: MarkFacetPayloadType = 'Test condition';
+            
+            // Create RemoveClass payload (this represents the inverted state when ref=-1)
+            const removePayload = new MarkFacetRemoveClass({ tag: 'Remove' as const, match: payloadData });
+            
+            // When ref=-1, reference.schema[0] will be Remove-wrapped Mark
+            const result = removePayload.renderFacet(reference, payloadData);
+            
+            // Should return aggregatedNode (not newNode)
+            expect(result.aggregatedNode).toBeDefined();
+            expect(result.newNode).toBeUndefined();
+            
+            // Verify nested Remove structure: <Remove><Mark><Remove><Match>...</Match></Remove></Mark></Remove>
+            // This test will currently fail because MarkFacetRemoveClass extracts just Match, 
+            // resulting in: <Remove><Mark><Match>...</Match></Mark></Remove> (missing inner Remove)
+            const aggregatedNode = result.aggregatedNode!;
+            expect(schemaToWML([aggregatedNode])).toBe(deIndentWML(`
+                <Remove>
+                    <Mark uuid=(123) key=(testMark)>
+                        <Remove><Match>Test condition</Match></Remove>
+                    </Mark>
+                </Remove>
+            `));
         });
     });
 });

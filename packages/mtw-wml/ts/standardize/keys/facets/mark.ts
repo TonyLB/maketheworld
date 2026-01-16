@@ -172,13 +172,8 @@ export class MarkFacetRemoveClass extends RemoveClass {
 
     renderFacet(reference: StandardReference, payload: MarkFacetPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
         // Use nestedSchema to get the wrapped structure (Remove > Match > String)
-        // Then extract just the Match part for rendering
         const nested = this.nestedSchema({ tag: 'Match' as const });
         const removeNode = nested[0];
-        const matchChild = removeNode?.children?.[0] as GenericTreeNode<SchemaTag> | undefined;
-        if (!matchChild) {
-            throw new Error('Invalid nested schema structure for Remove');
-        }
 
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
@@ -186,7 +181,7 @@ export class MarkFacetRemoveClass extends RemoveClass {
 
         const transformMarkChildren = transformNestedChildren({
             tag: 'Mark',
-            transform: (children) => [matchChild, ...children]
+            transform: (children) => [removeNode, ...children]
         });
 
         if (referenceRender) {
