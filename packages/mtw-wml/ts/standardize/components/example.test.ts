@@ -740,11 +740,12 @@ describe('StandardExample class', () => {
 
             it('should handle Replace operations on Mark Facets', () => {
                 // Test that we can handle an incoming Replace operation at the payload level
+                // Base must contain the match value for Replace to work
                 const baseExample = new StandardExample(`
                     <Example uuid=(test) key=(test)>
                         <Name>Name Test</Name>
                         <Mark uuid=(mark1) key=(mark1)>
-                            <Match>Updated condition</Match>
+                            <Match>Original condition</Match>
                         </Mark>
                     </Example>
                 `)
@@ -762,16 +763,20 @@ describe('StandardExample class', () => {
 
                 const merged = baseExample.merge(incomingExample) as StandardExample
 
-                // Verify round-trip: the merged result should serialize to WML with Replace structure
+                // Verify round-trip: the merged result should serialize to WML with Match child
+                // Use nestedSchema() to include facet payloads (schema only includes references)
+                const options = {
+                    key: new StandardKey({ key: 'test', universalKey: 'EXAMPLE#test' })
+                }
+                const mockLookup = (key: string | StandardKey) => undefined
+                const nested = merged.nestedSchema(mockLookup, options)
                 const expectedWML = deIndentWML(`
                     <Example uuid=(test) key=(test)>
                         <Name>Name Test</Name>
-                        <Mark uuid=(mark1) key=(mark1)>
-                            <Match>Updated condition</Match>
-                        </Mark>
+                        <Mark uuid=(mark1) key=(mark1)><Match>Updated condition</Match></Mark>
                     </Example>
                 `)
-                expect(schemaToWML([merged.schema])).toEqual(expectedWML)
+                expect(schemaToWML([nested])).toEqual(expectedWML)
             })
 
             it('should handle Remove references (ref < 0)', () => {

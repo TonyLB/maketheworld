@@ -181,7 +181,6 @@ export class PositionFacetPlainClass extends PositionPlainClass {
                 throw new Error('Invalid reference schema: empty');
             }
             const firstNode = roomSchema[0];
-            
             if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
                 const innerRoom = firstNode.children[0];
                 if (!innerRoom || !treeNodeTypeguard(isSchemaRoom)(innerRoom)) {
@@ -241,11 +240,9 @@ export class PositionFacetRemoveClass extends PositionRemoveClass {
     }
 
     renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
-        const match = (this as any).match;
-        const positionChild: GenericTreeNode<SchemaTag> = {
-            data: { tag: 'Position' as const, x: match?.x ?? 0, y: match?.y ?? 0 },
-            children: []
-        };
+        // Use this.schema which returns Remove-wrapped Position: [{ tag: 'Remove', children: [Position] }]
+        // Extract the Remove-wrapped Position structure for nested Remove tags when ref < 0
+        const removeWrappedPosition = this.schema[0];
 
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
@@ -260,7 +257,7 @@ export class PositionFacetRemoveClass extends PositionRemoveClass {
             roomNode = {
                 ...referenceRender,
                 children: [
-                    positionChild,
+                    removeWrappedPosition,
                     ...referenceRender.children
                 ]
             };
@@ -270,16 +267,17 @@ export class PositionFacetRemoveClass extends PositionRemoveClass {
                 throw new Error('Invalid reference schema: empty');
             }
             const firstNode = roomSchema[0];
-            
             if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
                 const innerRoom = firstNode.children[0];
                 if (!innerRoom || !treeNodeTypeguard(isSchemaRoom)(innerRoom)) {
                     throw new Error('Invalid Remove-wrapped reference schema: expected Room tag inside Remove');
                 }
+                // When both reference and payload are Remove-wrapped, create nested Remove structure
+                // removeWrappedPosition is already <Remove><Position/></Remove>, so we get nested Removes
                 const enhancedRoom: GenericTreeNode<SchemaTag> = {
                     ...innerRoom,
                     children: [
-                        positionChild,
+                        removeWrappedPosition,  // This is already Remove-wrapped Position: <Remove><Position/></Remove>
                         ...innerRoom.children
                     ]
                 };
@@ -297,7 +295,7 @@ export class PositionFacetRemoveClass extends PositionRemoveClass {
             roomNode = {
                 ...firstNode,
                 children: [
-                    positionChild,
+                    removeWrappedPosition,
                     ...firstNode.children
                 ]
             };
@@ -426,6 +424,18 @@ export function createPositionFacetPayload(arg: any): PositionFacetPlainClass | 
         }
         else {
             // Schema tree doesn't start with Remove/Replace - might be a full facet schema (e.g., <Room><Position.../>)
+            // Handle nested Remove structures: <Room><Remove><Position /></Remove></Room>
+            // Extract Remove-wrapped Position structure if present
+            if (treeNodeTypeguard(isSchemaRoom)(firstElement)) {
+                const removeChild = firstElement.children.find(child => treeNodeTypeguard(isSchemaRemove)(child));
+                if (removeChild && treeNodeTypeguard(isSchemaRemove)(removeChild)) {
+                    // Nested Remove: extract Remove-wrapped Position schema for RemoveClass
+                    // Structure: <Remove><Position /></Remove>
+                    const removeSchema: GenericTree<SchemaTag> = [removeChild];
+                    return new PositionFacetRemoveClass(removeSchema);
+                }
+                // No nested Remove - try normal Position extraction
+            }
             // Try to extract Position child using fromSchema
             const tempPayload = new PositionFacetPlainClass({ x: 0, y: 0 });
             try {
