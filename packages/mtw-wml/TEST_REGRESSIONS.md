@@ -1,7 +1,7 @@
 # Unit Test Regressions - Categorized for GitHub Issues
 
 ## Summary
-After fixing merge operation tests, we have **~18-20 remaining test failures** across **6 test files**, grouped into **6 distinct categories**.
+After fixing merge operation tests, we have **~13-15 remaining test failures** across **5 test files**, grouped into **5 distinct categories**. Two major issues have been resolved (Issues 1 and 2).
 
 ---
 
@@ -34,7 +34,7 @@ No converter registration needed - the error was caused by incorrect test setup,
 ---
 
 ## Issue 2: Invalid Constructor Arguments - StandardLiteralSimpleBase
-**Priority: High** | **Files Affected: 3** | **Failures: 5**
+**Status: ✅ RESOLVED** | **Priority: High** | **Files Affected: 3** | **Failures: 5**
 
 ### Problem
 `payloadFactory` in `ts/standardize/literal/index.ts` receives arguments in a format it doesn't handle. The factory expects either:
@@ -55,15 +55,34 @@ at Object.payloadFactory (ts/standardize/literal/index.ts:35:11)
 - `markFacetPayload.test.ts`: "should handle empty narrative string" (1 test - different error but related)
 
 ### Root Cause
-The `payloadFactory` function needs to handle additional input formats, likely:
-- Empty/undefined values
-- Different schema structures from WML parsing
-- Replace-wrapped structures
+The facet payload factory functions (`createExitFacetPayload` and `createMarkFacetPayload`) were passing full facet schemas (e.g., `<Exit>...</Exit>` or `<Mark><Match>...</Match></Mark>`) to the `StandardLiteral` payload factory. However, `payloadFactory` expects only the String children, not the wrapper tags.
 
-### Investigation Needed
-- Check what format `createExitFacetPayload` receives when parsing from WML
-- Verify if empty String tags need special handling
-- Check if Replace operations need different parsing logic
+Specifically:
+- Exit facets: Were passing `[{ tag: 'Exit', children: [{ tag: 'String', value: '...' }] }]` but needed `[{ tag: 'String', value: '...' }]`
+- Mark facets: Were passing `[{ tag: 'Match', children: [{ tag: 'String', value: '...' }] }]` but needed `[{ tag: 'String', value: '...' }]`
+- Empty narratives: Were passing empty arrays `[]` but needed empty strings `''`
+
+### Resolution
+**Extract String children from wrapper tags before passing to payload factory.**
+
+Fixed in `ts/standardize/keys/facets/exit.ts` and `ts/standardize/keys/facets/mark.ts`:
+
+1. **ExitFacet (`createExitFacetPayload`)**:
+   - For plain Exit schemas: Extract String children from Exit tag; if empty, pass empty string `''`
+   - For Remove-wrapped: Extract String children from Exit tag inside Remove
+   - For Replace-wrapped: Extract String children from Exit tags inside ReplaceMatch and ReplacePayload
+
+2. **MarkFacet (`createMarkFacetPayload`)**:
+   - For Match tags: Extract String children from Match tag; if empty, pass empty string `''`
+   - For Remove-wrapped: Extract String children from Match tag inside Remove
+   - For Replace-wrapped: Extract String children from Match tags inside ReplaceMatch and ReplacePayload
+
+**All affected tests now passing:**
+- ✅ `integration.test.ts`: ExitPayload round-trip tests (2/2 passing)
+- ✅ `integration.test.ts`: MarkFacet round-trip tests (2/2 passing)
+- ✅ `example.test.ts`: "should handle Replace operations on Mark Facets" - parsing fixed (different merge issue remains, not part of Issue 2)
+
+The core "Invalid argument" errors are completely resolved. Remaining failures in `example.test.ts` are merge conflict errors unrelated to Issue 2.
 
 ---
 
@@ -192,16 +211,17 @@ Received: <Remove><Room><Position/></Room></Remove>
 
 ## Recommended Issue Order
 
-1. **Issue 1: Schema Converter Missing** - Blocks multiple tests, likely a simple registration fix
-2. **Issue 2: StandardLiteralSimpleBase Constructor** - Blocks 5 tests, needs payload factory updates
-3. **Issue 4: Property Access** - May be test expectations vs. design decision
-4. **Issue 5: Invert Operation** - May be test expectations vs. correct behavior
+1. ~~**Issue 1: Schema Converter Missing**~~ ✅ **RESOLVED**
+2. ~~**Issue 2: StandardLiteralSimpleBase Constructor**~~ ✅ **RESOLVED**
+3. ~~**Issue 4: Property Access**~~ ✅ **RESOLVED**
+4. ~~**Issue 5: Invert Operation**~~ ✅ **RESOLVED**
 5. **Issue 3: StandardPositionPayloadBase** - Single test, edge case
 6. **Issue 6: Render Operations** - Complex rendering logic, may depend on other fixes
 
 ---
 
 ## Notes
-- Some issues may resolve others (e.g., fixing Issue 1 might fix some Issue 2 cases)
-- Issue 4 and 5 might be test expectation issues rather than code bugs
+- Issues 1, 2, 4, and 5 have been resolved
+- Some issues may resolve others (e.g., fixing Issue 1 and 2 fixed multiple test failures)
+- Remaining issues (3 and 6) are more complex edge cases and rendering logic
 - Consider running tests after each issue to see cascading fixes

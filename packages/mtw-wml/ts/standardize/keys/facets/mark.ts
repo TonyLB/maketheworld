@@ -4,7 +4,7 @@ import { StandardReference } from "../reference";
 import type { MarkFacetPayload as MarkFacetPayloadType, StandardFacetData } from "./dataTypes/facet";
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
-import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit";
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { facetClassFactory } from './facetFactory';
 import { EditableClass, PlainClass, RemoveClass, ReplaceClass, isStandardLiteralData, StandardLiteral } from "../../literal";
 import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree";
@@ -443,9 +443,55 @@ function createMarkFacetPayload(arg: any): MarkFacetPlainClass | MarkFacetRemove
         
         // Check if first element is Remove or Replace directly
         if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
+            // Extract String children from Match tag inside Remove for StandardLiteral payloadFactory
+            const matchChild = firstElement.children.find(child => treeNodeTypeguard(isSchemaMatch)(child));
+            if (matchChild && treeNodeTypeguard(isSchemaMatch)(matchChild)) {
+                const stringChildren = matchChild.children.filter(child => isSchemaString(child.data));
+                // Reconstruct Remove schema with String children instead of Match tag
+                const modifiedSchema: GenericTree<SchemaTag> = [{
+                    data: firstElement.data,
+                    children: stringChildren.length === 0 ? [] : stringChildren
+                }];
+                return new MarkFacetRemoveClass(modifiedSchema);
+            }
             return new MarkFacetRemoveClass(schema);
         }
         else if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
+            // Extract String children from Match tags inside ReplaceMatch and ReplacePayload
+            const replaceMatch = firstElement.children.find(child => treeNodeTypeguard(isSchemaReplaceMatch)(child));
+            const replacePayload = firstElement.children.find(child => treeNodeTypeguard(isSchemaReplacePayload)(child));
+            
+            const modifiedChildren: GenericTreeNode<SchemaTag>[] = [];
+            
+            if (replaceMatch) {
+                const matchChild = replaceMatch.children.find(child => treeNodeTypeguard(isSchemaMatch)(child));
+                const stringChildren = matchChild && treeNodeTypeguard(isSchemaMatch)(matchChild)
+                    ? matchChild.children.filter(child => isSchemaString(child.data))
+                    : replaceMatch.children;
+                modifiedChildren.push({
+                    data: replaceMatch.data,
+                    children: stringChildren.length === 0 ? [] : stringChildren
+                });
+            }
+            
+            if (replacePayload) {
+                const matchChild = replacePayload.children.find(child => treeNodeTypeguard(isSchemaMatch)(child));
+                const stringChildren = matchChild && treeNodeTypeguard(isSchemaMatch)(matchChild)
+                    ? matchChild.children.filter(child => isSchemaString(child.data))
+                    : replacePayload.children;
+                modifiedChildren.push({
+                    data: replacePayload.data,
+                    children: stringChildren.length === 0 ? [] : stringChildren
+                });
+            }
+            
+            if (modifiedChildren.length > 0) {
+                const modifiedSchema: GenericTree<SchemaTag> = [{
+                    data: firstElement.data,
+                    children: modifiedChildren
+                }];
+                return new MarkFacetReplaceClass(modifiedSchema);
+            }
             return new MarkFacetReplaceClass(schema);
         }
         // Check if first element is a Mark node - extract payload children (the Mark's children contain the payload)
@@ -454,12 +500,20 @@ function createMarkFacetPayload(arg: any): MarkFacetPlainClass | MarkFacetRemove
             // This handles Replace/Remove/Match structures nested inside the Mark
             return createMarkFacetPayload(firstElement.children);
         }
-        // Check if first element is a Match tag - use StandardLiteral to strip wrapper
+        // Check if first element is a Match tag - extract String children for StandardLiteral
         else if (treeNodeTypeguard(isSchemaMatch)(firstElement)) {
-            // Use StandardLiteral with tag option to strip Match wrapper tag
-            const literal = new StandardLiteral(schema, { tag: 'Match' });
-            // Create PlainClass from the extracted string
-            return new MarkFacetPlainClass(literal.toJSON());
+            // Extract String children from Match tag for StandardLiteral payloadFactory
+            // payloadFactory expects [{ tag: 'String', value: '...' }] not [{ tag: 'Match', children: [...] }]
+            // For empty narratives (no String children), pass empty string '' instead of empty array
+            const stringChildren = firstElement.children.filter(child => isSchemaString(child.data));
+            if (stringChildren.length === 0) {
+                // Empty narrative - pass empty string (StandardLiteral handles empty strings)
+                return new MarkFacetPlainClass('');
+            } else {
+                // Has String children - pass them to StandardLiteral (it will handle the array)
+                const literal = new StandardLiteral(stringChildren);
+                return new MarkFacetPlainClass(literal.toJSON());
+            }
         }
         else {
             return new MarkFacetPlainClass(schema);
