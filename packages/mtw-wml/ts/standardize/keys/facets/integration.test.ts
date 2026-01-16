@@ -1,8 +1,8 @@
 import { StandardReference } from '../reference';
-import { PositionPayload, MarkFacetPayload, ExitPayload } from './dataTypes/facet';
-import { PositionFacetPlainClass, StandardPositionFacet, PositionFacetReplaceClass } from './position';
-import { MarkFacetPlainClass, StandardMarkFacet, MarkFacetReplaceClass } from './mark';
-import { ExitFacetPlainClass, StandardExitFacet, ExitFacetReplaceClass } from './exit';
+import { PositionPayload, MarkFacetPayload as MarkFacetPayloadType, ExitPayload } from './dataTypes/facet';
+import { PositionFacetPayload, StandardPositionFacet } from './position';
+import { MarkFacetPayload, StandardMarkFacet } from './mark';
+import { ExitFacetPayload, StandardExitFacet } from './exit';
 import { treeFromWML, schemaToWML } from '../../../schema';
 import { deIndentWML } from '../../../schema/utils';
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
@@ -34,7 +34,7 @@ describe('Facet Integration Tests', () => {
     };
 
     const createMarkFacet = (reference: StandardReference, narrative: string): StandardMarkFacet => {
-        const payload: MarkFacetPayload = narrative;
+        const payload: MarkFacetPayloadType = narrative;
         return new StandardMarkFacet({
             reference: reference.toJSON(),
             payload
@@ -75,9 +75,9 @@ describe('Facet Integration Tests', () => {
                 
                 // Payload is now a class instance - access properties via toJSON()
                 const positionFacet = facet as StandardPositionFacet;
-                expect(positionFacet.payload.toJSON().x).toBe(10);
-                expect(positionFacet.payload.toJSON().y).toBe(20);
-                expect(positionFacet.payload.toJSON()).toEqual({ x: 10, y: 20 });
+                const payload = positionFacet.payload.toJSON();
+                // For plain payloads, toJSON() returns PositionPayload (no tag property)
+                expect(payload).toEqual({ x: 10, y: 20 });
                 
                 const renderResult = facet.renderFacet();
                 const generatedWML = renderResult.aggregatedNode 
@@ -94,8 +94,6 @@ describe('Facet Integration Tests', () => {
                 
                 // Payload is now a class instance - access properties via toJSON()
                 const positionFacet = facet as StandardPositionFacet;
-                expect(positionFacet.payload.toJSON().x).toBe(15);
-                expect(positionFacet.payload.toJSON().y).toBe(25);
                 expect(positionFacet.payload.toJSON()).toEqual({ x: 15, y: 25 });
                 
                 const renderResult = facet.renderFacet();
@@ -220,15 +218,18 @@ describe('Facet Integration Tests', () => {
         describe('PositionPayload.renderFacet()', () => {
             it('should enhance pre-existing Room render with Position child', () => {
                 const reference = new StandardReference('ROOM#123', 'Room');
-                const payload = new PositionFacetPlainClass({ x: 10, y: 20 });
+                const payload = new PositionFacetPayload({ x: 10, y: 20 });
                 const roomRender = createMockRoomReference('room1', 'ROOM#123');
                 roomRender.children.push({
                     data: { tag: 'ShortName' as const },
                     children: [{ data: { tag: 'String' as const, value: 'Test Room' }, children: [] }]
                 });
 
-                // For v2 PlainClass, access the payload property and call toJSON() on it
-                const payloadData = (payload as any).payload?.toJSON() ?? payload.toJSON() as PositionPayload;
+                // Extract plain payload data from toJSON() (may be union type, but these are plain payloads)
+                const payloadJSON = payload.toJSON();
+                const payloadData: PositionPayload = ('tag' in payloadJSON && payloadJSON.tag !== undefined) 
+                    ? (payloadJSON as any).match || (payloadJSON as any).payload 
+                    : payloadJSON as PositionPayload;
                 const result = payload.renderFacet(reference, payloadData, roomRender);
 
                 expect(result.aggregatedNode).toBeDefined();
@@ -246,7 +247,7 @@ describe('Facet Integration Tests', () => {
 
             it('should generate plain Room reference render without referenceRender', () => {
                 const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
-                const payload = new PositionFacetPlainClass({ x: 15, y: 25 });
+                const payload = new PositionFacetPayload({ x: 15, y: 25 });
                 const payloadData = (payload as any).payload?.toJSON() ?? payload.toJSON() as PositionPayload;
 
                 const result = payload.renderFacet(reference, payloadData);
@@ -265,7 +266,7 @@ describe('Facet Integration Tests', () => {
 
             it('should always return aggregatedNode (never newNode)', () => {
                 const reference = new StandardReference('ROOM#789', 'Room');
-                const payload = new PositionFacetPlainClass({ x: 50, y: 60 });
+                const payload = new PositionFacetPayload({ x: 50, y: 60 });
                 const payloadData = (payload as any).payload?.toJSON() ?? payload.toJSON() as PositionPayload;
 
                 const result1 = payload.renderFacet(reference, payloadData);
@@ -282,15 +283,16 @@ describe('Facet Integration Tests', () => {
         describe('MarkFacetPayload.renderFacet()', () => {
             it('should enhance pre-existing Mark render with Match child', () => {
                 const reference = new StandardReference('MARK#123', 'Mark');
-                const payload = new MarkFacetPlainClass('Test condition');
+                const payload = new MarkFacetPayload('Test condition');
                 const markRender = createMockMarkReference('MARK#123');
                 markRender.children.push({
                     data: { tag: 'ShortName' as const },
                     children: [{ data: { tag: 'String' as const, value: 'Test Mark' }, children: [] }]
                 });
 
-                // For v2 PlainClass, access the payload property and call toJSON() on it
-                const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string;
+                // Extract plain payload data from toJSON() (may be union type, but these are plain payloads)
+                const payloadJSON = payload.toJSON();
+                const payloadData: string = (typeof payloadJSON === 'string') ? payloadJSON : '';
                 const result = payload.renderFacet(reference, payloadData, markRender);
 
                 expect(result.aggregatedNode).toBeDefined();
@@ -311,7 +313,7 @@ describe('Facet Integration Tests', () => {
 
             it('should generate plain Mark reference render without referenceRender', () => {
                 const reference = new StandardReference('MARK#456', 'Mark');
-                const payload = new MarkFacetPlainClass('Another condition');
+                const payload = new MarkFacetPayload('Another condition');
                 const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string;
 
                 const result = payload.renderFacet(reference, payloadData);
@@ -327,7 +329,7 @@ describe('Facet Integration Tests', () => {
 
             it('should always return aggregatedNode (never newNode)', () => {
                 const reference = new StandardReference('MARK#789', 'Mark');
-                const payload = new MarkFacetPlainClass('Condition text');
+                const payload = new MarkFacetPayload('Condition text');
                 const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string;
 
                 const result1 = payload.renderFacet(reference, payloadData);
@@ -344,9 +346,13 @@ describe('Facet Integration Tests', () => {
         describe('ExitPayload.renderFacet()', () => {
             it('should ignore referenceRender parameter', () => {
                 const reference = new StandardReference('ROOM#123', 'Room');
-                const payload = new ExitFacetPlainClass('North Exit');
+                const payload = new ExitFacetPayload('North Exit');
+                // Extract plain payload data from toJSON() (may be union type, but these are plain payloads)
                 // For Exit facets, toJSON() converts empty string back to undefined
-                const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string | undefined;
+                const payloadJSON = payload.toJSON();
+                const payloadData: string | undefined = (typeof payloadJSON === 'string' || payloadJSON === undefined) 
+                    ? payloadJSON 
+                    : undefined;
                 const roomRender = createMockRoomReference('room1', 'ROOM#123');
 
                 const result1 = payload.renderFacet(reference, payloadData);
@@ -361,7 +367,7 @@ describe('Facet Integration Tests', () => {
 
             it('should always return newNode (never aggregatedNode)', () => {
                 const reference = new StandardReference('ROOM#456', 'Room');
-                const payload = new ExitFacetPlainClass('East Exit');
+                const payload = new ExitFacetPayload('East Exit');
                 const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string | undefined;
 
                 const result1 = payload.renderFacet(reference, payloadData);
@@ -376,7 +382,7 @@ describe('Facet Integration Tests', () => {
 
             it('should include Exit tag with correct `to` property', () => {
                 const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
-                const payload = new ExitFacetPlainClass('West Exit');
+                const payload = new ExitFacetPayload('West Exit');
                 const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string | undefined;
 
                 const result = payload.renderFacet(reference, payloadData);
@@ -390,7 +396,7 @@ describe('Facet Integration Tests', () => {
 
             it('should include description in Exit tag content', () => {
                 const reference = new StandardReference('ROOM#789', 'Room');
-                const payload = new ExitFacetPlainClass('South Exit');
+                const payload = new ExitFacetPayload('South Exit');
                 const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string | undefined;
 
                 const result = payload.renderFacet(reference, payloadData);
@@ -408,7 +414,7 @@ describe('Facet Integration Tests', () => {
             it('should have empty Exit tag when description is undefined', () => {
                 const reference = new StandardReference('ROOM#999', 'Room');
                 // For Exit facets, undefined is converted to empty string for StandardLiteral compatibility
-                const payload = new ExitFacetPlainClass('');
+                const payload = new ExitFacetPayload('');
                 // toJSON() converts empty string back to undefined for Exit facets
                 const payloadData = payload.toJSON() as string | undefined;
                 expect(payloadData).toBeUndefined();
@@ -444,7 +450,9 @@ describe('Facet Integration Tests', () => {
             const replaceFacet = matchFacet.diff(payloadFacet);
 
             expect(replaceFacet).toBeDefined();
-            expect(replaceFacet!.payload instanceof PositionFacetReplaceClass).toBe(true);
+            // Check that payload is a Replace operation via toJSON() structure
+            const replacePayload = replaceFacet!.payload.toJSON();
+            expect(typeof replacePayload === 'object' && replacePayload !== null && 'tag' in replacePayload && replacePayload.tag === 'Replace').toBe(true);
 
             const result = replaceFacet!.renderFacet();
 
@@ -468,7 +476,9 @@ describe('Facet Integration Tests', () => {
             const replaceFacet = matchFacet.diff(payloadFacet);
 
             expect(replaceFacet).toBeDefined();
-            expect(replaceFacet!.payload instanceof MarkFacetReplaceClass).toBe(true);
+            // Check that payload is a Replace operation via toJSON() structure
+            const replacePayload = replaceFacet!.payload.toJSON();
+            expect(typeof replacePayload === 'object' && replacePayload !== null && 'tag' in replacePayload && replacePayload.tag === 'Replace').toBe(true);
 
             const result = replaceFacet!.renderFacet();
 
@@ -492,7 +502,9 @@ describe('Facet Integration Tests', () => {
             const replaceFacet = matchFacet.diff(payloadFacet);
 
             expect(replaceFacet).toBeDefined();
-            expect(replaceFacet!.payload instanceof ExitFacetReplaceClass).toBe(true);
+            // Check that payload is a Replace operation via toJSON() structure
+            const replacePayload = replaceFacet!.payload.toJSON();
+            expect(typeof replacePayload === 'object' && replacePayload !== null && 'tag' in replacePayload && replacePayload.tag === 'Replace').toBe(true);
 
             const result = replaceFacet!.renderFacet();
 

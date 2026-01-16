@@ -1,4 +1,4 @@
-import { PositionFacetList, StandardPositionFacet, PositionFacetReplaceClass } from './position';
+import { PositionFacetList, StandardPositionFacet, PositionReplaceClass } from './position';
 import { MarkFacetList, StandardMarkFacet } from './mark';
 import { PositionPayload, MarkFacetPayload, StandardFacetData } from './dataTypes/facet';
 import { StandardReferenceData } from '../dataTypes/reference';
@@ -84,11 +84,12 @@ describe('Concrete FacetList Classes', () => {
             const list = new PositionFacetList([replaceData]);
             expect(list.length).toBe(1);
             const item0 = list.items[0] as StandardPositionFacet;
-            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
-            // For Replace operations, payload is a ReplaceClass
-            const replaceInstance = item0.payload as any;
-            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 10, y: 20 });
-            expect(replaceInstance.match?.toJSON()).toEqual({ x: 5, y: 10 });
+            // Check that payload contains a Replace operation
+            expect(item0.payload.toJSON()).toEqual({
+                tag: 'Replace',
+                match: { x: 5, y: 10 },
+                payload: { x: 10, y: 20 }
+            });
         });
 
         it('should construct by cloning from another FacetList', () => {
@@ -164,8 +165,6 @@ describe('Concrete FacetList Classes', () => {
             };
             
             const list = new PositionFacetList([replaceData]);
-            const item0 = list.items[0] as StandardPositionFacet;
-            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
             const json = list.toJSON();
             // Replace operations are now at payload level
             expect(json).toEqual([{
@@ -355,7 +354,8 @@ describe('Concrete FacetList Classes', () => {
             expect(merged!.length).toBe(1);
             const item0 = merged!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(3); // 1 + 2
-            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(false);
+            // Check that payload is not a Replace operation (should be plain payload)
+            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
         });
 
         it('should preserve unmatched base items', () => {
@@ -454,7 +454,8 @@ describe('Concrete FacetList Classes', () => {
             expect(diff!.length).toBe(1);
             const item0 = diff!.items[0] as StandardPositionFacet;
             expect(item0.ref).toBe(1); // 2 - 1
-            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(false);
+            // Check that payload is not a Replace operation (should be plain payload)
+            expect(item0.payload.toJSON()).toEqual({ x: 10, y: 20 });
         });
 
         it('should invert unmatched base items', () => {
@@ -551,12 +552,12 @@ describe('Concrete FacetList Classes', () => {
             // Note: Current implementation keeps match and payload the same when inverting Replace
             // The reference is inverted (ref arithmetic), but Replace match/payload are preserved
             const item0 = inverted.items[0] as StandardPositionFacet;
-            expect(item0.payload instanceof PositionFacetReplaceClass).toBe(true);
-            // For Replace operations, payload is a ReplaceClass
-            // Invert swaps match and payload: "Replace A with B" becomes "Replace B with A"
-            const replaceInstance = item0.payload as any;
-            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 5, y: 10 });  // Original match becomes payload
-            expect(replaceInstance.match?.toJSON()).toEqual({ x: 10, y: 20 });   // Original payload becomes match
+            // For Replace operations, invert swaps match and payload: "Replace A with B" becomes "Replace B with A"
+            expect(item0.payload.toJSON()).toEqual({
+                tag: 'Replace',
+                match: { x: 10, y: 20 },  // Original payload becomes match
+                payload: { x: 5, y: 10 }  // Original match becomes payload
+            });
         });
 
         it('should invert list with mixed operations', () => {
@@ -602,7 +603,11 @@ describe('Concrete FacetList Classes', () => {
             
             const mapped = list.mapContents((facet) => {
                 const facetTyped = facet as StandardPositionFacet;
-                const currentPayload = facetTyped.payload.toJSON();
+                const currentPayloadJSON = facetTyped.payload.toJSON();
+                // Extract plain payload (for plain facets, toJSON returns PositionPayload directly)
+                const currentPayload: PositionPayload = ('tag' in currentPayloadJSON && currentPayloadJSON.tag !== undefined)
+                    ? (currentPayloadJSON as any).match || (currentPayloadJSON as any).payload
+                    : currentPayloadJSON as PositionPayload;
                 const newPayload: PositionPayload = {
                     x: currentPayload.x * 2,
                     y: currentPayload.y * 2
@@ -616,7 +621,11 @@ describe('Concrete FacetList Classes', () => {
             
             expect(mapped.length).toBe(1);
             const mappedItem = mapped.items[0] as StandardPositionFacet;
-            const mappedPayload = mappedItem.payload.toJSON();
+            const mappedPayloadJSON = mappedItem.payload.toJSON();
+            // Extract plain payload (for plain facets, toJSON returns PositionPayload directly)
+            const mappedPayload: PositionPayload = ('tag' in mappedPayloadJSON && mappedPayloadJSON.tag !== undefined)
+                ? (mappedPayloadJSON as any).match || (mappedPayloadJSON as any).payload
+                : mappedPayloadJSON as PositionPayload;
             expect(mappedPayload.x).toBe(20);
             expect(mappedPayload.y).toBe(40);
         });
@@ -706,12 +715,13 @@ describe('Concrete FacetList Classes', () => {
             
             const invertedReplace = replaceList.invert();
             const replaceItem0 = invertedReplace.items[0] as StandardPositionFacet;
-            expect(replaceItem0.payload instanceof PositionFacetReplaceClass).toBe(true);
             // Invert swaps match and payload: "Replace A with B" becomes "Replace B with A"
             // The reference ref is also inverted
-            const replaceInstance = replaceItem0.payload as any;
-            expect(replaceInstance.match?.toJSON()).toEqual({ x: 10, y: 20 });  // Original payload becomes match
-            expect(replaceInstance.payload?.toJSON()).toEqual({ x: 5, y: 10 });   // Original match becomes payload
+            expect(replaceItem0.payload.toJSON()).toEqual({
+                tag: 'Replace',
+                match: { x: 10, y: 20 },  // Original payload becomes match
+                payload: { x: 5, y: 10 }  // Original match becomes payload
+            });
         });
 
 
@@ -732,9 +742,12 @@ describe('Concrete FacetList Classes', () => {
                 createPositionFacetData('room1', 10, 20)
             ]);
             
-            // TypeScript should allow access to PositionPayload properties via toJSON()
+            // Extract plain payload from toJSON() (for plain facets, toJSON returns PositionPayload directly)
             const item0 = list.items[0] as StandardPositionFacet;
-            const payload = item0.payload.toJSON();
+            const payloadJSON = item0.payload.toJSON();
+            const payload: PositionPayload = ('tag' in payloadJSON && payloadJSON.tag !== undefined)
+                ? (payloadJSON as any).match || (payloadJSON as any).payload
+                : payloadJSON as PositionPayload;
             expect(payload.x).toBe(10);
             expect(payload.y).toBe(20);
             expect(payload).toEqual({ x: 10, y: 20 });

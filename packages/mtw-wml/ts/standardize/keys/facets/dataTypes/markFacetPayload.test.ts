@@ -1,106 +1,33 @@
-import { MarkFacetPlainClass, MarkFacetRemoveClass } from '../mark';
-import { EditableClass, PlainClass, RemoveClass, ReplaceClass, isStandardLiteralData } from '../../../literal';
+import { MarkFacetPayload } from '../mark';
 import type { MarkFacetPayload as MarkFacetPayloadType } from './facet';
 import { StandardReference } from '../../reference';
 import { treeFromWML, schemaToWML } from '../../../../schema';
 import { deIndentWML } from '../../../../schema/utils';
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState";
-import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
-import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
 
-describe('MarkFacetPlainClass - StandardEditablePayload implementation', () => {
-    describe('constructor and basic operations', () => {
-        it('should create MarkFacetPlainClass from valid data', () => {
-            const data: MarkFacetPayloadType = 'Test condition';
-            const payload = new MarkFacetPlainClass(data);
-            expect(payload.toJSON()).toBe('Test condition');
-        });
+describe('MarkFacetPayload - MarkFacetPayload-specific functionality', () => {
+    // Note: Basic StandardLiteral functionality (constructor, clone, toJSON, merge, diff, etc.)
+    // is tested in StandardLiteral tests. We only test MarkFacetPayload-specific overrides here.
 
-        it('should clone correctly', () => {
-            const data: MarkFacetPayloadType = 'Test condition';
-            const payload = new MarkFacetPlainClass(data);
-            const cloned = payload.clone();
-            expect(cloned).not.toBe(payload);
-            expect(cloned.toJSON()).toBe('Test condition');
-        });
-
-        it('should return correct JSON', () => {
-            const data: MarkFacetPayloadType = 'Another condition';
-            const payload = new MarkFacetPlainClass(data);
-            expect(payload.toJSON()).toBe('Another condition');
-        });
-
-        it('should generate Match tag schema', () => {
-            const data: MarkFacetPayloadType = 'Test condition';
-            const payload = new MarkFacetPlainClass(data);
-            // nestedSchema wraps String in Match tag
-            const schema = payload.nestedSchema({ tag: 'Match' });
-            expect(schema.length).toBe(1);
-            expect(schema[0].data.tag).toBe('Match');
-            // Verify Match tag contains String child with narrative
-            expect(schema[0].children.length).toBe(1);
-            const stringChild = schema[0].children[0];
-            if (stringChild.data.tag === 'String') {
-                expect(stringChild.data.value).toBe('Test condition');
-            }
-        });
+    it('should generate Match tag schema (nestedSchema override)', () => {
+        const data: MarkFacetPayloadType = 'Test condition';
+        const payload = new MarkFacetPayload(data);
+        // nestedSchema wraps String in Match tag (MarkFacetPayload-specific behavior)
+        const schema = payload.nestedSchema({ tag: 'Match' });
+        expect(schemaToWML(schema)).toBe(deIndentWML(`
+            <Match>Test condition</Match>
+        `));
     });
-
-    describe('v2StandardEditableFactory (via StandardLiteral)', () => {
-        it('should create from plain payload data', () => {
-            const data: MarkFacetPayloadType = 'Test condition';
-            // Use EditableClass.create() to dispatch to correct class
-            const instance = EditableClass.create(data);
-            expect(instance).toBeInstanceOf(PlainClass);
-            expect(instance.toJSON()).toBe('Test condition');
-        });
-
-        it('should create from Remove structure', () => {
-            const removeData: StandardEditableData<string> = {
-                tag: 'Remove',
-                match: 'Test condition'
-            };
-            const instance = EditableClass.create(removeData);
-            expect(instance).toBeInstanceOf(RemoveClass);
-            const removeInstance = instance as any;
-            expect(removeInstance.match?.toJSON()).toBe('Test condition');
-        });
-
-        it('should create from Replace structure', () => {
-            const replaceData: StandardEditableData<string> = {
-                tag: 'Replace',
-                match: 'Old condition',
-                payload: 'New condition'
-            };
-            const instance = EditableClass.create(replaceData);
-            expect(instance).toBeInstanceOf(ReplaceClass);
-            const replaceInstance = instance as any;
-            expect(replaceInstance.match?.toJSON()).toBe('Old condition');
-            expect(replaceInstance.payload?.toJSON()).toBe('New condition');
-        });
-
-        it('should validate typeguard correctly', () => {
-            const valid: string = 'Test condition';
-            expect(isStandardLiteralData(valid)).toBe(true);
-
-            const invalid = { x: 10, y: 20 };
-            expect(isStandardLiteralData(invalid)).toBe(false);
-        });
-    });
-
-    // Note: Merge and diff operations are inherited from StandardLiteral (PlainClass) and are tested there.
-    // MarkFacetPlainClass does not override merge or diff, so no payload-specific tests are needed.
-    // The only methods overridden/added are: nestedSchema, _wrap, fromSchema, and renderFacet.
 });
 
-describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
+describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
     describe('fromSchema', () => {
         it('should parse Mark with Match child (with key and uuid)', () => {
             const schema = treeFromWML(deIndentWML('<Mark key=(testMark) uuid=(MARK#123)><Match>Test condition</Match></Mark>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPlainClass('');
+            const payload = new MarkFacetPayload('');
             const result = payload.fromSchema(schema, reference);
             expect(result).toBe('Test condition');
         });
@@ -108,7 +35,7 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
         it('should parse Mark with Match child (uuid only)', () => {
             const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><Match>Another condition</Match></Mark>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPlainClass('');
+            const payload = new MarkFacetPayload('');
             const result = payload.fromSchema(schema, reference);
             expect(result).toBe('Another condition');
         });
@@ -116,21 +43,21 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
         it('should throw error when Match child is missing', () => {
             const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123) />'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPlainClass('');
+            const payload = new MarkFacetPayload('');
             expect(() => payload.fromSchema(schema, reference)).toThrow('Invalid schema: Match child not found');
         });
 
         it('should throw error when Mark tag is missing', () => {
             const schema = treeFromWML(deIndentWML('<Match>Test condition</Match>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPlainClass('');
+            const payload = new MarkFacetPayload('');
             expect(() => payload.fromSchema(schema, reference)).toThrow('Invalid schema: Mark tag not found');
         });
 
         it('should handle empty Match content', () => {
             const schema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><Match></Match></Mark>'));
             const reference = new StandardReference('MARK#123', 'Mark');
-            const payload = new MarkFacetPlainClass('');
+            const payload = new MarkFacetPayload('');
             const result = payload.fromSchema(schema, reference);
             expect(result).toBe('');
         });
@@ -140,7 +67,7 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
         it('should render with pre-existing Mark render', () => {
             const reference = new StandardReference('MARK#123', 'Mark');
             const payloadData: MarkFacetPayloadType = 'Test condition';
-            const payload = new MarkFacetPlainClass(payloadData);
+            const payload = new MarkFacetPayload(payloadData);
             const markSchema = treeFromWML(deIndentWML(`
                 <Mark uuid=(MARK#123)>
                     <ShortName>Test Mark</ShortName>
@@ -179,7 +106,7 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
         it('should render without reference render (plain Mark tag)', () => {
             const reference = new StandardReference({ key: 'testMark', universalKey: 'MARK#123', tag: 'Mark' });
             const payloadData: MarkFacetPayloadType = 'Another condition';
-            const payload = new MarkFacetPlainClass(payloadData);
+            const payload = new MarkFacetPayload(payloadData);
             const result = payload.renderFacet(reference, payloadData);
             
             // Should return aggregatedNode (not newNode)
@@ -208,7 +135,7 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
         it('should render without reference render (uuid only)', () => {
             const reference = new StandardReference('MARK#456', 'Mark');
             const payloadData: MarkFacetPayloadType = 'Third condition';
-            const payload = new MarkFacetPlainClass(payloadData);
+            const payload = new MarkFacetPayload(payloadData);
             const result = payload.renderFacet(reference, payloadData);
             
             // Should return aggregatedNode (not newNode)
@@ -235,7 +162,7 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
         it('should always return aggregatedNode (never newNode)', () => {
             const reference = new StandardReference('MARK#789', 'Mark');
             const payloadData: MarkFacetPayloadType = 'Fourth condition';
-            const payload = new MarkFacetPlainClass(payloadData);
+            const payload = new MarkFacetPayload(payloadData);
             
             // Test without referenceRender
             const result1 = payload.renderFacet(reference, payloadData);
@@ -252,7 +179,7 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
         it('should throw error when referenceRender is not a Mark', () => {
             const reference = new StandardReference('MARK#123', 'Mark');
             const payloadData: MarkFacetPayloadType = 'Test condition';
-            const payload = new MarkFacetPlainClass(payloadData);
+            const payload = new MarkFacetPayload(payloadData);
             const roomSchema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123) />'))[0];
             expect(() => payload.renderFacet(reference, payloadData, roomSchema)).toThrow('Invalid referenceRender: expected Mark tag');
         });
@@ -260,7 +187,7 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
         it('should add Match as first child when referenceRender provided', () => {
             const reference = new StandardReference('MARK#123', 'Mark');
             const payloadData: MarkFacetPayloadType = 'Final condition';
-            const payload = new MarkFacetPlainClass(payloadData);
+            const payload = new MarkFacetPayload(payloadData);
             const markSchema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><ShortName>Mark</ShortName></Mark>'))[0];
             const result = payload.renderFacet(reference, payloadData, markSchema);
             
@@ -285,7 +212,7 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
     describe('edge cases', () => {
         it('should handle empty narrative string', () => {
             const data: MarkFacetPayloadType = '';
-            const payload = new MarkFacetPlainClass(data);
+            const payload = new MarkFacetPayload(data);
             expect(payload.toJSON()).toBe('');
             expect(payload.toJSON()).toBe('');
             
@@ -302,14 +229,14 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
         it('should handle long narrative strings', () => {
             const longNarrative = 'A'.repeat(1000);
             const data: MarkFacetPayloadType = longNarrative;
-            const payload = new MarkFacetPlainClass(data);
+            const payload = new MarkFacetPayload(data);
             expect(payload.toJSON()).toBe(longNarrative);
         });
 
         it('should handle special characters in narrative', () => {
             const specialNarrative = 'Test with "quotes" and <tags> and & symbols';
             const data: MarkFacetPayloadType = specialNarrative;
-            const payload = new MarkFacetPlainClass(data);
+            const payload = new MarkFacetPayload(data);
             expect(payload.toJSON()).toBe(specialNarrative);
             
             // Verify it can be rendered
@@ -320,7 +247,7 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
     });
 });
 
-describe('MarkFacetRemoveClass - FacetPayloadBase implementation', () => {
+describe('MarkFacetPayload - Remove case (FacetPayloadBase implementation)', () => {
     describe('renderFacet', () => {
         it('should handle double-negative case (ref=-1 with RemoveClass payload) - preserves nested Remove structure', () => {
             // Double-negative case: reference has ref=-1 (Remove-wrapped Mark) 
@@ -329,8 +256,8 @@ describe('MarkFacetRemoveClass - FacetPayloadBase implementation', () => {
             const reference = new StandardReference({ key: 'testMark', universalKey: 'MARK#123', tag: 'Mark', ref: -1 });
             const payloadData: MarkFacetPayloadType = 'Test condition';
             
-            // Create RemoveClass payload (this represents the inverted state when ref=-1)
-            const removePayload = new MarkFacetRemoveClass({ tag: 'Remove' as const, match: payloadData });
+            // Create Remove payload (this represents the inverted state when ref=-1)
+            const removePayload = new MarkFacetPayload({ tag: 'Remove' as const, match: payloadData });
             
             // When ref=-1, reference.schema[0] will be Remove-wrapped Mark
             const result = removePayload.renderFacet(reference, payloadData);

@@ -19,20 +19,15 @@ import { StandardReference, LookupMappings } from "../reference";
 import { StandardKey } from "../key";
 import { treeFromWML, isSchemaTreeNode } from "../../../schema";
 
-export const facetClassFactory = <D>(
-    payloadClasses: {
-        EditableClass: any,  // For type purposes
-        PlainClass: any,
-        RemoveClass: any,
-        ReplaceClass: any
-    },
-    createPayload: (arg: any) => any,
+export const facetClassFactory = <D, PayloadClass extends { renderFacet: (...args: any[]) => any, fromSchema: (...args: any[]) => any, clone: () => any, toJSON: () => any, merge: (other: any) => any, diff: (other: any) => any, invert: () => any }>(
+    PayloadClass: new (...args: any[]) => PayloadClass,
+    createPayload: (arg: any) => PayloadClass,
     label: string,
     referenceFactory?: (schema: GenericTree<SchemaTag>) => StandardReference
 ) => {
     return class GeneratedFacetClass {
         _reference: StandardReference;
-        _payloadInstance: InstanceType<typeof payloadClasses.PlainClass> | InstanceType<typeof payloadClasses.RemoveClass> | InstanceType<typeof payloadClasses.ReplaceClass>;
+        _payloadInstance: PayloadClass;
 
         constructor(
             arg: StandardFacetData<D> | GeneratedFacetClass | GenericTree<SchemaTag> | string
@@ -173,7 +168,7 @@ export const facetClassFactory = <D>(
         }
 
         // Payload accessors
-        get payload(): InstanceType<typeof payloadClasses.PlainClass> | InstanceType<typeof payloadClasses.RemoveClass> | InstanceType<typeof payloadClasses.ReplaceClass> {
+        get payload(): PayloadClass {
             return this._payloadInstance;
         }
 

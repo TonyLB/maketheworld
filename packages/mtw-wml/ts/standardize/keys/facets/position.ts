@@ -7,7 +7,7 @@ import { StandardReference } from "../reference";
 import type { PositionPayload as PositionPayloadType, StandardFacetData } from "./dataTypes/facet";
 import { isPositionPayload } from "./dataTypes/facet";
 import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
-import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit";
+import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
 import { facetClassFactory } from './facetFactory';
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
 import { transformNestedChildren } from "../../../schema/utils";
@@ -102,7 +102,140 @@ export const {
     diff: standardPositionPayloadDiff
 }, 'StandardPositionPayload')
 
-// Extended StandardPositionPayload v2 classes for Position facets with FacetPayloadBase methods
+// Unified PositionFacetPayload wrapper class (similar to StandardLiteral but for Position payloads)
+export class PositionFacetPayload {
+    _payload: InstanceType<typeof PositionEditableClass>;
+
+    constructor(arg: any) {
+        // If arg is already a PositionEditableClass instance, use it directly
+        // (e.g., when called from clone(), merge(), diff(), invert())
+        if (arg && typeof arg === 'object' && '_delta' in arg && 'toJSON' in arg && 'schema' in arg) {
+            this._payload = arg as InstanceType<typeof PositionEditableClass>;
+        } else {
+            // Use PositionEditableClass.create() for dispatch to Plain/Remove/Replace
+            this._payload = PositionEditableClass.create(arg);
+        }
+    }
+
+    get schema(): GenericTree<SchemaTag> {
+        return this._payload.schema;
+    }
+
+    nestedSchema(tag?: SchemaTag): GenericTree<SchemaTag> {
+        // Position doesn't need a wrapper tag, just return schema directly
+        return this._payload.schema;
+    }
+
+    clone(): PositionFacetPayload {
+        return new PositionFacetPayload(this._payload.clone());
+    }
+
+    toJSON(): PositionPayloadType | { tag: 'Remove', match: PositionPayloadType } | { tag: 'Replace', match: PositionPayloadType, payload: PositionPayloadType } {
+        return this._payload.toJSON();
+    }
+
+    merge(incoming: PositionFacetPayload): PositionFacetPayload | undefined {
+        const merged = this._payload.merge(incoming._payload);
+        if (merged) {
+            return new PositionFacetPayload(merged);
+        }
+        return undefined;
+    }
+
+    diff(incoming: PositionFacetPayload | undefined): PositionFacetPayload | undefined {
+        if (incoming) {
+            const diff = this._payload.diff(incoming._payload);
+            if (diff) {
+                return new PositionFacetPayload(diff);
+            }
+            return undefined;
+        } else {
+            const inverted = this._payload.invert();
+            return new PositionFacetPayload(inverted);
+        }
+    }
+
+    invert(): PositionFacetPayload {
+        const inverted = this._payload.invert();
+        return new PositionFacetPayload(inverted);
+    }
+
+    // FacetPayloadBase method: parse from schema
+    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): PositionPayloadType {
+        if (node.length === 0) {
+            throw new Error('Invalid schema: empty node');
+        }
+
+        const firstElement = node[0];
+
+        // Find the Room tag in the node
+        let roomNode: GenericTreeNode<SchemaTag> | undefined;
+        if (treeNodeTypeguard(isSchemaRoom)(firstElement)) {
+            roomNode = firstElement;
+        } else {
+            const roomChild = firstElement.children?.find(child => 
+                treeNodeTypeguard(isSchemaRoom)(child)
+            );
+            if (roomChild && treeNodeTypeguard(isSchemaRoom)(roomChild)) {
+                roomNode = roomChild;
+            }
+        }
+
+        if (!roomNode || !treeNodeTypeguard(isSchemaRoom)(roomNode)) {
+            throw new Error('Invalid schema: Room tag not found');
+        }
+
+        // Extract Position child tag from Room's children
+        const position = roomNode.children.find(treeNodeTypeguard(isSchemaPosition));
+        if (!position || !treeNodeTypeguard(isSchemaPosition)(position)) {
+            throw new Error('Invalid schema: Position child not found in Room');
+        }
+
+        const { x, y } = position.data;
+        if (typeof x !== 'number' || typeof y !== 'number') {
+            throw new Error('Invalid schema: Position tag missing x or y coordinates');
+        }
+
+        return { x, y };
+    }
+
+    // FacetPayloadBase method: render facet
+    renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+        // Unified implementation that works for Plain/Remove/Replace via schema getter
+        const positionChild = this.schema[0];
+
+        if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
+            return { aggregatedNode: referenceRender };
+        }
+
+        const transformRoomChildren = transformNestedChildren({
+            tag: 'Room',
+            transform: (children) => [positionChild, ...children]
+        });
+
+        if (referenceRender) {
+            try {
+                const roomNode = transformRoomChildren(referenceRender);
+                return { aggregatedNode: roomNode };
+            } catch (error) {
+                if (error instanceof TagMismatchError) {
+                    throw new Error('Invalid referenceRender: expected Room tag');
+                }
+                throw error;
+            }
+        } else {
+            const roomSchema = reference.schema;
+            if (roomSchema.length === 0) {
+                throw new Error('Invalid reference schema: empty');
+            }
+            const firstNode = roomSchema[0];
+            const roomNode = transformRoomChildren(firstNode);
+            return { aggregatedNode: roomNode };
+        }
+    }
+}
+
+// Legacy classes kept temporarily for backwards compatibility during refactor
 
 export class PositionFacetPlainClass extends PositionPlainClass {
     // Override _wrap to convert base class instances to appropriate extended facet classes
@@ -113,7 +246,10 @@ export class PositionFacetPlainClass extends PositionPlainClass {
         }
         // Use the custom factory to dispatch to the correct extended class based on instance type
         const data = instance.toJSON();
-        return createPositionFacetPayload(data);
+        const unifiedPayload = createPositionFacetPayload(data);
+        // For backward compatibility, we'd need to wrap back to old classes, but since we're phasing them out,
+        // just return the unified class (tests will need updating)
+        return unifiedPayload as any;
     }
     
     // FacetPayloadBase methods
@@ -199,7 +335,10 @@ export class PositionFacetRemoveClass extends PositionRemoveClass {
         }
         // Use the custom factory to dispatch to the correct extended class based on instance type
         const data = instance.toJSON();
-        return createPositionFacetPayload(data);
+        const unifiedPayload = createPositionFacetPayload(data);
+        // For backward compatibility, we'd need to wrap back to old classes, but since we're phasing them out,
+        // just return the unified class (tests will need updating)
+        return unifiedPayload as any;
     }
     
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): PositionPayloadType {
@@ -257,7 +396,10 @@ export class PositionFacetReplaceClass extends PositionReplaceClass {
         }
         // Use the custom factory to dispatch to the correct extended class based on instance type
         const data = instance.toJSON();
-        return createPositionFacetPayload(data);
+        const unifiedPayload = createPositionFacetPayload(data);
+        // For backward compatibility, we'd need to wrap back to old classes, but since we're phasing them out,
+        // just return the unified class (tests will need updating)
+        return unifiedPayload as any;
     }
     
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): PositionPayloadType {
@@ -305,89 +447,34 @@ export class PositionFacetReplaceClass extends PositionReplaceClass {
     }
 }
 
-// Custom factory function that replicates EditableClass.create() logic but returns extended classes
-export function createPositionFacetPayload(arg: any): PositionFacetPlainClass | PositionFacetRemoveClass | PositionFacetReplaceClass {
+// Factory function - PositionEditableClass.create() handles all dispatch logic
+export function createPositionFacetPayload(arg: any): PositionFacetPayload {
     // Handle string by parsing to schema tree first
     const factoryProps: any = typeof arg === 'string' ? treeFromWML(arg) : arg;
     
-    // Handle Remove/Replace objects BEFORE checking isStandardPositionPayloadData
-    // (because isStandardPositionPayloadData may incorrectly return true for Remove/Replace objects)
-    if (typeof factoryProps === 'object' && factoryProps !== null && 'tag' in factoryProps) {
-        if (factoryProps.tag === 'Remove' && 'match' in factoryProps && isStandardPositionPayloadData(factoryProps.match)) {
-            return new PositionFacetRemoveClass(factoryProps);
-        }
-        if (factoryProps.tag === 'Replace' && 'match' in factoryProps && 'payload' in factoryProps 
-            && isStandardPositionPayloadData(factoryProps.match) && isStandardPositionPayloadData(factoryProps.payload)) {
-            return new PositionFacetReplaceClass(factoryProps);
-        }
-    }
-    
-    // Handle schema tree parsing for Remove/Replace tags
+    // Handle schema tree that might contain Room tag - extract Position children
     if (Array.isArray(factoryProps) && factoryProps.every(isSchemaTreeNode)) {
         const schema = factoryProps;
-        if (schema.length === 0) {
-            return new PositionFacetPlainClass(schema);
-        }
-        
-        const firstElement = schema[0];
-        if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
-            return new PositionFacetRemoveClass(schema);
-        }
-        else if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
-            return new PositionFacetReplaceClass(schema);
-        }
-        else {
-            // Schema tree doesn't start with Remove/Replace - might be a full facet schema (e.g., <Room><Position.../>)
-            // Handle nested Remove structures: <Room><Remove><Position /></Remove></Room>
-            // Extract Remove-wrapped Position structure if present
+        if (schema.length > 0) {
+            const firstElement = schema[0];
+            // If first element is a Room tag, extract its children (which contain the Position tag or Remove/Replace wrappers)
             if (treeNodeTypeguard(isSchemaRoom)(firstElement)) {
-                const removeChild = firstElement.children.find(child => treeNodeTypeguard(isSchemaRemove)(child));
-                if (removeChild && treeNodeTypeguard(isSchemaRemove)(removeChild)) {
-                    // Nested Remove: extract Remove-wrapped Position schema for RemoveClass
-                    // Structure: <Remove><Position /></Remove>
-                    const removeSchema: GenericTree<SchemaTag> = [removeChild];
-                    return new PositionFacetRemoveClass(removeSchema);
-                }
-                // No nested Remove - try normal Position extraction
-            }
-            // Try to extract Position child using fromSchema
-            const tempPayload = new PositionFacetPlainClass({ x: 0, y: 0 });
-            try {
-                const extractedData = tempPayload.fromSchema(schema, new StandardReference('ROOM#temp', 'Room'));
-                return new PositionFacetPlainClass(extractedData);
-            } catch {
-                // If fromSchema fails, try passing schema directly (might be just Position tag)
-                return new PositionFacetPlainClass(schema);
+                // Extract Position children from Room tag - this is what PositionEditableClass expects
+                return new PositionFacetPayload(firstElement.children);
             }
         }
     }
     
-    // Check if it's a StandardEditableData of the appropriate type (plain data)
-    if (isStandardPositionPayloadData(factoryProps)) {
-        return new PositionFacetPlainClass(factoryProps);
-    }
-    
-    // Default to plain - might be a schema tree that needs parsing
-    // Try to extract using fromSchema if it looks like a schema
-    if (Array.isArray(factoryProps) && factoryProps.length > 0) {
-        const tempPayload = new PositionFacetPlainClass({ x: 0, y: 0 });
-        try {
-            const extractedData = tempPayload.fromSchema(factoryProps, new StandardReference('ROOM#temp', 'Room'));
-            return new PositionFacetPlainClass(extractedData);
-        } catch {
-            // If fromSchema fails, pass as-is
-        }
-    }
-    return new PositionFacetPlainClass(factoryProps);
+    // PositionEditableClass.create() handles:
+    // - Remove/Replace objects
+    // - Schema tree parsing (including Remove/Replace tags)
+    // - StandardEditableData handling
+    return new PositionFacetPayload(factoryProps);
 }
 
+
 export class StandardPositionFacet extends facetClassFactory(
-    {
-        EditableClass: PositionEditableClass,
-        PlainClass: PositionFacetPlainClass,
-        RemoveClass: PositionFacetRemoveClass,
-        ReplaceClass: PositionFacetReplaceClass
-    },
+    PositionFacetPayload,
     createPositionFacetPayload,
     'PositionFacet'
 ) {
