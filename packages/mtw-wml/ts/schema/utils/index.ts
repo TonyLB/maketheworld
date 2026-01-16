@@ -48,3 +48,4 @@ export const wrappedNodeTypeGuard = <SubType extends SchemaTag>(typeGuard: (valu
 
 export { findTaggedChildren } from './findTaggedChildren'
 export { recurseIntoEditable } from './recurseIntoEditable'
+export { transformNestedChildren } from './transformNestedChildren'

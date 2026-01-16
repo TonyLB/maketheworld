@@ -4,3 +4,8 @@ export class MergeConflictError extends StandardizerError {
         super(message ?? 'Merge conflict')
     }
 }
+export class TagMismatchError extends StandardizerError {
+    constructor(expected: string, actual: string) {
+        super(`Node has ${actual} tag, expected ${expected}`)
+    }
+}

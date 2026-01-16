@@ -1,7 +1,7 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { v2StandardEditableFactory, StandardEditablePayload } from "../../../generics/editable";
-import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize";
+import { MergeConflictError, TagMismatchError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../../lib/objects";
 import { StandardReference } from "../reference";
 import type { PositionPayload as PositionPayloadType, StandardFacetData } from "./dataTypes/facet";
@@ -10,6 +10,7 @@ import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/compo
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit";
 import { facetClassFactory } from './facetFactory';
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
+import { transformNestedChildren } from "../../../schema/utils";
 
 //
 // StandardPositionPayloadBase holds the contents for a simple PositionPayload
@@ -162,58 +163,30 @@ export class PositionFacetPlainClass extends PositionPlainClass {
             return { aggregatedNode: referenceRender };
         }
 
-        let roomNode: GenericTreeNode<SchemaTag>;
+        const transformRoomChildren = transformNestedChildren({
+            tag: 'Room',
+            transform: (children) => [positionChild, ...children]
+        });
 
         if (referenceRender) {
-            if (!treeNodeTypeguard(isSchemaRoom)(referenceRender)) {
-                throw new Error('Invalid referenceRender: expected Room tag');
+            try {
+                const roomNode = transformRoomChildren(referenceRender);
+                return { aggregatedNode: roomNode };
+            } catch (error) {
+                if (error instanceof TagMismatchError) {
+                    throw new Error('Invalid referenceRender: expected Room tag');
+                }
+                throw error;
             }
-            roomNode = {
-                ...referenceRender,
-                children: [
-                    positionChild,
-                    ...referenceRender.children
-                ]
-            };
         } else {
             const roomSchema = reference.schema;
             if (roomSchema.length === 0) {
                 throw new Error('Invalid reference schema: empty');
             }
             const firstNode = roomSchema[0];
-            if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
-                const innerRoom = firstNode.children[0];
-                if (!innerRoom || !treeNodeTypeguard(isSchemaRoom)(innerRoom)) {
-                    throw new Error('Invalid Remove-wrapped reference schema: expected Room tag inside Remove');
-                }
-                const enhancedRoom: GenericTreeNode<SchemaTag> = {
-                    ...innerRoom,
-                    children: [
-                        positionChild,
-                        ...innerRoom.children
-                    ]
-                };
-                return {
-                    aggregatedNode: {
-                        ...firstNode,
-                        children: [enhancedRoom]
-                    }
-                };
-            }
-            
-            if (!treeNodeTypeguard(isSchemaRoom)(firstNode)) {
-                throw new Error('Invalid reference schema: expected Room tag');
-            }
-            roomNode = {
-                ...firstNode,
-                children: [
-                    positionChild,
-                    ...firstNode.children
-                ]
-            };
+            const roomNode = transformRoomChildren(firstNode);
+            return { aggregatedNode: roomNode };
         }
-
-        return { aggregatedNode: roomNode };
     }
 }
 
@@ -248,60 +221,30 @@ export class PositionFacetRemoveClass extends PositionRemoveClass {
             return { aggregatedNode: referenceRender };
         }
 
-        let roomNode: GenericTreeNode<SchemaTag>;
+        const transformRoomChildren = transformNestedChildren({
+            tag: 'Room',
+            transform: (children) => [removeWrappedPosition, ...children]
+        });
 
         if (referenceRender) {
-            if (!treeNodeTypeguard(isSchemaRoom)(referenceRender)) {
-                throw new Error('Invalid referenceRender: expected Room tag');
+            try {
+                const roomNode = transformRoomChildren(referenceRender);
+                return { aggregatedNode: roomNode };
+            } catch (error) {
+                if (error instanceof TagMismatchError) {
+                    throw new Error('Invalid referenceRender: expected Room tag');
+                }
+                throw error;
             }
-            roomNode = {
-                ...referenceRender,
-                children: [
-                    removeWrappedPosition,
-                    ...referenceRender.children
-                ]
-            };
         } else {
             const roomSchema = reference.schema;
             if (roomSchema.length === 0) {
                 throw new Error('Invalid reference schema: empty');
             }
             const firstNode = roomSchema[0];
-            if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
-                const innerRoom = firstNode.children[0];
-                if (!innerRoom || !treeNodeTypeguard(isSchemaRoom)(innerRoom)) {
-                    throw new Error('Invalid Remove-wrapped reference schema: expected Room tag inside Remove');
-                }
-                // When both reference and payload are Remove-wrapped, create nested Remove structure
-                // removeWrappedPosition is already <Remove><Position/></Remove>, so we get nested Removes
-                const enhancedRoom: GenericTreeNode<SchemaTag> = {
-                    ...innerRoom,
-                    children: [
-                        removeWrappedPosition,  // This is already Remove-wrapped Position: <Remove><Position/></Remove>
-                        ...innerRoom.children
-                    ]
-                };
-                return {
-                    aggregatedNode: {
-                        ...firstNode,
-                        children: [enhancedRoom]
-                    }
-                };
-            }
-            
-            if (!treeNodeTypeguard(isSchemaRoom)(firstNode)) {
-                throw new Error('Invalid reference schema: expected Room tag');
-            }
-            roomNode = {
-                ...firstNode,
-                children: [
-                    removeWrappedPosition,
-                    ...firstNode.children
-                ]
-            };
+            const roomNode = transformRoomChildren(firstNode);
+            return { aggregatedNode: roomNode };
         }
-
-        return { aggregatedNode: roomNode };
     }
 }
 
@@ -335,59 +278,30 @@ export class PositionFacetReplaceClass extends PositionReplaceClass {
             return { aggregatedNode: referenceRender };
         }
 
-        let roomNode: GenericTreeNode<SchemaTag>;
+        const transformRoomChildren = transformNestedChildren({
+            tag: 'Room',
+            transform: (children) => [replaceSchema, ...children]
+        });
 
         if (referenceRender) {
-            if (!treeNodeTypeguard(isSchemaRoom)(referenceRender)) {
-                throw new Error('Invalid referenceRender: expected Room tag');
+            try {
+                const roomNode = transformRoomChildren(referenceRender);
+                return { aggregatedNode: roomNode };
+            } catch (error) {
+                if (error instanceof TagMismatchError) {
+                    throw new Error('Invalid referenceRender: expected Room tag');
+                }
+                throw error;
             }
-            roomNode = {
-                ...referenceRender,
-                children: [
-                    replaceSchema,
-                    ...referenceRender.children
-                ]
-            };
         } else {
             const roomSchema = reference.schema;
             if (roomSchema.length === 0) {
                 throw new Error('Invalid reference schema: empty');
             }
             const firstNode = roomSchema[0];
-            
-            if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
-                const innerRoom = firstNode.children[0];
-                if (!innerRoom || !treeNodeTypeguard(isSchemaRoom)(innerRoom)) {
-                    throw new Error('Invalid Remove-wrapped reference schema: expected Room tag inside Remove');
-                }
-                const enhancedRoom: GenericTreeNode<SchemaTag> = {
-                    ...innerRoom,
-                    children: [
-                        replaceSchema,
-                        ...innerRoom.children
-                    ]
-                };
-                return {
-                    aggregatedNode: {
-                        ...firstNode,
-                        children: [enhancedRoom]
-                    }
-                };
-            }
-            
-            if (!treeNodeTypeguard(isSchemaRoom)(firstNode)) {
-                throw new Error('Invalid reference schema: expected Room tag');
-            }
-            roomNode = {
-                ...firstNode,
-                children: [
-                    replaceSchema,
-                    ...firstNode.children
-                ]
-            };
+            const roomNode = transformRoomChildren(firstNode);
+            return { aggregatedNode: roomNode };
         }
-
-        return { aggregatedNode: roomNode };
     }
 }
 
