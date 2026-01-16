@@ -321,11 +321,15 @@ export const facetClassFactory = <D>(
         renderFacet(referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
             // If reference is negative (facet is being removed), invert the payload before rendering
             // This ensures transitivity: removal of the facet also removes the payload
-            const payloadData = this._reference.ref < 0
-                ? this.payload.invert().toJSON()
+            const refIsNegative = this._reference.ref < 0;
+            const invertedPayload = refIsNegative ? this.payload.invert() : null;
+            const payloadData = refIsNegative
+                ? invertedPayload!.toJSON()
                 : this.payload.toJSON();
             // Delegate rendering to payload class's renderFacet (handles all cases including Replace)
-            return this.payload.renderFacet(this._reference, payloadData, referenceRender);
+            // For negative references, use the inverted payload instance to render (so it uses RemoveClass.renderFacet which creates Remove-wrapped schema)
+            const payloadInstance = refIsNegative ? invertedPayload! : this.payload;
+            return payloadInstance.renderFacet(this._reference, payloadData, referenceRender);
         }
 
         // Format conversion

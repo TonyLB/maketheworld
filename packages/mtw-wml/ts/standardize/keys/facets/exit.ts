@@ -2,7 +2,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { SchemaTag, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema";
 import { StandardReference } from "../reference";
 import type { ExitPayload as ExitPayloadType, StandardFacetData } from "./dataTypes/facet";
-import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components";
+import { isSchemaExit, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { facetClassFactory } from './facetFactory';
@@ -288,6 +288,49 @@ export class ExitFacetReplaceClass extends ReplaceClass {
                         children: [exitNode]
                     }
                 };
+            }
+        }
+
+        // For Replace operations on Exit facets, wrap Replace structure in Room and return aggregatedNode
+        // The replaceSchema has ReplaceMatch/ReplacePayload with String children, but we need Exit tags inside them
+        // Extract ReplaceMatch and ReplacePayload, wrap their String children in Exit tags, reconstruct Replace
+        const replaceMatch = replaceSchema.children.find(child => treeNodeTypeguard(isSchemaReplaceMatch)(child));
+        const replacePayload = replaceSchema.children.find(child => treeNodeTypeguard(isSchemaReplacePayload)(child));
+        
+        if (replaceMatch && replacePayload) {
+            // Extract String children from ReplaceMatch and ReplacePayload, wrap each in Exit tag
+            const exitMatchNode: GenericTreeNode<SchemaTag> = {
+                data: { tag: 'Exit' as const, to: toValue },
+                children: replaceMatch.children // String tags from match
+            };
+            const exitPayloadNode: GenericTreeNode<SchemaTag> = {
+                data: { tag: 'Exit' as const, to: toValue },
+                children: replacePayload.children // String tags from payload
+            };
+            
+            // Reconstruct Replace structure with Exit tags inside ReplaceMatch/ReplacePayload
+            const exitReplaceSchema: GenericTreeNode<SchemaTag> = {
+                data: { tag: 'Replace' as const },
+                children: [
+                    { data: { tag: 'ReplaceMatch' as const }, children: [exitMatchNode] },
+                    { data: { tag: 'ReplacePayload' as const }, children: [exitPayloadNode] }
+                ]
+            };
+            
+            // Wrap in Room and return aggregatedNode
+            const roomSchema = reference.schema;
+            if (roomSchema.length > 0) {
+                const firstNode = roomSchema[0];
+                if (treeNodeTypeguard(isSchemaRoom)(firstNode)) {
+                    const roomNode: GenericTreeNode<SchemaTag> = {
+                        ...firstNode,
+                        children: [
+                            exitReplaceSchema,
+                            ...firstNode.children
+                        ]
+                    };
+                    return { aggregatedNode: roomNode };
+                }
             }
         }
 
