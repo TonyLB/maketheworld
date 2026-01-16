@@ -8,7 +8,7 @@ export { StandardReference, LookupMappings, standardReferenceDeserialize, standa
 export { ReferenceList, default as ReferenceListDefault } from "./referenceList";
 
 // Export facet types
-export { facetClassFactory, FacetConstructorMethods } from "./facets/facetFactory";
+export { facetClassFactory } from "./facets/facetFactory";
 
 // Export facet list types
 export { facetListClassFactory } from "./facets/facetListFactory";
@@ -17,9 +17,12 @@ export { facetListClassFactory } from "./facets/facetListFactory";
 export * from "./dataTypes/reference";
 export * from "./facets/dataTypes/facet";
 export * from "./facets/dataTypes/facetPayloadBase";
-export { PositionPayload, factory as positionPayloadFactory, isStandardPositionPayloadData, merge as positionPayloadMerge, diff as positionPayloadDiff } from "./facets/position";
-export { MarkFacetPayload, factory as markFacetPayloadFactory, isStandardMarkFacetPayloadData, merge as markFacetPayloadMerge, diff as markFacetPayloadDiff } from "./facets/mark";
-export { ExitPayload, factory as exitPayloadFactory, isStandardExitPayloadData, merge as exitPayloadMerge, diff as exitPayloadDiff } from "./facets/exit";
+export { PositionFacetPayload, createPositionFacetPayload, isStandardPositionPayloadData } from "./facets/position";
+export { MarkFacetPayload, createMarkFacetPayload } from "./facets/mark";
+export { ExitFacetPayload, createExitFacetPayload } from "./facets/exit";
+// Export type aliases for backward compatibility
+export type { PositionPayload } from "./facets/dataTypes/facet";
+export type { ExitPayload } from "./facets/dataTypes/facet";
 
 // Export concrete facet classes
 export { StandardPositionFacet, PositionFacetList } from "./facets/position";

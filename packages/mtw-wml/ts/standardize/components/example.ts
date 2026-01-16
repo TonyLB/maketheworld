@@ -4,7 +4,7 @@ import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
-import linkReferenceKeys, { ReferenceFormat, childReferenceFactory } from "./utils/references"
+import linkReferenceKeys, { ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
@@ -16,7 +16,7 @@ import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/rend
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { StandardExplicitParent } from "../explicit"
-import { MarkFacetList, StandardMarkFacet, MarkFacetPlainClass as MarkFacetPayloadClass } from "../keys/facets/mark"
+import { MarkFacetList, StandardMarkFacet } from "../keys/facets/mark"
 import { findTaggedChildren, recurseIntoEditable } from "../../schema/utils"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {

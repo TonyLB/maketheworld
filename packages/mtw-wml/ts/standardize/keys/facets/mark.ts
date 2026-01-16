@@ -4,35 +4,33 @@ import { StandardReference } from "../reference";
 import type { MarkFacetPayload as MarkFacetPayloadType, StandardFacetData } from "./dataTypes/facet";
 import { isSchemaMark, isSchemaMatch } from "@tonylb/mtw-base/ts/schema/worldState";
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
-import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
+import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit";
 import { facetClassFactory } from './facetFactory';
-import { EditableClass, PlainClass, RemoveClass, ReplaceClass, isStandardLiteralData, StandardLiteral } from "../../literal";
+import { StandardLiteral } from "../../literal";
 import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree";
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
-import { findTaggedChildren, transformNestedChildren } from "../../../schema/utils";
+import { transformNestedChildren } from "../../../schema/utils";
 import { TagMismatchError } from "@tonylb/mtw-base/ts/standardize";
 
-// Extended StandardLiteral v2 classes for Mark facets with FacetPayloadBase methods
-
-export class MarkFacetPlainClass extends PlainClass {
-    // Override nestedSchema to wrap in Match tag
-    override nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
-        // Wrap the String schema in Match tag
-        return [{ data: { tag: 'Match' as const }, children: this.schema }];
+// Unified MarkFacetPayload class extending StandardLiteral
+export class MarkFacetPayload extends StandardLiteral {
+    constructor(arg: any) {
+        // Use StandardLiteral with Match tag wrapper
+        super(arg, { tag: 'Match' });
     }
     
-    // Override _wrap to convert base class instances to appropriate extended facet classes
-    override _wrap(instance: any): MarkFacetPlainClass | MarkFacetRemoveClass | MarkFacetReplaceClass {
-        // If already an extended facet class, return as-is
-        if (instance instanceof MarkFacetPlainClass || instance instanceof MarkFacetRemoveClass || instance instanceof MarkFacetReplaceClass) {
-            return instance;
-        }
-        // Use the custom factory to dispatch to the correct extended class based on instance type
-        const data = instance.toJSON();
-        return createMarkFacetPayload(data);
+    // Override nestedSchema to ensure Match tag is always used
+    override nestedSchema(tag?: SchemaTag): GenericTree<SchemaTag> {
+        // Always use 'Match' tag, ignoring parameter (facet-specific)
+        return super.nestedSchema({ tag: 'Match' as const });
     }
     
-    // FacetPayloadBase methods
+    // Override _wrap to preserve MarkFacetPayload type through operations
+    override _wrap(instance: StandardLiteral): MarkFacetPayload {
+        return new MarkFacetPayload(instance);
+    }
+    
+    // FacetPayloadBase method: parse from schema
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): MarkFacetPayloadType {
         if (node.length === 0) {
             throw new Error('Invalid schema: empty node');
@@ -74,20 +72,21 @@ export class MarkFacetPlainClass extends PlainClass {
         return narrative;
     }
 
+    // FacetPayloadBase method: render facet
     renderFacet(reference: StandardReference, payload: MarkFacetPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
-        // Use nestedSchema to wrap content in Match tag (already overridden above)
+        // Unified implementation that works for Plain/Remove/Replace via nestedSchema
         const matchChild = this.nestedSchema({ tag: 'Match' as const })[0];
-
+        
         // Handle Remove-wrapped referenceRender: pass through unchanged
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
         }
-
+        
         const transformMarkChildren = transformNestedChildren({
             tag: 'Mark',
             transform: (children) => [matchChild, ...children]
         });
-
+        
         if (referenceRender) {
             try {
                 const markNode = transformMarkChildren(referenceRender);
@@ -110,332 +109,55 @@ export class MarkFacetPlainClass extends PlainClass {
     }
 }
 
-export class MarkFacetRemoveClass extends RemoveClass {
-    // Override nestedSchema to wrap match in Match tag, then in Remove
-    override nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
-        const match = (this as any).match;
-        return [{
-            data: { tag: 'Remove' as const },
-            children: [{ data: { tag: 'Match' as const }, children: match?.schema ?? [] }]
-        }];
-    }
-    
-    // Override _wrap to convert base class instances to appropriate extended facet classes
-    override _wrap(instance: any): MarkFacetPlainClass | MarkFacetRemoveClass | MarkFacetReplaceClass {
-        // If already an extended facet class, return as-is
-        if (instance instanceof MarkFacetPlainClass || instance instanceof MarkFacetRemoveClass || instance instanceof MarkFacetReplaceClass) {
-            return instance;
-        }
-        // Use the custom factory to dispatch to the correct extended class based on instance type
-        const data = instance.toJSON();
-        return createMarkFacetPayload(data);
-    }
-    
-    // FacetPayloadBase methods
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): MarkFacetPayloadType {
-        // For Remove, extract from the match payload
-        // The match property contains the StandardLiteralSimpleBase instance
-        const match = (this as any).match;
-        if (match && match.data) {
-            return match.data;
-        }
-        // Fallback: parse from schema using the same logic as PlainClass
-        if (node.length === 0) {
-            throw new Error('Invalid schema: empty node');
-        }
-        const firstElement = node[0];
-        let markNode: GenericTreeNode<SchemaTag> | undefined;
-        if (treeNodeTypeguard(isSchemaMark)(firstElement)) {
-            markNode = firstElement;
-        } else {
-            const markChild = firstElement.children?.find(child => 
-                treeNodeTypeguard(isSchemaMark)(child)
-            );
-            if (markChild && treeNodeTypeguard(isSchemaMark)(markChild)) {
-                markNode = markChild;
-            }
-        }
-        if (!markNode || !treeNodeTypeguard(isSchemaMark)(markNode)) {
-            throw new Error('Invalid schema: Mark tag not found');
-        }
-        const matchTag = markNode.children.find(treeNodeTypeguard(isSchemaMatch));
-        if (!matchTag || !treeNodeTypeguard(isSchemaMatch)(matchTag)) {
-            throw new Error('Invalid schema: Match child not found in Mark');
-        }
-        const narrative = matchTag.children
-            .map(({ data }) => data)
-            .filter(isSchemaString)
-            .map(({ value }) => value)
-            .join('');
-        return narrative;
-    }
 
-    renderFacet(reference: StandardReference, payload: MarkFacetPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
-        // Use nestedSchema to get the wrapped structure (Remove > Match > String)
-        const nested = this.nestedSchema({ tag: 'Match' as const });
-        const removeNode = nested[0];
-
-        if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
-            return { aggregatedNode: referenceRender };
-        }
-
-        const transformMarkChildren = transformNestedChildren({
-            tag: 'Mark',
-            transform: (children) => [removeNode, ...children]
-        });
-
-        if (referenceRender) {
-            try {
-                const markNode = transformMarkChildren(referenceRender);
-                return { aggregatedNode: markNode };
-            } catch (error) {
-                if (error instanceof TagMismatchError) {
-                    throw new Error('Invalid referenceRender: expected Mark tag');
-                }
-                throw error;
-            }
-        } else {
-            const markSchema = reference.schema;
-            if (markSchema.length === 0) {
-                throw new Error('Invalid reference schema: empty');
-            }
-            const firstNode = markSchema[0];
-            const markNode = transformMarkChildren(firstNode);
-            return { aggregatedNode: markNode };
-        }
-    }
-}
-
-export class MarkFacetReplaceClass extends ReplaceClass {
-    // Override nestedSchema to wrap match and payload in Match tags, then in Replace
-    override nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
-        const match = (this as any).match;
-        const payload = (this as any).payload;
-        return [{
-            data: { tag: 'Replace' as const },
-            children: [
-                { data: { tag: 'ReplaceMatch' as const }, children: [{ data: { tag: 'Match' as const }, children: match?.schema ?? [] }] },
-                { data: { tag: 'ReplacePayload' as const }, children: [{ data: { tag: 'Match' as const }, children: payload?.schema ?? [] }] }
-            ]
-        }];
-    }
-    
-    // Override _wrap to convert base class instances to appropriate extended facet classes
-    override _wrap(instance: any): MarkFacetPlainClass | MarkFacetRemoveClass | MarkFacetReplaceClass {
-        // If already an extended facet class, return as-is
-        if (instance instanceof MarkFacetPlainClass || instance instanceof MarkFacetRemoveClass || instance instanceof MarkFacetReplaceClass) {
-            return instance;
-        }
-        // Use the custom factory to dispatch to the correct extended class based on instance type
-        const data = instance.toJSON();
-        return createMarkFacetPayload(data);
-    }
-    
-    // FacetPayloadBase methods
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): MarkFacetPayloadType {
-        // For Replace, extract from the payload (not match)
-        const payload = (this as any).payload;
-        if (payload && payload.data) {
-            return payload.data;
-        }
-        // Fallback: parse from schema using the same logic as PlainClass
-        if (node.length === 0) {
-            throw new Error('Invalid schema: empty node');
-        }
-        const firstElement = node[0];
-        let markNode: GenericTreeNode<SchemaTag> | undefined;
-        if (treeNodeTypeguard(isSchemaMark)(firstElement)) {
-            markNode = firstElement;
-        } else {
-            const markChild = firstElement.children?.find(child => 
-                treeNodeTypeguard(isSchemaMark)(child)
-            );
-            if (markChild && treeNodeTypeguard(isSchemaMark)(markChild)) {
-                markNode = markChild;
-            }
-        }
-        if (!markNode || !treeNodeTypeguard(isSchemaMark)(markNode)) {
-            throw new Error('Invalid schema: Mark tag not found');
-        }
-        const matchTag = markNode.children.find(treeNodeTypeguard(isSchemaMatch));
-        if (!matchTag || !treeNodeTypeguard(isSchemaMatch)(matchTag)) {
-            throw new Error('Invalid schema: Match child not found in Mark');
-        }
-        const narrative = matchTag.children
-            .map(({ data }) => data)
-            .filter(isSchemaString)
-            .map(({ value }) => value)
-            .join('');
-        return narrative;
-    }
-
-    renderFacet(reference: StandardReference, payload: MarkFacetPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
-        // Use nestedSchema to get the wrapped structure (Replace > ReplaceMatch/ReplacePayload > Match > String)
-        const nested = this.nestedSchema({ tag: 'Match' as const });
-        const replaceSchema = nested[0];
-
-        if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
-            return { aggregatedNode: referenceRender };
-        }
-
-        const transformMarkChildren = transformNestedChildren({
-            tag: 'Mark',
-            transform: (children) => [replaceSchema, ...children]
-        });
-
-        if (referenceRender) {
-            try {
-                const markNode = transformMarkChildren(referenceRender);
-                return { aggregatedNode: markNode };
-            } catch (error) {
-                if (error instanceof TagMismatchError) {
-                    throw new Error('Invalid referenceRender: expected Mark tag');
-                }
-                throw error;
-            }
-        } else {
-            const markSchema = reference.schema;
-            if (markSchema.length === 0) {
-                throw new Error('Invalid reference schema: empty');
-            }
-            const firstNode = markSchema[0];
-            const markNode = transformMarkChildren(firstNode);
-            return { aggregatedNode: markNode };
-        }
-    }
-}
-
-// Custom factory function that replicates EditableClass.create() logic but returns extended classes
-function createMarkFacetPayload(arg: any): MarkFacetPlainClass | MarkFacetRemoveClass | MarkFacetReplaceClass {
+// Factory function - StandardLiteral constructor handles all dispatch logic
+export function createMarkFacetPayload(arg: any): MarkFacetPayload {
     // Handle RenderTree conversion
     const convertedArg = isRenderTree(arg) ? renderTreeToSchema(arg) : arg;
     
     // Handle string by parsing to schema tree first
     const factoryProps: any = typeof convertedArg === 'string' ? treeFromWML(convertedArg) : convertedArg;
     
-    // Handle Remove/Replace objects BEFORE checking isStandardLiteralData
-    // (because isStandardLiteralData may incorrectly return true for Remove/Replace objects)
-    if (typeof factoryProps === 'object' && factoryProps !== null && 'tag' in factoryProps) {
-        if (factoryProps.tag === 'Remove' && 'match' in factoryProps && isStandardLiteralData(factoryProps.match)) {
-            return new MarkFacetRemoveClass(factoryProps);
-        }
-        if (factoryProps.tag === 'Replace' && 'match' in factoryProps && 'payload' in factoryProps 
-            && isStandardLiteralData(factoryProps.match) && isStandardLiteralData(factoryProps.payload)) {
-            return new MarkFacetReplaceClass(factoryProps);
-        }
-    }
-    
-    // Handle schema tree parsing for Remove/Replace tags
+    // Handle schema tree that might contain Mark tag - extract Match children
     if (Array.isArray(factoryProps) && factoryProps.every(isSchemaTreeNode)) {
         const schema = factoryProps;
-        if (schema.length === 0) {
-            return new MarkFacetPlainClass(schema);
-        }
-        
-        const firstElement = schema[0];
-        
-        // Check if first element is Remove or Replace directly
-        if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
-            // Extract String children from Match tag inside Remove for StandardLiteral payloadFactory
-            const matchChild = firstElement.children.find(child => treeNodeTypeguard(isSchemaMatch)(child));
-            if (matchChild && treeNodeTypeguard(isSchemaMatch)(matchChild)) {
-                const stringChildren = matchChild.children.filter(child => isSchemaString(child.data));
-                // Reconstruct Remove schema with String children instead of Match tag
-                const modifiedSchema: GenericTree<SchemaTag> = [{
-                    data: firstElement.data,
-                    children: stringChildren.length === 0 ? [] : stringChildren
-                }];
-                return new MarkFacetRemoveClass(modifiedSchema);
+        if (schema.length > 0) {
+            const firstElement = schema[0];
+            // If first element is a Mark tag, extract its children (which contain the Match tag or Remove/Replace wrappers)
+            if (treeNodeTypeguard(isSchemaMark)(firstElement)) {
+                // Validate that Mark has a Match child (unless wrapped in Remove/Replace which is handled by StandardLiteral)
+                // Check if children is empty or doesn't contain Match (and isn't Remove/Replace wrapped)
+                const hasMatch = firstElement.children.some(treeNodeTypeguard(isSchemaMatch));
+                const hasRemove = firstElement.children.some(treeNodeTypeguard(isSchemaRemove));
+                const hasReplace = firstElement.children.some(treeNodeTypeguard(isSchemaReplace));
+                
+                // If no Match, Remove, or Replace found, this is an invalid Mark tag
+                if (!hasMatch && !hasRemove && !hasReplace && firstElement.children.length > 0) {
+                    // Has children but no Match - this is an error (unless all children are valid wrappers we didn't check for)
+                    throw new Error('Invalid schema: Match child not found in Mark');
+                }
+                // If children is completely empty, also error (empty Mark with no Match)
+                if (firstElement.children.length === 0) {
+                    throw new Error('Invalid schema: Match child not found in Mark');
+                }
+                
+                // Extract Match children from Mark tag - this is what StandardLiteral expects
+                return new MarkFacetPayload(firstElement.children);
             }
-            return new MarkFacetRemoveClass(schema);
-        }
-        else if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
-            // Extract String children from Match tags inside ReplaceMatch and ReplacePayload
-            const replaceMatch = firstElement.children.find(child => treeNodeTypeguard(isSchemaReplaceMatch)(child));
-            const replacePayload = firstElement.children.find(child => treeNodeTypeguard(isSchemaReplacePayload)(child));
-            
-            const modifiedChildren: GenericTreeNode<SchemaTag>[] = [];
-            
-            if (replaceMatch) {
-                const matchChild = replaceMatch.children.find(child => treeNodeTypeguard(isSchemaMatch)(child));
-                const stringChildren = matchChild && treeNodeTypeguard(isSchemaMatch)(matchChild)
-                    ? matchChild.children.filter(child => isSchemaString(child.data))
-                    : replaceMatch.children;
-                modifiedChildren.push({
-                    data: replaceMatch.data,
-                    children: stringChildren.length === 0 ? [] : stringChildren
-                });
-            }
-            
-            if (replacePayload) {
-                const matchChild = replacePayload.children.find(child => treeNodeTypeguard(isSchemaMatch)(child));
-                const stringChildren = matchChild && treeNodeTypeguard(isSchemaMatch)(matchChild)
-                    ? matchChild.children.filter(child => isSchemaString(child.data))
-                    : replacePayload.children;
-                modifiedChildren.push({
-                    data: replacePayload.data,
-                    children: stringChildren.length === 0 ? [] : stringChildren
-                });
-            }
-            
-            if (modifiedChildren.length > 0) {
-                const modifiedSchema: GenericTree<SchemaTag> = [{
-                    data: firstElement.data,
-                    children: modifiedChildren
-                }];
-                return new MarkFacetReplaceClass(modifiedSchema);
-            }
-            return new MarkFacetReplaceClass(schema);
-        }
-        // Check if first element is a Mark node - extract payload children (the Mark's children contain the payload)
-        else if (treeNodeTypeguard(isSchemaMark)(firstElement)) {
-            // The payload is in the Mark's children - pass those children to createPayload recursively
-            // This handles Replace/Remove/Match structures nested inside the Mark
-            // Validate that Mark has a Match child (using findTaggedChildren to handle Remove/Replace wrappers)
-            const matchChildren = findTaggedChildren({ children: firstElement.children, tag: 'Match' });
-            if (matchChildren.length === 0) {
-                // Mark tag must have a Match child (or Remove/Replace wrapper containing Match)
-                // If no Match child found, this is invalid
-                throw new Error('Invalid schema: Match child not found in Mark');
-            }
-            return createMarkFacetPayload(firstElement.children);
-        }
-        // Check if first element is a Match tag - extract String children for StandardLiteral
-        else if (treeNodeTypeguard(isSchemaMatch)(firstElement)) {
-            // Extract String children from Match tag for StandardLiteral payloadFactory
-            // payloadFactory expects [{ tag: 'String', value: '...' }] not [{ tag: 'Match', children: [...] }]
-            // For empty narratives (no String children), pass empty string '' instead of empty array
-            const stringChildren = firstElement.children.filter(child => isSchemaString(child.data));
-            if (stringChildren.length === 0) {
-                // Empty narrative - pass empty string (StandardLiteral handles empty strings)
-                return new MarkFacetPlainClass('');
-            } else {
-                // Has String children - pass them to StandardLiteral (it will handle the array)
-                const literal = new StandardLiteral(stringChildren);
-                return new MarkFacetPlainClass(literal.toJSON());
-            }
-        }
-        else {
-            return new MarkFacetPlainClass(schema);
         }
     }
     
-    // Check if it's a StandardEditableData of the appropriate type (plain data)
-    if (isStandardLiteralData(factoryProps)) {
-        return new MarkFacetPlainClass(factoryProps);
-    }
-    
-    // Default to plain
-    return new MarkFacetPlainClass(factoryProps);
+    // StandardLiteral constructor with { tag: 'Match' } handles:
+    // - RenderTree conversion (already done above)
+    // - String parsing
+    // - Schema tree parsing (including Remove/Replace/Match tags)
+    // - StandardEditableData handling
+    // The stripWrapperTag logic in StandardLiteral constructor will handle Match tag unwrapping
+    return new MarkFacetPayload(factoryProps);
 }
 
 export class StandardMarkFacet extends facetClassFactory(
-    {
-        EditableClass: EditableClass,
-        PlainClass: MarkFacetPlainClass,
-        RemoveClass: MarkFacetRemoveClass,
-        ReplaceClass: MarkFacetReplaceClass
-    },
+    MarkFacetPayload,
     createMarkFacetPayload,
     'MarkFacet'
 ) {

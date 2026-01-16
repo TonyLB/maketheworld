@@ -6,13 +6,179 @@ import { isSchemaExit, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/component
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { facetClassFactory } from './facetFactory';
-import { EditableClass, PlainClass, RemoveClass, ReplaceClass, isStandardLiteralData } from "../../literal";
+import { PlainClass, RemoveClass, ReplaceClass, StandardLiteral } from "../../literal";
 import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree";
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
 
-// Extended StandardLiteral v2 classes for Exit facets with FacetPayloadBase methods
+// Unified ExitFacetPayload class extending StandardLiteral with undefined normalization
 // Note: Exit payload is string | undefined, but StandardLiteral works with string.
 // We convert undefined <-> empty string for StandardLiteral compatibility.
+export class ExitFacetPayload extends StandardLiteral {
+    // Helper to convert undefined to empty string for StandardLiteral
+    private static normalizeForLiteral(value: ExitPayloadType): string {
+        return value ?? '';
+    }
+    
+    // Helper to convert empty string back to undefined for Exit payload
+    private static denormalizeFromLiteral(value: string): ExitPayloadType {
+        return value === '' ? undefined : value;
+    }
+    
+    constructor(arg: any) {
+        // Normalize undefined to empty string before passing to StandardLiteral
+        const normalizedArg = arg === undefined || arg === null 
+            ? '' 
+            : (typeof arg === 'object' && arg !== null && 'tag' in arg && arg.tag === 'Remove' && 'match' in arg)
+                ? { ...arg, match: ExitFacetPayload.normalizeForLiteral(arg.match) }
+                : (typeof arg === 'object' && arg !== null && 'tag' in arg && arg.tag === 'Replace' && 'match' in arg && 'payload' in arg)
+                    ? { ...arg, match: ExitFacetPayload.normalizeForLiteral(arg.match), payload: ExitFacetPayload.normalizeForLiteral(arg.payload) }
+                    : ExitFacetPayload.normalizeForLiteral(arg);
+        super(normalizedArg);
+    }
+    
+    // Override _wrap to preserve ExitFacetPayload type through operations
+    override _wrap(instance: StandardLiteral): ExitFacetPayload {
+        return new ExitFacetPayload(instance);
+    }
+    
+    // Override toJSON to convert empty string back to undefined
+    override toJSON(): any {
+        const literalJSON = super.toJSON();
+        if (typeof literalJSON === 'string') {
+            return ExitFacetPayload.denormalizeFromLiteral(literalJSON);
+        }
+        if (literalJSON && typeof literalJSON === 'object' && 'tag' in literalJSON) {
+            if (literalJSON.tag === 'Remove' && 'match' in literalJSON) {
+                return {
+                    tag: 'Remove' as const,
+                    match: ExitFacetPayload.denormalizeFromLiteral(literalJSON.match)
+                };
+            }
+            if (literalJSON.tag === 'Replace' && 'match' in literalJSON && 'payload' in literalJSON) {
+                return {
+                    tag: 'Replace' as const,
+                    match: ExitFacetPayload.denormalizeFromLiteral(literalJSON.match),
+                    payload: ExitFacetPayload.denormalizeFromLiteral(literalJSON.payload)
+                };
+            }
+        }
+        return literalJSON;
+    }
+    
+    // FacetPayloadBase method: parse from schema
+    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): ExitPayloadType {
+        if (node.length === 0) {
+            throw new Error('Invalid schema: empty node');
+        }
+
+        const firstElement = node[0];
+
+        // Find the Exit tag in the node
+        let exitNode: GenericTreeNode<SchemaTag> | undefined;
+        if (treeNodeTypeguard(isSchemaExit)(firstElement)) {
+            exitNode = firstElement;
+        } else {
+            const exitChild = firstElement.children?.find(child => 
+                treeNodeTypeguard(isSchemaExit)(child)
+            );
+            if (exitChild && treeNodeTypeguard(isSchemaExit)(exitChild)) {
+                exitNode = exitChild;
+            }
+        }
+
+        if (!exitNode || !treeNodeTypeguard(isSchemaExit)(exitNode)) {
+            throw new Error('Invalid schema: Exit tag not found');
+        }
+
+        // Extract description from Exit tag's String children
+        const description = exitNode.children
+            .map(({ data }) => data)
+            .filter(isSchemaString)
+            .map(({ value }) => value)
+            .join('') || undefined;
+
+        return description;
+    }
+
+    // FacetPayloadBase method: render facet
+    renderFacet(reference: StandardReference, payload: ExitPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+        if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
+            return { aggregatedNode: referenceRender };
+        }
+
+        const toKey = reference.standardKey.toFormat('key');
+        const toValue = toKey.key ?? toKey.universalKey ?? '';
+
+        // Use schema directly (no wrapper) - just String tag as children of Exit
+        const stringSchema = this.schema;
+        const exitNode: GenericTreeNode<SchemaTag> = {
+            data: { tag: 'Exit' as const, to: toValue },
+            children: payload !== undefined ? stringSchema : []
+        };
+
+        const exitSchema = reference.schema;
+        if (exitSchema.length > 0) {
+            const firstNode = exitSchema[0];
+            if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
+                return {
+                    newNode: {
+                        ...firstNode,
+                        children: [exitNode]
+                    }
+                };
+            }
+        }
+
+        // For Replace operations on Exit facets, handle special wrapping
+        // Check if schema starts with Replace tag
+        const firstSchemaNode = this.schema[0];
+        if (treeNodeTypeguard(isSchemaReplace)(firstSchemaNode)) {
+            const replaceMatch = firstSchemaNode.children.find(child => treeNodeTypeguard(isSchemaReplaceMatch)(child));
+            const replacePayload = firstSchemaNode.children.find(child => treeNodeTypeguard(isSchemaReplacePayload)(child));
+            
+            if (replaceMatch && replacePayload) {
+                // Extract String children from ReplaceMatch and ReplacePayload, wrap each in Exit tag
+                const exitMatchNode: GenericTreeNode<SchemaTag> = {
+                    data: { tag: 'Exit' as const, to: toValue },
+                    children: replaceMatch.children
+                };
+                const exitPayloadNode: GenericTreeNode<SchemaTag> = {
+                    data: { tag: 'Exit' as const, to: toValue },
+                    children: replacePayload.children
+                };
+                
+                // Reconstruct Replace structure with Exit tags inside ReplaceMatch/ReplacePayload
+                const exitReplaceSchema: GenericTreeNode<SchemaTag> = {
+                    data: { tag: 'Replace' as const },
+                    children: [
+                        { data: { tag: 'ReplaceMatch' as const }, children: [exitMatchNode] },
+                        { data: { tag: 'ReplacePayload' as const }, children: [exitPayloadNode] }
+                    ]
+                };
+                
+                // Wrap in Room and return aggregatedNode
+                const roomSchema = reference.schema;
+                if (roomSchema.length > 0) {
+                    const firstNode = roomSchema[0];
+                    if (treeNodeTypeguard(isSchemaRoom)(firstNode)) {
+                        const roomNode: GenericTreeNode<SchemaTag> = {
+                            ...firstNode,
+                            children: [
+                                exitReplaceSchema,
+                                ...firstNode.children
+                            ]
+                        };
+                        return { aggregatedNode: roomNode };
+                    }
+                }
+            }
+        }
+
+        return { newNode: exitNode };
+    }
+}
+
+// Legacy classes kept temporarily for backwards compatibility during refactor
 
 export class ExitFacetPlainClass extends PlainClass {
     // Helper to convert undefined to empty string for StandardLiteral
@@ -42,7 +208,10 @@ export class ExitFacetPlainClass extends PlainClass {
         }
         // Use the custom factory to dispatch to the correct extended class based on instance type
         const data = instance.toJSON();
-        return createExitFacetPayload(data);
+        const unifiedPayload = createExitFacetPayload(data);
+        // For backward compatibility, we'd need to wrap back to old classes, but since we're phasing them out,
+        // just return the unified class (tests will need updating)
+        return unifiedPayload as any;
     }
     
     // FacetPayloadBase methods
@@ -141,7 +310,10 @@ export class ExitFacetRemoveClass extends RemoveClass {
         }
         // Use the custom factory to dispatch to the correct extended class based on instance type
         const data = instance.toJSON();
-        return createExitFacetPayload(data);
+        const unifiedPayload = createExitFacetPayload(data);
+        // For backward compatibility, we'd need to wrap back to old classes, but since we're phasing them out,
+        // just return the unified class (tests will need updating)
+        return unifiedPayload as any;
     }
     
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): ExitPayloadType {
@@ -228,7 +400,10 @@ export class ExitFacetReplaceClass extends ReplaceClass {
         }
         // Use the custom factory to dispatch to the correct extended class based on instance type
         const data = instance.toJSON();
-        return createExitFacetPayload(data);
+        const unifiedPayload = createExitFacetPayload(data);
+        // For backward compatibility, we'd need to wrap back to old classes, but since we're phasing them out,
+        // just return the unified class (tests will need updating)
+        return unifiedPayload as any;
     }
     
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): ExitPayloadType {
@@ -348,129 +523,67 @@ function denormalizeFromLiteral(value: string): ExitPayloadType {
     return value === '' ? undefined : value;
 }
 
-// Custom factory function that replicates EditableClass.create() logic but returns extended classes
-function createExitFacetPayload(arg: any): ExitFacetPlainClass | ExitFacetRemoveClass | ExitFacetReplaceClass {
+// Factory function - ExitFacetPayload constructor handles normalization and dispatch
+export function createExitFacetPayload(arg: any): ExitFacetPayload {
     // Handle RenderTree conversion
     const convertedArg = isRenderTree(arg) ? renderTreeToSchema(arg) : arg;
     
-    // Convert undefined to empty string for StandardLiteral compatibility
-    const normalizedArg = convertedArg === undefined ? '' : (typeof convertedArg === 'object' && convertedArg !== null && 'tag' in convertedArg && convertedArg.tag === 'Remove' && convertedArg.match === undefined)
-        ? { ...convertedArg, match: '' }
-        : (typeof convertedArg === 'object' && convertedArg !== null && 'tag' in convertedArg && convertedArg.tag === 'Replace' && (convertedArg.match === undefined || convertedArg.payload === undefined))
-        ? { ...convertedArg, match: convertedArg.match ?? '', payload: convertedArg.payload ?? '' }
-        : convertedArg === undefined ? '' : convertedArg;
-    
     // Handle string by parsing to schema tree first
-    const factoryProps: any = typeof normalizedArg === 'string' ? treeFromWML(normalizedArg) : normalizedArg;
+    const factoryProps: any = typeof convertedArg === 'string' ? treeFromWML(convertedArg) : convertedArg;
     
-    // Handle Remove/Replace objects BEFORE checking isStandardLiteralData
-    // (because isStandardLiteralData may incorrectly return true for Remove/Replace objects)
-    if (typeof factoryProps === 'object' && factoryProps !== null && 'tag' in factoryProps) {
-        if (factoryProps.tag === 'Remove' && 'match' in factoryProps) {
-            const normalizedMatch = normalizeForLiteral(factoryProps.match);
-            if (isStandardLiteralData(normalizedMatch)) {
-                return new ExitFacetRemoveClass({ tag: 'Remove' as const, match: normalizedMatch });
-            }
-        }
-        if (factoryProps.tag === 'Replace' && 'match' in factoryProps && 'payload' in factoryProps) {
-            const normalizedMatch = normalizeForLiteral(factoryProps.match);
-            const normalizedPayload = normalizeForLiteral(factoryProps.payload);
-            if (isStandardLiteralData(normalizedMatch) && isStandardLiteralData(normalizedPayload)) {
-                return new ExitFacetReplaceClass({ tag: 'Replace' as const, match: normalizedMatch, payload: normalizedPayload });
-            }
-        }
-    }
-    
-    // Handle schema tree parsing for Remove/Replace tags
+    // Handle schema tree that might contain Exit tag - extract String children
     if (Array.isArray(factoryProps) && factoryProps.every(isSchemaTreeNode)) {
         const schema = factoryProps;
-        if (schema.length === 0) {
-            return new ExitFacetPlainClass(schema);
-        }
-        
-        const firstElement = schema[0];
-        if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
-            // Extract String children from Exit tag inside Remove for StandardLiteral payloadFactory
-            const exitChild = firstElement.children.find(child => treeNodeTypeguard(isSchemaExit)(child));
-            if (exitChild && treeNodeTypeguard(isSchemaExit)(exitChild)) {
-                const stringChildren = exitChild.children.filter(child => isSchemaString(child.data));
-                // Reconstruct Remove schema with String children instead of Exit tag
-                const modifiedSchema: GenericTree<SchemaTag> = [{
-                    data: firstElement.data,
-                    children: stringChildren
-                }];
-                return new ExitFacetRemoveClass(modifiedSchema);
-            }
-            return new ExitFacetRemoveClass(schema);
-        }
-        else if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
-            // Extract String children from Exit tags inside ReplaceMatch and ReplacePayload
-            const replaceMatch = firstElement.children.find(child => treeNodeTypeguard(isSchemaReplaceMatch)(child));
-            const replacePayload = firstElement.children.find(child => treeNodeTypeguard(isSchemaReplacePayload)(child));
-            
-            const modifiedChildren: GenericTreeNode<SchemaTag>[] = [];
-            
-            if (replaceMatch) {
-                const exitChild = replaceMatch.children.find(child => treeNodeTypeguard(isSchemaExit)(child));
-                const stringChildren = exitChild && treeNodeTypeguard(isSchemaExit)(exitChild)
-                    ? exitChild.children.filter(child => isSchemaString(child.data))
-                    : replaceMatch.children;
-                modifiedChildren.push({
-                    data: replaceMatch.data,
-                    children: stringChildren
-                });
-            }
-            
-            if (replacePayload) {
-                const exitChild = replacePayload.children.find(child => treeNodeTypeguard(isSchemaExit)(child));
-                const stringChildren = exitChild && treeNodeTypeguard(isSchemaExit)(exitChild)
-                    ? exitChild.children.filter(child => isSchemaString(child.data))
-                    : replacePayload.children;
-                modifiedChildren.push({
-                    data: replacePayload.data,
-                    children: stringChildren
-                });
-            }
-            
-            if (modifiedChildren.length > 0) {
-                const modifiedSchema: GenericTree<SchemaTag> = [{
-                    data: firstElement.data,
-                    children: modifiedChildren
-                }];
-                return new ExitFacetReplaceClass(modifiedSchema);
-            }
-            return new ExitFacetReplaceClass(schema);
-        }
-        else {
-            // Extract String children from Exit tag for StandardLiteral payloadFactory
-            // payloadFactory expects [{ tag: 'String', value: '...' }] not [{ tag: 'Exit', children: [...] }]
-            // For empty descriptions (no String children), pass empty string '' instead of empty array
-            let payloadArg: string | GenericTree<SchemaTag>;
+        if (schema.length > 0) {
+            const firstElement = schema[0];
+            // If first element is an Exit tag, extract its String children for StandardLiteral
             if (treeNodeTypeguard(isSchemaExit)(firstElement)) {
-                // Extract String children from Exit tag
                 const stringChildren = firstElement.children.filter(child => isSchemaString(child.data));
-                if (stringChildren.length === 0) {
-                    // Empty description - pass empty string (normalized for StandardLiteral)
-                    payloadArg = '';
-                } else {
-                    // Has String children - pass them to payloadFactory
-                    payloadArg = stringChildren;
-                }
-            } else {
-                // If not an Exit tag, pass schema as-is (shouldn't happen for Exit facets, but handle gracefully)
-                payloadArg = schema;
+                // Pass String children (or empty string if none) - ExitFacetPayload constructor handles normalization
+                return new ExitFacetPayload(stringChildren.length === 0 ? '' : stringChildren);
             }
-            return new ExitFacetPlainClass(payloadArg);
+            // If first element is Remove/Replace with Exit children, extract String children
+            if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
+                const exitChild = firstElement.children.find(child => treeNodeTypeguard(isSchemaExit)(child));
+                if (exitChild && treeNodeTypeguard(isSchemaExit)(exitChild)) {
+                    const stringChildren = exitChild.children.filter(child => isSchemaString(child.data));
+                    return new ExitFacetPayload([{
+                        data: firstElement.data,
+                        children: stringChildren
+                    }]);
+                }
+            }
+            if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
+                const replaceMatch = firstElement.children.find(child => treeNodeTypeguard(isSchemaReplaceMatch)(child));
+                const replacePayload = firstElement.children.find(child => treeNodeTypeguard(isSchemaReplacePayload)(child));
+                const modifiedChildren: GenericTreeNode<SchemaTag>[] = [];
+                if (replaceMatch) {
+                    const exitChild = replaceMatch.children.find(child => treeNodeTypeguard(isSchemaExit)(child));
+                    const stringChildren = exitChild && treeNodeTypeguard(isSchemaExit)(exitChild)
+                        ? exitChild.children.filter(child => isSchemaString(child.data))
+                        : replaceMatch.children;
+                    modifiedChildren.push({ data: replaceMatch.data, children: stringChildren });
+                }
+                if (replacePayload) {
+                    const exitChild = replacePayload.children.find(child => treeNodeTypeguard(isSchemaExit)(child));
+                    const stringChildren = exitChild && treeNodeTypeguard(isSchemaExit)(exitChild)
+                        ? exitChild.children.filter(child => isSchemaString(child.data))
+                        : replacePayload.children;
+                    modifiedChildren.push({ data: replacePayload.data, children: stringChildren });
+                }
+                if (modifiedChildren.length > 0) {
+                    return new ExitFacetPayload([{ data: firstElement.data, children: modifiedChildren }]);
+                }
+            }
         }
     }
     
-    // Check if it's a StandardEditableData of the appropriate type (plain data)
-    if (isStandardLiteralData(factoryProps)) {
-        return new ExitFacetPlainClass(factoryProps);
-    }
-    
-    // Default to plain
-    return new ExitFacetPlainClass(factoryProps);
+    // ExitFacetPayload constructor handles:
+    // - Undefined normalization
+    // - Remove/Replace object normalization
+    // - StandardEditableData handling
+    // - StandardLiteral dispatch logic
+    return new ExitFacetPayload(factoryProps);
 }
 
 const exitReferenceFactory = (schema: GenericTree<SchemaTag>): StandardReference => {
@@ -509,12 +622,7 @@ const exitReferenceFactory = (schema: GenericTree<SchemaTag>): StandardReference
 };
 
 export class StandardExitFacet extends facetClassFactory(
-    {
-        EditableClass: EditableClass,
-        PlainClass: ExitFacetPlainClass,
-        RemoveClass: ExitFacetRemoveClass,
-        ReplaceClass: ExitFacetReplaceClass
-    },
+    ExitFacetPayload,
     createExitFacetPayload,
     'ExitFacet',
     exitReferenceFactory

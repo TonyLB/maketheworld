@@ -237,6 +237,15 @@ export class StandardLiteral {
         return this._payload.toJSON()
     }
 
+    _wrap(instance: StandardLiteral): StandardLiteral {
+        return instance
+    }
+
+    clone(): StandardLiteral {
+        const cloned = new StandardLiteral(this, this._wrapperTag ? { tag: this._wrapperTag } : undefined)
+        return this._wrap(cloned)
+    }
+
     merge(incoming: StandardLiteral): StandardLiteral | undefined {
         const merged = this._payload.merge(incoming._payload)
         if (merged) {
@@ -244,7 +253,8 @@ export class StandardLiteral {
             const tagToPreserve = (this._wrapperTag && incoming._wrapperTag && this._wrapperTag === incoming._wrapperTag) 
                 ? this._wrapperTag 
                 : undefined
-            return new StandardLiteral(merged, tagToPreserve ? { tag: tagToPreserve } : undefined)
+            const mergedResult = new StandardLiteral(merged, tagToPreserve ? { tag: tagToPreserve } : undefined)
+            return this._wrap(mergedResult)
         }
         return undefined
     }
@@ -256,13 +266,15 @@ export class StandardLiteral {
                 const tagToPreserve = (this._wrapperTag && incoming._wrapperTag && this._wrapperTag === incoming._wrapperTag) 
                     ? this._wrapperTag 
                     : undefined
-                return new StandardLiteral(diff, tagToPreserve ? { tag: tagToPreserve } : undefined)
+                const diffResult = new StandardLiteral(diff, tagToPreserve ? { tag: tagToPreserve } : undefined)
+                return this._wrap(diffResult)
             }
             return undefined
         } else {
             // Diff from this to nothing: invert
             const inverted = this._payload.invert()
-            return new StandardLiteral(inverted, this._wrapperTag ? { tag: this._wrapperTag } : undefined)
+            const invertedResult = new StandardLiteral(inverted, this._wrapperTag ? { tag: this._wrapperTag } : undefined)
+            return this._wrap(invertedResult)
         }
     }
     mapContents(callback: (incoming: string) => string): StandardLiteral {
@@ -291,7 +303,8 @@ export class StandardLiteral {
 
     invert(): StandardLiteral {
         const inverted = this._payload.invert()
-        return new StandardLiteral(inverted, this._wrapperTag ? { tag: this._wrapperTag } : undefined)
+        const invertedResult = new StandardLiteral(inverted, this._wrapperTag ? { tag: this._wrapperTag } : undefined)
+        return this._wrap(invertedResult)
     }
 
 }
