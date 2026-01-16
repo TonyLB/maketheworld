@@ -9,7 +9,8 @@ import { facetClassFactory } from './facetFactory';
 import { EditableClass, PlainClass, RemoveClass, ReplaceClass, isStandardLiteralData, StandardLiteral } from "../../literal";
 import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree";
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
-import { findTaggedChildren } from "../../../schema/utils";
+import { findTaggedChildren, transformNestedChildren } from "../../../schema/utils";
+import { TagMismatchError } from "@tonylb/mtw-base/ts/standardize";
 
 // Extended StandardLiteral v2 classes for Mark facets with FacetPayloadBase methods
 
@@ -82,65 +83,30 @@ export class MarkFacetPlainClass extends PlainClass {
             return { aggregatedNode: referenceRender };
         }
 
-        let markNode: GenericTreeNode<SchemaTag>;
+        const transformMarkChildren = transformNestedChildren({
+            tag: 'Mark',
+            transform: (children) => [matchChild, ...children]
+        });
 
         if (referenceRender) {
-            if (!treeNodeTypeguard(isSchemaMark)(referenceRender)) {
-                throw new Error('Invalid referenceRender: expected Mark tag');
+            try {
+                const markNode = transformMarkChildren(referenceRender);
+                return { aggregatedNode: markNode };
+            } catch (error) {
+                if (error instanceof TagMismatchError) {
+                    throw new Error('Invalid referenceRender: expected Mark tag');
+                }
+                throw error;
             }
-            markNode = {
-                ...referenceRender,
-                children: [
-                    matchChild,
-                    ...referenceRender.children
-                ]
-            };
         } else {
             const markSchema = reference.schema;
             if (markSchema.length === 0) {
                 throw new Error('Invalid reference schema: empty');
             }
             const firstNode = markSchema[0];
-            
-            if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
-                if (!firstNode.children || firstNode.children.length === 0) {
-                    throw new Error('Invalid Remove-wrapped reference schema: Remove node has no children');
-                }
-                const innerMark = firstNode.children[0];
-                if (!innerMark || !treeNodeTypeguard(isSchemaMark)(innerMark)) {
-                    throw new Error('Invalid Remove-wrapped reference schema: expected Mark tag inside Remove');
-                }
-                const enhancedMark: GenericTreeNode<SchemaTag> = {
-                    data: { ...innerMark.data },
-                    children: [
-                        matchChild,
-                        ...innerMark.children
-                    ]
-                };
-                if (!treeNodeTypeguard(isSchemaMark)(enhancedMark)) {
-                    throw new Error('Failed to create valid Mark node in Remove wrapper');
-                }
-                return {
-                    aggregatedNode: {
-                        data: firstNode.data,
-                        children: [enhancedMark]
-                    }
-                };
-            }
-            
-            if (!treeNodeTypeguard(isSchemaMark)(firstNode)) {
-                throw new Error('Invalid reference schema: expected Mark tag');
-            }
-            markNode = {
-                ...firstNode,
-                children: [
-                    matchChild,
-                    ...firstNode.children
-                ]
-            };
+            const markNode = transformMarkChildren(firstNode);
+            return { aggregatedNode: markNode };
         }
-
-        return { aggregatedNode: markNode };
     }
 }
 
@@ -218,65 +184,30 @@ export class MarkFacetRemoveClass extends RemoveClass {
             return { aggregatedNode: referenceRender };
         }
 
-        let markNode: GenericTreeNode<SchemaTag>;
+        const transformMarkChildren = transformNestedChildren({
+            tag: 'Mark',
+            transform: (children) => [matchChild, ...children]
+        });
 
         if (referenceRender) {
-            if (!treeNodeTypeguard(isSchemaMark)(referenceRender)) {
-                throw new Error('Invalid referenceRender: expected Mark tag');
+            try {
+                const markNode = transformMarkChildren(referenceRender);
+                return { aggregatedNode: markNode };
+            } catch (error) {
+                if (error instanceof TagMismatchError) {
+                    throw new Error('Invalid referenceRender: expected Mark tag');
+                }
+                throw error;
             }
-            markNode = {
-                ...referenceRender,
-                children: [
-                    matchChild,
-                    ...referenceRender.children
-                ]
-            };
         } else {
             const markSchema = reference.schema;
             if (markSchema.length === 0) {
                 throw new Error('Invalid reference schema: empty');
             }
             const firstNode = markSchema[0];
-            
-            if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
-                if (!firstNode.children || firstNode.children.length === 0) {
-                    throw new Error('Invalid Remove-wrapped reference schema: Remove node has no children');
-                }
-                const innerMark = firstNode.children[0];
-                if (!innerMark || !treeNodeTypeguard(isSchemaMark)(innerMark)) {
-                    throw new Error('Invalid Remove-wrapped reference schema: expected Mark tag inside Remove');
-                }
-                const enhancedMark: GenericTreeNode<SchemaTag> = {
-                    data: { ...innerMark.data },
-                    children: [
-                        matchChild,
-                        ...innerMark.children
-                    ]
-                };
-                if (!treeNodeTypeguard(isSchemaMark)(enhancedMark)) {
-                    throw new Error('Failed to create valid Mark node in Remove wrapper');
-                }
-                return {
-                    aggregatedNode: {
-                        data: firstNode.data,
-                        children: [enhancedMark]
-                    }
-                };
-            }
-            
-            if (!treeNodeTypeguard(isSchemaMark)(firstNode)) {
-                throw new Error('Invalid reference schema: expected Mark tag');
-            }
-            markNode = {
-                ...firstNode,
-                children: [
-                    matchChild,
-                    ...firstNode.children
-                ]
-            };
+            const markNode = transformMarkChildren(firstNode);
+            return { aggregatedNode: markNode };
         }
-
-        return { aggregatedNode: markNode };
     }
 }
 
@@ -351,65 +282,30 @@ export class MarkFacetReplaceClass extends ReplaceClass {
             return { aggregatedNode: referenceRender };
         }
 
-        let markNode: GenericTreeNode<SchemaTag>;
+        const transformMarkChildren = transformNestedChildren({
+            tag: 'Mark',
+            transform: (children) => [replaceSchema, ...children]
+        });
 
         if (referenceRender) {
-            if (!treeNodeTypeguard(isSchemaMark)(referenceRender)) {
-                throw new Error('Invalid referenceRender: expected Mark tag');
+            try {
+                const markNode = transformMarkChildren(referenceRender);
+                return { aggregatedNode: markNode };
+            } catch (error) {
+                if (error instanceof TagMismatchError) {
+                    throw new Error('Invalid referenceRender: expected Mark tag');
+                }
+                throw error;
             }
-            markNode = {
-                ...referenceRender,
-                children: [
-                    replaceSchema,
-                    ...referenceRender.children
-                ]
-            };
         } else {
             const markSchema = reference.schema;
             if (markSchema.length === 0) {
                 throw new Error('Invalid reference schema: empty');
             }
             const firstNode = markSchema[0];
-            
-            if (treeNodeTypeguard(isSchemaRemove)(firstNode)) {
-                if (!firstNode.children || firstNode.children.length === 0) {
-                    throw new Error('Invalid Remove-wrapped reference schema: Remove node has no children');
-                }
-                const innerMark = firstNode.children[0];
-                if (!innerMark || !treeNodeTypeguard(isSchemaMark)(innerMark)) {
-                    throw new Error('Invalid Remove-wrapped reference schema: expected Mark tag inside Remove');
-                }
-                const enhancedMark: GenericTreeNode<SchemaTag> = {
-                    data: { ...innerMark.data },
-                    children: [
-                        replaceSchema,
-                        ...innerMark.children
-                    ]
-                };
-                if (!treeNodeTypeguard(isSchemaMark)(enhancedMark)) {
-                    throw new Error('Failed to create valid Mark node in Remove wrapper');
-                }
-                return {
-                    aggregatedNode: {
-                        data: firstNode.data,
-                        children: [enhancedMark]
-                    }
-                };
-            }
-            
-            if (!treeNodeTypeguard(isSchemaMark)(firstNode)) {
-                throw new Error('Invalid reference schema: expected Mark tag');
-            }
-            markNode = {
-                ...firstNode,
-                children: [
-                    replaceSchema,
-                    ...firstNode.children
-                ]
-            };
+            const markNode = transformMarkChildren(firstNode);
+            return { aggregatedNode: markNode };
         }
-
-        return { aggregatedNode: markNode };
     }
 }
 
