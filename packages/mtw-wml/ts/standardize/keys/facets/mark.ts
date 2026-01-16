@@ -270,8 +270,9 @@ export class MarkFacetReplaceClass extends ReplaceClass {
     }
 
     renderFacet(reference: StandardReference, payload: MarkFacetPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
-        // Use schema getter which already returns Replace-wrapped structure
-        const replaceSchema = this.schema[0];
+        // Use nestedSchema to get the wrapped structure (Replace > ReplaceMatch/ReplacePayload > Match > String)
+        const nested = this.nestedSchema({ tag: 'Match' as const });
+        const replaceSchema = nested[0];
 
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
