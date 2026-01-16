@@ -29,6 +29,10 @@ const payloadFactory = (props: string | GenericTree<SchemaTag>): StandardLiteral
     if (typeof props === 'string') {
         return new StandardLiteralSimpleBase(props)
     }
+    // Handle empty array - represents empty string
+    if (props.length === 0) {
+        return new StandardLiteralSimpleBase('')
+    }
     if (props.length === 1 && isSchemaString(props[0].data)) {
         return new StandardLiteralSimpleBase(props[0].data.value)
     }

@@ -289,10 +289,12 @@ describe('MarkFacetPlainClass - FacetPayloadBase implementation', () => {
             expect(payload.toJSON()).toBe('');
             
             // Schema should still generate Match tag with empty String child
-            const schema = payload.schema;
-            expect(schema[0].children[0].data.tag).toBe('String');
-            if (schema[0].children[0].data.tag === 'String') {
-                expect(schema[0].children[0].data.value).toBe('');
+            // Use nestedSchema() to get Match-wrapped structure (schema returns String directly)
+            const nestedSchema = payload.nestedSchema({ tag: 'Match' });
+            expect(nestedSchema[0].data.tag).toBe('Match');
+            expect(nestedSchema[0].children[0].data.tag).toBe('String');
+            if (nestedSchema[0].children[0].data.tag === 'String') {
+                expect(nestedSchema[0].children[0].data.value).toBe('');
             }
         });
 

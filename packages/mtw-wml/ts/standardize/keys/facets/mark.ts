@@ -9,6 +9,7 @@ import { facetClassFactory } from './facetFactory';
 import { EditableClass, PlainClass, RemoveClass, ReplaceClass, isStandardLiteralData, StandardLiteral } from "../../literal";
 import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree";
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
+import { findTaggedChildren } from "../../../schema/utils";
 
 // Extended StandardLiteral v2 classes for Mark facets with FacetPayloadBase methods
 
@@ -498,6 +499,13 @@ function createMarkFacetPayload(arg: any): MarkFacetPlainClass | MarkFacetRemove
         else if (treeNodeTypeguard(isSchemaMark)(firstElement)) {
             // The payload is in the Mark's children - pass those children to createPayload recursively
             // This handles Replace/Remove/Match structures nested inside the Mark
+            // Validate that Mark has a Match child (using findTaggedChildren to handle Remove/Replace wrappers)
+            const matchChildren = findTaggedChildren({ children: firstElement.children, tag: 'Match' });
+            if (matchChildren.length === 0) {
+                // Mark tag must have a Match child (or Remove/Replace wrapper containing Match)
+                // If no Match child found, this is invalid
+                throw new Error('Invalid schema: Match child not found in Mark');
+            }
             return createMarkFacetPayload(firstElement.children);
         }
         // Check if first element is a Match tag - extract String children for StandardLiteral
