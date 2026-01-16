@@ -1,7 +1,7 @@
 # Unit Test Regressions - Categorized for GitHub Issues
 
 ## Summary
-After fixing merge operation tests, we have **~13-15 remaining test failures** across **5 test files**, grouped into **5 distinct categories**. Two major issues have been resolved (Issues 1 and 2).
+After fixing merge operation tests, we have **~12-14 remaining test failures** across **4 test files**, grouped into **4 distinct categories**. Three major issues have been resolved (Issues 1, 2, and 3).
 
 ---
 
@@ -87,7 +87,7 @@ The core "Invalid argument" errors are completely resolved. Remaining failures i
 ---
 
 ## Issue 3: Invalid Constructor Arguments - StandardPositionPayloadBase
-**Priority: Medium** | **Files Affected: 1** | **Failures: 1**
+**Status: ✅ RESOLVED** | **Priority: Medium** | **Files Affected: 1** | **Failures: 1**
 
 ### Problem
 The `payloadFactory` in `ts/standardize/keys/facets/position.ts` receives an unexpected format when parsing Remove-wrapped Remove structures (double-negative).
@@ -102,12 +102,25 @@ at Object.payloadFactory (ts/standardize/keys/facets/position.ts:65:11)
 - `facetFactory.test.ts`: "should handle double-negative (Remove-wrapped Remove)" (1 test)
 
 ### Root Cause
-When parsing `<Remove><Remove><Position>...</Position></Remove></Remove>`, the factory receives a structure it can't parse. This might be a schema extraction issue in `facetFactory.ts` when handling nested Remove tags.
+When parsing double-negative structures like `<Remove><Room><Remove><Position /></Remove></Room></Remove>`, `facetFactory` extracts the interior schema `<Room><Remove><Position /></Remove></Room>` and passes it to `createPositionFacetPayload`. The function then tried to pass the full Room schema to `payloadFactory`, which expects either a `{x, y}` object or a schema tree starting with a Position tag directly.
 
-### Investigation Needed
-- Check how `facetFactory.ts` extracts payload children from Remove-wrapped schemas
-- Verify if double-negative parsing needs special handling
-- Check if payload extraction logic needs to handle nested Remove tags
+The issue was that when a Room schema contains a nested Remove-wrapped Position, the code needed to extract the Remove-wrapped Position schema (not the Room schema) before creating the payload class.
+
+### Resolution
+**Extract Remove-wrapped Position from Room schema before creating payload class.**
+
+Fixed in `ts/standardize/keys/facets/position.ts`:
+
+In `createPositionFacetPayload`, when the schema is a Room tag (not Remove/Replace at the top level):
+- Check if Room has a nested Remove child containing Position
+- If found, extract the Remove-wrapped Position schema: `<Remove><Position /></Remove>`
+- Create `PositionFacetRemoveClass` with the extracted Remove schema
+- This allows the RemoveClass to be properly inverted later, converting it to a PlainClass with the Position data
+
+**Test now passing:**
+- ✅ `facetFactory.test.ts`: "should handle double-negative (Remove-wrapped Remove)" - test passing
+
+This mirrors the same pattern we fixed in ExitFacet and MarkFacet: extracting payload-specific structures (Exit/Match/Position) from wrapper tags (Room/Mark) before passing to payload factories.
 
 ---
 
@@ -213,15 +226,15 @@ Received: <Remove><Room><Position/></Room></Remove>
 
 1. ~~**Issue 1: Schema Converter Missing**~~ ✅ **RESOLVED**
 2. ~~**Issue 2: StandardLiteralSimpleBase Constructor**~~ ✅ **RESOLVED**
-3. ~~**Issue 4: Property Access**~~ ✅ **RESOLVED**
-4. ~~**Issue 5: Invert Operation**~~ ✅ **RESOLVED**
-5. **Issue 3: StandardPositionPayloadBase** - Single test, edge case
+3. ~~**Issue 3: StandardPositionPayloadBase**~~ ✅ **RESOLVED**
+4. ~~**Issue 4: Property Access**~~ ✅ **RESOLVED**
+5. ~~**Issue 5: Invert Operation**~~ ✅ **RESOLVED**
 6. **Issue 6: Render Operations** - Complex rendering logic, may depend on other fixes
 
 ---
 
 ## Notes
-- Issues 1, 2, 4, and 5 have been resolved
-- Some issues may resolve others (e.g., fixing Issue 1 and 2 fixed multiple test failures)
-- Remaining issues (3 and 6) are more complex edge cases and rendering logic
+- Issues 1, 2, 3, 4, and 5 have been resolved
+- Some issues may resolve others (e.g., fixing Issues 1, 2, and 3 fixed multiple test failures)
+- Remaining issue (6) is complex rendering logic
 - Consider running tests after each issue to see cascading fixes

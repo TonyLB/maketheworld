@@ -426,6 +426,18 @@ export function createPositionFacetPayload(arg: any): PositionFacetPlainClass | 
         }
         else {
             // Schema tree doesn't start with Remove/Replace - might be a full facet schema (e.g., <Room><Position.../>)
+            // Handle nested Remove structures: <Room><Remove><Position /></Remove></Room>
+            // Extract Remove-wrapped Position structure if present
+            if (treeNodeTypeguard(isSchemaRoom)(firstElement)) {
+                const removeChild = firstElement.children.find(child => treeNodeTypeguard(isSchemaRemove)(child));
+                if (removeChild && treeNodeTypeguard(isSchemaRemove)(removeChild)) {
+                    // Nested Remove: extract Remove-wrapped Position schema for RemoveClass
+                    // Structure: <Remove><Position /></Remove>
+                    const removeSchema: GenericTree<SchemaTag> = [removeChild];
+                    return new PositionFacetRemoveClass(removeSchema);
+                }
+                // No nested Remove - try normal Position extraction
+            }
             // Try to extract Position child using fromSchema
             const tempPayload = new PositionFacetPlainClass({ x: 0, y: 0 });
             try {
