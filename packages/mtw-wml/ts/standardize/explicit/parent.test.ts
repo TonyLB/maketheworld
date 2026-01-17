@@ -1,4 +1,4 @@
-import { StandardExplicitParent, StandardExplicitParentSimple, StandardExplicitParentRemove, StandardExplicitParentReplace } from './parent'
+import { StandardExplicitParent, PlainClass as StandardExplicitParentPlain, RemoveClass as StandardExplicitParentRemove, ReplaceClass as StandardExplicitParentReplace } from './parent'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize'
 
@@ -11,13 +11,13 @@ describe('StandardExplicitParent', () => {
     describe('construction', () => {
         it('should create a StandardExplicitParentSimple from ComponentUUID', () => {
             const parent = new StandardExplicitParent(validComponentUUID)
-            expect(parent._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(parent._payload).toBeInstanceOf(StandardExplicitParentPlain)
             expect(parent.toJSON()).toBe(validComponentUUID)
         })
 
         it('should create a StandardExplicitParentSimple from legalKey', () => {
             const parent = new StandardExplicitParent(validLegalKey)
-            expect(parent._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(parent._payload).toBeInstanceOf(StandardExplicitParentPlain)
             expect(parent.toJSON()).toEqual({ key: validLegalKey })
         })
 
@@ -43,7 +43,7 @@ describe('StandardExplicitParent', () => {
 
         it('should handle empty Parent tag (explicitly asset level)', () => {
             const parent = new StandardExplicitParent([])
-            expect(parent._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(parent._payload).toBeInstanceOf(StandardExplicitParentPlain)
             expect(parent.toJSON()).toBe('ASSET')
             expect(parent.schema).toEqual([{ data: { tag: 'Parent' }, children: [] }])
         })
@@ -54,7 +54,7 @@ describe('StandardExplicitParent', () => {
                     { data: { tag: 'String', value: validComponentUUID }, children: [] }
                 ]}
             ])
-            expect(parent._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(parent._payload).toBeInstanceOf(StandardExplicitParentPlain)
             expect(parent.toJSON()).toBe(validComponentUUID)
         })
 
@@ -64,7 +64,7 @@ describe('StandardExplicitParent', () => {
                     { data: { tag: 'String', value: validLegalKey }, children: [] }
                 ]}
             ])
-            expect(parent._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(parent._payload).toBeInstanceOf(StandardExplicitParentPlain)
             expect(parent.toJSON()).toEqual({ key: validLegalKey })
         })
     })
@@ -75,7 +75,7 @@ describe('StandardExplicitParent', () => {
             const parent2 = new StandardExplicitParent(validComponentUUID)
             const merged = parent1.merge(parent2)
             expect(merged).toBeInstanceOf(StandardExplicitParent)
-            expect(merged?._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(merged?._payload).toBeInstanceOf(StandardExplicitParentPlain)
             expect(merged?.toJSON()).toBe(validComponentUUID)
         })
 
@@ -91,7 +91,7 @@ describe('StandardExplicitParent', () => {
             const parent2 = new StandardExplicitParent(validLegalKey)
             const merged = parent1.merge(parent2)
             expect(merged).toBeInstanceOf(StandardExplicitParent)
-            expect(merged?._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(merged?._payload).toBeInstanceOf(StandardExplicitParentPlain)
             expect(merged?.toJSON()).toEqual({ key: validLegalKey })
         })
 
@@ -285,7 +285,7 @@ describe('StandardExplicitParent', () => {
             const parent = new StandardExplicitParent(validComponentUUID)
             const mapped = parent.mapContents(data => 'FEATURE#mapped-feature' as ComponentUUID)
             expect(mapped).toBeInstanceOf(StandardExplicitParent)
-            expect(mapped._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(mapped._payload).toBeInstanceOf(StandardExplicitParentPlain)
             expect(mapped.toJSON()).toBe('FEATURE#mapped-feature')
         })
 
@@ -293,7 +293,7 @@ describe('StandardExplicitParent', () => {
             const parent = new StandardExplicitParent(validLegalKey)
             const mapped = parent.mapContents(data => ({ key: 'mappedKey' }))
             expect(mapped).toBeInstanceOf(StandardExplicitParent)
-            expect(mapped._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(mapped._payload).toBeInstanceOf(StandardExplicitParentPlain)
             expect(mapped.toJSON()).toEqual({ key: 'mappedKey' })
         })
 
@@ -350,7 +350,7 @@ describe('StandardExplicitParent', () => {
             const mapped = parent.mapContents(data => 'FEATURE#mapped-feature' as ComponentUUID)
             expect(mapped).toBeInstanceOf(StandardExplicitParent)
             // ASSET sentinel should not be mapped
-            expect(mapped._payload).toBeInstanceOf(StandardExplicitParentSimple)
+            expect(mapped._payload).toBeInstanceOf(StandardExplicitParentPlain)
             expect(mapped.toJSON()).toBe('ASSET')
         })
     })
