@@ -7,7 +7,7 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { excludeUndefined } from "../../../lib/lists"
-import { StandardExit, StandardExitPlain, StandardExitRemove, StandardExitReplace } from "../exit"
+import { StandardExitFacet } from "../../keys/facets/exit"
 import { isSchemaTreeNode } from "../../../schema"
 
 export const linkReferenceKeys = (mappings: StandardReference[]) => (tree: GenericTree<SchemaTag>): StandardReference[] => {
@@ -45,25 +45,12 @@ export const positionReferenceKeys = (tree: GenericTree<SchemaTag>): string[] =>
         .filter(excludeUndefined)
 }
 
-export const exitReferenceKeys = (list: StandardExit[]): string[] => {
+export const exitReferenceKeys = (list: StandardExitFacet[]): string[] => {
     return unique(list
-        .map(exit => {
-            if (exit instanceof StandardExitPlain) {
-                // StandardExitPlain: return reference to payload.to
-                return exit.payload?.to ? [exit.payload.to] : []
-            } else if (exit instanceof StandardExitRemove) {
-                // StandardExitRemove: return reference to match.to
-                return exit.match?.to ? [exit.match.to] : []
-            } else if (exit instanceof StandardExitReplace) {
-                // StandardExitReplace: return references from both match.to and payload.to
-                return [
-                    ...(exit.match?.to ? [exit.match.to] : []),
-                    ...(exit.payload?.to ? [exit.payload.to] : [])
-                ]
-            }
-            return []
+        .map(facet => {
+            // Extract reference key from facet.reference.standardKey
+            return facet.reference.standardKey
         })
-        .flat(1)
         .map((key) => (key.universalKey ?? key.key ?? ''))
         .filter(excludeUndefined)
     )

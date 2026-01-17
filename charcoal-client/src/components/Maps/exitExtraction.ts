@@ -1,5 +1,4 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { StandardExitPlain, StandardExit } from "@tonylb/mtw-wml/ts/standardize/components/exit"
 import { MapExit } from "./Controller/baseClasses"
 import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/components/map"
 import { StandardRoom } from "@tonylb/mtw-wml/ts/standardize/components/room"
@@ -43,21 +42,6 @@ export const extractExitsFromStandardForm = (
                     const targetRoomId = exitFacet.reference.universalKey
                     return targetRoomId && positionedRoomIds.has(targetRoomId)
                 })
-                .map(exitFacet => {
-                    // Convert ExitFacet to StandardExitPlain for MapExit constructor
-                    // MapExit expects StandardExitPlain, so we create one from the facet data
-                    const exitData = {
-                        to: exitFacet.reference.standardKey.toJSON(),
-                        description: exitFacet.payload.toJSON()
-                    }
-                    const exitPlain = StandardExit.create(exitData)
-                    if (!(exitPlain instanceof StandardExitPlain)) {
-                        // If it's not plain (e.g., Remove/Replace), extract the plain payload
-                        return exitPlain.plain ? new StandardExitPlain(exitPlain.plain.toJSON()) : null
-                    }
-                    return exitPlain
-                })
-                .filter((exit): exit is StandardExitPlain => exit !== null)
-                .map(exit => new MapExit(exit, room.universalKey as `ROOM#${string}`))
+                .map(exitFacet => new MapExit(exitFacet, room.universalKey as `ROOM#${string}`))
         )
 }

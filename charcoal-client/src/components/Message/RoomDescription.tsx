@@ -27,9 +27,8 @@ import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardExample } from '@tonylb/mtw-wml/ts/standardize/components/example'
-import { StandardExit } from '@tonylb/mtw-wml/ts/standardize/components/exit'
+import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character'
 
 interface RoomDescriptionProps {
     parsedWML?: StandardForm;
@@ -48,7 +47,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
     let name: StandardRender = new StandardRender(['Untitled'])
     let description: StandardRender = new StandardRender([])
     let summary: StandardRender = new StandardRender([])
-    let exits: StandardExit[] = []
+    let exits: StandardExitFacet[] = []
     let characters: StandardCharacter[] = []
 
     if (parsedWML) {
@@ -82,14 +81,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
                 .filter((character): character is StandardCharacter => character instanceof StandardCharacter)
             
             // Pass Standard format objects directly to sub-components
-            // Convert ExitFacet items to StandardExit for compatibility
-            exits = component.exits.items.map(facet => {
-                const exitData = {
-                    to: facet.reference.standardKey.toJSON(),
-                    description: facet.payload.toJSON()
-                }
-                return StandardExit.create(exitData)
-            })
+            exits = component.exits.items
         }
     }
     // Note: No legacy format handling - this component now only accepts PerceptionMessage
