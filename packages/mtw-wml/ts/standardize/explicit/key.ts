@@ -1,13 +1,15 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
+import { v2StandardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
-import { isRenderTree, RenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
+import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaKey } from "@tonylb/mtw-base/ts/schema/components"
 import { isLegalKey } from "../utils"
+import { isSchemaTreeNode } from "../../schema"
+import { stripWrapperTag } from "../../schema/utils"
 
 //
 // StandardExplicitKeySimpleBase holds the contents for a simple StandardExplicitKey
@@ -132,7 +134,13 @@ const standardExplicitKeyDiff = (base: string, incoming: string): { add?: string
     return { remove: base, add: incoming }
 }
 
-export const { constructorDelta: factory, typeguard: isStandardExplicitKeyData, merge, diff } = standardEditableFactory({
+export const { 
+    EditableClass, 
+    PlainClass, 
+    RemoveClass, 
+    ReplaceClass, 
+    dataTypeguard: isStandardExplicitKeyData 
+} = v2StandardEditableFactory({
     typeguard: (value: any): value is string => {
         // Only accept legalKey strings
         if (typeof value === 'string') {
@@ -149,254 +157,115 @@ export const { constructorDelta: factory, typeguard: isStandardExplicitKeyData, 
     payload: StandardExplicitKeySimpleBase,
     add: standardExplicitKeyAdd,
     subtract: standardExplicitKeySubtract,
-    diff: standardExplicitKeyDiff
-})
+    diff: standardExplicitKeyDiff,
+    validateReplace: (baseAdd: string, incomingAdd: string, incomingRemove: string) => {
+        // For keys, Replace is valid if baseAdd matches incomingRemove (valid rename)
+        // This validates that we're replacing the correct base value, not changing it incorrectly
+        if (baseAdd !== incomingRemove) {
+            throw new MergeConflictError('Key Replace operation must match baseAdd with incomingRemove. Conflicting key values are not allowed.')
+        }
+    }
+}, 'StandardExplicitKey')
 
-const fromDelta = (delta: { add?: string, remove?: string }): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined => {
-    const { add, remove } = delta
-    if (add) {
-        if (remove) {
-            // fromDelta receives data from _delta.toJSON(), create payload instances
-            const removeBase = new StandardExplicitKeySimpleBase(remove)
-            const addBase = new StandardExplicitKeySimpleBase(add)
-            return new StandardExplicitKeyReplace(removeBase, addBase)
-        }
-        // fromDelta receives string from _delta.toJSON(), create payload instance
-        const addBase = new StandardExplicitKeySimpleBase(add)
-        return new StandardExplicitKeySimple(addBase)
-    }
-    if (remove) {
-        // fromDelta receives string from _delta.toJSON(), create payload instance
-        const removeBase = new StandardExplicitKeySimpleBase(remove)
-        return new StandardExplicitKeyRemove(removeBase)
-    }
-    return undefined
-}
-
-export class StandardExplicitKeySimple implements StandardEditableWrapper<StandardExplicitKeySimpleBase> {
-    payload: StandardExplicitKeySimpleBase
-    
-    constructor(data: StandardExplicitKeySimpleBase | StandardEditableData<string> | RenderTree | GenericTree<SchemaTag> | string | StandardExplicitKeySimple) {
-        // Handle cloning from another StandardExplicitKeySimple instance
-        if (data instanceof StandardExplicitKeySimple) {
-            this.payload = data.payload
-            return
-        }
-        
-        if (data instanceof StandardExplicitKeySimpleBase) {
-            this.payload = data
-            return
-        }
-        
-        // Empty array is not allowed (unlike Parent)
-        if (Array.isArray(data) && data.length === 0) {
-            throw new Error('Key tag must contain a legalKey value')
-        }
-        
-        const delta = factory(isRenderTree(data) ? renderTreeToSchema(data) : data)
-        if (delta && delta.add && !delta.remove) {
-            this.payload = delta.add
-            return
-        }
-        throw new Error('Invalid data in StandardExplicitKeySimple')
-    }
-    get schema() {
-        // Wrap the payload schema in a Key tag
-        return [{ data: { tag: 'Key' as const }, children: this.payload.schema }]
-    }
-    nestedSchema(tag) {
-        return [{ data: tag, children: this.schema }]
-    }
-    get _delta(): StandardEditableDataDelta<string> {
-        return { add: this.payload.toJSON() }
-    }
-    clone() {
-        return new StandardExplicitKeySimple(this.payload)
-    }
-    toJSON: () => StandardEditableData<string> = () => {
-        return this.payload.toJSON()
-    }
-    get plain() { 
-        return this.payload 
-    }
-    merge(other: StandardEditableWrapper<StandardExplicitKeySimpleBase>): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined {
-        // Special case: If other is a Replace and this matches the Replace's match, apply the Replace
-        // 
-        // Why this is needed: The generic merge logic in addDelta (line 76) validates Replace operations
-        // by calling add(baseAdd, incomingAdd) to ensure they point to the same component (for references).
-        // For keys, this validation throws a MergeConflictError because standardExplicitKeyAdd requires
-        // exact matches. However, for keys, a Replace operation that matches the base SHOULD be allowed
-        // (it's a valid key rename, not a conflict). We handle this here by detecting Replace operations
-        // and applying them directly, bypassing the generic merge's reference-oriented validation.
-        //
-        // This handles the case where a diff produces a Replace key (e.g., renaming Feature1 to clockTower)
-        // that needs to be merged with the base key. Without this special case, the merge would fail with
-        // a conflict error even though the Replace is valid.
-        if (other instanceof StandardExplicitKeyReplace) {
-            const thisValue = this.payload.toJSON()
-            const replaceMatch = other.match.toJSON()
-            if (thisValue === replaceMatch) {
-                // This matches the Replace's match - apply the Replace by returning the payload as Simple
-                return new StandardExplicitKeySimple(other.payload)
-            }
-        }
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardExplicitKeySimpleBase>): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-}
-
-export class StandardExplicitKeyRemove implements StandardEditableWrapper<StandardExplicitKeySimpleBase> {
-    match: StandardExplicitKeySimpleBase
-    constructor(data: StandardExplicitKeySimpleBase | StandardEditableData<string> | RenderTree | GenericTree<SchemaTag> | string) {
-        if (data instanceof StandardExplicitKeySimpleBase) {
-            this.match = data
-            return
-        }
-        const delta = factory(isRenderTree(data) ? renderTreeToSchema(data) : data)
-        if (delta && !delta.add && delta.remove) {
-            // Factory returns payload instances in delta
-            this.match = delta.remove
-            return
-        }
-        console.log(`Invalid data: ${JSON.stringify(data)}`)
-        throw new Error('Invalid data in StandardExplicitKeyRemove')
-    }
-    get schema() {
-        return [{ data: { tag: 'Remove' as const }, children: [{ data: { tag: 'Key' as const }, children: this.match.schema }] }]
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Remove' as const },
-            children: [{ data: tag, children: [{ data: { tag: 'Key' as const }, children: this.match.schema }] }]
-        }]
-    }
-    get _delta(): StandardEditableDataDelta<string> {
-        return { remove: this.match.toJSON() }
-    }
-    clone() {
-        return new StandardExplicitKeyRemove(this.match)
-    }
-    toJSON: () => StandardEditableData<string> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
-    get plain() { return this.match }
-    merge(other: StandardEditableWrapper<StandardExplicitKeySimpleBase>): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardExplicitKeySimpleBase>): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-}
-
-export class StandardExplicitKeyReplace implements StandardEditableWrapper<StandardExplicitKeySimpleBase> {
-    match: StandardExplicitKeySimpleBase
-    payload: StandardExplicitKeySimpleBase
-    constructor(...args: [StandardEditableData<string> | RenderTree | GenericTree<SchemaTag> | string] | [StandardExplicitKeySimpleBase, StandardExplicitKeySimpleBase]) {
-        if (args.length === 2) {
-            this.match = args[0]
-            this.payload = args[1]
-            return
-        }
-        const delta = factory(isRenderTree(args[0]) ? renderTreeToSchema(args[0]) : args[0])
-        if (delta && delta.add && delta.remove) {
-            // Factory returns payload instances in delta
-            this.match = delta.remove
-            this.payload = delta.add
-            return
-        }
-        throw new Error('Invalid data in StandardExplicitKeyReplace')
-    }
-    get schema() {
-        return [{ data: { tag: 'Replace' as const }, children: [
-            { data: { tag: 'ReplaceMatch' as const }, children: [{ data: { tag: 'Key' as const }, children: this.match.schema }] },
-            { data: { tag: 'ReplacePayload' as const }, children: [{ data: { tag: 'Key' as const }, children: this.payload.schema }] }
-        ] }]
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Replace' as const },
-            children: [
-                {
-                    data: { tag: 'ReplaceMatch' as const },
-                    children: [{ data: tag, children: [{ data: { tag: 'Key' as const }, children: this.match.schema }] }]
-                },
-                {
-                    data: { tag: 'ReplacePayload' as const },
-                    children: [{ data: tag, children: [{ data: { tag: 'Key' as const }, children: this.payload.schema }] }]
-                }
-            ]
-        }]
-    }
-    get _delta(): StandardEditableDataDelta<string> {
-        return { remove: this.match.toJSON(), add: this.payload.toJSON() }
-    }
-    clone() {
-        return new StandardExplicitKeyReplace(this.match, this.payload)
-    }
-    toJSON: () => StandardEditableData<string> = () => ({ 
-        tag: 'Replace' as const,
-        match: this.match.toJSON(),
-        payload: this.payload.toJSON()
-    })
-    get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardExplicitKeySimpleBase>): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardExplicitKeySimpleBase>): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-}
 
 export class StandardExplicitKey {
-    _payload: StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined;
+    _payload: InstanceType<typeof EditableClass>;
     
     constructor(arg: any) {
-        if (arg instanceof StandardExplicitKeySimple || arg instanceof StandardExplicitKeyRemove || arg instanceof StandardExplicitKeyReplace) {
-            this._payload = arg
-            return
-        }
-        // Handle cloning from another StandardExplicitKey instance
+        // Handle existing StandardExplicitKey instance (for cloning)
         if (arg instanceof StandardExplicitKey) {
             this._payload = arg._payload
             return
         }
-        const delta = factory(isRenderTree(arg) ? renderTreeToSchema(arg) : arg)
-        if (!delta) {
-            // Empty Key tag is not allowed
+        
+        // Handle existing v2 instance
+        if (arg instanceof EditableClass) {
+            this._payload = arg
+            return
+        }
+        
+        // Convert RenderTree to GenericTree<SchemaTag> if needed
+        let convertedArg = isRenderTree(arg) ? renderTreeToSchema(arg) : arg
+        
+        // Strip "Key" wrapper tag if present using centralized utility
+        if (Array.isArray(convertedArg) && convertedArg.every(isSchemaTreeNode)) {
+            convertedArg = stripWrapperTag(convertedArg, 'Key')
+        }
+        
+        // Use EditableClass.create() for dispatch
+        this._payload = EditableClass.create(convertedArg)
+        
+        // Validate that payload exists (Key cannot be empty)
+        if (!this._payload) {
             throw new Error('Key tag must contain a legalKey value')
         }
-        if (delta.add) {
-            if (delta.remove) {
-                this._payload = new StandardExplicitKeyReplace(arg)
-                return
-            }
-            this._payload = new StandardExplicitKeySimple(arg)
-            return
-        }
-        if (delta.remove) {
-            this._payload = new StandardExplicitKeyRemove(arg)
-            return
-        }
-        // Empty delta - not allowed for Key
-        throw new Error('Key tag must contain a legalKey value')
     }
 
-    get payload(): StandardExplicitKeySimple | StandardExplicitKeyRemove | StandardExplicitKeyReplace | undefined {
+    get payload(): InstanceType<typeof EditableClass> {
         return this._payload
     }
 
     get schema(): GenericTree<SchemaTag> {
         if (!this._payload) {
-            // Undefined payload - this should not happen in normal usage
             throw new Error('StandardExplicitKey must have a payload')
+        }
+        // Wrap payload schema in Key tag
+        if (this._payload instanceof PlainClass) {
+            return [{ data: { tag: 'Key' as const }, children: this._payload.schema }]
+        }
+        if (this._payload instanceof RemoveClass) {
+            const match = (this._payload as any).match
+            return [{ 
+                data: { tag: 'Remove' as const }, 
+                children: [{ data: { tag: 'Key' as const }, children: match?.schema ?? [] }] 
+            }]
+        }
+        if (this._payload instanceof ReplaceClass) {
+            const match = (this._payload as any).match
+            const payload = (this._payload as any).payload
+            return [{ 
+                data: { tag: 'Replace' as const }, 
+                children: [
+                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: { tag: 'Key' as const }, children: match?.schema ?? [] }] },
+                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: { tag: 'Key' as const }, children: payload?.schema ?? [] }] }
+                ]
+            }]
         }
         return this._payload.schema
     }
 
     nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
         if (!this._payload) {
-            // Undefined payload - this should not happen in normal usage
             throw new Error('StandardExplicitKey must have a payload')
+        }
+        
+        // Wrap payload schema in Key tag, then in the provided tag
+        if (this._payload instanceof PlainClass) {
+            return [{ data: tag, children: [{ data: { tag: 'Key' as const }, children: this._payload.schema }] }]
+        }
+        if (this._payload instanceof RemoveClass) {
+            const match = (this._payload as any).match
+            return [{
+                data: tag,
+                children: [{
+                    data: { tag: 'Remove' as const },
+                    children: [{ data: { tag: 'Key' as const }, children: match?.schema ?? [] }]
+                }]
+            }]
+        }
+        if (this._payload instanceof ReplaceClass) {
+            const match = (this._payload as any).match
+            const payload = (this._payload as any).payload
+            return [{
+                data: tag,
+                children: [{
+                    data: { tag: 'Replace' as const },
+                    children: [
+                        { data: { tag: 'ReplaceMatch' as const }, children: [{ data: { tag: 'Key' as const }, children: match?.schema ?? [] }] },
+                        { data: { tag: 'ReplacePayload' as const }, children: [{ data: { tag: 'Key' as const }, children: payload?.schema ?? [] }] }
+                    ]
+                }]
+            }]
         }
         return this._payload.nestedSchema(tag)
     }
@@ -409,17 +278,14 @@ export class StandardExplicitKey {
     }
 
     merge(incoming: StandardExplicitKey): StandardExplicitKey | undefined {
-        // Handle undefined cases
-        if (!this._payload && !incoming._payload) {
-            return undefined
-        }
         if (!this._payload) {
             return incoming
         }
         if (!incoming._payload) {
             return this
         }
-        // Both have payloads - merge them
+        
+        // Use the v2 factory's merge - validateReplace handles key rename validation
         const merged = this._payload.merge(incoming._payload)
         if (merged) {
             return new StandardExplicitKey(merged)
@@ -429,20 +295,9 @@ export class StandardExplicitKey {
     diff(incoming: StandardExplicitKey | undefined): StandardExplicitKey | undefined {
         if (!incoming) {
             if (this._payload) {
-                const reversedDelta = this._payload._delta
-                if (reversedDelta) {
-                    if (reversedDelta.add) {
-                        return new StandardExplicitKey(new StandardExplicitKeyRemove(new StandardExplicitKeySimpleBase(reversedDelta.add)))
-                    }
-                    if (reversedDelta.remove) {
-                        return new StandardExplicitKey(new StandardExplicitKeySimple(new StandardExplicitKeySimpleBase(reversedDelta.remove)))
-                    }
-                }
+                const inverted = this._payload.invert()
+                return new StandardExplicitKey(inverted)
             }
-            return undefined
-        }
-        // Handle undefined cases
-        if (!this._payload && !incoming._payload) {
             return undefined
         }
         if (!this._payload) {
@@ -451,11 +306,8 @@ export class StandardExplicitKey {
         }
         if (!incoming._payload) {
             // This has a key, incoming has no key - return removal of this
-            const reversedDelta = this._payload._delta
-            if (reversedDelta && reversedDelta.add) {
-                return new StandardExplicitKey(new StandardExplicitKeyRemove(new StandardExplicitKeySimpleBase(reversedDelta.add)))
-            }
-            return undefined
+            const inverted = this._payload.invert()
+            return new StandardExplicitKey(inverted)
         }
         // Both have payloads - diff them
         const diffResult = this._payload.diff(incoming._payload)
@@ -468,43 +320,33 @@ export class StandardExplicitKey {
         if (!this._payload) {
             return this
         }
-        if (this._payload instanceof StandardExplicitKeySimple) {
-            const currentValue = this._payload.payload.toJSON()
+        if (this._payload instanceof PlainClass) {
+            const currentValue = this._payload.plain?.toJSON() ?? ''
             const mapped = callback(currentValue)
-            return new StandardExplicitKey(new StandardExplicitKeySimple(mapped))
+            return new StandardExplicitKey(mapped)
         }
-        if (this._payload instanceof StandardExplicitKeyRemove) {
-            const currentValue = this._payload.match.toJSON()
-            const mapped = callback(currentValue)
-            // Remove constructor expects StandardEditableData format or StandardExplicitKeySimpleBase
-            return new StandardExplicitKey(new StandardExplicitKeyRemove({ tag: 'Remove', match: mapped }))
+        if (this._payload instanceof RemoveClass) {
+            const matchValue = (this._payload as any).match?.toJSON() ?? ''
+            const mapped = callback(matchValue)
+            return new StandardExplicitKey({ tag: 'Remove', match: mapped })
         }
-        if (this._payload instanceof StandardExplicitKeyReplace) {
-            const matchValue = this._payload.match.toJSON()
-            const payloadValue = this._payload.payload.toJSON()
-            const mappedMatch = callback(matchValue)
-            const mappedPayload = callback(payloadValue)
-            const matchBase = new StandardExplicitKeySimpleBase(mappedMatch)
-            const payloadBase = new StandardExplicitKeySimpleBase(mappedPayload)
-            return new StandardExplicitKey(new StandardExplicitKeyReplace(matchBase, payloadBase))
+        if (this._payload instanceof ReplaceClass) {
+            const matchValue = (this._payload as any).match?.toJSON() ?? ''
+            const payloadValue = (this._payload as any).payload?.toJSON() ?? ''
+            return new StandardExplicitKey({
+                tag: 'Replace',
+                match: callback(matchValue),
+                payload: callback(payloadValue)
+            })
         }
         throw new Error('Invalid StandardExplicitKey payload')
     }
 
     invert(): StandardExplicitKey {
         if (!this._payload) {
-            // Undefined payload - return as-is (no inversion needed)
             return new StandardExplicitKey(this)
         }
-        if (this._payload instanceof StandardExplicitKeySimple) {
-            return new StandardExplicitKey(new StandardExplicitKeyRemove(this._payload.payload))
-        }
-        if (this._payload instanceof StandardExplicitKeyRemove) {
-            return new StandardExplicitKey(new StandardExplicitKeySimple(this._payload.match))
-        }
-        if (this._payload instanceof StandardExplicitKeyReplace) {
-            return new StandardExplicitKey(new StandardExplicitKeyReplace(this._payload.payload, this._payload.match))
-        }
-        throw new Error('Invalid StandardExplicitKey payload for invert')
+        const inverted = this._payload.invert()
+        return new StandardExplicitKey(inverted)
     }
 }

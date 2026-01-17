@@ -1,4 +1,4 @@
-import { StandardExplicitKey, StandardExplicitKeySimple, StandardExplicitKeyRemove, StandardExplicitKeyReplace } from './key'
+import { StandardExplicitKey, PlainClass, RemoveClass, ReplaceClass } from './key'
 import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize'
 
 describe('StandardExplicitKey', () => {
@@ -7,25 +7,25 @@ describe('StandardExplicitKey', () => {
     const invalidComponentUUID = 'ROOM#test-room'
 
     describe('construction', () => {
-        it('should create a StandardExplicitKeySimple from legalKey string', () => {
+        it('should create a PlainClass from legalKey string', () => {
             const key = new StandardExplicitKey(validLegalKey)
-            expect(key._payload).toBeInstanceOf(StandardExplicitKeySimple)
+            expect(key._payload).toBeInstanceOf(PlainClass)
             expect(key.toJSON()).toBe(validLegalKey)
         })
 
-        it('should create a StandardExplicitKeyRemove from Remove structure', () => {
+        it('should create a RemoveClass from Remove structure', () => {
             const key = new StandardExplicitKey({ tag: 'Remove', match: validLegalKey })
-            expect(key._payload).toBeInstanceOf(StandardExplicitKeyRemove)
+            expect(key._payload).toBeInstanceOf(RemoveClass)
             expect(key.toJSON()).toEqual({ tag: 'Remove', match: validLegalKey })
         })
 
-        it('should create a StandardExplicitKeyReplace from Replace structure', () => {
+        it('should create a ReplaceClass from Replace structure', () => {
             const key = new StandardExplicitKey({ 
                 tag: 'Replace', 
                 match: validLegalKey, 
                 payload: anotherLegalKey 
             })
-            expect(key._payload).toBeInstanceOf(StandardExplicitKeyReplace)
+            expect(key._payload).toBeInstanceOf(ReplaceClass)
             expect(key.toJSON()).toEqual({ 
                 tag: 'Replace', 
                 match: validLegalKey, 
@@ -45,7 +45,7 @@ describe('StandardExplicitKey', () => {
                     { data: { tag: 'String', value: validLegalKey }, children: [] }
                 ]}
             ])
-            expect(key._payload).toBeInstanceOf(StandardExplicitKeySimple)
+            expect(key._payload).toBeInstanceOf(PlainClass)
             expect(key.toJSON()).toBe(validLegalKey)
         })
 
@@ -73,16 +73,16 @@ describe('StandardExplicitKey', () => {
     })
 
     describe('merge operations', () => {
-        it('should merge two identical StandardExplicitKeySimple instances', () => {
+        it('should merge two identical PlainClass instances', () => {
             const key1 = new StandardExplicitKey(validLegalKey)
             const key2 = new StandardExplicitKey(validLegalKey)
             const merged = key1.merge(key2)
             expect(merged).toBeInstanceOf(StandardExplicitKey)
-            expect(merged?._payload).toBeInstanceOf(StandardExplicitKeySimple)
+            expect(merged?._payload).toBeInstanceOf(PlainClass)
             expect(merged?.toJSON()).toBe(validLegalKey)
         })
 
-        it('should throw error when merging two different StandardExplicitKeySimple instances - conflicting values', () => {
+        it('should throw error when merging two different PlainClass instances - conflicting values', () => {
             const key1 = new StandardExplicitKey(validLegalKey)
             const key2 = new StandardExplicitKey(anotherLegalKey)
             expect(() => key1.merge(key2)).toThrow(MergeConflictError)
@@ -103,7 +103,7 @@ describe('StandardExplicitKey', () => {
             const merged = key1.merge(key2)
             // Remove + Add with different values creates a Replace operation
             expect(merged).toBeInstanceOf(StandardExplicitKey)
-            expect(merged?._payload).toBeInstanceOf(StandardExplicitKeyReplace)
+            expect(merged?._payload).toBeInstanceOf(ReplaceClass)
             expect(merged?.toJSON()).toEqual({ 
                 tag: 'Replace', 
                 match: validLegalKey, 
@@ -114,19 +114,19 @@ describe('StandardExplicitKey', () => {
     })
 
     describe('diff operations', () => {
-        it('should diff two identical StandardExplicitKeySimple instances', () => {
+        it('should diff two identical PlainClass instances', () => {
             const key1 = new StandardExplicitKey(validLegalKey)
             const key2 = new StandardExplicitKey(validLegalKey)
             const diff = key1.diff(key2)
             expect(diff).toBeUndefined()
         })
 
-        it('should diff two different StandardExplicitKeySimple instances', () => {
+        it('should diff two different PlainClass instances', () => {
             const key1 = new StandardExplicitKey(validLegalKey)
             const key2 = new StandardExplicitKey(anotherLegalKey)
             const diff = key1.diff(key2)
             expect(diff).toBeInstanceOf(StandardExplicitKey)
-            expect(diff?._payload).toBeInstanceOf(StandardExplicitKeyReplace)
+            expect(diff?._payload).toBeInstanceOf(ReplaceClass)
             expect(diff?.toJSON()).toEqual({ 
                 tag: 'Replace', 
                 match: validLegalKey, 
@@ -138,29 +138,29 @@ describe('StandardExplicitKey', () => {
             const key1 = new StandardExplicitKey(validLegalKey)
             const diff = key1.diff(undefined)
             expect(diff).toBeInstanceOf(StandardExplicitKey)
-            expect(diff?._payload).toBeInstanceOf(StandardExplicitKeyRemove)
+            expect(diff?._payload).toBeInstanceOf(RemoveClass)
             expect(diff?.toJSON()).toEqual({ tag: 'Remove', match: validLegalKey })
         })
     })
 
     describe('mapContents operations', () => {
-        it('should map contents of StandardExplicitKeySimple', () => {
+        it('should map contents of PlainClass', () => {
             const key = new StandardExplicitKey(validLegalKey)
             const mapped = key.mapContents(data => 'mappedKey')
             expect(mapped).toBeInstanceOf(StandardExplicitKey)
-            expect(mapped._payload).toBeInstanceOf(StandardExplicitKeySimple)
+            expect(mapped._payload).toBeInstanceOf(PlainClass)
             expect(mapped.toJSON()).toBe('mappedKey')
         })
 
-        it('should map contents of StandardExplicitKeyRemove', () => {
+        it('should map contents of RemoveClass', () => {
             const key = new StandardExplicitKey({ tag: 'Remove', match: validLegalKey })
             const mapped = key.mapContents(data => 'mappedKey')
             expect(mapped).toBeInstanceOf(StandardExplicitKey)
-            expect(mapped._payload).toBeInstanceOf(StandardExplicitKeyRemove)
+            expect(mapped._payload).toBeInstanceOf(RemoveClass)
             expect(mapped.toJSON()).toEqual({ tag: 'Remove', match: 'mappedKey' })
         })
 
-        it('should map contents of StandardExplicitKeyReplace', () => {
+        it('should map contents of ReplaceClass', () => {
             const key = new StandardExplicitKey({ 
                 tag: 'Replace', 
                 match: validLegalKey, 
@@ -168,7 +168,7 @@ describe('StandardExplicitKey', () => {
             })
             const mapped = key.mapContents(data => 'mappedKey')
             expect(mapped).toBeInstanceOf(StandardExplicitKey)
-            expect(mapped._payload).toBeInstanceOf(StandardExplicitKeyReplace)
+            expect(mapped._payload).toBeInstanceOf(ReplaceClass)
             expect(mapped.toJSON()).toEqual({ 
                 tag: 'Replace', 
                 match: 'mappedKey', 
@@ -274,7 +274,7 @@ describe('StandardExplicitKey', () => {
                         { data: { tag: 'String', value: 'not-a-valid-key' }, children: [] }
                     ]}
                 ])
-            }).toThrow('Invalid key value: must be legalKey, got: not-a-valid-key')
+            }).toThrow('Key tag content must be a legalKey, got: not-a-valid-key')
         })
 
         it('should throw error when constructing with invalid string', () => {
@@ -300,23 +300,23 @@ describe('StandardExplicitKey', () => {
     })
 
     describe('invert operations', () => {
-        it('should invert StandardExplicitKeySimple to Remove', () => {
+        it('should invert PlainClass to Remove', () => {
             const key = new StandardExplicitKey(validLegalKey)
             const inverted = key.invert()
             expect(inverted).toBeInstanceOf(StandardExplicitKey)
-            expect(inverted._payload).toBeInstanceOf(StandardExplicitKeyRemove)
+            expect(inverted._payload).toBeInstanceOf(RemoveClass)
             expect(inverted.toJSON()).toEqual({ tag: 'Remove', match: validLegalKey })
         })
 
-        it('should invert StandardExplicitKeyRemove to Simple', () => {
+        it('should invert RemoveClass to Simple', () => {
             const key = new StandardExplicitKey({ tag: 'Remove', match: validLegalKey })
             const inverted = key.invert()
             expect(inverted).toBeInstanceOf(StandardExplicitKey)
-            expect(inverted._payload).toBeInstanceOf(StandardExplicitKeySimple)
+            expect(inverted._payload).toBeInstanceOf(PlainClass)
             expect(inverted.toJSON()).toBe(validLegalKey)
         })
 
-        it('should invert StandardExplicitKeyReplace (swap match and payload)', () => {
+        it('should invert ReplaceClass (swap match and payload)', () => {
             const key = new StandardExplicitKey({ 
                 tag: 'Replace', 
                 match: validLegalKey, 
@@ -324,7 +324,7 @@ describe('StandardExplicitKey', () => {
             })
             const inverted = key.invert()
             expect(inverted).toBeInstanceOf(StandardExplicitKey)
-            expect(inverted._payload).toBeInstanceOf(StandardExplicitKeyReplace)
+            expect(inverted._payload).toBeInstanceOf(ReplaceClass)
             expect(inverted.toJSON()).toEqual({ 
                 tag: 'Replace', 
                 match: anotherLegalKey, 

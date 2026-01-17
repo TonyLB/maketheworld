@@ -1,3 +1,3 @@
 export { StandardExplicitParent } from './parent'
-export { StandardExplicitKey, StandardExplicitKeySimple, StandardExplicitKeyRemove, StandardExplicitKeyReplace } from './key'
+export { StandardExplicitKey, PlainClass as StandardExplicitKeyPlain, RemoveClass as StandardExplicitKeyRemove, ReplaceClass as StandardExplicitKeyReplace } from './key'
 

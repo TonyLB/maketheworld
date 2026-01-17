@@ -26,7 +26,7 @@ import { ReferenceFormat } from "./utils/references";
 import { isStandardReferenceData, StandardReferenceData } from "./dataTypes/reference";
 import StandardReference from "../keys/reference";
 import { StandardKey } from "../keys/key";
-import { StandardExplicitParent, StandardExplicitKey, StandardExplicitKeySimple, StandardExplicitKeyRemove, StandardExplicitKeyReplace } from "../explicit";
+import { StandardExplicitParent, StandardExplicitKey, StandardExplicitKeyPlain, StandardExplicitKeyRemove, StandardExplicitKeyReplace } from "../explicit";
 import SchemaTagTree from "../../tagTree/schema";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
@@ -195,14 +195,14 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (!this._key) return undefined
             const payload = this._key.payload
             if (!payload) return undefined
-            if (payload instanceof StandardExplicitKeySimple) {
-                return payload.payload.key
+            if (payload instanceof StandardExplicitKeyPlain) {
+                return payload.plain?.key ?? ''
             }
             if (payload instanceof StandardExplicitKeyRemove) {
-                return payload.match.key
+                return (payload as any).match?.key ?? ''
             }
             if (payload instanceof StandardExplicitKeyReplace) {
-                return payload.match.key
+                return (payload as any).match?.key ?? ''
             }
             return undefined
         }
