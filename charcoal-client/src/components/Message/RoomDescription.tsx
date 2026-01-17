@@ -82,7 +82,14 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
                 .filter((character): character is StandardCharacter => character instanceof StandardCharacter)
             
             // Pass Standard format objects directly to sub-components
-            exits = component.exits  // Pass StandardExit instances directly
+            // Convert ExitFacet items to StandardExit for compatibility
+            exits = component.exits.items.map(facet => {
+                const exitData = {
+                    to: facet.reference.standardKey.toJSON(),
+                    description: facet.payload.toJSON()
+                }
+                return StandardExit.create(exitData)
+            })
         }
     }
     // Note: No legacy format handling - this component now only accepts PerceptionMessage

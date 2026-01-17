@@ -2,12 +2,13 @@ import { ReferenceListData } from "./reference"
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
-import { isStandardExitData, StandardExitData } from "../exit"
+import { FacetListData } from "../../keys/abstract"
+import { ExitPayload } from "../../keys/facets/dataTypes/facet"
 
 export type StandardRoomData = {
     tag: 'Room';
     shortName?: StandardEditableData<string>;
-    exits?: StandardEditableData<StandardExitData>[];
+    exits?: FacetListData<ExitPayload>;
     lenses?: ReferenceListData;
     features?: ReferenceListData;
     examples?: ReferenceListData;
@@ -21,12 +22,12 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
 
     return checkAll(
         ('tag' in arg && arg.tag === 'Room'),
-        (!('exits' in arg) || (Array.isArray(arg.exits) && arg.exits.every(isStandardExitData))),
         checkTypes(arg, { },
         {
             key: 'key',
             universalKey: 'string',
             shortName: 'literal',
+            exits: 'facetList',
             lenses: 'referenceList',
             examples: 'referenceList',
             characters: 'referenceList'

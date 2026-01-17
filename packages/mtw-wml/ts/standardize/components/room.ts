@@ -5,25 +5,25 @@ import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardRoomData } from "./dataTypes/room"
-import { childReferenceFactory, exitReferenceKeys, ReferenceFormat } from "./utils/references"
+import { childReferenceFactory, ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import { ReferenceList } from "./reference"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardReferenceData } from "./dataTypes/reference"
-import { AssetUUID, ComponentUUID, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
 import { StandardLiteral } from "../literal"
 
 import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { diffStandardExitList, mergeStandardExitList, StandardExit } from "./exit"
+import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
 import { StandardExplicitParent } from "../explicit"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
-    _exits: StandardExit[] = [];
+    _exits: ExitFacetList;
     _lenses: ReferenceList;
     _features: ReferenceList;
     _examples: ReferenceList;
@@ -33,13 +33,14 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     constructor(previous?: StandardRoomPayload) {
         if (previous) {
             this._shortName = previous._shortName
-            this._exits = [...previous.exits]
+            this._exits = previous.exits.clone()
             this._lenses = previous._lenses.clone()
             this._features = previous._features.clone()
             this._examples = previous._examples.clone()
             this._characters = previous._characters.clone()
         }
         else {
+            this._exits = new ExitFacetList([])
             this._lenses = new ReferenceList([])
             this._examples = new ReferenceList([])
             this._features = new ReferenceList([])
@@ -50,7 +51,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     fromJSON(props: StandardRoomData) {
         const { shortName } = props
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
-        this._exits = props.exits?.map((exitData) => (StandardExit.create(exitData))) ?? []
+        this._exits = new ExitFacetList(props.exits ?? [])
         this._lenses = new ReferenceList(props.lenses?.map((reference) => (new StandardReference(reference))) ?? [])
         this._features = new ReferenceList(props.features?.map((reference) => (new StandardReference(reference))) ?? [])
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
@@ -61,7 +62,20 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
             const shortNameNode = findTaggedChildren({ children: node.children, tag: 'ShortName' })
             this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode, { tag: 'ShortName' }) : undefined
-            this._exits = findTaggedChildren({ children: node.children, tag: 'Exit' }).map((exitData) => (StandardExit.create([exitData])))
+            // Parse Exit facets (Exit tags)
+            // findTaggedChildren handles Remove and Replace wrappers automatically
+            const exitNodes = findTaggedChildren({ children: node.children, tag: 'Exit' })
+            const parsedFacets = exitNodes.map(exitNode => {
+                // Create StandardExitFacet directly from schema - it will handle Replace/Remove/Plain dispatch
+                // StandardExitFacet constructor accepts GenericTree<SchemaTag> and handles parsing internally
+                try {
+                    return new StandardExitFacet([exitNode])
+                }
+                catch (e) {
+                    return undefined
+                }
+            }).filter(excludeUndefined)
+            this._exits = new ExitFacetList(parsedFacets)
             this._lenses = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Lens' }).map(childReferenceFactory))
             this._features = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Feature' }).map(childReferenceFactory))
             this._examples = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Example' }).map(childReferenceFactory))
@@ -85,7 +99,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return {
             tag: 'Room',
             shortName: this?.shortName?.toJSON(),
-            ...(this.exits.length ? { exits: this.exits.map((exit) => exit.toJSON()) } : {}),
+            ...(this.exits.length ? { exits: this.exits.toJSON() } : {}),
             ...(this.lenses.payload.length ? { lenses: this.lenses.toJSON() } : {}),
             ...(this.features.payload.length ? { features: this.features.toJSON() } : {}),
             ...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {}),
@@ -94,6 +108,18 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     }
 
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
+        // Remap facets to use keys if mappings are provided
+        const remappedFacets = mappings 
+            ? this._exits.items.map((facet) => facet.lookup(mappings).toFormat('key'))
+            : this._exits.items.map((facet) => facet.toFormat('key'))
+        
+        const exitSchemas = remappedFacets.map((facet) => {
+            // Use renderFacet() to generate schema with Exit tag
+            // Exit facets return newNode (not aggregatedNode) since they create new Exit tags
+            const result = facet.renderFacet()
+            return result.newNode ?? result.aggregatedNode
+        }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
+        
         return {
             data: { tag: 'Room', key, uuid: universalKey },
             children: [
@@ -102,7 +128,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...this.features.schema,
                 ...this.examples.schema,
                 ...this.characters.schema,
-                ...this.exits.map((exit) => (exit.schema)).flat(1)
+                ...exitSchemas
             ]
         }
     }
@@ -127,6 +153,25 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             charactersToRender = assured.characters
         }
         
+        // Process each exit facet
+        // Exit facets create new Exit nodes (not enhancements), so render directly
+        const exitSchemas = this._exits.items.reduce<GenericTreeNode<SchemaTag>[]>((acc, facet) => {
+            // Remap facet reference to use keys instead of universal keys for schema generation
+            const remappedFacet = options.mappings 
+                ? facet.lookup(options.mappings).toFormat('key')
+                : facet.toFormat('key')
+            
+            // Render facet - Exit facets return newNode (not aggregatedNode)
+            const result = remappedFacet.renderFacet()
+            
+            if (result.newNode) {
+                acc.push(result.newNode)
+            } else if (result.aggregatedNode) {
+                acc.push(result.aggregatedNode)
+            }
+            return acc
+        }, [])
+        
         // Pass this Room's key as parent context to children for correct rendering
         return {
             data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
@@ -136,7 +181,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...featuresToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...examplesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...charactersToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
-                ...this.exits.map((exit) => (exit.schema)).flat(1)
+                ...exitSchemas
             ]
         }
     }
@@ -144,7 +189,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     merge(incoming: this): this {
         const returnValue = new StandardRoomPayload()
         returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
-        returnValue._exits = mergeStandardExitList([...this.exits, ...incoming.exits])
+        const mergedExits = this._exits.merge(incoming._exits)
+        returnValue._exits = mergedExits ?? new ExitFacetList([])
         returnValue._lenses = this._lenses.merge(incoming._lenses) ?? new ReferenceList([])
         returnValue._features = this._features.merge(incoming._features) ?? new ReferenceList([])
         returnValue._examples = this._examples.merge(incoming._examples) ?? new ReferenceList([])
@@ -156,8 +202,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const returnValue = new StandardRoomPayload()
         // Invert shortName if it exists (StandardLiteral has invert() from v2StandardEditableFactory)
         returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
-        // Invert each exit (StandardExit has invert() from v2StandardEditableFactory)
-        returnValue._exits = this._exits.map((exit) => exit.invert() as StandardExit)
+        // Invert exits using ExitFacetList.invert()
+        returnValue._exits = this._exits.invert()
         // Invert each ReferenceList
         returnValue._lenses = this._lenses.invert()
         returnValue._features = this._features.invert()
@@ -234,13 +280,11 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     referencedKeys(): StandardComponentReferenceKey[] {
         return [
-            ...exitReferenceKeys(this.exits)
-                .map((key) => {
-                    // Create StandardReference for exit - exits always reference rooms
-                    const exitKey = isSchemaComponentUUID(key) ? new StandardKey(key) : new StandardKey({ key })
-                    const exitReference = new StandardReference(exitKey, 'Room')
-                    return { referenceType: 'Exit' as const, reference: exitReference }
-                }),
+            ...this.exits.items.map((facet) => {
+                // Extract reference from facet - exits always reference rooms
+                const ref = facet.reference as StandardReference
+                return { referenceType: 'Exit' as const, reference: ref }
+            }),
             ...this.lenses.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.examples.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
@@ -269,7 +313,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._lenses = returnValue._lenses.toFormat(props.mapTo, props.mappings)
         returnValue._examples = returnValue._examples.toFormat(props.mapTo, props.mappings)
         returnValue._features = returnValue._features.toFormat(props.mapTo, props.mappings)
-        returnValue._exits = returnValue._exits.map((exit) => exit.remapReferences(props))
+        returnValue._exits = this._exits.lookup(props.mappings).toFormat(props.mapTo)
         return returnValue as this
     }
 
@@ -331,11 +375,12 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         if (!(incoming instanceof StandardRoom)) {
             return false
         }
+        const exitsDiff = this.exits.diff(incoming.exits)
         return !(this.lenses.diff(incoming.lenses)?.payload.length) &&
             !(this.features.diff(incoming.features)?.payload.length) &&
             !(this.examples.diff(incoming.examples)?.payload.length) &&
             !(this.characters.diff(incoming.characters)?.payload.length) &&
-            !(diffStandardExitList(this.exits, incoming.exits).length) &&
+            !(exitsDiff?.length) &&
             deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
     }
 

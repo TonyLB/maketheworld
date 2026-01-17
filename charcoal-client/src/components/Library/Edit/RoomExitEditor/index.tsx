@@ -17,9 +17,8 @@ import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import SidebarTitle from "../SidebarTitle"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
-import { StandardExit, StandardExitBase } from "@tonylb/mtw-wml/ts/standardize/components/exit"
+import { StandardExitFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
-import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 
 type RoomExitEditorProps = {
     RoomId: ComponentUUID;
@@ -85,8 +84,8 @@ const ExitTargetSelector: FunctionComponent<{
 }
 
 const ExitEditor: FunctionComponent<{
-    exit: StandardExit;
-    onUpdate: (exit: StandardExit) => void;
+    exit: StandardExitFacet;
+    onUpdate: (exit: StandardExitFacet) => void;
     onDelete: () => void;
     disabled?: boolean;
     currentRoomKey: string | undefined;
@@ -96,21 +95,21 @@ const ExitEditor: FunctionComponent<{
 
     const handleDescriptionChange = useCallback((newDescription: string) => {
         if (!isDisabled) {
-            // Create a new exit with updated description
-            const updatedExit: StandardExit = exit.clone()
-            if ((updatedExit as any)._payload instanceof StandardExitBase) {
-                (updatedExit as any)._payload._description = new StandardLiteral(newDescription)
-            }
+            // Create a new exit facet with updated description
+            const updatedExit = new StandardExitFacet({
+                reference: exit.reference.toJSON(),
+                payload: newDescription || undefined
+            })
             onUpdate(updatedExit)
         }
     }, [exit, onUpdate, isDisabled])
 
     const handleTargetChange = useCallback((newTarget: string) => {
         if (!isDisabled && newTarget) {
-            // Create a new exit with updated target
-            const updatedExit = StandardExit.create({
-                to: { tag: 'Room', key: newTarget },
-                description: exit.plain?.description?.toJSON()
+            // Create a new exit facet with updated target
+            const updatedExit = new StandardExitFacet({
+                reference: { tag: 'Room', key: newTarget },
+                payload: exit.payload.toJSON()
             })
             onUpdate(updatedExit)
         }
@@ -118,19 +117,14 @@ const ExitEditor: FunctionComponent<{
 
     // Get the current description text safely
     const currentDescription = useMemo(() => {
-        if (exit.plain?.description) {
-            return exit.plain.description.toJSON()
-        }
-        return ''
-    }, [exit.plain?.description])
+        const desc = exit.payload.toJSON()
+        return typeof desc === 'string' ? desc : ''
+    }, [exit.payload])
 
     // Get the current target safely
     const currentTarget = useMemo(() => {
-        if (exit.plain?.to) {
-            return exit.plain.to.key || ''
-        }
-        return ''
-    }, [exit.plain?.to])
+        return exit.reference.standardKey.key || ''
+    }, [exit.reference])
 
     return (
         <ListItem
@@ -191,7 +185,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
         return null
     }, [RoomId, standardForm])
 
-    const exits = useMemo(() => room?.exits || [], [room])
+    const exits = useMemo(() => room?.exits.items || [], [room])
 
     const addExit = useCallback(() => {
         if (!room) return
@@ -201,19 +195,19 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             update: (component) => {
                 const base = component.byUniversalId[RoomId]
                 if (base instanceof StandardRoom) {
-                    // Create a new empty exit
-                    const newExit = StandardExit.create({
-                        to: { tag: 'Room', key: '' },
-                        description: undefined
+                    // Create a new empty exit facet
+                    const newExitFacet = new StandardExitFacet({
+                        reference: { tag: 'Room', key: '' },
+                        payload: undefined
                     })
-                    base._payload._exits.push(newExit)
+                    base._payload._exits.items.push(newExitFacet)
                 }
                 return component
             }
         })
     }, [room, RoomId, updateStandard])
 
-    const updateExit = useCallback((index: number, updatedExit: StandardExit) => {
+    const updateExit = useCallback((index: number, updatedExit: StandardExitFacet) => {
         if (!room) return
 
         updateStandard({
@@ -221,7 +215,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             update: (component) => {
                 const base = component.byUniversalId[RoomId]
                 if (base instanceof StandardRoom) {
-                    base._payload._exits[index] = updatedExit
+                    base._payload._exits.items[index] = updatedExit
                 }
                 return component
             }
@@ -236,7 +230,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
             update: (component) => {
                 const base = component.byUniversalId[RoomId]
                 if (base instanceof StandardRoom) {
-                    base._payload._exits.splice(index, 1)
+                    base._payload._exits.items.splice(index, 1)
                 }
                 return component
             }

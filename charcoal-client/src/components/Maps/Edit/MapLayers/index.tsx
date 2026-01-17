@@ -229,11 +229,10 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
         ) as `ROOM#${string}`[]
         
         // Helper function to get relevant exits from a room
-        const getRelevantExits = (room: StandardRoom): StandardExit[] => {
-            return room.exits.filter((exit) => {
-                const destinationId = exit.plain?.to.universalKey
-                const destinationKey = destinationId
-                return destinationKey && allPositionedRoomIds.includes(destinationKey as `ROOM#${string}`)
+        const getRelevantExits = (room: StandardRoom) => {
+            return room.exits.items.filter((exitFacet) => {
+                const destinationId = exitFacet.reference.universalKey
+                return destinationId && allPositionedRoomIds.includes(destinationId as `ROOM#${string}`)
             })
         }
         
