@@ -23,7 +23,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.features).toBeDefined()
         expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
-        expect(testRoom.exits.items.map((exit) => (exit.toJSON()))).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
+        expect(testRoom.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
         expect(testRoom.universalKey).toEqual('ROOM#123')
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
@@ -46,7 +46,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.examples).toBeDefined()
         expect(testRoom.examples!.toJSON()).toEqual(['EXAMPLE#base'])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
-        expect(testRoom.exits.items.map((exit) => (exit.toJSON()))).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
+        expect(testRoom.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
         expect(testRoom.universalKey).toEqual('ROOM#123')
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
@@ -77,7 +77,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.features).toBeDefined()
         expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
-        expect(testRoom.exits.items.map((exit) => exit.toJSON())).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
+        expect(testRoom.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
         expect(testRoom.toJSON()).toEqual(testRoomData)
     })
 
@@ -143,7 +143,7 @@ describe('StandardRoom class', () => {
                 <Exit to=(ROOM#testRoomTwo)>exit</Exit>
             </Room>
         `)
-        expect(test.exits.items.map((exit) => (exit.toJSON()))).toEqual([{ reference: 'ROOM#testRoomTwo', payload: 'exit' }])
+        expect(test.exits.toJSON()).toEqual([{ reference: 'ROOM#testRoomTwo', payload: 'exit' }])
         expect(test.referencedKeys().map(({ reference, ...rest }) => ({ key: reference.standardKey.toJSON(), ...rest }))).toEqual([{ key: 'ROOM#testRoomTwo', referenceType: 'Exit' }])
     })
 
@@ -774,7 +774,7 @@ describe('StandardRoom class', () => {
             // Double inversion should return to original (within merge equivalence)
             // We compare JSON output since the objects may not be strictly equal
             expect(doubleInverted.shortName?.toJSON()).toEqual(room._payload.shortName?.toJSON())
-            expect(doubleInverted.exits.items.map(e => e.toJSON())).toEqual(room._payload.exits.items.map(e => e.toJSON()))
+            expect(doubleInverted.exits.toJSON()).toEqual(room._payload.exits.toJSON())
             expect(doubleInverted.features.toJSON()).toEqual(room._payload.features.toJSON())
             expect(doubleInverted.examples.toJSON()).toEqual(room._payload.examples.toJSON())
         })
