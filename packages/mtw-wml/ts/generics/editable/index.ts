@@ -40,6 +40,7 @@ export type StandardEditableFactoryProps<DataType, FinalType extends StandardEdi
     add: (base: DataType, incoming: DataType) => DataType;
     subtract: (base: DataType, incoming: DataType, options?: { fromStart?: boolean }) => StandardEditableDataDelta<DataType>;
     diff: (base: DataType, incoming: DataType) => StandardEditableDataDelta<DataType>;
+    validateReplace?: (baseAdd: DataType, incomingAdd: DataType, incomingRemove: DataType) => void;
 }
 
 export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayload<any>> = {
@@ -52,7 +53,8 @@ export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayl
 export const addDelta = <FinalType extends StandardEditablePayload<any>>(
         add: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>) => PayloadDataType<FinalType>,
         subtract: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>, options?: { fromStart?: boolean }) => StandardEditableDataDelta<PayloadDataType<FinalType>>,
-        diff: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>, options?: { fromStart?: boolean }) => StandardEditableDataDelta<PayloadDataType<FinalType>>
+        diff: (base: PayloadDataType<FinalType>, incoming: PayloadDataType<FinalType>, options?: { fromStart?: boolean }) => StandardEditableDataDelta<PayloadDataType<FinalType>>,
+        validateReplace?: (baseAdd: PayloadDataType<FinalType>, incomingAdd: PayloadDataType<FinalType>, incomingRemove: PayloadDataType<FinalType>) => void
     ) => (
         base: StandardEditableDataDelta<PayloadDataType<FinalType>>,
         incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>
@@ -68,15 +70,14 @@ export const addDelta = <FinalType extends StandardEditablePayload<any>>(
         const cancelledDelta = subtract(baseAdd, incomingRemove)
         
         // If baseAdd was completely cancelled (no remaining add) and we have an incomingAdd,
-        // this means we're trying to replace baseAdd with incomingAdd. We need to validate
-        // that they point to the same component (for references) or throw an error.
-        if (!cancelledDelta.add && incomingAdd) {
-            // Validate that incomingAdd points to the same component as baseAdd
-            // This prevents Replace operations from changing target components
-            add(baseAdd, incomingAdd)
+        // this means we're trying to replace baseAdd with incomingAdd.
+        // If validateReplace is provided, use it to validate the Replace operation.
+        // If not provided, no validation is performed (types that need validation should provide validateReplace).
+        if (!cancelledDelta.add && incomingAdd && validateReplace) {
+            validateReplace(baseAdd, incomingAdd, incomingRemove)
         }
         
-        return addDelta(add, subtract, diff)(
+        return addDelta(add, subtract, diff, validateReplace)(
             { add: cancelledDelta.add, remove: baseRemove },
             { add: incomingAdd, remove: cancelledDelta.remove }
         )
@@ -308,7 +309,7 @@ export const v2StandardEditableFactory = <DataType, FinalType extends StandardEd
         merge(other: StandardEditableWrapper<FinalType>): GeneratedV2EditableClass | undefined {
             const baseDelta = this._delta;
             const incomingDelta = (other as any)._delta;
-            const mergedDelta = addDelta(props.add, props.subtract, props.diff)(baseDelta, incomingDelta);
+            const mergedDelta = addDelta(props.add, props.subtract, props.diff, props.validateReplace)(baseDelta, incomingDelta);
             const result = GeneratedV2EditableClass.fromDelta(mergedDelta);
             return result ? this._wrap(result) : undefined;
         }
