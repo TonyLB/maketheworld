@@ -2,7 +2,6 @@ import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import MapDThree from "../Edit/MapDThree"
 import { SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
 import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
-import { StandardPosition } from "@tonylb/mtw-wml/ts/standardize/components/position"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardExitPlain } from "@tonylb/mtw-wml/ts/standardize/components/exit"
 
@@ -169,8 +168,11 @@ export type MapDispatchAction = MapDispatchSetTool |
     MapDispatchUnlockRoom
 
 export type MapContextPosition = {
-    position: StandardPosition;
-    name: string
+    roomId: `ROOM#${string}`;
+    id: `ROOM#${string}`;
+    x: number;
+    y: number;
+    name: string;
 }
 
 export type MapContextType = {
