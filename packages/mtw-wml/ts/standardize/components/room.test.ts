@@ -54,7 +54,7 @@ describe('StandardRoom class', () => {
     it('should ignore Position tags', () => {
         const testSource = deIndentWML(`
             <Room key=(test)>
-                <Position x="0" y="100" />
+                <Position {0, 100} />
             </Room>
         `)
         const testRoom = new StandardRoom(testSource)

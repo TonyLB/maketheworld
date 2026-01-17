@@ -67,7 +67,7 @@ Used for references to components or other keys. The value is treated as a key i
 Used for string values that should be preserved exactly as written.
 
 ```
-<Position x="0" y="250" />
+<Position {0, 250} />
 ```
 
 ### Curly Braces `{value}` - Typed and Validated Values

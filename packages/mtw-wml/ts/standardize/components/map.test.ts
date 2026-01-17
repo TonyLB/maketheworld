@@ -13,7 +13,7 @@ describe('StandardMap class', () => {
             <Map uuid=(001) key=(test)>
                 <Name>Name Test</Name>
                 <Image key=(testImage) />
-                <Room key=(testRoom)><Position x="100" y="100" /></Room>
+                <Room key=(testRoom)><Position {100, 100} /></Room>
             </Map>
         `)
         const testMap = new StandardMap(testSource)
@@ -31,7 +31,7 @@ describe('StandardMap class', () => {
             <Map key=(test)>
                 <Name>Name Test</Name>
                 <Image key=(testImage) />
-                <Room key=(testRoom)><Position x="100" y="100" /></Room>
+                <Room key=(testRoom)><Position {100, 100} /></Room>
             </Map>
         `)
         schema.loadWML(testSource)
@@ -68,10 +68,10 @@ describe('StandardMap class', () => {
             <Map key=(testMap)>
                 <Room key=(testRoom)>
                     <Parent />
-                    <Position x="100" y="100" />
+                    <Position {100, 100} />
                 </Room>
                 <Room key=(testRoomTwo)>
-                    <Position x="100" y="100" />
+                    <Position {100, 100} />
                 </Room>
             </Map>
         `))
@@ -92,7 +92,7 @@ describe('StandardMap class', () => {
             <Map key=(testMap)>
                 <Name>Lobby</Name>
                 <Room key=(testRoom)>
-                    <Position x="100" y="100" />
+                    <Position {100, 100} />
                     <ShortName>Room Name</ShortName>
                     <Exit to=(testRoomTwo)>Exit</Exit>
                 </Room>
@@ -124,17 +124,17 @@ describe('StandardMap class', () => {
         expect(mergeTest(
             `<Map key=(testMap)>
                 <Name>Lobby</Name>
-                <Room key=(testRoom)><Position x="100" y="100" /></Room>
+                <Room key=(testRoom)><Position {100, 100} /></Room>
             </Map>`,
             StandardMap,
             `<Map key=(testMap)>
-                <Room key=(testRoomTwo)><Position x="100" y="50" /></Room>
+                <Room key=(testRoomTwo)><Position {100, 50} /></Room>
             </Map>`
         )).toEqual(deIndentWML(`
             <Map key=(testMap)>
                 <Name>Lobby</Name>
-                <Room key=(testRoom)><Position x="100" y="100" /></Room>
-                <Room key=(testRoomTwo)><Position x="100" y="50" /></Room>
+                <Room key=(testRoom)><Position {100, 100} /></Room>
+                <Room key=(testRoomTwo)><Position {100, 50} /></Room>
             </Map>
         `))
     })

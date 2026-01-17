@@ -330,7 +330,7 @@ describe('personalAsset slice reducers', () => {
                 `
                 <Asset uuid=(testAsset)>
                     <Room uuid=(Room2)><Example uuid=(base)><Name>Garden</Name></Example></Room>
-                    <Map uuid=(testMap)><Room uuid=(Room2)><Position x="0" y="0" /></Room></Map>
+                    <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
                 </Asset>
                 `,
                 `
@@ -345,19 +345,19 @@ describe('personalAsset slice reducers', () => {
                 base: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room2)><Example uuid=(base)><Name>Garden</Name></Example></Room>
-                        <Map uuid=(testMap)><Room uuid=(Room2)><Position x="0" y="0" /></Room></Map>
+                        <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
                     </Asset>
                 `),
                 standard: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room2)><Example uuid=(base)><Name>Garden</Name></Example></Room>
-                        <Map uuid=(testMap)><Room uuid=(Room2)><Position x="0" y="0" /></Room></Map>
+                        <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
                     </Asset>
                 `),
                 calculated: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room2)><Example uuid=(base)><Name>Garden</Name></Example></Room>
-                        <Map uuid=(testMap)><Room uuid=(Room2)><Position x="0" y="0" /></Room></Map>
+                        <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
                     </Asset>
                 `),
                 edit: deIndentWML(`
@@ -370,12 +370,12 @@ describe('personalAsset slice reducers', () => {
                         </Remove>
                         <Replace>
                             <Map uuid=(testMap)>
-                                <Room uuid=(Room2)><Position x="0" y="0" /></Room>
+                                <Room uuid=(Room2)><Position {0, 0} /></Room>
                             </Map>
                         </Replace>
                         <With>
                             <Map uuid=(testMap)>
-                                <Room uuid=(Room2)><Position x="0" y="0" /></Room>
+                                <Room uuid=(Room2)><Position {0, 0} /></Room>
                             </Map>
                         </With>
                     </Asset>

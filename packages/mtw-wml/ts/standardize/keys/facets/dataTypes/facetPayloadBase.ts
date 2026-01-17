@@ -7,7 +7,7 @@ import { StandardReference } from "../../reference";
  * 
  * Different facet payload types require fundamentally different WML rendering patterns:
  * - **Exit facets**: `<Exit to=(target)>Name</Exit>` - reference embedded in tag properties, payload as content. These create **new nodes** in the parent (Map) that don't enhance existing Room references.
- * - **Position facets**: `<Room to=(target)><Position x={0} y={100} /></Room>` - reference as parent tag, payload as child tag. These **enhance existing Room references** rendered by the parent Map (either pre-existing Room renders or Room references from a `rooms` reference list).
+ * - **Position facets**: `<Room to=(target)><Position {0, 100} /></Room>` - reference as parent tag, payload as child tag. These **enhance existing Room references** rendered by the parent Map (either pre-existing Room renders or Room references from a `rooms` reference list).
  * - **Mark facets**: `<Mark uuid=(target)><Match>Condition</Match></Mark>` - reference as parent tag, payload as child tag. These **enhance existing Mark references** rendered by the parent Example (from a `marks` reference list).
  * 
  * Following the precedent established by `StandardExitBase` and `StandardPositionSimpleBase`, each payload type

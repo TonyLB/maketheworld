@@ -365,7 +365,7 @@ describe("processComponents", () => {
                 <Map key=(testMap)>
                     <Room key=(testRoom)>
                         <Example uuid=(testRoomExample)><Description>Test</Description></Example>
-                        <Position x="0" y="100" />
+                        <Position {0, 100} />
                         <Exit to=(testTwo)>Test Exit</Exit>
                     </Room>
                 </Map>
@@ -380,7 +380,7 @@ describe("processComponents", () => {
         })
         expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
             deIndentWML(`
-                <Map key=(testMap)><Room key=(testRoom)><Position x="0" y="100" /></Room></Map>
+                <Map key=(testMap)><Room key=(testRoom)><Position {0, 100} /></Room></Map>
             `),
             deIndentWML(`
                 <Room key=(testRoom)>

@@ -19,7 +19,7 @@ describe('MapDThree', () => {
             <Asset uuid=(inheritedAsset)>
                 <Map uuid=(testMap)>
                     <Room uuid=(GHI)>
-                        <Position x="300" y="300" />
+                        <Position {300, 300} />
                         <ShortName>Room GHI</ShortName>
                     </Room>
                 </Map>
@@ -31,11 +31,11 @@ describe('MapDThree', () => {
             <Asset uuid=(editableAsset)>
                 <Map uuid=(testMap)>
                     <Room uuid=(DEF)>
-                        <Position x="300" y="200" />
+                        <Position {300, 200} />
                         <ShortName>Room DEF</ShortName>
                     </Room>
                     <Room uuid=(ABC)>
-                        <Position x="200" y="200" />
+                        <Position {200, 200} />
                         <ShortName>Room ABC</ShortName>
                     </Room>
                 </Map>
@@ -72,7 +72,7 @@ describe('MapDThree', () => {
             <Asset uuid=(inheritedAsset)>
                 <Map uuid=(testMap)>
                     <Room uuid=(GHI)>
-                        <Position x="300" y="300" />
+                        <Position {300, 300} />
                     </Room>
                 </Map>
             </Asset>
@@ -82,7 +82,7 @@ describe('MapDThree', () => {
             <Asset uuid=(editableAsset)>
                 <Map uuid=(testMap)>
                     <Room uuid=(DEF)>
-                        <Position x="300" y="200" />
+                        <Position {300, 200} />
                     </Room>
                 </Map>
             </Asset>

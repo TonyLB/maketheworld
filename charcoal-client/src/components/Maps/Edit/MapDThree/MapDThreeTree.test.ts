@@ -23,9 +23,9 @@ describe('mapTranslate', () => {
         const testStandard = new StandardForm(`
             <Asset uuid=(testOne)>
                 <Map uuid=(testMap)>
-                    <Room uuid=(Room1)><Position x="100" y="100" /></Room>
-                    <Room uuid=(Room2)><Position x="200" y="150" /></Room>
-                    <Room uuid=(Room3)><Position x="300" y="200" /></Room>
+                    <Room uuid=(Room1)><Position {100, 100} /></Room>
+                    <Room uuid=(Room2)><Position {200, 150} /></Room>
+                    <Room uuid=(Room3)><Position {300, 200} /></Room>
                 </Map>
             </Asset>
         `)
@@ -47,13 +47,13 @@ describe('mapTranslate', () => {
         const testStandard = new StandardForm(`
             <Asset uuid=(testOne)>
                 <Map uuid=(testMap)>
-                    <Room uuid=(Room1)><Position x="100" y="100" /></Room>
-                    <Room uuid=(Room2)>
-                        <Position x="200" y="150" />
+                <Room uuid=(Room1)><Position {100, 100} /></Room>
+                <Room uuid=(Room2)>
+                        <Position {200, 150} />
                         <Exit to=(ROOM#Room1)>North</Exit>
                         <Exit to=(ROOM#Room3)>South</Exit>
                     </Room>
-                    <Room uuid=(Room3)><Position x="200" y="250" /></Room>
+                    <Room uuid=(Room3)><Position {200, 250} /></Room>
                 </Map>
             </Asset>
         `)
@@ -77,7 +77,7 @@ describe('mapTranslate', () => {
     it('should throw error when map is not found', () => {
         const testStandard = new StandardForm(`
             <Asset uuid=(testOne)>
-                <Room uuid=(Room1)><Position x="100" y="100" /></Room>
+                <Room uuid=(Room1)><Position {100, 100} /></Room>
             </Asset>
         `)
         
@@ -95,11 +95,11 @@ describe('MapDThreeStack', () => {
     testSchema.loadWML(`
         <Asset uuid=(testOne)>
             <Map key=(testMap)>
-                <Room key=(GHI)><Position x="300" y="300" /></Room>
-                <Room key=(DEF)><Position x="300" y="200" /></Room>
-                <Room key=(ABC)><Position x="200" y="200" /></Room>
+                <Room key=(GHI)><Position {300, 300} /></Room>
+                <Room key=(DEF)><Position {300, 200} /></Room>
+                <Room key=(ABC)><Position {200, 200} /></Room>
                 <If {true}>
-                    <Room key=(GHI)><Position x="300" y="300" /></Room>
+                    <Room key=(GHI)><Position {300, 300} /></Room>
                 </If>
             </Map>
         </Asset>
@@ -170,16 +170,16 @@ describe('MapDThreeStack', () => {
         const inherited = new StandardForm(`
             <Asset uuid=(inherited)>
                 <Map uuid=(testMap)>
-                    <Room uuid=(ABC) origin=(ASSET#inherited)><Position x="200" y="200" /></Room>
-                    <Room uuid=(DEF) origin=(ASSET#inherited)><Position x="100" y="200" /></Room>
+                    <Room uuid=(ABC) origin=(ASSET#inherited)><Position {200, 200} /></Room>
+                    <Room uuid=(DEF) origin=(ASSET#inherited)><Position {100, 200} /></Room>
                 </Map>
             </Asset>
         `)
         const editable = new StandardForm(`
             <Asset uuid=(editable)>
                 <Map uuid=(testMap)>
-                    <Room uuid=(DEF)><Position x="300" y="200" /></Room>
-                    <Room uuid=(GHI)><Position x="300" y="300" /></Room>
+                    <Room uuid=(DEF)><Position {300, 200} /></Room>
+                    <Room uuid=(GHI)><Position {300, 300} /></Room>
                 </Map>
             </Asset>
         `)

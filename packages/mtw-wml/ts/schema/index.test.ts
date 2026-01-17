@@ -353,8 +353,8 @@ describe('schemaFromParse', () => {
                 <Map key=(testMap)>
                     <Image key=(image1) />
                     <Name>Test Map</Name>
-                    <Room key=(ABC)><Position x="100" y="0" /></Room>
-                    <Room key=(DEF)><Position x="-100" y="0" /></Room>
+                    <Room key=(ABC)><Position {100, 0} /></Room>
+                    <Room key=(DEF)><Position {-100, 0} /></Room>
                 </Map>
             </Asset>
         `)))
@@ -555,7 +555,7 @@ describe('schemaToWML', () => {
                 </Knowledge>
                 <Map uuid=(123-map) key=(map1)>
                     <Name>Test Map</Name>
-                    <Room key=(ABC)><Position x="100" y="0" /></Room>
+                    <Room key=(ABC)><Position {100, 0} /></Room>
                 </Map>
                 <Moment uuid=(123-moment) key=(moment1)>
                     <Message uuid=(123-message) key=(message1)>
