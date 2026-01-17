@@ -29,8 +29,7 @@ export interface StandardEditableWrapper<PayloadType extends StandardEditablePay
     diff: (incoming: StandardEditableWrapper<PayloadType>) => StandardEditableWrapper<PayloadType> | undefined;
     plain: PayloadType | undefined;
     _delta: StandardEditableDataDelta<PayloadDataType<PayloadType>>;
-    // TODO: Add remapReferences method to interface when deprecating legacy standardEditableFactory
-    // remapReferences: (props: { mapTo: ReferenceFormat, mappings: StandardKey[] }) => StandardEditableWrapper<PayloadType>;
+    remapReferences: (props: { mapTo: ReferenceFormat, mappings: StandardReference[] }) => StandardEditableWrapper<PayloadType>;
 }
 
 export type StandardEditableFactoryProps<DataType, FinalType extends StandardEditablePayload<DataType>> = {
@@ -41,13 +40,6 @@ export type StandardEditableFactoryProps<DataType, FinalType extends StandardEdi
     subtract: (base: DataType, incoming: DataType, options?: { fromStart?: boolean }) => StandardEditableDataDelta<DataType>;
     diff: (base: DataType, incoming: DataType) => StandardEditableDataDelta<DataType>;
     validateReplace?: (baseAdd: DataType, incomingAdd: DataType, incomingRemove: DataType) => void;
-}
-
-export type StandardEditableFactoryReturn<FinalType extends StandardEditablePayload<any>> = {
-    constructorDelta: (props: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string) => StandardEditableDataDelta<FinalType> | undefined;
-    typeguard: (x: any) => x is StandardEditableData<PayloadDataType<FinalType>>;
-    merge: (base: StandardEditableDataDelta<PayloadDataType<FinalType>>, incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>) => StandardEditableDataDelta<PayloadDataType<FinalType>>;
-    diff: (base: StandardEditableDataDelta<PayloadDataType<FinalType>>, incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>) => StandardEditableDataDelta<PayloadDataType<FinalType>>;
 }
 
 export const addDelta = <FinalType extends StandardEditablePayload<any>>(
@@ -103,117 +95,6 @@ export const diffDelta = <FinalType extends StandardEditablePayload<any>>(
         { add: baseRemove, remove: baseAdd },
         incoming
     )
-}        
-
-export const standardEditableFactory = <FinalType extends StandardEditablePayload<any>>(props: StandardEditableFactoryProps<PayloadDataType<FinalType>, FinalType>): StandardEditableFactoryReturn<FinalType> => {
-    return {
-        constructorDelta: (constructorProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> | string) => {
-            //
-            // First check whether the props are a StandardEditableData of the appropriate data type. If it is, then we call the payloadFactory method on the discovered payload data and return the result.
-            //
-            if (props.typeguard(constructorProps)) {
-                const payload = props.payloadFactory(constructorProps)
-                if (payload) {
-                    return { add: payload }
-                }
-                return undefined
-            }
-            //
-            // Next, check whether the props are a string that needs to be parsed into a schema tree.
-            //
-            const factoryProps: StandardEditableData<PayloadDataType<FinalType>> | FinalType | GenericTree<SchemaTag> = typeof constructorProps === 'string' ? treeFromWML(constructorProps) : constructorProps
-
-            //
-            // Next check whether the incoming argument to the factory is a StandardEditableData of the appropriate
-            // data type. If it is, then we call the payloadFactory method on the discovered payload data and return the result.
-            //
-            const isRemove = (value: any): value is { tag: 'Remove'; match: PayloadDataType<FinalType> } => {
-                return typeof value === 'object' && value !== null && value.tag === 'Remove' && props.typeguard(value.match)
-            }
-            const isReplace = (value: any): value is { tag: 'Replace'; match: PayloadDataType<FinalType>; payload: PayloadDataType<FinalType> } => {
-                return typeof value === 'object' && value !== null && value.tag === 'Replace' && props.typeguard(value.match) && props.typeguard(value.payload)
-            }
-            if (props.typeguard(factoryProps)) {
-                const payload = props.payloadFactory(factoryProps)
-                if (payload) {
-                    return { add: payload }
-                }
-                return undefined
-            }
-            if ((Array.isArray(factoryProps) && factoryProps.every(isSchemaTreeNode)) || typeof factoryProps === 'string') {
-                const schema = typeof factoryProps === 'string' ? treeFromWML(factoryProps) : factoryProps
-                if (schema.length === 0) {
-                    return undefined
-                }
-                const firstElement = schema[0]
-                if (treeNodeTypeguard(isSchemaRemove)(firstElement)) {
-                    const payload = props.payloadFactory(firstElement.children)
-                    if (payload) {
-                        return { remove: payload }
-                    }
-                    return undefined
-                }
-                else if (treeNodeTypeguard(isSchemaReplace)(firstElement)) {
-                    const matchPayload = firstElement.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
-                    const payloadPayload = firstElement.children.find(treeNodeTypeguard(isSchemaReplacePayload))
-                    if (matchPayload && payloadPayload) {
-                        const match = props.payloadFactory(matchPayload.children)
-                        const payload = props.payloadFactory(payloadPayload.children)
-                        if (match && payload) {
-                            return { remove: match, add: payload }
-                        }
-                    }
-                    return undefined
-                }
-                else {
-                    const payload = props.payloadFactory(schema)
-                    if (payload) {
-                        return { add: payload }
-                    }
-                    return undefined
-                }
-            }
-            if (isRemove(factoryProps)) {
-                const removePayload = factoryProps.match
-                const payload = props.payloadFactory(removePayload)
-                if (payload) {
-                    return { remove: payload }
-                }
-                return undefined
-            }
-            if (isReplace(factoryProps)) {
-                const matchPayload = factoryProps.match
-                const payloadPayload = factoryProps.payload
-                const match = props.payloadFactory(matchPayload)
-                const payload = props.payloadFactory(payloadPayload)
-                if (match && payload) {
-                    return { remove: match, add: payload }
-                }
-                return undefined
-            }
-            return undefined
-        },
-        typeguard: (x: any): x is PayloadDataType<FinalType> => {
-            if (props.typeguard(x)) {
-                return true
-            }
-            if (typeof x === 'object' && x !== null) {
-                if (x.tag === 'Remove' && props.typeguard(x.match)) {
-                    return true
-                }
-                if (x.tag === 'Replace' && props.typeguard(x.match) && props.typeguard(x.payload)) {
-                    return true
-                }
-            }
-            return false
-        },
-        merge: (base: StandardEditableDataDelta<PayloadDataType<FinalType>>, incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>) => {
-            return addDelta(props.add, props.subtract, props.diff)(base, incoming)
-        },
-        diff: (base: StandardEditableDataDelta<PayloadDataType<FinalType>>, incoming: StandardEditableDataDelta<PayloadDataType<FinalType>>) => {
-            return diffDelta(props.add, props.subtract, props.diff)(base, incoming)
-        }
-    }
 }
 
 // v2StandardEditableFactory - Creates abstract parent class with concrete subtype instances
