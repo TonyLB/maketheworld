@@ -1,4 +1,4 @@
-import { StandardRenderSimple, StandardRenderRemove, StandardRenderReplace, StandardRender, StandardRenderSimpleCompareDirection } from './index'
+import { StandardRender, PlainClass as StandardRenderSimple, RemoveClass as StandardRenderRemove, ReplaceClass as StandardRenderReplace, StandardRenderSimpleCompareDirection } from './index'
 import { Schema, schemaToWML } from '../../schema'
 import { deIndentWML } from '../../schema/utils'
 import StandardReference from '../keys/reference'
@@ -7,7 +7,7 @@ describe('StandardRenderRemove', () => {
     it('should create an instance from valid incoming schema', () => {
         const schema = new Schema()
         schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
-        const render = new StandardRenderRemove(schema.schema)
+        const render = StandardRenderRemove.create(schema.schema)
         expect(render.schema).toEqual(schema.schema)
     })
 })
@@ -23,7 +23,7 @@ describe('StandardRenderReplace', () => {
                 Another<Link to=(Feature2)>Link</Link>
             </With>
         `)
-        const render = new StandardRenderReplace(schema.schema)
+        const render = StandardRenderReplace.create(schema.schema)
         expect(render.schema).toEqual(schema.schema)
     })
 })
@@ -35,83 +35,87 @@ describe('StandardRenderSimple', () => {
             Example<Link to=(Feature1)>Link</Link><br />
             Another Example<Space />
         `)
-        const render = new StandardRenderSimple(schema.schema)
+        const render = StandardRenderSimple.create(schema.schema)
         expect(render.schema).toEqual(schema.schema)
         expect(render.toJSON()).toEqual(['Example', { data: { tag: 'Link', to: 'Feature1', text: 'Link' }, children: ['Link'] }, { data: { tag: 'br' }, children: [] }, 'Another Example', { data: { tag: 'Space' }, children: [] }])
     })
 
     it('should merge whitespace to a single space', () => {
-        const base = new StandardRenderSimple(['Test '])
-        const merged = base.merge(new StandardRenderSimple([' Test']))
+        const base = StandardRenderSimple.create(['Test '])
+        const merged = base.merge(StandardRenderSimple.create([' Test']))
         expect(merged).toBeDefined()
         if (merged) {
-            expect(merged.toJSON()).toEqual(new StandardRenderSimple(['Test Test']).toJSON())
+            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test Test']).toJSON())
         }
     })
 
     it('should count a Space tag as a single whitespace', () => {
-        const base = new StandardRenderSimple(['Test', { data: { tag: 'Space' }, children: [] }])
-        const merged = base.merge(new StandardRenderSimple([{ data: { tag: 'Space' }, children: [] }, 'Test']))
+        const base = StandardRenderSimple.create(['Test', { data: { tag: 'Space' }, children: [] }])
+        const merged = base.merge(StandardRenderSimple.create([{ data: { tag: 'Space' }, children: [] }, 'Test']))
         expect(merged).toBeDefined()
         if (merged) {
-            expect(merged.toJSON()).toEqual(new StandardRenderSimple(['Test Test']).toJSON())
+            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test Test']).toJSON())
         }
     })
 
     it('should reduce multiple instances of line breaks and whitespace to a single line break', () => {
-        const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }])
-        const merged = base.merge(new StandardRenderSimple([{ data: { tag: 'Space' }, children: [] }, { data: { tag: 'br' }, children: [] }, 'Test']))
+        const base = StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }])
+        const merged = base.merge(StandardRenderSimple.create([{ data: { tag: 'Space' }, children: [] }, { data: { tag: 'br' }, children: [] }, 'Test']))
         expect(merged).toBeDefined()
         if (merged) {
-            expect(merged.toJSON()).toEqual(new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
+            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
         }
     })
 
     it('should trim whitespace in strings adjacent to line break', () => {
-        const base = new StandardRenderSimple(['Test ', { data: { tag: 'br' }, children: [] }])
-        const merged = base.merge(new StandardRenderSimple([' Test']))
+        const base = StandardRenderSimple.create(['Test ', { data: { tag: 'br' }, children: [] }])
+        const merged = base.merge(StandardRenderSimple.create([' Test']))
         expect(merged).toBeDefined()
         if (merged) {
-            expect(merged.toJSON()).toEqual(new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
+            expect(merged.toJSON()).toEqual(StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test']).toJSON())
         }
     })
 
     describe('diff', () => {
         describe('diff', () => {
             it('should return undefined for identical schemas', () => {
-                const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-                const target = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
+                const base = StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
+                const target = StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
                 expect(base.diff(target)).toBeUndefined()
             })
 
             it('should return a StandardRender with remove elements when target is shorter', () => {
-                const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-                const target = new StandardRenderSimple(['Test'])
+                const base = StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
+                const target = StandardRenderSimple.create(['Test'])
                 const diff = base.diff(target)
-                expect(diff?.toJSON()).toEqual([{
-                    data: { tag: 'Remove' },
-                    children: [{ data: { tag: 'br' }, children: [] }, 'Test 2']
-                }])
+                // v2 factory returns StandardEditableData format: { tag: 'Remove', match: RenderTree }
+                const wrappedDiff = diff ? new StandardRender(diff) : undefined
+                expect(wrappedDiff?.toJSON()).toEqual({
+                    tag: 'Remove',
+                    match: [{ data: { tag: 'br' }, children: [] }, 'Test 2']
+                })
             })
 
             it('should return a StandardRender with additional elements when target is longer', () => {
-                const base = new StandardRenderSimple(['Test'])
-                const target = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
+                const base = StandardRenderSimple.create(['Test'])
+                const target = StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
                 const diff = base.diff(target)
-                expect(diff?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, 'Test 2'])
+                // v2 factory returns StandardEditableData format: plain RenderTree for PlainClass
+                const wrappedDiff = diff ? new StandardRender(diff) : undefined
+                expect(wrappedDiff?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, 'Test 2'])
             })
 
             it('should return a StandardRender with replace elements when base and target have different elements', () => {
-                const base = new StandardRenderSimple(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
-                const target = new StandardRenderSimple(['Example', { data: { tag: 'br' }, children: [] }, 'Example 2'])
+                const base = StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
+                const target = StandardRenderSimple.create(['Example', { data: { tag: 'br' }, children: [] }, 'Example 2'])
                 const diff = base.diff(target)
-                expect(diff?.toJSON()).toEqual([{
-                    data: { tag: 'Replace' },
-                    children: [
-                        { data: { tag: 'ReplaceMatch' }, children: ['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'] },
-                        { data: { tag: 'ReplacePayload' }, children: ['Example', { data: { tag: 'br' }, children: [] }, 'Example 2'] }
-                    ]
-                }])
+                // v2 factory returns StandardEditableData format: { tag: 'Replace', match: RenderTree, payload: RenderTree }
+                const wrappedDiff = diff ? new StandardRender(diff) : undefined
+                expect(wrappedDiff?.toJSON()).toEqual({
+                    tag: 'Replace',
+                    match: ['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'],
+                    payload: ['Example', { data: { tag: 'br' }, children: [] }, 'Example 2']
+                })
             })
 
         })
@@ -457,23 +461,23 @@ describe('StandardRender', () => {
             </With>
         `)
         const render = new StandardRender(schema.schema)
-        expect(render.mapContents((tree) => tree.map((node) => (typeof node === 'string' ? 'String' : node.data.tag))).toJSON()).toEqual([{
-            data: { tag: 'Replace' },
-            children: [
-                { data: { tag: 'ReplaceMatch' }, children: ['String', 'Link'] },
-                { data: { tag: 'ReplacePayload' }, children: ['String', 'Link'] }
-            ]
-        }])
+        // v2 factory returns StandardEditableData format: { tag: 'Replace', match: RenderTree, payload: RenderTree }
+        expect(render.mapContents((tree) => tree.map((node) => (typeof node === 'string' ? 'String' : node.data.tag))).toJSON()).toEqual({
+            tag: 'Replace',
+            match: ['String', 'Link'],
+            payload: ['String', 'Link']
+        })
     })
 
     it('should mapContents on remove payload', () => {
         const schema = new Schema()
         schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
         const render = new StandardRender(schema.schema)
-        expect(render.mapContents((tree) => tree.map((node) => (typeof node === 'string' ? 'String' : node.data.tag))).toJSON()).toEqual([{
-            data: { tag: 'Remove' },
-            children: ['String', 'Link']
-        }])
+        // v2 factory returns StandardEditableData format: { tag: 'Remove', match: RenderTree }
+        expect(render.mapContents((tree) => tree.map((node) => (typeof node === 'string' ? 'String' : node.data.tag))).toJSON()).toEqual({
+            tag: 'Remove',
+            match: ['String', 'Link']
+        })
     })
 
     it('should remap references correctly', () => {

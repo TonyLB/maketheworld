@@ -1,5 +1,5 @@
-import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { StandardRender, StandardRenderRemove, StandardRenderReplace, StandardRenderSimple, StandardRenderSimpleBase } from "../../render"
+import { treeNodeTypeguard, GenericTree } from "@tonylb/mtw-base/ts/genericTree"
+import { StandardRender, RemoveClass, ReplaceClass, PlainClass } from "../../render"
 import { EditWrappedStandardNode } from "../dataTypes/abstract"
 import { SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
@@ -17,7 +17,8 @@ export const extractStandardRender = <D extends SchemaTag>(node: EditWrappedStan
         if (!(child && treeNodeTypeguard(typeguard)(child))) {
             throw new Error(errorMessage)
         }
-        return new StandardRender(new StandardRenderRemove(child.children))
+        // Construct Remove schema structure for StandardRender constructor
+        return new StandardRender([{ data: { tag: 'Remove' as const }, children: child.children }])
     }
     if (treeNodeTypeguard(isSchemaReplace)(node)) {
         const match = node.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
@@ -26,7 +27,8 @@ export const extractStandardRender = <D extends SchemaTag>(node: EditWrappedStan
             const matchChild = match.children[0]
             const payloadChild = payload.children[0]
             if (matchChild && treeNodeTypeguard(typeguard)(matchChild) && payloadChild && treeNodeTypeguard(typeguard)(payloadChild)) {
-                return new StandardRender(new StandardRenderReplace([node]))
+                // Pass the Replace schema structure directly
+                return new StandardRender([node])
             }
         }
     }
@@ -38,20 +40,27 @@ export const rebuildSchemaFromStandardRender = <D extends SchemaTag>(render: Sta
     // Remap Links to 'key' format before generating schema (Links are always structural, never content-displaying references)
     const remappedRender = mappings ? render.remapReferences({ mapping: mappings, mapTo: 'key' }) : render
     const payload = remappedRender._payload
-    if (payload instanceof StandardRenderRemove) {
-        return { data: { tag: 'Remove' as const }, children: [{ data, children: payload.match.schema }] }
+    
+    if (payload instanceof RemoveClass) {
+        const match = (payload as any).match
+        return { data: { tag: 'Remove' as const }, children: [{ data, children: match?.schema ?? [] }] }
     }
-    if (payload instanceof StandardRenderReplace) {
+    if (payload instanceof ReplaceClass) {
+        const match = (payload as any).match
+        const replacePayload = (payload as any).payload
         return {
             data: { tag: 'Replace' as const },
             children: [
-                { data: { tag: 'ReplaceMatch' as const }, children: [{ data, children: payload.match.schema }] },
-                { data: { tag: 'ReplacePayload' as const }, children: [{ data, children: payload.payload.schema }] }
+                { data: { tag: 'ReplaceMatch' as const }, children: [{ data, children: match?.schema ?? [] }] },
+                { data: { tag: 'ReplacePayload' as const }, children: [{ data, children: replacePayload?.schema ?? [] }] }
             ]
         }
     }
-    if (payload.schema.length) {
-        return { data, children: payload.schema }
+    if (payload instanceof PlainClass) {
+        if (payload.schema.length) {
+            // StandardRender.schema returns GenericTree<SchemaOutputTag> because RenderTree only maps to SchemaOutputTag
+            return { data, children: payload.schema as GenericTree<SchemaOutputTag> }
+        }
     }
     return undefined
 }

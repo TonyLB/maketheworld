@@ -14,15 +14,12 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
 import { AssetClientPlayerAsset } from '@tonylb/mtw-interfaces/ts/asset'
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
 
-// Extended type to include fields added in Phase 1
-// ShortName/Summary are stored in DynamoDB as serialized data:
-// - ShortName: string (from StandardLiteral.toJSON())
-// - Summary: RenderTree (from StandardRender.toJSON())
 export type AssetWithMetadata = AssetClientPlayerAsset & {
     zone?: Zone;
     ShortName?: string;  // Serialized format from StandardLiteral.toJSON()
-    Summary?: RenderTree;  // Serialized format from StandardRender.toJSON()
+    Summary?: StandardEditableData<RenderTree>;  // Serialized format from StandardRender.toJSON()
 }
 
 export interface AssetCardProps {

@@ -7,7 +7,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 export type StandardLensData = {
     tag: 'Lens';
     shortName?: StandardEditableData<string>;
-    description?: RenderTree;
+    description?: StandardEditableData<RenderTree>;
     marks?: ReferenceListData;
 } & StandardBaseData
 

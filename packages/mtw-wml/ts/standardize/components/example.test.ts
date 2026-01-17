@@ -172,7 +172,7 @@ describe('StandardExample class', () => {
         expect(testExample.diff(testExample2)?.toJSON()).toEqual({
             key: 'test',
             tag: 'Example',
-            description: [{ data: { tag: 'Remove' }, children: ['Description Test'] }],
+            description: { tag: 'Remove', match: ['Description Test'] },
         })
     })
 
@@ -215,13 +215,11 @@ describe('StandardExample class', () => {
         expect(testExample.diff(testExample2)?.toJSON()).toEqual({
             key: 'test',
             tag: 'Example',
-            description: [{
-                data: { tag: 'Replace' },
-                children: [
-                    { data: { tag: 'ReplaceMatch' }, children: ['Test'] },
-                    { data: { tag: 'ReplacePayload' }, children: ['Changed'] }
-                ]
-            }],
+            description: {
+                tag: 'Replace',
+                match: ['Test'],
+                payload: ['Changed']
+            },
         })
     })
 

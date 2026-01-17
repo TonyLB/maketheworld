@@ -2,20 +2,21 @@ import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards"
 import { FacetListData } from "../../keys/abstract"
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 
 export type StandardExampleData = {
     tag: 'Example';
-    name?: RenderTree;
-    summary?: RenderTree;
-    description?: RenderTree;
+    name?: StandardEditableData<RenderTree>;
+    summary?: StandardEditableData<RenderTree>;
+    description?: StandardEditableData<RenderTree>;
     marks?: FacetListData<string>;  // MarkFacet uses string payload (Remove/Replace handled via StandardFacetData)
 } & StandardBaseData
 
 export type StandardExampleNDJSONData = {
     tag: 'Example';
-    name?: RenderTree;
-    summary?: RenderTree;
-    description?: RenderTree;
+    name?: StandardEditableData<RenderTree>;
+    summary?: StandardEditableData<RenderTree>;
+    description?: StandardEditableData<RenderTree>;
     marks?: FacetListData<string>;  // MarkFacet uses string payload (Remove/Replace handled via StandardFacetData)
 } & StandardBaseData
 

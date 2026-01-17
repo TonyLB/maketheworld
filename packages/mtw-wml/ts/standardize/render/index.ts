@@ -5,12 +5,12 @@ import StandardRenderSpace from "./space"
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { deepEqual } from "../../lib/objects"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
 import { isRenderTreeNode, isSimpleRenderTree, RenderTree, RenderTreeNode, renderTreeToSchema, renderTreeToString, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
-import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
-import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
+import { v2StandardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import StandardReference from "../keys/reference"
 import { ReferenceFormat } from "../components/utils/references"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
@@ -68,9 +68,13 @@ export class StandardRenderSimpleBase implements StandardEditablePayload<RenderT
         return new StandardRenderSimpleBase(JSON.parse(JSON.stringify(this.data)))
     }
     toJSON: () => RenderTree = () => this.data
-    remapReferences: (props: { mapping: StandardReference[], mapTo: ReferenceFormat }) => StandardRenderSimpleBase = (props) => {
+    remapReferences: (props: { mapping: StandardReference[], mapTo: ReferenceFormat } | { mappings: StandardReference[], mapTo: ReferenceFormat }) => StandardRenderSimpleBase = (props) => {
+        // Normalize props format - v2 factory uses 'mappings', but elements expect 'mapping'
+        const normalizedProps = 'mappings' in props 
+            ? { mapping: props.mappings, mapTo: props.mapTo }
+            : props;
         const simpleElements = renderTreeToSimpleElements(this.data)
-        const remappedElements = simpleElements.map((element) => (element.remapReferences(props)))
+        const remappedElements = simpleElements.map((element) => (element.remapReferences(normalizedProps)))
         return new StandardRenderSimpleBase(remappedElements.map((element) => element.toJSON()))
     }
 }
@@ -312,206 +316,88 @@ const standardRenderDiff = (base: RenderTree, incoming: RenderTree): { add?: Ren
     return { remove: base, add: incoming }
 }
 
-export const { constructorDelta: factory, merge, diff } = standardEditableFactory({
+export const { 
+    EditableClass, 
+    PlainClass, 
+    RemoveClass, 
+    ReplaceClass, 
+    dataTypeguard: isStandardRenderData 
+} = v2StandardEditableFactory({
     typeguard: isSimpleRenderTree,
     payloadFactory: payloadFactory,
     payload: StandardRenderSimpleBase,
     add: standardRenderAdd,
     subtract: standardRenderSubtract,
     diff: standardRenderDiff
-})
+    // No validateReplace - not needed for RenderTree
+}, 'StandardRender')
 
-const fromDelta = (delta: { add?: RenderTree, remove?: RenderTree }): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined => {
-    const { add, remove } = delta
-    if (add) {
-        if (remove) {
-            return new StandardRenderReplace(new StandardRenderSimpleBase(remove), new StandardRenderSimpleBase(add))
-        }
-        return new StandardRenderSimple(new StandardRenderSimpleBase(add))
-    }
-    if (remove) {
-        return new StandardRenderRemove(new StandardRenderSimpleBase(remove))
-    }
-    return undefined
-}
-
-export class StandardRenderSimple implements StandardEditableWrapper<StandardRenderSimpleBase> {
-    payload: StandardRenderSimpleBase
-    constructor(data: StandardRenderSimpleBase | StandardEditableData<RenderTree> | GenericTree<SchemaTag> | string) {
-        if (data instanceof StandardRenderSimpleBase) {
-            this.payload = data
-            return
-        }
-        const delta = factory(data)
-        if (delta && delta.add && !delta.remove) {
-            this.payload = delta.add
-            return
-        }
-        throw new Error('Invalid data in TestContentClass')
-    }
-    get schema() {
-        return this.payload.schema
-    }
-    nestedSchema(tag) {
-        return [{ data: tag, children: this.schema }]
-    }
-    get _delta(): StandardEditableDataDelta<RenderTree> {
-        return { add: this.payload.toJSON() }
-    }
-    clone() {
-        return new StandardRenderSimple(this.payload)
-    }
-    toJSON: () => RenderTree = () => this.payload.toJSON()
-    get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-    remapReferences: (props: { mapping: StandardReference[], mapTo: ReferenceFormat }) => StandardRenderSimple = (props) => {
-        return new StandardRenderSimple(this.payload.remapReferences(props))
-    }
-}
-
-export class StandardRenderRemove implements StandardEditableWrapper<StandardRenderSimpleBase> {
-    match: StandardRenderSimpleBase
-    constructor(data: StandardRenderSimpleBase | StandardEditableData<RenderTree> | GenericTree<SchemaTag> | string) {
-        if (data instanceof StandardRenderSimpleBase) {
-            this.match = data
-            return
-        }
-        const delta = factory(data)
-        if (delta && !delta.add && delta.remove) {
-            this.match = delta.remove
-            return
-        }
-        // console.log(`Invalid data: ${JSON.stringify(data)}`)
-        throw new Error('Invalid data in TestRemoveClass')
-    }
-    get schema() {
-        return [{ data: { tag: 'Remove' as const }, children: this.match.schema }]
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Remove' as const },
-            children: [{ data: tag, children: this.match.schema }]
-        }]
-    }
-    get _delta(): StandardEditableDataDelta<RenderTree> {
-        return { remove: this.match.toJSON() }
-    }
-    clone() {
-        return new StandardRenderRemove(this.match)
-    }
-    toJSON: () => RenderTree = () => ([{ data: { tag: 'Remove' as const }, children: this.match.toJSON() }])
-    get plain() { return this.match }
-    merge(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-    remapReferences: (props: { mapping: StandardReference[], mapTo: ReferenceFormat }) => StandardRenderRemove = (props) => {
-        return new StandardRenderRemove(this.match.remapReferences(props))
-    }
-}
-
-export class StandardRenderReplace implements StandardEditableWrapper<StandardRenderSimpleBase> {
-    match: StandardRenderSimpleBase
-    payload: StandardRenderSimpleBase
-    constructor(...args: [StandardEditableData<RenderTree> | GenericTree<SchemaTag> | string] | [StandardRenderSimpleBase, StandardRenderSimpleBase]) {
-        if (args.length === 2) {
-            this.match = args[0]
-            this.payload = args[1]
-            return
-        }
-        const delta = factory(args[0])
-        if (delta && delta.add && delta.remove) {
-            this.match = delta.remove
-            this.payload = delta.add
-            return
-        }
-        throw new Error('Invalid data in TestRemoveClass')
-    }
-    get schema() {
-        return [{ data: { tag: 'Replace' as const }, children: [
-            { data: { tag: 'ReplaceMatch' as const }, children: this.match.schema },
-            { data: { tag: 'ReplacePayload' as const }, children: this.payload.schema }
-        ] }]
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Replace' as const },
-            children: [
-                {
-                    data: { tag: 'ReplaceMatch' as const },
-                    children: [{ data: tag, children: this.match.schema }]
-                },
-                {
-                    data: { tag: 'ReplacePayload' as const },
-                    children: [{ data: tag, children: this.payload.schema }]
-                }
-            ]
-        }]
-    }
-    get _delta(): StandardEditableDataDelta<RenderTree> {
-        return { remove: this.match.toJSON(), add: this.payload.toJSON() }
-    }
-    clone() {
-        return new StandardRenderReplace(this.match, this.payload)
-    }
-    toJSON: () => RenderTree = () => ([{ data: { tag: 'Replace' as const }, children: [
-            { data: { tag: 'ReplaceMatch' as const }, children: this.match.toJSON() },
-            { data: { tag: 'ReplacePayload' as const }, children: this.payload.toJSON() }    
-        ]
-    }])
-    get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardRenderSimpleBase>): StandardRenderSimple | StandardRenderRemove | StandardRenderReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-    remapReferences: (props: { mapping: StandardReference[], mapTo: ReferenceFormat }) => StandardRenderReplace = (props) => {
-        return new StandardRenderReplace(
-            this.match.remapReferences(props),
-            this.payload.remapReferences(props)
-        )
-    }
-}
 
 export class StandardRender {
-    _payload: StandardRenderSimple | StandardRenderRemove | StandardRenderReplace;
+    _payload: InstanceType<typeof EditableClass>;
     
     constructor(arg: any) {
-        if (arg instanceof StandardRenderSimple || arg instanceof StandardRenderRemove || arg instanceof StandardRenderReplace) {
+        // Handle existing StandardRender instance (for cloning)
+        if (arg instanceof StandardRender) {
+            this._payload = arg._payload
+            return
+        }
+        
+        // Handle existing v2 instance
+        if (arg instanceof EditableClass) {
             this._payload = arg
             return
         }
+        
+        // Handle StandardEditableData<RenderTree> format (JSON serialization)
+        // This includes { tag: 'Remove', match: RenderTree } and { tag: 'Replace', match: RenderTree, payload: RenderTree }
+        if (typeof arg === 'object' && arg !== null && 'tag' in arg) {
+            if (arg.tag === 'Remove' && 'match' in arg) {
+                // StandardEditableData Remove format - pass directly to EditableClass.create()
+                this._payload = EditableClass.create(arg as StandardEditableData<RenderTree>)
+                return
+            }
+            if (arg.tag === 'Replace' && 'match' in arg && 'payload' in arg) {
+                // StandardEditableData Replace format - pass directly to EditableClass.create()
+                this._payload = EditableClass.create(arg as StandardEditableData<RenderTree>)
+                return
+            }
+        }
+        
+        // Handle RenderTree array directly (no wrapper tag stripping needed)
         if (Array.isArray(arg) && arg.every(isRenderTreeNode)) {
+            // Check for Remove/Replace edit tags at top level
             if (arg.length === 1) {
                 const node = arg[0]
                 if (typeof node !== 'string') {
                     if (isSchemaRemove(node.data)) {
-                        this._payload = new StandardRenderRemove([node] as GenericTree<SchemaTag>)
+                        // Remove tag at top level - use EditableClass.create() which handles it
+                        this._payload = EditableClass.create(arg as GenericTree<SchemaTag>)
                         return
                     }
                     else if (isSchemaReplace(node.data)) {
-                        this._payload = new StandardRenderReplace([node] as GenericTree<SchemaTag>)
+                        // Replace tag at top level - use EditableClass.create() which handles it
+                        this._payload = EditableClass.create(arg as GenericTree<SchemaTag>)
                         return
                     }
                 }
             }
-            this._payload = new StandardRenderSimple(arg as GenericTree<SchemaTag>)
+            // Plain RenderTree - use EditableClass.create()
+            this._payload = EditableClass.create(arg as GenericTree<SchemaTag>)
+            return
         }
-        else {
-            throw new Error('Invalid argument to StandardRender constructor')
-        }
+        
+        throw new Error('Invalid argument to StandardRender constructor')
     }
 
     get plainString() {
-        return renderTreeToString(this._payload.plain.toJSON())
+        if (this._payload instanceof PlainClass) {
+            const plain = this._payload.plain
+            if (plain) {
+                return renderTreeToString(plain.toJSON())
+            }
+        }
+        return ''
     }
 
     get schema(): GenericTree<SchemaTag> {
@@ -519,73 +405,111 @@ export class StandardRender {
     }
 
     nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
+        // Wrap payload schema in the provided tag
+        if (this._payload instanceof PlainClass) {
+            return [{ data: tag, children: this._payload.schema }]
+        }
+        if (this._payload instanceof RemoveClass) {
+            const match = (this._payload as any).match
+            return [{
+                data: tag,
+                children: [{
+                    data: { tag: 'Remove' as const },
+                    children: match?.schema ?? []
+                }]
+            }]
+        }
+        if (this._payload instanceof ReplaceClass) {
+            const match = (this._payload as any).match
+            const payload = (this._payload as any).payload
+            return [{
+                data: tag,
+                children: [{
+                    data: { tag: 'Replace' as const },
+                    children: [
+                        { data: { tag: 'ReplaceMatch' as const }, children: match?.schema ?? [] },
+                        { data: { tag: 'ReplacePayload' as const }, children: payload?.schema ?? [] }
+                    ]
+                }]
+            }]
+        }
         return this._payload.nestedSchema(tag)
     }
 
-    toJSON(): RenderTree {
+    toJSON(): StandardEditableData<RenderTree> {
         return this._payload.toJSON()
     }
 
-    toNDJSON(): RenderTree {
+    toNDJSON(): GenericTree<SchemaTag> {
         return this._payload.schema
     }
 
     merge(incoming: StandardRender): StandardRender | undefined {
         const merged = this._payload.merge(incoming._payload)
         if (merged) {
-            return new StandardRender(this._payload.merge(incoming._payload))
+            return new StandardRender(merged)
         }
         return undefined
     }
     diff(incoming: StandardRender | undefined): StandardRender | undefined {
         if (incoming) {
-            const diff = this._payload.diff(incoming._payload)
-            if (diff) {
-                return new StandardRender(diff)
+            const diffResult = this._payload.diff(incoming._payload)
+            if (diffResult) {
+                return new StandardRender(diffResult)
             }
             return undefined
         }
         else {
-            const reversedDelta = this._payload._delta
-            if (reversedDelta) {
-                if (reversedDelta.add) {
-                    return new StandardRender(new StandardRenderRemove(new StandardRenderSimpleBase(reversedDelta.add)))
-                }
-                if (reversedDelta.remove) {
-                    return new StandardRender(new StandardRenderSimple(reversedDelta.remove))
-                }
+            // Invert when incoming is undefined
+            const inverted = this._payload.invert()
+            if (inverted) {
+                return new StandardRender(inverted)
             }
             return undefined
         }
     }
     mapContents(callback: (incoming: RenderTree) => RenderTree): StandardRender {
-        if (this._payload instanceof StandardRenderSimple) {
-            return new StandardRender(callback(this._payload.schema))
+        if (this._payload instanceof PlainClass) {
+            const currentValue = this._payload.plain?.toJSON() ?? []
+            const mapped = callback(currentValue)
+            return new StandardRender(mapped)
         }
-        if (this._payload instanceof StandardRenderRemove) {
-            return new StandardRender(new StandardRenderRemove(new StandardRenderSimpleBase(callback(this._payload.match.schema))))
+        if (this._payload instanceof RemoveClass) {
+            const matchValue = (this._payload as any).match?.toJSON() ?? []
+            const mapped = callback(matchValue)
+            // Convert RenderTree to schema tree and wrap in Remove structure
+            const schemaTree = renderTreeToSchema(mapped)
+            const removeSchema = [{ data: { tag: 'Remove' as const }, children: schemaTree }]
+            return new StandardRender(removeSchema)
         }
-        if (this._payload instanceof StandardRenderReplace) {
-            return new StandardRender(new StandardRenderReplace((new StandardRenderSimple(callback(this._payload.match.schema))).payload, (new StandardRenderSimple(callback(this._payload.payload.schema))).payload))
+        if (this._payload instanceof ReplaceClass) {
+            const matchValue = (this._payload as any).match?.toJSON() ?? []
+            const payloadValue = (this._payload as any).payload?.toJSON() ?? []
+            const mappedMatch = callback(matchValue)
+            const mappedPayload = callback(payloadValue)
+            // Convert RenderTrees to schema trees and wrap in Replace structure
+            const matchSchema = renderTreeToSchema(mappedMatch)
+            const payloadSchema = renderTreeToSchema(mappedPayload)
+            const replaceSchema = [{
+                data: { tag: 'Replace' as const },
+                children: [
+                    { data: { tag: 'ReplaceMatch' as const }, children: matchSchema },
+                    { data: { tag: 'ReplacePayload' as const }, children: payloadSchema }
+                ]
+            }]
+            return new StandardRender(replaceSchema)
         }
         throw new Error('Invalid StandardRender payload')
     }
 
     remapReferences(props: { mapping: StandardReference[], mapTo: ReferenceFormat }): StandardRender {
-        return new StandardRender(this._payload.remapReferences(props))
+        const remapped = this._payload.remapReferences({ mapTo: props.mapTo, mappings: props.mapping })
+        return new StandardRender(remapped)
     }
 
     invert(): StandardRender {
-        if (this._payload instanceof StandardRenderSimple) {
-            return new StandardRender(new StandardRenderRemove(this._payload.payload))
-        }
-        if (this._payload instanceof StandardRenderRemove) {
-            return new StandardRender(new StandardRenderSimple(this._payload.match))
-        }
-        if (this._payload instanceof StandardRenderReplace) {
-            return new StandardRender(new StandardRenderReplace(this._payload.payload, this._payload.match))
-        }
-        throw new Error('Invalid StandardRender payload for invert')
+        const inverted = this._payload.invert()
+        return new StandardRender(inverted)
     }
 
 }

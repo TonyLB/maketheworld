@@ -1,9 +1,14 @@
-import { isRenderTreeNode } from "@tonylb/mtw-base/ts/renderTree"
+import { isRenderTreeNode, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaTreeNode } from "../../../schema"
 import { isStandardLiteralData } from "../../literal"
 import { isStandardReferenceData } from "./reference"
-import { editWrappedTypeguard } from "@tonylb/mtw-base/ts/editable"
+import { editWrappedTypeguard, StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { isStandardFacetData } from "../../keys/facets/dataTypes/facet"
+
+// Typeguard to check if a value is a RenderTree (array of RenderTreeNode)
+const isRenderTreeArray = (value: any): value is RenderTree => {
+    return Array.isArray(value) && value.every(isRenderTreeNode)
+}
 
 export const checkAll = (...items: boolean[]): boolean => (
     items.reduce<boolean>((previous, item) => (previous && item), true)
@@ -22,10 +27,12 @@ export const checkTypes = (item: any, requiredList: Record<string, CheckType>, o
                 }
                 return value.every(isSchemaTreeNode)
             case 'renderTree':
-                if (!Array.isArray(value)) {
-                    return false
+                // renderTree can be RenderTree (array) or StandardEditableData<RenderTree> (for Replace/Remove structures)
+                if (Array.isArray(value)) {
+                    return value.every(isRenderTreeNode)
                 }
-                return value.every(isRenderTreeNode)
+                // Handle StandardEditableData<RenderTree> format (e.g., { tag: 'Remove', match: RenderTree } or { tag: 'Replace', match: RenderTree, payload: RenderTree })
+                return editWrappedTypeguard(isRenderTreeArray)(value)
             case 'literal':
                 return isStandardLiteralData(value)
             case 'referenceList':

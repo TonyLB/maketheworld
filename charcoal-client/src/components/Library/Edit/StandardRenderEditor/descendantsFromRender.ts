@@ -1,5 +1,5 @@
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { StandardRender, StandardRenderSimple } from "@tonylb/mtw-wml/ts/standardize/render"
+import { StandardRender, PlainClass as StandardRenderSimple, PlainClass } from "@tonylb/mtw-wml/ts/standardize/render"
 import { CustomBlock, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from "../baseClasses"
 import {
     CustomParagraphContents,
@@ -11,14 +11,20 @@ import {
 } from "../baseClasses"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 const descendantsTranslate = (render: StandardRender, options: { standard: StandardForm }): (CustomParagraphContents)[] => {
     const payload = render._payload
-    if (!(payload instanceof StandardRenderSimple)) {
+    if (!(payload instanceof PlainClass)) {
         return []
 
     }
-    const returnValue = payload.toJSON().reduce<CustomParagraphContents[]>((previous, simpleRenderElement) => {
+    const plain = payload.plain
+    if (!plain) {
+        return []
+    }
+    const renderTree: RenderTree = plain.toJSON()
+    const returnValue = renderTree.reduce<CustomParagraphContents[]>((previous, simpleRenderElement) => {
         if (typeof simpleRenderElement === 'string') {
             return [...previous, { text: simpleRenderElement }]
         }

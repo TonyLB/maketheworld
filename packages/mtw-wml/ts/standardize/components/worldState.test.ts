@@ -275,13 +275,11 @@ describe('StandardMark class', () => {
         expect(diff?.toJSON()).toEqual({
             key: 'test',
             tag: 'Mark',
-            description: [{
-                data: { tag: 'Replace' },
-                children: [
-                    { data: { tag: 'ReplaceMatch' }, children: ['Original description.'] },
-                    { data: { tag: 'ReplacePayload' }, children: ['Changed description.'] }
-                ]
-            }]
+            description: {
+                tag: 'Replace',
+                match: ['Original description.'],
+                payload: ['Changed description.']
+            }
         })
     })
 
@@ -300,7 +298,7 @@ describe('StandardMark class', () => {
         expect(testMark.diff(testMark2)?.toJSON()).toEqual({
             key: 'test',
             tag: 'Mark',
-            description: [{ data: { tag: 'Remove' }, children: ['Test description.'] }]
+            description: { tag: 'Remove', match: ['Test description.'] }
         })
     })
 
@@ -337,13 +335,11 @@ describe('StandardMark class', () => {
         expect(testMark.diff(testMark2)?.toJSON()).toEqual({
             key: 'test',
             tag: 'Mark',
-            description: [{
-                data: { tag: 'Replace' },
-                children: [
-                    { data: { tag: 'ReplaceMatch' }, children: ['Test'] },
-                    { data: { tag: 'ReplacePayload' }, children: ['Changed'] }
-                ]
-            }]
+            description: {
+                tag: 'Replace',
+                match: ['Test'],
+                payload: ['Changed']
+            }
         })
     })
 
@@ -382,7 +378,7 @@ describe('StandardMark class', () => {
         })
         const inverted = testMark._payload.invert()
         expect(inverted.shortName?.toJSON()).toEqual({ tag: 'Remove', match: 'Test Mark' })
-        expect(inverted.description?.toJSON()).toEqual([{ data: { tag: 'Remove' }, children: ['Test description.'] }])
+        expect(inverted.description?.toJSON()).toEqual({ tag: 'Remove', match: ['Test description.'] })
     })
 
     it('should map contents correctly', () => {
@@ -796,7 +792,7 @@ describe('StandardLens class', () => {
         })
         const inverted = testLens._payload.invert()
         expect(inverted.shortName?.toJSON()).toEqual({ tag: 'Remove', match: 'Test Lens' })
-        expect(inverted.description?.toJSON()).toEqual([{ data: { tag: 'Remove' }, children: ['Test description.'] }])
+        expect(inverted.description?.toJSON()).toEqual({ tag: 'Remove', match: ['Test description.'] })
         expect(inverted.marks.payload.length).toEqual(1)
         expect(inverted.marks.payload[0].ref).toEqual(-1)
     })
