@@ -5,7 +5,7 @@ import { ReferenceList } from "./keys/referenceList"
 import { AssetUUID, ComponentUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { Graph } from "@tonylb/mtw-utilities/ts/graphStorage/utils/graph"
 import { UUIDGenerator } from "@tonylb/mtw-utilities/ts/uuid/index"
-import { StandardExplicitParent, StandardExplicitParentSimple, StandardExplicitParentRemove, StandardExplicitParentReplace } from "./explicit/parent"
+import { StandardExplicitParent, PlainClass as StandardExplicitParentPlain, RemoveClass as StandardExplicitParentRemove, ReplaceClass as StandardExplicitParentReplace } from "./explicit/parent"
 import { excludeUndefined } from "../lib/lists"
 import { unique } from "../list"
 import { KeyLookup } from "./keyLookup"
@@ -694,9 +694,9 @@ export class SchemaOrganization {
             
             // Helper function to determine the parent edge for a node
             const edgeFrom = (explicitParent: StandardExplicitParent | undefined, to: string, fallback: string): { from: string; to: string } => {
-                // Check if explicitParent exists and is a Simple (not Remove/Replace)
-                if (explicitParent?._payload instanceof StandardExplicitParentSimple) {
-                    const explicitParentData = explicitParent._payload.payload.data
+                // Check if explicitParent exists and is a PlainClass (not Remove/Replace)
+                if (explicitParent?._payload instanceof StandardExplicitParentPlain) {
+                    const explicitParentData = explicitParent._payload.plain?.data
                     if (explicitParentData === 'ASSET') {
                         // Explicit parent is ASSET
                         return {
@@ -831,9 +831,9 @@ export class SchemaOrganization {
 
                 const payload = explicitParent._payload
 
-                if (payload instanceof StandardExplicitParentSimple) {
+                if (payload instanceof StandardExplicitParentPlain) {
                     // Extract data from plain property (StandardExplicitParentSimpleBase)
-                    const explicitParentData = payload.plain.data
+                    const explicitParentData = payload.plain?.data
                     
                     if (explicitParentData === 'ASSET') {
                         // Asset-level parentage - store as undefined
@@ -850,7 +850,7 @@ export class SchemaOrganization {
                     return organization
                 } else if (payload instanceof StandardExplicitParentReplace) {
                     // Extract replacement value from plain property
-                    const explicitParentData = payload.plain.data
+                    const explicitParentData = (payload as any).payload?.data
                     
                     if (explicitParentData === 'ASSET') {
                         // Asset-level parentage - store as undefined

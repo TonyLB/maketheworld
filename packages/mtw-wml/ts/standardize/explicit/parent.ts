@@ -1,5 +1,5 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { StandardEditableDataDelta, standardEditableFactory, StandardEditablePayload, StandardEditableWrapper } from "../../generics/editable"
+import { v2StandardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
@@ -9,6 +9,8 @@ import { ComponentUUID, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema
 import { StandardKey } from "../keys/key"
 import { StandardKeyData } from "../keys/dataTypes/reference"
 import { isLegalKey } from "../utils"
+import { isSchemaTreeNode } from "../../schema"
+import { stripWrapperTag } from "../../schema/utils"
 
 //
 // StandardExplicitParentSimpleBase holds the contents for a simple StandardExplicitParent
@@ -198,7 +200,13 @@ const standardExplicitParentDiff = (base: StandardKeyData | 'ASSET', incoming: S
     return { remove: base, add: incoming }
 }
 
-export const { constructorDelta: factory, typeguard: isStandardExplicitParentData, merge, diff } = standardEditableFactory({
+export const { 
+    EditableClass, 
+    PlainClass, 
+    RemoveClass, 
+    ReplaceClass, 
+    dataTypeguard: isStandardExplicitParentData 
+} = v2StandardEditableFactory({
     typeguard: (value: any): value is StandardKeyData | 'ASSET' => {
         // Accept ASSET sentinel value
         if (value === 'ASSET') {
@@ -218,227 +226,99 @@ export const { constructorDelta: factory, typeguard: isStandardExplicitParentDat
     payload: StandardExplicitParentSimpleBase,
     add: standardExplicitParentAdd,
     subtract: standardExplicitParentSubtract,
-    diff: standardExplicitParentDiff
-})
+    diff: standardExplicitParentDiff,
+    validateReplace: (baseAdd: StandardKeyData | 'ASSET', incomingAdd: StandardKeyData | 'ASSET', incomingRemove: StandardKeyData | 'ASSET') => {
+        // For parents, Replace is valid if baseAdd matches incomingRemove (valid rename)
+        // Handle ASSET sentinel values
+        if (baseAdd === 'ASSET' || incomingRemove === 'ASSET') {
+            if (baseAdd !== incomingRemove) {
+                throw new MergeConflictError('Parent Replace operation must match baseAdd with incomingRemove. Conflicting parent values are not allowed.')
+            }
+            return
+        }
+        // Compare StandardKey values using equals()
+        const baseKey = new StandardKey(baseAdd)
+        const incomingRemoveKey = new StandardKey(incomingRemove)
+        if (!baseKey.equals(incomingRemoveKey)) {
+            throw new MergeConflictError('Parent Replace operation must match baseAdd with incomingRemove. Conflicting parent values are not allowed.')
+        }
+    }
+}, 'StandardExplicitParent')
 
-const fromDelta = (delta: { add?: StandardKeyData | 'ASSET', remove?: StandardKeyData | 'ASSET' }): StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined => {
-    const { add, remove } = delta
-    if (add) {
-        if (remove) {
-            // fromDelta receives data from _delta.toJSON(), create payload instances
-            const removeBase = remove === 'ASSET' ? new StandardExplicitParentSimpleBase('ASSET') : new StandardExplicitParentSimpleBase(remove)
-            const addBase = add === 'ASSET' ? new StandardExplicitParentSimpleBase('ASSET') : new StandardExplicitParentSimpleBase(add)
-            return new StandardExplicitParentReplace(removeBase, addBase)
-        }
-        return new StandardExplicitParentSimple(add === 'ASSET' ? 'ASSET' : add)
-    }
-    if (remove) {
-        return new StandardExplicitParentRemove(remove === 'ASSET' ? 'ASSET' : remove)
-    }
-    return undefined
-}
-
-export class StandardExplicitParentSimple implements StandardEditableWrapper<StandardExplicitParentSimpleBase> {
-    payload: StandardExplicitParentSimpleBase
-    
-    constructor(data: StandardExplicitParentSimpleBase | StandardEditableData<StandardKeyData | 'ASSET'> | RenderTree | GenericTree<SchemaTag> | StandardKeyData | 'ASSET' | StandardExplicitParentSimple) {
-        // Handle cloning from another StandardExplicitParentSimple instance
-        if (data instanceof StandardExplicitParentSimple) {
-            this.payload = data.payload
-            return
-        }
-        
-        if (data instanceof StandardExplicitParentSimpleBase) {
-            this.payload = data
-            return
-        }
-        
-        // Handle ASSET sentinel or empty array (explicitly asset level)
-        if (data === 'ASSET' || (Array.isArray(data) && data.length === 0)) {
-            this.payload = new StandardExplicitParentSimpleBase('ASSET')
-            return
-        }
-        
-        const delta = factory(isRenderTree(data) ? renderTreeToSchema(data) : data)
-        if (delta && delta.add && !delta.remove) {
-            this.payload = delta.add
-            return
-        }
-        throw new Error('Invalid data in StandardExplicitParentSimple')
-    }
-    get schema() {
-        // If payload schema is already a Parent tag (ASSET case), return it directly
-        const payloadSchema = this.payload.schema
-        if (payloadSchema.length === 1 && payloadSchema[0].data?.tag === 'Parent') {
-            return payloadSchema
-        }
-        // Otherwise, wrap the payload schema in a Parent tag
-        return [{ data: { tag: 'Parent' as const }, children: payloadSchema }]
-    }
-    nestedSchema(tag) {
-        return [{ data: tag, children: this.schema }]
-    }
-    get _delta(): StandardEditableDataDelta<StandardKeyData | 'ASSET'> {
-        return { add: this.payload.toJSON() }
-    }
-    clone() {
-        return new StandardExplicitParentSimple(this.payload)
-    }
-    toJSON: () => StandardEditableData<StandardKeyData | 'ASSET'> = () => {
-        return this.payload.toJSON()
-    }
-    get plain() { 
-        return this.payload 
-    }
-    merge(other: StandardEditableWrapper<StandardExplicitParentSimpleBase>): StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined {
-        // Normal merge - the delta system handles ASSET sentinel values
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardExplicitParentSimpleBase>): StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined {
-        // Normal diff - the delta system handles ASSET sentinel values
-        return fromDelta(diff(this._delta, other._delta))
-    }
-}
-
-export class StandardExplicitParentRemove implements StandardEditableWrapper<StandardExplicitParentSimpleBase> {
-    match: StandardExplicitParentSimpleBase
-    constructor(data: StandardExplicitParentSimpleBase | StandardEditableData<StandardKeyData | 'ASSET'> | RenderTree | GenericTree<SchemaTag> | StandardKeyData | 'ASSET') {
-        if (data instanceof StandardExplicitParentSimpleBase) {
-            this.match = data
-            return
-        }
-        const delta = factory(isRenderTree(data) ? renderTreeToSchema(data) : data)
-        if (delta && !delta.add && delta.remove) {
-            // Factory returns payload instances in delta
-            this.match = delta.remove
-            return
-        }
-        console.log(`Invalid data: ${JSON.stringify(data)}`)
-        throw new Error('Invalid data in StandardExplicitParentRemove')
-    }
-    get schema() {
-        return [{ data: { tag: 'Remove' as const }, children: [{ data: { tag: 'Parent' as const }, children: this.match.schema }] }]
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Remove' as const },
-            children: [{ data: tag, children: [{ data: { tag: 'Parent' as const }, children: this.match.schema }] }]
-        }]
-    }
-    get _delta(): StandardEditableDataDelta<StandardKeyData | 'ASSET'> {
-        return { remove: this.match.toJSON() }
-    }
-    clone() {
-        return new StandardExplicitParentRemove(this.match)
-    }
-    toJSON: () => StandardEditableData<StandardKeyData | 'ASSET'> = () => ({ tag: 'Remove' as const, match: this.match.toJSON() })
-    get plain() { return this.match }
-    merge(other: StandardEditableWrapper<StandardExplicitParentSimpleBase>): StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardExplicitParentSimpleBase>): StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-}
-
-export class StandardExplicitParentReplace implements StandardEditableWrapper<StandardExplicitParentSimpleBase> {
-    match: StandardExplicitParentSimpleBase
-    payload: StandardExplicitParentSimpleBase
-    constructor(...args: [StandardEditableData<StandardKeyData | 'ASSET'> | RenderTree | GenericTree<SchemaTag> | StandardKeyData | 'ASSET'] | [StandardExplicitParentSimpleBase, StandardExplicitParentSimpleBase]) {
-        if (args.length === 2) {
-            this.match = args[0]
-            this.payload = args[1]
-            return
-        }
-        const delta = factory(isRenderTree(args[0]) ? renderTreeToSchema(args[0]) : args[0])
-        if (delta && delta.add && delta.remove) {
-            // Factory returns payload instances in delta
-            this.match = delta.remove
-            this.payload = delta.add
-            return
-        }
-        throw new Error('Invalid data in StandardExplicitParentReplace')
-    }
-    get schema() {
-        return [{ data: { tag: 'Replace' as const }, children: [
-            { data: { tag: 'ReplaceMatch' as const }, children: [{ data: { tag: 'Parent' as const }, children: this.match.schema }] },
-            { data: { tag: 'ReplacePayload' as const }, children: [{ data: { tag: 'Parent' as const }, children: this.payload.schema }] }
-        ] }]
-    }
-    nestedSchema(tag) {
-        return [{
-            data: { tag: 'Replace' as const },
-            children: [
-                {
-                    data: { tag: 'ReplaceMatch' as const },
-                    children: [{ data: tag, children: [{ data: { tag: 'Parent' as const }, children: this.match.schema }] }]
-                },
-                {
-                    data: { tag: 'ReplacePayload' as const },
-                    children: [{ data: tag, children: [{ data: { tag: 'Parent' as const }, children: this.payload.schema }] }]
-                }
-            ]
-        }]
-    }
-    get _delta(): StandardEditableDataDelta<StandardKeyData | 'ASSET'> {
-        return { remove: this.match.toJSON(), add: this.payload.toJSON() }
-    }
-    clone() {
-        return new StandardExplicitParentReplace(this.match, this.payload)
-    }
-    toJSON: () => StandardEditableData<StandardKeyData | 'ASSET'> = () => ({ 
-        tag: 'Replace' as const,
-        match: this.match.toJSON(),
-        payload: this.payload.toJSON()
-    })
-    get plain() { return this.payload }
-    merge(other: StandardEditableWrapper<StandardExplicitParentSimpleBase>): StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined {
-        return fromDelta(merge(this._delta, other._delta))
-    }
-    diff(other: StandardEditableWrapper<StandardExplicitParentSimpleBase>): StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined {
-        return fromDelta(diff(this._delta, other._delta))
-    }
-}
 
 export class StandardExplicitParent {
-    _payload: StandardExplicitParentSimple | StandardExplicitParentRemove | StandardExplicitParentReplace | undefined;
+    _payload: InstanceType<typeof EditableClass>;
     
     constructor(arg: any) {
-        if (arg instanceof StandardExplicitParentSimple || arg instanceof StandardExplicitParentRemove || arg instanceof StandardExplicitParentReplace) {
-            this._payload = arg
-            return
-        }
-        // Handle cloning from another StandardExplicitParent instance
+        // Handle existing StandardExplicitParent instance (for cloning)
         if (arg instanceof StandardExplicitParent) {
             this._payload = arg._payload
             return
         }
-        const delta = factory(isRenderTree(arg) ? renderTreeToSchema(arg) : arg)
-        if (!delta) {
-            // Handle empty Parent tag (self-closing) - explicitly set to asset level
-            // Create StandardExplicitParentSimple with 'ASSET' sentinel
-            this._payload = new StandardExplicitParentSimple('ASSET')
+        
+        // Handle existing v2 instance
+        if (arg instanceof EditableClass) {
+            this._payload = arg
             return
         }
-        if (delta.add) {
-            if (delta.remove) {
-                this._payload = new StandardExplicitParentReplace(arg)
-                return
-            }
-            this._payload = new StandardExplicitParentSimple(arg)
+        
+        // Convert RenderTree to GenericTree<SchemaTag> if needed
+        let convertedArg = isRenderTree(arg) ? renderTreeToSchema(arg) : arg
+        
+        // Strip "Parent" wrapper tag if present using centralized utility
+        if (Array.isArray(convertedArg) && convertedArg.every(isSchemaTreeNode)) {
+            convertedArg = stripWrapperTag(convertedArg, 'Parent')
+        }
+        
+        // Use EditableClass.create() for dispatch
+        // Handle empty Parent tag (self-closing) - explicitly set to asset level
+        if (Array.isArray(convertedArg) && convertedArg.length === 0) {
+            this._payload = PlainClass.create('ASSET')
             return
         }
-        if (delta.remove) {
-            this._payload = new StandardExplicitParentRemove(arg)
+        
+        const created = EditableClass.create(convertedArg)
+        // EditableClass.create() returns undefined for empty trees, which we treat as 'ASSET'
+        if (!created) {
+            this._payload = PlainClass.create('ASSET')
             return
         }
-        // Empty delta - explicitly set to asset level
-        this._payload = new StandardExplicitParentSimple('ASSET')
+        
+        this._payload = created
     }
 
     get schema(): GenericTree<SchemaTag> {
         if (!this._payload) {
             return [{ data: { tag: 'Parent' as const }, children: [] }]
+        }
+        // Wrap payload schema in Parent tag
+        const payloadSchema = this._payload.schema
+        if (this._payload instanceof PlainClass) {
+            // For ASSET case, payload.schema already includes Parent tag with empty children
+            // For other cases, wrap in Parent tag
+            const firstNode = payloadSchema[0]
+            if (firstNode?.data?.tag === 'Parent') {
+                return payloadSchema
+            }
+            return [{ data: { tag: 'Parent' as const }, children: payloadSchema }]
+        }
+        if (this._payload instanceof RemoveClass) {
+            const match = (this._payload as any).match
+            return [{
+                data: { tag: 'Remove' as const },
+                children: [{ data: { tag: 'Parent' as const }, children: match?.schema ?? [] }]
+            }]
+        }
+        if (this._payload instanceof ReplaceClass) {
+            const match = (this._payload as any).match
+            const payload = (this._payload as any).payload
+            return [{
+                data: { tag: 'Replace' as const },
+                children: [
+                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: { tag: 'Parent' as const }, children: match?.schema ?? [] }] },
+                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: { tag: 'Parent' as const }, children: payload?.schema ?? [] }] }
+                ]
+            }]
         }
         return this._payload.schema
     }
@@ -446,6 +326,35 @@ export class StandardExplicitParent {
     nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
         if (!this._payload) {
             return [{ data: tag, children: [{ data: { tag: 'Parent' as const }, children: [] }] }]
+        }
+        
+        // Wrap payload schema in Parent tag, then in the provided tag
+        if (this._payload instanceof PlainClass) {
+            return [{ data: tag, children: [{ data: { tag: 'Parent' as const }, children: this._payload.schema }] }]
+        }
+        if (this._payload instanceof RemoveClass) {
+            const match = (this._payload as any).match
+            return [{
+                data: tag,
+                children: [{
+                    data: { tag: 'Remove' as const },
+                    children: [{ data: { tag: 'Parent' as const }, children: match?.schema ?? [] }]
+                }]
+            }]
+        }
+        if (this._payload instanceof ReplaceClass) {
+            const match = (this._payload as any).match
+            const payload = (this._payload as any).payload
+            return [{
+                data: tag,
+                children: [{
+                    data: { tag: 'Replace' as const },
+                    children: [
+                        { data: { tag: 'ReplaceMatch' as const }, children: [{ data: { tag: 'Parent' as const }, children: match?.schema ?? [] }] },
+                        { data: { tag: 'ReplacePayload' as const }, children: [{ data: { tag: 'Parent' as const }, children: payload?.schema ?? [] }] }
+                    ]
+                }]
+            }]
         }
         return this._payload.nestedSchema(tag)
     }
@@ -469,9 +378,8 @@ export class StandardExplicitParent {
         if (!incoming._payload) {
             return this
         }
-        // Both have payloads - let the delta system handle ASSET sentinel values
-        // Note: Remove + Add with different values is valid for Replace operations (used in diff)
-        // The underlying merge logic will handle conflicts appropriately
+        
+        // Use the v2 factory's merge - validateReplace handles parent rename validation
         const merged = this._payload.merge(incoming._payload)
         if (merged) {
             return new StandardExplicitParent(merged)
@@ -481,16 +389,9 @@ export class StandardExplicitParent {
     diff(incoming: StandardExplicitParent | undefined): StandardExplicitParent | undefined {
         if (!incoming) {
             if (this._payload) {
-                const reversedDelta = this._payload._delta
-                if (reversedDelta) {
-                    if (reversedDelta.add) {
-                        // reversedDelta.add is StandardKeyData | 'ASSET' - constructor handles both
-                        return new StandardExplicitParent(new StandardExplicitParentRemove(new StandardExplicitParentSimpleBase(reversedDelta.add)))
-                    }
-                    if (reversedDelta.remove) {
-                        // reversedDelta.remove is StandardKeyData | 'ASSET' - constructor handles both
-                        return new StandardExplicitParent(new StandardExplicitParentSimple(new StandardExplicitParentSimpleBase(reversedDelta.remove)))
-                    }
+                const inverted = this._payload.invert()
+                if (inverted) {
+                    return new StandardExplicitParent(inverted)
                 }
             }
             return undefined
@@ -505,10 +406,9 @@ export class StandardExplicitParent {
         }
         if (!incoming._payload) {
             // This has a parent, incoming has no parent - return removal of this
-            const reversedDelta = this._payload._delta
-            if (reversedDelta && reversedDelta.add) {
-                // reversedDelta.add is StandardKeyData | 'ASSET' - constructor handles both
-                return new StandardExplicitParent(new StandardExplicitParentRemove(new StandardExplicitParentSimpleBase(reversedDelta.add)))
+            const inverted = this._payload.invert()
+            if (inverted) {
+                return new StandardExplicitParent(inverted)
             }
             return undefined
         }
@@ -521,54 +421,53 @@ export class StandardExplicitParent {
     }
     mapContents(callback: (incoming: StandardKeyData | 'ASSET') => StandardKeyData | 'ASSET'): StandardExplicitParent {
         // Explicitly asset level doesn't need mapping
-        if (this._payload instanceof StandardExplicitParentSimple && this._payload.payload.data === 'ASSET') {
-            return this
+        if (this._payload instanceof PlainClass) {
+            const plainValue = this._payload.plain?.toJSON()
+            if (plainValue === 'ASSET') {
+                return this
+            }
+            const mapped = callback(plainValue!)
+            return new StandardExplicitParent(mapped)
         }
         if (!this._payload) {
             return this
         }
-        if (this._payload instanceof StandardExplicitParentSimple) {
-            const currentValue = this._payload.payload.toJSON()
+        if (this._payload instanceof RemoveClass) {
+            const matchValue = (this._payload as any).match?.toJSON() ?? ''
             // Don't map ASSET sentinel
-            if (currentValue === 'ASSET') {
+            if (matchValue === 'ASSET') {
                 return this
             }
-            const mapped = callback(currentValue)
-            return new StandardExplicitParent(new StandardExplicitParentSimple(mapped))
+            const mapped = callback(matchValue)
+            return new StandardExplicitParent({ tag: 'Remove', match: mapped })
         }
-        if (this._payload instanceof StandardExplicitParentRemove) {
-            const currentValue = this._payload.match.toJSON()
-            // Don't map ASSET sentinel
-            if (currentValue === 'ASSET') {
-                return this
-            }
-            const mapped = callback(currentValue)
-            // Remove constructor expects StandardEditableData format or StandardExplicitParentSimpleBase
-            return new StandardExplicitParent(new StandardExplicitParentRemove({ tag: 'Remove', match: mapped }))
-        }
-        if (this._payload instanceof StandardExplicitParentReplace) {
-            const matchValue = this._payload.match.toJSON()
-            const payloadValue = this._payload.payload.toJSON()
+        if (this._payload instanceof ReplaceClass) {
+            const matchValue = (this._payload as any).match?.toJSON() ?? ''
+            const payloadValue = (this._payload as any).payload?.toJSON() ?? ''
             const mappedMatch = matchValue === 'ASSET' ? 'ASSET' : callback(matchValue)
             const mappedPayload = payloadValue === 'ASSET' ? 'ASSET' : callback(payloadValue)
-            const matchBase = mappedMatch === 'ASSET' ? new StandardExplicitParentSimpleBase('ASSET') : new StandardExplicitParentSimpleBase(mappedMatch)
-            const payloadBase = mappedPayload === 'ASSET' ? new StandardExplicitParentSimpleBase('ASSET') : new StandardExplicitParentSimpleBase(mappedPayload)
-            return new StandardExplicitParent(new StandardExplicitParentReplace(matchBase, payloadBase))
+            return new StandardExplicitParent({
+                tag: 'Replace',
+                match: mappedMatch,
+                payload: mappedPayload
+            })
         }
         throw new Error('Invalid StandardExplicitParent payload')
     }
 
     get standardKey(): StandardKey | 'ASSET' | undefined {
         if (!this._payload) return undefined
-        if (this._payload instanceof StandardExplicitParentRemove) {
+        if (this._payload instanceof RemoveClass) {
             return undefined
         }
-        if (this._payload instanceof StandardExplicitParentSimple) {
-            return this._payload.payload.data
+        if (this._payload instanceof PlainClass) {
+            const plainValue = this._payload.plain?.data
+            return plainValue
         }
-        if (this._payload instanceof StandardExplicitParentReplace) {
+        if (this._payload instanceof ReplaceClass) {
             // Outgoing payload (not match) is the "next" value
-            return this._payload.payload.data
+            const payloadValue = (this._payload as any).payload?.data
+            return payloadValue
         }
         return undefined
     }
@@ -578,16 +477,8 @@ export class StandardExplicitParent {
             // Undefined/empty parent - return as-is (no inversion needed)
             return new StandardExplicitParent(this)
         }
-        if (this._payload instanceof StandardExplicitParentSimple) {
-            return new StandardExplicitParent(new StandardExplicitParentRemove(this._payload.payload))
-        }
-        if (this._payload instanceof StandardExplicitParentRemove) {
-            return new StandardExplicitParent(new StandardExplicitParentSimple(this._payload.match))
-        }
-        if (this._payload instanceof StandardExplicitParentReplace) {
-            return new StandardExplicitParent(new StandardExplicitParentReplace(this._payload.payload, this._payload.match))
-        }
-        throw new Error('Invalid StandardExplicitParent payload for invert')
+        const inverted = this._payload.invert()
+        return new StandardExplicitParent(inverted)
     }
 
     
