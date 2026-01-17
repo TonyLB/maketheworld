@@ -18,7 +18,7 @@ exports[`fetchImportsMessage should follow dynamic renames in imports 1`] = `
         key=(testNonImportTwo)
         origin=(ASSET#testFinal)
     >
-        <Exit to=(ROOM#testImportFoo)>test exit</Exit>
+        <Exit to=(testImportFoo)>test exit</Exit>
     </Room>
 </Asset>",
     },
@@ -103,7 +103,7 @@ exports[`fetchImportsMessage should recursive fetch one level of element and stu
         >
             <Description>OneTwo</Description>
         </Example>
-        <Exit to=(ROOM#testImportStubOne)>test exit one</Exit>
+        <Exit to=(testImportStubOne)>test exit one</Exit>
     </Room>
     <Room
         uuid=(testImportStubOne)
@@ -129,7 +129,7 @@ exports[`fetchImportsMessage should return element and stubs when passed non-imp
         <Example uuid=(testNonImportExample) origin=(ASSET#testFinal)>
             <Description>DescriptionOne</Description>
         </Example>
-        <Exit to=(ROOM#testNonImportStub)>test exit</Exit>
+        <Exit to=(testNonImportStub)>test exit</Exit>
     </Room>
     <Room
         uuid=(testNonImportStub)

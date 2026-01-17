@@ -196,13 +196,13 @@ describe('ComponentRender cache handler', () => {
                             universalKey: 'MAP#TestOne',
                             name: 'Test Map',
                             images: [],
-                            positions: [{ room: 'ROOM#TestRoomOne', x: 0, y: 0 }],
+                            positions: [{ reference: 'ROOM#TestRoomOne', payload: { x: 0, y: 0 } }],
                             tag: 'Map',
                         }),
                         [`ASSET#Personal`]: new StandardMap({
                             universalKey: 'MAP#TestOne',
                             images: [],
-                            positions: [{ room: 'ROOM#TestRoomTwo', x: 100, y: 0 }],
+                            positions: [{ reference: 'ROOM#TestRoomTwo', payload: { x: 100, y: 0 } }],
                             tag: 'Map',
                         })
                     } as Record<AssetUUID, StandardComponent>
@@ -212,8 +212,8 @@ describe('ComponentRender cache handler', () => {
                             universalKey: 'ROOM#TestRoomOne',
                             shortName: 'Test Room One',
                             exits: [
-                                { to: 'ROOM#TestRoomTwo', description: 'Other Room' },
-                                { to: 'ROOM#TestRoomThree', description: 'Not in Map' }
+                                { reference: 'ROOM#TestRoomTwo', payload: 'Other Room' },
+                                { reference: 'ROOM#TestRoomThree', payload: 'Not in Map' }
                             ],
                             tag: 'Room',
                         }),
@@ -230,7 +230,7 @@ describe('ComponentRender cache handler', () => {
                         [`ASSET#Personal`]: new StandardRoom({
                             universalKey: 'ROOM#TestRoomTwo',
                             exits: [
-                                { to: 'ROOM#TestRoomOne', description: 'First Room' }
+                                { reference: 'ROOM#TestRoomOne', payload: 'First Room' }
                             ],
                             tag: 'Room'
                         })
