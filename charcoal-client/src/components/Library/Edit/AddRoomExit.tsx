@@ -10,6 +10,7 @@ import AddIcon from '@mui/icons-material/Add'
 
 import { useLibraryAsset } from './LibraryAsset'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room';
+import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit';
 
 interface AddRoomExitProps {
     RoomId: string;
@@ -26,7 +27,11 @@ export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ RoomId }) => 
                 update: (standardForm) => {
                     const base = standardForm.byId[RoomId]
                     if (base instanceof StandardRoom) {
-                        base._payload._exits.push({ data: { tag: 'Exit', key: `${RoomId}#`, from: RoomId, to: '' }, children: [] })
+                        const newExitFacet = new StandardExitFacet({
+                            reference: { tag: 'Room', key: '' },
+                            payload: undefined
+                        })
+                        base._payload._exits.items.push(newExitFacet)
                     }
                     return standardForm
                 }

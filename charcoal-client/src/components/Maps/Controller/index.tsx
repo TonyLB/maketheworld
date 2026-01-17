@@ -19,7 +19,7 @@ import { StandardKey } from "@tonylb/mtw-wml/ts/standardize/components/reference
 import { excludeUndefined } from "../../../lib/lists"
 import StandardPosition, { StandardPositionSimple } from "@tonylb/mtw-wml/ts/standardize/components/position"
 import { StandardPositionFacet, PositionRemoveClass } from "@tonylb/mtw-wml/ts/standardize/keys/facets/position"
-import { StandardExitPlain } from "@tonylb/mtw-wml/ts/standardize/components/exit"
+import { ExitFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
 
 export const MapContext = React.createContext<MapContextType>({
     mapId: 'MAP#default',
@@ -63,15 +63,15 @@ export const mapTreeMemo = (standardForm: StandardForm, mapId: `MAP#${string}`):
     mapSubset._components.forEach((component) => {
         if (component instanceof StandardRoom && component._payload instanceof StandardRoomPayload) {
             // Filter the room's exits to only include those where target rooms exist in the map subset
-            component._payload._exits = component.exits.filter((exit) => {
-                if (!(exit instanceof StandardExitPlain)) return false
-                
-                const targetRoom = exit.payload?.to
+            const filteredExits = component.exits.items.filter((exitFacet) => {
+                // Exit facets always have a reference - check if target room exists
+                const targetRoom = exitFacet.reference.universalKey
                 if (!targetRoom) return false
                 
                 // Check if the target room exists in the map subset
                 return Boolean(mapSubset._lookup(targetRoom))
             })
+            component._payload._exits = new ExitFacetList(filteredExits)
         }
     })
     

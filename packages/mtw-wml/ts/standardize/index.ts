@@ -883,7 +883,7 @@ export class StandardForm {
                     if ((request.requestType === 'ShortName' || request.requestType === 'ExitsAndShortName') && component instanceof StandardRoom) {
                         returnValue._payload._shortName = component._payload._shortName
                         if (request.requestType === 'ExitsAndShortName') {
-                            returnValue._payload._exits = component.exits
+                            returnValue._payload._exits = component.exits.clone()
                         }
                     }
                 }

@@ -4,7 +4,7 @@ import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { UpdateStandardPayload } from "../../../slices/personalAssets/reducers";
-import { StandardExit } from "@tonylb/mtw-wml/ts/standardize/components/exit";
+import { StandardExitFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit";
 
 const schemaOutputLowerCase = (tree: GenericTree<SchemaOutputTag>): GenericTree<SchemaOutputTag> => (
     tree.map(({ data, children }) => ({
@@ -39,12 +39,11 @@ export const addExitFactory = ({ standardForm, editable, addImport, updateStanda
             const draft = standard._clone()
             const sourceComponent = draft.byUniversalId[from]
             if (sourceComponent && sourceComponent instanceof StandardRoom) {
-                const newExit = StandardExit.create({
-                    from,
-                    to,
-                    name: exitName
+                const newExitFacet = new StandardExitFacet({
+                    reference: { tag: 'Room', universalKey: to },
+                    payload: exitName || undefined
                 })
-                sourceComponent.exits.push(newExit)
+                sourceComponent.exits.items.push(newExitFacet)
             }
             return draft
         }

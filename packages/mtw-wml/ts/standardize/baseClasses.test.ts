@@ -9,8 +9,8 @@ describe('StandardForm baseClasses', () => {
             tag: "Room",
             shortName: "Sturdy Mug",
             exits: [{
-                to: { key: "marketSquare" },
-                description: "market square"
+                reference: { tag: "Room", key: "marketSquare" },
+                payload: "market square"
             }],
             examples: [{ key: "base", tag: "Example" }],
             from: "ASSET#primitives"
@@ -25,8 +25,8 @@ describe('StandardForm baseClasses', () => {
             tag: "Room",
             shortName: "Sturdy Mug",
             exits: [{
-                to: { key: "marketSquare" },
-                description: "market square"
+                reference: { tag: "Room", key: "marketSquare" },
+                payload: "market square"
             }],
             examples: [{ key: "base", tag: "Example" }],
             from: "ASSET#primitives"
