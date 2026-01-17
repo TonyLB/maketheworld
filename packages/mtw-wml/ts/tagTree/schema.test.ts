@@ -10,8 +10,8 @@ describe('SchemaTagTree', () => {
         const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
             <Asset uuid=(test)>
                 <Map uuid=(map1)>
-                    <Room uuid=(room1)><Position x="0" y="0" /></Room>
-                    <Room uuid=(room2)><Position x="100" y="100" /></Room>
+                    <Room uuid=(room1)><Position {0, 0} /></Room>
+                    <Room uuid=(room2)><Position {100, 100} /></Room>
                 </Map>
             </Asset>
         `))))
@@ -19,8 +19,8 @@ describe('SchemaTagTree', () => {
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset uuid=(test)>
                 <Map uuid=(map1)>
-                    <Room uuid=(room1)><Position x="0" y="0" /></Room>
-                    <Room uuid=(room2)><Position x="100" y="100" /></Room>
+                    <Room uuid=(room1)><Position {0, 0} /></Room>
+                    <Room uuid=(room2)><Position {100, 100} /></Room>
                 </Map>
             </Asset>
         `))
@@ -42,7 +42,7 @@ describe('SchemaTagTree', () => {
                         <Example uuid=(room1-example)>
                             <Description>: Added</Description>
                         </Example>
-                        <Position x="0" y="0" />
+                        <Position {0, 0} />
                     </Room>
                 </Map>
             </Asset>
@@ -60,7 +60,7 @@ describe('SchemaTagTree', () => {
                     <Example uuid=(room1-example)>
                         <Description>: Added</Description>
                     </Example>
-                    <Position x="0" y="0" />
+                    <Position {0, 0} />
                 </Room>
                 <Room uuid=(Room2) key=(room2) />
             </Asset>
@@ -84,7 +84,7 @@ describe('SchemaTagTree', () => {
                             <Replace><Description>description</Description></Replace>
                             <With><Description>appearance</Description></With>
                         </Example>
-                        <Position x="0" y="0" />
+                        <Position {0, 0} />
                     </Room>
                 </Map>
             </Asset>
@@ -103,7 +103,7 @@ describe('SchemaTagTree', () => {
                         <Replace><Description>description</Description></Replace>
                         <With><Description>appearance</Description></With>
                     </Example>
-                    <Position x="0" y="0" />
+                    <Position {0, 0} />
                 </Room>
                 <Room uuid=(Room2) key=(room2) />
             </Asset>
@@ -124,7 +124,7 @@ describe('SchemaTagTree', () => {
                         <Example uuid=(doors-room-example)>
                             <Description>: They are enchanted</Description>
                         </Example>
-                        <Position x="50" y="50" />
+                        <Position {50, 50} />
                     </Room>
                 </Map>
             </Asset>
@@ -143,7 +143,7 @@ describe('SchemaTagTree', () => {
                     <Example uuid=(doors-room-example)>
                         <Description>: They are enchanted</Description>
                     </Example>
-                    <Position x="50" y="50" />
+                    <Position {50, 50} />
                 </Room>
             </Asset>
         `))

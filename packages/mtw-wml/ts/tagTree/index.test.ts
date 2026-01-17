@@ -502,7 +502,7 @@ describe('TagTree', () => {
                     </Character>
                     <Map key=(dungeonMap) uuid=(Map1)>
                         <Name>Dungeon Layout</Name>
-                        <Room key=(room1) uuid=(Room1)><Position x="0" y="0" /></Room>
+                        <Room key=(room1) uuid=(Room1)><Position {0, 0} /></Room>
                     </Map>
                 </Asset>
             `))))

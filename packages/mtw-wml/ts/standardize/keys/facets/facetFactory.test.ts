@@ -347,7 +347,7 @@ describe('facetClassFactory', () => {
             const expectedWML = deIndentWML(`
                 <Remove>
                     <Room uuid=(room1) key=(room1)>
-                        <Remove><Position x="10" y="20" /></Remove>
+                        <Remove><Position {10, 20} /></Remove>
                     </Room>
                 </Remove>
             `);
@@ -403,7 +403,7 @@ describe('facetClassFactory', () => {
             it('should construct from WML string (plain facet)', () => {
                 const wml = deIndentWML(`
                     <Room key=(room1) uuid=(test123)>
-                        <Position x="10" y="20" />
+                        <Position {10, 20} />
                     </Room>
                 `);
                 const facet = new TestFacetClass(wml);
@@ -415,7 +415,7 @@ describe('facetClassFactory', () => {
             it('should construct from GenericTree<SchemaTag> (plain facet)', () => {
                 const schema: GenericTree<SchemaTag> = treeFromWML(deIndentWML(`
                     <Room key=(room1) uuid=(test123)>
-                        <Position x="15" y="25" />
+                        <Position {15, 25} />
                     </Room>
                 `));
                 const facet = new TestFacetClass(schema);
@@ -430,7 +430,7 @@ describe('facetClassFactory', () => {
                 const wml = deIndentWML(`
                     <Remove>
                         <Room key=(room1) uuid=(test123)>
-                            <Position x="10" y="20" />
+                            <Position {10, 20} />
                         </Room>
                     </Remove>
                 `);
@@ -450,7 +450,7 @@ describe('facetClassFactory', () => {
                     <Remove>
                         <Room key=(room1) uuid=(test123)>
                             <Remove>
-                                <Position x="10" y="20" />
+                                <Position {10, 20} />
                             </Remove>
                         </Room>
                     </Remove>
@@ -469,12 +469,12 @@ describe('facetClassFactory', () => {
                 const wml = deIndentWML(`
                     <Replace>
                         <Room key=(room1) uuid=(test123)>
-                            <Position x="5" y="10" />
+                            <Position {5, 10} />
                         </Room>
                     </Replace>
                     <With>
                         <Room key=(room1) uuid=(test123)>
-                            <Position x="10" y="20" />
+                            <Position {10, 20} />
                         </Room>
                     </With>
                 `);
@@ -492,12 +492,12 @@ describe('facetClassFactory', () => {
                 const schema: GenericTree<SchemaTag> = treeFromWML(deIndentWML(`
                     <Replace>
                         <Room key=(room1) uuid=(test123)>
-                            <Position x="5" y="10" />
+                            <Position {5, 10} />
                         </Room>
                     </Replace>
                     <With>
                         <Room key=(room1) uuid=(test123)>
-                            <Position x="15" y="25" />
+                            <Position {15, 25} />
                         </Room>
                     </With>
                 `));
@@ -517,12 +517,12 @@ describe('facetClassFactory', () => {
                 const wml = deIndentWML(`
                     <Replace>
                         <Room key=(room1) uuid=(test123)>
-                            <Position x="5" y="10" />
+                            <Position {5, 10} />
                         </Room>
                     </Replace>
                     <With>
                         <Room key=(room2) uuid=(test456)>
-                            <Position x="10" y="20" />
+                            <Position {10, 20} />
                         </Room>
                     </With>
                 `);
@@ -536,7 +536,7 @@ describe('facetClassFactory', () => {
                 // TestFacetClass uses PositionPayload, which should use default extraction
                 const wml = deIndentWML(`
                     <Room key=(room1) uuid=(test123)>
-                        <Position x="10" y="20" />
+                        <Position {10, 20} />
                     </Room>
                 `);
                 const facet = new TestFacetClass(wml);

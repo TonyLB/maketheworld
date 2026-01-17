@@ -2,7 +2,7 @@ import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
-import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
+import { validateProperties, validateExpressionAsNonNegativeInteger, parsePositionCoordinates } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaParent, isSchemaKey, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
@@ -46,8 +46,7 @@ const componentTemplates = {
         ref: { type: ParsePropertyTypes.Expression }
     },
     Position: {
-        x: { required: true, type: ParsePropertyTypes.Literal },
-        y: { required: true, type: ParsePropertyTypes.Literal },
+        DEFAULT: { required: true, type: ParsePropertyTypes.Expression },
     },
     Map: {
         uuid: { type: ParsePropertyTypes.Key },
@@ -245,15 +244,13 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     },
     Position: {
         initialize: ({ parseOpen }): SchemaPositionTag => {
-            const { x, y } = validateProperties(componentTemplates.Position)(parseOpen)
-            if (typeof x === 'undefined' || Number.isNaN(parseInt(x))) {
-                throw new Error(`Property 'x' must be a number`)
+            const { DEFAULT } = validateProperties(componentTemplates.Position)(parseOpen)
+            if (typeof DEFAULT === 'undefined') {
+                throw new Error(`Position tag must have DEFAULT property with comma-separated coordinates`)
             }
-            if (typeof y === 'undefined' || Number.isNaN(parseInt(y))) {
-                throw new Error(`Property 'x' must be a number`)
-            }
+            const coordinates = parsePositionCoordinates(DEFAULT as string, 'DEFAULT', parseOpen.tag)
             return {
-                tag: 'Position', x: parseInt(x), y: parseInt(y)
+                tag: 'Position', x: coordinates.x, y: coordinates.y
             }
         }
     },
@@ -384,10 +381,9 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Position',
             properties: [
                 //
-                // Render x/y properties from integers into strings
+                // Render coordinates as DEFAULT expression property: {x, y}
                 //
-                { key: 'x', type: 'literal', value: `${tag.x}` },
-                { key: 'y', type: 'literal', value: `${tag.y}` }
+                { key: undefined, type: 'expression', value: `${tag.x}, ${tag.y}` }
             ],
             node: { data: tag, children }
         })

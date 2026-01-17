@@ -452,7 +452,7 @@ describe('StandardForm', () => {
                 <Map uuid=(testMap)>
                     <Room uuid=(testRoom)>
                         <Feature uuid=(testFeature) key=(testFeature) />
-                        <Position x="0" y="0" />
+                        <Position {0, 0} />
                     </Room>
                 </Map>
             </Asset>
@@ -961,7 +961,7 @@ describe('StandardForm', () => {
             <Map uuid=(testMap) key=(testMap)>
                 <Name>Test map</Name>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
-                    <Position x="0" y="0" />
+                    <Position {0, 0} />
                     <Example uuid=(testRoomOneBase)>
                         <Description>Test Room One</Description>
                     </Example>
@@ -969,7 +969,7 @@ describe('StandardForm', () => {
                 </Room>
                 <Room uuid=(testRoomOne) key=(testRoomOne) />
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Position x="-100" y="0" />
+                    <Position {-100, 0} />
                     <Example uuid=(testRoomTwoBase)>
                         <Description>Test Room Two</Description>
                     </Example>
@@ -1000,8 +1000,8 @@ describe('StandardForm', () => {
                 <Map uuid=(testMap) key=(testMap)>
                     <Name>Test map</Name>
                     <Image key=(mapBackground) />
-                    <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
-                    <Room key=(testRoomTwo)><Position x="-100" y="0" /></Room>
+                    <Room key=(testRoomOne)><Position {0, 0} /></Room>
+                    <Room key=(testRoomTwo)><Position {-100, 0} /></Room>
                 </Map>
             </Asset>
         `))
@@ -1383,7 +1383,7 @@ describe('StandardForm', () => {
         })
         const mapTest = new StandardForm(`<Asset uuid=(Test)>
             <Map uuid=(testMap) key=(testMap)>
-                <Room uuid=(testRoomOne) key=(testRoomOne)><Position x="0" y="100" /></Room>
+                <Room uuid=(testRoomOne) key=(testRoomOne)><Position {0, 100} /></Room>
             </Map>
         </Asset>`)
         expect(mapTest.byId.testRoomOne.toJSON()).toEqual({
@@ -2558,11 +2558,11 @@ describe('StandardForm', () => {
                 <Asset uuid=(test)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
-                            <Position x="0" y="0" />
+                            <Position {0, 0} />
                             <Exit to=(ROOM#room2)>room2</Exit>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <Exit to=(ROOM#room1)>room1</Exit>
                         </Room>
                     </Map>
@@ -2594,11 +2594,11 @@ describe('StandardForm', () => {
                 <Asset uuid=(test)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
-                            <Position x="0" y="0" />
+                            <Position {0, 0} />
                             <Exit to=(ROOM#room2)>room2</Exit>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <Exit to=(ROOM#room1)>room1</Exit>
                         </Room>
                     </Map>
@@ -2826,7 +2826,7 @@ describe('StandardForm', () => {
             const test = new StandardForm(`
                 <Asset uuid=(test)>
                     <Map key=(testMap)>
-                        <Room key=(testRoom)><Position x="0" y="0" /></Room>
+                        <Room key=(testRoom)><Position {0, 0} /></Room>
                     </Map>
                     <Room key=(testRoom)>
                         <Example key=(base)>
@@ -2855,9 +2855,7 @@ describe('StandardForm', () => {
                 startNodes: ['map']
             }] }]).schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Map key=(testMap)>
-                        <Room key=(testRoom)><Position x="0" y="0" /></Room>
-                    </Map>
+                    <Map key=(testMap)><Room key=(testRoom)><Position {0, 0} /></Room></Map>
                     <Room key=(testRoom) />
                 </Asset>
             `))
@@ -2911,8 +2909,8 @@ describe('StandardForm', () => {
             const test = new StandardForm(`
                 <Asset uuid=(test)>
                     <Map uuid=(testMap)>
-                        <Room key=(room1)><Position x="0" y="0" /></Room>
-                        <Room key=(room2)><Position x="100" y="100" /></Room>
+                        <Room key=(room1)><Position {0, 0} /></Room>
+                        <Room key=(room2)><Position {100, 100} /></Room>
                     </Map>
                     <Room key=(room1)>
                         <ShortName>Room One</ShortName>
@@ -2996,7 +2994,7 @@ describe('StandardForm', () => {
                 </Room>
                 <Map uuid=(005) key=(testMap)>
                     <Image key=(testBackground) />
-                    <Room key=(testRoom)><Position x="0" y="100" /></Room>
+                    <Room key=(testRoom)><Position {0, 100} /></Room>
                 </Map>
                 <Message uuid=(006) key=(openDoor)>
                     <Room key=(testRoom) />
@@ -3197,7 +3195,7 @@ describe('StandardForm', () => {
                 <Asset uuid=(test)>
                     <Room key=(testRoomOne) />
                     <Map key=(testMapOne)>
-                        <Room key=(testRoomOne)><Position x="100" y="100" /></Room>
+                        <Room key=(testRoomOne)><Position {100, 100} /></Room>
                     </Map>
                 </Asset>
             `)
@@ -3205,7 +3203,7 @@ describe('StandardForm', () => {
                 <Asset uuid=(test)>
                     <Room key=(renamedRoom) />
                     <Map key=(testMapOne)>
-                        <Room key=(renamedRoom)><Position x="100" y="100" /></Room>
+                        <Room key=(renamedRoom)><Position {100, 100} /></Room>
                     </Map>
                 </Asset>
             `))

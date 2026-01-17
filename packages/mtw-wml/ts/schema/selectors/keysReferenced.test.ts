@@ -29,8 +29,8 @@ describe('keyReferenced selector', () => {
                 <Room key=(room1) />
                 <Room key=(room2) />
                 <Map key=(map1)>
-                    <Room key=(room1)><Position x="0" y="0" /></Room>
-                    <Room key=(room2)><Position x="100" y="0" /></Room>
+                    <Room key=(room1)><Position {0, 0} /></Room>
+                    <Room key=(room2)><Position {100, 0} /></Room>
                 </Map>
             </Asset>
         `)

@@ -46,11 +46,11 @@ describe('mapTreeMemo', () => {
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                     </Map>
@@ -69,8 +69,8 @@ describe('mapTreeMemo', () => {
             expect(schemaToWML([mapComponent.schema])).toEqual(deIndentWML(`
                 <Map uuid=(testMap)>
                     <Name>Test Map</Name>
-                    <Room uuid=(room1)><Position x="100" y="100" /></Room>
-                    <Room uuid=(room2)><Position x="200" y="200" /></Room>
+                    <Room uuid=(room1)><Position {100, 100} /></Room>
+                    <Room uuid=(room2)><Position {200, 200} /></Room>
                 </Map>
             `))
         })
@@ -81,11 +81,11 @@ describe('mapTreeMemo', () => {
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                     </Map>
@@ -114,13 +114,13 @@ describe('mapTreeMemo', () => {
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>to room two</Exit>
                             <Exit to=(ROOM#room3)>to room three</Exit>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                             <Exit to=(ROOM#room1)>to room one</Exit>
                         </Room>
@@ -155,7 +155,7 @@ describe('mapTreeMemo', () => {
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>to room two</Exit>
                             <Example key=(example1)>
@@ -165,7 +165,7 @@ describe('mapTreeMemo', () => {
                                 <Description>This should not be included</Description>
                             </Feature>
                         </Room>
-                        <Room uuid=(room2)><Position x="200" y="200" /></Room>
+                        <Room uuid=(room2)><Position {200, 200} /></Room>
                     </Map>
                 </Asset>
             `
@@ -194,7 +194,7 @@ describe('mapTreeMemo', () => {
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                         </Room>
                     </Map>
                 </Asset>
@@ -217,12 +217,12 @@ describe('mapTreeMemo', () => {
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>North to Room Two</Exit>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                     </Map>
@@ -245,12 +245,12 @@ describe('mapTreeMemo', () => {
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2) />
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                     </Map>
@@ -275,7 +275,7 @@ describe('mapTreeMemo', () => {
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                         </Room>
                     </Map>

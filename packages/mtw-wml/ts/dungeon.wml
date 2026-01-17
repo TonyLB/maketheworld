@@ -15,20 +15,20 @@
     <Map key=(dungeonMap)>
         <Image key=(dungeonImage) />
         <Room key=(VORTEX)>
-            <Position x="0" y="250" />
+            <Position {0, 250} />
         </Room>
         <Room key=(cave)>
-            <Position x="0" y="150" />
+            <Position {0, 150} />
             <Exit to=(curvingPassage)>passage</Exit>
             <Exit to=(VORTEX)>out</Exit>
         </Room>
         <Room key=(curvingPassage)>
-            <Position x="-150" y="100" />
+            <Position {-150, 100} />
             <Exit to=(cave)>cave</Exit>
             <Exit to=(chamber)>chamber</Exit>
         </Room>
         <Room key=(chamber)>
-            <Position x="-150" y="0" />
+            <Position {-150, 0} />
             <Exit to=(curvingPassage)>passage</Exit>
         </Room>
     </Map>

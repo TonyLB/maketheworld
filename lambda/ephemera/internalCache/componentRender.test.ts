@@ -253,8 +253,8 @@ describe('ComponentRender cache handler', () => {
                 </Room>
                 <Map uuid=(TestOne) ref={0}>
                     <Name>Test Map</Name>
-                    <Room uuid=(TestRoomOne)><Position x="0" y="0" /></Room>
-                    <Room uuid=(TestRoomTwo)><Position x="100" y="0" /></Room>
+                    <Room uuid=(TestRoomOne)><Position {0, 0} /></Room>
+                    <Room uuid=(TestRoomTwo)><Position {100, 0} /></Room>
                 </Map>
             </Asset>
         `))

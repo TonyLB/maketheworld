@@ -6,7 +6,7 @@ import { StandardPositionData } from './dataTypes/position';
 describe('StandardPosition', () => {
     it('should construct StandardPosition from WML', () => {
         const testSource = deIndentWML(`
-            <Room key=(test)><Position x="1" y="2" /></Room>
+            <Room key=(test)><Position {1, 2} /></Room>
         `)
         const testPosition = new StandardPosition(testSource)
         expect(testPosition.room.toJSON()).toEqual({ key: 'test', tag: 'Room' })
@@ -18,7 +18,7 @@ describe('StandardPosition', () => {
     it('should construct StandardPosition from schema', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
-            <Room key=(test)><Position x="1" y="2" /></Room>
+            <Room key=(test)><Position {1, 2} /></Room>
         `)
         schema.loadWML(testSource)
         const testPosition = new StandardPosition(schema.schema)
@@ -44,7 +44,7 @@ describe('StandardPosition', () => {
     })
 
     it('should merge correctly', () => {
-        expect(schemaToWML(new StandardPosition('<Room key=(test)><Position x="1" y="2" /></Room>')?.merge(new StandardPosition('<Room key=(test)><Position x="4" y="5" /></Room>'))?.schema ?? [])).toEqual(deIndentWML('<Room key=(test)><Position x="4" y="5" /></Room>'))
+        expect(schemaToWML(new StandardPosition('<Room key=(test)><Position {1, 2} /></Room>')?.merge(new StandardPosition('<Room key=(test)><Position {4, 5} /></Room>'))?.schema ?? [])).toEqual(deIndentWML('<Room key=(test)><Position {4, 5} /></Room>'))
     })
 
     it('should correctly parse a StandardPositionRemove', () => {

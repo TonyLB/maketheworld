@@ -94,7 +94,7 @@ describe('transformNestedChildren', () => {
             
             expect(schemaToWML([result])).toBe(deIndentWML(`
                 <Room key=(test)>
-                    <Position x="10" y="20" />
+                    <Position {10, 20} />
                     <Feature key=(feat1) />
                 </Room>
             `))
@@ -216,7 +216,7 @@ describe('transformNestedChildren', () => {
             expect(schemaToWML([matchRoom])).toBe(deIndentWML(`
                 <Room key=(test2)>
                     <Feature key=(feat1) />
-                    <Position x="5" y="10" />
+                    <Position {5, 10} />
                 </Room>
             `))
             
@@ -224,7 +224,7 @@ describe('transformNestedChildren', () => {
             expect(schemaToWML([payloadRoom])).toBe(deIndentWML(`
                 <Room key=(test3)>
                     <Feature key=(feat2) />
-                    <Position x="5" y="10" />
+                    <Position {5, 10} />
                 </Room>
             `))
         })

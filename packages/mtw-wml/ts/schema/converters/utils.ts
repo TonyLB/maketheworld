@@ -4,6 +4,37 @@ import { ConverterMapValidateProperties, PrintMapOptionsChange, PrintMapOptionsF
 import { AssetUUID, isSchemaAssetUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 /**
+ * Parses and validates a comma-separated pair of coordinates from an expression value.
+ * Throws an error if the value cannot be parsed as exactly two numbers.
+ */
+export const parsePositionCoordinates = (value: string, propertyName: string, tagName: string): { x: number, y: number } => {
+    const trimmed = value.trim()
+    if (!trimmed) {
+        throw new Error(`Property '${propertyName}' must contain exactly two comma-separated numbers in '${tagName}' items, but received empty value.`)
+    }
+    const parts = trimmed.split(',').map(part => part.trim()).filter(part => part.length > 0)
+    if (parts.length !== 2) {
+        throw new Error(`Property '${propertyName}' must contain exactly two comma-separated numbers in '${tagName}' items, but received '${value}' (found ${parts.length} values).`)
+    }
+    const x = Number.parseInt(parts[0], 10)
+    const y = Number.parseInt(parts[1], 10)
+    if (Number.isNaN(x) || !Number.isFinite(x)) {
+        throw new Error(`Property '${propertyName}' contains invalid number in '${tagName}' items: '${parts[0]}' (x coordinate).`)
+    }
+    if (Number.isNaN(y) || !Number.isFinite(y)) {
+        throw new Error(`Property '${propertyName}' contains invalid number in '${tagName}' items: '${parts[1]}' (y coordinate).`)
+    }
+    // Check that the string representation matches exactly (prevents "42abc" from being accepted)
+    if (x.toString() !== parts[0]) {
+        throw new Error(`Property '${propertyName}' contains invalid number in '${tagName}' items: '${parts[0]}' (x coordinate contains non-numeric characters).`)
+    }
+    if (y.toString() !== parts[1]) {
+        throw new Error(`Property '${propertyName}' contains invalid number in '${tagName}' items: '${parts[1]}' (y coordinate contains non-numeric characters).`)
+    }
+    return { x, y }
+}
+
+/**
  * Validates and converts an Expression property value to a non-negative integer.
  * Throws an error if the value cannot be parsed as a non-negative integer.
  */

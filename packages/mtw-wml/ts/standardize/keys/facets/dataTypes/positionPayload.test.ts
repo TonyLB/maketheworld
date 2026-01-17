@@ -67,7 +67,7 @@ describe('PositionFacetPlainClass - StandardEditablePayload implementation', () 
         });
 
         it('should create from Position tag schema', () => {
-            const schema = treeFromWML(deIndentWML('<Position x="10" y="20" />'));
+            const schema = treeFromWML(deIndentWML('<Position {10, 20} />'));
             const instance = PositionEditableClass.create(schema);
             expect(instance).toBeInstanceOf(PositionPlainClass);
             expect(instance.toJSON()).toEqual({ x: 10, y: 20 });
@@ -204,7 +204,7 @@ describe('PositionFacetPlainClass - StandardEditablePayload implementation', () 
 describe('PositionFacetPlainClass - FacetPayloadBase implementation', () => {
     describe('fromSchema', () => {
         it('should parse Room with Position child (with key and uuid)', () => {
-            const schema = treeFromWML(deIndentWML('<Room key=(testRoom) uuid=(ROOM#123)><Position x="10" y="20" /></Room>'));
+            const schema = treeFromWML(deIndentWML('<Room key=(testRoom) uuid=(ROOM#123)><Position {10, 20} /></Room>'));
             const reference = new StandardReference('ROOM#123', 'Room');
             const payload = new PositionFacetPlainClass({ x: 0, y: 0 });
             const result = payload.fromSchema(schema, reference);
@@ -213,7 +213,7 @@ describe('PositionFacetPlainClass - FacetPayloadBase implementation', () => {
         });
 
         it('should parse Room with Position child (uuid only)', () => {
-            const schema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123)><Position x="15" y="25" /></Room>'));
+            const schema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123)><Position {15, 25} /></Room>'));
             const reference = new StandardReference('ROOM#123', 'Room');
             const payload = new PositionFacetPlainClass({ x: 0, y: 0 });
             const result = payload.fromSchema(schema, reference);
@@ -229,7 +229,7 @@ describe('PositionFacetPlainClass - FacetPayloadBase implementation', () => {
         });
 
         it('should throw error when Room tag is missing', () => {
-            const schema = treeFromWML(deIndentWML('<Position x="10" y="20" />'));
+            const schema = treeFromWML(deIndentWML('<Position {10, 20} />'));
             const reference = new StandardReference('ROOM#123', 'Room');
             const payload = new PositionFacetPlainClass({ x: 0, y: 0 });
             expect(() => payload.fromSchema(schema, reference)).toThrow('Invalid schema: Room tag not found');

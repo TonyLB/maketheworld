@@ -119,7 +119,7 @@ For instance, in the following:
 
 ```xml
 <Map key=(dungeonMap)>
-    <Room key=(VORTEX)><Position x="0" y="250" /></Room>
+    <Room key=(VORTEX)><Position {0, 250} /></Room>
 </Map>
 ```
 

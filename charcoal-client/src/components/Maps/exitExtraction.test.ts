@@ -44,11 +44,11 @@ describe('extractExitsFromStandardForm', () => {
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                     </Map>
@@ -67,12 +67,12 @@ describe('extractExitsFromStandardForm', () => {
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>to room two</Exit>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                     </Map>
@@ -97,17 +97,17 @@ describe('extractExitsFromStandardForm', () => {
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>to room two</Exit>
                             <Exit to=(ROOM#room3)>to room three</Exit>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                         <Room uuid=(room3)>
-                            <Position x="300" y="300" />
+                            <Position {300, 300} />
                             <ShortName>Room Three</ShortName>
                         </Room>
                     </Map>
@@ -136,17 +136,17 @@ describe('extractExitsFromStandardForm', () => {
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>to room two</Exit>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                             <Exit to=(ROOM#room3)>to room three</Exit>
                         </Room>
                         <Room uuid=(room3)>
-                            <Position x="300" y="300" />
+                            <Position {300, 300} />
                             <ShortName>Room Three</ShortName>
                         </Room>
                     </Map>
@@ -188,13 +188,13 @@ describe('extractExitsFromStandardForm', () => {
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>to room two</Exit>
                             <Exit to=(ROOM#room3)>to room three</Exit>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                             <Exit to=(ROOM#room1)>to room one</Exit>
                         </Room>
@@ -247,7 +247,7 @@ describe('extractExitsFromStandardForm', () => {
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>
                                 Complex Exit Name
@@ -255,7 +255,7 @@ describe('extractExitsFromStandardForm', () => {
                             </Exit>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                     </Map>
@@ -282,16 +282,16 @@ describe('extractExitsFromStandardForm', () => {
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1) origin=(ASSET#parent)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>inherited exit</Exit>
                         </Room>
                         <Room uuid=(room2) origin=(ASSET#parent)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                         <Room uuid=(room3)>
-                            <Position x="300" y="300" />
+                            <Position {300, 300} />
                             <ShortName>Room Three</ShortName>
                             <Exit to=(ROOM#room1)>local exit</Exit>
                         </Room>
@@ -332,16 +332,16 @@ describe('extractExitsFromStandardForm', () => {
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1) origin=(ASSET#parent)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>inherited exit</Exit>
                         </Room>
                         <Room uuid=(room2) origin=(ASSET#parent)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                         <Room uuid=(room1)>
-                            <Position x="150" y="150" />
+                            <Position {150, 150} />
                             <ShortName>Room One Local</ShortName>
                             <Replace><Exit to=(ROOM#room2)>inherited exit</Exit></Replace>
                             <With><Exit to=(ROOM#room2)>local override exit</Exit></With>
@@ -369,12 +369,12 @@ describe('extractExitsFromStandardForm', () => {
                     <Map uuid=(testMap)>
                         <Name>Test Map</Name>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2) />
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                     </Map>
@@ -419,24 +419,24 @@ describe('extractExitsFromStandardForm', () => {
                     <Map uuid=(map1)>
                         <Name>Map One</Name>
                         <Room uuid=(room1)>
-                            <Position x="100" y="100" />
+                            <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>to room two</Exit>
                         </Room>
                         <Room uuid=(room2)>
-                            <Position x="200" y="200" />
+                            <Position {200, 200} />
                             <ShortName>Room Two</ShortName>
                         </Room>
                     </Map>
                     <Map uuid=(map2)>
                         <Name>Map Two</Name>
                         <Room uuid=(room3)>
-                            <Position x="300" y="300" />
+                            <Position {300, 300} />
                             <ShortName>Room Three</ShortName>
                             <Exit to=(ROOM#room4)>to room four</Exit>
                         </Room>
                         <Room uuid=(room4)>
-                            <Position x="400" y="400" />
+                            <Position {400, 400} />
                             <ShortName>Room Four</ShortName>
                         </Room>
                     </Map>

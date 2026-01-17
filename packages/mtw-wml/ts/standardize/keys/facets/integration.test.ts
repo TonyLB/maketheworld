@@ -70,7 +70,7 @@ describe('Facet Integration Tests', () => {
     describe('Round-trip WML parsing/generation', () => {
         describe('PositionPayload', () => {
             it('should round-trip Position facet with key-based reference', () => {
-                const originalWML = deIndentWML(`<Room key=(room1)><Position x="10" y="20" /></Room>`);
+                const originalWML = deIndentWML(`<Room key=(room1)><Position {10, 20} /></Room>`);
                 const facet = new StandardPositionFacet(originalWML);
                 
                 // Payload is now a class instance - access properties via toJSON()
@@ -88,7 +88,7 @@ describe('Facet Integration Tests', () => {
 
             it('should round-trip Position facet with uuid-based reference', () => {
                 const originalWML = deIndentWML(`
-                    <Room uuid=(test123)><Position x="15" y="25" /></Room>
+                    <Room uuid=(test123)><Position {15, 25} /></Room>
                 `);
                 const facet = new StandardPositionFacet(originalWML);
                 
