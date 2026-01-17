@@ -10,7 +10,7 @@ import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/compo
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
 import { facetClassFactory } from './facetFactory';
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
-import { transformNestedChildren } from "../../../schema/utils";
+import { transformNestedChildren, findTaggedChildren } from "../../../schema/utils";
 
 //
 // StandardPositionPayloadBase holds the contents for a simple PositionPayload
@@ -158,6 +158,10 @@ export class PositionFacetPayload {
     invert(): PositionFacetPayload {
         const inverted = this._payload.invert();
         return new PositionFacetPayload(inverted);
+    }
+
+    get plain(): StandardPositionPayloadBase | undefined {
+        return this._payload.plain;
     }
 
     // FacetPayloadBase method: parse from schema
@@ -457,10 +461,16 @@ export function createPositionFacetPayload(arg: any): PositionFacetPayload {
         const schema = factoryProps;
         if (schema.length > 0) {
             const firstElement = schema[0];
-            // If first element is a Room tag, extract its children (which contain the Position tag or Remove/Replace wrappers)
+            // If first element is a Room tag, extract only Position children (and Remove/Replace wrappers containing Position)
             if (treeNodeTypeguard(isSchemaRoom)(firstElement)) {
-                // Extract Position children from Room tag - this is what PositionEditableClass expects
-                return new PositionFacetPayload(firstElement.children);
+                // Extract only Position children from Room tag - findTaggedChildren handles Remove/Replace wrappers
+                // This ensures payloadFactory receives a tree where the first element is a Position tag (or Remove/Replace wrapper)
+                const positionChildren = findTaggedChildren({ children: firstElement.children, tag: 'Position' });
+                if (positionChildren.length === 0) {
+                    throw new Error('Room node does not contain Position children');
+                }
+                // PositionEditableClass expects a tree where Position tags (or their wrappers) are the top-level elements
+                return new PositionFacetPayload(positionChildren);
             }
         }
     }

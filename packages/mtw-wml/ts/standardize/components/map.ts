@@ -1,16 +1,16 @@
 import { excludeUndefined } from "../../lib/lists"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import SchemaTagTree from "../../tagTree/schema"
-import { findTaggedChildren } from "../../schema/utils"
+import { findTaggedChildren, recurseIntoEditable } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
 import { StandardMapData } from "./dataTypes/map"
 import { ReferenceFormat } from "./utils/references"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaMap, isSchemaRoom, isSchemaPosition } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
-import StandardPosition, { mergeStandardPositionList, StandardPositionReplace, StandardPositionRemove, StandardPositionSimple } from "./position"
+import { PositionFacetList, StandardPositionFacet } from "../keys/facets/position"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardLiteral } from "../literal"
@@ -19,53 +19,69 @@ import { StandardExplicitParent } from "../explicit"
 /**
  * StandardMapPayload represents a Map component.
  * 
- * NOTE: We do not currently handle having items parented to Map types, and cannot really
- * `assureReferences` against `StandardPosition`. This may need to be implemented in the future
- * as part of the SchemaOrganization refactor (Phase 4.3). The `_positions` array contains
- * `StandardPosition` objects, which have a different structure than `ReferenceList`-based
- * child references used by other components like `StandardRoom`.
+ * NOTE: Positions are stored using PositionFacetList, which follows the facet pattern
+ * established by MarkFacetList in StandardExample. Each position facet contains a reference
+ * to a Room and a payload with x, y coordinates.
  */
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
     _name?: StandardLiteral;
     _images: GenericTree<SchemaTag> = [];
-    _positions: StandardPosition[] = [];
+    _positions: PositionFacetList;
     tag = 'Map' as const
 
     constructor(previous?: StandardMapPayload) {
         if (previous) {
             this._name = previous._name
             this._images = [...previous._images]
-            this._positions = [...previous.positions]
+            this._positions = previous._positions.clone()
+        } else {
+            this._positions = new PositionFacetList([])
         }
     }
 
     fromJSON(props: StandardMapData) {
         this._name = props.name ? new StandardLiteral(props.name, { tag: 'Name' }) : undefined
         this._images = props.images ?? []
-        this._positions = props.positions?.map((position) => (new StandardPosition(position))).filter(excludeUndefined) ?? []
+        this._positions = new PositionFacetList(props.positions ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMap)(node)) {
             const tagTree = new SchemaTagTree(node.children)
             const nameItem = findTaggedChildren({ children: node.children, tag: 'Name' })
-            const positionsTagTree = tagTree
-                .reordered([{ match: 'Room' }, { match: 'Position' }])
-                .prune({ not: { or: [{ match: 'Room' }, { match: 'Position' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }]}})
             const imagesTagTree = tagTree.filter({ match: 'Image' })
 
             this._name = nameItem && nameItem.length > 0 ? new StandardLiteral(nameItem, { tag: 'Name' }) : undefined
             this._images = imagesTagTree.tree
-            this._positions = positionsTagTree.tree
-                .map((position) => {
+            
+            // Parse Position facets (Room tags with Position children)
+            // findTaggedChildren handles Remove and Replace wrappers automatically
+            const roomNodes = findTaggedChildren({ children: node.children, tag: 'Room' })
+            
+            // Helper function to check if a Room node contains Position children
+            // Uses recurseIntoEditable to unwrap edit wrappers, then checks each content node for Position children
+            const hasPositionChild = (node: GenericTreeNode<SchemaTag>): boolean => {
+                return recurseIntoEditable(node, (contentNode) => {
+                    // Check if this content node has Position children
+                    const positionChildren = findTaggedChildren({ children: contentNode.children, tag: 'Position' })
+                    return positionChildren.length > 0
+                }).some(result => result)
+            }
+            
+            const parsedFacets = roomNodes
+                .filter(hasPositionChild)
+                .map(roomNode => {
+                    // Create StandardPositionFacet directly from schema - it will handle Replace/Remove/Plain dispatch
+                    // StandardPositionFacet constructor accepts GenericTree<SchemaTag> and handles parsing internally
                     try {
-                        return new StandardPosition([position])
+                        return new StandardPositionFacet([roomNode])
                     }
                     catch (e) {
                         return undefined
                     }
                 })
                 .filter(excludeUndefined)
+            this._positions = new PositionFacetList(parsedFacets)
             return
         }
         throw new Error('Schema mismatch in StandardMap constructor')
@@ -80,18 +96,31 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
             tag: 'Map',
             name: this.name?.toJSON(),
             ...(this.images.length ? { images: this.images } : {}),
-            ...(this.positions.length ? { positions: this.positions.map((position) => position.toJSON()) } : {})
+            ...(this._positions.length ? { positions: this._positions.toJSON() } : {})
         }
     }
 
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
+        // Remap facets to use keys if mappings are provided (similar to nestedSchema)
+        const remappedFacets = mappings 
+            ? this._positions.items.map((facet) => facet.lookup(mappings).toFormat('key'))
+            : this._positions.items.map((facet) => facet.toFormat('key'))
+        
+        const positionSchemas = remappedFacets.map((facet) => {
+            // Use renderFacet() to generate schema with Position child included
+            // renderFacet() without referenceRender will use reference.schema and add Position
+            const result = facet.renderFacet()
+            return result.aggregatedNode ?? result.newNode
+        }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
+        
+        const children = [
+            ...this.name ? this.name.nestedSchema() : [],
+            ...this.images,
+            ...positionSchemas
+        ].filter(excludeUndefined)
         return {
             data: { tag: 'Map', key, uuid: universalKey },
-            children: [
-                ...this.name ? this.name.nestedSchema() : [],
-                ...this.images,
-                ...this.positions.map((position) => position.schema).filter(excludeUndefined).flat(1)
-            ]
+            children
         }
     }
 
@@ -99,22 +128,16 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         const { key: mapKey } = options
         const mapKeyPlain = mapKey
         
-        // Process each position
-        const positionSchemas = this.positions.map((position) => {
-            // Get the position schema (Room node with Position child)
-            const positionSchema = position.schema
-            if (positionSchema.length === 0) {
-                return undefined
-            }
-            
-            const positionRoomNode = positionSchema[0]
-            if (!treeNodeTypeguard(isSchemaRoom)(positionRoomNode)) {
-                return positionRoomNode
-            }
-            
-            // NOTE: This assumes a simple (non-edit) StandardPosition schema shape. It is probably
-            //       in need of tuning for more complex edit scenarios (Remove/Replace with nested Position).
-            const roomKey = position._payload.plain.room
+        // Process each position facet
+        const positionSchemas: GenericTreeNode<SchemaTag>[] = []
+        for (const facet of this._positions.items) {
+            // Remap facet reference to use keys instead of universal keys for schema generation
+            // This ensures that when renderFacet uses reference.schema, it generates schema with keys
+            const remappedFacet = options.mappings 
+                ? facet.lookup(options.mappings).toFormat('key')
+                : facet.toFormat('key')
+            const ref = remappedFacet.reference as StandardReference
+            const roomKey = ref.standardKey
             const roomComponent = lookup(roomKey)
             
             // Check if room is parented to this map (explicit or implicit parentage)
@@ -126,30 +149,25 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
                     parent: mapKeyPlain 
                 })
                 
-                // Merge position into room schema
-                // The position schema has a Position child that needs to be added to the room's children
-                const positionChild = positionRoomNode.children.find(treeNodeTypeguard(isSchemaPosition))
+                // Render facet into room schema using renderFacet with referenceRender
+                const result = remappedFacet.renderFacet(roomNestedSchema)
                 
-                if (positionChild) {
-                    // Add Position to room's children if not already present
-                    const hasPosition = roomNestedSchema.children.some(treeNodeTypeguard(isSchemaPosition))
-                    if (!hasPosition) {
-                        return {
-                            ...roomNestedSchema,
-                            children: [
-                                positionChild,
-                                ...roomNestedSchema.children
-                            ]
-                        }
-                    }
+                if (result.aggregatedNode) {
+                    positionSchemas.push(result.aggregatedNode)
+                } else if (result.newNode) {
+                    positionSchemas.push(result.newNode)
                 }
-                
-                return roomNestedSchema
             } else {
-                // Room is not parented to map - use position-only schema
-                return positionRoomNode
+                // Room is not parented to map - render facet without referenceRender (position-only schema)
+                const result = remappedFacet.renderFacet()
+                
+                if (result.aggregatedNode) {
+                    positionSchemas.push(result.aggregatedNode)
+                } else if (result.newNode) {
+                    positionSchemas.push(result.newNode)
+                }
             }
-        }).filter(excludeUndefined)
+        }
         
         return {
             data: { tag: 'Map', key: mapKey.key ?? '', uuid: mapKey.universalKey },
@@ -165,7 +183,8 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         const returnValue = new StandardMapPayload()
         returnValue._name = this._name && incoming._name ? this._name.merge(incoming._name) : this._name ?? incoming._name,
         returnValue._images = applyEdits([...this.images, ...incoming.images])
-        returnValue._positions = mergeStandardPositionList(this.positions, incoming.positions)
+        const mergedPositions = this._positions.merge(incoming._positions)
+        returnValue._positions = mergedPositions ?? new PositionFacetList([])
         return returnValue as this
     }
 
@@ -175,14 +194,11 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
     referencedKeys(): StandardComponentReferenceKey[] {
         // Extract Position references (for Rooms)
-        const positionReferences = this.positions.map((position ) => {
-            if (position._payload instanceof StandardPositionSimple || position._payload instanceof StandardPositionReplace) {
-                // Positions always reference rooms
-                const positionReference = new StandardReference(position._payload.room, 'Room')
-                return [{ referenceType: 'Position' as const, reference: positionReference }]
-            }
-            return []
-        }).flat(1)
+        const positionReferences = this._positions.items.map((facet) => {
+            // Facets are structural relationships with associated payload data
+            const ref = facet.reference as StandardReference
+            return { referenceType: 'Position' as const, reference: ref }
+        })
         
         // Extract Image references from _images schema nodes
         const imageReferences = this._images
@@ -205,11 +221,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardMapPayload(this)
-        // const mapReference = mapReferenceToFormat(props.mappings, props.mapTo === 'uuid' ? 'universal' : 'key')
-        //
-        // After refactoring Position as StandardPosition class, we will need to
-        // remap those references here
-        //
+        returnValue._positions = this._positions.lookup(props.mappings).toFormat(props.mapTo)
         return returnValue as this
     }
 

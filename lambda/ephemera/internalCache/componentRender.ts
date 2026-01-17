@@ -268,8 +268,8 @@ export class ComponentRenderData {
             //
             // Figure out how to properly map room keys to EphemeraId during extraction phases above
             //
-            const roomMetaPromise = Promise.all((merged?.positions ?? []).map(async (position) => {
-                const ephemeraId = position.room.universalKey as EphemeraRoomId
+            const roomMetaPromise = Promise.all((merged?.positions.items ?? []).map(async (facet) => {
+                const ephemeraId = facet.reference.universalKey as EphemeraRoomId
                 const metaByAsset = await this._componentMeta(ephemeraId, unique(globalAssets || [], characterAssets) as AssetUUID[])
                 const roomMeta = allAssets
                     .map((assetId) => (metaByAsset[assetId] ? [metaByAsset[assetId]] : []))
@@ -283,11 +283,11 @@ export class ComponentRenderData {
                         .filter(excludeUndefined)
                         .filter((exit) => (Boolean(
                             merged &&
-                            merged.positions.find((position) => (position.room.standardKey.equals(exit.to)))
+                            merged.positions.items.find((facet) => (facet.reference.standardKey.equals(exit.to)))
                         )))
                         .map((exit) => ({ description: exit.description?._payload?.plain?.toJSON?.() ?? '' as string, to: exit.to.toJSON() as EphemeraRoomId })),
-                    x: position.x,
-                    y: position.y
+                    x: facet.payload.plain?.x,
+                    y: facet.payload.plain?.y
                 }
             }))
             const [rooms, fileURLs, rest] = await Promise.all([
@@ -299,11 +299,7 @@ export class ComponentRenderData {
                 tag: 'Map',
                 universalKey: EphemeraId,
                 images: [],
-                positions: merged?.positions?.map((position) => ({
-                    x: position.x,
-                    y: position.y,
-                    room: position.room.universalKey as EphemeraRoomId
-                })) ?? [],
+                positions: merged?.positions?.toJSON() ?? [],
                 ...rest
             }
             return new StandardForm([

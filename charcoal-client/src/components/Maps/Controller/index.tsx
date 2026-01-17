@@ -17,9 +17,9 @@ import { isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
 import { StandardKey } from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { excludeUndefined } from "../../../lib/lists"
-import StandardPosition, { StandardPositionSimple, StandardPositionSimpleBase } from "@tonylb/mtw-wml/ts/standardize/components/position"
+import StandardPosition, { StandardPositionSimple } from "@tonylb/mtw-wml/ts/standardize/components/position"
+import { StandardPositionFacet, PositionRemoveClass } from "@tonylb/mtw-wml/ts/standardize/keys/facets/position"
 import { StandardExitPlain } from "@tonylb/mtw-wml/ts/standardize/components/exit"
-import { extractExitsFromStandardForm } from "../exitExtraction"
 
 export const MapContext = React.createContext<MapContextType>({
     mapId: 'MAP#default',
@@ -82,16 +82,35 @@ const localPositionsFromStandardForms = ({ inherited, local, mapId }: { inherite
     const localPositionsFromSingleStandardForm = (standardForm: StandardForm): MapContextPosition[] => {
         const mapComponent = standardForm.byUniversalId[mapId]
         if (mapComponent && mapComponent instanceof StandardMap) {
-            return mapComponent.positions.map((position) => {
-                const roomUniversalKey = position.room.universalKey
+            return mapComponent.positions.items.map((facet) => {
+                const roomUniversalKey = facet.reference.universalKey
                 if (!roomUniversalKey) {
                     return undefined
                 }
                 const roomComponent = standardForm.byUniversalId[roomUniversalKey]
                 if (roomComponent && roomComponent instanceof StandardRoom) {
+                    // Skip Remove operations - they don't represent visible positions
+                    if (facet.payload instanceof PositionRemoveClass) {
+                        return undefined
+                    }
+                    
+                    // Use .plain pattern to access the underlying payload base
+                    // For Plain: .plain returns StandardPositionPayloadBase
+                    // For Replace: .plain returns the payload (new value) StandardPositionPayloadBase
+                    // For Remove: .plain returns the match, but we skip those above
+                    const plainPayload = facet.payload.plain
+                    if (!plainPayload) {
+                        return undefined
+                    }
+                    
+                    const position = new StandardPosition(new StandardPositionSimple({ 
+                        room: roomUniversalKey, 
+                        x: plainPayload.x, 
+                        y: plainPayload.y 
+                    }))
                     return {
-                        name: roomComponent.shortName?._payload.plain.toJSON() ?? '',
-                        position: position.clone()
+                        name: roomComponent.shortName?._payload?.plain?.toJSON() ?? '',
+                        position
                     }
                 }
                 return undefined
@@ -138,7 +157,7 @@ export const MapController: FunctionComponent<{ mapId: `MAP#${string}`; children
             const roomComponent = editable.byUniversalId[id]
             if (roomComponent && roomComponent instanceof StandardRoom) {
                 return {
-                    name: roomComponent.shortName?._payload.plain.toJSON() ?? '',
+                    name: roomComponent.shortName?._payload?.plain?.toJSON() ?? '',
                     position: new StandardPosition(new StandardPositionSimple({ room: id, x, y }))
                 }
             }
@@ -157,11 +176,14 @@ export const MapController: FunctionComponent<{ mapId: `MAP#${string}`; children
             const mapComponent = draft.byUniversalId[mapId]
             if (mapComponent && mapComponent instanceof StandardMap) {
                 nodes.forEach(({ id, x, y }) => {
-                    const position = mapComponent.positions.find((position) => (position.room.universalKey === id))
-                    const payload = position?._payload
-                    if (payload && payload instanceof StandardPositionSimpleBase) {
-                        payload.x = x
-                        payload.y = y
+                    const facetIndex = mapComponent.positions.items.findIndex((facet) => facet.reference.universalKey === id)
+                    if (facetIndex !== -1) {
+                        const facet = mapComponent.positions.items[facetIndex]
+                        const updatedFacet = new StandardPositionFacet({
+                            reference: facet.reference.toJSON(),
+                            payload: { x, y }
+                        })
+                        mapComponent.positions.items[facetIndex] = updatedFacet
                     }
                 })
             }
@@ -273,7 +295,7 @@ export const MapDisplayController: FunctionComponent<{ standardForm: StandardFor
             const roomComponent = standardForm.byUniversalId[id]
             if (roomComponent && roomComponent instanceof StandardRoom) {
                 return {
-                    name: roomComponent.shortName?._payload.plain.toJSON() ?? '',
+                    name: roomComponent.shortName?._payload?.plain?.toJSON() ?? '',
                     position: new StandardPosition(new StandardPositionSimple({ room: id, x, y }))
                 }
             }

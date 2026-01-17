@@ -40,10 +40,10 @@ export const mapTranslate = ({
         throw new Error(`Map ${mapId} is not a StandardMap`)
     }
     
-    const nodes: MapNodes = map.positions.map((position) => ({
-            id: position._payload.plain.room.universalKey,
-            x: position._payload.plain.x,
-            y: position._payload.plain.y,
+    const nodes: MapNodes = map.positions.items.map((facet) => ({
+            id: facet.reference.universalKey,
+            x: facet.payload.plain?.x,
+            y: facet.payload.plain?.y,
         }))
         .filter((node): node is SimNode => (Boolean(node.id && isSchemaComponentUUID(node.id) && node.id.startsWith('ROOM#'))))
     

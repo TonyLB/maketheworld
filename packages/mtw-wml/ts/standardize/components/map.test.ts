@@ -21,7 +21,7 @@ describe('StandardMap class', () => {
         expect(testMap.key).toEqual('test')
         expect(testMap.name?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
-        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { key: "testRoom" }, x: 100, y: 100 }])
+        expect(testMap.positions.toJSON()).toEqual([{ reference: { key: "testRoom", tag: 'Room' }, payload: { x: 100, y: 100 } }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
     })
 
@@ -39,7 +39,7 @@ describe('StandardMap class', () => {
         expect(testMap.key).toEqual('test')
         expect(testMap.name?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
-        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { key: "testRoom" }, x: 100, y: 100 }])
+        expect(testMap.positions.toJSON()).toEqual([{ reference: { key: "testRoom", tag: 'Room' }, payload: { x: 100, y: 100 } }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
     })
 
@@ -49,13 +49,16 @@ describe('StandardMap class', () => {
             tag: 'Map',
             name: 'Name Test',
             images: [{ data: { tag: 'Image', key: "testImage" }, children: [] }],
-            positions: [{ room: { key: "testRoom" }, x: 10, y: 100 }]
+            positions: [{ reference: { key: "testRoom", tag: 'Room' }, payload: { x: 10, y: 100 } }]
         }
         const testMap = new StandardMap(testMapData)
         expect(testMap.key).toEqual('test')
         expect(testMap.name?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
-        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { key: "testRoom" }, x: 10, y: 100 }])
+        expect(testMap.positions.items.map((position) => (position.toJSON()))).toEqual([{ 
+            reference: { key: "testRoom", tag: "Room", universalKey: undefined }, 
+            payload: { x: 10, y: 100 } 
+        }])
         expect(testMap.toJSON()).toEqual(testMapData)
     })
 
@@ -72,7 +75,16 @@ describe('StandardMap class', () => {
                 </Room>
             </Map>
         `))
-        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { key: "testRoom" }, x: 100, y: 100 }, { room: { key: "testRoomTwo" }, x: 100, y: 100 }])
+        expect(testMap.positions.items.map((position) => (position.toJSON()))).toEqual([
+            { 
+                reference: { key: "testRoom", tag: "Room", universalKey: undefined }, 
+                payload: { x: 100, y: 100 } 
+            }, 
+            { 
+                reference: { key: "testRoomTwo", tag: "Room", universalKey: undefined }, 
+                payload: { x: 100, y: 100 } 
+            }
+        ])
     })
 
     it('should ignore non-position children of Room tags', () => {
@@ -86,7 +98,7 @@ describe('StandardMap class', () => {
                 </Room>
             </Map>
         `))
-        expect(testMap.positions.map((position) => (position.toJSON()))).toEqual([{ room: { key: "testRoom" }, x: 100, y: 100 }])
+        expect(testMap.positions.toJSON()).toEqual([{ reference: { key: "testRoom", tag: 'Room' }, payload: { x: 100, y: 100 } }])
     })
 
     it('should construct StandardMap from StandardMapData with missing images and positions', () => {
@@ -100,7 +112,7 @@ describe('StandardMap class', () => {
         expect(testMap.key).toEqual('test')
         expect(testMap.name?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([])  // Should default to empty array
-        expect(testMap.positions).toEqual([])  // Should default to empty array
+        expect(testMap.positions.items).toEqual([])  // Should default to empty array
         
         // The JSON output should omit images and positions when empty (omission-over-empty pattern)
         const outputJSON = testMap.toJSON() as StandardMapData

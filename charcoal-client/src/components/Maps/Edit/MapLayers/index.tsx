@@ -204,16 +204,16 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
         // 2. Rooms in the combined map, with local exits that connect to positioned rooms
         
         // Get rooms with local positions
-        const positionedRooms = unique(localMapComponent.positions
-            .map((position) => position.room.universalKey)
+        const positionedRooms = unique(localMapComponent.positions.items
+            .map((facet) => facet.reference.universalKey)
             .filter((roomId): roomId is `ROOM#${string}` => 
                 Boolean(roomId && roomId.startsWith('ROOM#'))
             )
         )
         
         // Get rooms that have local exits connecting to positioned rooms
-        const allPositionedRooms = mapComponent.positions
-            .map((position) => position.room.universalKey!)
+        const allPositionedRooms = mapComponent.positions.items
+            .map((facet) => facet.reference.universalKey!)
             .filter(excludeUndefined)
             .map((roomId) => standardForm.byUniversalId[roomId as ComponentUUID])
             .filter(excludeUndefined)
@@ -231,8 +231,8 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
         // Helper function to get relevant exits from a room
         const getRelevantExits = (room: StandardRoom): StandardExit[] => {
             return room.exits.filter((exit) => {
-                const destinationId = exit.payload?.to.universalKey
-                const destinationKey = destinationId.universalKey
+                const destinationId = exit.plain?.to.universalKey
+                const destinationKey = destinationId
                 return destinationKey && allPositionedRoomIds.includes(destinationKey as `ROOM#${string}`)
             })
         }
@@ -255,11 +255,11 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
             }
             
             const roomKey = roomComponent.key
-            const roomName = roomComponent.shortName?._payload.plain.toJSON() ?? roomKey ?? 'Room'
+            const roomName = roomComponent.shortName?._payload?.plain?.toJSON() ?? roomKey ?? 'Room'
             
             // Check if this room has a position in the local map
-            const position = localMapComponent.positions.find((pos) => 
-                pos.room.universalKey === roomId
+            const positionFacet = localMapComponent.positions.items.find((facet) => 
+                facet.reference.universalKey === roomId
             )
             
             return (
@@ -270,15 +270,19 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
                     newestRoom={false}
                 >
                     {/* Position information if available */}
-                    {position && (
-                        <PositionLayer x={position.x} y={position.y} />
+                    {positionFacet?.payload.plain && (
+                        <PositionLayer x={positionFacet.payload.plain.x} y={positionFacet.payload.plain.y} />
                     )}
                     
                     {/* Exits from this room */}
-                    {getRelevantExits(roomComponent).map((exit, index) => {                        
-                        const destinationComponent = standardForm._lookup(exit._payload.plain.to.toJSON())
+                    {getRelevantExits(roomComponent).map((exit, index) => {
+                        const destinationKey = exit.plain?.to.toJSON()
+                        if (!destinationKey) {
+                            return null
+                        }
+                        const destinationComponent = standardForm._lookup(destinationKey)
                         const exitName = (destinationComponent && destinationComponent instanceof StandardRoom) 
-                            ? destinationComponent.shortName?._payload.plain.toJSON() ?? destinationComponent.key ?? ''
+                            ? destinationComponent.shortName?._payload?.plain?.toJSON() ?? destinationComponent.key ?? ''
                             : ''
                         
                         return (

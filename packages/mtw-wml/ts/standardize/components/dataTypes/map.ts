@@ -2,15 +2,15 @@ import { GenericTree } from "@tonylb/mtw-base/ts/genericTree";
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { StandardPositionData } from "./position";
+import { FacetListData } from "../../keys/abstract";
+import { PositionPayload } from "../../keys/facets/dataTypes/facet";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
-import { isStandardKeyData } from "./reference";
 
 export type StandardMapData = {
     tag: 'Map';
     name?: StandardEditableData<string>;
     images?: GenericTree<SchemaTag>;
-    positions?: StandardEditableData<StandardPositionData>[];
+    positions?: FacetListData<PositionPayload>;
 } & StandardBaseData
 
 export const isStandardMapData = (arg: any): arg is StandardMapData => {
@@ -27,16 +27,7 @@ export const isStandardMapData = (arg: any): arg is StandardMapData => {
             key: 'key',
             universalKey: 'string',
             name: 'literal',
-        }),
-        (
-            !('positions' in arg) || (
-                Array.isArray(arg.positions) &&
-                arg.positions.every((position) => (
-                    'x' in position && typeof position.x === 'number' &&
-                    'y' in position && typeof position.y === 'number' &&
-                    'room' in position && isStandardKeyData(position.room)
-                ))
-            )
-        )
+            positions: 'facetList'
+        })
     )
 }

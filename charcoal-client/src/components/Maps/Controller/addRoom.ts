@@ -1,7 +1,7 @@
 import { UpdateStandardPayload } from "../../../slices/personalAssets/reducers"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import StandardPosition from "@tonylb/mtw-wml/ts/standardize/components/position"
+import { StandardPositionFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/position"
 import StandardMap from "@tonylb/mtw-wml/ts/standardize/components/map"
 import { v4 as uuidv4 } from 'uuid'
 import { enforceTypedKey } from '@tonylb/mtw-utilities/ts/types'
@@ -31,11 +31,11 @@ export const addRoomFactory = ({
             })
             const mapComponent = returnValue.byUniversalId[mapId]
             if (mapComponent && mapComponent instanceof StandardMap) {
-                mapComponent.positions.push(new StandardPosition({
-                    room: defaultedRoomId,
-                    x: x ?? 0,
-                    y: y ?? 0
-                }))
+                const newFacet = new StandardPositionFacet({
+                    reference: { universalKey: defaultedRoomId, tag: 'Room' },
+                    payload: { x: x ?? 0, y: y ?? 0 }
+                })
+                mapComponent.positions.items.push(newFacet)
             }
             return returnValue
         }
