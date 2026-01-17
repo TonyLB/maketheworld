@@ -160,6 +160,10 @@ export class PositionFacetPayload {
         return new PositionFacetPayload(inverted);
     }
 
+    get plain(): StandardPositionPayloadBase | undefined {
+        return this._payload.plain;
+    }
+
     // FacetPayloadBase method: parse from schema
     fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): PositionPayloadType {
         if (node.length === 0) {

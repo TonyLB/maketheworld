@@ -765,36 +765,48 @@ exports[`large WML test should standardize properly 1`] = `
     "name": undefined,
     "positions": [
       {
-        "room": {
+        "payload": {
+          "x": 0,
+          "y": 250,
+        },
+        "reference": {
           "key": "VORTEX",
+          "tag": "Room",
           "universalKey": undefined,
         },
-        "x": 0,
-        "y": 250,
       },
       {
-        "room": {
+        "payload": {
+          "x": 0,
+          "y": 150,
+        },
+        "reference": {
           "key": "cave",
+          "tag": "Room",
           "universalKey": undefined,
         },
-        "x": 0,
-        "y": 150,
       },
       {
-        "room": {
+        "payload": {
+          "x": -150,
+          "y": 100,
+        },
+        "reference": {
           "key": "curvingPassage",
+          "tag": "Room",
           "universalKey": undefined,
         },
-        "x": -150,
-        "y": 100,
       },
       {
-        "room": {
+        "payload": {
+          "x": -150,
+          "y": 0,
+        },
+        "reference": {
           "key": "chamber",
+          "tag": "Room",
           "universalKey": undefined,
         },
-        "x": -150,
-        "y": 0,
       },
     ],
     "tag": "Map",

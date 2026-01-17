@@ -1000,12 +1000,8 @@ describe('StandardForm', () => {
                 <Map uuid=(testMap) key=(testMap)>
                     <Name>Test map</Name>
                     <Image key=(mapBackground) />
-                    <Room uuid=(testRoomOne) key=(testRoomOne)>
-                        <Position x="0" y="0" />
-                    </Room>
-                    <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                        <Position x="-100" y="0" />
-                    </Room>
+                    <Room key=(testRoomOne)><Position x="0" y="0" /></Room>
+                    <Room key=(testRoomTwo)><Position x="-100" y="0" /></Room>
                 </Map>
             </Asset>
         `))

@@ -23,14 +23,14 @@ export const extractExitsFromStandardForm = (
 
     // Create a set of room IDs that have positions in the map for fast lookup
     const positionedRoomIds = new Set(
-        mapComponent.positions
-            .map(position => position.room.universalKey)
+        mapComponent.positions.items
+            .map(facet => facet.reference.universalKey)
             .filter((roomId): roomId is ComponentUUID => roomId !== undefined)
     )
 
     // Extract all exits from all rooms in the map
-    return mapComponent.positions
-        .map(position => position.room.universalKey)
+    return mapComponent.positions.items
+        .map(facet => facet.reference.universalKey)
         .filter((roomId): roomId is ComponentUUID => roomId !== undefined)
         .map(roomId => standardForm.byUniversalId[roomId])
         .filter((roomComponent): roomComponent is StandardRoom => 
