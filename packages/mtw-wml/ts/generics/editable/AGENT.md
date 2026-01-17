@@ -8,7 +8,7 @@ The current `StandardEditable` architecture uses a complex edit pattern that han
 
 ## Important: Content Editing Only
 
-**`standardEditableFactory` and `v2StandardEditableFactory` are for content editing only** (e.g., `StandardLiteral`, `StandardRender`, `StandardExit`). They should NOT be used for reference editing (`StandardReference`), which has different edit semantics:
+**`v2StandardEditableFactory` is for content editing only** (e.g., `StandardLiteral`, `StandardRender`, `StandardExit`). It should NOT be used for reference editing (`StandardReference`), which has different edit semantics:
 
 - **Content editables**: Support Add, Remove, and Replace operations
 - **References**: Support only Add and Remove operations (Replace operations are illegal)
