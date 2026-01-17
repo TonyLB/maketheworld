@@ -349,6 +349,21 @@ export class StandardRender {
             return
         }
         
+        // Handle StandardEditableData<RenderTree> format (JSON serialization)
+        // This includes { tag: 'Remove', match: RenderTree } and { tag: 'Replace', match: RenderTree, payload: RenderTree }
+        if (typeof arg === 'object' && arg !== null && 'tag' in arg) {
+            if (arg.tag === 'Remove' && 'match' in arg) {
+                // StandardEditableData Remove format - pass directly to EditableClass.create()
+                this._payload = EditableClass.create(arg as StandardEditableData<RenderTree>)
+                return
+            }
+            if (arg.tag === 'Replace' && 'match' in arg && 'payload' in arg) {
+                // StandardEditableData Replace format - pass directly to EditableClass.create()
+                this._payload = EditableClass.create(arg as StandardEditableData<RenderTree>)
+                return
+            }
+        }
+        
         // Handle RenderTree array directly (no wrapper tag stripping needed)
         if (Array.isArray(arg) && arg.every(isRenderTreeNode)) {
             // Check for Remove/Replace edit tags at top level
