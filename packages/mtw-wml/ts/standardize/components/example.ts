@@ -213,7 +213,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         // The facet will generate its own reference render internally and enhance it with Match children
         const markNodes: GenericTreeNode<SchemaTag>[] = []
         for (const facet of this.marks.items) {
-            const result = facet.renderFacet() // No referenceRender parameter - facet generates its own
+            const result = facet.renderFacet(undefined, lookup) // No referenceRender parameter - facet generates its own
             if (result.aggregatedNode) {
                 markNodes.push(result.aggregatedNode)
             } else if (result.newNode) {

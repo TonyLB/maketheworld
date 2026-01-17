@@ -73,7 +73,7 @@ export class MarkFacetPayload extends StandardLiteral {
     }
 
     // FacetPayloadBase method: render facet
-    renderFacet(reference: StandardReference, payload: MarkFacetPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+    renderFacet(reference: StandardReference, payload: MarkFacetPayloadType, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
         // Unified implementation that works for Plain/Remove/Replace via nestedSchema
         const matchChild = this.nestedSchema({ tag: 'Match' as const })[0];
         
@@ -98,7 +98,11 @@ export class MarkFacetPayload extends StandardLiteral {
                 throw error;
             }
         } else {
-            const markSchema = reference.schema;
+            // Format reference to use local key if lookup finds one, otherwise use existing key or universal key
+            // This ensures we render human-readable keys when components exist in the asset
+            const lookedUpReference = lookup ? (lookup(reference.standardKey)?.reference ?? reference) : reference;
+            const formattedReference = lookedUpReference.toFormat('key').withRef(reference.ref);
+            const markSchema = formattedReference.schema;
             if (markSchema.length === 0) {
                 throw new Error('Invalid reference schema: empty');
             }
@@ -174,6 +178,8 @@ export class StandardMarkFacet extends facetClassFactory(
 
 // Create concrete list class for MarkFacet
 import { facetListClassFactory } from './facetListFactory';
+import { StandardKey } from "../key";
+import { StandardComponent } from "../../components/baseClasses";
 export class MarkFacetList extends facetListClassFactory(StandardMarkFacet, 'MarkFacetList') {
     constructor(arg: any) {
         super(arg);

@@ -1,6 +1,8 @@
 import { GenericTree, GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardReference } from "../../reference";
+import { StandardKey } from "../../key";
+import { StandardComponent } from "../../../components/baseClasses";
 
 /**
  * FacetPayloadBase: Interface for facet payload classes that handle WML schema parsing and generation.
@@ -68,9 +70,13 @@ export interface FacetPayloadBase<TPayload> {
      *   (e.g., Room already rendered by Map as a child). If not provided, generate a plain reference render
      *   (just the tag without children, e.g., `<Room to=(target)>` with no children).
      *   If this is Remove-wrapped, it will be passed through unchanged.
+     * @param lookup - Optional lookup function to resolve universal keys to local keys for rendering.
+     *   When provided, allows facets to render human-readable local keys (e.g., `to=(room1)`) instead of
+     *   universal keys (e.g., `to=(ROOM#room1)`) when the component exists in the current asset context.
+     *   If not provided or lookup fails, falls back to universal key format for unambiguous references.
      * @returns An object with either `newNode` (for facets that create new nodes) or `aggregatedNode`
      *   (for facets that enhance existing references), but not both. Exit-style facets return `newNode`;
      *   Position/Mark-style facets return `aggregatedNode`. Remove wrappers are preserved when present.
      */
-    renderFacet(reference: StandardReference, payload: TPayload, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> };
+    renderFacet(reference: StandardReference, payload: TPayload, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> };
 }

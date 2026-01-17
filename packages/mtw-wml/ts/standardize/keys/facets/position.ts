@@ -204,7 +204,7 @@ export class PositionFacetPayload {
     }
 
     // FacetPayloadBase method: render facet
-    renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+    renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
         // Unified implementation that works for Plain/Remove/Replace via schema getter
         const positionChild = this.schema[0];
 
@@ -228,7 +228,11 @@ export class PositionFacetPayload {
                 throw error;
             }
         } else {
-            const roomSchema = reference.schema;
+            // Format reference to use local key if lookup finds one, otherwise use existing key or universal key
+            // This ensures we render human-readable keys when components exist in the asset
+            const lookedUpReference = lookup ? (lookup(reference.standardKey)?.reference ?? reference) : reference;
+            const formattedReference = lookedUpReference.toFormat('key').withRef(reference.ref);
+            const roomSchema = formattedReference.schema;
             if (roomSchema.length === 0) {
                 throw new Error('Invalid reference schema: empty');
             }
@@ -295,7 +299,7 @@ export class PositionFacetPlainClass extends PositionPlainClass {
         return { x, y };
     }
 
-    renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+    renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
         // Use schema directly (no wrapper) - just Position tag as children of Room
         const positionChild = this.schema[0];
 
@@ -319,7 +323,11 @@ export class PositionFacetPlainClass extends PositionPlainClass {
                 throw error;
             }
         } else {
-            const roomSchema = reference.schema;
+            // Format reference to use local key if lookup finds one, otherwise use existing key or universal key
+            // This ensures we render human-readable keys when components exist in the asset
+            const lookedUpReference = lookup ? (lookup(reference.standardKey)?.reference ?? reference) : reference;
+            const formattedReference = lookedUpReference.toFormat('key').withRef(reference.ref);
+            const roomSchema = formattedReference.schema;
             if (roomSchema.length === 0) {
                 throw new Error('Invalid reference schema: empty');
             }
@@ -355,7 +363,7 @@ export class PositionFacetRemoveClass extends PositionRemoveClass {
         return plainClass.fromSchema(node, reference);
     }
 
-    renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+    renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
         // Use this.schema which returns Remove-wrapped Position: [{ tag: 'Remove', children: [Position] }]
         // Extract the Remove-wrapped Position structure for nested Remove tags when ref < 0
         const removeWrappedPosition = this.schema[0];
@@ -380,7 +388,11 @@ export class PositionFacetRemoveClass extends PositionRemoveClass {
                 throw error;
             }
         } else {
-            const roomSchema = reference.schema;
+            // Format reference to use local key if lookup finds one, otherwise use existing key or universal key
+            // This ensures we render human-readable keys when components exist in the asset
+            const lookedUpReference = lookup ? (lookup(reference.standardKey)?.reference ?? reference) : reference;
+            const formattedReference = lookedUpReference.toFormat('key').withRef(reference.ref);
+            const roomSchema = formattedReference.schema;
             if (roomSchema.length === 0) {
                 throw new Error('Invalid reference schema: empty');
             }
@@ -416,7 +428,7 @@ export class PositionFacetReplaceClass extends PositionReplaceClass {
         return plainClass.fromSchema(node, reference);
     }
 
-    renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+    renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
         // Use schema getter which already returns Replace-wrapped structure
         const replaceSchema = this.schema[0];
 
@@ -440,7 +452,11 @@ export class PositionFacetReplaceClass extends PositionReplaceClass {
                 throw error;
             }
         } else {
-            const roomSchema = reference.schema;
+            // Format reference to use local key if lookup finds one, otherwise use existing key or universal key
+            // This ensures we render human-readable keys when components exist in the asset
+            const lookedUpReference = lookup ? (lookup(reference.standardKey)?.reference ?? reference) : reference;
+            const formattedReference = lookedUpReference.toFormat('key').withRef(reference.ref);
+            const roomSchema = formattedReference.schema;
             if (roomSchema.length === 0) {
                 throw new Error('Invalid reference schema: empty');
             }
@@ -501,6 +517,8 @@ export class StandardPositionFacet extends facetClassFactory(
 
 // Create concrete list class for PositionFacet
 import { facetListClassFactory } from './facetListFactory';
+import { StandardKey } from "../key";
+import { StandardComponent } from "../../components/baseClasses";
 export class PositionFacetList extends facetListClassFactory(StandardPositionFacet, 'PositionFacetList') {
     constructor(arg: any) {
         super(arg);

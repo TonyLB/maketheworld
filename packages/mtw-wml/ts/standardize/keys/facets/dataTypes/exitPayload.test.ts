@@ -78,7 +78,7 @@ describe('ExitFacetPayload - FacetPayloadBase implementation', () => {
             const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
             const payloadData: ExitPayloadType = 'North Exit';
             const payload = new ExitFacetPayload(payloadData);
-            const result = payload.renderFacet(reference, payloadData);
+            const result = payload.renderFacet(reference, payloadData, undefined, undefined);
             
             // Should return newNode (not aggregatedNode)
             expect(result.newNode).toBeDefined();
@@ -105,7 +105,7 @@ describe('ExitFacetPayload - FacetPayloadBase implementation', () => {
             const reference = new StandardReference('ROOM#456', 'Room');
             const payloadData: ExitPayloadType = undefined;
             const payload = new ExitFacetPayload(payloadData);
-            const result = payload.renderFacet(reference, payloadData);
+            const result = payload.renderFacet(reference, payloadData, undefined, undefined);
             
             // Should return newNode (not aggregatedNode)
             expect(result.newNode).toBeDefined();
@@ -128,7 +128,7 @@ describe('ExitFacetPayload - FacetPayloadBase implementation', () => {
             const payload = new ExitFacetPayload(payloadData);
             // Provide a referenceRender (should be ignored)
             const roomSchema = treeFromWML(deIndentWML('<Room uuid=(ROOM#789)><ShortName>Room</ShortName></Room>'))[0];
-            const result = payload.renderFacet(reference, payloadData, roomSchema);
+            const result = payload.renderFacet(reference, payloadData, roomSchema, undefined);
             
             // Should still return newNode (referenceRender ignored)
             expect(result.newNode).toBeDefined();
@@ -161,7 +161,7 @@ describe('ExitFacetPayload - FacetPayloadBase implementation', () => {
             const reference = new StandardReference({ key: 'testRoom', universalKey: 'ROOM#123', tag: 'Room' });
             const payloadData: ExitPayloadType = 'West Exit';
             const payload = new ExitFacetPayload(payloadData);
-            const result = payload.renderFacet(reference, payloadData);
+            const result = payload.renderFacet(reference, payloadData, undefined, undefined);
             
             const newNode = result.newNode!;
             if (newNode.data.tag === 'Exit') {
@@ -176,7 +176,7 @@ describe('ExitFacetPayload - FacetPayloadBase implementation', () => {
             const reference = new StandardReference('ROOM#456', 'Room');
             const payloadData: ExitPayloadType = 'Northwest Exit';
             const payload = new ExitFacetPayload(payloadData);
-            const result = payload.renderFacet(reference, payloadData);
+            const result = payload.renderFacet(reference, payloadData, undefined, undefined);
             
             const newNode = result.newNode!;
             if (newNode.data.tag === 'Exit') {
@@ -218,7 +218,7 @@ describe('ExitFacetPayload - FacetPayloadBase implementation', () => {
             
             // Verify it can be rendered
             const reference = new StandardReference('ROOM#123', 'Room');
-            const result = payload.renderFacet(reference, data);
+            const result = payload.renderFacet(reference, data, undefined, undefined);
             expect(result.newNode).toBeDefined();
         });
 

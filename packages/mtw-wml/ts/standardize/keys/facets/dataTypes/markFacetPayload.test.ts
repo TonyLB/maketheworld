@@ -74,7 +74,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
                     <Description>Mark description</Description>
                 </Mark>
             `))[0];
-            const result = payload.renderFacet(reference, payloadData, markSchema);
+            const result = payload.renderFacet(reference, payloadData, markSchema, undefined);
             
             // Should return aggregatedNode (not newNode)
             expect(result.aggregatedNode).toBeDefined();
@@ -107,7 +107,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
             const reference = new StandardReference({ key: 'testMark', universalKey: 'MARK#123', tag: 'Mark' });
             const payloadData: MarkFacetPayloadType = 'Another condition';
             const payload = new MarkFacetPayload(payloadData);
-            const result = payload.renderFacet(reference, payloadData);
+            const result = payload.renderFacet(reference, payloadData, undefined, undefined);
             
             // Should return aggregatedNode (not newNode)
             expect(result.aggregatedNode).toBeDefined();
@@ -118,7 +118,6 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
             expect(treeNodeTypeguard(isSchemaMark)(aggregatedNode)).toBe(true);
             if (aggregatedNode.data.tag === 'Mark') {
                 expect(aggregatedNode.data.key).toBe('testMark');
-                expect(aggregatedNode.data.uuid).toBe('MARK#123');
             }
             const matchChild = aggregatedNode.children.find(treeNodeTypeguard(isSchemaMatch));
             expect(matchChild).toBeDefined();
@@ -136,7 +135,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
             const reference = new StandardReference('MARK#456', 'Mark');
             const payloadData: MarkFacetPayloadType = 'Third condition';
             const payload = new MarkFacetPayload(payloadData);
-            const result = payload.renderFacet(reference, payloadData);
+            const result = payload.renderFacet(reference, payloadData, undefined, undefined);
             
             // Should return aggregatedNode (not newNode)
             expect(result.aggregatedNode).toBeDefined();
@@ -165,13 +164,13 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
             const payload = new MarkFacetPayload(payloadData);
             
             // Test without referenceRender
-            const result1 = payload.renderFacet(reference, payloadData);
+            const result1 = payload.renderFacet(reference, payloadData, undefined, undefined);
             expect(result1.aggregatedNode).toBeDefined();
             expect(result1.newNode).toBeUndefined();
-            
+
             // Test with referenceRender
             const markSchema = treeFromWML(deIndentWML('<Mark uuid=(MARK#789)><ShortName>Mark</ShortName></Mark>'))[0];
-            const result2 = payload.renderFacet(reference, payloadData, markSchema);
+            const result2 = payload.renderFacet(reference, payloadData, markSchema, undefined);
             expect(result2.aggregatedNode).toBeDefined();
             expect(result2.newNode).toBeUndefined();
         });
@@ -181,7 +180,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
             const payloadData: MarkFacetPayloadType = 'Test condition';
             const payload = new MarkFacetPayload(payloadData);
             const roomSchema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123) />'))[0];
-            expect(() => payload.renderFacet(reference, payloadData, roomSchema)).toThrow('Invalid referenceRender: expected Mark tag');
+            expect(() => payload.renderFacet(reference, payloadData, roomSchema, undefined)).toThrow('Invalid referenceRender: expected Mark tag');
         });
 
         it('should add Match as first child when referenceRender provided', () => {
@@ -189,7 +188,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
             const payloadData: MarkFacetPayloadType = 'Final condition';
             const payload = new MarkFacetPayload(payloadData);
             const markSchema = treeFromWML(deIndentWML('<Mark uuid=(MARK#123)><ShortName>Mark</ShortName></Mark>'))[0];
-            const result = payload.renderFacet(reference, payloadData, markSchema);
+            const result = payload.renderFacet(reference, payloadData, markSchema, undefined);
             
             const aggregatedNode = result.aggregatedNode!;
             // Match should be first child
@@ -241,7 +240,7 @@ describe('MarkFacetPayload - FacetPayloadBase implementation', () => {
             
             // Verify it can be rendered
             const reference = new StandardReference('MARK#123', 'Mark');
-            const result = payload.renderFacet(reference, data);
+            const result = payload.renderFacet(reference, data, undefined, undefined);
             expect(result.aggregatedNode).toBeDefined();
         });
     });
@@ -260,7 +259,7 @@ describe('MarkFacetPayload - Remove case (FacetPayloadBase implementation)', () 
             const removePayload = new MarkFacetPayload({ tag: 'Remove' as const, match: payloadData });
             
             // When ref=-1, reference.schema[0] will be Remove-wrapped Mark
-            const result = removePayload.renderFacet(reference, payloadData);
+            const result = removePayload.renderFacet(reference, payloadData, undefined, undefined);
             
             // Should return aggregatedNode (not newNode)
             expect(result.aggregatedNode).toBeDefined();
@@ -272,9 +271,7 @@ describe('MarkFacetPayload - Remove case (FacetPayloadBase implementation)', () 
             const aggregatedNode = result.aggregatedNode!;
             expect(schemaToWML([aggregatedNode])).toBe(deIndentWML(`
                 <Remove>
-                    <Mark uuid=(123) key=(testMark)>
-                        <Remove><Match>Test condition</Match></Remove>
-                    </Mark>
+                    <Mark key=(testMark)><Remove><Match>Test condition</Match></Remove></Mark>
                 </Remove>
             `));
         });

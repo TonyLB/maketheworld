@@ -773,7 +773,7 @@ describe('StandardExample class', () => {
                 const expectedWML = deIndentWML(`
                     <Example uuid=(test) key=(test)>
                         <Name>Name Test</Name>
-                        <Mark uuid=(mark1) key=(mark1)><Match>Updated condition</Match></Mark>
+                        <Mark key=(mark1)><Match>Updated condition</Match></Mark>
                     </Example>
                 `)
                 expect(schemaToWML([nested])).toEqual(expectedWML)
