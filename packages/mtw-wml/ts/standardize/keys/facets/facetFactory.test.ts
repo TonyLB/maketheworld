@@ -346,9 +346,7 @@ describe('facetClassFactory', () => {
             const renderedWML = schemaToWML([result.aggregatedNode!]);
             const expectedWML = deIndentWML(`
                 <Remove>
-                    <Room uuid=(room1) key=(room1)>
-                        <Remove><Position {10, 20} /></Remove>
-                    </Room>
+                    <Room key=(room1)><Remove><Position {10, 20} /></Remove></Room>
                 </Remove>
             `);
             expect(renderedWML).toBe(expectedWML);

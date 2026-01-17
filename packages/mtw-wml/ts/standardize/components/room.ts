@@ -156,13 +156,9 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         // Process each exit facet
         // Exit facets create new Exit nodes (not enhancements), so render directly
         const exitSchemas = this._exits.items.reduce<GenericTreeNode<SchemaTag>[]>((acc, facet) => {
-            // Remap facet reference to use keys instead of universal keys for schema generation
-            const remappedFacet = options.mappings 
-                ? facet.lookup(options.mappings).toFormat('key')
-                : facet.toFormat('key')
-            
             // Render facet - Exit facets return newNode (not aggregatedNode)
-            const result = remappedFacet.renderFacet()
+            // Pass lookup to renderFacet so it can resolve universal keys to local keys
+            const result = facet.renderFacet(undefined, lookup)
             
             if (result.newNode) {
                 acc.push(result.newNode)

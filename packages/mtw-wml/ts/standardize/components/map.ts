@@ -101,15 +101,12 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     }
 
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
-        // Remap facets to use keys if mappings are provided (similar to nestedSchema)
-        const remappedFacets = mappings 
-            ? this._positions.items.map((facet) => facet.lookup(mappings).toFormat('key'))
-            : this._positions.items.map((facet) => facet.toFormat('key'))
-        
-        const positionSchemas = remappedFacets.map((facet) => {
+        // schema() method doesn't have lookup context, so pass undefined
+        // Position facets don't use lookup for rendering, so this is acceptable
+        const positionSchemas = this._positions.items.map((facet) => {
             // Use renderFacet() to generate schema with Position child included
             // renderFacet() without referenceRender will use reference.schema and add Position
-            const result = facet.renderFacet()
+            const result = facet.renderFacet(undefined, undefined)
             return result.aggregatedNode ?? result.newNode
         }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
         
@@ -131,12 +128,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         // Process each position facet
         const positionSchemas: GenericTreeNode<SchemaTag>[] = []
         for (const facet of this._positions.items) {
-            // Remap facet reference to use keys instead of universal keys for schema generation
-            // This ensures that when renderFacet uses reference.schema, it generates schema with keys
-            const remappedFacet = options.mappings 
-                ? facet.lookup(options.mappings).toFormat('key')
-                : facet.toFormat('key')
-            const ref = remappedFacet.reference as StandardReference
+            const ref = facet.reference as StandardReference
             const roomKey = ref.standardKey
             const roomComponent = lookup(roomKey)
             
@@ -149,8 +141,8 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
                     parent: mapKeyPlain 
                 })
                 
-                // Render facet into room schema using renderFacet with referenceRender
-                const result = remappedFacet.renderFacet(roomNestedSchema)
+                // Render facet into room schema using renderFacet with referenceRender and lookup
+                const result = facet.renderFacet(roomNestedSchema, lookup)
                 
                 if (result.aggregatedNode) {
                     positionSchemas.push(result.aggregatedNode)
@@ -159,7 +151,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
                 }
             } else {
                 // Room is not parented to map - render facet without referenceRender (position-only schema)
-                const result = remappedFacet.renderFacet()
+                const result = facet.renderFacet(undefined, lookup)
                 
                 if (result.aggregatedNode) {
                     positionSchemas.push(result.aggregatedNode)

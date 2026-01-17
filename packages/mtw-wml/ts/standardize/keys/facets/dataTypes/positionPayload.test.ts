@@ -250,7 +250,7 @@ describe('PositionFacetPlainClass - FacetPayloadBase implementation', () => {
                     <Feature key=(testFeature) />
                 </Room>
             `))[0];
-            const result = payload.renderFacet(reference, payloadData, roomSchema);
+            const result = payload.renderFacet(reference, payloadData, roomSchema, undefined);
             
             // Should return aggregatedNode (not newNode)
             expect(result.aggregatedNode).toBeDefined();
@@ -281,7 +281,7 @@ describe('PositionFacetPlainClass - FacetPayloadBase implementation', () => {
                 y: 25
             };
             const payload = new PositionFacetPlainClass(payloadData);
-            const result = payload.renderFacet(reference, payloadData);
+            const result = payload.renderFacet(reference, payloadData, undefined, undefined);
             
             // Should return aggregatedNode (not newNode)
             expect(result.aggregatedNode).toBeDefined();
@@ -292,7 +292,7 @@ describe('PositionFacetPlainClass - FacetPayloadBase implementation', () => {
             expect(treeNodeTypeguard(isSchemaRoom)(aggregatedNode)).toBe(true);
             if (aggregatedNode.data.tag === 'Room') {
                 expect(aggregatedNode.data.key).toBe('testRoom');
-                expect(aggregatedNode.data.uuid).toBe('ROOM#123');
+                expect(aggregatedNode.data.uuid).toBeUndefined();
             }
             const positionChild = aggregatedNode.children.find(treeNodeTypeguard(isSchemaPosition));
             expect(positionChild).toBeDefined();
@@ -309,7 +309,7 @@ describe('PositionFacetPlainClass - FacetPayloadBase implementation', () => {
                 y: 40
             };
             const payload = new PositionFacetPlainClass(payloadData);
-            const result = payload.renderFacet(reference, payloadData);
+            const result = payload.renderFacet(reference, payloadData, undefined, undefined);
             
             // Should return aggregatedNode (not newNode)
             expect(result.aggregatedNode).toBeDefined();
@@ -356,7 +356,7 @@ describe('PositionFacetPlainClass - FacetPayloadBase implementation', () => {
             };
             const payload = new PositionFacetPlainClass(payloadData);
             const featureSchema = treeFromWML(deIndentWML('<Feature uuid=(FEATURE#123) />'))[0];
-            expect(() => payload.renderFacet(reference, payloadData, featureSchema)).toThrow('Invalid referenceRender: expected Room tag');
+            expect(() => payload.renderFacet(reference, payloadData, featureSchema, undefined)).toThrow('Invalid referenceRender: expected Room tag');
         });
 
         it('should add Position as first child when referenceRender provided', () => {
@@ -367,7 +367,7 @@ describe('PositionFacetPlainClass - FacetPayloadBase implementation', () => {
             };
             const payload = new PositionFacetPlainClass(payloadData);
             const roomSchema = treeFromWML(deIndentWML('<Room uuid=(ROOM#123)><ShortName>Room</ShortName></Room>'))[0];
-            const result = payload.renderFacet(reference, payloadData, roomSchema);
+            const result = payload.renderFacet(reference, payloadData, roomSchema, undefined);
             
             const aggregatedNode = result.aggregatedNode!;
             // Position should be first child

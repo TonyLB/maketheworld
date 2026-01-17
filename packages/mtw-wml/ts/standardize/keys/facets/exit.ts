@@ -9,6 +9,8 @@ import { facetClassFactory } from './facetFactory';
 import { PlainClass, RemoveClass, ReplaceClass, StandardLiteral } from "../../literal";
 import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree";
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
+import { StandardComponent } from "../../components/baseClasses";
+import { StandardKey } from "../key";
 
 // Unified ExitFacetPayload class extending StandardLiteral with undefined normalization
 // Note: Exit payload is string | undefined, but StandardLiteral works with string.
@@ -101,13 +103,15 @@ export class ExitFacetPayload extends StandardLiteral {
     }
 
     // FacetPayloadBase method: render facet
-    renderFacet(reference: StandardReference, payload: ExitPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+    renderFacet(reference: StandardReference, payload: ExitPayloadType, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
         }
 
-        const toKey = reference.standardKey.toFormat('key');
-        const toValue = toKey.key ?? toKey.universalKey ?? '';
+        // Use lookup to resolve to local key if available, otherwise use existing key or universal key
+        // This allows rendering human-readable local keys when components exist in the asset
+        const lookedUpKey = lookup ? (lookup(reference.standardKey)?.standardKey ?? reference.standardKey) : reference.standardKey;
+        const toValue = lookedUpKey.key ?? lookedUpKey.universalKey ?? '';
 
         // Use schema directly (no wrapper) - just String tag as children of Exit
         const stringSchema = this.schema;
@@ -249,13 +253,15 @@ export class ExitFacetPlainClass extends PlainClass {
         return description;
     }
 
-    renderFacet(reference: StandardReference, payload: ExitPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+    renderFacet(reference: StandardReference, payload: ExitPayloadType, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
         }
 
-        const toKey = reference.standardKey.toFormat('key');
-        const toValue = toKey.key ?? toKey.universalKey ?? '';
+        // Use lookup to resolve to local key if available, otherwise use existing key or universal key
+        // This allows rendering human-readable local keys when components exist in the asset
+        const lookedUpKey = lookup ? (lookup(reference.standardKey)?.standardKey ?? reference.standardKey) : reference.standardKey;
+        const toValue = lookedUpKey.key ?? lookedUpKey.universalKey ?? '';
 
         // Use schema directly (no wrapper) - just String tag as children of Exit
         const stringSchema = this.schema; // Returns [{ data: { tag: 'String', value: ... }, children: [] }]
@@ -348,13 +354,15 @@ export class ExitFacetRemoveClass extends RemoveClass {
         return description;
     }
 
-    renderFacet(reference: StandardReference, payload: ExitPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+    renderFacet(reference: StandardReference, payload: ExitPayloadType, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
         }
 
-        const toKey = reference.standardKey.toFormat('key');
-        const toValue = toKey.key ?? toKey.universalKey ?? '';
+        // Use lookup to resolve to local key if available, otherwise use existing key or universal key
+        // This allows rendering human-readable local keys when components exist in the asset
+        const lookedUpKey = lookup ? (lookup(reference.standardKey)?.standardKey ?? reference.standardKey) : reference.standardKey;
+        const toValue = lookedUpKey.key ?? lookedUpKey.universalKey ?? '';
 
         // For Remove, extract match schema (the String tag)
         const match = (this as any).match;
@@ -438,13 +446,15 @@ export class ExitFacetReplaceClass extends ReplaceClass {
         return description;
     }
 
-    renderFacet(reference: StandardReference, payload: ExitPayloadType, referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+    renderFacet(reference: StandardReference, payload: ExitPayloadType, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
         }
 
-        const toKey = reference.standardKey.toFormat('key');
-        const toValue = toKey.key ?? toKey.universalKey ?? '';
+        // Use lookup to resolve to local key if available, otherwise use existing key or universal key
+        // This allows rendering human-readable local keys when components exist in the asset
+        const lookedUpKey = lookup ? (lookup(reference.standardKey)?.standardKey ?? reference.standardKey) : reference.standardKey;
+        const toValue = lookedUpKey.key ?? lookedUpKey.universalKey ?? '';
 
         // Use schema getter which already returns Replace-wrapped structure
         const replaceSchema = this.schema[0];

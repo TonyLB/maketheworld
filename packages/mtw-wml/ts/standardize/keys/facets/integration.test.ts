@@ -230,7 +230,7 @@ describe('Facet Integration Tests', () => {
                 const payloadData: PositionPayload = ('tag' in payloadJSON && payloadJSON.tag !== undefined) 
                     ? (payloadJSON as any).match || (payloadJSON as any).payload 
                     : payloadJSON as PositionPayload;
-                const result = payload.renderFacet(reference, payloadData, roomRender);
+                const result = payload.renderFacet(reference, payloadData, roomRender, undefined);
 
                 expect(result.aggregatedNode).toBeDefined();
                 expect(result.newNode).toBeUndefined();
@@ -250,7 +250,7 @@ describe('Facet Integration Tests', () => {
                 const payload = new PositionFacetPayload({ x: 15, y: 25 });
                 const payloadData = (payload as any).payload?.toJSON() ?? payload.toJSON() as PositionPayload;
 
-                const result = payload.renderFacet(reference, payloadData);
+                const result = payload.renderFacet(reference, payloadData, undefined, undefined);
 
                 expect(result.aggregatedNode).toBeDefined();
                 expect(result.newNode).toBeUndefined();
@@ -269,12 +269,12 @@ describe('Facet Integration Tests', () => {
                 const payload = new PositionFacetPayload({ x: 50, y: 60 });
                 const payloadData = (payload as any).payload?.toJSON() ?? payload.toJSON() as PositionPayload;
 
-                const result1 = payload.renderFacet(reference, payloadData);
+                const result1 = payload.renderFacet(reference, payloadData, undefined, undefined);
                 expect(result1.aggregatedNode).toBeDefined();
                 expect(result1.newNode).toBeUndefined();
 
                 const roomRender = createMockRoomReference('room1', 'ROOM#789');
-                const result2 = payload.renderFacet(reference, payloadData, roomRender);
+                const result2 = payload.renderFacet(reference, payloadData, roomRender, undefined);
                 expect(result2.aggregatedNode).toBeDefined();
                 expect(result2.newNode).toBeUndefined();
             });
@@ -293,7 +293,7 @@ describe('Facet Integration Tests', () => {
                 // Extract plain payload data from toJSON() (may be union type, but these are plain payloads)
                 const payloadJSON = payload.toJSON();
                 const payloadData: string = (typeof payloadJSON === 'string') ? payloadJSON : '';
-                const result = payload.renderFacet(reference, payloadData, markRender);
+                const result = payload.renderFacet(reference, payloadData, markRender, undefined);
 
                 expect(result.aggregatedNode).toBeDefined();
                 expect(result.newNode).toBeUndefined();
@@ -316,7 +316,7 @@ describe('Facet Integration Tests', () => {
                 const payload = new MarkFacetPayload('Another condition');
                 const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string;
 
-                const result = payload.renderFacet(reference, payloadData);
+                const result = payload.renderFacet(reference, payloadData, undefined, undefined);
 
                 expect(result.aggregatedNode).toBeDefined();
                 expect(result.newNode).toBeUndefined();
@@ -332,12 +332,12 @@ describe('Facet Integration Tests', () => {
                 const payload = new MarkFacetPayload('Condition text');
                 const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string;
 
-                const result1 = payload.renderFacet(reference, payloadData);
+                const result1 = payload.renderFacet(reference, payloadData, undefined, undefined);
                 expect(result1.aggregatedNode).toBeDefined();
                 expect(result1.newNode).toBeUndefined();
 
                 const markRender = createMockMarkReference('MARK#789');
-                const result2 = payload.renderFacet(reference, payloadData, markRender);
+                const result2 = payload.renderFacet(reference, payloadData, markRender, undefined);
                 expect(result2.aggregatedNode).toBeDefined();
                 expect(result2.newNode).toBeUndefined();
             });
@@ -355,8 +355,8 @@ describe('Facet Integration Tests', () => {
                     : undefined;
                 const roomRender = createMockRoomReference('room1', 'ROOM#123');
 
-                const result1 = payload.renderFacet(reference, payloadData);
-                const result2 = payload.renderFacet(reference, payloadData, roomRender);
+                const result1 = payload.renderFacet(reference, payloadData, undefined, undefined);
+                const result2 = payload.renderFacet(reference, payloadData, roomRender, undefined);
 
                 // Both should return the same structure (referenceRender ignored)
                 expect(result1.newNode).toBeDefined();
@@ -370,12 +370,12 @@ describe('Facet Integration Tests', () => {
                 const payload = new ExitFacetPayload('East Exit');
                 const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string | undefined;
 
-                const result1 = payload.renderFacet(reference, payloadData);
+                const result1 = payload.renderFacet(reference, payloadData, undefined, undefined);
                 expect(result1.newNode).toBeDefined();
                 expect(result1.aggregatedNode).toBeUndefined();
 
                 const roomRender = createMockRoomReference('room2', 'ROOM#456');
-                const result2 = payload.renderFacet(reference, payloadData, roomRender);
+                const result2 = payload.renderFacet(reference, payloadData, roomRender, undefined);
                 expect(result2.newNode).toBeDefined();
                 expect(result2.aggregatedNode).toBeUndefined();
             });
@@ -385,7 +385,7 @@ describe('Facet Integration Tests', () => {
                 const payload = new ExitFacetPayload('West Exit');
                 const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string | undefined;
 
-                const result = payload.renderFacet(reference, payloadData);
+                const result = payload.renderFacet(reference, payloadData, undefined, undefined);
 
                 const newNode = result.newNode!;
                 expect(treeNodeTypeguard(isSchemaExit)(newNode)).toBe(true);
@@ -399,7 +399,7 @@ describe('Facet Integration Tests', () => {
                 const payload = new ExitFacetPayload('South Exit');
                 const payloadData = (payload as any).payload?.data ?? payload.toJSON() as string | undefined;
 
-                const result = payload.renderFacet(reference, payloadData);
+                const result = payload.renderFacet(reference, payloadData, undefined, undefined);
 
                 const newNode = result.newNode!;
                 if (newNode.data.tag === 'Exit') {
@@ -419,7 +419,7 @@ describe('Facet Integration Tests', () => {
                 const payloadData = payload.toJSON() as string | undefined;
                 expect(payloadData).toBeUndefined();
 
-                const result = payload.renderFacet(reference, payloadData);
+                const result = payload.renderFacet(reference, payloadData, undefined, undefined);
 
                 const newNode = result.newNode!;
                 if (newNode.data.tag === 'Exit') {

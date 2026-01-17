@@ -18,6 +18,7 @@ import { ReferenceFormat } from "../../components/utils/references";
 import { StandardReference, LookupMappings } from "../reference";
 import { StandardKey } from "../key";
 import { treeFromWML, isSchemaTreeNode } from "../../../schema";
+import { StandardComponent } from "../../components/baseClasses";
 
 export const facetClassFactory = <D, PayloadClass extends { renderFacet: (...args: any[]) => any, fromSchema: (...args: any[]) => any, clone: () => any, toJSON: () => any, merge: (other: any) => any, diff: (other: any) => any, invert: () => any }>(
     PayloadClass: new (...args: any[]) => PayloadClass,
@@ -311,9 +312,11 @@ export const facetClassFactory = <D, PayloadClass extends { renderFacet: (...arg
          * 
          * @param referenceRender - Optional pre-existing render of the reference already in the parent's schema tree.
          *   If not provided, a plain reference render is generated from `this._reference.schema`.
+         * @param lookup - Optional lookup function to resolve universal keys to local keys for rendering.
+         *   When provided, allows facets to render human-readable local keys instead of universal keys.
          * @returns An object with either `newNode` (for Exit-style facets) or `aggregatedNode` (for Position/Mark-style facets).
          */
-        renderFacet(referenceRender?: GenericTreeNode<SchemaTag>): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
+        renderFacet(referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
             // If reference is negative (facet is being removed), invert the payload before rendering
             // This ensures transitivity: removal of the facet also removes the payload
             const refIsNegative = this._reference.ref < 0;
@@ -324,7 +327,7 @@ export const facetClassFactory = <D, PayloadClass extends { renderFacet: (...arg
             // Delegate rendering to payload class's renderFacet (handles all cases including Replace)
             // For negative references, use the inverted payload instance to render (so it uses RemoveClass.renderFacet which creates Remove-wrapped schema)
             const payloadInstance = refIsNegative ? invertedPayload! : this.payload;
-            return payloadInstance.renderFacet(this._reference, payloadData, referenceRender);
+            return payloadInstance.renderFacet(this._reference, payloadData, referenceRender, lookup);
         }
 
         // Format conversion

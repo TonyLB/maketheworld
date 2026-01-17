@@ -45,8 +45,8 @@ exports[`AssetWorkspace (WML Lambda) setWML should correctly parse WML input 1`]
     {
       "exits": [
         {
-          "description": "welcome",
-          "to": "ROOM#room2",
+          "payload": "welcome",
+          "reference": "ROOM#room2",
         },
       ],
       "key": undefined,
@@ -57,8 +57,8 @@ exports[`AssetWorkspace (WML Lambda) setWML should correctly parse WML input 1`]
     {
       "exits": [
         {
-          "description": "vortex",
-          "to": "ROOM#room1",
+          "payload": "vortex",
+          "reference": "ROOM#room1",
         },
       ],
       "key": undefined,

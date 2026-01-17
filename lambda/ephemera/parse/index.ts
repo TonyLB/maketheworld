@@ -15,15 +15,11 @@ const getCurrentRoom = async (CharacterId: EphemeraCharacterId) => {
         
         if (roomComponent instanceof StandardRoom) {
             // Transform exits to the format expected by parseCommand
-            const exits = roomComponent.exits
-                .map((exit) => exit.plain)
-                .filter(excludeUndefined)
-                .map(exit => {
-                    const exitData = exit.toJSON()
-                    const exitName = typeof exitData.description === 'string' ? exitData.description : 'Unknown Exit'
-                    const targetRoomId = typeof exitData.to === 'string' ? exitData.to : exitData.to.universalKey || ''
-                    return { Name: exitName, RoomId: targetRoomId }
-                })
+            const exits = roomComponent.exits.items.map(exitFacet => {
+                const exitName = exitFacet.payload._payload.plain?.toJSON() ?? 'Unknown Exit'
+                const targetRoomId = exitFacet.reference.universalKey || ''
+                return { Name: exitName, RoomId: targetRoomId }
+            })
             
             // Transform characters to the format expected by parseCommand
             // Note: We need to resolve character references to get actual character data
