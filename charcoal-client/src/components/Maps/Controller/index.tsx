@@ -17,7 +17,6 @@ import { isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
 import { StandardKey } from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { excludeUndefined } from "../../../lib/lists"
-import StandardPosition, { StandardPositionSimple } from "@tonylb/mtw-wml/ts/standardize/components/position"
 import { StandardPositionFacet, PositionRemoveClass } from "@tonylb/mtw-wml/ts/standardize/keys/facets/position"
 import { ExitFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
 
@@ -103,14 +102,12 @@ const localPositionsFromStandardForms = ({ inherited, local, mapId }: { inherite
                         return undefined
                     }
                     
-                    const position = new StandardPosition(new StandardPositionSimple({ 
-                        room: roomUniversalKey, 
-                        x: plainPayload.x, 
-                        y: plainPayload.y 
-                    }))
                     return {
-                        name: roomComponent.shortName?._payload?.plain?.toJSON() ?? '',
-                        position
+                        roomId: roomUniversalKey as `ROOM#${string}`,
+                        id: roomUniversalKey as `ROOM#${string}`,
+                        x: plainPayload.x,
+                        y: plainPayload.y,
+                        name: roomComponent.shortName?._payload?.plain?.toJSON() ?? ''
                     }
                 }
                 return undefined
@@ -157,14 +154,20 @@ export const MapController: FunctionComponent<{ mapId: `MAP#${string}`; children
             const roomComponent = editable.byUniversalId[id]
             if (roomComponent && roomComponent instanceof StandardRoom) {
                 return {
-                    name: roomComponent.shortName?._payload?.plain?.toJSON() ?? '',
-                    position: new StandardPosition(new StandardPositionSimple({ room: id, x, y }))
+                    roomId: id as `ROOM#${string}`,
+                    id: id as `ROOM#${string}`,
+                    x,
+                    y,
+                    name: roomComponent.shortName?._payload?.plain?.toJSON() ?? ''
                 }
             }
             else {
                 return {
-                    name: '',
-                    position: new StandardPosition(new StandardPositionSimple({ room: id, x, y }))
+                    roomId: id as `ROOM#${string}`,
+                    id: id as `ROOM#${string}`,
+                    x,
+                    y,
+                    name: ''
                 }
             }
         }))
@@ -295,14 +298,20 @@ export const MapDisplayController: FunctionComponent<{ standardForm: StandardFor
             const roomComponent = standardForm.byUniversalId[id]
             if (roomComponent && roomComponent instanceof StandardRoom) {
                 return {
-                    name: roomComponent.shortName?._payload?.plain?.toJSON() ?? '',
-                    position: new StandardPosition(new StandardPositionSimple({ room: id, x, y }))
+                    roomId: id as `ROOM#${string}`,
+                    id: id as `ROOM#${string}`,
+                    x,
+                    y,
+                    name: roomComponent.shortName?._payload?.plain?.toJSON() ?? ''
                 }
             }
             else {
                 return {
-                    name: '',
-                    position: new StandardPosition(new StandardPositionSimple({ room: id, x, y }))
+                    roomId: id as `ROOM#${string}`,
+                    id: id as `ROOM#${string}`,
+                    x,
+                    y,
+                    name: ''
                 }
             }
         }))
