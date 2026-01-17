@@ -7,10 +7,10 @@ import StandardFeature from './feature'
  * DISABLED: This test file is disabled because `editableListClassFactory` is designed
  * specifically for reference-type lists (like `ReferenceList`) that require `sameKey()`
  * and `invert()` operations, which are semantically meaningful for references but not
- * for content-type lists (like `StandardExit` or `StandardPosition`).
+ * for content-type lists (which may use different patterns like Facets).
  *
  * REFACTORING NOTES FOR FUTURE:
- * When refactoring content-type list systems (exits, positions, etc.), consider:
+ * When refactoring content-type list systems, consider:
  *
  * 1. **Alternative Factory Pattern**: Create a new factory that doesn't require
  *    `sameKey()`/`invert()` for content types, or make these methods optional
@@ -18,16 +18,14 @@ import StandardFeature from './feature'
  *
  * 2. **Direct Array Operations**: For content lists, consider using direct array
  *    operations with custom merge/diff logic that matches by content-specific
- *    fields (e.g., `to` for exits, `room` for positions) rather than requiring
- *    a generic `sameKey()` method.
+ *    fields rather than requiring a generic `sameKey()` method.
  *
  * 3. **Content-Specific Semantics**: Content lists may need different merge/diff
- *    semantics than references. For example:
- *    - Exits: Merge by `to` field, diff by comparing destinations
- *    - Positions: Merge by `room` field, diff by comparing coordinates
+ *    semantics than references. For example, matching by identifying fields
+ *    specific to the content type.
  *
  * 4. **Test Structure**: When re-enabling, update tests to:
- *    - Use a content-type class (e.g., `StandardExit`) instead of `StandardReference`
+ *    - Use a content-type class instead of `StandardReference`
  *    - Test content-specific merge/diff behavior
  *    - Remove reference-specific assertions (e.g., Remove tag handling)
  *

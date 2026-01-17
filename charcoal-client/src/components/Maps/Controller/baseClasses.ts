@@ -3,7 +3,7 @@ import MapDThree from "../Edit/MapDThree"
 import { SchemaExitTag, SchemaRoomTag } from "@tonylb/mtw-base/ts/schema/components"
 import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { StandardExitPlain } from "@tonylb/mtw-wml/ts/standardize/components/exit"
+import { StandardExitFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
 
@@ -20,15 +20,15 @@ export const isMapTreeRoomWithPosition = (node: MapTreeItem): node is MapTreeRoo
 )
 
 /**
- * MapExit extends StandardExitPlain to add map-specific context
+ * MapExit wraps StandardExitFacet to add map-specific context
  * including the source room identifier for tracking exit origins
  */
-export class MapExit extends StandardExitPlain {
+export class MapExit {
+    private _facet: StandardExitFacet
     private _from: `ROOM#${string}`
 
-    constructor(exit: StandardExitPlain, from: `ROOM#${string}`) {
-        // Call the parent constructor with the exit's data
-        super(exit.toJSON())
+    constructor(exit: StandardExitFacet, from: `ROOM#${string}`) {
+        this._facet = exit
         this._from = from
     }
 
@@ -43,7 +43,7 @@ export class MapExit extends StandardExitPlain {
      * Get the target room identifier
      */
     get to(): string {
-        return this.payload?.to.universalKey ?? ''
+        return this._facet.reference.universalKey ?? ''
     }
 
     /**
@@ -57,24 +57,20 @@ export class MapExit extends StandardExitPlain {
      * Get the exit description if available
      */
     get description(): string | undefined {
-        if (!this.payload?.description) return undefined
-        const desc = this.payload.description.toJSON()
-        if (typeof desc === 'string') return desc
-        // For complex description types, return undefined for now
-        return undefined
+        return this._facet.payload.toJSON() ?? undefined
     }
 
     /**
      * Create a new MapExit with updated from room
      */
     withFrom(from: `ROOM#${string}`): MapExit {
-        return new MapExit(this, from)
+        return new MapExit(this._facet, from)
     }
 
     /**
      * Create a new MapExit with updated exit data
      */
-    withExit(exit: StandardExitPlain): MapExit {
+    withExit(exit: StandardExitFacet): MapExit {
         return new MapExit(exit, this._from)
     }
 }

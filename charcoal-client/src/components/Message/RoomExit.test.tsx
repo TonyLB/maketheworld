@@ -9,7 +9,7 @@ import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import '@testing-library/jest-dom'
 import RoomExit from './RoomExit'
-import { StandardExit } from '@tonylb/mtw-wml/ts/standardize/components/exit'
+import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
 
 vi.mock('../../../cacheDB')
 vi.mock('../ActiveCharacter', () => ({
@@ -35,9 +35,9 @@ describe('RoomExit', () => {
         vi.clearAllMocks()
     })
 
-    it('should render StandardExit with description', () => {
-        // Create a StandardExit with description using WML
-        const exit = StandardExit.create(`
+    it('should render StandardExitFacet with description', () => {
+        // Create a StandardExitFacet with description using WML
+        const exit = new StandardExitFacet(`
             <Exit to=(ROOM#target-room)>
                 Test Exit
             </Exit>
@@ -52,9 +52,9 @@ describe('RoomExit', () => {
         expect(screen.getByText('Test Exit')).toBeInTheDocument()
     })
 
-    it('should render StandardExit with object reference', () => {
-        // Create a StandardExit with object reference using WML
-        const exit = StandardExit.create(`
+    it('should render StandardExitFacet with object reference', () => {
+        // Create a StandardExitFacet with object reference using WML
+        const exit = new StandardExitFacet(`
             <Exit to=(ROOM#target-room)>
                 Object Exit
             </Exit>
@@ -70,9 +70,9 @@ describe('RoomExit', () => {
     })
 
     it('should handle click and dispatch moveCharacter', () => {
-        const exit = StandardExit.create({
-            to: 'ROOM#target-room',
-            description: 'Clickable Exit'
+        const exit = new StandardExitFacet({
+            reference: { tag: 'Room', universalKey: 'ROOM#target-room' },
+            payload: 'Clickable Exit'
         })
 
         render(
@@ -97,7 +97,7 @@ describe('RoomExit', () => {
     })
 
     it('should handle missing description gracefully', () => {
-        const exit = StandardExit.create(`
+        const exit = new StandardExitFacet(`
             <Exit to=(ROOM#target-room) />
         `)
 
@@ -111,7 +111,7 @@ describe('RoomExit', () => {
     })
 
     it('should handle missing target room gracefully', () => {
-        const exit = StandardExit.create(`
+        const exit = new StandardExitFacet(`
             <Exit to=(unknown-room)>
                 No Target Exit
             </Exit>

@@ -10,8 +10,8 @@ import { StandardReference } from "../../reference";
  * - **Position facets**: `<Room to=(target)><Position {0, 100} /></Room>` - reference as parent tag, payload as child tag. These **enhance existing Room references** rendered by the parent Map (either pre-existing Room renders or Room references from a `rooms` reference list).
  * - **Mark facets**: `<Mark uuid=(target)><Match>Condition</Match></Mark>` - reference as parent tag, payload as child tag. These **enhance existing Mark references** rendered by the parent Example (from a `marks` reference list).
  * 
- * Following the precedent established by `StandardExitBase`, each payload type
- * needs its own class with schema generation/parsing logic. This interface defines the contract these classes must implement.
+ * Each payload type needs its own class with schema generation/parsing logic (e.g., `ExitFacetPayload`, `PositionFacetPayload`, `MarkFacetPayload`). 
+ * This interface defines the contract these classes must implement.
  * 
  * **Parent Component Orchestration Pattern**: Parent components are responsible for orchestrating facet rendering:
  * 1. Parent renders reference lists that may need facet enhancement (e.g., Map renders `rooms` reference list)

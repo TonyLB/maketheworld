@@ -1,4 +1,4 @@
-# RoomDescription Component - Bridge State Implementation
+# RoomDescription Component - Standard Format Implementation
 
 ## Overview
 
@@ -20,57 +20,18 @@ The `RoomDescription` component is the most complex message component in the sys
 
 ## Current Data Structure
 
-### **Legacy Message Types**
+The component now uses **Standard format exclusively**. Room data is extracted from `StandardForm` via `StandardRoom` components.
 
-#### **RoomDescription** (`packages/mtw-interfaces/ts/messages.ts`)
-```typescript
-export type RoomDescription = {
-    DisplayProtocol: 'RoomDescription';
-} & RoomDescribeData & MessageAddressing
-
-export type RoomDescribeData = {
-    Description: RenderTree;
-    ShortName?: string;
-    Name: RenderTree;
-    Summary: RenderTree;
-    RoomId: EphemeraRoomId;
-    Exits: RoomExit[];
-    Characters: RoomCharacter[];
-    assets?: AssetUUID[];
-}
-```
-
-#### **RoomHeader** (`packages/mtw-interfaces/ts/messages.ts`)
-```typescript
-export type RoomHeader = {
-    DisplayProtocol: 'RoomHeader';
-} & RoomDescribeData & MessageAddressing
-```
-
-### **Supporting Data Types**
-
-#### **RoomExit**
-```typescript
-export type RoomExit = {
-    Name: string;
-    RoomId: EphemeraRoomId;
-    Visibility: 'Public' | 'Private';
-}
-```
-
-#### **RoomCharacter**
-```typescript
-export type RoomCharacter = {
-    Name: string;
-    CharacterId: EphemeraCharacterId;
-    fileURL?: string;
-}
-```
+### **Standard Format Data**
+- **Room Data**: `StandardRoom` from `StandardForm.byUniversalId`
+- **Room Name/Description**: Extracted from first `StandardExample` referenced by `StandardRoom.examples`
+- **Exits**: `StandardExitFacet[]` from `StandardRoom.exits.items`
+- **Characters**: `StandardCharacter[]` resolved from `StandardRoom.characters.payload` references
 
 ## Component Architecture
 
 ### **Main Component** (`RoomDescription.tsx`)
-- **Props Interface**: Accepts `RoomDescriptionType | RoomHeaderType`
+- **Props Interface**: Accepts `parsedWML?: StandardForm` and `metaData: PerceptionRoomMetaData`
 - **Mode Flag**: `header` prop determines display mode (full vs. compact)
 - **Layout System**: CSS Grid with content, exits, and characters areas
 - **Styling**: Gradient background with conditional margins
@@ -80,22 +41,14 @@ export type RoomCharacter = {
 #### **RoomExit** (`RoomExit.tsx`)
 - **Purpose**: Displays individual room exits as clickable chips
 - **Functionality**: Character movement via Redux dispatch
-- **Data**: Uses `RoomExit` type with name, room ID, and visibility
-- **WML Migration**: 
-  - **Data Structure**: Standard format uses `StandardReferenceData` for target room, legacy uses `EphemeraRoomId`
-- **Description**: Standard format uses `StandardLiteral` for description, legacy uses plain string
-- **Navigation**: Must maintain Redux dispatch for character movement
-- **Visibility**: Legacy has `Visibility: 'Public' | 'Private'`, Standard format may not have this concept
+- **Data**: Uses `StandardExitFacet` with `reference` (target room) and `payload` (exit name)
+- **Implementation**: Extracts exit name from `exit.payload.toJSON()` and target room from `exit.reference.universalKey`
 
 #### **RoomCharacter** (`RoomCharacter.tsx`)
 - **Purpose**: Shows characters present in the room
 - **Functionality**: Character linking and navigation
-- **Data**: Uses `RoomCharacter` type with character metadata
-- **WML Migration**:
-  - **Name**: Standard format uses rich text (`EditWrappedStandardNode`), legacy uses plain string
-- **Image**: Standard format has structured image data, legacy uses `fileURL` string
-- **Metadata**: Standard format has `shortName` and `pronouns`, legacy doesn't
-- **Navigation**: Must maintain character linking functionality
+- **Data**: Uses `StandardCharacter` with rich text name, image, and metadata
+- **Implementation**: Extracts character data from `StandardCharacter` properties directly
 
 ### **Integration Points**
 
@@ -134,17 +87,15 @@ Based on the WML standard, room data should be structured as:
 </Asset>
 ```
 
-### **Bridge State Interface**
+### **Component Interface**
 
 ```typescript
 interface RoomDescriptionProps {
-    message: RoomDescriptionType | RoomHeaderType | (PerceptionMessage & { parsedWML?: StandardForm });
+    parsedWML?: StandardForm;
+    metaData: PerceptionRoomMetaData;
     children?: ReactChild | ReactChildren;
     header?: boolean;
     currentHeader?: boolean;
-    // New WML properties
-    parsedWML?: StandardForm;
-    componentUUID?: SchemaComponentUUID;
 }
 ```
 
@@ -155,7 +106,7 @@ interface RoomDescriptionProps {
 let name: StandardRender = new StandardRender(['Unknown'])
 let description: StandardRender = new StandardRender([])
 let summary: StandardRender = new StandardRender([])
-let exits: StandardExit[] = []
+let exits: StandardExitFacet[] = []
 let characters: StandardCharacter[] = []
 
 if (parsedWML && componentUUID) {
@@ -174,69 +125,44 @@ if (parsedWML && componentUUID) {
         }
         
         // Pass Standard format objects directly to sub-components
-        exits = component.exits.payload  // Pass StandardExit instances directly
-        characters = []  // Characters not stored in Room component - requires backend changes
+        exits = component.exits.items  // Pass StandardExitFacet instances directly
+        
+        // Extract character references from StandardRoom and resolve them to StandardCharacter instances
+        characters = component.characters.payload
+            .map(characterRef => {
+                const resolvedCharacter = parsedWML._lookup(characterRef.standardKey.toJSON())
+                return resolvedCharacter
+            })
+            .filter((character): character is StandardCharacter => character instanceof StandardCharacter)
     }
-} else {
-    // Legacy format: extract from message
-    const legacyMessage = message as RoomDescriptionType | RoomHeaderType
-    name = new StandardRender(legacyMessage.Name || ['Unknown'])
-    description = new StandardRender(legacyMessage.Description || [])
-    summary = new StandardRender(legacyMessage.Summary || [])
-    // Convert legacy data to Standard format for sub-components
-    exits = legacyMessage.Exits?.map(legacyExit => createStandardExitFromLegacy(legacyExit)) || []
-    characters = legacyMessage.Characters?.map(legacyCharacter => createStandardCharacterFromLegacy(legacyCharacter)) || []
 }
 ```
 
-### **Legacy Data Conversion Functions**
+### **Exit Facet Pattern**
 
-#### **Convert Legacy RoomExit to StandardExit**
+Exits are handled via the Facet pattern using `StandardExitFacet`:
+- Exits are stored in `StandardRoom.exits.items` as `StandardExitFacet[]`
+- Each facet has a `reference` (target room) and `payload` (exit name/description)
+- Access via `exit.reference.universalKey` for target room and `exit.payload.toJSON()` for exit name
+
+### **Sub-Component Implementation**
+
+#### **RoomExit Component**
 ```typescript
-const createStandardExitFromLegacy = (legacyExit: RoomExit): StandardExit => {
-    // Create StandardExit instance from legacy data
-    const exitData: StandardExitData = {
-        to: legacyExit.RoomId,  // Convert EphemeraRoomId to reference
-        description: legacyExit.Name  // Convert string name to StandardLiteral
-    }
-    
-    return StandardExit.create(exitData)
-}
-```
-
-#### **Convert Legacy RoomCharacter to StandardCharacter**
-```typescript
-const createStandardCharacterFromLegacy = (legacyCharacter: RoomCharacter): StandardCharacter => {
-    // Create StandardCharacter instance from legacy data
-    const characterData: StandardCharacterData = {
-        name: legacyCharacter.Name,  // Convert string to rich text
-        shortName: legacyCharacter.Name,  // Use name as shortName
-        pronouns: undefined,  // Legacy doesn't have pronouns
-        image: legacyCharacter.fileURL ? { fileURL: legacyCharacter.fileURL } : undefined
-    }
-    
-    // Use Standard format factory to create StandardCharacter instance
-    return standardComponentFactory('Character', characterData) as StandardCharacter
-}
-```
-
-### **Sub-Component Standard Format Integration Strategy**
-
-#### **Phase 1: Bridge State (Current Implementation)**
-```typescript
-// Updated RoomExit component interface - pure Standard format
+// RoomExit component interface - uses StandardExitFacet
 interface RoomExitProps {
-    exit: StandardExit;  // Only accept Standard format
+    exit: StandardExitFacet;  // Exit facet from StandardRoom.exits.items
     children?: ReactChild | ReactChildren;
 }
 
-// In RoomExit component - Bridge State Implementation
+// In RoomExit component - ExitFacet implementation
 export const RoomExit = ({ exit }: RoomExitProps) => {
-    const exitData = exit.toJSON()
-    const exitName = exitData.description || 'Unknown Exit'
-    const targetRoomId = exitData.to.universalKey as EphemeraRoomId
+    // Extract exit name from facet payload
+    const exitName = exit.payload.toJSON() ?? 'Unknown Exit'
+    // Extract target room ID from facet reference
+    const targetRoomId = exit.reference.universalKey ?? ''
     
-    // Navigation logic remains the same
+    // Navigation logic
     const clickHandler = () => {
         if (isEphemeraCharacterId(CharacterId) && isEphemeraRoomId(targetRoomId)) {
             dispatch(addOnboardingComplete(['exitLink']))
@@ -248,69 +174,22 @@ export const RoomExit = ({ exit }: RoomExitProps) => {
 }
 ```
 
-#### **Phase 2: Native Standard Format Integration (Next Step)**
+#### **RoomCharacter Component**
 ```typescript
-// In RoomExit component - Native Standard format implementation
-export const RoomExit = ({ exit }: RoomExitProps) => {
-    // Use native Standard format properties instead of toJSON()
-    const exitName = exit.description?.plainString || 'Unknown Exit'
-    const targetRoomId = exit.to.universalKey as EphemeraRoomId
-    
-    // Navigation logic remains the same
-    const clickHandler = () => {
-        if (isEphemeraCharacterId(CharacterId) && isEphemeraRoomId(targetRoomId)) {
-            dispatch(addOnboardingComplete(['exitLink']))
-            dispatch(moveCharacter(CharacterId)({ RoomId: targetRoomId, ExitName: exitName }))
-        }
-    }
-    
-    return <Chip label={exitName} icon={<ExitIcon />} onClick={clickHandler} />
-}
-```
-
-#### **Refactor RoomCharacter to Accept StandardCharacter Only**
-```typescript
-// Updated RoomCharacter component interface - pure Standard format
+// RoomCharacter component interface - uses StandardCharacter
 interface RoomCharacterProps {
-    character: StandardCharacter;  // Only accept Standard format
+    character: StandardCharacter;
     children?: ReactChild | ReactChildren;
 }
 
-// In RoomCharacter component - Bridge State Implementation
+// RoomCharacter component implementation
 export const RoomCharacter = ({ character }: RoomCharacterProps) => {
-    const characterData = character.toJSON()
-    const characterName = characterData.name?.toJSON() || 'Unknown Character'
-    const characterId = character.universalKey as EphemeraCharacterId
-    const characterImage = characterData.image?.toJSON()
-    
-    // Navigation logic remains the same
-    const clickHandler = () => {
-        dispatch(socketDispatchPromise({
-            message: 'link',
-            CharacterId: viewCharacterId,
-            to: characterId
-        }))
-    }
-    
-    return <CharacterChip 
-        CharacterId={characterId} 
-        onClick={clickHandler} 
-        Name={characterName} 
-        fileURL={characterImage} 
-    />
-}
-```
-
-#### **Phase 2: Native Standard Format Integration (Next Step)**
-```typescript
-// In RoomCharacter component - Native Standard format implementation
-export const RoomCharacter = ({ character }: RoomCharacterProps) => {
-    // Use native Standard format properties instead of toJSON()
+    // Extract character data from StandardCharacter properties
     const characterName = character.name?.plainString || 'Unknown Character'
     const characterId = character.universalKey as EphemeraCharacterId
     const characterImage = character.image?.fileURL
     
-    // Navigation logic remains the same
+    // Navigation logic
     const clickHandler = () => {
         dispatch(socketDispatchPromise({
             message: 'link',
@@ -380,14 +259,14 @@ RoomHeader messages have special handling in the message timeline:
 
 For complete details on message timeline organization, see [`AGENT.md`](AGENT.md).
 
-## Migration Status: Bridge State ✅ Phases 1-3 Complete
+## Migration Status: ✅ Complete
 
-### **Current Implementation (Bridge State)**
-- ✅ **Dual Format Support**: Handles both legacy and Standard format data
-- ✅ **Legacy Conversion**: Converts legacy data to Standard format for sub-components
-- ✅ **Sub-Component Migration**: RoomExit and RoomCharacter accept only Standard format objects
-- ✅ **Backend Integration**: StandardRoom character integration complete
-- 🔄 **Next Phase**: Remove legacy data handling and use only Standard format
+### **Current Implementation**
+- ✅ **Standard Format Only**: Component exclusively uses Standard format data from `StandardForm`
+- ✅ **Sub-Component Integration**: RoomExit and RoomCharacter work with `StandardExitFacet` and `StandardCharacter` directly
+- ✅ **Backend Integration**: Backend sends Standard format data via `PerceptionMessage` with `parsedWML`
+- ✅ **Character Integration**: Characters extracted from `StandardRoom.characters.payload` references
+- ✅ **Exit Integration**: Exits use `StandardExitFacet` pattern from `StandardRoom.exits.items`
 
 ### **Migration Progress**
 
@@ -399,49 +278,49 @@ For complete details on message timeline organization, see [`AGENT.md`](AGENT.md
 
 #### **Phase 2: Bridge State Implementation** ✅ **COMPLETED**
 - [x] Update `RoomDescription` component interface to accept Standard format objects
-- [x] Implement legacy data conversion functions (`createStandardExitFromLegacy`, `createStandardCharacterFromLegacy`)
-- [x] Refactor `RoomExit` component to accept only `StandardExit` instances
+- [x] Refactor `RoomExit` component to accept only `StandardExitFacet` instances (ExitFacet pattern)
 - [x] Refactor `RoomCharacter` component to accept only `StandardCharacter` instances
 - [x] Update component rendering to pass Standard format objects directly to sub-components
-- [x] Add unit tests for legacy conversion functions
+- [x] Add unit tests for component integration
 
 #### **Phase 3: Backend Integration** ✅ **COMPLETED**
 - [x] Update backend to include character data in room Standard format structure
-- [x] Ensure StandardExit and StandardCharacter data is properly included
+- [x] Ensure ExitFacet and StandardCharacter data is properly included
 - [x] Test Standard format generation for room components
 - [x] Validate character data integration
 
-#### **Phase 4: Complete Migration (Pending)**
-- [ ] Remove legacy data format support from RoomDescription component
-- [ ] Update backend to send only Standard format data
-- [ ] Remove legacy conversion functions
-- [ ] Update tests to use only Standard format data
+#### **Phase 4: Complete Migration** ✅ **COMPLETED**
+- [x] Remove legacy data format support from RoomDescription component
+- [x] Update backend to send only Standard format data
+- [x] Remove legacy conversion functions
+- [x] Update tests to use only Standard format data
 
-#### **Phase 5: Testing and Validation (Pending)**
-- [ ] Test Standard format-only implementation
-- [ ] Verify navigation functionality with native Standard format
-- [ ] Validate layout in both header and full modes
-- [ ] Test asset integration with Standard format only
+#### **Phase 5: Testing and Validation** ✅ **COMPLETED**
+- [x] Test Standard format-only implementation
+- [x] Verify navigation functionality with native Standard format
+- [x] Validate layout in both header and full modes
+- [x] Test asset integration with Standard format only
 
-#### **Phase 6: Documentation Cleanup (Pending)**
-- [ ] Update documentation to reflect Standard format-only implementation
-- [ ] Remove bridge state implementation notes
-- [ ] Document final Standard format integration patterns
+#### **Phase 6: Documentation Cleanup** ✅ **COMPLETED**
+- [x] Update documentation to reflect Standard format-only implementation
+- [x] Remove bridge state implementation notes
+- [x] Document final Standard format integration patterns
 
 ## Implementation Notes
 
-### **Bridge State Architecture**
-1. **Legacy Input Processing**: Accepts legacy RoomDescription and RoomHeader message formats
-2. **Standard Format Conversion**: Converts legacy data to Standard format objects at component boundary
-3. **Pure Sub-Components**: RoomExit and RoomCharacter work exclusively with Standard format objects
-4. **Character Integration**: Handles characters from both legacy arrays and StandardRoom.characters references
-5. **Migration Path**: Maintains backward compatibility while enabling future removal of legacy support
+### **Standard Format Architecture**
+1. **Standard Format Input**: Component accepts `parsedWML: StandardForm` via `PerceptionMessage`
+2. **Room Data Extraction**: Extracts `StandardRoom` from `parsedWML.byUniversalId[componentUUID]`
+3. **Example Resolution**: Room name/description from first referenced `StandardExample`
+4. **Exit Handling**: Direct use of `StandardExitFacet[]` from `StandardRoom.exits.items`
+5. **Character Resolution**: Resolves `StandardCharacter[]` from `StandardRoom.characters.payload` references
 
-### **Critical Migration Considerations**
-1. **Data Conversion**: Legacy-to-Standard conversion happens at the RoomDescription component level
-2. **Sub-Component Purity**: RoomExit and RoomCharacter must never receive legacy data directly
-3. **Backend Transition**: Backend currently sends legacy format but includes Standard format character data
-4. **Future Cleanup**: Legacy conversion code can be removed once backend sends only Standard format
+### **Data Flow**
+1. **Input**: `PerceptionMessage` with `parsedWML` and `metaData.componentUUID`
+2. **Room Lookup**: `parsedWML.byUniversalId[componentUUID]` → `StandardRoom`
+3. **Example Lookup**: `StandardRoom.examples.payload[0]` → resolve to `StandardExample`
+4. **Exit Direct Access**: `StandardRoom.exits.items` → `StandardExitFacet[]`
+5. **Character Resolution**: `StandardRoom.characters.payload` → resolve each reference → `StandardCharacter[]`
 
 ### **Performance Considerations**
 - **Complex Parsing**: Room data includes multiple sub-components
@@ -476,16 +355,10 @@ For complete details on message timeline organization, see [`AGENT.md`](AGENT.md
 ## Development Notes
 
 ### **Current State**
-- **Legacy Support**: Fully functional with `RoomDescription` and `RoomHeader` formats
+- **Standard Format Only**: Uses `StandardForm` and `StandardRoom` exclusively
 - **Complex Layout**: CSS Grid with multiple interactive areas
 - **Redux Integration**: Heavy dependency on player assets and character actions
-- **Sub-Components**: RoomExit and RoomCharacter have their own requirements
-
-### **Migration Priority**
-- **High Complexity**: Most complex component in the migration
-- **Dependencies**: Multiple sub-components need WML support
-- **Integration**: Heavy Redux integration requires careful planning
-- **Testing**: Complex functionality requires comprehensive testing
+- **Sub-Components**: RoomExit uses `StandardExitFacet`, RoomCharacter uses `StandardCharacter`
 
 ### **Technical Debt**
 - **Layout Complexity**: CSS Grid layout may need optimization
@@ -493,8 +366,7 @@ For complete details on message timeline organization, see [`AGENT.md`](AGENT.md
 - **Sub-Component Coupling**: RoomExit and RoomCharacter are tightly coupled
 - **Asset Integration**: Personal asset logic is complex and WML-specific
 
-### **Future Plans**
-- **Standard Format Standardization**: Move to Standard format for all room data
+### **Future Improvements**
 - **Component Simplification**: Reduce complexity of layout and state management
 - **Performance Optimization**: Optimize parsing and rendering for Standard format data
-- **Testing Coverage**: Add comprehensive tests for Standard format functionality 
+- **Testing Coverage**: Expand tests for edge cases and error handling 

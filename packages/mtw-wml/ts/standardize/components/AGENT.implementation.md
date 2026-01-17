@@ -69,10 +69,6 @@ The component system maintains a clear separation between:
 - **Content Properties**: `name` (now `StandardRender`), `image` (remains `EditWrappedStandardNode`)
 - **Status**: ✅ Technical debt resolved
 
-### **StandardExit**
-- **Purpose**: Represents exits between rooms
-- **Content Properties**: `description` (uses `StandardRender`)
-
 ### **StandardImage** 🔴
 - **Purpose**: Represents images with fileURL
 - **Content Properties**: `fileURL` (string)

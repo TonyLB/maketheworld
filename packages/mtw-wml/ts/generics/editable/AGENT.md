@@ -204,5 +204,5 @@ static create(format: string): GeneratedV2EditableClass {
 
 ## Related Documentation
 
-- **[StandardExit Implementation](../standardize/components/exit.ts)**: Current StandardExit implementation using standardEditableFactory
 - **[Editable Generic System](./index.ts)**: Core editable factory implementation and v2 architecture
+- **[Facet System](../standardize/keys/facets/AGENT.facets.md)**: Exit data migrated to ExitFacet pattern using facets

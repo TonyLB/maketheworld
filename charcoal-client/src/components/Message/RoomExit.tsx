@@ -8,20 +8,19 @@ import { moveCharacter } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
-import { StandardExit, StandardExitData } from '@tonylb/mtw-wml/ts/standardize/components/exit'
+import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
 
 interface RoomExitProps {
-    exit: StandardExit;  // Only accept Standard format
+    exit: StandardExitFacet;
     children?: ReactChild | ReactChildren;
 }
 
 export const RoomExit = ({ exit }: RoomExitProps) => {
-    if (!(exit instanceof StandardExit)) {
+    if (!(exit instanceof StandardExitFacet)) {
         return <Chip label="Unknown Exit" icon={<ExitIcon />} />
     }
-    const exitData = exit.toJSON() as StandardExitData
-    const exitName = typeof exitData.description === 'string' ? exitData.description : 'Unknown Exit'
-    const targetRoomId = typeof exitData.to === 'string' ? exitData.to : exitData.to.universalKey || ''
+    const exitName = exit.payload.toJSON() ?? 'Unknown Exit'
+    const targetRoomId = exit.reference.universalKey || exit.reference.standardKey.universalKey || exit.reference.standardKey.toJSON()?.universalKey || ''
 
     const { CharacterId } = useActiveCharacter()
     const dispatch = useDispatch()

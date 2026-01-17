@@ -139,9 +139,6 @@ Serialization format for Computed components. Contains `expression`, `dependenci
 
 ### **Sub-Component Data Types**
 
-#### **StandardExitData** (`exit.ts`)
-Serialization format for Exit sub-components. Contains `to` reference and optional `description` string.
-
 ### **Edit Data Types**
 
 Component-level edit operations (Remove/Replace) are no longer supported. All edit operations are handled at the reference level in `ReferenceList` (as `StandardReferenceRemove` references), not as wrapper classes around components.
@@ -179,7 +176,6 @@ export const isStandardExample = (arg: any): arg is StandardExampleData => {
 - `isStandardKnowledgeData()` - Validates Knowledge data
 - `isStandardMomentData()` - Validates Moment data
 - `isStandardMapData()` - Validates Map data
-- `isStandardExit()` - Validates Exit data
 
 ## Usage Patterns
 
