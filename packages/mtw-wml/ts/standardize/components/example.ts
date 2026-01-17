@@ -12,12 +12,13 @@ import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/exam
 import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { deepEqual } from "../../lib/objects"
-import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
+import { renderTreeToSchema, schemaToRenderTree, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { StandardExplicitParent } from "../explicit"
 import { MarkFacetList, StandardMarkFacet } from "../keys/facets/mark"
 import { findTaggedChildren, recurseIntoEditable } from "../../schema/utils"
+import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
@@ -151,7 +152,9 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
     }
 
     referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
-        const renderTrees = [this._name?.toJSON(), this._summary?.toJSON(), this._description?.toJSON()].filter(excludeUndefined)
+        // Extract all RenderTree values from StandardEditableData<RenderTree>
+        const editableData = [this._name?.toJSON(), this._summary?.toJSON(), this._description?.toJSON()].filter(excludeUndefined) as StandardEditableData<RenderTree>[]
+        const renderTrees = editableData.flatMap(extractFromEditableData<RenderTree>)
         return [
             ...linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1)))
                 .map((reference) => ({ referenceType: 'Link' as const, reference })),

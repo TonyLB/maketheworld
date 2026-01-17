@@ -137,17 +137,11 @@ describe('StandardForm', () => {
                 {
                     tag: 'Example',
                     universalKey: 'EXAMPLE#testRoomBase',
-                    name: [{
-                        data: { tag: 'Replace' },
-                        children: [{
-                            data: { tag: 'ReplaceMatch' },
-                            children: ['Lobby']
-                        },
-                        {
-                            data: { tag: 'ReplacePayload' },
-                            children: ['Foyer']
-                        }]
-                    }]
+                    name: {
+                        tag: 'Replace',
+                        match: ['Lobby'],
+                        payload: ['Foyer']
+                    }
                 },
                 {
                     tag: 'Room',

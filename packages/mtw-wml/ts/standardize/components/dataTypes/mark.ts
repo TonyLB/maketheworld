@@ -6,7 +6,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 export type StandardMarkData = {
     tag: 'Mark';
     shortName?: StandardEditableData<string>;
-    description?: RenderTree;
+    description?: StandardEditableData<RenderTree>;
 } & StandardBaseData
 
 export const isStandardMarkData = (arg: any): arg is StandardMarkData => {

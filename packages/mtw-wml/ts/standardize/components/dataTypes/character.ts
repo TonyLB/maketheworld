@@ -10,7 +10,7 @@ export type StandardCharacterData = {
     tag: 'Character';
     shortName?: StandardEditableData<string>;
     pronouns?: StandardEditableData<string>;
-    name?: RenderTree;
+    name?: StandardEditableData<RenderTree>;
     image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
 } & StandardBaseData
 

@@ -13,13 +13,14 @@ import { StandardLensData } from "./dataTypes/lens"
 import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag, isSchemaComponent } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMark, isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
 import { deepEqual } from "../../lib/objects"
-import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
+import { renderTreeToSchema, schemaToRenderTree, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { HasShortName } from "./abstract"
 import { StandardLiteral } from "../literal"
 import { ReferenceList } from "../keys/referenceList"
 import { renderReference } from "./utils/schema"
+import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
 
 export class StandardMarkPayload implements HasShortName, ComponentConstructorMethods<StandardMarkData> {
     _shortName?: StandardLiteral;
@@ -92,7 +93,9 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
     }
 
     referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
-        const renderTrees = [this._description?.toJSON()].filter(excludeUndefined)
+        // Extract all RenderTree values from StandardEditableData<RenderTree>
+        const editableData = [this._description?.toJSON()].filter(excludeUndefined) as StandardEditableData<RenderTree>[]
+        const renderTrees = editableData.flatMap(extractFromEditableData<RenderTree>)
         return [
             ...linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1)))
                 .map((reference) => ({ referenceType: 'Link' as const, reference }))
@@ -262,7 +265,9 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
     }
 
     referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
-        const renderTrees = [this._description?.toJSON()].filter(excludeUndefined)
+        // Extract all RenderTree values from StandardEditableData<RenderTree>
+        const editableData = [this._description?.toJSON()].filter(excludeUndefined) as StandardEditableData<RenderTree>[]
+        const renderTrees = editableData.flatMap(extractFromEditableData<RenderTree>)
         return [
             ...this._marks.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1)))
