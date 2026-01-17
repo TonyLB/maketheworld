@@ -130,8 +130,8 @@ describe('StandardForm', () => {
                     universalKey: 'ROOM#testRoom',
                     examples: ['EXAMPLE#testRoomBase'],
                     exits: [{
-                        tag: 'Remove',
-                        match: { to: { key: 'testDestination' }, description: 'out' }
+                        reference: { tag: 'Room', key: 'testDestination', ref: -1 },
+                        payload: { tag: 'Remove', match: 'out' }
                     }]
                 },
                 {

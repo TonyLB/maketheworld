@@ -23,7 +23,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.features).toBeDefined()
         expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
-        expect(testRoom.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: { key: 'testTwo' }, description: 'Exit test' }])
+        expect(testRoom.exits.items.map((exit) => (exit.toJSON()))).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
         expect(testRoom.universalKey).toEqual('ROOM#123')
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
@@ -46,7 +46,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.examples).toBeDefined()
         expect(testRoom.examples!.toJSON()).toEqual(['EXAMPLE#base'])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
-        expect(testRoom.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: { key: 'testTwo' }, description: 'Exit test' }])
+        expect(testRoom.exits.items.map((exit) => (exit.toJSON()))).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
         expect(testRoom.universalKey).toEqual('ROOM#123')
         expect(schemaToWML([testRoom.schema])).toEqual(testSource)
     })
@@ -69,7 +69,7 @@ describe('StandardRoom class', () => {
             key: 'test',
             tag: 'Room',
             shortName: 'ShortName Test',
-            exits: [{ to: { key: 'testTwo' }, description: 'Exit test' }],
+            exits: [{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }],
             features: [{ tag: 'Feature', key: 'testFeature' }]
         }
         const testRoom = new StandardRoom(testRoomData)
@@ -77,7 +77,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.features).toBeDefined()
         expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
-        expect(testRoom.exits.map((exit) => exit.toJSON())).toEqual([{ to: { key: 'testTwo' }, description: 'Exit test' }])
+        expect(testRoom.exits.items.map((exit) => exit.toJSON())).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
         expect(testRoom.toJSON()).toEqual(testRoomData)
     })
 
@@ -94,7 +94,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.features).toBeDefined()
         expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
-        expect(testRoom.exits).toEqual([])  // Should default to empty array
+        expect(testRoom.exits.length).toEqual(0)  // Should default to empty list
         
         // The JSON output should omit exits when empty (omission-over-empty pattern)
         const outputJSON = testRoom.toJSON() as StandardRoomData
@@ -143,7 +143,7 @@ describe('StandardRoom class', () => {
                 <Exit to=(ROOM#testRoomTwo)>exit</Exit>
             </Room>
         `)
-        expect(test.exits.map((exit) => (exit.toJSON()))).toEqual([{ to: 'ROOM#testRoomTwo', description: 'exit' }])
+        expect(test.exits.items.map((exit) => (exit.toJSON()))).toEqual([{ reference: 'ROOM#testRoomTwo', payload: 'exit' }])
         expect(test.referencedKeys().map(({ reference, ...rest }) => ({ key: reference.standardKey.toJSON(), ...rest }))).toEqual([{ key: 'ROOM#testRoomTwo', referenceType: 'Exit' }])
     })
 
@@ -200,7 +200,7 @@ describe('StandardRoom class', () => {
         expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Room uuid=(Room1) key=(testRoomOne)>
                 <Example uuid=(Example1) />
-                <Exit to=(ROOM#testRoomTwo)>exit</Exit>
+                <Exit to=(testRoomTwo)>exit</Exit>
             </Room>
         `))
     })
@@ -719,7 +719,7 @@ describe('StandardRoom class', () => {
                 key: 'test',
                 tag: 'Room',
                 shortName: 'Test Room',
-                exits: [{ to: { key: 'target' }, description: 'Exit description' }],
+                exits: [{ reference: { tag: 'Room', key: 'target' }, payload: 'Exit description' }],
                 features: [{ tag: 'Feature', key: 'feat1' }],
                 examples: [{ tag: 'Example', key: 'ex1' }],
                 characters: [{ tag: 'Character', key: 'char1' }]
@@ -764,7 +764,7 @@ describe('StandardRoom class', () => {
                 key: 'test',
                 tag: 'Room',
                 shortName: 'Test Room',
-                exits: [{ to: { key: 'target' }, description: 'Exit' }],
+                exits: [{ reference: { tag: 'Room', key: 'target' }, payload: 'Exit' }],
                 features: [{ tag: 'Feature', key: 'feat1' }],
                 examples: [{ tag: 'Example', key: 'ex1', ref: -1 }]
             }
@@ -774,7 +774,7 @@ describe('StandardRoom class', () => {
             // Double inversion should return to original (within merge equivalence)
             // We compare JSON output since the objects may not be strictly equal
             expect(doubleInverted.shortName?.toJSON()).toEqual(room._payload.shortName?.toJSON())
-            expect(doubleInverted.exits.map(e => e.toJSON())).toEqual(room._payload.exits.map(e => e.toJSON()))
+            expect(doubleInverted.exits.items.map(e => e.toJSON())).toEqual(room._payload.exits.items.map(e => e.toJSON()))
             expect(doubleInverted.features.toJSON()).toEqual(room._payload.features.toJSON())
             expect(doubleInverted.examples.toJSON()).toEqual(room._payload.examples.toJSON())
         })
@@ -784,7 +784,7 @@ describe('StandardRoom class', () => {
             const inverted = emptyRoom._payload.invert()
             
             expect(inverted.shortName).toBeUndefined()
-            expect(inverted.exits).toEqual([])
+            expect(inverted.exits.length).toEqual(0)
             expect(inverted.features.toJSON()).toEqual([])
             expect(inverted.examples.toJSON()).toEqual([])
             expect(inverted.characters.toJSON()).toEqual([])
@@ -799,7 +799,7 @@ describe('StandardRoom class', () => {
             const inverted = roomWithOnlyFeatures._payload.invert()
             
             expect(inverted.shortName).toBeUndefined()
-            expect(inverted.exits).toEqual([])
+            expect(inverted.exits.length).toEqual(0)
             expect(inverted.features.toJSON()).toEqual([{ tag: 'Feature', key: 'feat1', ref: -1 }])
             expect(inverted.examples.toJSON()).toEqual([])
             expect(inverted.characters.toJSON()).toEqual([])

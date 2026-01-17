@@ -23,7 +23,6 @@ import { requestLLMGeneration } from '../../../../slices/personalAssets'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import { StandardExit } from '@tonylb/mtw-wml/ts/standardize/components/exit'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
@@ -274,8 +273,8 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
                     )}
                     
                     {/* Exits from this room */}
-                    {getRelevantExits(roomComponent).map((exit, index) => {
-                        const destinationKey = exit.plain?.to.toJSON()
+                    {getRelevantExits(roomComponent).map((exitFacet, index) => {
+                        const destinationKey = exitFacet.reference.standardKey.toJSON()
                         if (!destinationKey) {
                             return null
                         }

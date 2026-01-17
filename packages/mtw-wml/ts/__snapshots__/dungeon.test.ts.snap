@@ -601,16 +601,18 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "exits": [
       {
-        "description": "passage",
-        "to": {
+        "payload": "passage",
+        "reference": {
           "key": "curvingPassage",
+          "tag": "Room",
           "universalKey": undefined,
         },
       },
       {
-        "description": "out",
-        "to": {
+        "payload": "out",
+        "reference": {
           "key": "VORTEX",
+          "tag": "Room",
           "universalKey": undefined,
         },
       },
@@ -650,9 +652,10 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "exits": [
       {
-        "description": "passage",
-        "to": {
+        "payload": "passage",
+        "reference": {
           "key": "curvingPassage",
+          "tag": "Room",
           "universalKey": undefined,
         },
       },
@@ -700,16 +703,18 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "exits": [
       {
-        "description": "cave",
-        "to": {
+        "payload": "cave",
+        "reference": {
           "key": "cave",
+          "tag": "Room",
           "universalKey": undefined,
         },
       },
       {
-        "description": "chamber",
-        "to": {
+        "payload": "chamber",
+        "reference": {
           "key": "chamber",
+          "tag": "Room",
           "universalKey": undefined,
         },
       },
@@ -803,9 +808,10 @@ exports[`large WML test should standardize properly 1`] = `
     ],
     "exits": [
       {
-        "description": "cave",
-        "to": {
+        "payload": "cave",
+        "reference": {
           "key": "cave",
+          "tag": "Room",
           "universalKey": undefined,
         },
       },

@@ -28,10 +28,9 @@ import { CacheRoomCharacterListsData } from './roomCharacterLists';
 import { AssetUUID, ComponentUUID, SchemaOutputTag } from '@tonylb/mtw-base/ts/schema';
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
-import { StandardKey } from '@tonylb/mtw-wml/ts/standardize/components/reference';
-import { mergeStandardExitList } from '@tonylb/mtw-wml/ts/standardize/components/exit';
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room';
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal';
+import { ExitFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit';
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render';
 import StandardMessage from '@tonylb/mtw-wml/ts/standardize/components/message';
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map';
@@ -154,10 +153,16 @@ export class ComponentRenderData {
 
             const [roomCharacterList, exits, shortName] = await Promise.all([
                 this._roomCharacterList(EphemeraId),
-                mergeStandardExitList(assetData.map((asset) => asset.exits || []).flat(1))
-                    .map((exit) => exit.plain)
-                    .filter(excludeUndefined)
-                    .map((exit) => exit.toJSON()),
+                (() => {
+                    // Collect all exit facets from all assets and merge them
+                    const allExitFacets = assetData
+                        .map((asset) => asset.exits.items || [])
+                        .flat(1)
+                    // Create a new ExitFacetList which will automatically deduplicate and merge
+                    const mergedExits = new ExitFacetList(allExitFacets)
+                    // Convert to JSON format for StandardRoomData
+                    return mergedExits.toJSON()
+                })(),
                 assetData
                     .map((component) => component.shortName)
                     .filter(excludeUndefined)
@@ -278,14 +283,15 @@ export class ComponentRenderData {
                 return {
                     roomId: ephemeraId,
                     name: mergedRoom?.shortName?._payload?.plain?.toJSON?.() as string,
-                    exits: (mergedRoom?.exits ?? [])
-                        .map((exit) => exit.plain)
-                        .filter(excludeUndefined)
-                        .filter((exit) => (Boolean(
+                    exits: (mergedRoom?.exits.items ?? [])
+                        .filter((exitFacet) => (Boolean(
                             merged &&
-                            merged.positions.items.find((facet) => (facet.reference.standardKey.equals(exit.to)))
+                            merged.positions.items.find((facet) => (facet.reference.standardKey.equals(exitFacet.reference.standardKey)))
                         )))
-                        .map((exit) => ({ description: exit.description?._payload?.plain?.toJSON?.() ?? '' as string, to: exit.to.toJSON() as EphemeraRoomId })),
+                        .map((exitFacet) => ({ 
+                            description: (typeof exitFacet.payload.toJSON() === 'string' ? exitFacet.payload.toJSON() : '') as string, 
+                            to: exitFacet.reference.standardKey.toJSON() as EphemeraRoomId 
+                        })),
                     x: facet.payload.plain?.x,
                     y: facet.payload.plain?.y
                 }
@@ -308,7 +314,12 @@ export class ComponentRenderData {
                 ...rooms.map((room): StandardRoomData => ({
                     tag: 'Room',
                     universalKey: room.roomId,
-                    ...(room.exits.length ? { exits: room.exits } : {}),
+                    ...(room.exits.length ? { 
+                        exits: room.exits.map(exit => ({
+                            reference: { tag: 'Room', ...(typeof exit.to === 'string' ? { universalKey: exit.to } : { key: exit.to }) },
+                            payload: exit.description || undefined
+                        }))
+                    } : {}),
                     shortName: room.name
                 }))
             ])
