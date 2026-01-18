@@ -345,26 +345,30 @@ describe('personalAsset slice reducers', () => {
             )).toEqual({
                 base: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(Room2)><Example uuid=(base)><Name>Garden</Name></Example></Room>
+                        <Room uuid=(Room2)>
+                            <Example uuid=(base)><Name>Garden</Name></Example>
+                        </Room>
                         <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
                     </Asset>
                 `),
                 standard: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(Room2) key=(garden)><Example uuid=(base)><Name>Garden</Name></Example></Room>
+                        <Room uuid=(Room2) key=(garden)>
+                            <Example uuid=(base)><Name>Garden</Name></Example>
+                        </Room>
                         <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
                     </Asset>
                 `),
                 calculated: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(Room2) key=(garden)><Example uuid=(base)><Name>Garden</Name></Example></Room>
+                        <Room uuid=(Room2) key=(garden)>
+                            <Example uuid=(base)><Name>Garden</Name></Example>
+                        </Room>
                         <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
                     </Asset>
                 `),
                 edit: deIndentWML(`
-                    <Asset uuid=(testAsset)>
-                        <Room uuid=(Room2) key=(garden) ref={0} />
-                    </Asset>
+                    <Asset uuid=(testAsset)><Room uuid=(Room2) key=(garden) ref={0} /></Asset>
                 `)
             })
         })
