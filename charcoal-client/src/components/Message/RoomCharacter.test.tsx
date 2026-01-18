@@ -24,7 +24,6 @@ const mockStore = configureStore()
 // Mock CharacterChip component with proper React component pattern
 vi.mock('../CharacterChip', () => {
     const MockCharacterChip = vi.fn((props: any) => {
-        console.log('MockCharacterChip called with props:', props)
         const { CharacterId, Name, fileURL, onClick } = props
         return (
             <div 

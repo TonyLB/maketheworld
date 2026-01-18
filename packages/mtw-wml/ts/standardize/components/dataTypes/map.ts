@@ -20,13 +20,12 @@ export const isStandardMapData = (arg: any): arg is StandardMapData => {
 
     return checkAll(
         ('tag' in arg && arg.tag === 'Map'),
-        checkTypes(arg, {
-            images: 'tree'
-        },
+        checkTypes(arg, {},
         {
             key: 'key',
             universalKey: 'string',
             name: 'literal',
+            images: 'tree',
             positions: 'facetList'
         })
     )
