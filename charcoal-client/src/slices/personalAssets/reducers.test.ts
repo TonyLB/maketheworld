@@ -351,34 +351,19 @@ describe('personalAsset slice reducers', () => {
                 `),
                 standard: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(Room2)><Example uuid=(base)><Name>Garden</Name></Example></Room>
-                        <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
+                        <Room uuid=(Room2) key=(garden)><Example uuid=(base)><Name>Garden</Name></Example></Room>
+                        <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
                     </Asset>
                 `),
                 calculated: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(Room2)><Example uuid=(base)><Name>Garden</Name></Example></Room>
-                        <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
+                        <Room uuid=(Room2) key=(garden)><Example uuid=(base)><Name>Garden</Name></Example></Room>
+                        <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
                     </Asset>
                 `),
                 edit: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(Room2)><Example uuid=(base)><Name>Garden</Name></Example></Room>
-                        <Remove>
-                            <Room uuid=(Room2)>
-                                <Example uuid=(base)><Name>Garden</Name></Example>
-                            </Room>
-                        </Remove>
-                        <Replace>
-                            <Map uuid=(testMap)>
-                                <Room uuid=(Room2)><Position {0, 0} /></Room>
-                            </Map>
-                        </Replace>
-                        <With>
-                            <Map uuid=(testMap)>
-                                <Room uuid=(Room2)><Position {0, 0} /></Room>
-                            </Map>
-                        </With>
+                        <Room uuid=(Room2) key=(garden) ref={0} />
                     </Asset>
                 `)
             })
