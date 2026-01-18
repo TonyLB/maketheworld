@@ -110,12 +110,12 @@ particular context.
 
 ### Key Methods
 
-- **`merge(incoming)`**: Combines two StandardForms, merging all components
+- **`merge(incoming)`**: Combines two StandardForms, merging all components. Automatically handles key changes by remapping references to universal format.
 - **`diff(incoming)`**: Creates a StandardForm representing the difference between two assets
 - **`subset(requests)`**: Creates a subset of the asset based on component requests
 - **`finalize()`**: Completes the asset by ensuring all references are properly mapped
 - **`mapContents(callback)`**: Transforms all component content
-- **`renameKey(props)`**: Renames component keys throughout the asset
+- **`renameKey(props)`**: @deprecated Use explicit `<Key>` tags in edits processed through `merge()` instead
 
 ### Constructor Overloads
 
@@ -225,6 +225,62 @@ const merged = base.merge(incoming)
 //    </Room>
 // </Asset>
 ```
+
+### Key Changes
+
+Key changes (rename or remove) are handled through the standard edit/merge pipeline using explicit `<Key>` tags:
+
+**Requirements:**
+- Components must have `universalKey` set before any key changes
+- `universalKey` provides a stable anchor when local keys change
+- References are automatically updated during merge
+
+**WML Pattern:**
+
+Key changes are expressed using explicit `<Key>` tags within component edits:
+
+```xml
+<!-- Key rename: Replace old key with new key -->
+<Feature uuid=(FEATURE#feature1) key=(clockTower)>
+    <Replace><Key>clockTower</Key></Replace>
+    <With><Key>tower</Key></With>
+</Feature>
+
+<!-- Key removal: Remove the local key (component remains via universalKey) -->
+<Feature uuid=(FEATURE#feature1) key=(testFeature)>
+    <Remove><Key>testFeature</Key></Remove>
+</Feature>
+```
+
+**Example:**
+```typescript
+// Base asset with references
+const base = new StandardForm(`<Asset uuid=(Test)>
+    <Feature uuid=(FEATURE#feature1) key=(clockTower)>
+        <ShortName>Clock Tower</ShortName>
+    </Feature>
+    <Room uuid=(ROOM#room1) key=(mainHall)>
+        <Example uuid=(base)>
+            <Description><Link to=(clockTower)>See tower</Link></Description>
+        </Example>
+    </Room>
+</Asset>`)
+
+// Edit with Key rename
+const edit = new StandardForm(`<Asset uuid=(Test)>
+    <Feature uuid=(FEATURE#feature1) key=(clockTower)>
+        <Replace><Key>clockTower</Key></Replace>
+        <With><Key>tower</Key></With>
+    </Feature>
+</Asset>`)
+
+// Merge - references automatically update to use new key
+const merged = base.merge(edit)
+// Result: Link in Room now points to 'tower' instead of 'clockTower'
+// The Feature component now has key='tower' but same universalKey
+```
+
+**Note:** The deprecated `renameKey()` method should not be used. Use explicit `<Key>` tags in WML edits instead.
 
 The merge operation:
 1. **Component-Level Merging**: Each component is merged using its own `merge()` method
