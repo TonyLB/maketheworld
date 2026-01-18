@@ -41,6 +41,7 @@ import { KeyLookup } from "./keyLookup"
 import { SchemaOrganization, createOrganizationContext } from "./schemaOrganization"
 import { renderReference } from "./components/utils/schema"
 import { ComponentTag } from "./components/dataTypes/abstract"
+import { RemoveClass as StandardExplicitKeyRemoveClass, ReplaceClass as StandardExplicitKeyReplaceClass } from "./explicit/key"
 
 //
 // Component templates define legal parent relationships for component types
@@ -600,6 +601,44 @@ export class StandardForm {
         }
     }
 
+    /**
+     * Detects if a StandardForm contains any Key changes (Replace or Remove operations).
+     * Used to determine if pre-merge remapping is needed.
+     */
+    private _hasKeyChanges(standardForm: StandardForm): boolean {
+        return standardForm._components.some(component => {
+            if (!component._key) return false
+            const payload = (component._key as any).payload
+            if (!payload) return false
+            // Check if _key.payload is a ReplaceClass or RemoveClass
+            return payload instanceof StandardExplicitKeyReplaceClass || 
+                   payload instanceof StandardExplicitKeyRemoveClass
+        })
+    }
+
+    /**
+     * Validates that all components with Key changes (Replace or Remove) have universalKey set.
+     * Throws an error if any component lacks universalKey, as it's required for stable reference anchoring.
+     */
+    private _validateKeyChanges(standardForm: StandardForm): void {
+        for (const component of standardForm._components) {
+            if (!component._key) continue
+            const payload = (component._key as any).payload
+            if (!payload) continue
+            
+            const isKeyChange = payload instanceof StandardExplicitKeyReplaceClass || 
+                               payload instanceof StandardExplicitKeyRemoveClass
+            
+            if (isKeyChange && !component.universalKey) {
+                const operation = payload instanceof StandardExplicitKeyReplaceClass ? 'rename' : 'remove'
+                throw new Error(
+                    `Cannot ${operation} key for component without universalKey. ` +
+                    `Component: ${component.tag}${component.key ? ` key=${component.key}` : ''}`
+                )
+            }
+        }
+    }
+
     private _validateParentExists(component: StandardComponent, parentKey: StandardKey | 'ASSET'): void {
         if (parentKey === 'ASSET') {
             // ASSET sentinel is always valid (means top-level)
@@ -643,6 +682,43 @@ export class StandardForm {
     // StandardForm merge method accounts for component-level edits and merges all contents in place
     //
     merge(incoming: StandardForm): StandardForm {
+        const hasKeyChanges = this._hasKeyChanges(this) || this._hasKeyChanges(incoming)
+        
+        if (hasKeyChanges) {
+            // Validate both forms - components with Key changes must have universalKey
+            this._validateKeyChanges(this)
+            this._validateKeyChanges(incoming)
+            
+            // Remap both to universal format before merging
+            // This ensures references use stable universalKey instead of local keys
+            const thisMappings = this._components.map(c => c.reference)
+            const incomingMappings = incoming._components.map(c => c.reference)
+            
+            const remappedThis = this._clone()
+            remappedThis._components = remappedThis._components.map(c => 
+                c.withMapping(thisMappings).remapReferences('universal')
+            )
+            remappedThis._topLevel = remappedThis._topLevel?.toFormat('universal')
+            
+            const remappedIncoming = incoming._clone()
+            remappedIncoming._components = remappedIncoming._components.map(c => 
+                c.withMapping(incomingMappings).remapReferences('universal')
+            )
+            remappedIncoming._topLevel = remappedIncoming._topLevel?.toFormat('universal')
+            
+            // Merge the remapped forms
+            return remappedThis._mergeInternal(remappedIncoming)
+        }
+        
+        // Normal merge path (no key changes)
+        return this._mergeInternal(incoming)
+    }
+
+    /**
+     * Internal merge implementation that performs the actual merge operation.
+     * Separated from public merge() to allow pre-processing (remapping) when needed.
+     */
+    private _mergeInternal(incoming: StandardForm): StandardForm {
         const mergedUniversalKeyMappings = mergeUniversalKeyMappings([...this._keys, ...incoming._keys])
         const returnValue = this._clone()
         returnValue._components = [...returnValue._components, ...incoming._clone()._components].reduce(mergeToComponentList(mergedUniversalKeyMappings), [])
@@ -914,6 +990,17 @@ export class StandardForm {
         return returnValue
     }
 
+    /**
+     * @deprecated Use explicit `<Key>` tags in edits and process through `merge()` instead.
+     * This method is incomplete and does not properly update component references.
+     * 
+     * To rename a key:
+     * 1. Create a component with the new key using `component.withKey(newKey)`
+     * 2. Use `diff()` to generate an edit StandardForm with the Key change
+     * 3. Merge the edit into your base StandardForm
+     * 
+     * Components must have `universalKey` set before key changes.
+     */
     renameKey(props: { fromKey: string; toKey: string; retainOldExportAs?: boolean; }[]): StandardForm {
         const returnValue = this._clone()
         const findMatchingRename = (key: string): { fromKey: string; toKey: string; retainOldExportAs?: boolean; } | undefined => {
