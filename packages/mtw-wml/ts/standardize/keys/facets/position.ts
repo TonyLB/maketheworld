@@ -1,6 +1,6 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree";
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
-import { v2StandardEditableFactory, StandardEditablePayload } from "../../../generics/editable";
+import { standardEditableFactory, StandardEditablePayload } from "../../../generics/editable";
 import { MergeConflictError, TagMismatchError } from "@tonylb/mtw-base/ts/standardize";
 import { deepEqual } from "../../../lib/objects";
 import { StandardReference } from "../reference";
@@ -66,7 +66,7 @@ const payloadFactory = (props: PositionPayloadType | GenericTree<SchemaTag>): St
     throw new Error('Invalid argument in StandardPositionPayloadBase factory');
 };
 
-// Add/subtract/diff functions for v2StandardEditableFactory
+// Add/subtract/diff functions for standardEditableFactory
 const standardPositionPayloadAdd = (base: PositionPayloadType, incoming: PositionPayloadType): PositionPayloadType => {
     // Replace semantics: incoming wins
     return incoming;
@@ -86,14 +86,14 @@ const standardPositionPayloadDiff = (base: PositionPayloadType, incoming: Positi
     return { add: incoming, remove: base };
 };
 
-// Create v2StandardEditableFactory for PositionPayload
+// Create standardEditableFactory for PositionPayload
 export const { 
     EditableClass: PositionEditableClass, 
     PlainClass: PositionPlainClass, 
     RemoveClass: PositionRemoveClass, 
     ReplaceClass: PositionReplaceClass, 
     dataTypeguard: isStandardPositionPayloadData 
-} = v2StandardEditableFactory({
+} = standardEditableFactory({
     typeguard: isPositionPayload,
     payloadFactory: payloadFactory,
     payload: StandardPositionPayloadBase,

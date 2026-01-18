@@ -54,7 +54,7 @@ describe('PositionFacetPlainClass - StandardEditablePayload implementation', () 
         });
     });
 
-    describe('v2StandardEditableFactory (via StandardPositionPayload)', () => {
+    describe('standardEditableFactory (via StandardPositionPayload)', () => {
         it('should create from plain payload data', () => {
             const data: PositionPayloadType = {
                 x: 10,

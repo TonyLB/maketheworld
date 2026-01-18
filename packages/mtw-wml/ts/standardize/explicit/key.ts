@@ -1,5 +1,5 @@
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
-import { v2StandardEditableFactory, StandardEditablePayload } from "../../generics/editable"
+import { standardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
@@ -140,7 +140,7 @@ export const {
     RemoveClass, 
     ReplaceClass, 
     dataTypeguard: isStandardExplicitKeyData 
-} = v2StandardEditableFactory({
+} = standardEditableFactory({
     typeguard: (value: any): value is string => {
         // Only accept legalKey strings
         if (typeof value === 'string') {

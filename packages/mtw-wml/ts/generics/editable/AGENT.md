@@ -1,65 +1,21 @@
-# StandardEditable v2 Architecture
+# StandardEditable Architecture
 
-**⚠️ PLANNING DOCUMENT** - This document outlines the v2 architecture for StandardEditable components using the new `v2StandardEditableFactory` pattern.
+This document outlines the architecture for StandardEditable components using the `standardEditableFactory` pattern.
 
 ## Overview
 
-The current `StandardEditable` architecture uses a complex edit pattern that handles WML edit operations (add, remove, replace) but creates usability challenges in non-edit contexts like UI rendering and data manipulation. The `v2StandardEditableFactory` introduces a new pattern that enables clean `instanceof` checks and type-safe access to edit-specific functionality.
+The `standardEditableFactory` pattern enables clean `instanceof` checks and type-safe access to edit-specific functionality for WML edit operations (add, remove, replace).
 
 ## Important: Content Editing Only
 
-**`v2StandardEditableFactory` is for content editing only** (e.g., `StandardLiteral`, `StandardRender`, `StandardExit`). It should NOT be used for reference editing (`StandardReference`), which has different edit semantics:
+**`standardEditableFactory` is for content editing only** (e.g., `StandardLiteral`, `StandardRender`, `StandardExit`). It should NOT be used for reference editing (`StandardReference`), which has different edit semantics:
 
 - **Content editables**: Support Add, Remove, and Replace operations
 - **References**: Support only Add and Remove operations (Replace operations are illegal)
 
 `StandardReference` does NOT use the factory pattern because references can only be added or removed, never replaced with a different target component. This aligns with the edit algebra where changing a reference target requires explicit separate Add and Remove operations.
 
-## Current Edit Pattern Architecture
-
-### How It Works
-1. **Base Classes**: `StandardExitBase`, `StandardExitPlain`, `StandardExitRemove`, `StandardExitReplace` handle different edit states
-2. **Wrapper Class**: `StandardExit` acts as a facade, delegating to the appropriate base class
-3. **Payload Access**: Data is accessed via `._payload.plain` to get the resolved state
-4. **State Management**: Components can transition between edit states during WML operations
-
-### Example: StandardExit Structure
-```typescript
-// Complex state handling
-exit._payload instanceof StandardExitPlain    // Basic exit
-exit._payload instanceof StandardExitRemove    // Exit marked for removal  
-exit._payload instanceof StandardExitReplace   // Exit being replaced
-
-// Data access requires deep nesting
-exit._payload.plain.to.universalKey           // Target room
-exit._payload.plain.description?.value        // Exit name
-```
-
-## Pain Points Across the System
-
-### 1. Deep Property Nesting
-**Problem**: Accessing component data requires verbose property chains
-**Impact**: UI code becomes hard to read and error-prone
-**Examples**:
-- `exit._payload.plain.to.universalKey` instead of `exit.to`
-- `room._payload.plain.shortName?.value` instead of `room.name`
-
-### 2. Edit State Complexity in Display Contexts
-**Problem**: Display logic must handle edit states that aren't relevant
-**Impact**: UI components become more complex than necessary
-**Examples**:
-- Maps component needs to check `instanceof StandardExitPlain` before rendering
-- Room editor must handle `StandardExitRemove` states during display
-
-### 3. Inconsistent Access Patterns
-**Problem**: Different components access data in different ways
-**Impact**: Code becomes harder to maintain and understand
-**Examples**:
-- Some code uses `._payload.plain`
-- Some code checks edit states first
-- Some code assumes simple states only
-
-## Proposed Solution: v2StandardEditableFactory Pattern
+## standardEditableFactory Pattern
 
 ### Concept
 Create a factory that returns an abstract parent class with concrete subtype instances:
@@ -72,7 +28,7 @@ Create a factory that returns an abstract parent class with concrete subtype ins
 
 ```typescript
 // Factory returns abstract parent class with concrete subtype instances
-const { EditableClass, PlainClass, RemoveClass, ReplaceClass } = v2StandardEditableFactory(factoryProps, 'StandardTest');
+const { EditableClass, PlainClass, RemoveClass, ReplaceClass } = standardEditableFactory(factoryProps, 'StandardTest');
 
 // Usage enables clean instanceof checks
 const exit = EditableClass.create('<Replace><Remove>Old</Remove><Exit /></Replace>');
@@ -103,7 +59,7 @@ if (exit instanceof ReplaceClass) {
 ## Implementation Status
 
 ### ✅ Completed
-- **v2StandardEditableFactory**: Core factory function implemented in `generics/editable/index.ts`
+- **standardEditableFactory**: Core factory function implemented in `generics/editable/index.ts`
 - **Factory Pattern**: Returns abstract parent + concrete subtype classes
 - **String-based Dispatching**: `create` method analyzes WML content for subtype selection
 - **Clean Naming**: `EditableClass`, `PlainClass`, `RemoveClass`, `ReplaceClass`
@@ -113,21 +69,11 @@ if (exit instanceof ReplaceClass) {
 - **StandardEditableWrapper Interface**: Complete compatibility with clone, plain, and nestedSchema methods
 - **remapReferences**: Method implemented for all concrete classes
 
-### 🔄 In Progress
-- **Integration Planning**: How to integrate with existing StandardExit architecture
-- **Migration Strategy**: Path from current pattern to v2 pattern
-
-### 📋 Next Steps
-- **StandardExit Integration**: Refactor StandardExit to use v2StandardEditableFactory
-- **Component Migration**: Extend pattern to other editable components
-- **API Design**: Design clean interfaces for each subtype
-- **Documentation**: Create usage examples and migration guides
-
 ## Technical Implementation
 
 ### Factory Function Signature
 ```typescript
-export const v2StandardEditableFactory = <DataType, FinalType extends StandardEditablePayload<DataType>>(
+export const standardEditableFactory = <DataType, FinalType extends StandardEditablePayload<DataType>>(
     props: StandardEditableFactoryProps<DataType, FinalType>, 
     className: string
 ) => {
@@ -150,38 +96,16 @@ All generated classes implement the `StandardEditableWrapper` interface:
 
 ### WML Parsing Logic
 ```typescript
-static create(format: string): GeneratedV2EditableClass {
+static create(format: string): GeneratedEditableClass {
     if (format.includes('<Replace>')) {
-        return new GeneratedV2EditableReplaceClass(format)
+        return new GeneratedEditableReplaceClass(format)
     } else if (format.includes('<Remove>')) {
-        return new GeneratedV2EditableRemoveClass(format)
+        return new GeneratedEditableRemoveClass(format)
     } else {
-        return new GeneratedV2EditablePlainClass(format)
+        return new GeneratedEditablePlainClass(format)
     }
 }
 ```
-
-## Migration Strategy
-
-### Phase 1: Foundation (✅ Complete)
-- Implement `v2StandardEditableFactory` core functionality
-- Create comprehensive test suite
-- Validate factory pattern with instanceof checks
-
-### Phase 2: StandardExit Integration
-- Refactor `StandardExit` to use `v2StandardEditableFactory`
-- Create `StandardExitV2` abstract class with concrete subtypes
-- Maintain backward compatibility during transition
-
-### Phase 3: Component Ecosystem
-- Extend pattern to other editable components
-- Create consistent v2 architecture across the system
-- Establish migration patterns and best practices
-
-### Phase 4: Optimization
-- Performance analysis and optimization
-- Memory usage optimization
-- API refinement based on usage patterns
 
 ## Success Criteria
 
@@ -193,16 +117,11 @@ static create(format: string): GeneratedV2EditableClass {
 
 ### Code Quality Requirements
 - **Clean Architecture**: Clear separation between abstract and concrete classes
-- **Consistent Pattern**: All editable components follow the same v2 structure
+- **Consistent Pattern**: All editable components follow the same factory structure
 - **Testability**: Each subtype can be tested independently
 - **Documentation**: Clear examples of factory usage and subtype checking
 
-### Migration Requirements
-- **Incremental**: Can be implemented alongside existing classes
-- **Non-Breaking**: Existing code continues to work unchanged
-- **Measurable**: Clear metrics for migration progress and success
-
 ## Related Documentation
 
-- **[Editable Generic System](./index.ts)**: Core editable factory implementation and v2 architecture
+- **[Editable Generic System](./index.ts)**: Core editable factory implementation
 - **[Facet System](../standardize/keys/facets/AGENT.facets.md)**: Exit data migrated to ExitFacet pattern using facets

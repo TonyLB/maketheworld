@@ -119,9 +119,9 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 
     invert(): this {
         const returnValue = new StandardCharacterPayload()
-        // Invert shortName if it exists (StandardLiteral has invert() from v2StandardEditableFactory)
+        // Invert shortName if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
-        // Invert pronouns if it exists (StandardLiteral has invert() from v2StandardEditableFactory)
+        // Invert pronouns if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._pronouns = this._pronouns ? this._pronouns.invert() as StandardLiteral : undefined
         // Invert name if it exists (StandardRender has invert())
         returnValue._name = this._name ? this._name.invert() : undefined

@@ -88,7 +88,7 @@ describe('StandardRenderSimple', () => {
                 const base = StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
                 const target = StandardRenderSimple.create(['Test'])
                 const diff = base.diff(target)
-                // v2 factory returns StandardEditableData format: { tag: 'Remove', match: RenderTree }
+                // factory returns StandardEditableData format: { tag: 'Remove', match: RenderTree }
                 const wrappedDiff = diff ? new StandardRender(diff) : undefined
                 expect(wrappedDiff?.toJSON()).toEqual({
                     tag: 'Remove',
@@ -100,7 +100,7 @@ describe('StandardRenderSimple', () => {
                 const base = StandardRenderSimple.create(['Test'])
                 const target = StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
                 const diff = base.diff(target)
-                // v2 factory returns StandardEditableData format: plain RenderTree for PlainClass
+                // factory returns StandardEditableData format: plain RenderTree for PlainClass
                 const wrappedDiff = diff ? new StandardRender(diff) : undefined
                 expect(wrappedDiff?.toJSON()).toEqual([{ data: { tag: 'br' }, children: [] }, 'Test 2'])
             })
@@ -109,7 +109,7 @@ describe('StandardRenderSimple', () => {
                 const base = StandardRenderSimple.create(['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'])
                 const target = StandardRenderSimple.create(['Example', { data: { tag: 'br' }, children: [] }, 'Example 2'])
                 const diff = base.diff(target)
-                // v2 factory returns StandardEditableData format: { tag: 'Replace', match: RenderTree, payload: RenderTree }
+                // factory returns StandardEditableData format: { tag: 'Replace', match: RenderTree, payload: RenderTree }
                 const wrappedDiff = diff ? new StandardRender(diff) : undefined
                 expect(wrappedDiff?.toJSON()).toEqual({
                     tag: 'Replace',
@@ -461,7 +461,7 @@ describe('StandardRender', () => {
             </With>
         `)
         const render = new StandardRender(schema.schema)
-        // v2 factory returns StandardEditableData format: { tag: 'Replace', match: RenderTree, payload: RenderTree }
+        // factory returns StandardEditableData format: { tag: 'Replace', match: RenderTree, payload: RenderTree }
         expect(render.mapContents((tree) => tree.map((node) => (typeof node === 'string' ? 'String' : node.data.tag))).toJSON()).toEqual({
             tag: 'Replace',
             match: ['String', 'Link'],
@@ -473,7 +473,7 @@ describe('StandardRender', () => {
         const schema = new Schema()
         schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)
         const render = new StandardRender(schema.schema)
-        // v2 factory returns StandardEditableData format: { tag: 'Remove', match: RenderTree }
+        // factory returns StandardEditableData format: { tag: 'Remove', match: RenderTree }
         expect(render.mapContents((tree) => tree.map((node) => (typeof node === 'string' ? 'String' : node.data.tag))).toJSON()).toEqual({
             tag: 'Remove',
             match: ['String', 'Link']
