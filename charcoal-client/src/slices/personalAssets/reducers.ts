@@ -54,7 +54,8 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     const { payload } = action
     const mergeToEdit = (delta: StandardForm): void => {
         const editStandardized = new StandardForm(state.edit)
-        state.edit = editStandardized.merge(delta).toJSON()
+        const merged = editStandardized.merge(delta)
+        state.edit = merged.toJSON()
     }
     if (isUpdateStandardPayloadSetBase(payload)) {
         state.inherited = payload.inherited
