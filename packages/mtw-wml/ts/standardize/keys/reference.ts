@@ -522,7 +522,11 @@ export class StandardReference {
         const referenceData: StandardReferenceData = lookedUpKey.universalKey && !lookedUpKey.key
             ? lookedUpKey.universalKey  // Use ComponentUUID string form when only universalKey exists
             : { key: lookedUpKey.key || '', universalKey: lookedUpKey.universalKey, tag, ref }
-        return new StandardReference(referenceData)
+        // When referenceData is a string, StandardReference constructor sets _ref = 1, so we need to restore the original ref
+        const result = typeof referenceData === 'string'
+            ? new StandardReference(referenceData).withRef(ref)
+            : new StandardReference(referenceData)
+        return result
     }
 
     toFormat(format: ReferenceFormat, mappings?: LookupMappings): StandardReference {

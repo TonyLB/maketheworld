@@ -1907,6 +1907,36 @@ describe('StandardForm', () => {
             `))
         })
 
+        it('should return simple Remove tag when removing component with nested content', () => {
+            const base = new StandardForm(`<Asset uuid=(Test)>
+                <Room uuid=(testRoom) key=(testRoom)>
+                    <Example uuid=(base)>
+                        <Name>Test Room</Name>
+                        <Description>Test Description</Description>
+                    </Example>
+                </Room>
+                <Room uuid=(testRoomTwo) key=(testRoomTwo) />
+            </Asset>`)
+            const incoming = new StandardForm(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room uuid=(testRoomTwo) key=(testRoomTwo) />
+                </Asset>
+            `))
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Remove>
+                        <Room uuid=(testRoom) key=(testRoom)>
+                            <Example uuid=(base)>
+                                <Name>Test Room</Name>
+                                <Description>Test Description</Description>
+                            </Example>
+                        </Room>
+                    </Remove>
+                </Asset>
+            `))
+        })
+
         it('should return a minimal in-place edit diff for modified nested components', () => {
             const base = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom)><Example uuid=(base) key=(base)><Name>Old Name</Name></Example></Room></Asset>`)
             const incoming = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom)><Example uuid=(base) key=(base)><Name>New Name</Name></Example></Room></Asset>`)

@@ -43,25 +43,19 @@ export type UpdateStandardPayloadRemoveComponent = {
     componentKey: string;
 }
 
-type UpdateStandardPayloadRenameKey = {
-    type: 'renameKey',
-    uuid: ComponentUUID;
-    to: string;
-}
-
-export type UpdateStandardPayload = UpdateStandardPayloadSetInherited | UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadUpdateLocal | UpdateStandardPayloadRemoveComponent | UpdateStandardPayloadRenameKey
+export type UpdateStandardPayload = UpdateStandardPayloadSetInherited | UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadUpdateLocal | UpdateStandardPayloadRemoveComponent
 
 const isUpdateStandardPayloadSetBase = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadSetInherited => (payload.type === 'setInherited')
 const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateComponent => (payload.type === 'update')
 const isUpdateStandardPayloadUpdateLocal = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateLocal => (payload.type === 'updateLocal')
 const isUpdateStandardPayloadRemoveComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRemoveComponent => (payload.type === 'removeComponent')
-const isUpdateStandardPayloadRenameKey = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRenameKey => (payload.type === 'renameKey')
 
 export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
     const { payload } = action
     const mergeToEdit = (delta: StandardForm): void => {
         const editStandardized = new StandardForm(state.edit)
-        state.edit = editStandardized.merge(delta).toJSON()
+        const merged = editStandardized.merge(delta)
+        state.edit = merged.toJSON()
     }
     if (isUpdateStandardPayloadSetBase(payload)) {
         state.inherited = payload.inherited
@@ -95,21 +89,6 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         const diff = localStandardForm.diff(componentRemoved)
         if (diff) {
             mergeToEdit(diff)
-        }
-    }
-    if (isUpdateStandardPayloadRenameKey(payload)) {
-        const component = standardForm.byUniversalId[payload.uuid]
-        const universalKey = component?.universalKey
-        if (component && universalKey) {
-            const newStandard = standardForm._clone().finalize()
-            const newComponent = component.withKey(payload.to)
-            newStandard.byUniversalId[universalKey] = newComponent
-            const finalized = newStandard.finalize()
-            console.log(`New schema: ${JSON.stringify(finalized.toJSON(), null, 2)}`)
-            const renameDiff = standardForm.diff(finalized)
-            if (renameDiff) {
-                mergeToEdit(renameDiff)
-            }
         }
     }
 }

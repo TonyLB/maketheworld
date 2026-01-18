@@ -33,6 +33,7 @@ import ExampleEditor from './ExampleEditor'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import { StandardExplicitKey } from '@tonylb/mtw-wml/ts/standardize/explicit'
 import { excludeUndefined } from '../../../lib/lists'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { useUniversalKeyFromPath } from '../../../hooks/useUniversalKey'
@@ -145,14 +146,26 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     })
     const onKeyChange = useCallback((toKey: string) => {
         if (!universalKey) return
-        // Simplified rename - just update local key, no navigation changes needed
+        const component = standardForm.byUniversalId[universalKey]
+        if (!component) return
+        
+        const currentKey = component.key
+        if (currentKey === toKey) return  // No change needed
+        
         updateStandard({
-            type: 'renameKey',
-            uuid: universalKey,
-            to: toKey
+            type: 'update',
+            update: (draft: StandardForm) => {
+                const componentToUpdate = draft.byUniversalId[universalKey]
+                if (componentToUpdate) {
+                    // Set _key to simple Plain StandardExplicitKey with new value
+                    // diff() will automatically generate Replace operation when comparing
+                    // the old Plain key (from base) with this new Plain key
+                    componentToUpdate._key = new StandardExplicitKey(toKey)
+                }
+                return draft
+            }
         })
-        // No navigation needed - URL stays the same!
-    }, [updateStandard, universalKey])
+    }, [updateStandard, universalKey, standardForm])
     const nameValidate = useCallback((toKey: string) => {
         if (!universalKey) return false
         const component = standardForm.byUniversalId[universalKey]
