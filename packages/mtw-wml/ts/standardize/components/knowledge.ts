@@ -142,7 +142,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
 
     invert(): this {
         const returnValue = new StandardKnowledgePayload()
-        // Invert shortName if it exists (StandardLiteral has invert() from v2StandardEditableFactory)
+        // Invert shortName if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
         // Invert examples ReferenceList
         returnValue._examples = this._examples.invert()

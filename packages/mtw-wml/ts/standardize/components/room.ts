@@ -196,7 +196,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     invert(): this {
         const returnValue = new StandardRoomPayload()
-        // Invert shortName if it exists (StandardLiteral has invert() from v2StandardEditableFactory)
+        // Invert shortName if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
         // Invert exits using ExitFacetList.invert()
         returnValue._exits = this._exits.invert()

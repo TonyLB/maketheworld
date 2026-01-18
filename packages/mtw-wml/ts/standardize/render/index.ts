@@ -10,7 +10,7 @@ import { deepEqual } from "../../lib/objects"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
 import { isRenderTreeNode, isSimpleRenderTree, RenderTree, RenderTreeNode, renderTreeToSchema, renderTreeToString, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
-import { v2StandardEditableFactory, StandardEditablePayload } from "../../generics/editable"
+import { standardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import StandardReference from "../keys/reference"
 import { ReferenceFormat } from "../components/utils/references"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
@@ -322,7 +322,7 @@ export const {
     RemoveClass, 
     ReplaceClass, 
     dataTypeguard: isStandardRenderData 
-} = v2StandardEditableFactory({
+} = standardEditableFactory({
     typeguard: isSimpleRenderTree,
     payloadFactory: payloadFactory,
     payload: StandardRenderSimpleBase,

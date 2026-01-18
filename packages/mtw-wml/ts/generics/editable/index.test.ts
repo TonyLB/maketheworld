@@ -1,4 +1,4 @@
-import { StandardEditablePayload, StandardEditableFactoryProps, v2StandardEditableFactory } from './index'
+import { StandardEditablePayload, StandardEditableFactoryProps, standardEditableFactory } from './index'
 import { MergeConflictError } from '@tonylb/mtw-base/ts/standardize'
 import { GenericTree, treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
@@ -90,8 +90,8 @@ const factoryProps: StandardEditableFactoryProps<TestData, testClass> = {
     }
 }
 
-describe('v2StandardEditableFactory', () => {
-    const { EditableClass, PlainClass, RemoveClass, ReplaceClass, dataTypeguard } = v2StandardEditableFactory(factoryProps, 'StandardTest');
+describe('standardEditableFactory', () => {
+    const { EditableClass, PlainClass, RemoveClass, ReplaceClass, dataTypeguard } = standardEditableFactory(factoryProps, 'StandardTest');
 
     describe('dataTypeguard', () => {
         it('should accept plain data that matches the base typeguard', () => {
@@ -166,7 +166,7 @@ describe('v2StandardEditableFactory', () => {
         });
     });
 
-         // NOTE: Robust testing approach - these tests verify that:
+     // NOTE: Robust testing approach - these tests verify that:
      // 1. The correct class types are instantiated (instanceof checks)
      // 2. The data round-trips correctly through create() and toJSON()
      // 3. The _delta getter works correctly with fromDelta()
@@ -174,7 +174,7 @@ describe('v2StandardEditableFactory', () => {
      // This unified approach tests both the creation logic AND the serialization logic
      // simultaneously, providing comprehensive coverage without separate test sections.
      //
-     // The v2StandardEditableFactory classes now implement:
+     // The standardEditableFactory classes now implement:
      // ✅ create() factory method for various input types
      // ✅ toJSON() methods on all generated classes
      // ✅ _delta getter for extracting deltas
