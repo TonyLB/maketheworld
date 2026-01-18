@@ -233,9 +233,106 @@ Several unit tests have been disabled pending this refactor. These tests are mar
   - `MapDThreeStack` describe block
   - Issue: Schema initialization problems with WML converter map
 
-#### Planned Refactoring Areas
+#### Architectural Vision: From Map to Area
 
-- [To be fleshed out in future planning session]
+The current `<Map>` component suffers from a fundamental architectural mismatch: it conflates the **visual representation** (a map) with the **underlying semantic meaning** (spatial and thematic organization). This has led to several knock-on problems:
+
+- **Exits on Rooms**: Navigation relationships are stored as properties of Rooms themselves, as if spatial organization is inherent to the place rather than a contextual relationship
+- **Limited Organizational Concepts**: Features like sub-maps or hierarchical spatial organization don't align cleanly with the current metaphor
+- **Tight Coupling**: Visual representation is tightly bound to data structure, limiting flexibility
+
+**Proposed Solution: "Area" as First-Class Object**
+
+The refactor centers on introducing **Area** as a first-class organizational concept:
+
+1. **Room-to-Area Relationships**: Rooms are assigned to one or more Areas via references (with optional facets for additional metadata)
+
+2. **Area-Level Navigation**: Exits and navigation relationships are stored at the **Area level**, not on individual Rooms. This means:
+   - Room rendering requires consulting the current state of its containing Areas
+   - Navigation is contextual to spatial organization, not inherent to the room
+
+3. **Hierarchical Organization**: Areas provide hierarchical representation of thematic and geographic proximity, enabling:
+   - Sub-areas within larger areas
+   - Interaction with the Lens and Mark system (e.g., marketplace-level "Crowd Sentiment" Mark affecting all Rooms within that Area)
+
+4. **Maps as Rendering**: Maps become a **render step** on underlying Area data, using a multi-stage pipeline:
+   - D3.js network graph processing
+   - Room icon image handling
+   - Weighted Voronoi assembly of icon sub-images into intermediate representation
+   - Final coherence and assembly via image-modal generative AI
+
+5. **Enhanced Editing Tools**: The graphical editing interface will support working with intermediate representations that inform the final render, allowing editors to influence the rendering process at multiple stages
+
+#### Refactoring Roadmap
+
+**Phase 1: Core Area Concept**
+- [ ] Define Area component structure in WML
+- [ ] Migrate Room-to-Area relationship storage
+- [ ] Update StandardForm to handle Area references
+
+**Phase 2: Navigation Migration - From Exits to Directions**
+
+The current exit-based navigation system is too rigid for narrative infill and asset inheritance. A room either has an exit or it doesn't, making it difficult to add intermediate locations between two connected places.
+
+**Problem with Current System:**
+- Direct exits force a choice: either a single long-distance exit (Seaward Gate → Silky Harbor) or many poorly-described intermediate rooms
+- Asset inheritance makes this worse: two creators adding different intermediate stops (Elven Temple, Caravanserai) creates conflict
+- Navigation is baked into the blueprint rather than emerging from it
+
+**Proposed Solution: Direction-Based Navigation**
+
+Replace direct `Exit` relationships with declarative `Direction` relationships that get resolved into navigable exits at render time:
+
+- **Direction Declarations**: Instead of "Room A has Exit to Room B", use "Room A has Direction: south leads toward Silky Harbor"
+- **Between Relationships**: Rooms can declare they are "Between Location X and Location Y"
+- **Render-Time Resolution**: When rendering an Area, the system:
+  1. Identifies all Direction declarations
+  2. Finds all "Between" relationships that match those directions
+  3. Builds a network graph connecting origins → intermediates → destinations
+  4. Generates navigable exits based on what's actually present in the current asset set
+
+**Example Scenario:**
+```
+Asset A (original):
+  - Seaward Gate: Direction[south] → "toward Silky Harbor"
+  - Silky Harbor: Direction[north] → "toward Capital City"
+
+Asset B (infill):
+  - Elven Temple: Between[Seaward Gate, Silky Harbor]
+
+Asset C (infill):
+  - Caravanserai: Between[Seaward Gate, Silky Harbor]
+
+Render A only: Seaward Gate → Silky Harbor (direct exit)
+Render A+B: Seaward Gate → Elven Temple → Silky Harbor
+Render A+C: Seaward Gate → Caravanserai → Silky Harbor
+Render A+B+C: Seaward Gate → [Elven Temple, Caravanserai] → Silky Harbor
+  (system arranges intermediates based on other constraints)
+```
+
+**Migration Tasks:**
+- [ ] Define Direction component structure (replacing Exit on Rooms)
+- [ ] Implement Between relationship storage on Area level
+- [ ] Build render-time navigation graph resolver
+- [ ] Update Room rendering to use resolved exits from containing Areas
+- [ ] Add validation for Between relationships against Direction declarations
+- [ ] Migrate existing Exit data to Direction/Between equivalents
+
+**Phase 3: Hierarchical Areas**
+- [ ] Implement Area nesting and containment
+- [ ] Integrate with Lens and Mark systems
+- [ ] Update conflict resolution for multi-Area scenarios
+
+**Phase 4: Map Rendering Pipeline**
+- [ ] Design intermediate representation format
+- [ ] Implement D3 network graph stage
+- [ ] Build icon assembly and Voronoi processing
+- [ ] Integrate generative AI coherence step
+
+**Phase 5: Editing Interface**
+- [ ] Refactor editing tools for Area-focused workflow
+- [ ] Support intermediate representation editing
+- [ ] Update visualization to reflect Area hierarchy
 
 #### Re-enabling Tests
 
