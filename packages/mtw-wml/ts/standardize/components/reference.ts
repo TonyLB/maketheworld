@@ -2,7 +2,15 @@
 export { StandardKey, keySortOrder } from "../keys/key";
 
 // Re-export StandardReference and related exports for backward compatibility
-export { StandardReference, LookupMappings, standardReferenceDeserialize, standardReferenceSerialize, referenceSortOrder, MapByKey } from "../keys/reference";
+export {
+    StandardReference,
+    standardReferenceDeserialize,
+    standardReferenceSerialize,
+    referenceSortOrder,
+    MapByKey,
+} from "../keys/reference";
+
+export type { LookupMappings } from "../keys/reference";
 export { default } from "../keys/reference";
 
 // Re-export ReferenceList for backward compatibility

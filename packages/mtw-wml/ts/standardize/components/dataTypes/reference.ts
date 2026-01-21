@@ -4,10 +4,13 @@
  * 
  * @deprecated Import from keys/dataTypes/reference.ts instead
  */
-export {
+export type {
     StandardKeyData,
     StandardReferenceData,
     ReferenceListData,
+} from '../../keys/dataTypes/reference'
+
+export {
     isStandardKeyData,
     isStandardReferenceData
 } from '../../keys/dataTypes/reference'
