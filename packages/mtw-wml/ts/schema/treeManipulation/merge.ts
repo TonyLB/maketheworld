@@ -12,7 +12,8 @@ export const mergeSchemaTrees = (...args: GenericTree<SchemaTag>[]): GenericTree
         extractProperties: (value: SchemaTag) => {
             return value
         },
-        rehydrateProperties: (base, properties) => (Object.assign(base, ...properties) as SchemaTag)
+        rehydrateProperties: (base: SchemaTag, properties: SchemaTag[]) =>
+            (Object.assign(base, ...properties) as SchemaTag)
     }
     const mergedTree = mergeTrees(options)(...args)
     return mergedTree

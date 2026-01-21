@@ -29,11 +29,20 @@ export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFa
     const typeGuard = (value: any): value is SchemaLiteralTag<D> => (
         checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag } })(value)
     )
-    const tagRenderLiteral = ({ tag, options }: { tag: { data: any, children: any }, options: { indent: number } }): PrintMapResult[] => {
+    const tagRenderLiteral = (
+        { tag, options }: {
+            tag: { data: unknown; children: Array<{ data: unknown }> };
+            options: { indent: number };
+        }
+    ): PrintMapResult[] => {
         if (!typeGuard(tag.data)) {
             return [{ printMode: PrintMode.naive, output: '' }]
         }
-        const textValue = tag.children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('') as string
+        const textValue = tag.children
+            .map(({ data }) => data)
+            .filter(isSchemaString)
+            .map(({ value }) => value)
+            .join('') as string
         const naive = `<${tag.data.tag}>${textValue}</${tag.data.tag}>`
         if (naive.length + Math.min(10, options.indent * 4) > 80) {
             const prettyPrintedLines = textValue.split('\n').join(' ').split(' ').reduce<string[]>((previous, word) => {
