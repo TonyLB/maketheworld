@@ -11,11 +11,9 @@ import { grey } from '@mui/material/colors'
 import RoomIcon from '@mui/icons-material/Home'
 import AddIcon from '@mui/icons-material/Add'
 import { selectKeysByTag } from "@tonylb/mtw-wml/ts/schema/selectors/keysByTag"
-import { schemaOutputToString } from "@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString"
 import { useDispatch } from "react-redux"
 import { addOnboardingComplete } from "../../../../slices/player/index.api"
 import TutorialPopover from "../../../Onboarding/TutorialPopover"
-import { ignoreWrapped } from "@tonylb/mtw-wml/ts/schema/utils"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 
 type UnshownRoomsProps = {
@@ -33,7 +31,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
     const nameFromKey = useCallback((key: string): string => {
         const component = standardForm.byId[key]
         if (component && component instanceof StandardRoom) {
-            return schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || 'Untitled'
+            return component.shortName?._payload.plain?.toJSON() || 'Untitled'
         }
         return 'Untitled'
     }, [standardForm])

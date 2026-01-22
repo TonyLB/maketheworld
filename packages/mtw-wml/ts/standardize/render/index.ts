@@ -390,6 +390,11 @@ export class StandardRender {
         throw new Error('Invalid argument to StandardRender constructor')
     }
 
+    get plain(): RenderTree | undefined {
+        const plainPayload = this._payload.plain
+        return plainPayload?.toJSON()
+    }
+
     get plainString() {
         if (this._payload instanceof PlainClass) {
             const plain = this._payload.plain
