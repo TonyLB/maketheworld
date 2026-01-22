@@ -27,7 +27,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         label: `${mapId}`,
         type: 'MapEdit',
         iconName: 'MapEdit',
-        mapId: `MAP#${mapId}`,
+        mapId: `MAP#${mapId}` as `MAP#${string}`,
         cascadingClose: true
     })
     useOnboardingCheckpoint('editMap', { requireSequence: true })
@@ -45,7 +45,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const mapImages = useMemo<string[]>(() => (mapComponent ? mapComponent.images.map(({ data }) => (isSchemaImage(data) ? [data.key] : [])).flat(1) : []), [mapComponent])
     const mapAreaRef = useRef<HTMLDivElement>(null)
 
-    return <MapController mapId={mapId ?? ''} >
+    return <MapController mapId={(mapId ?? '') as `MAP#${string}`} >
         <MapGridContainer>
             <MapContentArea ref={mapAreaRef} >
                 <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
@@ -57,7 +57,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 />
             </MapContentArea>
             <MapSidebarArea>
-                <MapLayers mapId={mapId ?? ''} />
+                <MapLayers mapId={(mapId ?? '') as `MAP#${string}`} />
             </MapSidebarArea>
         </MapGridContainer>
         <TutorialPopover

@@ -25,7 +25,7 @@ export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, x, y
                 case 'Move':
                     mapDispatch({
                         type: 'SetNode',
-                        roomId,
+                        roomId: roomId as `ROOM#${string}`,
                         x: destX,
                         y: destY
                     })
@@ -34,7 +34,7 @@ export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, x, y
                 case 'TwoWayExit':
                     mapDispatch({
                         type: 'DragExit',
-                        sourceRoomId: roomId,
+                        sourceRoomId: roomId as `ROOM#${string}`,
                         x: destX,
                         y: destY,
                         double: toolSelected === 'TwoWayExit'

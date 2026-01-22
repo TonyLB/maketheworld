@@ -119,7 +119,7 @@ type MapContextItemSelectedLayer = {
 
 type MapContextItemSelectedUnshown = {
     type: 'UnshownRoom';
-    key: string;
+    key: `ROOM#${string}`;
 }
 
 type MapContextItemSelectedUnshownAdd = {
