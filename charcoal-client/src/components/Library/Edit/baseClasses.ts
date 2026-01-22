@@ -1,6 +1,3 @@
-import { GenericTreeNodeFiltered } from '@tonylb/mtw-base/ts/genericTree';
-import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
-import { SchemaConditionTag } from '@tonylb/mtw-base/ts/schema/condition';
 import { BaseEditor, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 
@@ -48,15 +45,6 @@ export type EmptyText = {
     text: string;
 }
 
-export type CustomIfWrapper = {
-    type: 'ifWrapper';
-    children: EmptyText[];
-    subTree: GenericTreeNodeFiltered<SchemaConditionTag, SchemaTag>;
-    position: number;
-}
-
-
-
 export type CustomExitBlock = {
     type: 'exit';
     key: string;
@@ -65,7 +53,7 @@ export type CustomExitBlock = {
     children: CustomText[];
 }
 
-export type CustomParagraphContents = CustomText | EmptyText | CustomFeatureLinkElement | CustomKnowledgeLinkElement | CustomLineBreak | CustomReplaceBlock | CustomIfWrapper
+export type CustomParagraphContents = CustomText | EmptyText | CustomFeatureLinkElement | CustomKnowledgeLinkElement | CustomLineBreak | CustomReplaceBlock
 
 export const isCustomLineBreak = (item: CustomParagraphContents): item is CustomLineBreak => ('type' in item && item.type === 'lineBreak')
 
@@ -76,7 +64,6 @@ export const isCustomText = (item: CustomParagraphContents): item is CustomText 
 export const isCustomReplaceBlock = (item: CustomParagraphContents): item is CustomReplaceBlock => ('type' in item && item.type === 'replace')
 export const isCustomParagraph = (item: CustomElement): item is CustomParagraphElement => ('type' in item && item.type === 'paragraph')
 export const isCustomInherited = (item: CustomElement): item is CustomInheritedReadOnlyElement => ('type' in item && item.type === 'inherited')
-export const isCustomIfWrapper = (item: CustomBlock | CustomParagraphContents): item is CustomIfWrapper => ('type' in item && item.type === 'ifWrapper')
 // export const isCustomIfBlock = (item: CustomBlock | CustomParagraphContents): item is CustomIfBlock => ('type' in item && item.type === 'ifBase')
 // export const isCustomElseIfBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseIfBlock => ('type' in item && item.type === 'elseif')
 // export const isCustomElseBlock = (item: CustomBlock | CustomParagraphContents): item is CustomElseBlock => ('type' in item && item.type === 'else')
@@ -94,14 +81,12 @@ type CustomElement = CustomLineElement |
     CustomLinkElement |
     CustomParagraphElement |
     CustomInheritedReadOnlyElement |
-    CustomReplaceBlock |
-    CustomIfWrapper
+    CustomReplaceBlock
 
 export type CustomBlock = CustomParagraphElement |
-    CustomInheritedReadOnlyElement |
-    CustomIfWrapper
+    CustomInheritedReadOnlyElement
 
-export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'inherited', 'replace', 'exit', 'ifWrapper'].includes(item.type))
+export const isCustomBlock = (item: CustomElement | CustomText | CustomLineBreak): item is CustomBlock => ('type' in item && ['paragraph', 'inherited', 'replace', 'exit'].includes(item.type))
 
 declare module 'slate' {
     interface CustomTypes {

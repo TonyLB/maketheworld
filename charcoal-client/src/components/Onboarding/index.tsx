@@ -86,7 +86,7 @@ const DenseOnboardingProgressList: FunctionComponent<DenseOnboardingProgressList
     </List>
 }
 
-const AlwaysShowOnboarding: FunctionComponent<{}> = () => {
+export const AlwaysShowOnboarding: FunctionComponent<{}> = () => {
     const { AlwaysShowOnboarding } = useSelector(getClientSettings)
     const dispatch = useDispatch()
     const onAlwaysShowOnboardingChange = useCallback((value: boolean) => {
