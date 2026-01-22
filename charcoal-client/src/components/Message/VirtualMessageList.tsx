@@ -33,9 +33,9 @@ export const VirtualMessageList = () => {
                 >
                     {children}
                 </List>
-            ))
+            )) as any
 
-        }
+        } as any
     }, [])
 
     const itemContent = useCallback((index: number) => (
@@ -70,7 +70,9 @@ export const VirtualMessageList = () => {
             overscan={{ main: 500, reverse: 500 }}
             itemContent={itemContent}
             followOutput={true}
-            ref={virtuoso}
+            ref={virtuoso as any}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
         />
     )
 }

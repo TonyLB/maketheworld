@@ -20,7 +20,7 @@ export const RoomExit = ({ exit }: RoomExitProps) => {
         return <Chip label="Unknown Exit" icon={<ExitIcon />} />
     }
     const exitName = exit.payload.toJSON() ?? 'Unknown Exit'
-    const targetRoomId = exit.reference.universalKey || exit.reference.standardKey.universalKey || exit.reference.standardKey.toJSON()?.universalKey || ''
+    const targetRoomId = exit.reference.universalKey ?? ''
 
     const { CharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
