@@ -5,7 +5,7 @@ import useTreeStyles from '../useTreeStyles'
 export const HorizontalLine = ({}) => {
     const localClasses = useTreeStyles()
     return <div
-        className={localClasses.HorizontalLine}
+        style={localClasses.HorizontalLine as React.CSSProperties}
     />
 }
 

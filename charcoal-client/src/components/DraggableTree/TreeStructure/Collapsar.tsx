@@ -6,12 +6,12 @@ import Dash from '../Dash.svg'
 export const Collapsar = ({ left, open, onClick }: { left: number, open: boolean, onClick: any }) => {
     const localClasses = useTreeStyles()
     return <div
-        className={localClasses.Collapsar}
-        onClick={onClick}
         style={{
+            ...localClasses.Collapsar,
             left,
             backgroundImage: open ? `url(${Dash})` : `url(${Plus})`
-        }}
+        } as React.CSSProperties}
+        onClick={onClick}
     />
 }
 
