@@ -1,4 +1,4 @@
-import React, { ReactChildren, ReactChild, FunctionComponent } from 'react'
+import React, { ReactNode, FunctionComponent } from 'react'
 
 import {
     Box,
@@ -16,13 +16,13 @@ import CharacterAvatar from '../CharacterAvatar'
 interface OOCMessageProps {
     message: OutOfCharacterMessage;
     variant: 'left' | 'right';
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
 }
 
 interface OOCBubbleProps {
     variant: 'left' | 'right';
     tailOffset?: string;
-    children?: ReactChild | ReactChild[] | ReactChildren;
+    children?: ReactNode;
 }
 
 export const OOCBubble: FunctionComponent<OOCBubbleProps> = ({ variant, tailOffset = '16px', children }) => {

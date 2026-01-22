@@ -1,4 +1,4 @@
-import React, { ReactChildren, ReactChild, FunctionComponent } from 'react'
+import React, { ReactNode, FunctionComponent } from 'react'
 
 import {
     Box,
@@ -16,13 +16,13 @@ import CharacterAvatar from '../CharacterAvatar'
 interface SayMessageProps {
     message: CharacterSpeech;
     variant: 'left' | 'right';
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
 }
 
 interface SpeechBubbleProps {
     variant: 'left' | 'right';
     tailOffset?: string;
-    children?: ReactChild | ReactChild[] | ReactChildren;
+    children?: ReactNode;
 }
 
 export const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, tailOffset = '16px', children }) => {

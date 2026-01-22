@@ -1,4 +1,4 @@
-import React, { ReactChild, ReactChildren } from 'react'
+import React, { ReactNode } from 'react'
 import { keyframes } from '@mui/material/styles'
 
 const load8 = keyframes`
@@ -13,7 +13,7 @@ const load8 = keyframes`
 interface SpinnerProps {
     size: number;
     border: number;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
 }
 
 export const Spinner = ({

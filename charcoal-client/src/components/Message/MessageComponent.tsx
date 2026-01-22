@@ -1,4 +1,4 @@
-import React, { ReactChildren, ReactChild, ReactElement, FunctionComponent } from 'react'
+import React, { ReactNode, ReactElement, FunctionComponent } from 'react'
 import { SxProps } from '@mui/system'
 import { Theme } from '@mui/material'
 
@@ -13,7 +13,7 @@ interface MessageComponentProps {
     rightGutter?: Number;
     toolActions?: ReactElement;
     sx?: SxProps<Theme>;
-    children?: ReactChild | ReactChild[] | ReactChildren;
+    children?: ReactNode;
 }
 
 export const MessageComponent: FunctionComponent<MessageComponentProps> = ({
