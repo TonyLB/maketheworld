@@ -10,12 +10,12 @@ import {
 } from "../baseClasses"
 import { Descendant } from "slate"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
+import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/render"
 
 export const descendantsToRender = (standard: StandardForm) => (items: Descendant[]): StandardRender => {
     const returnValue = items.filter((value): value is CustomReplaceBlock | CustomBlock => ((isCustomParagraphContents(value) && isCustomReplaceBlock(value)) || isCustomBlock(value))).reduce<StandardRender>((previous, item) => {
         if (isCustomParagraph(item)) {
-            return item.children
+            const paragraphResult = item.children
                 .filter((item) => (!(isCustomText(item) && !item.text)))
                 .reduce<StandardRender>((accumulator, item) => {
                     if (isCustomLink(item)) {
@@ -23,13 +23,19 @@ export const descendantsToRender = (standard: StandardForm) => (items: Descendan
                             .filter((child) => ('text' in child))
                             .map(({ text }) => (text))
                             .join('')
-                        return accumulator.merge(new StandardRender([{ data: { tag: 'Link', to: item.to, text }, children: [] }]))
+                        const merged = accumulator.merge(new StandardRender([{ data: { tag: 'Link', to: item.to, text }, children: [] }]))
+                        return merged ?? accumulator
                     }
                     if ('text' in item) {
-                        return accumulator.merge(new StandardRender([item.text]))
+                        const merged = accumulator.merge(new StandardRender([item.text]))
+                        return merged ?? accumulator
                     }
                     return accumulator
-                }, previous.toJSON().length ? previous.merge(new StandardRender([{ data: { tag: 'br' }, children: [] }])) : previous)
+                }, (() => {
+                    const merged = previous.merge(new StandardRender([{ data: { tag: 'br' }, children: [] }]))
+                    return (previous.plain?.length ?? 0) > 0 ? (merged ?? previous) : previous
+                })())
+            return paragraphResult
         }
         return previous
     }, new StandardRender([]))

@@ -74,7 +74,7 @@ export const LensSelectorDialog: FunctionComponent<LensSelectorDialogProps> = ({
                     shortName: shortNameStr
                 }
             })
-            .filter(({ universalKey }) => excludeUndefined([universalKey]).length > 0)
+            .filter(({ universalKey }) => universalKey !== undefined)
     }, [standardForm])
 
     const handleCreateNew = () => {

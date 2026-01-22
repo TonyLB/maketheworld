@@ -89,27 +89,39 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
     const localizeExample = useCallback(() => {
         console.log(`localStandardForm[${componentId}]: ${JSON.stringify(localStandardForm.toJSON(), null, 4)}`)
         if (!(componentId in localStandardForm.byUniversalId)) {
-            const parentId = standardForm.byUniversalId[componentId]?._key?.context?.slice(-1)?.[0]
+            // Find parent components that reference this example
+            const parentIds: string[] = []
+            Object.values(standardForm.byId).forEach((component) => {
+                if (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge) {
+                    const hasExample = component.examples.payload.some((ref) => 
+                        ref instanceof StandardReference && ref.universalKey === componentId
+                    )
+                    if (hasExample && component.universalKey) {
+                        parentIds.push(component.universalKey)
+                    }
+                }
+            })
             updateStandard({
                 type: 'updateLocal',
                 update: (draft) => {
-                    if (parentId) {
-                        const parent = draft._lookup(parentId)
+                    // Add the example component
+                    draft._components = [...draft._components, new StandardExample(componentId)]
+                    // Add references to parent components that have this example
+                    parentIds.forEach((parentId) => {
+                        const parent = draft.byUniversalId[parentId as ComponentUUID]
                         if (parent instanceof StandardRoom || parent instanceof StandardFeature || parent instanceof StandardKnowledge) {
-                            draft._components = [...draft._components, new StandardExample(componentId).withLeastCommonContext([parentId])]
-                            parent._payload._examples.push(new StandardReference({ universalKey: componentId }))
+                            parent._payload._examples = parent._payload._examples.assureItem(new StandardReference({ universalKey: componentId }))
                             console.log(`Example references: ${JSON.stringify(parent._payload._examples, null, 4)}`)
                         }
-                    }
-                    else {
-                        draft._components = [...draft._components, new StandardExample(componentId)]
+                    })
+                    if (parentIds.length === 0) {
                         console.log(`Example without parent: ${JSON.stringify(draft._components, null, 4)}`)
                     }
                     return draft
                 }
             })
         }
-    }, [componentId, localStandardForm, updateStandard])
+    }, [componentId, localStandardForm, standardForm, updateStandard])
     return <SidebarTitledBox title="Example" sidebarTitle="Inherited" sidebar={inherited} minHeight="5em">
         <Box sx={{
             display: 'flex',

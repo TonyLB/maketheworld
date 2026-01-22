@@ -161,8 +161,8 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
 
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const { editor, value: slateValue, setValue } = useStandardRenderEditorHook(standard, value, onChange)
-    const renderElement = useCallback(props => <Element {...props} />, [])
-    const renderLeaf = useCallback(props => <Leaf {...props} />, [])
+    const renderElement = useCallback((props: any) => <Element {...props} />, [])
+    const renderLeaf = useCallback((props: any) => <Leaf {...props} />, [])
     const ref = useRef<HTMLDivElement>(null)
 
     const decorate = useCallback(decorateFactory(editor), [editor])

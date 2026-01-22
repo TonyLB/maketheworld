@@ -49,13 +49,13 @@ const LiteralShortNameField: FunctionComponent<{ character: StandardCharacter }>
     const { updateStandard } = useLibraryAsset()
 
     const [currentNameValue, setCurrentNameValue] = useState(() => {
-        return character.shortName?._payload.plain.toJSON() || ''
+        return character.shortName?._payload?.plain?.toJSON() ?? ''
     })
 
     const debouncedTagValue = useDebounce(currentNameValue, 500)
 
     useEffect(() => {
-        if ((character.shortName?._payload.plain.toJSON() || '') !== debouncedTagValue) {
+        if ((character.shortName?._payload?.plain?.toJSON() ?? '') !== debouncedTagValue) {
             updateStandard({
                 type: 'update',
                 update: (incoming: StandardForm) => {
@@ -87,7 +87,9 @@ interface ImageHeaderProps {
 const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name }) => {
     const { standardForm } = useLibraryAsset()
     const { dragActive, openUpload } = useFileWrapper()
-    const iconURL = useLibraryImageURL(`${standardForm.key}Icon`)
+    const character = standardForm.byUniversalId[ItemId]
+    const characterKey = (character instanceof StandardCharacter && character.key) ? character.key : ''
+    const iconURL = useLibraryImageURL(`${characterKey}Icon`)
 
     return <Box sx={dragActive
         ? {
@@ -202,7 +204,11 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     fileTypes={['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/tiff']}
                     onFile={onDrop}
                 >
-                    <EditCharacterIcon ItemId={(universalKey || `CHARACTER#${character?.key || '123'}`) as `CHARACTER#${string}`} Name={schemaOutputToString(character?.name?.plain ?? []) ?? ''} />
+                    <EditCharacterIcon ItemId={(universalKey || `CHARACTER#${character?.key || '123'}`) as `CHARACTER#${string}`} Name={(() => {
+                        if (!character?.name) return ''
+                        const nameNode = character.name as any
+                        return schemaOutputToString(nameNode.children || [])
+                    })()} />
                 </FileWrapper>
                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
                     <LiteralShortNameField character={character} />

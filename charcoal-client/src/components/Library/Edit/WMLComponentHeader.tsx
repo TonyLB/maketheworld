@@ -27,13 +27,13 @@ const WMLComponentName: FunctionComponent<{ itemId: ComponentUUID }> = ({ itemId
     }
     if (hasShortName(component)) {
         return <React.Fragment>
-            { component.shortName?._payload?.plain.toJSON() || 'Untitled' }
+            { component.shortName?._payload?.plain?.toJSON() ?? 'Untitled' }
             { Boolean(inheritedStandardForm.byUniversalId[itemId]) ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }
     else if (hasName(component)) {  
         return <React.Fragment>
-            { schemaOutputToString(component.name?.plain ?? []) || 'Untitled' }
+            { component.name ? schemaOutputToString(component.name.children as any) : 'Untitled' }
             { Boolean(inheritedStandardForm.byUniversalId[itemId]) ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }

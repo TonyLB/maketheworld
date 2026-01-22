@@ -27,7 +27,7 @@ export const CodeEditor: FunctionComponent<CodeEditorProps> = ({ source, onChang
     const onChangeHandler = useCallback((nodes: Descendant[]) => {
         onChange(slateToString(nodes))
     }, [onChange])
-    const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
+    const renderLeaf = useCallback((props: any) => (<Leaf { ...props } />), [])
     return <Slate editor={editor} value={value} onChange={onChangeHandler}>
         <Editable
             renderLeaf={renderLeaf}

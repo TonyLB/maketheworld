@@ -17,7 +17,7 @@ import StandardMark, { StandardLens } from "@tonylb/mtw-wml/ts/standardize/compo
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
-import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
+import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/render"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import StandardLiteralEditor from "../StandardLiteralEditor"
 import StandardRenderEditor from "../StandardRenderEditor"
@@ -72,8 +72,11 @@ const MarkListItem: FunctionComponent<{
     }, [mark.shortName])
 
     const descriptionText = useMemo(() => {
-        const descriptionTree = mark.description?.toJSON() || []
-        return renderTreeToPlainText(descriptionTree)
+        const plain = mark.description?.plain ?? []
+        if (mark.description && mark.description._payload && !(mark.description._payload instanceof PlainClass)) {
+            console.error('Expected PlainClass but got', mark.description._payload.constructor.name, mark.description)
+        }
+        return renderTreeToPlainText(plain)
     }, [mark.description])
 
     return (
@@ -461,8 +464,11 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
 
                         const shortName = lens.shortName?._payload?.plain?.toJSON()
                         const shortNameStr = typeof shortName === 'string' ? shortName : 'Untitled Lens'
-                        const descriptionTree = lens.description?.toJSON() || []
-                        const descriptionText = renderTreeToPlainText(descriptionTree)
+                        const plain = lens.description?.plain ?? []
+                        if (lens.description && lens.description._payload && !(lens.description._payload instanceof PlainClass)) {
+                            console.error('Expected PlainClass but got', lens.description._payload.constructor.name, lens.description)
+                        }
+                        const descriptionText = renderTreeToPlainText(plain)
 
                         return (
                             <ListItem
