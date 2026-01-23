@@ -37,7 +37,7 @@ export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ onFile: onDro
         }
     }, [setDragActive, onDrop])
 
-    const handleChange = useCallback((event) => {
+    const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.currentTarget.files && fileTypes.includes(event.currentTarget.files[0]?.type)) {
             onDrop(event.currentTarget.files[0])
         }
