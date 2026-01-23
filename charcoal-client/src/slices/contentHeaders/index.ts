@@ -59,3 +59,5 @@ export const {
   processRawEvent
 } = contentHeadersActions
 
+// Export selectors
+export * from './selectors'
