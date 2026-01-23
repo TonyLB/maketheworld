@@ -52,6 +52,8 @@ import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
 import { RecentlyVisited } from './RecentlyVisited'
 import { LabelledIndentBox } from './LabelledIndentBox'
 import { blue } from '@mui/material/colors'
+import ImportComponentDialog from './ImportComponentDialog'
+import ImportExportIcon from '@mui/icons-material/ImportExport'
 import EditCharacter from './EditCharacter'
 import StandardLiteralEditor from './StandardLiteralEditor'
 import StandardRenderEditor from './StandardRenderEditor'
@@ -94,6 +96,9 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     // Similar pattern to ExampleEditor
     const [summary, setSummary] = useState(standardForm.summary ?? new StandardRender([]))
     const summaryRef = useRef(summary)
+    
+    // State for import dialog
+    const [importDialogOpen, setImportDialogOpen] = useState(false)
     
     // Update ref whenever summary changes
     useEffect(() => {
@@ -323,8 +328,21 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
                 <AddWMLComponent type="Knowledge" onAdd={addAsset('Knowledge')} />
                 <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
+                <Button
+                    onClick={() => setImportDialogOpen(true)}
+                    variant='contained'
+                    startIcon={<ImportExportIcon />}
+                    sx={{ margin: '0.5em' }}
+                >
+                    Import Component
+                </Button>
             </LabelledIndentBox>
         }
+        <ImportComponentDialog
+            open={importDialogOpen}
+            onClose={() => setImportDialogOpen(false)}
+            assetId={AssetId}
+        />
     </Box>
 }
 
