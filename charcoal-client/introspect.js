@@ -1,5 +1,7 @@
-const fs = require('fs')
-const { exec } = require('child_process')
+import { exec } from 'child_process'
+import { promisify } from 'util'
+
+const execAsync = promisify(exec)
 
 const args = process.argv.slice(2)
 
@@ -16,12 +18,10 @@ const argument = args[0]
 //
 const command = `aws cloudformation describe-stacks --output json --query "Stacks[0].Outputs" --stack-name ${argument} > public/config.json`
 
-exec(command, (error) => {
-    if (error) {
-        console.error(error)
-        process.exit(1)
-    }
-    // let content = fs.readFileSync('src/rawConfig.json', { encoding: 'utf16le' })
-    // fs.writeFileSync('src/config.json', content, { encoding: 'utf8' })
-})
+try {
+    await execAsync(command)
+} catch (error) {
+    console.error(error)
+    process.exit(1)
+}
 
