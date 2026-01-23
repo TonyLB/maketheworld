@@ -14,6 +14,9 @@ export default defineConfig(() => ({
             include: '**/*.svg',
         })
     ],
+    build: {
+        outDir: 'build'
+    },
     server: {    
         // this ensures that the browser opens upon server start
         open: true,
