@@ -23,7 +23,7 @@ import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import MiniChip from '../MiniChip'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { socketDispatchPromise } from '../../slices/lifeLine'
-import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
+import { StandardRender, PlainClass } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardExample } from '@tonylb/mtw-wml/ts/standardize/components/example'
@@ -154,9 +154,15 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
                     </Typography>
                     <Box sx={{ overflow: 'hidden' }}>
                         {
-                            description.toJSON().length
-                                ? <RenderTreeContent list={description.toJSON()} onClickLink={onClickLink} />
-                                : <em>No description</em>
+                            (() => {
+                                const plain = description.plain ?? []
+                                if (description && description._payload && !(description._payload instanceof PlainClass)) {
+                                    console.error('Expected PlainClass but got', description._payload.constructor.name, description)
+                                }
+                                return plain.length > 0
+                                    ? <RenderTreeContent list={plain} onClickLink={onClickLink} />
+                                    : <em>No description</em>
+                            })()
                         }
                     </Box>
                     <Divider />

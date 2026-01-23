@@ -8,7 +8,6 @@ import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader
 import { useLibraryAsset } from './LibraryAsset'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import MiniChip from '../../MiniChip'
-import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
 import { hasName, hasShortName } from '@tonylb/mtw-wml/ts/standardize'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
@@ -28,13 +27,13 @@ const WMLComponentName: FunctionComponent<{ itemId: ComponentUUID }> = ({ itemId
     }
     if (hasShortName(component)) {
         return <React.Fragment>
-            { component.shortName?._payload?.plain.toJSON() || 'Untitled' }
+            { component.shortName?._payload?.plain?.toJSON() ?? 'Untitled' }
             { Boolean(inheritedStandardForm.byUniversalId[itemId]) ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }
     else if (hasName(component)) {  
         return <React.Fragment>
-            { schemaOutputToString(ignoreWrapped(component.name)?.children ?? []) || 'Untitled' }
+            { component.name ? schemaOutputToString(component.name.children as any) : 'Untitled' }
             { Boolean(inheritedStandardForm.byUniversalId[itemId]) ? <MiniChip text="Imported" /> : null}
         </React.Fragment>
     }

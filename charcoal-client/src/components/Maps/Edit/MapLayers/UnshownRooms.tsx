@@ -10,30 +10,46 @@ import {
 import { grey } from '@mui/material/colors'
 import RoomIcon from '@mui/icons-material/Home'
 import AddIcon from '@mui/icons-material/Add'
-import { selectKeysByTag } from "@tonylb/mtw-wml/ts/schema/selectors/keysByTag"
-import { schemaOutputToString } from "@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString"
 import { useDispatch } from "react-redux"
 import { addOnboardingComplete } from "../../../../slices/player/index.api"
 import TutorialPopover from "../../../Onboarding/TutorialPopover"
-import { ignoreWrapped } from "@tonylb/mtw-wml/ts/schema/utils"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
+import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/components/map"
+import { excludeUndefined } from "../../../../lib/lists"
 
 type UnshownRoomsProps = {
 
 }
 
 export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
-    const { standardForm } = useLibraryAsset()
-    const { tree, UI: { itemSelected }, mapDispatch } = useMapContext()
+    const { standardForm, localStandardForm } = useLibraryAsset()
+    const { mapId, UI: { itemSelected }, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
-    const shownRooms = useMemo(() => (selectKeysByTag('Room')(tree)), [tree])
+    
+    // Get shown rooms from map positions (using localStandardForm to match edit mode)
+    const shownRooms = useMemo(() => {
+        const mapComponent = localStandardForm.byUniversalId[mapId]
+        if (!(mapComponent instanceof StandardMap)) {
+            return []
+        }
+        return mapComponent.positions.items
+            .map((facet) => facet.reference.universalKey)
+            .filter(excludeUndefined)
+            .map((roomId) => {
+                // Get the room key from the component
+                const roomComponent = localStandardForm.byUniversalId[roomId]
+                return roomComponent?.key
+            })
+            .filter(excludeUndefined)
+    }, [localStandardForm, mapId])
     const unshownRoomItems = Object.values(standardForm.byId)
         .filter((component): component is StandardRoom => (component instanceof StandardRoom))
-        .filter((room) => (!shownRooms.includes(room.key)))
-    const nameFromKey = useCallback((key: string): string => {
+        .filter((room) => (room.key && !shownRooms.includes(room.key)))
+    const nameFromKey = useCallback((key: string | undefined): string => {
+        if (!key) return 'Untitled'
         const component = standardForm.byId[key]
         if (component && component instanceof StandardRoom) {
-            return schemaOutputToString(ignoreWrapped(component.shortName)?.children ?? []) || 'Untitled'
+            return component.shortName?._payload.plain?.toJSON() || 'Untitled'
         }
         return 'Untitled'
     }, [standardForm])
@@ -48,8 +64,10 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
                         sx={{ width: '100%' }}
                         selected={itemSelected?.type === 'UnshownRoom' && itemSelected?.key === key}
                         onClick={() => { 
-                            mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoom', key }})
-                            mapDispatch({ type: 'SetToolSelected', value: 'AddRoom' })
+                            if (key) {
+                                mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoom', key: key as `ROOM#${string}` }})
+                                mapDispatch({ type: 'SetToolSelected', value: 'AddRoom' })
+                            }
                         }}
                     >
                         <ListItemAvatar>

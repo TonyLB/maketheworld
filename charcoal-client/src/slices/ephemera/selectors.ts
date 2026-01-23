@@ -20,20 +20,25 @@ export const getCharactersInPlay = (state: EphemeraPublic) => {
             direct: 'grey'
         }
     }
-    const handlerLookup = (obj: Record<string | symbol, EphemeraCharacterInPlay>, prop: string | symbol): EphemeraCharacterInPlay => (obj[prop] || {
-        CharacterId: prop as EphemeraCharacterId,
-        ...defaultValues,
-    })
+    const handlerLookup = (obj: Record<string | symbol, EphemeraCharacterInPlay>, prop: string | symbol): EphemeraCharacterInPlay => {
+        const key = typeof prop === 'string' ? prop : String(prop)
+        return obj[key] || {
+            CharacterId: prop as EphemeraCharacterId,
+            ...defaultValues,
+        }
+    }
     return new Proxy(charactersInPlay, {
-        get: handlerLookup,
+        get: (obj, prop) => handlerLookup(obj, prop),
         ownKeys: (charactersInPlay = {}) => {
             return Object.keys(charactersInPlay).sort()
         },
         getOwnPropertyDescriptor: (obj, prop) => {
+            const key = typeof prop === 'string' ? prop : String(prop)
             const value = handlerLookup(obj, prop)
+            const typedObj = obj as Record<string, EphemeraCharacterInPlay>
             return {
-                configurable: Object.getOwnPropertyDescriptor(obj, prop)?.configurable,
-                enumerable: Boolean(obj[prop]),
+                configurable: Object.getOwnPropertyDescriptor(typedObj, key)?.configurable,
+                enumerable: Boolean(typedObj[key]),
                 value
             }
         }

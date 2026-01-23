@@ -5,7 +5,7 @@
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { WritableDraft } from 'immer/dist/internal'
+import { Draft } from 'immer'
 
 import { RootState, Selector } from '../../../store'
 import { ParseCommandModes } from '../../lifeLine/baseClasses'
@@ -26,7 +26,7 @@ const lineEntryOrder: LineEntryMode[] = [
     'Command'
 ]
 
-const setCurrentModeHelper = (state: WritableDraft<LineEntry>, action: { characterId: EphemeraCharacterId, mode: ParseCommandModes | 'Options', name: string; }) => {
+const setCurrentModeHelper = (state: Draft<LineEntry>, action: { characterId: EphemeraCharacterId, mode: ParseCommandModes | 'Options', name: string; }) => {
     if (action.mode === 'NarrateMessage' && state[action.characterId].entry.trim() === '' && action.name) {
         state[action.characterId].entry = `${action.name} `
     }

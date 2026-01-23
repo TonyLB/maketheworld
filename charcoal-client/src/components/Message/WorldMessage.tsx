@@ -16,20 +16,6 @@ interface WorldMessageProps {
     children?: ReactChild | ReactChildren;
 }
 
-const intersperseBrs = (entryList: string[]): ReactFragment => (
-    (entryList.length > 1)
-        ? <React.Fragment>
-            { entryList.reduce((previous, entry, index) => ([
-                ...previous,
-                <React.Fragment key={index}>
-                    { entry }
-                    { (index < entryList.length - 1) && <br /> }
-                </React.Fragment>
-            ]), [] as ReactFragment[]) }
-        </React.Fragment>
-        : <React.Fragment>{ entryList[0] }</React.Fragment>
-)
-
 export const WorldMessage = ({ message, ...rest }: WorldMessageProps) => {
     //
     // TODO: Replace render here with the general utility function abstracted from RoomDescription

@@ -1,4 +1,4 @@
-import React, { DragEvent, FunctionComponent, ReactChild, ReactChildren, useCallback, useContext, useRef, useState } from 'react'
+import React, { DragEvent, FunctionComponent, ReactNode, useCallback, useContext, useRef, useState } from 'react'
 
 type FileWrapperContextType = {
     dragActive: boolean;
@@ -13,7 +13,7 @@ const FileWrapperContext = React.createContext<FileWrapperContextType>({
 type FileWrapperProps = {
     fileTypes: string[];
     onFile?: (file: File) => void;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
 }
 
 export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ onFile: onDrop= () => {}, fileTypes, children }) => {
@@ -37,7 +37,7 @@ export const FileWrapper: FunctionComponent<FileWrapperProps> = ({ onFile: onDro
         }
     }, [setDragActive, onDrop])
 
-    const handleChange = useCallback((event) => {
+    const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.currentTarget.files && fileTypes.includes(event.currentTarget.files[0]?.type)) {
             onDrop(event.currentTarget.files[0])
         }

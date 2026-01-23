@@ -20,6 +20,7 @@ import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
 import { StandardExplicitParent } from "../explicit"
+import { StandardFormSubsetRequest } from "../baseClasses"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
@@ -263,12 +264,12 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
-    subset({ requestType }): this {
+    subset({ requestType }: StandardFormSubsetRequest): this {
         if (requestType === 'Full') {
             return new StandardRoomPayload(this) as this
         }
         const returnValue = new StandardRoomPayload()
-        if (requestType === 'Short') {
+        if (requestType === 'ShortName') {
             returnValue._shortName = this._shortName ? new StandardLiteral(this._shortName) : undefined
         }
         return returnValue as this

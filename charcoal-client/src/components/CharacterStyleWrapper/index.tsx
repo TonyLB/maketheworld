@@ -1,4 +1,4 @@
-import React, { ReactChild, ReactChildren, FunctionComponent } from 'react'
+import React, { ReactNode, FunctionComponent } from 'react'
 import { useSelector } from 'react-redux'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import {
@@ -55,7 +55,7 @@ const characterThemes = (Object.entries({ blue, pink, purple, green, grey })).ma
 
 type CharacterColorWrapper = {
     color: LegalCharacterColor;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
 }
 
 export const CharacterColorWrapper: FunctionComponent<CharacterColorWrapper> = ({ color, children }) => (
@@ -67,7 +67,7 @@ export const CharacterColorWrapper: FunctionComponent<CharacterColorWrapper> = (
 type CharacterStyleWrapperProps = {
     CharacterId: EphemeraCharacterId;
     nested?: boolean;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
 }
 
 const OpenCharacterStyleWrapper: FunctionComponent<Omit<CharacterStyleWrapperProps, 'nested'>> = ({ CharacterId, children }) => {

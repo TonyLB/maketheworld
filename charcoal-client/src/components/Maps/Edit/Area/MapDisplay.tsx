@@ -12,11 +12,11 @@ import HighlightCircle from './HighlightCircle'
 import { getConfiguration } from '../../../../slices/configuration'
 import { useSelector } from 'react-redux'
 import { useMapContext } from '../../Controller'
-import { MapContextPosition, MapTreeExit } from '../../Controller/baseClasses'
+import { MapContextPosition, MapExit } from '../../Controller/baseClasses'
 import { DevEnvironment } from '../../../../environment'
 
 interface MapDisplayProps  {
-    exits: MapTreeExit[];
+    exits: MapExit[];
     fileURL?: string;
     onClick: React.MouseEventHandler<SVGElement>;
     decoratorCircles?: { x: number, y: number }[],

@@ -2,42 +2,21 @@ import React, { FunctionComponent, useCallback, useMemo } from 'react'
 
 import MapDisplay from './MapDisplay'
 import { useMapContext } from '../../Controller'
-import { MapTreeExit } from '../../Controller/baseClasses'
-import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
+import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
+import { extractExitsFromStandardForm } from '../../exitExtraction'
 import { useDispatch } from 'react-redux'
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
-import { SchemaExitTag, SchemaRoomTag } from '@tonylb/mtw-base/ts/schema/components'
-import { SchemaOutputTag } from '@tonylb/mtw-base/ts/schema'
 
 type MapAreaProps = {
     fileURL?: string;
     editMode?: boolean;
 }
 
-export const treeToExits = (tree: GenericTree<SchemaRoomTag | SchemaExitTag | SchemaOutputTag>): MapTreeExit[] => {
-    return tree.reduce<MapTreeExit[]>((
-        previous,
-        { data, children }
-    ) => {
-        const childResult = treeToExits(children)
-        switch(data.tag) {
-            case 'Exit':
-                return [
-                    ...previous,
-                    data,
-                    ...childResult
-                ]
-            default:
-                return [...previous, ...childResult]
-        }
-    }, [])
-}
-
 export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, editMode }) => {
-
-    const { UI: { toolSelected, exitDrag, itemSelected }, localPositions: rooms, tree, mapDispatch } = useMapContext()
+    const { standardForm } = useLibraryAsset()
+    const { UI: { toolSelected, exitDrag, itemSelected }, localPositions: rooms, mapId, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
-    const exits = useMemo(() => (treeToExits(tree)), [tree])
+    const exits = useMemo(() => (extractExitsFromStandardForm(standardForm, mapId)), [standardForm, mapId])
 
     const exitDragSourceRoom = useMemo(() => (exitDrag.sourceRoomId && rooms.find(({ roomId }) => (roomId === exitDrag.sourceRoomId))), [exitDrag, rooms])
     const decoratorCircles = useMemo(() => {
@@ -63,7 +42,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, editMode }) =
         if (itemSelected) {
             switch(itemSelected.type) {
                 case 'UnshownRoom':
-                    mapDispatch({ type: 'AddRoom', roomId: itemSelected.key, x: clientX, y: clientY })
+                    mapDispatch({ type: 'AddRoom', roomId: itemSelected.key as `ROOM#${string}`, x: clientX, y: clientY })
                     mapDispatch({ type: 'SelectItem' })
                     break
                 case 'UnshownRoomNew':

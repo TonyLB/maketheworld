@@ -6,7 +6,6 @@ import {
     CustomParagraphElement,
     CustomText,
     isCustomBlock,
-    isCustomIfWrapper,
     isCustomLineBreak
 } from "../baseClasses"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
@@ -88,24 +87,10 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
     let returnValue = [] as CustomBlock[]
     let accumulator = [] as CustomParagraphContents[]
     const translated = descendantsTranslate(render, options)
-    descendantsCompact(translated).forEach((item, index) => {
+    descendantsCompact(translated).forEach((item) => {
         if (isCustomBlock(item)) {
-            if (isCustomIfWrapper(item)) {
-                if (accumulator.length) {
-                    returnValue = [
-                        ...returnValue,
-                        { type: 'paragraph', children: accumulator }
-                    ]
-                    accumulator = []
-                }
-                returnValue = [
-                    ...returnValue,
-                    { ...item, type: 'ifWrapper', position: index, children: [{ text: '' }] }
-                ]
-            }
-            else {
-                return returnValue
-            }
+            // Block elements are not expected in paragraph contents - return what we have so far
+            return returnValue
         }
         else {
             if (isCustomLineBreak(item)) {

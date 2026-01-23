@@ -92,7 +92,7 @@ const IconDispatcher = ({ iconName = 'Forum', assetId }: { iconName: string; ass
 const IconWrapper = ({ iconName = 'Forum', href, closable=true, assetId }: { iconName: string; href: string; closable: boolean; assetId?: string }) => {
     const dispatch = useDispatch()
     const { selectedTab, navigate, pathname } = useNavigationContext()
-    const onClose = useCallback((event) => {
+    const onClose = useCallback((event: React.MouseEvent) => {
         event.stopPropagation()
         event.preventDefault()
         dispatch(closeTab({ href, pathname, callback: (value) => { navigate(value) } }))

@@ -1,5 +1,5 @@
 class Debounce {
-    _timeouts: Record<string, number> = {};
+    _timeouts: Record<string, ReturnType<typeof setTimeout>> = {};
 
     remove(key: string): void {
         if (key in this._timeouts) {

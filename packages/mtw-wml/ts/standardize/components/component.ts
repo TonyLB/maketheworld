@@ -256,7 +256,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return this._wrap(returnValue)
         }
 
-        remapReferences(mapTo): this {
+        remapReferences(mapTo: ReferenceFormat): this {
             if (this._payload.remapReferences) {
                 const returnValue = this.clone() as GeneratedComponentClass
                 returnValue._payload = returnValue._payload.remapReferences?.({ mapTo, mappings: this._mapping ?? [] }) ?? returnValue._payload

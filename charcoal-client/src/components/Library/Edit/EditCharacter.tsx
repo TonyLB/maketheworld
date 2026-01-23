@@ -37,26 +37,25 @@ import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
-import { ignoreWrapped } from '@tonylb/mtw-wml/ts/schema/utils'
+import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
-import { SchemaImageTag } from '@tonylb/mtw-base/ts/schema/image'
+import { SchemaImageTag, isSchemaImage } from '@tonylb/mtw-base/ts/schema/image'
+import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { useUniversalKey } from '../../../hooks/useUniversalKey'
 
 const LiteralShortNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
     const { updateStandard } = useLibraryAsset()
 
     const [currentNameValue, setCurrentNameValue] = useState(() => {
-        return character.shortName?._payload.plain.toJSON() || ''
+        return character.shortName?._payload?.plain?.toJSON() ?? ''
     })
 
     const debouncedTagValue = useDebounce(currentNameValue, 500)
 
     useEffect(() => {
-        if ((character.shortName?._payload.plain.toJSON() || '') !== debouncedTagValue) {
+        if ((character.shortName?._payload?.plain?.toJSON() ?? '') !== debouncedTagValue) {
             updateStandard({
                 type: 'update',
                 update: (incoming: StandardForm) => {
@@ -88,7 +87,9 @@ interface ImageHeaderProps {
 const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name }) => {
     const { standardForm } = useLibraryAsset()
     const { dragActive, openUpload } = useFileWrapper()
-    const iconURL = useLibraryImageURL(`${standardForm.key}Icon`)
+    const character = standardForm.byUniversalId[ItemId]
+    const characterKey = (character instanceof StandardCharacter && character.key) ? character.key : ''
+    const iconURL = useLibraryImageURL(`${characterKey}Icon`)
 
     return <Box sx={dragActive
         ? {
@@ -143,8 +144,9 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
             // If an Image exist, but not by the characterIcon default key, use it
             //
             let SCHEMADIRTY = false
-            if (ignoreWrapped<SchemaImageTag, SchemaTag>(character?.image)?.data?.key) {
-                dispatch(setLoadedImage(AssetId)({ itemId: ignoreWrapped<SchemaImageTag, SchemaTag>(character?.image)?.data?.key, file }))
+            const unwrappedImage = unwrapSubject<SchemaImageTag>(character?.image)
+            if (unwrappedImage && treeNodeTypeguard(isSchemaImage)(unwrappedImage) && unwrappedImage.data.key) {
+                dispatch(setLoadedImage(AssetId)({ itemId: unwrappedImage.data.key, file }))
             }
             //
             // Otherwise, assign to the characterIcon default key, creating an Image tag in the WML if necessary
@@ -202,7 +204,11 @@ const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = () => {
                     fileTypes={['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/tiff']}
                     onFile={onDrop}
                 >
-                    <EditCharacterIcon ItemId={(universalKey || `CHARACTER#${character?.key || '123'}`) as `CHARACTER#${string}`} Name={schemaOutputToString(ignoreWrapped(character?.name)?.children ?? []) ?? ''} />
+                    <EditCharacterIcon ItemId={(universalKey || `CHARACTER#${character?.key || '123'}`) as `CHARACTER#${string}`} Name={(() => {
+                        if (!character?.name) return ''
+                        const nameNode = character.name as any
+                        return schemaOutputToString(nameNode.children || [])
+                    })()} />
                 </FileWrapper>
                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
                     <LiteralShortNameField character={character} />

@@ -11,10 +11,9 @@ import { socketDispatchPromise } from '../../slices/lifeLine'
 import { getCachedPerception } from '../../slices/perceptionCache'
 import Spinner from '../Spinner'
 import ComponentDescription from '../Message/ComponentDescription'
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { getPlayer } from '../../slices/player'
-import { getStatus } from '../../slices/personalAssets'
-import { isPerceptionKnowledgeMetaData, PerceptionKnowledgeMetaData, PerceptionMessageMetaData } from '@tonylb/mtw-interfaces/ts/messages'
+import { PerceptionKnowledgeMetaData } from '@tonylb/mtw-interfaces/ts/messages'
 
 type KnowledgeProps = {
 }
@@ -36,7 +35,7 @@ export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
     }, [KnowledgeId, dispatch])
     const { fetched, wmlContent, parsedWML, componentUUID, Target } = useSelector(getCachedPerception({ EphemeraId: `KNOWLEDGE#${KnowledgeId}` }))
     const navigate = useNavigate()
-    const onClickLink = useCallback((to: EphemeraKnowledgeId | EphemeraCharacterId | EphemeraFeatureId | EphemeraActionId) => {
+    const onClickLink = useCallback((to: EphemeraKnowledgeId | EphemeraCharacterId | EphemeraFeatureId) => {
         const knowledgeId = to.split('#')?.[1]
         if (knowledgeId) {
             if (knowledgeId === 'knowledgeRoot') {

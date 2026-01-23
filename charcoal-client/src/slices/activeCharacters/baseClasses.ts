@@ -1,4 +1,4 @@
-import { EphemeraCharacterId, EphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses';
+import { EphemeraCharacterId, EphemeraMapId, EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { EphemeraClientMessageEphemeraUpdateMapItemActive } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 
@@ -9,7 +9,22 @@ export interface ActiveCharacterInternal {
     incrementalBackoff: number;
 }
 
-export type ActiveCharacterMap = Omit<EphemeraClientMessageEphemeraUpdateMapItemActive, 'type' | 'targets' | 'active'>
+export type ActiveCharacterMapRoom = {
+    roomId: string;
+    name: string;
+    x: number;
+    y: number;
+    exits: Array<{ name: string; to: string }>;
+}
+
+export type ActiveCharacterMap = {
+    MapId: EphemeraMapId;
+    description: string;
+    name: string;
+    rooms: ActiveCharacterMapRoom[];
+    assets: Record<EphemeraAssetId, string>;
+    fileURL?: string;
+}
 
 export interface ActiveCharacterPublic {
     maps: Record<EphemeraMapId, ActiveCharacterMap>;

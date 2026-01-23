@@ -4,7 +4,7 @@ import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 
 export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): GenericTree<MapTreeItem> => {
     const tree = rooms
-        .reduce<GenericTree<MapTreeItem>>((previous, { roomId, name, x = 0, y = 0, exits }, index) => ([
+        .reduce<GenericTree<MapTreeItem>>((previous: GenericTree<MapTreeItem>, { roomId, name, x = 0, y = 0, exits }: { roomId: string; name: string; x: number; y: number; exits: Array<{ name: string; to: string }> }, index: number) => ([
             ...previous,
             {
                 data: {

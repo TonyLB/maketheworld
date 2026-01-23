@@ -3,7 +3,8 @@ import { checkAll } from "../../../components/dataTypes/typeguards";
 import { isStandardGrant, StandardGrantData } from './grant'
 import { AssetUUID, isSchemaAssetUUID } from "@tonylb/mtw-base/ts/schema";
 
-export { StandardGrantData, isStandardGrant }
+export type { StandardGrantData }
+export { isStandardGrant }
 
 export type StandardAuthNonEditData =
     StandardGrantData

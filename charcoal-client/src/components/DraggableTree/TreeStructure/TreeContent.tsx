@@ -14,10 +14,10 @@ export const TreeContent = <T extends object>({
     }) => {
     const localClasses = useTreeStyles()
     return <div
-        className={localClasses.TreeContentSections}
+        style={localClasses.TreeContentSections as React.CSSProperties}
     >
-        <div {...(bind ? bind : {})} className={localClasses.TreeContentHandle}>{ item && renderHandle(item) }</div>
-        <div className={localClasses.TreeContent}>
+        <div {...(bind ? bind : {})} style={localClasses.TreeContentHandle as React.CSSProperties}>{ item && renderHandle(item) }</div>
+        <div style={localClasses.TreeContent as React.CSSProperties}>
             { item && renderComponent(item) }
         </div>
     </div>

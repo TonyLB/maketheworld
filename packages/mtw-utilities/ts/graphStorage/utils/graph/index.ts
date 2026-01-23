@@ -67,7 +67,7 @@ export type GraphRestrictArguments<K extends string, T extends { key: K } & Reco
 type GraphSimpleWalkIteratorInProcess<K extends string, T extends { key: K } & Record<string, any>, E extends Record<string, any>> = {
     key: K;
     edges: GraphEdge<K, E>[];
-    validPaths: E[][];
+    validPaths: GraphEdge<K, E>[][];
     completed?: boolean;
 }
 
@@ -140,17 +140,20 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
     //
     // TODO: Extend simpleWalk options for edge restriction
     //
-    _simpleWalkIterator(key: K, options?: GraphRestrictArguments<K, T, E>): (previous: Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>>) => Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>> {
-        return ((previous) => {
+    _simpleWalkIterator(
+        key: K,
+        options?: GraphRestrictArguments<K, T, E>
+    ): (previous: Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>>) => Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>> {
+        return ((previous: Record<K, GraphSimpleWalkIteratorInProcess<K, T, E>>) => {
             const edges = this.getNode(key)?.edges || []
-            const filteredEdges = edges.filter((edge) => {
+            const filteredEdges = edges.filter((edge: GraphEdge<K, E>) => {
                 const targetNode = this.getNode(edge.to)
                 return !(
                     (options?.nodeCondition && !(targetNode && options.nodeCondition(targetNode))) ||
                     (options?.edgeCondition && !(options.edgeCondition(edge)))
                 )
             })
-            const incomingPaths = previous[key]?.validPaths || []
+            const incomingPaths: GraphEdge<K, E>[][] = previous[key]?.validPaths || []
             return Object.assign(previous,
                 //
                 // If there are any valid paths that haven't already visited this node, extend them by the edge
@@ -159,13 +162,13 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
                 // false
                 //
                 ...filteredEdges.map((edge) => {
-                    const previousPaths = previous[edge.to]?.validPaths || []
-                    const validExtendedPaths = incomingPaths
-                        .filter((path) => (!path.find(({ from }) => (from === edge.to))))
-                        .map((path) => ([...path, edge]))
+                    const previousPaths: GraphEdge<K, E>[][] = previous[edge.to]?.validPaths || []
+                    const validExtendedPaths: GraphEdge<K, E>[][] = incomingPaths
+                        .filter((path: GraphEdge<K, E>[]) => (!path.find(({ from }) => (from === edge.to))))
+                        .map((path: GraphEdge<K, E>[]) => ([...path, edge]))
                     
-                    const uniqueNewPaths = validExtendedPaths.filter((path) => (
-                        !previousPaths.find((previousPath) => (deepEqual(previousPath, path)))
+                    const uniqueNewPaths = validExtendedPaths.filter((path: GraphEdge<K, E>[]) => (
+                        !previousPaths.find((previousPath: GraphEdge<K, E>[]) => (deepEqual(previousPath, path)))
                     ))
                     if (uniqueNewPaths.length > 0) {
                         return { [edge.to]: {
@@ -294,15 +297,17 @@ export class Graph <K extends string, T extends { key: K } & Record<string, any>
                     if (stronglyConnectedComponent.length === 0) {
                         throw new Error('sortedWalk error, empty strongly-connected-component encountered')
                     }
-                    const dependencyEdges = this.edges
+                    const dependencyEdges: GraphEdge<K, E>[] = this.edges
                         .filter(({ to }) => (stronglyConnectedComponent.includes(to)))
                         .filter(({ from }) => (!stronglyConnectedComponent.includes(from)))
                     const dependencyResultPromises = unique(dependencyEdges.map(({ from }) => (from)))
                         .map((dependency) => (stronglyConnectedComponentByContents[dependency]))
-                        .map((stronglyConnectedComponentRepresentative) => (
-                            stronglyConnectedComponentRepresentative &&
-                            resultPromises[stronglyConnectedComponentRepresentative as any]
-                        ))
+                        .map((stronglyConnectedComponentRepresentative) => {
+                            if (!stronglyConnectedComponentRepresentative) {
+                                return undefined
+                            }
+                            return resultPromises[stronglyConnectedComponentRepresentative]
+                        })
                         .filter((results) => (typeof results !== 'undefined'))
                     const dependencyResults: Previous[] = (await Promise.all(dependencyResultPromises)).filter((results) => (typeof results !== 'undefined')) as Previous[]
                     return await callback({ keys: stronglyConnectedComponent, previous: dependencyResults })

@@ -1,11 +1,12 @@
 import { grey } from "@mui/material/colors"
 import MuiPopper from "@mui/material/Popper"
-import React, { FunctionComponent, useState } from "react"
+import React, { FunctionComponent, ReactElement, ReactNode, useState } from "react"
 import { styled } from "@mui/material/styles"
-import { keyframes, Paper } from "@mui/material"
+import { keyframes, Paper, useMediaQuery } from "@mui/material"
 import { useNextOnboarding } from "./useOnboarding"
 import { useSelector } from "react-redux"
 import { getNextOnboardingEntry } from "../../slices/player"
+import { AlwaysShowOnboarding } from "./index"
 
 const Popper = styled(MuiPopper)(({ theme }) => ({
     zIndex: 1,
@@ -90,6 +91,17 @@ type TutorialPopoverProps = {
 export const TutorialPopover: FunctionComponent<TutorialPopoverProps> = ({ anchorEl, placement, condition, checkPoints }) => {
     const [arrowRef, setArrowRef] = useState<HTMLSpanElement | null>(null)
     const nextOnboardingEntry = useSelector(getNextOnboardingEntry)
+    const portrait = useMediaQuery('(orientation: portrait)')
+    const large = useMediaQuery('(min-height:600px)')
+    
+    const renderText = (text: ReactElement | string | ((arg: { portrait: boolean; large: boolean; alwaysShowSetting: ReactElement }) => ReactElement | string) | undefined): ReactNode => {
+        if (!text) return null
+        if (typeof text === 'function') {
+            return text({ portrait, large, alwaysShowSetting: <AlwaysShowOnboarding /> })
+        }
+        return text
+    }
+    
     return (((condition ?? true) === false) || !(checkPoints.includes(nextOnboardingEntry?.key ?? '')))
         ? null
         : <React.Fragment>
@@ -119,7 +131,7 @@ export const TutorialPopover: FunctionComponent<TutorialPopoverProps> = ({ ancho
                         maxWidth: '20em',
                         animation: `${pulse} 2s infinite`
                     }}>
-                        { nextOnboardingEntry?.popoverText ?? nextOnboardingEntry?.text ?? null }
+                        { renderText(nextOnboardingEntry?.popoverText ?? nextOnboardingEntry?.text) }
                     </Paper>
                 </Popper>
                 : null

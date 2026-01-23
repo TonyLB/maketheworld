@@ -2,7 +2,14 @@
 export { StandardKey, keySortOrder } from "./key";
 
 // Export reference types
-export { StandardReference, LookupMappings, standardReferenceDeserialize, standardReferenceSerialize, referenceSortOrder, MapByKey } from "./reference";
+export {
+    StandardReference,
+    standardReferenceDeserialize,
+    standardReferenceSerialize,
+    referenceSortOrder,
+    MapByKey,
+} from "./reference";
+export type { LookupMappings } from "./reference";
 
 // Export reference list types
 export { ReferenceList, default as ReferenceListDefault } from "./referenceList";

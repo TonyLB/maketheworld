@@ -33,9 +33,8 @@ export const StandardLiteralEditor: FunctionComponent<StandardLiteralEditorProps
     
     // Update local value when prop value changes
     useEffect(() => {
-        if (localValue !== value?._payload?.plain?.toJSON()) {
-            setLocalValue(value?._payload?.plain?.toJSON())
-        }
+        const newValue = value?._payload?.plain?.toJSON() ?? ''
+        setLocalValue(newValue)
     }, [value])
     
     // Debounced onChange to avoid excessive updates

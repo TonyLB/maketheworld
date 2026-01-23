@@ -14,8 +14,8 @@ import {
 } from '@tonylb/mtw-interfaces/ts/messages'
 
 import RenderTreeContent from './RenderTreeContent'
-import { EphemeraActionId, EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { StandardRender, PlainClass } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
@@ -97,9 +97,15 @@ export const ComponentDescription = ({
                 </Typography>
                 <Divider />
                 {
-                    description && description.plainString
-                        ? <RenderTreeContent list={description.toJSON()} onClickLink={onClickLink} />
-                        : <em>No description</em>
+                    (() => {
+                        const plain = description?.plain ?? []
+                        if (description && description._payload && !(description._payload instanceof PlainClass)) {
+                            console.error('Expected PlainClass but got', description._payload.constructor.name, description)
+                        }
+                        return plain.length > 0
+                            ? <RenderTreeContent list={plain} onClickLink={onClickLink} />
+                            : <em>No description</em>
+                    })()
                 }
             </Box>
         </MessageComponent>

@@ -37,7 +37,7 @@ export const store = configureStore({
 // Initialize subscriptions
 // Queue subscription to 'global' stream for contentHeaders
 // This can be called immediately - the state machine will process it when ready
-store.dispatch(subscribeToContentHeaders(['global']))
+store.dispatch(subscribeToContentHeaders(['global']) as any)
 
 // Note: Library subscription is handled on-demand when user navigates to Library page
 // See components/Library/index.tsx for subscription logic

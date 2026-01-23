@@ -41,7 +41,8 @@ class CascadeForce<N extends SimulationNodeDatum> extends Object {
             const sourceId = this.id(node)
             if (sourceId && this.targetNodes[sourceId]) {
                 const targetNode = this.targetNodes[sourceId]
-                if (isSimNode(targetNode) && targetNode.cascadeNode) {
+                if (isSimNode(targetNode)) {
+                    // cascadeNode property removed - all nodes can cascade
                     this.targetNodes[sourceId].fx = node.fx ?? node.x
                     this.targetNodes[sourceId].fy = node.fy ?? node.y
                 }

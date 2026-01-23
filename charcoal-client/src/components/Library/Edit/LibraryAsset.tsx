@@ -120,7 +120,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             inheritedStandardForm,
             inheritedByAssetId,
             updateStandard,
-            properties,
+            properties: properties ?? {},
             loadedImages,
             readonly,
             serialized,

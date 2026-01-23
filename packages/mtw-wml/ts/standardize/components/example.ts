@@ -19,6 +19,7 @@ import { StandardExplicitParent } from "../explicit"
 import { MarkFacetList, StandardMarkFacet } from "../keys/facets/mark"
 import { findTaggedChildren, recurseIntoEditable } from "../../schema/utils"
 import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
+import { StandardFormSubsetRequest } from "../baseClasses"
 
 export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
@@ -133,7 +134,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         }
     }
 
-    subset({ requestType }): this {
+    subset({ requestType }: StandardFormSubsetRequest): this {
         if (requestType === 'Full') {
             return new StandardExamplePayload(this) as this
         }

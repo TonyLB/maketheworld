@@ -18,8 +18,9 @@ import { addItem, setIntent } from '../../../slices/activeCharacters'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import MapArea from '../Edit/Area'
-import cacheToTree from './cacheToTree'
-import { EphemeraAssetId, EphemeraMapId, isEphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses';
+import { EphemeraAssetId, EphemeraMapId, EphemeraCharacterId, isEphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses';
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize';
+import { ComponentUUID } from '@tonylb/mtw-base/ts/schema';
 import { MapDisplayController } from '../Controller';
 import { useNavigate } from 'react-router-dom';
 import { AssetPicker } from '../../AssetPicker';
@@ -92,8 +93,8 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
             // Extract UUID from AssetId (e.g., 'ASSET#uuid' -> 'uuid')
             const draftAssetKey = firstDraftAssetId.replace('ASSET#', '')
             const fromAssetKey = asset.split('#')[1]
-            if (asset !== firstDraftAssetId) {
-                dispatch(addImport({ assetId: firstDraftAssetId, fromAsset: fromAssetKey, tag: 'Map', key }))
+            if (asset !== firstDraftAssetId && fromAssetKey) {
+                dispatch(addImport({ assetId: firstDraftAssetId as EphemeraAssetId | EphemeraCharacterId, fromAsset: `ASSET#${fromAssetKey}` as `ASSET#${string}`, tag: 'Map', uuid: key as ComponentUUID }))
             }
             navigate(`/Library/Edit/Asset/${draftAssetKey}/Map/${key}`)
         }
@@ -127,18 +128,26 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                         }}
                     >
                         {
-                            Object.entries({ ...maps, ...(MapId ? {} : { none: { Name: 'None selected' }}) })
-                                .map(([key, { Name }]) => (
-                                    <MenuItem key={key} value={key}>{Name || 'Unnamed map'}</MenuItem>
+                            Object.entries({ ...maps, ...(MapId ? {} : { none: { name: 'None selected', MapId: 'MAP#none' as EphemeraMapId, description: '', rooms: [], assets: {} }}) })
+                                .map(([key, map]) => (
+                                    <MenuItem key={key} value={key}>{map.name || 'Unnamed map'}</MenuItem>
                                 ))
                         }
                     </Select>
                 </FormControl>
             </Box>
         </Box>
-        { MapId && <MapDisplayController tree={cacheToTree(maps[MapId])}>
-            <MapArea fileURL={maps[MapId].fileURL} editMode={false} />
-        </MapDisplayController> }
+        { MapId && maps[MapId]?.description && (() => {
+            try {
+                const standardForm = new StandardForm(maps[MapId].description)
+                return <MapDisplayController standardForm={standardForm} mapId={MapId}>
+                    <MapArea fileURL={maps[MapId].fileURL} editMode={false} />
+                </MapDisplayController>
+            } catch (error) {
+                console.warn('Failed to parse map WML:', error)
+                return null
+            }
+        })() }
         <Box sx={{ right: "2em", top: "0.25em", position: "absolute" }}>
             <Avatar
                 sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}

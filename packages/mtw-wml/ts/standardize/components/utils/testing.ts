@@ -1,7 +1,13 @@
 import { Schema, schemaToWML } from "../../../schema";
 import { deIndentWML } from "../../../schema/utils";
 
-export const mergeTest = <T extends { toJSON: () => any, merge: (args: any) => any }>(base: string, standardClass: new (...args) => T, incoming: string): string => {
+export const mergeTest = <
+    T extends { toJSON: () => any; merge: (args: any) => any }
+>(
+    base: string,
+    standardClass: new (...args: any[]) => T,
+    incoming: string
+): string => {
     const baseSchema = new Schema()
     baseSchema.loadWML(deIndentWML(base))
     const baseStandard = new standardClass(baseSchema.schema[0])

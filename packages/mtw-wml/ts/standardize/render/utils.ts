@@ -1,18 +1,10 @@
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { GenericTree, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaConditionFallthrough, isSchemaConditionStatement } from "@tonylb/mtw-base/ts/schema/condition"
-import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
+import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 
-export const stripUIFields = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => (
-    tree.map((node) => (
-        (treeNodeTypeguard(isSchemaConditionStatement)(node) || treeNodeTypeguard(isSchemaConditionFallthrough)(node))
-        ? {
-            data: { ...node.data, selected: undefined },
-            children: stripUIFields(node.children) ?? []
-        }
-        : {
-            ...node,
-            children: stripUIFields(node.children) ?? []
-        }
-    ))
-)
+//
+// stripUIFields used to remove transient UI-only fields from conditional schema nodes.
+// The underlying condition schema helpers have since been removed from mtw-base,
+// and condition tags are no longer present in the schema used by the client.
+// For compatibility and to keep the data flow simple, we now return the tree unchanged.
+//
+export const stripUIFields = (tree: GenericTree<SchemaTag>): GenericTree<SchemaTag> => tree

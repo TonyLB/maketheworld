@@ -33,7 +33,7 @@ export class MapDThreeIterator extends Object {
         //
         // TODO: When we refactor to stop storing links by internal ID and store roomID, this will need to be changed.
         //
-        const nodesById = this._nodes.reduce<Record<string, SimNode>>((previous, node) => ({ ...previous, [node.roomId]: node }), {})
+        const nodesById = this._nodes.reduce<Record<string, SimNode>>((previous, node) => ({ ...previous, [node.id]: node }), {})
         return forceFlexLink(
                 this._links
                     .map(({ source, target, ...rest }) => ({ source: nodesById[source as string]?.id ?? '', target: nodesById[target as string]?.id ?? '', ...rest })),
@@ -57,7 +57,7 @@ export class MapDThreeIterator extends Object {
             .alphaDecay(0.15)
 
         if (getCascadeNodes) {
-            this.simulation.force("cascade", cascadeForce(getCascadeNodes, this.nodes).id(({ roomId }) => roomId))
+            this.simulation.force("cascade", cascadeForce(getCascadeNodes, this.nodes).id(({ id }) => id))
         }
 
         this.simulation
@@ -81,7 +81,7 @@ export class MapDThreeIterator extends Object {
     // can be forced to also restart its simulation.
     //
     update(nodes: MapNodes, links: MapLinks, forceRestart: boolean = false, onChange: SimCallback, getCascadeNodes?: () => MapNodes): boolean {
-        const nodesFound: Record<string, boolean> = this.nodes.reduce<Record<string, boolean>>((previous, node) => ({ ...previous, [node.roomId]: false }), {})
+        const nodesFound: Record<string, boolean> = this.nodes.reduce<Record<string, boolean>>((previous, node) => ({ ...previous, [node.id]: false }), {})
         type NestedLinkMap = Record<string, Record<string, boolean>>
         const linksFound: NestedLinkMap = this._links.reduce<NestedLinkMap>((previous, { source, target }) => {
             const sourceId = typeof source === "string" ? source : (source as SimNode).id
@@ -106,8 +106,8 @@ export class MapDThreeIterator extends Object {
             // whether the state of the nodes has changed in a way that requires resimulation (right now, the only
             // important state for them is what layer they are on)
             //
-            if (nodesFound[node.roomId] !== undefined) {
-                nodesFound[node.roomId] = true
+            if (nodesFound[node.id] !== undefined) {
+                nodesFound[node.id] = true
             }
             else {
                 anyDifference = true
@@ -134,7 +134,7 @@ export class MapDThreeIterator extends Object {
         this._onChange = onChange
         if (anyDifference || forceRestart) {
             if (getCascadeNodes) {
-                this.simulation.force("cascade", cascadeForce(getCascadeNodes, this._nodes).id(({ roomId }) => roomId))
+                this.simulation.force("cascade", cascadeForce(getCascadeNodes, this._nodes).id(({ id }) => id))
             }
             this.simulation
                 .force("boundingBox", this.boundingForce)
@@ -154,7 +154,7 @@ export class MapDThreeIterator extends Object {
             this.onStability = onStability
         }
         if (getCascadeNodes) {
-            this.simulation.force("cascade", cascadeForce(getCascadeNodes, this._nodes).id(({ roomId }) => roomId))
+            this.simulation.force("cascade", cascadeForce(getCascadeNodes, this._nodes).id(({ id }) => id))
         }
     }
     liven(first: boolean) {
@@ -169,11 +169,11 @@ export class MapDThreeIterator extends Object {
             .alpha(1)
             .force("draggingForceX", forceX<SimNode>()
                 .x(x)
-                .strength(({ roomId: nodeRoomId }: SimNode) => (nodeRoomId === roomId ? 1 : 0))
+                .strength(({ id: nodeId }: SimNode) => (nodeId === roomId ? 1 : 0))
             )
             .force("draggingForceY", forceY<SimNode>()
                 .y(y)
-                .strength(({ roomId: nodeRoomId }: SimNode) => (nodeRoomId === roomId ? 1 : 0))
+                .strength(({ id: nodeId }: SimNode) => (nodeId === roomId ? 1 : 0))
             )
             .force("boundingBox", this.boundingForce)
             .force("gridDrift", this.gridInfluenceForce)
