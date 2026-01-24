@@ -25,7 +25,6 @@ import {
     useNavigate
 } from "react-router-dom"
 
-import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
     getStatus
@@ -361,14 +360,15 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     const AssetId = `ASSET#${assetKey}` as const
     // Use real AssetUUID for navigation - no special case for 'draft'
     const href = `/Library/Edit/Asset/${assetKey}`
-    useAutoPin({
-        href,
-        label: `${assetKey}`,
-        type: 'LibraryEdit',
-        iconName: 'Asset',
-        assetId: AssetId,
-        cascadingClose: true
-    })
+    // Removed useAutoPin - tab navigation removed
+    // useAutoPin({
+    //     href,
+    //     label: `${assetKey}`,
+    //     type: 'LibraryEdit',
+    //     iconName: 'Asset',
+    //     assetId: AssetId,
+    //     cascadingClose: true
+    // })
     const dispatch = useDispatch()
     const currentStatus = useSelector(getStatus(AssetId))
     

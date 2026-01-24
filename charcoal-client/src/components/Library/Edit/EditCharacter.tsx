@@ -17,7 +17,6 @@ import {
     useNavigate
 } from "react-router-dom"
 
-import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
     getStatus,
@@ -228,14 +227,7 @@ export const EditCharacter: FunctionComponent<EditCharacterProps> = () => {
     const universalKey = useUniversalKey('CHARACTER')
 
     const character = useSelector(getMyCharacterByKey(ComponentId)) as AssetClientPlayerCharacter
-    useAutoPin({
-        href: `/Library/Edit/Asset/${assetKey}/Character/${ComponentId}`,
-        label: `${ComponentId}`,
-        type: 'ComponentEdit',
-        iconName: 'Character',
-        assetId: `ASSET#${assetKey}`,
-        componentId: universalKey!
-    })
+    // Removed useAutoPin - tab navigation removed
     useOnboardingCheckpoint('editCharacter', { requireSequence: true })
 
     return <CharacterEditForm />

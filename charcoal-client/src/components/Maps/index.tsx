@@ -5,7 +5,6 @@ import {
     Route
 } from "react-router-dom"
 
-import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import MapList from './List/'
 import MapEdit from './Edit/'
 
@@ -18,7 +17,7 @@ type MapHomeProps = {}
 //
 export const MapHome: FunctionComponent<MapHomeProps> = () => {
 
-    useAutoPin({ href: `/Maps/`, label: `Maps`, type: 'Library' })
+    // Removed useAutoPin - tab navigation removed
 
     //
     // TODO: Migrate to react-router-dom@6+, in order to get rid

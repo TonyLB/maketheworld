@@ -8,10 +8,8 @@ import {
     BrowserRouter as Router,
     Routes,
     Route,
-    Link,
     useParams,
-    useLocation,
-    useNavigate
+    useLocation
 } from "react-router-dom"
 
 import './index.css'
@@ -19,23 +17,11 @@ import './index.css'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import {
     Box,
-    Tabs,
-    Tab,
     Snackbar,
     IconButton,
     SnackbarCloseReason
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
-import ForumIcon from '@mui/icons-material/Forum'
-import MapIcon from '@mui/icons-material/Explore'
-import PersonIcon from '@mui/icons-material/Person'
-import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
-import HomeIcon from '@mui/icons-material/Home'
-import OnboardingIcon from '@mui/icons-material/Lightbulb'
-import SettingsIcon from '@mui/icons-material/Settings'
-import LibraryIcon from '@mui/icons-material/ArtTrack'
-import AssetIcon from '@mui/icons-material/Landscape'
-import EditIcon from '@mui/icons-material/Edit'
 
 import ActiveCharacter from '../ActiveCharacter'
 import InDevelopment from '../InDevelopment'
@@ -47,156 +33,13 @@ import MapView from '../Maps/View'
 import Library from '../Library'
 import EditAsset from '../Library/Edit/EditAsset'
 
-import { closeTab, navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
 import EditCharacter from '../Library/Edit/EditCharacter'
-import NavigationContextProvider, { useNavigationContext } from './NavigationContext'
 import { getMyCharacters, getMySettings, getPlayer } from '../../slices/player'
 import { playerDataSourceSelectors } from '../../slices/player/playerDataSource'
 import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
 import { getClientSettings, getCurrentCharacterId } from '../../slices/settings'
 import { putClientSettings } from '../../slices/settings'
-import TutorialPopover from '../Onboarding/TutorialPopover'
-
-const a11yProps = (index: number) => {
-    return {
-        id: `simple-tab-${index}`,
-        'aria-controls': `simple-tabpanel-${index}`,
-    }
-}
-
-const IconDispatcher = ({ iconName = 'Forum', assetId }: { iconName: string; assetId?: string }) => {
-    switch(iconName) {
-        case 'Map':
-            return <MapIcon />
-        case 'Character':
-            return <PersonIcon />
-        case 'MapEdit':
-            return <React.Fragment>
-                <EditIcon />
-                <MapIcon />
-            </React.Fragment>
-        case 'Library':
-            return <LibraryIcon />
-        case 'Asset':
-        case 'EditAsset':
-            return <React.Fragment>
-                {(assetId?.split('#')[1] === 'draft') && <EditIcon />}
-                <AssetIcon />
-            </React.Fragment>
-        case 'Room':
-            return <React.Fragment>
-                {(assetId?.split('#')[1] === 'draft') && <EditIcon />}
-                <HomeIcon />
-            </React.Fragment>
-        default:
-            return <ForumIcon />
-    }
-}
-
-const IconWrapper = ({ iconName = 'Forum', href, closable=true, assetId }: { iconName: string; href: string; closable: boolean; assetId?: string }) => {
-    const dispatch = useDispatch()
-    const { selectedTab, navigate, pathname } = useNavigationContext()
-    const onClose = useCallback((event: React.MouseEvent) => {
-        event.stopPropagation()
-        event.preventDefault()
-        dispatch(closeTab({ href, pathname, callback: (value) => { navigate(value) } }))
-    }, [dispatch, href, selectedTab, navigate])
-    return <Box sx={{ position: "relative", width: "100%" }}>
-        <IconDispatcher iconName={iconName} assetId={assetId} />
-        { closable && <IconButton
-                sx={{ position: "absolute", top: "-0.75em", right: "-0.5em" }}
-                onClick={onClose}
-            >
-                <CloseIcon />
-            </IconButton>
-        }
-    </Box>
-}
-
-//
-// TODO: Create NavigationTab component that wraps <Tab> and adds a checkpoints argument and
-// a TutorialPopover
-//
-type NavigationTabProps = {
-    index: number;
-    key: string;
-    label: string;
-    value: string;
-    icon: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
-    checkPoints?: string[];
-}
-const NavigationTab: FunctionComponent<NavigationTabProps> = ({ index, key, label, value, icon, checkPoints = [] }) => {
-    const ref = useRef()
-    return <React.Fragment>
-        <Tab
-            key={key}
-            label={label}
-            value={value}
-            {...a11yProps(index)}
-            icon={icon}
-            component={Link}
-            to={value === 'home' ? '/' : value}
-            ref={ref as any}
-        />
-        {
-            checkPoints.length
-                ? <TutorialPopover
-                    anchorEl={ref as any}
-                    placement='right'
-                    checkPoints={checkPoints}
-                />
-                : null
-        }
-    </React.Fragment>
-}
-
-const tabList = ({ large, needsOnboarding, navigationTabs = [] }: { large: boolean; needsOnboarding: boolean; navigationTabs: any[] }) => ([
-    ...(needsOnboarding
-        ? [<NavigationTab
-            key="Onboarding"
-            label="Tutorials"
-            value="/Onboarding/"
-            index={0}
-            icon={<OnboardingIcon />}
-        />]
-        : []
-    ),
-    <NavigationTab
-        key="Home"
-        label="Home"
-        value="home"
-        index={needsOnboarding ? 1 : 0}
-        icon={<HomeIcon />}
-        checkPoints={['navigateHomeInPlay']}
-    />,
-    ...(navigationTabs.map(({ href, label, iconName, closable, assetId }, index) => (
-        <NavigationTab
-            key={href}
-            label={label}
-            value={href}
-            index={index + 1 + (needsOnboarding ? 1 : 0)}
-            icon={<IconWrapper iconName={iconName} href={href} closable={closable} assetId={assetId} />}
-            checkPoints={[]}
-        />
-    ))),
-    ...(large ? [] : [
-        <NavigationTab
-            key="Who"
-            label="Who is on"
-            value="/Who/"
-            index={2 + navigationTabs.length + (needsOnboarding ? 1 : 0)}
-            icon={<PeopleAltIcon />}
-        />
-    ]),
-    <NavigationTab
-        key="Settings"
-        label="Settings"
-        value="/Settings/"
-        index={3 + navigationTabs.length + (needsOnboarding ? 1 : 0)}
-        icon={<SettingsIcon />}
-    />
-])
 
 type FeedbackSnackbarProps = {
     feedbackMessage: string;
@@ -244,39 +87,6 @@ const CharacterRouterSwitch = ({ messagePanel }: any) => {
         </Routes>
     </ActiveCharacter>
 }
-
-const NavigationTabs = () => {
-    const { pathname } = useLocation()
-    const selectedTab = useSelector(navigationTabSelected(pathname))
-    const navigationTabsData = useSelector(navigationTabs)
-    const portrait = useMediaQuery('(orientation: portrait)')
-    const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
-    return (
-        <NavigationContextProvider>
-            <Box
-                sx={{
-                    gridArea: 'tabs',
-                    overflow: 'hidden'
-                }}
-            >
-                <Tabs
-                    classes={{ vertical: 'tabRootVertical' }}
-                    orientation={portrait ? "horizontal" : "vertical"}
-                    variant="scrollable"
-                    scrollButtons
-                    value={selectedTab ? selectedTab.href : pathname === '/Onboarding/' ? '/Onboarding/' : pathname === '/Who/' ? '/Who/' : pathname === '/Settings/' ? '/Settings/' : 'home'}
-                    aria-label="Navigation"
-                    indicatorColor="primary"
-                    textColor="primary"
-                    allowScrollButtonsMobile
-                >
-                    { tabList({ large, navigationTabs: navigationTabsData, needsOnboarding: true }) }
-                </Tabs>
-            </Box>
-        </NavigationContextProvider>
-    );
-}
-
 
 // Component to render play spine at root path
 // Shows MessagePanel if character is selected, CharacterSelectionModal if not
@@ -385,19 +195,18 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
                 display: "grid",
                 justifyContent: "stretch",
                 "@media (orientation: landscape)": {
-                    gridTemplateAreas: `"tabs content"`,
-                    gridTemplateColumns: "auto 1fr",
+                    gridTemplateAreas: `"content"`,
+                    gridTemplateColumns: "1fr",
                     gridTemplateRows: "1fr"
                 },
                 "@media (orientation: landscape) and (min-width: 1500px)": {
-                    gridTemplateAreas: `"tabs content sidebar"`,
-                    gridTemplateColumns: "auto 1fr 400px",
+                    gridTemplateAreas: `"content sidebar"`,
+                    gridTemplateColumns: "1fr 400px",
                     gridTemplateRows: "1fr"
                 },
                 "@media (orientation: portrait)": {
-                    gridTemplateAreas: `"tabs"
-                        "content"`,
-                    gridTemplateRows: "auto 1fr",
+                    gridTemplateAreas: `"content"`,
+                    gridTemplateRows: "1fr",
                     gridTemplateColumns: "100%"
                 },
                 backgroundColor: "background.paper"
@@ -405,7 +214,6 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
         >
             <ChoiceDialog />
             <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
-            <NavigationTabs />
             <Box
                 sx={{
                     gridArea: "content",

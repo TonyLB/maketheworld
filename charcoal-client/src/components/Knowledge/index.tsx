@@ -4,7 +4,6 @@ import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import Box from '@mui/material/Box'
 import KnowledgeIcon from '@mui/icons-material/School'
 
-import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { socketDispatchPromise } from '../../slices/lifeLine'
@@ -22,7 +21,7 @@ export const Knowledge: FunctionComponent<KnowledgeProps> = () => {
     const { KnowledgeId = 'knowledgeRoot' } = useParams()
     useOnboardingCheckpoint('navigateKnowledge')
     useOnboardingCheckpoint('knowledgeDetail', { condition: KnowledgeId !== 'knowledgeRoot'})
-    useAutoPin({ href: `/Knowledge/`, label: `Knowledge`, iconName: 'Knowledge', type: 'Knowledge' })
+    // Removed useAutoPin - tab navigation removed
     const { Settings: { guestId }, Assets } = useSelector(getPlayer)
     const dispatch = useDispatch()
     useEffect(() => {

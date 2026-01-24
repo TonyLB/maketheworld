@@ -14,11 +14,6 @@ import Library from './index'
 import { AssetClientPlayerAsset } from '@tonylb/mtw-interfaces/ts/asset'
 import { libraryDataSourceSlice } from '../../slices/libraryDataSource'
 
-// Mock navigation dependencies
-vi.mock('../../slices/UI/navigationTabs/useAutoPin', () => ({
-    default: vi.fn()
-}))
-
 vi.mock('../../slices/lifeLine', () => ({
     socketDispatchPromise: vi.fn(() => Promise.resolve({}))
 }))

@@ -13,7 +13,6 @@ import {
 import EditIcon from '@mui/icons-material/Edit'
 
 import { useActiveCharacter } from '../../ActiveCharacter';
-import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import { addItem, setIntent } from '../../../slices/activeCharacters'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
@@ -42,13 +41,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     // Get first draft asset for import target (or undefined if no drafts)
     const firstDraftAsset = draftAssets.length > 0 ? draftAssets[0] : undefined
     const firstDraftAssetId = firstDraftAsset?.AssetId
-    useAutoPin({
-        href: `/Character/${scopedId}/Map/`,
-        label: `Map: ${Name}`,
-        iconName: 'Map',
-        type: 'Map',
-        characterId: CharacterId
-    })
+    // Removed useAutoPin - tab navigation removed
     const navigate = useNavigate()
     useOnboardingCheckpoint('openMap', { requireSequence: true })
     useEffect(() => {

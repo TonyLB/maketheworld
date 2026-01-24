@@ -19,10 +19,6 @@ vi.mock('../../Library/Edit/LibraryAsset', () => ({
     })
 }))
 
-vi.mock('../../../slices/UI/navigationTabs', () => ({
-    setNavigationTab: vi.fn()
-}))
-
 vi.mock('../../../slices/personalAssets', () => ({
     addImport: vi.fn()
 }))

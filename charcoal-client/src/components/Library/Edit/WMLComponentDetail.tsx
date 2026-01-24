@@ -15,7 +15,6 @@ import { useLibraryAsset } from './LibraryAsset'
 import DraftLockout from './DraftLockout'
 import RoomExitEditor from './RoomExitEditor'
 import RoomLensEditor from './RoomLensEditor'
-import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import { useDispatch } from 'react-redux'
 
@@ -136,14 +135,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         return ''
     }, [standardForm, universalKey])
     
-    useAutoPin({
-        href: `/Library/Edit/Asset/${assetKey}/${tag}/${ComponentId}`,
-        label: componentName || 'Untitled',
-        type: 'ComponentEdit',
-        iconName: 'Room',
-        assetId: `ASSET#${assetKey}`,
-        componentId: universalKey!
-    })
+    // Removed useAutoPin - tab navigation removed
     const onKeyChange = useCallback((toKey: string) => {
         if (!universalKey) return
         const component = standardForm.byUniversalId[universalKey]
