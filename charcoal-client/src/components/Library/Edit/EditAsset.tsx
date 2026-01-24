@@ -49,6 +49,7 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { RecentlyVisited } from './RecentlyVisited'
 import { LabelledIndentBox } from './LabelledIndentBox'
 import { blue } from '@mui/material/colors'
@@ -152,15 +153,20 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         }
     })
 
-    //
-    // TODO: Refactor below into a single reduce statement that updates a record of lists.
-    //
-    const characters = useMemo<StandardCharacter[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardCharacter => (value instanceof StandardCharacter))), [standardForm])
-    const rooms = useMemo<StandardRoom[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardRoom => (value instanceof StandardRoom))), [standardForm])
-    const features = useMemo<StandardFeature[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardFeature => (value instanceof StandardFeature))), [standardForm])
-    const knowledges = useMemo<StandardKnowledge[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardKnowledge => (value instanceof StandardKnowledge))), [standardForm])
-    const maps = useMemo<StandardMap[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardMap => (value instanceof StandardMap))), [standardForm])
-    const images = useMemo<StandardImage[]>(() => (Object.values(standardForm?.byId || {}).filter((value): value is StandardImage => (value instanceof StandardImage))), [standardForm])
+    // Get top-level components from _topLevel ReferenceList (includes imported components without local keys)
+    const topLevelComponents = useMemo<StandardComponent[]>(() => {
+        if (!standardForm?._topLevel) return []
+        return standardForm._topLevel.payload
+            .map(ref => standardForm._lookup(ref))
+            .filter((component): component is StandardComponent => component !== undefined)
+    }, [standardForm])
+
+    const characters = useMemo<StandardCharacter[]>(() => topLevelComponents.filter((component): component is StandardCharacter => component instanceof StandardCharacter), [topLevelComponents])
+    const rooms = useMemo<StandardRoom[]>(() => topLevelComponents.filter((component): component is StandardRoom => component instanceof StandardRoom), [topLevelComponents])
+    const features = useMemo<StandardFeature[]>(() => topLevelComponents.filter((component): component is StandardFeature => component instanceof StandardFeature), [topLevelComponents])
+    const knowledges = useMemo<StandardKnowledge[]>(() => topLevelComponents.filter((component): component is StandardKnowledge => component instanceof StandardKnowledge), [topLevelComponents])
+    const maps = useMemo<StandardMap[]>(() => topLevelComponents.filter((component): component is StandardMap => component instanceof StandardMap), [topLevelComponents])
+    const images = useMemo<StandardImage[]>(() => topLevelComponents.filter((component): component is StandardImage => component instanceof StandardImage), [topLevelComponents])
 
     const dispatch = useDispatch()
     const addAsset = useCallback((tag: 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image') => () => {
