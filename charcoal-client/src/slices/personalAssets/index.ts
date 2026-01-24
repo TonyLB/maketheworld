@@ -41,6 +41,8 @@ import { deepEqual } from '../../lib/objects'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { AssetUUID, ComponentUUID, isSchemaComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 const autoSaveDebounce = new Debounce()
 
@@ -285,17 +287,47 @@ export const addImport = ({ assetId, fromAsset, uuid, tag }: {
     dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
         type: 'update',
         update: (draft: StandardForm) => {
+            let component: StandardComponent
+            
             if (uuid in draft.byUniversalId) {
-                const newComponent = draft.byUniversalId[uuid].clone()
-                draft.byUniversalId[uuid] = newComponent.withImport(fromAsset)
+                // Component already exists - update its import
+                const existingComponent = draft.byUniversalId[uuid]
+                component = existingComponent.clone().withImport(fromAsset)
+                draft.byUniversalId[uuid] = component
             }
             else {
-                const component = standardComponentFactory({ tag, universalKey: uuid })
-                if (!component) {
+                // Create new component with import
+                const newComponent = standardComponentFactory({ tag, universalKey: uuid })
+                if (!newComponent) {
                     throw new Error(`Could not create component for tag ${tag}`)
                 }
-                draft.byUniversalId[uuid] = component.withImport(fromAsset)
+                component = newComponent.withImport(fromAsset)
+                draft.byUniversalId[uuid] = component
             }
+            
+            // Update _topLevel ReferenceList if component is top-level (no explicit parent)
+            // Top-level components should be in _topLevel so they appear in the asset
+            if (!component.explicitParent) {
+                const componentReference = component.reference
+                if (componentReference) {
+                    // Initialize _topLevel if it doesn't exist
+                    if (!draft._topLevel) {
+                        draft._topLevel = new ReferenceList([])
+                    }
+                    
+                    // Check if reference already exists in _topLevel
+                    const existingRef = draft._topLevel.payload.find(ref => 
+                        ref.sameKey(componentReference)
+                    )
+                    
+                    // Add to _topLevel if not already present
+                    if (!existingRef) {
+                        const newTopLevelRefs = [...draft._topLevel.payload, componentReference]
+                        draft._topLevel = new ReferenceList(newTopLevelRefs)
+                    }
+                }
+            }
+            
             return draft
         },
     }))
