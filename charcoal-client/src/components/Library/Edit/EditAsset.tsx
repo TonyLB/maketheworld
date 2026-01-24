@@ -65,7 +65,7 @@ import { useDebouncedOnChange } from '../../../hooks/useDebounce'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import { splitType, enforceTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import { v4 as uuidv4 } from 'uuid'
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { ComponentUUID, AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 type AssetEditFormProps = {}
 
@@ -81,7 +81,8 @@ const AddWMLComponent: FunctionComponent<{ type: 'Theme' | 'Character' | 'Map' |
 )
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { updateStandard, standardForm, readonly, assetKey, AssetId } = useLibraryAsset()
+    const { updateStandard, standardForm, readonly, assetKey, AssetId: assetIdFromContext } = useLibraryAsset()
+    const AssetId = assetIdFromContext as AssetUUID
     const zone = useSelector(getAssetZone(AssetId))
     useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true, condition: zone === 'Draft' })
     const navigate = useNavigate()
@@ -157,7 +158,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const topLevelComponents = useMemo<StandardComponent[]>(() => {
         if (!standardForm?._topLevel) return []
         return standardForm._topLevel.payload
-            .map(ref => standardForm._lookup(ref))
+            .map(ref => standardForm._lookup(ref.standardKey.toJSON()))
             .filter((component): component is StandardComponent => component !== undefined)
     }, [standardForm])
 
@@ -259,7 +260,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         ? characters.map((characterItem) => {
                             const uuid = characterItem.universalKey ? splitType(characterItem.universalKey)[1] : characterItem.key
                             return <WMLComponentHeader
-                                key={characterItem.key}
+                                key={characterItem.universalKey}
                                 ItemId={characterItem.universalKey!}
                                 onClick={() => { navigate(`Character/${uuid}`)}}
                                 icon={<PersonIcon />}
@@ -271,7 +272,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         ? maps.map((mapItem) => {
                             const uuid = mapItem.universalKey ? splitType(mapItem.universalKey)[1] : mapItem.key
                             return <WMLComponentHeader
-                                key={mapItem.key}
+                                key={mapItem.universalKey}
                                 ItemId={mapItem.universalKey!}
                                 onClick={() => { navigate(`Map/${uuid}`)}}
                                 icon={<MapIcon />}
@@ -283,7 +284,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         ? rooms.map((room) => {
                             const uuid = room.universalKey ? splitType(room.universalKey)[1] : room.key
                             return <WMLComponentHeader
-                                key={room.key}
+                                key={room.universalKey}
                                 ItemId={room.universalKey!}
                                 onClick={() => { navigate(`Room/${uuid}`)}}
                             />
@@ -294,7 +295,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         ? features.map((feature) => {
                             const uuid = feature.universalKey ? splitType(feature.universalKey)[1] : feature.key
                             return <WMLComponentHeader
-                                key={feature.key}
+                                key={feature.universalKey}
                                 ItemId={feature.universalKey!}
                                 onClick={() => { navigate(`Feature/${uuid}`)}}
                                 icon={<FeatureIcon />}
@@ -306,7 +307,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                         ? knowledges.map((knowledge) => {
                             const uuid = knowledge.universalKey ? splitType(knowledge.universalKey)[1] : knowledge.key
                             return <WMLComponentHeader
-                                key={knowledge.key}
+                                key={knowledge.universalKey}
                                 ItemId={knowledge.universalKey!}
                                 onClick={() => { navigate(`Knowledge/${uuid}`)}}
                                 icon={<KnowledgeIcon />}
@@ -316,7 +317,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     }
                     { images.length
                         ? images.map((image) => (<ImageHeader
-                                key={image.key}
+                                key={image.universalKey ?? image.key}
                                 ItemId={image.universalKey ?? ''}
                                 onClick={() => {}}
                             />))

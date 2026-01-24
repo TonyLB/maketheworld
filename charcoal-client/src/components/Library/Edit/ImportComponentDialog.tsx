@@ -31,7 +31,6 @@ import ImageIcon from '@mui/icons-material/Image'
 
 import { useLibraryAsset } from './LibraryAsset'
 import { addImport } from '../../../slices/personalAssets'
-import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
@@ -53,7 +52,7 @@ import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/bas
 interface ImportComponentDialogProps {
     open: boolean
     onClose: () => void
-    assetId: EphemeraAssetId
+    assetId: AssetUUID
 }
 
 const getComponentIcon = (type: ComponentGroup['type']) => {
