@@ -206,10 +206,17 @@ Current visibility: Private draft
    - **Rationale**: Play spine needs to know which character's worldview to render on initial load
    - **Implementation Note**: Navigation logic placed in `InitialCharacterNavigation` component inside Router context to avoid `useNavigate()` context errors
 
-2. **Refactor layout structure**
-   - Create play spine as primary/dominant surface
-   - Preserve sticky room summary functionality
-   - Maintain existing message types and rendering
+2. **Refactor layout structure** ✅ **COMPLETED**
+   - ✅ Created `PlaySpineRoot` component in `AppLayout` to conditionally render `MessagePanel` (wrapped in `ActiveCharacter`) or `CharacterSelectionModal`
+   - ✅ Created `CharacterSelectionModal` component as modal overlay for character selection
+   - ✅ Moved Library and Knowledge access to new `/Explore` placeholder route
+   - ✅ Made chat messaging primary in root navigation path (`/`)
+   - ✅ Added character selection button (person icon) in `MessagePanel` top-right corner
+   - ✅ Implemented auto-selection: when only one character option exists (Guest or single character), automatically select it without showing modal
+   - ✅ Preserved sticky room summary functionality (existing `MessagePanel` behavior)
+   - ✅ Maintained existing message types and rendering (no changes to message rendering logic)
+   - **Rationale**: Chat-focused play spine requires messaging to be the primary surface, with character selection as a secondary action
+   - **Implementation Note**: Auto-selection logic in `PlaySpineRoot` checks `totalOptions === 1` and dispatches `putClientSettings` to select the single available character
 
 3. **Remove tab-based primary navigation**
    - Replace with single, stable play surface
@@ -224,11 +231,14 @@ Current visibility: Private draft
 - ✅ Current character selection persists across sessions
 - ✅ App loads with correct character's play spine (or character selection if none stored)
 - ✅ Character switching updates persisted selection
-- ⏳ Play spine is the primary surface users see (pending tasks 2-4)
-- ⏳ One worldview rendered at a time (pending tasks 2-4)
-- ⏳ Sticky room summary preserved and functional (pending tasks 2-4)
-- ⏳ Draft worldview renders correctly (pending tasks 2-4)
-- ⏳ All existing message types display properly (pending tasks 2-4)
+- ✅ Play spine is the primary surface users see (root path `/` shows chat interface)
+- ✅ Character selection available via modal overlay (accessible from message panel or when no character selected)
+- ✅ Auto-selection when only one character option exists (improves UX for single-character scenarios)
+- ✅ Library and Knowledge moved to `/Explore` placeholder route
+- ⏳ One worldview rendered at a time (pending task 4)
+- ✅ Sticky room summary preserved and functional (existing `MessagePanel` behavior maintained)
+- ⏳ Draft worldview renders correctly (pending task 4)
+- ✅ All existing message types display properly (no changes to message rendering logic)
 
 **Dependencies**: None (can start immediately)
 
