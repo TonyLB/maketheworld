@@ -1,0 +1,664 @@
+# Chat Spine + Authoring Workbench - Strategic Planning Document
+
+**Date**: January 24, 2026  
+**Status**: STRATEGIC PLANNING  
+**Related Documents**: 
+- Handoff: [`src/ui_refactor_handoff_chat_spine_authoring_workbench.md`](src/ui_refactor_handoff_chat_spine_authoring_workbench.md)
+- Client Architecture: [`AGENT.md`](AGENT.md)
+
+---
+
+## Overview
+
+This document provides the strategic plan for refactoring the Charcoal Client UI to establish a **chat-focused play spine** as the primary system anchor, with an **authoring workbench** as a side-track overlay. This represents a deliberate architectural shift from feature-based navigation to a narrative-first, worldview-centered interface.
+
+### Core Architectural Shift
+
+**From**: Feature-based navigation with ad-hoc panels and competing primary modes  
+**To**: Chat-focused play spine as the system anchor, with authoring as a clear side-track
+
+### Design Axiom
+
+> **The user edits assets while standing inside a worldview; visibility determines which worldviews experience those edits.**
+
+This sentence should remain true as the system evolves.
+
+### Success Criterion (Iteration 1)
+
+> A single user can play, step aside to author, return to play, and immediately experience the results — all within a coherent chat-first UI.
+
+---
+
+## Current System State
+
+### Existing UI Architecture
+
+The current client implements a **dual-mode architecture** with clear separation between:
+
+1. **Authoring Mode** (`/Library/` routes):
+   - Asset browser and management
+   - WML editing interfaces
+   - Character creation tools
+   - Map editors
+
+2. **Playing Mode** (`/Character/:CharacterId/*` routes):
+   - Character-scoped messaging interface
+   - Character map views
+   - Perception-filtered world information
+
+### Current Navigation Patterns
+
+- **Tab-based primary navigation**: Multiple competing surfaces (Library, Character, etc.)
+- **Feature-specific panels**: Ad-hoc UI surfaces for different capabilities
+- **Weak spatial orientation**: Users may not have clear sense of "where they are" in the system
+- **Mode switching**: Explicit routing between authoring and playing contexts
+
+### Current Message System
+
+The client already has:
+- ✅ Message persistence system with dual-layer client/server storage
+- ✅ IndexedDB caching for offline support
+- ✅ Real-time WebSocket synchronization
+- ✅ Message types: `SayMessage`, `NarrateMessage`, `OOCMessage`, `RoomDescription`, `FeatureDescription`, `KnowledgeDescription`
+- ✅ Sticky room summary capability (mentioned in handoff)
+
+### Current Asset Editing System
+
+- ✅ WML editor with Slate-based rich text editing
+- ✅ Asset workspace management
+- ✅ Draft system with multi-draft support
+- ✅ Import/export capabilities
+- ✅ Component-level editing (Rooms, Features, Knowledge, Maps, Characters)
+
+---
+
+## Target Architecture
+
+### Surface A: Play Spine (Always Present)
+
+**Role**: System anchor and primary user surface
+
+**Responsibilities**:
+- Render exactly **one worldview** at a time
+- Maintain scrolling transcript of story events
+- Provide immediate experiential feedback for authored changes
+- Display sticky room summary (exactly one, anchored at top, continuously updated)
+
+**Message Types Supported**:
+- World events ("Night falls")
+- Character actions
+- Dialogue (screenplay style)
+- OOC comments
+- Perception/knowledge messages
+- Room descriptions (explicit look)
+- Sticky room summary
+
+**Constraints**:
+- Must never show multiple worldviews simultaneously
+- Must not surface asset mechanics directly
+- Must maintain narrative immersion
+
+**Layout**:
+- Primary surface (full viewport or dominant panel)
+- Sticky room summary at top
+- Scrolling message transcript below
+
+### Surface B: Authoring Workbench (Side-Track / Overlay)
+
+**Role**: Non-chat editing surface opened from play spine
+
+**Characteristics**:
+- Edits exactly **one asset at a time**
+- Clear "Return to Story" affordance
+- Reusable container for future features (side-threads, deliberation, tutorials, collaboration)
+
+**Layout**:
+- Desktop: Side panel or overlay
+- Mobile: Full-screen sheet
+
+**Workbench Header** (Critical):
+- **Asset name** (primary)
+- **Visibility state** (informational only, not editable in iteration 1)
+  - e.g., "Private draft"
+- Optional secondary context:
+  - e.g., "Viewed in: Current location"
+
+**Key Principle**: Header must be asset-first, not worldview-first
+
+### Entry Ritual (Play → Authoring)
+
+**Intent**: Focus shift, not mode switch
+
+**Requirements**:
+1. Select an **asset** to work on
+2. Establish (or confirm) the asset's **current visibility state**
+
+**UI Language** (Iteration 1):
+- Use: "Work on this place"
+- Avoid: "Edit this room"
+
+**Default Behavior**:
+- Default to creating/opening asset in user's **private draft worldview**
+- Do not require visibility choice UI yet (keeps loop tight)
+
+### Exit Ritual (Authoring → Play)
+
+**Intent**: Acknowledge authorship and resolve attention, not governance
+
+**Correct Framing**:
+- ❌ Do NOT ask: Where changes apply, which worldview to update, whether to publish
+- ✅ DO: Restate asset's current visibility state, allow user to accept or defer to deeper configuration
+
+**UI Shape** (Iteration 1):
+```
+You've made changes to {Asset Name}.
+
+Current visibility: Private draft
+
+- Looks good — return to the world
+- Manage visibility… (stub / not implemented yet)
+```
+
+**Behavior**:
+- "Manage visibility" may be disabled or informational
+- Returning simply resumes the play spine
+
+### Development Default: Draft Worldview
+
+**Purpose**: Enable fast iteration without implementing full visibility management
+
+**Agreed Defaults**:
+- Each player has **one personal draft worldview**
+- By default:
+  - Any new or edited asset is included in that draft worldview
+  - No other worldviews include those assets
+- The play spine for the dev user can render:
+  - Canon worldview + personal draft overlay, OR
+  - Directly render the draft worldview
+
+**UI Requirement**:
+- Somewhere visible (placard or header): label the current view as **Draft**
+
+---
+
+## Strategic Phases
+
+### Phase 1: Foundation - Play Spine Establishment
+
+**Goal**: Establish chat-focused play spine as primary surface
+
+**Key Tasks**:
+1. **Refactor layout structure**
+   - Create play spine as primary/dominant surface
+   - Preserve sticky room summary functionality
+   - Maintain existing message types and rendering
+
+2. **Remove tab-based primary navigation**
+   - Replace with single, stable play surface
+   - Ensure play spine is always accessible
+
+3. **Wire draft worldview rendering**
+   - Connect play spine to render player's draft worldview
+   - Enable immediate visual feedback for edits
+   - Add "Draft" label/placard for visibility
+
+**Success Criteria**:
+- Play spine is the primary surface users see
+- One worldview rendered at a time
+- Sticky room summary preserved and functional
+- Draft worldview renders correctly
+- All existing message types display properly
+
+**Dependencies**: None (can start immediately)
+
+**Risk Level**: Low-Medium (layout refactoring, but core functionality exists)
+
+---
+
+### Phase 2: Authoring Workbench - Side-Track Implementation
+
+**Goal**: Create non-chat authoring workbench as overlay/side-panel
+
+**Key Tasks**:
+1. **Create workbench container**
+   - Implement overlay/panel/sheet layout (responsive: side panel on desktop, full-screen on mobile)
+   - Design reusable container structure for future features
+
+2. **Implement workbench header**
+   - Asset name (primary)
+   - Visibility state label (static, informational)
+   - Optional secondary context display
+
+3. **Migrate existing editing interfaces**
+   - Move asset editing components into workbench
+   - Normalize authoring UI with consistent sections/cards
+   - Ensure single-asset editing constraint
+
+4. **Add "Return to Story" affordance**
+   - Clear, prominent action to exit workbench
+   - Returns to play spine
+
+**Success Criteria**:
+- Workbench opens as overlay/side-panel
+- Header displays asset name and visibility state correctly
+- Existing editing functionality works within workbench
+- "Return to Story" action functions correctly
+- Responsive layout works on desktop and mobile
+
+**Dependencies**: Phase 1 (play spine must exist as return target)
+
+**Risk Level**: Medium (requires careful migration of existing editing UI)
+
+---
+
+### Phase 3: Entry Ritual - Play to Authoring Transition
+
+**Goal**: Implement smooth entry from play spine to authoring workbench
+
+**Key Tasks**:
+1. **Add entry affordances in play spine**
+   - "Work on this place" actions/buttons
+   - Context-aware asset selection
+   - Language aligned with design principles
+
+2. **Implement asset selection logic**
+   - Identify asset from play context
+   - Default to draft worldview
+   - Establish visibility state
+
+3. **Wire entry flow**
+   - Open workbench with selected asset
+   - Populate workbench header
+   - Maintain play spine context
+
+**Success Criteria**:
+- Users can initiate authoring from play spine
+- Asset selection works correctly
+- Workbench opens with correct asset loaded
+- Visibility state established and displayed
+- Language uses "work on" not "edit"
+
+**Dependencies**: Phase 2 (workbench must exist)
+
+**Risk Level**: Low-Medium (requires context extraction from play state)
+
+---
+
+### Phase 4: Exit Ritual - Authoring to Play Transition
+
+**Goal**: Implement clear exit from authoring back to play
+
+**Key Tasks**:
+1. **Implement exit confirmation dialog/inline**
+   - Display asset name
+   - Show current visibility state
+   - Provide "return to world" action
+   - Include "manage visibility" stub (disabled/informational)
+
+2. **Wire exit flow**
+   - Close workbench
+   - Return to play spine
+   - Resume worldview rendering
+
+3. **Handle change detection**
+   - Detect if changes were made
+   - Show exit ritual only if changes exist (or always, per design)
+
+**Success Criteria**:
+- Exit ritual displays correctly
+- Visibility state shown accurately
+- "Return to world" returns to play spine
+- Play spine resumes correctly
+- Changes are visible in play spine immediately
+
+**Dependencies**: Phase 3 (entry ritual must exist)
+
+**Risk Level**: Low (straightforward UI flow)
+
+---
+
+### Phase 5: Integration & Polish
+
+**Goal**: Ensure complete workflow functions smoothly
+
+**Key Tasks**:
+1. **End-to-end workflow testing**
+   - Play → Author → Return → See changes
+   - Test with multiple asset types
+   - Verify draft worldview updates
+
+2. **Stub non-core features**
+   - Tutorials: Links or placeholders
+   - Settings: Links or placeholders
+   - Admin/moderation: Links or placeholders
+   - No full reintegration in iteration 1
+
+3. **Polish and refinement**
+   - UI/UX consistency
+   - Responsive behavior
+   - Error handling
+   - Loading states
+
+**Success Criteria**:
+- Complete workflow functions end-to-end
+- Single user can play → author → return → see results
+- Non-core features stubbed appropriately
+- UI is polished and consistent
+- No regressions in existing functionality
+
+**Dependencies**: Phases 1-4 (all core functionality)
+
+**Risk Level**: Low (integration and polish)
+
+---
+
+## What Is Explicitly Out of Scope (Iteration 1)
+
+These features are **intentionally de-scoped** for the first iteration:
+
+### Not Required to Reimplement
+- **Tutorials**: Can be stubs, links, or placeholders
+- **Account/Settings management**: Can be stubs, links, or placeholders
+- **Admin/moderation dashboards**: Can be stubs, links, or placeholders
+
+### Not Implemented Yet
+- Asset inclusion toggles
+- Worldview selection UI
+- Collaboration/invitations
+- Side-thread messaging
+- Moderation flows
+- Canon promotion workflows
+
+**Rationale**: These are meta-system concerns that don't need continuous access to the play spine. They can temporarily live behind simple links, placeholders, or legacy routes. The priority is stabilizing play, authoring, and transition rituals.
+
+**Important**: The UI must only leave **space** for these features, not implement them.
+
+---
+
+## Critical Invariants (Do Not Break)
+
+1. **The play spine represents one worldview at a time**
+   - Never show multiple worldviews simultaneously
+   - Worldview switching (if needed) is explicit and clear
+
+2. **The workbench edits one asset at a time**
+   - Never imply editing multiple assets
+   - Never imply direct worldview editing
+
+3. **Entry selects what you are shaping**
+   - Focus on asset selection, not worldview manipulation
+   - Language emphasizes "work on" not "edit"
+
+4. **Exit confirms current visibility, not final authority**
+   - Acknowledge visibility state
+   - Don't ask governance questions (where to publish, etc.)
+
+5. **Assets are never implied to be owned by a single room**
+   - Assets can contain multiple rooms, features, maps, knowledge items
+   - UI must reflect asset-level thinking, not room-level thinking
+
+---
+
+## Dependencies
+
+### Prerequisites
+- ✅ Message persistence system exists and functions
+- ✅ Asset editing system exists and functions
+- ✅ Draft worldview concept exists (backend support)
+- ✅ Sticky room summary functionality exists
+
+### External Dependencies
+- **Backend**: Draft worldview rendering support
+- **Backend**: Asset visibility state information
+- **Backend**: Worldview composition logic
+
+### Internal Dependencies
+- **Phase 1 → Phase 2**: Play spine must exist before workbench
+- **Phase 2 → Phase 3**: Workbench must exist before entry ritual
+- **Phase 3 → Phase 4**: Entry ritual must exist before exit ritual
+- **Phase 4 → Phase 5**: All phases must complete before integration
+
+---
+
+## Risk Mitigation
+
+### High-Risk Areas
+
+1. **Layout Refactoring** (Phase 1)
+   - **Risk**: Breaking existing functionality during layout changes
+   - **Mitigation**: Incremental refactoring, preserve existing components, extensive testing
+
+2. **UI Migration** (Phase 2)
+   - **Risk**: Losing functionality when moving editing UI to workbench
+   - **Mitigation**: Careful component migration, maintain existing patterns, test each component
+
+3. **Context Extraction** (Phase 3)
+   - **Risk**: Difficulty identifying correct asset from play context
+   - **Mitigation**: Clear context markers in play state, fallback to explicit selection
+
+### Medium-Risk Areas
+
+1. **State Management**
+   - **Risk**: Complex state coordination between play spine and workbench
+   - **Mitigation**: Clear state boundaries, Redux patterns, well-defined interfaces
+
+2. **Responsive Design**
+   - **Risk**: Workbench layout issues on mobile vs desktop
+   - **Mitigation**: Mobile-first design, test on multiple screen sizes
+
+### Low-Risk Areas
+
+1. **Exit Ritual** (Phase 4)
+   - **Risk**: Low - straightforward UI flow
+   - **Mitigation**: Simple confirmation pattern, clear user feedback
+
+2. **Integration** (Phase 5)
+   - **Risk**: Low - primarily testing and polish
+   - **Mitigation**: Comprehensive testing, incremental refinement
+
+---
+
+## Getting Started
+
+This section guides AI agents (and human collaborators) through context gathering before beginning implementation work.
+
+### 1. Understand Project Foundations
+
+**Read these documents in order**:
+
+- **[Root AGENT.md](../AGENT.md)**: Project overview, documentation standards, navigation patterns
+  - **Why**: Understand the project's documentation conventions and architectural philosophy
+  - **Focus**: Pay attention to the "Getting Started" pattern for complex tasks (section 7-step template)
+
+- **[Client Architecture](AGENT.md)**: Current client system structure
+  - **Why**: Understand existing dual-mode architecture (authoring vs playing)
+  - **Focus**: Current routing patterns, message system, asset editing capabilities
+
+- **[Architectural Philosophy](../AGENT.architecture.philosophy.md)**: Core design principles
+  - **Why**: Understand perception-driven processing and worldview concepts
+  - **Focus**: How worldviews relate to assets, the "tree falls in forest" principle
+
+- **[Handoff Document](src/ui_refactor_handoff_chat_spine_authoring_workbench.md)**: Original requirements
+  - **Why**: This is the source of truth for design intent and constraints
+  - **Focus**: Key conceptual distinctions, entry/exit rituals, critical invariants
+
+### 2. Read Current Planning Document
+
+**This document structure**:
+- **Overview**: High-level direction and success criteria
+- **Current System State**: What exists today
+- **Target Architecture**: What we're building toward
+- **Strategic Phases**: Five phases with dependencies
+- **Critical Invariants**: Must-not-break rules
+- **Getting Started**: This section (context gathering)
+
+**Recommended reading order**:
+1. Overview (understand the shift)
+2. Current System State (what we're starting from)
+3. Target Architecture (what we're building)
+4. Strategic Phases (how we'll get there)
+5. Critical Invariants (what we must preserve)
+
+### 3. Understand Core Integration Points
+
+**Primary code areas to modify**:
+
+- **Play Spine Surface**:
+  - Current: Character play routes (`/Character/:CharacterId/Play`)
+  - Message rendering components
+  - Sticky room summary implementation
+  - **Future**: Primary surface, always present
+
+- **Authoring Workbench**:
+  - Current: Library routes (`/Library/Edit/*`)
+  - Asset editing components
+  - WML editor interfaces
+  - **Future**: Overlay/side-panel opened from play spine
+
+- **Navigation/Routing**:
+  - Current: Tab-based navigation, explicit mode switching
+  - **Future**: Play spine as anchor, workbench as overlay
+
+**Key files to examine**:
+- `src/components/Character/` - Current play interface
+- `src/components/Library/Edit/` - Current authoring interface
+- `src/slices/messages/` - Message persistence (see [AGENT.md](src/slices/messages/AGENT.md))
+- `src/slices/personalAssets/` - Asset management
+
+### 4. Review Implemented Code
+
+**Study existing patterns**:
+
+- **Message Rendering**: How messages are currently displayed in play mode
+  - Look for: Message type handling, room summary rendering, transcript scrolling
+
+- **Asset Editing**: How assets are currently edited
+  - Look for: Component editing patterns, WML editor usage, asset state management
+
+- **Layout Patterns**: How the current UI is structured
+  - Look for: Panel layouts, responsive patterns, navigation components
+
+**Concrete files to examine**:
+- Message display components in `src/components/Character/`
+- Asset editing components in `src/components/Library/Edit/`
+- Layout/navigation components (search for tab/navigation components)
+
+### 5. Check Testing Patterns
+
+**Testing standards**:
+- See **[Client Testing Standards](AGENT.testing.md)** for Vitest patterns and React component testing
+- Client tests: `npm test` (watch) or `npm test -- --run` (single run)
+
+**Test files to review**:
+- Existing component tests in `src/components/`
+- Message system tests in `src/slices/messages/`
+- Asset editing tests (if they exist)
+
+### 6. Identify Next Task
+
+**How to find current task**:
+1. Check this document's **Strategic Phases** section
+2. Identify which phase is current (or start with Phase 1)
+3. Review phase-specific tasks and success criteria
+4. Break phase into tactical implementation steps (using Cursor Plan mode)
+
+**Progress tracking**:
+- Update phase status in this document as work progresses
+- Mark tasks complete with checkboxes
+- Note any blockers or decisions needed
+
+**Task prioritization**:
+- Follow phase sequence (1 → 2 → 3 → 4 → 5)
+- Within a phase, prioritize foundational tasks first
+- Test incrementally after each major change
+
+### 7. Run Tests Before Starting
+
+**Baseline verification**:
+```bash
+cd charcoal-client
+npm test -- --run
+```
+
+**Expected**: All existing tests should pass before making changes
+
+**Purpose**: Establish baseline to detect regressions during refactoring
+
+---
+
+## Success Metrics
+
+### Iteration 1 Success Criteria
+
+- ✅ Play spine is the primary surface users see
+- ✅ Users can initiate authoring from play spine ("Work on this place")
+- ✅ Authoring workbench opens as overlay/side-panel
+- ✅ Users can return from authoring to play spine
+- ✅ Changes made in authoring are immediately visible in play spine
+- ✅ Complete workflow: Play → Author → Return → See results
+- ✅ Draft worldview renders correctly
+- ✅ All existing message types display properly
+- ✅ No regressions in existing functionality
+
+### Quality Metrics
+
+- All existing tests pass
+- No console errors or warnings
+- Responsive design works on desktop and mobile
+- UI is consistent and polished
+- Error states handled gracefully
+
+---
+
+## Future Considerations (Post-Iteration 1)
+
+These features are explicitly deferred but should be considered in the architecture:
+
+### Visibility Management
+- Asset inclusion toggles
+- Worldview selection UI
+- Multi-worldview support
+
+### Collaboration Features
+- Side-thread messaging
+- Invitations and sharing
+- Collaboration workflows
+
+### Governance Features
+- Canon promotion workflows
+- Moderation flows
+- Review and approval processes
+
+### Meta-System Features
+- Tutorials (as side-tracks returning to play spine)
+- Settings (as side-tracks returning to play spine)
+- Admin/moderation dashboards
+
+**Architecture Note**: The workbench container is designed to be reusable for these future features (side-threads, deliberation, tutorials, collaboration).
+
+---
+
+## Related Documentation
+
+- **[Handoff Document](src/ui_refactor_handoff_chat_spine_authoring_workbench.md)**: Original requirements and design intent
+- **[Client Architecture](AGENT.md)**: Current client system documentation
+- **[Message Persistence](src/slices/messages/AGENT.md)**: Message storage and synchronization
+- **[Client Testing Standards](AGENT.testing.md)**: Testing patterns and guidelines
+- **[Development Roadmap](../AGENT.development.md)**: Overall project migration planning
+
+---
+
+## Document Maintenance
+
+**Update this document when**:
+- Phase status changes (mark phases as in-progress, completed)
+- Tasks are completed (update checkboxes)
+- Blockers are identified (add to risk mitigation)
+- Decisions are made (document in relevant phase)
+- Architecture evolves (update target architecture section)
+
+**Keep this document**:
+- Current with implementation progress
+- Aligned with handoff document requirements
+- Clear about what's in/out of scope
+- Useful for breaking into tactical plans
