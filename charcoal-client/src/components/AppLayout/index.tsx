@@ -2,7 +2,7 @@
 // The AppLayout component handles high-level styling and positioning of data components within the app
 //
 
-import React, { FunctionComponent, useCallback, useMemo, useRef } from 'react'
+import React, { FunctionComponent, useCallback, useMemo, useRef, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
     BrowserRouter as Router,
@@ -10,7 +10,8 @@ import {
     Route,
     Link,
     useParams,
-    useLocation
+    useLocation,
+    useNavigate
 } from "react-router-dom"
 
 import './index.css'
@@ -50,7 +51,7 @@ import NavigationContextProvider, { useNavigationContext } from './NavigationCon
 import { getMyCharacters, getMySettings, getPlayer } from '../../slices/player'
 import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
-import { getClientSettings } from '../../slices/settings'
+import { getClientSettings, getCurrentCharacterId } from '../../slices/settings'
 import TutorialPopover from '../Onboarding/TutorialPopover'
 
 const a11yProps = (index: number) => {
@@ -273,6 +274,36 @@ const NavigationTabs = () => {
 }
 
 
+// Component to handle initial navigation to persisted character
+// Must be inside Router context
+const InitialCharacterNavigation: FunctionComponent = () => {
+    const currentCharacterId = useSelector(getCurrentCharacterId)
+    const myCharacters = useSelector(getMyCharacters)
+    const { guestId } = useSelector(getMySettings)
+    const navigate = useNavigate()
+    const location = useLocation()
+
+    // Navigate to persisted character on initial load
+    useEffect(() => {
+        // Only navigate if we're not already on a character route to avoid redirect loops
+        const isOnCharacterRoute = location.pathname.startsWith('/Character/')
+        
+        if (currentCharacterId && !isOnCharacterRoute && myCharacters.length > 0) {
+            // Convert EphemeraCharacterId to scopedId
+            if (currentCharacterId === `CHARACTER#${guestId}`) {
+                navigate('/Character/Guest/Play')
+            } else {
+                const character = myCharacters.find(({ CharacterId }) => (CharacterId === currentCharacterId))
+                if (character?.scopedId) {
+                    navigate(`/Character/${character.scopedId}/Play`)
+                }
+            }
+        }
+    }, [currentCharacterId, myCharacters, guestId, navigate, location.pathname])
+
+    return null
+}
+
 export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, onboardingPanel, feedbackMessage, closeFeedback, signInOrUp }: any) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const { AlwaysShowOnboarding } = useSelector(getClientSettings)
@@ -306,6 +337,7 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
         </Routes>
     ), [onboardingPanel, routes])
     return <Router>
+        <InitialCharacterNavigation />
         <Box
             sx={{
                 height: "calc(var(--vh, 1vh) * 100)",
