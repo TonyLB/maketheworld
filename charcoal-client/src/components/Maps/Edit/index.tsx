@@ -9,7 +9,6 @@ import MapArea from './Area'
 import MapLayers from './MapLayers'
 import ToolSelect from './Area/ToolSelect'
 import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
-import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import MapController from '../Controller'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 import TutorialPopover from '../../Onboarding/TutorialPopover'
@@ -22,14 +21,7 @@ type MapEditProps = {
 export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const { standardForm } = useLibraryAsset()
     const { AssetId: assetKey, MapId: mapId } = useParams<{ AssetId: string; MapId: string }>()
-    useAutoPin({
-        href: `/Library/Edit/Asset/${assetKey}/Map/${mapId}`,
-        label: `${mapId}`,
-        type: 'MapEdit',
-        iconName: 'MapEdit',
-        mapId: `MAP#${mapId}` as `MAP#${string}`,
-        cascadingClose: true
-    })
+    // Removed useAutoPin - tab navigation removed
     useOnboardingCheckpoint('editMap', { requireSequence: true })
     const mapComponent = useMemo<StandardMap | undefined>(() => {
         const mapComponent = standardForm.byId[mapId ?? '']

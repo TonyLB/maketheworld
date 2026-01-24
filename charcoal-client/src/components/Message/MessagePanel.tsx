@@ -7,7 +7,6 @@ import VirtualMessageList from './VirtualMessageList'
 import { parseCommand } from '../../slices/lifeLine'
 import LineEntry from '../LineEntry'
 import { useActiveCharacter } from '../ActiveCharacter'
-import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { addItem, setIntent } from '../../slices/activeCharacters'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
@@ -23,13 +22,7 @@ export const MessagePanel: FunctionComponent<{}> = () => {
     const navigate = useNavigate()
     const { CharacterId, info: { Name = '???' } = {}, scopedId } = useActiveCharacter()
     const [showCharacterModal, setShowCharacterModal] = useState(false)
-    useAutoPin({
-        href: `/Character/${scopedId}/Play`,
-        label: `Play: ${Name}`,
-        type: 'MessagePanel',
-        scopedId,
-        characterId: CharacterId
-    })
+    // Removed useAutoPin - tab navigation removed
     useOnboardingCheckpoint('navigatePlay')
     useOnboardingCheckpoint('navigateInPlayEdit', { requireSequence: true })
     useOnboardingCheckpoint('navigatePlayWithAsset', { requireSequence: true })

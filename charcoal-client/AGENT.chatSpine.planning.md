@@ -218,14 +218,23 @@ Current visibility: Private draft
    - **Rationale**: Chat-focused play spine requires messaging to be the primary surface, with character selection as a secondary action
    - **Implementation Note**: Auto-selection logic in `PlaySpineRoot` checks `totalOptions === 1` and dispatches `putClientSettings` to select the single available character
 
-3. **Remove tab-based primary navigation**
-   - Replace with single, stable play surface
-   - Ensure play spine is always accessible
+3. **Remove tab-based primary navigation** ✅ **COMPLETED**
+   - ✅ Removed `NavigationTabs` component from `AppLayout`
+   - ✅ Updated grid layout to remove tabs area (landscape: `"content"` or `"content sidebar"`, portrait: `"content"`)
+   - ✅ Removed all `useAutoPin` hook calls from components
+   - ✅ Deleted `navigationTabs` slice (`slices/UI/navigationTabs/index.ts` and `useAutoPin.ts`)
+   - ✅ Deleted `NavigationContext` component
+   - ✅ Removed navigation tabs from store reducer
+   - ✅ Removed test mocks for navigation tabs
+   - ✅ Settings, Who, Onboarding remain accessible via direct routes
+   - **Rationale**: Play spine should be the single, stable primary surface. Tab-based navigation competed with play spine for user attention.
+   - **Implementation Note**: All routes remain functional via direct navigation. Components no longer auto-pin tabs when mounted.
 
-4. **Wire draft worldview rendering**
-   - Connect play spine to render player's draft worldview
-   - Enable immediate visual feedback for edits
-   - Add "Draft" label/placard for visibility
+4. **Wire draft worldview rendering** (UI Placeholder)
+   - Add "Draft" label/placard in play spine UI for visibility
+   - Document that actual draft worldview rendering depends on backend message/perception system refactor
+   - Add code comments indicating this is a placeholder that will become functional when backend supports draft worldview selection
+   - **Note**: Play spine currently receives messages from backend based on player Authorization settings. Full draft worldview rendering requires backend changes to message crafting system. For Phase 1, we add UI indicator only.
 
 **Success Criteria**:
 - ✅ Current character selection persists across sessions
@@ -235,9 +244,11 @@ Current visibility: Private draft
 - ✅ Character selection available via modal overlay (accessible from message panel or when no character selected)
 - ✅ Auto-selection when only one character option exists (improves UX for single-character scenarios)
 - ✅ Library and Knowledge moved to `/Explore` placeholder route
+- ✅ Tab-based navigation removed (play spine is now single, stable primary surface)
+- ✅ All routes remain accessible via direct navigation (Settings, Who, Onboarding, Library, etc.)
 - ⏳ One worldview rendered at a time (pending task 4)
 - ✅ Sticky room summary preserved and functional (existing `MessagePanel` behavior maintained)
-- ⏳ Draft worldview renders correctly (pending task 4)
+- ⏳ Draft worldview UI indicator added (pending task 4 - UI placeholder only; full rendering requires backend refactor)
 - ✅ All existing message types display properly (no changes to message rendering logic)
 
 **Dependencies**: None (can start immediately)

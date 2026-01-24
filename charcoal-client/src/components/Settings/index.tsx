@@ -22,7 +22,6 @@ import { clear as clearPersonalAssets } from '../../slices/personalAssets'
 import { clear as clearMessages } from '../../slices/messages'
 import { clear as clearPerceptionCache } from '../../slices/perceptionCache'
 import { clear as clearActiveCharacters } from '../../slices/activeCharacters'
-import { clear as clearNavigationTabs } from '../../slices/UI/navigationTabs'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 import { useNavigate } from 'react-router-dom'
 
@@ -46,7 +45,7 @@ const signOut = (dispatch: any, getState: any) => {
     dispatch(clearMessages())
     dispatch(clearPerceptionCache())
     dispatch(clearActiveCharacters())
-    dispatch(clearNavigationTabs())
+    // Removed clearNavigationTabs - navigation tabs removed
     dispatch(heartbeat)
   }
   

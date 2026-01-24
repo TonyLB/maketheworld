@@ -25,7 +25,6 @@ import {
 import AssetIcon from '@mui/icons-material/Landscape'
 import AddIcon from '@mui/icons-material/Add'
 
-import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { getMyCharacters, getMyDraftAssets, getMyPersonalAssets } from '../../slices/player'
 import { subscribeToLibrary, unsubscribeFromLibrary, getIsLibrarySubscribed, getLibraryAssetIds } from '../../slices/libraryDataSource'
 import { socketDispatchPromise } from '../../slices/lifeLine'
@@ -250,7 +249,6 @@ export const Library: FunctionComponent<LibraryProps> = () => {
         setSelectedLibraryIndex(undefined)
         setLibraryPreviewItem(undefined)
     }
-    useAutoPin({ href: `/Library/`, label: `Library`, iconName: 'Library', type: 'Library' })
     const navigate = useNavigate()
     const DraftAssets = useSelector(getMyDraftAssets)
     const PersonalAssets = useSelector(getMyPersonalAssets)
