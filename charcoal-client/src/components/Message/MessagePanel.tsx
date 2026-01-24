@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, FunctionComponent } from 'react'
+import React, { useCallback, useEffect, FunctionComponent, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Box } from '@mui/material'
+import { Box, IconButton } from '@mui/material'
+import PersonIcon from '@mui/icons-material/Person'
 
 import VirtualMessageList from './VirtualMessageList'
 import { parseCommand } from '../../slices/lifeLine'
@@ -15,11 +16,13 @@ import { addOnboardingComplete } from '../../slices/player/index.api'
 import { OnboardingKey } from '../Onboarding/checkpoints'
 import { getPlayer } from '../../slices/player'
 import { useNavigate } from 'react-router-dom'
+import CharacterSelectionModal from '../CharacterSelection'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const { CharacterId, info: { Name = '???' } = {}, scopedId } = useActiveCharacter()
+    const [showCharacterModal, setShowCharacterModal] = useState(false)
     useAutoPin({
         href: `/Character/${scopedId}/Play`,
         label: `Play: ${Name}`,
@@ -54,30 +57,55 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         }
         return true
     }, [dispatch, CharacterId, scopedId, navigate])
-    return <Box sx={{
-            display: 'grid',
-            height: '100%',
-            position: 'relative',
-            gridTemplateColumns: "1fr",
-            gridTemplateRows: "1fr auto",
-            gridTemplateAreas: `
-                "messages"
-                "input"
-            `
-        }}>
+    return (
+        <>
             <Box sx={{
-                gridArea: 'messages',
-                position: 'relative'
+                display: 'grid',
+                height: '100%',
+                position: 'relative',
+                gridTemplateColumns: "1fr",
+                gridTemplateRows: "1fr auto",
+                gridTemplateAreas: `
+                    "messages"
+                    "input"
+                `
             }}>
-                <VirtualMessageList />
+                <Box sx={{
+                    gridArea: 'messages',
+                    position: 'relative'
+                }}>
+                    <IconButton
+                        onClick={() => setShowCharacterModal(true)}
+                        sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            zIndex: 1000,
+                            backgroundColor: 'background.paper',
+                            '&:hover': {
+                                backgroundColor: 'action.hover'
+                            }
+                        }}
+                        title="Switch Character"
+                    >
+                        <PersonIcon />
+                    </IconButton>
+                    <VirtualMessageList />
+                </Box>
+                <Box sx={{
+                    gridArea: 'input',
+                    width: '100%'
+                }}>
+                    <LineEntry callback={handleInput} />
+                </Box>
             </Box>
-            <Box sx={{
-                gridArea: 'input',
-                width: '100%'
-            }}>
-                <LineEntry callback={handleInput} />
-            </Box>
-        </Box>
+            <CharacterSelectionModal
+                open={showCharacterModal}
+                onClose={() => setShowCharacterModal(false)}
+                required={false}
+            />
+        </>
+    )
 }
 
 export default MessagePanel
