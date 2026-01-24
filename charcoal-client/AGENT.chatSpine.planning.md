@@ -53,6 +53,14 @@ The current client implements a **dual-mode architecture** with clear separation
 - **Weak spatial orientation**: Users may not have clear sense of "where they are" in the system
 - **Mode switching**: Explicit routing between authoring and playing contexts
 
+### Current Character Selection
+
+- **URL-based selection**: Character is determined by route parameter `/Character/:CharacterId/*`
+- **No persistence**: Character selection is not stored across sessions
+- **Settings infrastructure exists**: `clientSettings` table in IndexedDB already persists other preferences (TextEntryLines, ShowNeighborhoodHeaders, etc.)
+- **Missing**: No `currentCharacterId` preference stored or loaded on app startup
+- **Implication for refactor**: Play spine needs to know which character to render on initial load, requiring persistence mechanism
+
 ### Current Message System
 
 The client already has:
@@ -188,21 +196,33 @@ Current visibility: Private draft
 **Goal**: Establish chat-focused play spine as primary surface
 
 **Key Tasks**:
-1. **Refactor layout structure**
+1. **Implement current character persistence**
+   - Add `currentCharacterId` to `ClientSettings` interface in `settings/index.ts`
+   - Add `CurrentCharacterIdType` to `ClientSettingType` union in `cacheDB/index.ts`
+   - Store as `EphemeraCharacterId | null` (null if no character selected)
+   - Load persisted character on app startup via existing `loadClientSettings`
+   - Update stored character when user switches characters (via `putClientSettings`)
+   - Use persisted character for initial play spine routing
+   - **Rationale**: Play spine needs to know which character's worldview to render on initial load
+
+2. **Refactor layout structure**
    - Create play spine as primary/dominant surface
    - Preserve sticky room summary functionality
    - Maintain existing message types and rendering
 
-2. **Remove tab-based primary navigation**
+3. **Remove tab-based primary navigation**
    - Replace with single, stable play surface
    - Ensure play spine is always accessible
 
-3. **Wire draft worldview rendering**
+4. **Wire draft worldview rendering**
    - Connect play spine to render player's draft worldview
    - Enable immediate visual feedback for edits
    - Add "Draft" label/placard for visibility
 
 **Success Criteria**:
+- Current character selection persists across sessions
+- App loads with correct character's play spine (or character selection if none stored)
+- Character switching updates persisted selection
 - Play spine is the primary surface users see
 - One worldview rendered at a time
 - Sticky room summary preserved and functional
@@ -524,6 +544,8 @@ This section guides AI agents (and human collaborators) through context gatherin
 - `src/components/Library/Edit/` - Current authoring interface
 - `src/slices/messages/` - Message persistence (see [AGENT.md](src/slices/messages/AGENT.md))
 - `src/slices/personalAssets/` - Asset management
+- `src/slices/settings/` - Client settings (includes IndexedDB persistence pattern for character selection)
+- `src/cacheDB/index.ts` - IndexedDB schema (clientSettings table structure)
 
 ### 4. Review Implemented Code
 
