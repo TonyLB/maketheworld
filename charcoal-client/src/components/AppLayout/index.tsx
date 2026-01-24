@@ -40,6 +40,8 @@ import EditIcon from '@mui/icons-material/Edit'
 import ActiveCharacter from '../ActiveCharacter'
 import InDevelopment from '../InDevelopment'
 import ChoiceDialog from '../ChoiceDialog'
+import CharacterSelectionModal from '../CharacterSelection'
+import Explore from '../Explore'
 
 import MapView from '../Maps/View'
 import Library from '../Library'
@@ -49,9 +51,11 @@ import { closeTab, navigationTabs, navigationTabSelected } from '../../slices/UI
 import EditCharacter from '../Library/Edit/EditCharacter'
 import NavigationContextProvider, { useNavigationContext } from './NavigationContext'
 import { getMyCharacters, getMySettings, getPlayer } from '../../slices/player'
+import { playerDataSourceSelectors } from '../../slices/player/playerDataSource'
 import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
 import { getClientSettings, getCurrentCharacterId } from '../../slices/settings'
+import { putClientSettings } from '../../slices/settings'
 import TutorialPopover from '../Onboarding/TutorialPopover'
 
 const a11yProps = (index: number) => {
@@ -274,34 +278,70 @@ const NavigationTabs = () => {
 }
 
 
-// Component to handle initial navigation to persisted character
-// Must be inside Router context
-const InitialCharacterNavigation: FunctionComponent = () => {
+// Component to render play spine at root path
+// Shows MessagePanel if character is selected, CharacterSelectionModal if not
+const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = ({ messagePanel }) => {
     const currentCharacterId = useSelector(getCurrentCharacterId)
     const myCharacters = useSelector(getMyCharacters)
     const { guestId } = useSelector(getMySettings)
-    const navigate = useNavigate()
-    const location = useLocation()
-
-    // Navigate to persisted character on initial load
+    const dispatch = useDispatch()
+    const playerDataSourceStatus = useSelector(playerDataSourceSelectors.getStatus)
+    
+    // Check if player data is loaded
+    const isPlayerDataLoaded = playerDataSourceStatus === 'READY' || playerDataSourceStatus === 'SUBSCRIBED'
+    
+    // Check available character options
+    const hasCharacters = myCharacters && myCharacters.length > 0 && myCharacters.some(({ scopedId }) => scopedId)
+    const hasGuestOption = guestId !== undefined && guestId !== null
+    const characterCount = hasCharacters ? myCharacters.filter(({ scopedId }) => scopedId).length : 0
+    const totalOptions = characterCount + (hasGuestOption ? 1 : 0)
+    
+    // Auto-select if there's only one character option and no current selection
     useEffect(() => {
-        // Only navigate if we're not already on a character route to avoid redirect loops
-        const isOnCharacterRoute = location.pathname.startsWith('/Character/')
-        
-        if (currentCharacterId && !isOnCharacterRoute && myCharacters.length > 0) {
-            // Convert EphemeraCharacterId to scopedId
-            if (currentCharacterId === `CHARACTER#${guestId}`) {
-                navigate('/Character/Guest/Play')
-            } else {
-                const character = myCharacters.find(({ CharacterId }) => (CharacterId === currentCharacterId))
-                if (character?.scopedId) {
-                    navigate(`/Character/${character.scopedId}/Play`)
+        if (!currentCharacterId && isPlayerDataLoaded && totalOptions === 1) {
+            if (hasGuestOption && !hasCharacters) {
+                // Only Guest available
+                dispatch(putClientSettings({ currentCharacterId: `CHARACTER#${guestId}` as const }))
+            } else if (hasCharacters && characterCount === 1) {
+                // Only one regular character available
+                const character = myCharacters.find(({ scopedId }) => scopedId)
+                if (character?.CharacterId) {
+                    dispatch(putClientSettings({ currentCharacterId: character.CharacterId }))
                 }
             }
         }
-    }, [currentCharacterId, myCharacters, guestId, navigate, location.pathname])
+    }, [currentCharacterId, isPlayerDataLoaded, totalOptions, hasGuestOption, hasCharacters, characterCount, myCharacters, guestId, dispatch])
 
-    return null
+    // If no character selected, show selection modal (unless we're auto-selecting)
+    if (!currentCharacterId) {
+        // Show nothing while auto-selecting (will re-render once selection is set)
+        // Or show modal if multiple options
+        if (isPlayerDataLoaded && totalOptions === 1) {
+            // Auto-selection in progress, return null to avoid showing modal
+            return null
+        }
+        return <CharacterSelectionModal open={true} required={true} />
+    }
+
+    // Convert EphemeraCharacterId to the format needed for ActiveCharacter
+    // ActiveCharacter expects EphemeraCharacterId directly
+    const characterId = currentCharacterId
+
+    // Verify character exists
+    const isValidCharacter = characterId === `CHARACTER#${guestId}` || 
+        myCharacters.some(({ CharacterId }) => CharacterId === characterId)
+
+    if (!isValidCharacter) {
+        // Character no longer exists, show selection modal
+        return <CharacterSelectionModal open={true} required={true} />
+    }
+
+    // Render MessagePanel wrapped in ActiveCharacter context
+    return (
+        <ActiveCharacter CharacterId={characterId}>
+            {messagePanel}
+        </ActiveCharacter>
+    )
 }
 
 export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, onboardingPanel, feedbackMessage, closeFeedback, signInOrUp }: any) => {
@@ -318,10 +358,11 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
             <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
             <Route path="/Knowledge/" element={<Knowledge />} />
             <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
+            <Route path="/Explore" element={<Explore />} />
             <Route path="/Who/" element={whoPanel} />
             <Route path="/Settings/" element={settingsPanel} />
             <Route path="/index.html" element={homePanel} />
-            <Route path="/" element={homePanel} />
+            <Route path="/" element={<PlaySpineRoot messagePanel={messagePanel} />} />
         </Routes>
     ), [messagePanel, whoPanel, settingsPanel, homePanel])
     const routeWrapper = useMemo(() => (
@@ -337,7 +378,6 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
         </Routes>
     ), [onboardingPanel, routes])
     return <Router>
-        <InitialCharacterNavigation />
         <Box
             sx={{
                 height: "calc(var(--vh, 1vh) * 100)",

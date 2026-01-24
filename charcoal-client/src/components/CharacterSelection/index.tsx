@@ -1,0 +1,204 @@
+import React, { FunctionComponent, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useSelector, useDispatch } from 'react-redux'
+
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import Avatar from '@mui/material/Avatar'
+import Box from '@mui/material/Box'
+import { Grid } from '@mui/material'
+import Stack from '@mui/material/Stack'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import IconButton from '@mui/material/IconButton'
+import CloseIcon from '@mui/icons-material/Close'
+import GuestIcon from '@mui/icons-material/PersonSearch'
+
+import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
+import { getConfiguration } from '../../slices/configuration'
+import { getMySettings, getMyCharacters } from '../../slices/player'
+import { playerDataSourceSelectors } from '../../slices/player/playerDataSource'
+import { putClientSettings } from '../../slices/settings'
+import TutorialPopover from '../Onboarding/TutorialPopover'
+import Spinner from '../Spinner'
+import { DevEnvironment } from '../../environment'
+
+type CharacterSelectionModalProps = {
+    open: boolean;
+    onClose?: () => void;
+    required?: boolean; // If true, modal cannot be dismissed
+}
+
+export const CharacterSelectionModal: FunctionComponent<CharacterSelectionModalProps> = ({
+    open,
+    onClose,
+    required = false
+}) => {
+    const { guestId } = useSelector(getMySettings)
+    const myCharacters = useSelector(getMyCharacters)
+    const playerDataSourceStatus = useSelector(playerDataSourceSelectors.getStatus)
+    const dispatch = useDispatch()
+    const navigate = useNavigate()
+    const medium = useMediaQuery('(min-width: 600px)')
+    const large = useMediaQuery('(min-width: 1200px)')
+    const iconSize = large ? 80 : medium ? 60 : 40
+    const { AppBaseURL = '' } = useSelector(getConfiguration)
+    const appBaseURL = DevEnvironment ? `https://${AppBaseURL}` : ''
+    const guest = useRef<HTMLDivElement>()
+
+    // Check if player data is still loading
+    const isPlayerDataLoading = playerDataSourceStatus !== 'READY' && playerDataSourceStatus !== 'SUBSCRIBED'
+    
+    // Check if we have characters available (after loading completes)
+    const hasCharacters = myCharacters && myCharacters.length > 0 && myCharacters.some(({ scopedId }) => scopedId)
+    const hasGuestOption = guestId !== undefined && guestId !== null
+    
+    // Keep showing spinner if data is still loading or we don't have any character options yet
+    const shouldShowSpinner = isPlayerDataLoading || (!hasCharacters && !hasGuestOption)
+
+    const handleCharacterSelect = (characterId: string, isGuest: boolean = false) => {
+        if (isGuest && guestId) {
+            dispatch(putClientSettings({ currentCharacterId: `CHARACTER#${guestId}` as const }))
+        } else {
+            const character = myCharacters.find(({ CharacterId }) => (CharacterId === characterId))
+            if (character?.CharacterId) {
+                dispatch(putClientSettings({ currentCharacterId: character.CharacterId }))
+            }
+        }
+        // Navigate to root, which will show the chat interface
+        navigate('/')
+        if (onClose) {
+            onClose()
+        }
+    }
+
+    const handleClose = (event?: {}, reason?: string) => {
+        // Prevent closing if required
+        if (required && reason !== 'backdropClick') {
+            return
+        }
+        if (onClose) {
+            onClose()
+        }
+    }
+
+    return (
+        <Dialog
+            open={open}
+            onClose={handleClose}
+            maxWidth="md"
+            fullWidth
+            disableEscapeKeyDown={required}
+        >
+            <DialogTitle>
+                Select a Character
+                {!required && (
+                    <IconButton
+                        aria-label="close"
+                        onClick={handleClose}
+                        sx={{
+                            position: 'absolute',
+                            right: 8,
+                            top: 8,
+                        }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                )}
+            </DialogTitle>
+            <DialogContent>
+                <Box sx={{ flexGrow: 1, padding: "10px" }}>
+                    <Grid
+                        sx={{ width: "100%", padding: "10px" }}
+                        container
+                        direction="row"
+                        justifyContent="center"
+                        spacing={3}
+                    >
+                        {shouldShowSpinner && (
+                            <Grid
+                                container
+                                size={{ sm: 3 }}
+                                sx={{
+                                    justifyContent: 'center',
+                                    alignContent: 'center',
+                                }}
+                            >
+                                <Stack
+                                    direction="column"
+                                    justifyContent="center"
+                                    alignItems="center"
+                                    spacing={2}
+                                >
+                                    <Spinner size={iconSize} border={iconSize * 0.1} />
+                                    <React.Fragment>Loading...</React.Fragment>
+                                </Stack>
+                            </Grid>
+                        )}
+                        {!shouldShowSpinner && hasGuestOption && (
+                            <Grid
+                                container
+                                size={{ sm: 3 }}
+                                sx={{
+                                    justifyContent: 'center',
+                                    alignContent: 'center',
+                                    cursor: 'pointer'
+                                }}
+                                onClick={() => handleCharacterSelect('', true)}
+                            >
+                                <Stack
+                                    direction="column"
+                                    justifyContent="center"
+                                    alignItems="center"
+                                    spacing={2}
+                                >
+                                    <Avatar
+                                        sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                                        alt='Guest'
+                                        ref={guest as any}
+                                    >
+                                        <GuestIcon fontSize="large" />
+                                    </Avatar>
+                                    <React.Fragment>Guest</React.Fragment>
+                                </Stack>
+                                <TutorialPopover anchorEl={guest as any} placement="right" checkPoints={['navigateInPlayEdit']} />
+                            </Grid>
+                        )}
+                        {!shouldShowSpinner && hasCharacters && myCharacters.filter(({ scopedId }) => (scopedId)).map(({ Name, fileURL, scopedId, CharacterId }) => (
+                            scopedId && 
+                            <Grid
+                                key={`${Name}:${scopedId}`}
+                                container
+                                size={{ sm: 3 }}
+                                sx={{
+                                    justifyContent: 'center',
+                                    alignContent: 'center',
+                                    cursor: 'pointer'
+                                }}
+                                onClick={() => handleCharacterSelect(CharacterId)}
+                            >
+                                <Stack
+                                    direction="column"
+                                    justifyContent="center"
+                                    alignItems="center"
+                                    spacing={2}
+                                >
+                                    <Avatar
+                                        sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                                        alt={Name || '???'}
+                                        src={fileURL && `${appBaseURL}/images/${fileURL}.png`}
+                                    >
+                                        {Name[0] ? Name[0].toUpperCase() : '?'}
+                                    </Avatar>
+                                    <React.Fragment>{ Name }</React.Fragment>
+                                </Stack>
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Box>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+export default CharacterSelectionModal
