@@ -177,6 +177,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             if (props.key !== undefined) {
                 this._key = new StandardExplicitKey(props.key)
             }
+            this._from = (props as any).from
+            this._origin = (props as any).origin
             this._payload.fromJSON(props)
             // Backwards compatibility: silently ignore implicitParent if present in JSON
             // (it's no longer used, but old data may still contain it)
