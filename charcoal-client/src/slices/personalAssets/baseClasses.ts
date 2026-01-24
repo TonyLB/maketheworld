@@ -4,9 +4,10 @@ import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMR
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { SchemaMetaTag } from '@tonylb/mtw-base/ts/schema/metaData';
+import { AssetUUID } from '@tonylb/mtw-base/ts/schema';
 
 export interface PersonalAssetsInternal {
-    id?: string;
+    id?: AssetUUID;
     incrementalBackoff: number;
     fetchURL?: string;
     saveURL?: string;

@@ -21,7 +21,7 @@ export type StreamingEventMessage = {
     type: 'StreamingEvent';
     dataSourceKey: 'internal';
     streamKey: string;
-    event: CoordinationEventUpdate;
+    detailEnvelope: CoordinationEventUpdate;
     timestamp: number;
 }
 

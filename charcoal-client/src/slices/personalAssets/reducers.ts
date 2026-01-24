@@ -55,6 +55,11 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     const mergeToEdit = (delta: StandardForm): void => {
         const editStandardized = new StandardForm(state.edit)
         const merged = editStandardized.merge(delta)
+        // Ensure the edit has the correct universalKey from the base
+        // (it may be 'ASSET#uninitialized' if never properly initialized)
+        if (merged.universalKey === 'ASSET#uninitialized' && state.base.universalKey !== 'ASSET#uninitialized') {
+            merged._universalKey = state.base.universalKey
+        }
         state.edit = merged.toJSON()
     }
     if (isUpdateStandardPayloadSetBase(payload)) {

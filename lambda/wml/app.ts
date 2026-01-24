@@ -125,7 +125,7 @@ export const handler = async (event: any, context: any) => {
                 type: 'StreamingEvent',
                 dataSourceKey: 'internal',
                 streamKey: request.AssetId,
-                event: {
+                detailEnvelope: {
                     type: 'Apply Edit',
                     RequestId: request.RequestId ?? '',
                     schema: request.schema,
@@ -141,7 +141,7 @@ export const handler = async (event: any, context: any) => {
                 type: 'StreamingEvent',
                 dataSourceKey: 'internal',
                 streamKey: request.AssetId,
-                event: {
+                detailEnvelope: {
                     type: 'Move Asset',
                     fromZone: request.fromZone,
                     toZone: request.toZone,
@@ -157,7 +157,7 @@ export const handler = async (event: any, context: any) => {
                 type: 'StreamingEvent',
                 dataSourceKey: 'internal',
                 streamKey: request.AssetId,
-                event: {
+                detailEnvelope: {
                     type: 'Purge Asset',
                     expectedZone: request.expectedZone,
                     requireExists: request.requireExists

@@ -111,8 +111,18 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                             // Don't fail the edit operation if streaming fails
                         }
                     } else {
-                        // Failed edits don't stream events - they just fail silently
-                        // The error is logged but not propagated to clients
+                        // Stream Merge Conflict event for failed edits so client knows the edit failed
+                        try {
+                            await streamEvent({
+                                update: {
+                                    type: 'Merge Conflict',
+                                    error: result.error
+                                },
+                                streamKey: AssetId
+                            })
+                        } catch (streamError) {
+                            console.error(`Error streaming Merge Conflict event for ${AssetId}:`, streamError)
+                        }
                     }
                 } catch (error) {
                     console.error(`Error processing applyEdit for ${AssetId}:`, error)

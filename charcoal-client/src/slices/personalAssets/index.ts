@@ -23,7 +23,6 @@ import {
     saveEdit as saveEditReducer,
     UpdateStandardPayload
 } from './reducers'
-import { EphemeraAssetId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
@@ -223,7 +222,7 @@ export const {
     getPendingEdits
 } = selectors
 
-export const newAsset = (assetId: EphemeraAssetId | EphemeraCharacterId) => (dispatch: any) => {
+export const newAsset = (assetId: AssetUUID) => (dispatch: any) => {
     dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
 }
 
@@ -262,9 +261,10 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
     const edit = selectors.getEdit(key)(state)
     const standardForm = new StandardForm(edit)
     if (!standardForm.isEmpty()) {
+        // Ensure the universalKey is set to the correct asset key
+        // (it may be 'ASSET#uninitialized' if the edit was never properly initialized)
         if (standardForm.universalKey !== key) {
-            // Defensive: ensure edits target the current asset key
-            console.warn(`personalAssets.saveEdit: universalKey mismatch (have ${standardForm.universalKey}, expected ${key})`)
+            standardForm._universalKey = key as AssetUUID
         }
         const schema = schemaToWML([standardForm.schema])
         const requestId = uuidv4()
@@ -279,7 +279,7 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
 }
 
 export const addImport = ({ assetId, fromAsset, uuid, tag }: {
-    assetId: EphemeraAssetId | EphemeraCharacterId,
+    assetId: AssetUUID,
     fromAsset: AssetUUID,
     tag: SchemaImportMapping["type"];
     uuid: ComponentUUID
@@ -336,7 +336,7 @@ export const addImport = ({ assetId, fromAsset, uuid, tag }: {
     dispatch(heartbeat)
 }
 
-export const requestLLMGeneration = ({ assetId, roomId }: { assetId: EphemeraAssetId, roomId: ComponentUUID }) => async (dispatch: any, getState: any) => {
+export const requestLLMGeneration = ({ assetId, roomId }: { assetId: AssetUUID, roomId: ComponentUUID }) => async (dispatch: any, getState: any) => {
     const standardSelector = getStandardForm(assetId)
     const standard = standardSelector(getState())
 

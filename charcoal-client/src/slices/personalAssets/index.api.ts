@@ -2,19 +2,21 @@ import { v4 as uuidv4 } from 'uuid'
 import { PersonalAssetsCondition, PersonalAssetsAction, PersonalAssetsPublic } from './baseClasses'
 import {
     socketDispatchPromise,
-    getStatus
+    getStatus,
+    LifeLinePubSub
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/ts/parser/tokenizer/baseClasses'
-import { AssetClientFetchImports, AssetClientParseWML, AssetClientUploadURL } from '@tonylb/mtw-interfaces/ts/asset'
+import { AssetClientFetchImports } from '@tonylb/mtw-interfaces/ts/asset'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/ts/schema'
-import { isEphemeraAssetId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { getStandardForm, updateStandard } from '.'
+import { getStandardForm, updateStandard, receiveWMLEvent } from '.'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { publicSelectors } from './selectors'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
-import { isImportable, ComponentUUID, AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { isImportable, ComponentUUID, AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { isSubscriptionClientMessage, WMLSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -36,7 +38,20 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     if (!fetchURL) {
         throw new Error()
     }
-    let subscription: any = undefined
+    // Subscribe to LifeLinePubSub to receive WML StreamEvent messages for this asset
+    // This allows us to receive Content Update events that clear pendingEdits
+    const subscription = id ? LifeLinePubSub.subscribe(({ payload }) => {
+        // Filter for StreamEvent messages from mtw.wml data source
+        if (isSubscriptionClientMessage(payload) && 
+            payload.messageType === 'StreamEvent' && 
+            payload.dataSourceKey === 'mtw.wml' &&
+            payload.streamKey === id) {
+            const wmlEvent = payload as WMLSubscriptionClientMessage
+            // Route the event to receiveWMLEvent to handle Content Update and Merge Conflict events
+            dispatch(receiveWMLEvent(id)({ event: wmlEvent }))
+        }
+    }) : undefined
+    
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
     const schemaConverter = new Schema()
@@ -52,12 +67,20 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
         }
     }
     const standardForm = new StandardForm(schemaConverter.schema[0])
+    // Initialize edit with the correct universalKey from the base
+    const editUniversalKey: AssetUUID = (id && isSchemaAssetUUID(id)) ? id : 'ASSET#uninitialized' as AssetUUID
+    const editData: StandardFormData = { 
+        universalKey: editUniversalKey, 
+        components: [], 
+        metaData: [] 
+    }
     return {
         publicData: {
             originalWML: assetWML,
             currentWML: assetWML,
             base: standardForm.toJSON(),
             standard: standardForm.toJSON(),
+            edit: editData,
             serialized: true
         },
         internalData: { subscription }
@@ -124,14 +147,21 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
 export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async (dispatch) => {
     const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), key: '' })
 
-    if (id && isEphemeraAssetId(id) && standardForm.metaData.filter(treeNodeTypeguard(isSchemaImport))) {
+    if (id && isSchemaAssetUUID(id) && standardForm.metaData.filter(treeNodeTypeguard(isSchemaImport))) {
         await dispatch(fetchImports(id))
     }
     return {}
 }
 
-export const clearAction: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
-    return { publicData: { originalWML: undefined, currentWML: undefined } }
+export const clearAction: PersonalAssetsAction = ({ internalData: { id, subscription } }) => async (dispatch) => {
+    // Unsubscribe from LifeLinePubSub when clearing the asset
+    if (subscription) {
+        LifeLinePubSub.unsubscribe(subscription)
+    }
+    return { 
+        publicData: { originalWML: undefined, currentWML: undefined },
+        internalData: { subscription: undefined }
+    }
 }
 
 export const backoffAction: PersonalAssetsAction = ({ internalData: { incrementalBackoff = 0.5 }}) => async (dispatch) => {
@@ -195,34 +225,18 @@ export const regenerateWMLAction: PersonalAssetsAction = ({ publicData }) => asy
 }
 
 export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id } }) => async(dispatch) => {
-    if (!id) {
+    if (!id || !isSchemaAssetUUID(id)) {
         throw new Error()
     }
     const schema = new Schema()
-    if (isEphemeraAssetId(id)) {
-        schema._schema = [{
-            data: {
-                tag: 'Asset',
-                uuid: id,
-                Story: undefined
-            },
-            children: []
-        }]
-    }
-    else if (isEphemeraCharacterId(id)) {
-        schema._schema = [{
-            data: {
-                tag: 'Character',
-                key: id.split('#')[1],
-            },
-            children: [
-                { data: { tag: 'Name' }, children: [{ data: { tag: 'String', value: 'Unknown' }, children: [] }] },
-            ]
-        }]
-    }
-    else {
-        throw new Error()
-    }
+    schema._schema = [{
+        data: {
+            tag: 'Asset',
+            uuid: id,
+            Story: undefined
+        },
+        children: []
+    }]
     const newWML = schemaToWML(schema.schema)
     const standardForm = new StandardForm(schema.schema[0])
     return {
