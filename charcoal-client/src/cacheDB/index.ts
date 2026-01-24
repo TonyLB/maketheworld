@@ -23,7 +23,12 @@ export type LastSyncType = {
     value: Record<string, number>;
 }
 
-export type ClientSettingType = TextEntryLinesType | ShowNeighborhoodHeadersType | AlwaysShowOnboardingType | LastSyncType
+export type CurrentCharacterIdType = {
+    key: 'CurrentCharacterId';
+    value: EphemeraCharacterId | null;
+}
+
+export type ClientSettingType = TextEntryLinesType | ShowNeighborhoodHeadersType | AlwaysShowOnboardingType | LastSyncType | CurrentCharacterIdType
 
 export type CharacterSyncType = {
     CharacterId: EphemeraCharacterId;

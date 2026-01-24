@@ -196,14 +196,15 @@ Current visibility: Private draft
 **Goal**: Establish chat-focused play spine as primary surface
 
 **Key Tasks**:
-1. **Implement current character persistence**
-   - Add `currentCharacterId` to `ClientSettings` interface in `settings/index.ts`
-   - Add `CurrentCharacterIdType` to `ClientSettingType` union in `cacheDB/index.ts`
-   - Store as `EphemeraCharacterId | null` (null if no character selected)
-   - Load persisted character on app startup via existing `loadClientSettings`
-   - Update stored character when user switches characters (via `putClientSettings`)
-   - Use persisted character for initial play spine routing
+1. **Implement current character persistence** ✅ **COMPLETED**
+   - ✅ Added `currentCharacterId` to `ClientSettings` interface in `settings/index.ts`
+   - ✅ Added `CurrentCharacterIdType` to `ClientSettingType` union in `cacheDB/index.ts`
+   - ✅ Stored as `EphemeraCharacterId | null` (null if no character selected)
+   - ✅ Load persisted character on app startup via existing `loadClientSettings`
+   - ✅ Update stored character when user switches characters (via `putClientSettings`)
+   - ✅ Use persisted character for initial play spine routing via `InitialCharacterNavigation` component in `AppLayout`
    - **Rationale**: Play spine needs to know which character's worldview to render on initial load
+   - **Implementation Note**: Navigation logic placed in `InitialCharacterNavigation` component inside Router context to avoid `useNavigate()` context errors
 
 2. **Refactor layout structure**
    - Create play spine as primary/dominant surface
@@ -220,14 +221,14 @@ Current visibility: Private draft
    - Add "Draft" label/placard for visibility
 
 **Success Criteria**:
-- Current character selection persists across sessions
-- App loads with correct character's play spine (or character selection if none stored)
-- Character switching updates persisted selection
-- Play spine is the primary surface users see
-- One worldview rendered at a time
-- Sticky room summary preserved and functional
-- Draft worldview renders correctly
-- All existing message types display properly
+- ✅ Current character selection persists across sessions
+- ✅ App loads with correct character's play spine (or character selection if none stored)
+- ✅ Character switching updates persisted selection
+- ⏳ Play spine is the primary surface users see (pending tasks 2-4)
+- ⏳ One worldview rendered at a time (pending tasks 2-4)
+- ⏳ Sticky room summary preserved and functional (pending tasks 2-4)
+- ⏳ Draft worldview renders correctly (pending tasks 2-4)
+- ⏳ All existing message types display properly (pending tasks 2-4)
 
 **Dependencies**: None (can start immediately)
 

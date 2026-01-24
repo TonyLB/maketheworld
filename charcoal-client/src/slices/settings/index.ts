@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
+import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import cacheDB, { ClientSettingType } from '../../cacheDB'
 
 interface ServerSettings {
@@ -10,6 +11,7 @@ interface ClientSettings {
     TextEntryLines: number;
     ShowNeighborhoodHeaders: boolean;
     AlwaysShowOnboarding: boolean;
+    currentCharacterId?: EphemeraCharacterId | null;
 }
 
 interface ConnectionInfo {
@@ -30,7 +32,8 @@ const initialState: SettingsData = {
     client: {
         TextEntryLines: 1,
         ShowNeighborhoodHeaders: false,
-        AlwaysShowOnboarding: false
+        AlwaysShowOnboarding: false,
+        currentCharacterId: null
     },
     connection: {
         sessionId: '',
@@ -59,6 +62,8 @@ export const getClientSettings = (state: any): ClientSettings => (state.settings
 export const getConnection = (state: any): ConnectionInfo => (state.settings.connection)
 export const getSessionId = (state: any): string => (state.settings.connection?.sessionId || '')
 export const getPlayerName = (state: any): string => (state.settings.connection?.playerName || '')
+export const getCurrentCharacterId = (state: any): EphemeraCharacterId | null | undefined => 
+    (state.settings.client.currentCharacterId)
 
 export const loadClientSettings = (dispatch: any) => {
     cacheDB.clientSettings.toArray()

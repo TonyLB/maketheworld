@@ -18,10 +18,11 @@ import GuestIcon from '@mui/icons-material/PersonSearch'
 
 import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
 import { getConfiguration } from '../../slices/configuration'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { Typography } from '@mui/material'
 import useOnboarding, { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import { getMySettings } from '../../slices/player'
+import { putClientSettings } from '../../slices/settings'
 import TutorialPopover from '../Onboarding/TutorialPopover'
 import { DevEnvironment } from '../../environment'
 
@@ -42,6 +43,7 @@ export const Home: FunctionComponent<HomeProps> = ({
     signOut = () => {}
 }) => {
     const { guestId } = useSelector(getMySettings)
+    const dispatch = useDispatch()
     useOnboardingCheckpoint('navigateHome', { requireSequence: true })
     useOnboardingCheckpoint('returnHome', { requireSequence: true })
     useOnboardingCheckpoint('navigateHomeInPlay', { requireSequence: true })
@@ -107,6 +109,9 @@ export const Home: FunctionComponent<HomeProps> = ({
                         cursor: 'pointer'
                     }}
                     onClick={() => {
+                        if (guestId) {
+                            dispatch(putClientSettings({ currentCharacterId: `CHARACTER#${guestId}` as const }))
+                        }
                         navigate(`/Character/Guest/Play`)
                     }}
                 >
@@ -141,6 +146,11 @@ export const Home: FunctionComponent<HomeProps> = ({
                     }}
                     onClick={() => {
                         if (scopedId) {
+                            // Find the EphemeraCharacterId for this scopedId
+                            const character = myCharacters.find(({ scopedId: id }) => (id === scopedId))
+                            if (character?.CharacterId) {
+                                dispatch(putClientSettings({ currentCharacterId: character.CharacterId }))
+                            }
                             navigate(`/Character/${scopedId}/Play`)
                         }
                     }}

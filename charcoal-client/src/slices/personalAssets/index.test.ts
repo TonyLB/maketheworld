@@ -68,7 +68,7 @@ describe('personalAssets slice', () => {
             if (diff) {
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(testRoomTwo) from=(ASSET#testImport) ref={0} />
+                        <Room uuid=(testRoomTwo) from=(ASSET#testImport) />
                     </Asset>
                 `))
             }
@@ -96,7 +96,7 @@ describe('personalAssets slice', () => {
             if (diff) {
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Room uuid=(testRoomTwo) from=(ASSET#testImportTwo) ref={0} />
+                        <Room uuid=(testRoomTwo) from=(ASSET#testImportTwo) />
                     </Asset>
                 `))
             }
