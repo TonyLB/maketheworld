@@ -16,6 +16,7 @@ import { OnboardingKey } from '../Onboarding/checkpoints'
 import { getPlayer } from '../../slices/player'
 import { useNavigate } from 'react-router-dom'
 import CharacterSelectionModal from '../CharacterSelection'
+import { openWorkbench } from '../../slices/UI/workbench'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
@@ -44,6 +45,11 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         }
         if (mode === 'Command' && entry.toLowerCase().trim() === 'map') {
             navigate(`/Character/${scopedId}/Map/`)
+        }
+        // Development-only: Magic word "edit" to open workbench for testing
+        // TODO: Remove when Phase 3 entry ritual is implemented
+        else if (mode === 'Command' && entry.toLowerCase().trim() === 'edit') {
+            dispatch(openWorkbench())
         }
         else {
             dispatch(parseCommand(CharacterId)({ entry, mode, raiseError: () => {} }))
