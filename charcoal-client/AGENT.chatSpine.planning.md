@@ -266,30 +266,179 @@ Current visibility: Private draft
 **Goal**: Create non-chat authoring workbench as overlay/side-panel
 
 **Key Tasks**:
-1. **Create workbench container**
-   - Implement overlay/panel/sheet layout (responsive: side panel on desktop, full-screen on mobile)
-   - Design reusable container structure for future features
+1. **Create workbench container** ✅ **COMPLETED**
+   - ✅ Implemented overlay/panel/sheet layout (responsive: side panel on desktop, full-screen on mobile)
+   - ✅ Designed reusable container structure for future features
+   - ✅ Stored `currentAssetId` persistently in Redux state and IndexedDB (following `currentCharacterId` pattern)
+   - ✅ Added `CurrentAssetIdType` to `cacheDB/index.ts` ClientSettingType union
+   - ✅ Added `loadWorkbenchSettings()` and `putWorkbenchSettings()` thunks for persistence
+   - ✅ Loaded persisted `currentAssetId` on app startup in `AppController`
+   - ✅ Created `WorkbenchContainer` component with responsive Drawer (desktop) and Dialog (mobile) layouts
+   - ✅ Created `WorkbenchContent` flexible wrapper component
+   - ✅ Integrated workbench into `AppLayout` at viewport level (positioned relative to content grid area, not MessagePanel)
+   - ✅ Workbench state slice created with `authoringMode` support for future chat-based editing
+   - **Implementation Notes**:
+     - Workbench state slice: `slices/UI/workbench/index.ts` with Redux slice, selectors, and persistence functions
+     - Container component: `components/Workbench/WorkbenchContainer.tsx` uses Material-UI Drawer (desktop) and Dialog (mobile)
+     - Content wrapper: `components/Workbench/WorkbenchContent.tsx` provides flexible content area
+     - Asset data derivation: AppLayout uses `getStandardForm` and `getAssetZone` selectors directly (following plan's alternative approach)
+     - Workbench positioned at AppLayout level to overlay entire content area, independent of main content type
+   
+1a. **Create asset selector UI** (when `currentAssetId` is undefined) ✅ **COMPLETED**
+   - ✅ Display asset selection interface when workbench opens without a selected asset
+   - ✅ Show list/grid of available assets (similar to Library component's asset cards)
+   - ✅ Allow user to select an asset to work on
+   - ✅ Update `currentAssetId` when asset is selected
+   - **Implementation Notes**:
+     - Created `AssetSelector` component in `components/Workbench/AssetSelector.tsx`
+     - Reuses `AssetCard` component from Library for consistency
+     - Displays draft and personal assets in responsive grid layout (xs: 12, sm: 6, md: 4)
+     - Shows empty state message when no assets are available
+     - Integrated into `WorkbenchContainer` with conditional rendering (shows selector when `assetId` is null)
+     - Asset selection updates `currentAssetId` via `setCurrentAssetId` action and persists via `putWorkbenchSettings`
+     - Uses `AssetKey` utility to normalize asset IDs to proper format
+   
+1b. **Add "Return to asset selection" affordance** ✅ **COMPLETED**
+   - ✅ Add UI control (button/link) in workbench header or actions area
+   - ✅ Allows user to clear `currentAssetId` and return to asset selector
+   - ✅ Useful when user wants to switch to a different asset
+   - **Implementation Notes**:
+     - Added "Change asset" button in workbench header (both desktop and mobile layouts)
+     - Button positioned in header area on the right side, aligned with asset name
+     - Uses Material-UI `Button` with `variant="text"` and `size="small"` for secondary action styling
+     - Includes `SwapHorizIcon` from Material-UI icons for visual clarity
+     - Button only visible when `assetId !== null` (conditional rendering)
+     - Handler function `handleReturnToSelection` dispatches `setCurrentAssetId(null)` and `putWorkbenchSettings({ currentAssetId: null })` to clear selection and persist change
+     - Mobile version includes `minHeight: 44` for touch-friendly interaction
+     - Button text: "Change asset" (aligned with design principles, avoids "edit" language)
+   
+1c. **Add "Add asset" button on selector** ✅ **COMPLETED**
+   - ✅ Added "Add asset" button/card UI to AssetSelector component
+   - ✅ Integrated with existing asset creation flow (reused Library's `handleCreateDraft` pattern)
+   - ✅ After creation, automatically sets as `currentAssetId` and proceeds to editing
+   - **Implementation Notes**:
+     - Created `handleCreateAsset` function following Library's `handleCreateDraft` pattern
+     - Uses UUID generation, WML structure creation via `Schema` and `schemaToWML`, and `socketDispatchPromise` API call
+     - Implements optimistic UI updates with `draftAssetIdBeingAdded` state
+     - Auto-selection via `useEffect` watching for new asset in `DraftAssets`
+     - Includes error handling with user feedback via feedback slice
+     - Includes timeout fallback (10 seconds) to clear optimistic state
+     - Prevents duplicate creation requests by checking `draftAssetIdBeingAdded` state
+     - "Add asset" button displayed at top of asset list (full-width card with dashed border)
+     - Shows loading spinner during creation, disabled state prevents duplicate clicks
+     - Empty state also includes "Add asset" button for better UX
+     - Implementation: `src/components/Workbench/AssetSelector.tsx`
 
-2. **Implement workbench header**
-   - Asset name (primary)
-   - Visibility state label (static, informational)
-   - Optional secondary context display
+2. **Implement workbench header** ✅ **COMPLETED**
+   - ✅ Asset name (primary) - displayed prominently in header
+   - ✅ Visibility state label (static, informational) - shows "Private draft", "Personal", "Library", or "Canon"
+   - ✅ Optional secondary context display - infrastructure in place, will be set in Phase 3
+   - **Implementation Notes**:
+     - Refactored `AppLayout` to use `getWorkbenchAssetInfo` selector instead of duplicating logic
+     - Removed duplicate asset name and visibility state derivation code from `AppLayout/index.tsx`
+     - Header structure finalized in `WorkbenchContainer.tsx` (removed placeholder comments)
+     - Header displays asset name prominently (bold, 1.25rem font size)
+     - Visibility state shown as secondary text (0.875rem, muted color)
+     - Secondary context shown as tertiary text (0.75rem, muted color) when set
+     - Header works correctly on both desktop (Drawer) and mobile (Dialog) layouts
+     - Edge cases handled: shows "Select an Asset" when no asset selected, "Untitled" for missing names
+     - Implementation: `src/components/AppLayout/index.tsx` uses `getWorkbenchAssetInfo` selector, `src/components/Workbench/WorkbenchContainer.tsx` displays header
 
-3. **Migrate existing editing interfaces**
-   - Move asset editing components into workbench
-   - Normalize authoring UI with consistent sections/cards
-   - Ensure single-asset editing constraint
+3a. **Create `useWorkbenchAsset` hook** (Preliminary sub-task - **MUST BE COMPLETED FIRST**) ✅ **COMPLETED**
+   - ✅ Create a `useWorkbenchAsset` hook that can be used as a drop-in replacement for `useLibraryAsset`
+   - ✅ The hook does NOT require an AssetId parameter provided by the calling code
+   - ✅ The hook uses `currentAssetId` from the workbench Redux slice (`getCurrentAssetId` selector)
+   - ✅ The hook provides the same interface/API as `useLibraryAsset` to enable seamless migration
+   - **Rationale**: Existing editing interfaces use `useLibraryAsset` which requires an `assetKey` prop passed to the `LibraryAsset` context provider. To migrate these interfaces to the workbench context, we need a hook that automatically derives the asset ID from the workbench state rather than requiring it to be passed explicitly.
+   - **Implementation Notes**:
+     - ✅ Hook reads `currentAssetId` from workbench slice using `getCurrentAssetId` selector
+     - ✅ Hook derives `AssetId` from `currentAssetId` using `AssetKey` utility to normalize the format
+     - ✅ Hook uses the same selectors and logic as `LibraryAsset` component to provide identical context values
+     - ✅ Hook handles the case where `currentAssetId` is null by returning default values matching `LibraryAssetContext` default context
+     - ✅ Hook located at `src/components/Workbench/useWorkbenchAsset.ts`
+     - ✅ Hook exported from `src/components/Workbench/index.ts`
+     - ✅ Workbench header refactored to use the hook as a test case (removed `assetName` and `visibilityState` props from `WorkbenchContainer`, now derives them from hook)
+     - ✅ `AppLayout` updated to remove `getWorkbenchAssetInfo` selector usage and removed `assetName`/`visibilityState` props from `WorkbenchContainer`
+     - **Implementation Details**:
+       - Hook returns the same type as `LibraryAssetContextType` for drop-in compatibility
+       - When `currentAssetId` is null, hook returns default values (empty strings, default StandardForm instances, readonly: true, etc.)
+       - Asset name derived from `standardForm.shortName?.toJSON()` (StandardLiteral API)
+       - Visibility state derived from `zone` using `getAssetZone` selector (same logic as `getWorkbenchAssetInfo`)
+       - All selectors and callbacks mirror `LibraryAsset` component implementation
 
-4. **Add "Return to Story" affordance**
-   - Clear, prominent action to exit workbench
-   - Returns to play spine
+3. **Migrate existing editing interfaces** (Depends on 3a) ✅ **COMPLETED**
+   - **Prerequisite**: Task 3a (`useWorkbenchAsset` hook) must be completed first ✅
+   - ✅ Move asset editing components into workbench
+   - ✅ Normalize authoring UI with consistent sections/cards
+   - ✅ Ensure single-asset editing constraint
+   - ✅ Replace `useLibraryAsset` calls with `useWorkbenchAsset` in migrated components
+   - **Implementation Notes**:
+     - ✅ Added navigation state to workbench Redux slice (`currentView: 'asset' | 'component' | null`, `currentComponentId: string | null`) with actions (`setCurrentView`, `setCurrentComponentId`) and selectors
+     - ✅ Created `WorkbenchAssetEditor` component as main orchestrator that routes based on Redux state (replaces React Router)
+     - ✅ Created `WorkbenchAssetEditForm` component (migrated from `EditAsset`'s `AssetEditForm`, removed `LibraryBanner`, normalized UI with Material-UI `Card` components, uses state-based navigation)
+     - ✅ Created `WorkbenchComponentDetail` component (migrated from `WMLComponentDetail`, removed `LibraryBanner`, removed React Router dependencies, uses `currentComponentId` from Redux state, added "Back to Asset" button)
+     - ✅ Created `WorkbenchCharacterEditor` component (migrated from `EditCharacter`, removed `LibraryBanner`, normalized UI with Cards) - `EditCharacter` was evaluated and determined to be aligned with Characters-as-components architecture
+     - ✅ Created `WorkbenchMapEditor` component (migrated from `MapEdit`, removed React Router dependencies, uses `currentComponentId` from Redux state, added "Back to Asset" button)
+     - ✅ Updated `AppLayout` to use `WorkbenchAssetEditor` instead of placeholder content
+     - ✅ Migrated all supporting components to use `useWorkbenchAsset`: Created workbench-specific versions of `WMLComponentHeader`, `StandardRenderEditor`, `StandardLiteralEditor`, `RoomLensEditor`, `RoomExitEditor`, `ExampleEditor`, `ImageHeader`, `ImportComponentDialog`, `DraftLockout`, `RecentlyVisited`, `LinkDialog`, and all map-related components (`MapController`, `MapLayers`, `UnshownRooms`, `MapArea`)
+     - ✅ Component type (Room, Feature, Knowledge, Map, Character) is derived from `standardForm.byUniversalId[componentId]`, not stored separately in state
+     - ✅ All navigation uses Redux state actions (`setCurrentView`, `setCurrentComponentId`) instead of `navigate()` calls
+     - ✅ Workbench header replaces `LibraryBanner` navigation throughout
+     - ✅ UI normalized with consistent Material-UI `Card` components for major sections
+     - ✅ Single-asset editing constraint maintained via `currentAssetId` in workbench state
+     - ✅ When `currentAssetId` changes, navigation state automatically resets to asset view
+
+4. **Add "Return to Story" affordance** ✅ **COMPLETED**
+   - ✅ Clear, prominent action to exit workbench
+   - ✅ Returns to play spine
+   - **Implementation Notes**:
+     - Added "Return to Story" button in workbench actions area (bottom section)
+     - Button uses Material-UI `Button` with `variant="contained"` and `color="primary"` for prominence
+     - Includes `ArrowBackIcon` to emphasize returning to story
+     - Desktop: Button centered with `minWidth: 200px`
+     - Mobile: Button full width for better touch target
+     - Button calls `onClose` prop which dispatches `closeWorkbench()` action
+     - Button is always visible in actions area when workbench is open
+
+**Architectural Considerations for Future Chat-Based Editing**:
+
+Phase 2 implements a workbench overlay while the play spine remains visible. However, the future iteration will replace the play spine chat with an authoring chat in the main content area during authoring mode. To avoid painting ourselves into a corner, Phase 2 must:
+
+1. **State Management Design**:
+   - Implement mode state (`authoringMode: 'play' | 'authoring'`) even if Phase 2 doesn't use it fully
+   - Keep `workbenchOpen` state independent of `authoringMode`
+   - Design entry ritual as a mode transition, not just "open workbench"
+   - **Rationale**: Future iteration will swap main content area based on mode; state model must support this
+
+2. **Workbench Positioning**:
+   - Position workbench relative to `gridArea: "content"` container, not `MessagePanel` specifically
+   - Workbench should work identically whether main area shows play chat or authoring chat
+   - **Rationale**: Main content area will swap between play spine and authoring chat; workbench must be independent
+
+3. **Layout Structure**:
+   - Workbench should overlay/attach to the content grid area container
+   - Avoid coupling workbench layout to MessagePanel structure
+   - **Rationale**: Same workbench must coexist with different main content (play chat → authoring chat)
+
+4. **Entry Ritual Design**:
+   - Entry ritual should set `authoringMode: 'authoring'` (even if Phase 2 still renders play spine)
+   - In Phase 2: `authoringMode: 'authoring'` renders play spine + workbench overlay
+   - In future: `authoringMode: 'authoring'` renders authoring chat + workbench overlay
+   - **Rationale**: Makes future change a rendering swap, not an architectural refactor
+
+**Key Principle**: Workbench must be designed to coexist with either play chat or authoring chat in the main content area, without knowing or caring which one is present.
 
 **Success Criteria**:
-- Workbench opens as overlay/side-panel
-- Header displays asset name and visibility state correctly
-- Existing editing functionality works within workbench
-- "Return to Story" action functions correctly
-- Responsive layout works on desktop and mobile
+- ✅ Workbench opens as overlay/side-panel
+- ✅ Header displays asset name and visibility state correctly
+- ✅ Existing editing functionality works within workbench (Task 3 completed)
+- ✅ "Return to Story" action functions correctly
+- ✅ Responsive layout works on desktop and mobile
+- ✅ State-based navigation works (no URL routing in workbench)
+- ✅ All editing components use `useWorkbenchAsset` hook
+- ✅ UI normalized with consistent Card sections
+- ✅ Component selection uses Redux state actions
+- ✅ "Back" buttons navigate correctly via workbench state
 
 **Dependencies**: Phase 1 (play spine must exist as return target)
 
@@ -683,6 +832,18 @@ These features are explicitly deferred but should be considered in the architect
 - Admin/moderation dashboards
 
 **Architecture Note**: The workbench container is designed to be reusable for these future features (side-threads, deliberation, tutorials, collaboration).
+
+### Chat-Based Authoring (Future Iteration)
+
+**Future Architecture**: In a future iteration, entering authoring mode will replace the play spine chat with an authoring chat interface in the main content area. The authoring chat will provide a conversational interface for collaborating with AI on asset editing, using the same screen real estate currently occupied by the play spine.
+
+**Key Design Points**:
+- **Main Content Area Swap**: During authoring mode, the main content area (`gridArea: "content"`) switches from play spine (`MessagePanel`) to authoring chat interface
+- **Workbench Coexistence**: The workbench overlay/side-panel remains visible alongside the authoring chat, positioned relative to the content grid area (not the specific chat component)
+- **Mode-Based Rendering**: State management tracks `authoringMode: 'play' | 'authoring'` to determine which chat interface renders in the main area
+- **Entry/Exit Rituals**: Entry ritual transitions to `authoringMode: 'authoring'` (swapping main content), exit ritual returns to `authoringMode: 'play'` (restoring play spine)
+
+**Phase 2 Preparation**: Phase 2 must design state management and layout structure to support this future swap without architectural refactoring. See Phase 2 "Architectural Considerations" section for implementation guidance.
 
 ---
 

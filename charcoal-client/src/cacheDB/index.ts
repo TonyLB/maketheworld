@@ -2,6 +2,7 @@ import Dexie, { Transaction } from 'dexie'
 
 import { Message } from '@tonylb/mtw-interfaces/ts/messages'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses';
+import { AssetUUID } from '@tonylb/mtw-base/ts/schema';
 
 export type TextEntryLinesType = {
     key: 'TextEntryLines';
@@ -28,7 +29,12 @@ export type CurrentCharacterIdType = {
     value: EphemeraCharacterId | null;
 }
 
-export type ClientSettingType = TextEntryLinesType | ShowNeighborhoodHeadersType | AlwaysShowOnboardingType | LastSyncType | CurrentCharacterIdType
+export type CurrentAssetIdType = {
+    key: 'CurrentAssetId';
+    value: AssetUUID | null;
+}
+
+export type ClientSettingType = TextEntryLinesType | ShowNeighborhoodHeadersType | AlwaysShowOnboardingType | LastSyncType | CurrentCharacterIdType | CurrentAssetIdType
 
 export type CharacterSyncType = {
     CharacterId: EphemeraCharacterId;

@@ -1,0 +1,66 @@
+import React, { FunctionComponent, useCallback } from 'react'
+
+import UploadIcon from '@mui/icons-material/Upload'
+import { Box, IconButton, SxProps } from '@mui/material'
+
+import AssetDataHeader, { AssetDataHeaderRenderFunction} from '../Library/Edit/AssetDataHeader'
+import FileWrapper, { useFileWrapper } from '../Library/FileInputWrapper';
+import { useWorkbenchAsset, useLibraryImageURL } from './useWorkbenchAsset'
+import { useDispatch } from 'react-redux';
+import { setLoadedImage } from '../../slices/personalAssets';
+
+interface ImageHeaderProps {
+    ItemId: string;
+    onClick: () => void;
+    sx?: SxProps;
+    selected?: boolean;
+}
+
+const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onClick, sx, selected }) => {
+    const primaryBase: AssetDataHeaderRenderFunction = (key) => (key)
+    const primary = useCallback(primaryBase, [])
+    const { dragActive, openUpload } = useFileWrapper()
+
+    const fileURL = useLibraryImageURL(ItemId)
+
+    return <Box sx={dragActive
+        ? {
+            borderRadius: '5px',
+            borderStyle: 'dashed',
+            borderWidth: '2px',
+            borderColor: 'lightGrey',
+        }
+        : {
+            padding: '2px'
+        }}>
+        <AssetDataHeader
+            ItemId={ItemId}
+            icon={
+                <Box>
+                    {fileURL && <img style={{ maxWidth: '3em', height: 'auto' }} src={fileURL} />}
+                </Box>
+            }
+            primary={primary}
+            onClick={onClick}
+            sx={sx}
+            selected={selected}
+            actions={<IconButton onClick={openUpload}><UploadIcon /></IconButton>}
+        />
+    </Box>
+}
+
+export const WorkbenchImageHeader: FunctionComponent<ImageHeaderProps> = (props) => {
+    const { AssetId } = useWorkbenchAsset()
+    const dispatch = useDispatch()
+    const onDrop = useCallback((file: File) => {
+        dispatch(setLoadedImage(AssetId)({ itemId: props.ItemId, file }))
+    }, [dispatch, props.ItemId, AssetId])
+    return <FileWrapper
+        fileTypes={['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/tiff']}
+        onFile={onDrop}
+    >
+        <ImageHeaderInterior {...props} />
+    </FileWrapper>
+}
+
+export default WorkbenchImageHeader

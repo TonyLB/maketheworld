@@ -15,6 +15,7 @@ import { getClientSettings } from '../../slices/settings'
 import { loadClientSettings, putClientSettings } from '../../slices/settings'
 import { getFirstFeedback } from '../../slices/UI/feedback'
 import { pop as popFeedback } from '../../slices/UI/feedback'
+import { loadWorkbenchSettings } from '../../slices/UI/workbench'
 
 import AppLayout from '../AppLayout'
 import Home from '../Home'
@@ -33,6 +34,7 @@ export const AppController: FunctionComponent<AppControllerProps> = ({}) => {
 
     useEffect(() => {
         dispatch(loadClientSettings)
+        dispatch(loadWorkbenchSettings)
     }, [dispatch])
 
     //

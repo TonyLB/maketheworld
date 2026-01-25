@@ -40,6 +40,8 @@ import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
 import { getClientSettings, getCurrentCharacterId } from '../../slices/settings'
 import { putClientSettings } from '../../slices/settings'
+import { getWorkbenchOpen, getCurrentAssetId, getSecondaryContext, closeWorkbench } from '../../slices/UI/workbench'
+import { WorkbenchContainer, WorkbenchAssetEditor } from '../Workbench'
 
 type FeedbackSnackbarProps = {
     feedbackMessage: string;
@@ -157,6 +159,12 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
 export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, onboardingPanel, feedbackMessage, closeFeedback, signInOrUp }: any) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const { AlwaysShowOnboarding } = useSelector(getClientSettings)
+    const dispatch = useDispatch()
+    
+    // Workbench state
+    const workbenchOpen = useSelector(getWorkbenchOpen)
+    const currentAssetId = useSelector(getCurrentAssetId)
+    const secondaryContext = useSelector(getSecondaryContext)
 
     const routes = useMemo(() => (
         <Routes>
@@ -238,6 +246,14 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
                 </Box>
                 : []
             }
+            <WorkbenchContainer
+                open={workbenchOpen}
+                onClose={() => dispatch(closeWorkbench())}
+                assetId={currentAssetId}
+                secondaryContext={secondaryContext}
+            >
+                {currentAssetId !== null ? <WorkbenchAssetEditor /> : null}
+            </WorkbenchContainer>
         </Box>
     </Router>
 
