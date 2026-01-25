@@ -10,7 +10,7 @@ import { useDebouncedOnChange } from "../../hooks/useDebounce";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import WorkbenchStandardRenderEditor from "./StandardRenderEditor";
-import SidebarTitledBox from "../Library/Edit/SidebarTitledBox";
+import WorkbenchSidebarTitledBox from "./WorkbenchSidebarTitledBox";
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room";
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature";
 import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge";
@@ -114,7 +114,7 @@ export const WorkbenchExampleEditor: FunctionComponent<ExampleEditorProps> = ({ 
             })
         }
     }, [componentId, localStandardForm, standardForm, updateStandard])
-    return <SidebarTitledBox title="Example" sidebarTitle="Inherited" sidebar={inherited} minHeight="5em">
+    return <WorkbenchSidebarTitledBox title="Example" sidebarTitle="Inherited" sidebar={inherited} minHeight="5em">
         <Box sx={{
             display: 'flex',
             flexDirection: 'row',
@@ -168,7 +168,7 @@ export const WorkbenchExampleEditor: FunctionComponent<ExampleEditorProps> = ({ 
                 }
             </Box>
         </Box>
-    </SidebarTitledBox>
+    </WorkbenchSidebarTitledBox>
 }
 
 export default WorkbenchExampleEditor

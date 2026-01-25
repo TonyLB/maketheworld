@@ -11,7 +11,7 @@ import WorkbenchRoomExitEditor from './RoomExitEditor'
 import WorkbenchRoomLensEditor from './RoomLensEditor'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
-import TitledBox from '../TitledBox'
+import WorkbenchTitledBox from './WorkbenchTitledBox'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -60,7 +60,7 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
     }}>
         {
             hasShortName(component) && (
-                <TitledBox title="Short Name">
+                <WorkbenchTitledBox title="Short Name">
                     <WorkbenchStandardLiteralEditor
                         value={component.shortName ?? new StandardLiteral('')}
                         onChange={(newShortName) => {
@@ -78,7 +78,7 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
                         placeholder="Enter short name..."
                         size="small"
                     />
-                </TitledBox>
+                </WorkbenchTitledBox>
             )
         }
         {
