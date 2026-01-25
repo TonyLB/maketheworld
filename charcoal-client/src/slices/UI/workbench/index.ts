@@ -4,7 +4,8 @@ import { RootState, Selector, AppDispatch } from '../../../store'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import cacheDB, { ClientSettingType } from '../../../cacheDB'
 import { getStandardForm } from '../../personalAssets'
-import { getAssetZone } from '../../player'
+import { getAssetZone, getMyAssets } from '../../player'
+import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 
 interface WorkbenchState {
     open: boolean;
@@ -55,48 +56,69 @@ export const getAuthoringMode: Selector<'play' | 'authoring'> = (state: RootStat
 export const getCurrentAssetId: Selector<AssetUUID | null> = (state: RootState) => state.UI.workbench.currentAssetId
 export const getSecondaryContext: Selector<string | null> = (state: RootState) => state.UI.workbench.secondaryContext
 
-// Helper selector to get personalAssets node for current asset
-const getCurrentAssetNode = createSelector(
-    [getCurrentAssetId, (state: RootState) => state.personalAssets],
-    (assetId, personalAssetsState) => {
+// Intermediate selector to get standard form for current asset using full RootState
+const getCurrentAssetStandardForm = createSelector(
+    [getCurrentAssetId, (state: RootState) => state],
+    (assetId, rootState) => {
         if (!assetId) return null
-        return personalAssetsState?.[assetId] || null
+        // getStandardForm(assetId) returns a selector that expects the full RootState
+        // It may need other assets for inheritance/imports
+        // It returns undefined if the asset doesn't exist in personalAssets.byId[assetId]
+        const standardFormSelector = getStandardForm(assetId)
+        return standardFormSelector(rootState) || null
+    }
+)
+
+// Fallback selector to get asset name from player slice
+const getCurrentAssetFromPlayer = createSelector(
+    [getCurrentAssetId, getMyAssets],
+    (assetId, assets) => {
+        if (!assetId) return null
+        const normalizedId = AssetKey(assetId)
+        return assets.find((asset: any) => AssetKey(asset.AssetId) === normalizedId) || null
+    }
+)
+
+// Intermediate selector to get zone for current asset using full RootState
+const getCurrentAssetZone = createSelector(
+    [getCurrentAssetId, (state: RootState) => state],
+    (assetId, rootState) => {
+        if (!assetId) return null
+        // getAssetZone(assetId) returns a selector that expects the full RootState
+        const zoneSelector = getAssetZone(assetId)
+        return zoneSelector(rootState) || 'Draft'
     }
 )
 
 // Memoized selector that combines data from personalAssets and player slices
 export const getWorkbenchAssetInfo = createSelector(
-    [getCurrentAssetId, getCurrentAssetNode, (state: RootState) => state.player],
-    (assetId, assetNode, playerState) => {
-        if (!assetId || !assetNode) {
+    [getCurrentAssetId, getCurrentAssetStandardForm, getCurrentAssetZone, getCurrentAssetFromPlayer],
+    (assetId, standardFormData, zone, playerAsset) => {
+        if (!assetId) {
             return null
         }
 
-        // Get standard form from personalAssets node
-        // getStandardForm is a selector function that takes the node's publicData
-        const standardFormSelector = getStandardForm(assetId)
-        // Create a temporary state structure for the selector
-        const tempState = {
-            personalAssets: {
-                [assetId]: assetNode
-            }
-        } as RootState
-        const standardFormData = standardFormSelector(tempState)
-        
-        // Get asset name from shortName
-        // StandardFormData.shortName can be StandardLiteral or string
+        // Get asset name - try from personalAssets first, fallback to player slice
         let assetName = 'Untitled'
+        
+        // First, try to get from standardFormData (personalAssets)
         if (standardFormData?.shortName) {
             if (typeof standardFormData.shortName === 'string') {
                 assetName = standardFormData.shortName
-            } else if (standardFormData.shortName?.toJSON) {
-                assetName = standardFormData.shortName.toJSON()
+            } else if (typeof standardFormData.shortName === 'object' && standardFormData.shortName !== null) {
+                // Handle Remove or Replace tags
+                if (standardFormData.shortName.tag === 'Replace' && 'payload' in standardFormData.shortName) {
+                    assetName = standardFormData.shortName.payload
+                } else if (standardFormData.shortName.tag === 'Remove' && 'match' in standardFormData.shortName) {
+                    // For Remove, we could use match or empty string - using match for now
+                    assetName = standardFormData.shortName.match
+                }
             }
+        } 
+        // Fallback to player slice if personalAssets not loaded yet
+        else if (playerAsset && (playerAsset as any).ShortName) {
+            assetName = (playerAsset as any).ShortName
         }
-
-        // Get zone from player slice
-        const zoneSelector = getAssetZone(assetId)
-        const zone = zoneSelector(playerState) || 'Draft'
 
         // Format visibility state
         const visibilityState = zone === 'Draft' ? 'Private draft' : 

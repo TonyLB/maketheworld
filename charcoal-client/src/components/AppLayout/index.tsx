@@ -40,9 +40,7 @@ import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
 import { getClientSettings, getCurrentCharacterId } from '../../slices/settings'
 import { putClientSettings } from '../../slices/settings'
-import { getWorkbenchOpen, getCurrentAssetId, getSecondaryContext, closeWorkbench } from '../../slices/UI/workbench'
-import { getStandardForm } from '../../slices/personalAssets'
-import { getAssetZone } from '../../slices/player'
+import { getWorkbenchOpen, getCurrentAssetId, getSecondaryContext, getWorkbenchAssetInfo, closeWorkbench } from '../../slices/UI/workbench'
 import { WorkbenchContainer } from '../Workbench'
 
 type FeedbackSnackbarProps = {
@@ -167,32 +165,12 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
     const workbenchOpen = useSelector(getWorkbenchOpen)
     const currentAssetId = useSelector(getCurrentAssetId)
     const secondaryContext = useSelector(getSecondaryContext)
+    const assetInfo = useSelector(getWorkbenchAssetInfo)
     
-    // Derive asset info from personalAssets and player slices
-    // Always call useSelector to maintain hook order, handle null in selector
-    const standardFormData = useSelector((state: any) => 
-        currentAssetId ? getStandardForm(currentAssetId)(state) : null
-    )
-    const zone = useSelector((state: any) => 
-        currentAssetId ? getAssetZone(currentAssetId)(state) : null
-    )
-    
-    // Extract asset name from standardForm
-    let assetName: string | null = null
-    if (standardFormData?.shortName) {
-        if (typeof standardFormData.shortName === 'string') {
-            assetName = standardFormData.shortName
-        } else if (standardFormData.shortName?.toJSON) {
-            assetName = standardFormData.shortName.toJSON()
-        }
-    }
-    
-    // Format visibility state from zone
-    const visibilityState = zone === 'Draft' ? 'Private draft' : 
-                            zone === 'Personal' ? 'Personal' : 
-                            zone === 'Library' ? 'Library' : 
-                            zone === 'Canon' ? 'Canon' : 
-                            null
+    // Extract asset name and visibility state from selector result
+    // getWorkbenchAssetInfo returns null when no asset is selected
+    const assetName = assetInfo?.assetName || null
+    const visibilityState = assetInfo?.visibilityState || null
 
     const routes = useMemo(() => (
         <Routes>

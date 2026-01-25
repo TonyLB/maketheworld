@@ -329,10 +329,20 @@ Current visibility: Private draft
      - Empty state also includes "Add asset" button for better UX
      - Implementation: `src/components/Workbench/AssetSelector.tsx`
 
-2. **Implement workbench header**
-   - Asset name (primary)
-   - Visibility state label (static, informational)
-   - Optional secondary context display
+2. **Implement workbench header** ✅ **COMPLETED**
+   - ✅ Asset name (primary) - displayed prominently in header
+   - ✅ Visibility state label (static, informational) - shows "Private draft", "Personal", "Library", or "Canon"
+   - ✅ Optional secondary context display - infrastructure in place, will be set in Phase 3
+   - **Implementation Notes**:
+     - Refactored `AppLayout` to use `getWorkbenchAssetInfo` selector instead of duplicating logic
+     - Removed duplicate asset name and visibility state derivation code from `AppLayout/index.tsx`
+     - Header structure finalized in `WorkbenchContainer.tsx` (removed placeholder comments)
+     - Header displays asset name prominently (bold, 1.25rem font size)
+     - Visibility state shown as secondary text (0.875rem, muted color)
+     - Secondary context shown as tertiary text (0.75rem, muted color) when set
+     - Header works correctly on both desktop (Drawer) and mobile (Dialog) layouts
+     - Edge cases handled: shows "Select an Asset" when no asset selected, "Untitled" for missing names
+     - Implementation: `src/components/AppLayout/index.tsx` uses `getWorkbenchAssetInfo` selector, `src/components/Workbench/WorkbenchContainer.tsx` displays header
 
 3. **Migrate existing editing interfaces**
    - Move asset editing components into workbench

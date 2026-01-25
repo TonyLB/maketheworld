@@ -7,6 +7,7 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import WorkbenchContent from './WorkbenchContent'
 import AssetSelector from './AssetSelector'
 import { setCurrentAssetId, putWorkbenchSettings } from '../../slices/UI/workbench'
+import { addItem } from '../../slices/personalAssets'
 
 interface WorkbenchContainerProps {
     open: boolean;
@@ -48,6 +49,10 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
     const handleAssetSelect = useCallback((selectedAssetId: AssetUUID) => {
         dispatch(setCurrentAssetId(selectedAssetId))
         dispatch(putWorkbenchSettings({ currentAssetId: selectedAssetId }))
+        
+        // Ensure asset is loaded into personalAssets for editing
+        // addItem is idempotent - it won't create duplicates if already loaded
+        dispatch(addItem({ key: selectedAssetId, options: { initialState: 'NEW' }}))
     }, [dispatch])
 
     const handleReturnToSelection = useCallback(() => {
@@ -77,7 +82,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                         height: '100%',
                     }}
                 >
-                    {/* Header will be implemented in Task 2 */}
+                    {/* Workbench header */}
                     <Box
                         sx={{
                             padding: 2,
@@ -178,7 +183,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                     height: '100%',
                 }}
             >
-                {/* Header will be implemented in Task 2 */}
+                {/* Workbench header */}
                 <Box
                     sx={{
                         padding: 2,
