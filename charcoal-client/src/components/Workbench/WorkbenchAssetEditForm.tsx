@@ -4,12 +4,8 @@ import {
     Box,
     Button,
     List,
-    ListSubheader,
     Typography,
-    Divider,
-    Card,
-    CardHeader,
-    CardContent
+    Divider
 } from '@mui/material'
 
 import FeatureIcon from '@mui/icons-material/Search'
@@ -46,6 +42,7 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import WorkbenchWMLComponentHeader from './WMLComponentHeader'
 import ImageHeader from '../Library/Edit/ImageHeader'
 import WorkbenchDraftLockout from './DraftLockout'
+import { MakeTheWorldAccordion } from '../UI'
 
 const AddWMLComponent: FunctionComponent<{ type: 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image'; onAdd: () => void }> = ({ type, onAdd }) => (
     <Button
@@ -159,48 +156,45 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
 
     return (
         <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
-            {!readonly && (
-                <Card sx={{ margin: 2 }}>
-                    <CardHeader title="Metadata" />
-                    <CardContent>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <Box>
-                                <Typography variant="subtitle2" sx={{ marginBottom: "0.5em" }}>Short Name</Typography>
-                                <WorkbenchStandardLiteralEditor
-                                    value={shortName}
-                                    onChange={handleShortNameChange}
-                                    placeholder="Enter a short name for this draft"
-                                    readonly={readonly}
-                                />
-                            </Box>
-                            <Box>
-                                <Typography variant="subtitle2" sx={{ marginBottom: "0.5em" }}>Summary</Typography>
-                                <Box sx={{
-                                    backgroundColor: 'background.paper',
-                                    border: '1px solid',
-                                    borderColor: 'divider',
-                                    borderRadius: '4px',
-                                    padding: '0.5em'
-                                }}>
-                                    <WorkbenchStandardRenderEditor
-                                        value={summary}
-                                        onChange={setSummary}
-                                        validLinkTags={[]}
-                                        toolbar={false}
+            <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
+                <Box sx={{ marginLeft: 2, marginRight: 2, width: "calc(100% - 32px)" }}>
+                    <WorkbenchRecentlyVisited />
+                    
+                    {!readonly && (
+                        <MakeTheWorldAccordion title="Metadata" defaultExpanded={true}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ marginBottom: "0.5em" }}>Short Name</Typography>
+                                    <WorkbenchStandardLiteralEditor
+                                        value={shortName}
+                                        onChange={handleShortNameChange}
+                                        placeholder="Enter a short name for this draft"
+                                        readonly={readonly}
                                     />
                                 </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ marginBottom: "0.5em" }}>Summary</Typography>
+                                    <Box sx={{
+                                        backgroundColor: 'background.paper',
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        borderRadius: '4px',
+                                        padding: '0.5em'
+                                    }}>
+                                        <WorkbenchStandardRenderEditor
+                                            value={summary}
+                                            onChange={setSummary}
+                                            validLinkTags={[]}
+                                            toolbar={false}
+                                        />
+                                    </Box>
+                                </Box>
                             </Box>
-                        </Box>
-                    </CardContent>
-                </Card>
-            )}
-            
-            <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
-                <Box sx={{ marginLeft: 2, width: "calc(100% - 16px)" }}>
-                    <WorkbenchRecentlyVisited />
-                    <Card sx={{ margin: 2 }}>
-                        <CardHeader title="Components" />
-                        <CardContent>
+                        </MakeTheWorldAccordion>
+                    )}
+                    
+                    <MakeTheWorldAccordion title="Components" defaultExpanded={true}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <List dense>
                                 {characters.length
                                     ? characters.map((characterItem) => (
@@ -267,35 +261,36 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                                     : null
                                 }
                             </List>
-                        </CardContent>
-                    </Card>
+                            
+                            {!readonly && (
+                                <>
+                                    <Divider />
+                                    <Box>
+                                        <Typography variant="subtitle2" sx={{ marginBottom: "0.5em" }}>Add Component</Typography>
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                            <AddWMLComponent type="Character" onAdd={addAsset('Character')} />
+                                            <AddWMLComponent type="Map" onAdd={addAsset('Map')} />
+                                            <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
+                                            <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
+                                            <AddWMLComponent type="Knowledge" onAdd={addAsset('Knowledge')} />
+                                            <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
+                                            <Button
+                                                onClick={() => setImportDialogOpen(true)}
+                                                variant='contained'
+                                                startIcon={<ImportExportIcon />}
+                                                sx={{ margin: '0.5em' }}
+                                            >
+                                                Import Component
+                                            </Button>
+                                        </Box>
+                                    </Box>
+                                </>
+                            )}
+                        </Box>
+                    </MakeTheWorldAccordion>
                 </Box>
                 <WorkbenchDraftLockout />
             </Box>
-            
-            {!readonly && (
-                <Card sx={{ margin: 2 }}>
-                    <CardHeader title="Add Component" />
-                    <CardContent>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                            <AddWMLComponent type="Character" onAdd={addAsset('Character')} />
-                            <AddWMLComponent type="Map" onAdd={addAsset('Map')} />
-                            <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
-                            <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
-                            <AddWMLComponent type="Knowledge" onAdd={addAsset('Knowledge')} />
-                            <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
-                            <Button
-                                onClick={() => setImportDialogOpen(true)}
-                                variant='contained'
-                                startIcon={<ImportExportIcon />}
-                                sx={{ margin: '0.5em' }}
-                            >
-                                Import Component
-                            </Button>
-                        </Box>
-                    </CardContent>
-                </Card>
-            )}
             
             <WorkbenchImportComponentDialog
                 open={importDialogOpen}
