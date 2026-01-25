@@ -12,13 +12,17 @@ interface WorkbenchState {
     authoringMode: 'play' | 'authoring';
     currentAssetId: AssetUUID | null;
     secondaryContext: string | null;
+    currentView: 'asset' | 'component' | null;
+    currentComponentId: string | null;
 }
 
 const initialState: WorkbenchState = {
     open: false,
     authoringMode: 'play',
     currentAssetId: null,
-    secondaryContext: null
+    secondaryContext: null,
+    currentView: null,
+    currentComponentId: null
 }
 
 const workbenchSlice = createSlice({
@@ -33,6 +37,11 @@ const workbenchSlice = createSlice({
         },
         setCurrentAssetId(state, action: PayloadAction<AssetUUID | null>) {
             state.currentAssetId = action.payload
+            // Reset navigation state when asset changes
+            if (action.payload !== state.currentAssetId) {
+                state.currentView = 'asset'
+                state.currentComponentId = null
+            }
         },
         setAuthoringMode(state, action: PayloadAction<'play' | 'authoring'>) {
             state.authoringMode = action.payload
@@ -44,17 +53,25 @@ const workbenchSlice = createSlice({
             if (action.payload.currentAssetId !== undefined) {
                 state.currentAssetId = action.payload.currentAssetId
             }
+        },
+        setCurrentView(state, action: PayloadAction<'asset' | 'component' | null>) {
+            state.currentView = action.payload
+        },
+        setCurrentComponentId(state, action: PayloadAction<string | null>) {
+            state.currentComponentId = action.payload
         }
     }
 })
 
-export const { openWorkbench, closeWorkbench, setCurrentAssetId, setAuthoringMode, setSecondaryContext, receiveWorkbenchSettings } = workbenchSlice.actions
+export const { openWorkbench, closeWorkbench, setCurrentAssetId, setAuthoringMode, setSecondaryContext, receiveWorkbenchSettings, setCurrentView, setCurrentComponentId } = workbenchSlice.actions
 
 // Selectors
 export const getWorkbenchOpen: Selector<boolean> = (state: RootState) => state.UI.workbench.open
 export const getAuthoringMode: Selector<'play' | 'authoring'> = (state: RootState) => state.UI.workbench.authoringMode
 export const getCurrentAssetId: Selector<AssetUUID | null> = (state: RootState) => state.UI.workbench.currentAssetId
 export const getSecondaryContext: Selector<string | null> = (state: RootState) => state.UI.workbench.secondaryContext
+export const getCurrentView: Selector<'asset' | 'component' | null> = (state: RootState) => state.UI.workbench.currentView
+export const getCurrentComponentId: Selector<string | null> = (state: RootState) => state.UI.workbench.currentComponentId
 
 // Intermediate selector to get standard form for current asset using full RootState
 const getCurrentAssetStandardForm = createSelector(

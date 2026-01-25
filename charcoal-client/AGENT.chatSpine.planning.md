@@ -366,12 +366,27 @@ Current visibility: Private draft
        - Visibility state derived from `zone` using `getAssetZone` selector (same logic as `getWorkbenchAssetInfo`)
        - All selectors and callbacks mirror `LibraryAsset` component implementation
 
-3. **Migrate existing editing interfaces** (Depends on 3a)
-   - **Prerequisite**: Task 3a (`useWorkbenchAsset` hook) must be completed first
-   - Move asset editing components into workbench
-   - Normalize authoring UI with consistent sections/cards
-   - Ensure single-asset editing constraint
-   - Replace `useLibraryAsset` calls with `useWorkbenchAsset` in migrated components
+3. **Migrate existing editing interfaces** (Depends on 3a) ✅ **COMPLETED**
+   - **Prerequisite**: Task 3a (`useWorkbenchAsset` hook) must be completed first ✅
+   - ✅ Move asset editing components into workbench
+   - ✅ Normalize authoring UI with consistent sections/cards
+   - ✅ Ensure single-asset editing constraint
+   - ✅ Replace `useLibraryAsset` calls with `useWorkbenchAsset` in migrated components
+   - **Implementation Notes**:
+     - ✅ Added navigation state to workbench Redux slice (`currentView: 'asset' | 'component' | null`, `currentComponentId: string | null`) with actions (`setCurrentView`, `setCurrentComponentId`) and selectors
+     - ✅ Created `WorkbenchAssetEditor` component as main orchestrator that routes based on Redux state (replaces React Router)
+     - ✅ Created `WorkbenchAssetEditForm` component (migrated from `EditAsset`'s `AssetEditForm`, removed `LibraryBanner`, normalized UI with Material-UI `Card` components, uses state-based navigation)
+     - ✅ Created `WorkbenchComponentDetail` component (migrated from `WMLComponentDetail`, removed `LibraryBanner`, removed React Router dependencies, uses `currentComponentId` from Redux state, added "Back to Asset" button)
+     - ✅ Created `WorkbenchCharacterEditor` component (migrated from `EditCharacter`, removed `LibraryBanner`, normalized UI with Cards) - `EditCharacter` was evaluated and determined to be aligned with Characters-as-components architecture
+     - ✅ Created `WorkbenchMapEditor` component (migrated from `MapEdit`, removed React Router dependencies, uses `currentComponentId` from Redux state, added "Back to Asset" button)
+     - ✅ Updated `AppLayout` to use `WorkbenchAssetEditor` instead of placeholder content
+     - ✅ Migrated all supporting components to use `useWorkbenchAsset`: Created workbench-specific versions of `WMLComponentHeader`, `StandardRenderEditor`, `StandardLiteralEditor`, `RoomLensEditor`, `RoomExitEditor`, `ExampleEditor`, `ImageHeader`, `ImportComponentDialog`, `DraftLockout`, `RecentlyVisited`, `LinkDialog`, and all map-related components (`MapController`, `MapLayers`, `UnshownRooms`, `MapArea`)
+     - ✅ Component type (Room, Feature, Knowledge, Map, Character) is derived from `standardForm.byUniversalId[componentId]`, not stored separately in state
+     - ✅ All navigation uses Redux state actions (`setCurrentView`, `setCurrentComponentId`) instead of `navigate()` calls
+     - ✅ Workbench header replaces `LibraryBanner` navigation throughout
+     - ✅ UI normalized with consistent Material-UI `Card` components for major sections
+     - ✅ Single-asset editing constraint maintained via `currentAssetId` in workbench state
+     - ✅ When `currentAssetId` changes, navigation state automatically resets to asset view
 
 4. **Add "Return to Story" affordance** ✅ **COMPLETED**
    - ✅ Clear, prominent action to exit workbench
@@ -414,11 +429,16 @@ Phase 2 implements a workbench overlay while the play spine remains visible. How
 **Key Principle**: Workbench must be designed to coexist with either play chat or authoring chat in the main content area, without knowing or caring which one is present.
 
 **Success Criteria**:
-- Workbench opens as overlay/side-panel
-- Header displays asset name and visibility state correctly
-- Existing editing functionality works within workbench
-- "Return to Story" action functions correctly
-- Responsive layout works on desktop and mobile
+- ✅ Workbench opens as overlay/side-panel
+- ✅ Header displays asset name and visibility state correctly
+- ✅ Existing editing functionality works within workbench (Task 3 completed)
+- ✅ "Return to Story" action functions correctly
+- ✅ Responsive layout works on desktop and mobile
+- ✅ State-based navigation works (no URL routing in workbench)
+- ✅ All editing components use `useWorkbenchAsset` hook
+- ✅ UI normalized with consistent Card sections
+- ✅ Component selection uses Redux state actions
+- ✅ "Back" buttons navigate correctly via workbench state
 
 **Dependencies**: Phase 1 (play spine must exist as return target)
 

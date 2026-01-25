@@ -41,7 +41,7 @@ import { OnboardingPanel } from '../Onboarding'
 import { getClientSettings, getCurrentCharacterId } from '../../slices/settings'
 import { putClientSettings } from '../../slices/settings'
 import { getWorkbenchOpen, getCurrentAssetId, getSecondaryContext, closeWorkbench } from '../../slices/UI/workbench'
-import { WorkbenchContainer } from '../Workbench'
+import { WorkbenchContainer, WorkbenchAssetEditor } from '../Workbench'
 
 type FeedbackSnackbarProps = {
     feedbackMessage: string;
@@ -252,8 +252,7 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
                 assetId={currentAssetId}
                 secondaryContext={secondaryContext}
             >
-                {/* Placeholder content for now - Task 3 will add actual editing */}
-                <Box>Workbench content placeholder</Box>
+                {currentAssetId !== null ? <WorkbenchAssetEditor /> : null}
             </WorkbenchContainer>
         </Box>
     </Router>

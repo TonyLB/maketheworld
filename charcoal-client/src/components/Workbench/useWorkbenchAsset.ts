@@ -5,7 +5,7 @@
 // editing interfaces to the workbench context.
 //
 
-import { useMemo, useCallback, useEffect } from 'react'
+import { useMemo, useCallback, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
@@ -34,6 +34,8 @@ import { getAssetZone } from '../../slices/player'
 import { getCurrentAssetId } from '../../slices/UI/workbench'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { RootState } from '../../store'
+import { getConfiguration } from '../../slices/configuration'
+import { DevEnvironment } from '../../environment'
 
 type WorkbenchAssetContextType = {
     assetKey: string;
@@ -181,4 +183,47 @@ export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
         status,
         saving: (pendingEdits?.length ?? 0) > 0
     }
+}
+
+type ImageHeaderSyntheticURL = {
+    loadId: string;
+    fileURL: string;
+}
+
+export const useLibraryImageURL = (key: string): string => {    
+    const { loadedImages, properties } = useWorkbenchAsset()
+    const { AppBaseURL = '' } = useSelector(getConfiguration)
+    const [syntheticURL, setSyntheticURL] = useState<ImageHeaderSyntheticURL | undefined>()
+
+    const loadedImage = useMemo(() => (
+        loadedImages[key]
+    ), [loadedImages, key])
+
+    useEffect(() => {
+        if (loadedImage?.loadId !== syntheticURL?.loadId) {
+            if (syntheticURL) {
+                URL.revokeObjectURL(syntheticURL.fileURL)
+            }
+            if (loadedImage) {
+                setSyntheticURL({
+                    loadId: loadedImage.loadId,
+                    fileURL: URL.createObjectURL(loadedImage.file)
+                })
+            } else {
+                setSyntheticURL(undefined)
+            }
+        }
+        return () => {
+            if (syntheticURL) {
+                URL.revokeObjectURL(syntheticURL.fileURL)
+            }
+        }
+    }, [syntheticURL, loadedImage])
+
+    const fileURL = useMemo(() => {
+        const appBaseURL = DevEnvironment ? `https://${AppBaseURL}` : ''
+        return syntheticURL ? syntheticURL.fileURL : properties[key] ? `${appBaseURL}/images/${properties[key].fileName}.png` : ''
+    }, [syntheticURL, properties, key, AppBaseURL])
+
+    return fileURL
 }
