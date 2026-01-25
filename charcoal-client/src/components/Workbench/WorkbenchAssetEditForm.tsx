@@ -1,18 +1,11 @@
 import React, { FunctionComponent, useMemo, useCallback, useState, useRef, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import {
-    Box,
-    Button,
-    Typography,
-    Divider
-} from '@mui/material'
+import { Box, Typography } from '@mui/material'
 
 import FeatureIcon from '@mui/icons-material/Search'
 import KnowledgeIcon from '@mui/icons-material/School'
-import AddIcon from '@mui/icons-material/Add'
 import MapIcon from '@mui/icons-material/Map'
 import PersonIcon from '@mui/icons-material/Person'
-import ImportExportIcon from '@mui/icons-material/ImportExport'
 import HomeIcon from '@mui/icons-material/Home'
 
 import { getAssetZone } from '../../slices/player'
@@ -42,20 +35,11 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import WorkbenchComponentRow from './WorkbenchComponentRow'
+import WorkbenchAddComponent from './WorkbenchAddComponent'
+import WorkbenchAddImport from './WorkbenchAddImport'
 import ImageHeader from '../Library/Edit/ImageHeader'
 import WorkbenchDraftLockout from './DraftLockout'
 import { MakeTheWorldAccordion } from '../UI'
-
-const AddWMLComponent: FunctionComponent<{ type: 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image'; onAdd: () => void }> = ({ type, onAdd }) => (
-    <Button
-        onClick={onAdd}
-        variant='contained'
-        startIcon={<AddIcon />}
-        sx={{ margin: '0.5em' }}
-    >
-        {type}
-    </Button>
-)
 
 export const WorkbenchAssetEditForm: FunctionComponent = () => {
     const { updateStandard, standardForm, readonly, AssetId } = useWorkbenchAsset()
@@ -236,29 +220,16 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                                 ))
                                 : null
                             }
-                            
                             {!readonly && (
                                 <>
-                                    <Divider />
-                                    <Box>
-                                        <Typography variant="subtitle2" sx={{ marginBottom: "0.5em" }}>Add Component</Typography>
-                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                            <AddWMLComponent type="Character" onAdd={addAsset('Character')} />
-                                            <AddWMLComponent type="Map" onAdd={addAsset('Map')} />
-                                            <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
-                                            <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
-                                            <AddWMLComponent type="Knowledge" onAdd={addAsset('Knowledge')} />
-                                            <AddWMLComponent type="Image" onAdd={addAsset('Image')} />
-                                            <Button
-                                                onClick={() => setImportDialogOpen(true)}
-                                                variant='contained'
-                                                startIcon={<ImportExportIcon />}
-                                                sx={{ margin: '0.5em' }}
-                                            >
-                                                Import Component
-                                            </Button>
-                                        </Box>
-                                    </Box>
+                                    <WorkbenchAddComponent
+                                        onAddAsset={(tag) => addAsset(tag)()}
+                                        isEven={(allComponents.length + images.length) % 2 === 1}
+                                    />
+                                    <WorkbenchAddImport
+                                        onImportClick={() => setImportDialogOpen(true)}
+                                        isEven={(allComponents.length + images.length + 1) % 2 === 1}
+                                    />
                                 </>
                             )}
                         </Box>
