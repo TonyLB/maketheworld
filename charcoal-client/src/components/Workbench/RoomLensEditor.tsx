@@ -21,7 +21,7 @@ import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/rende
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import WorkbenchStandardLiteralEditor from "./StandardLiteralEditor"
 import WorkbenchStandardRenderEditor from "./StandardRenderEditor"
-import TitledBox from "../TitledBox"
+import WorkbenchTitledBox from "./WorkbenchTitledBox"
 import WorkbenchLensSelectorDialog from "./LensSelectorDialog"
 import { useDebouncedOnChange } from "../../hooks/useDebounce"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
@@ -376,25 +376,25 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
         return (
             <SidebarTitle title="Lens" minHeight="5em">
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-                    <TitledBox title="Short Name">
+                    <WorkbenchTitledBox title="Short Name">
                         <WorkbenchStandardLiteralEditor
                             value={lensShortName}
                             onChange={setLensShortName}
                             placeholder="Enter lens short name..."
                             size="small"
                         />
-                    </TitledBox>
+                    </WorkbenchTitledBox>
 
-                    <TitledBox title="Description">
+                    <WorkbenchTitledBox title="Description">
                         <WorkbenchStandardRenderEditor
                             value={lensDescription}
                             onChange={setLensDescription}
                             validLinkTags={[]}
                             toolbar={true}
                         />
-                    </TitledBox>
+                    </WorkbenchTitledBox>
 
-                    <TitledBox title="Marks">
+                    <WorkbenchTitledBox title="Marks">
                         <List>
                             {marks.map((mark, index) => {
                                 const markRef = singleLens.marks.payload[index]
@@ -421,7 +421,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                                 </ListItemButton>
                             </ListItem>
                         </List>
-                    </TitledBox>
+                    </WorkbenchTitledBox>
                 </Box>
             </SidebarTitle>
         )

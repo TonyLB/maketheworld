@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactNode, useCallback, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Box, Drawer, Dialog, useMediaQuery, useTheme, Button } from '@mui/material'
+import { Box, Drawer, Dialog, useMediaQuery, useTheme, Button, ThemeProvider } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
@@ -9,6 +9,7 @@ import AssetSelector from './AssetSelector'
 import { setCurrentAssetId, putWorkbenchSettings } from '../../slices/UI/workbench'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import { getAssetZone } from '../../slices/player'
+import { createWorkbenchTheme } from './workbenchTheme'
 
 interface WorkbenchContainerProps {
     open: boolean;
@@ -39,9 +40,13 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
     secondaryContext,
     children
 }) => {
-    const theme = useTheme()
+    const baseTheme = useTheme()
     const isDesktop = useMediaQuery('(min-width: 1200px) and (orientation: landscape)')
     const dispatch = useDispatch()
+    
+    // Create workbench theme that extends the base theme
+    // This allows the workbench to have a distinctive appearance
+    const workbenchTheme = useMemo(() => createWorkbenchTheme(baseTheme), [baseTheme])
     
     // Use workbench asset hook to get asset data
     const assetData = useWorkbenchAsset()
@@ -100,90 +105,92 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                     },
                 }}
             >
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: '100%',
-                    }}
-                >
-                    {/* Workbench header */}
+                <ThemeProvider theme={workbenchTheme}>
                     <Box
                         sx={{
-                            padding: 2,
-                            borderBottom: 1,
-                            borderColor: 'divider',
-                            minHeight: 64,
                             display: 'flex',
                             flexDirection: 'column',
+                            height: '100%',
                         }}
                     >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <Box sx={{ flex: 1 }}>
-                                <Box sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                    {assetName || 'Select an Asset'}
-                                </Box>
-                                {visibilityState && (
-                                    <Box sx={{ fontSize: '0.875rem', color: 'text.secondary', mt: 0.5 }}>
-                                        {visibilityState}
-                                    </Box>
-                                )}
-                                {secondaryContext && (
-                                    <Box sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5 }}>
-                                        {secondaryContext}
-                                    </Box>
-                                )}
-                            </Box>
-                            {assetId !== null && (
-                                <Button
-                                    variant="text"
-                                    size="small"
-                                    startIcon={<SwapHorizIcon />}
-                                    onClick={handleReturnToSelection}
-                                    sx={{
-                                        ml: 2,
-                                        alignSelf: 'flex-start',
-                                    }}
-                                >
-                                    Change asset
-                                </Button>
-                            )}
-                        </Box>
-                    </Box>
-
-                    <WorkbenchContent>
-                        {assetId === null ? (
-                            <AssetSelector onAssetSelect={handleAssetSelect} />
-                        ) : (
-                            children
-                        )}
-                    </WorkbenchContent>
-
-                    {/* Actions area - "Return to Story" button */}
-                    <Box
-                        sx={{
-                            padding: 2,
-                            borderTop: 1,
-                            borderColor: 'divider',
-                            minHeight: 64,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            startIcon={<ArrowBackIcon />}
-                            onClick={onClose}
+                        {/* Workbench header */}
+                        <Box
                             sx={{
-                                minWidth: 200,
+                                padding: 2,
+                                borderBottom: 1,
+                                borderColor: 'divider',
+                                minHeight: 64,
+                                display: 'flex',
+                                flexDirection: 'column',
                             }}
                         >
-                            Return to Story
-                        </Button>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <Box sx={{ flex: 1 }}>
+                                    <Box sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
+                                        {assetName || 'Select an Asset'}
+                                    </Box>
+                                    {visibilityState && (
+                                        <Box sx={{ fontSize: '0.875rem', color: 'text.secondary', mt: 0.5 }}>
+                                            {visibilityState}
+                                        </Box>
+                                    )}
+                                    {secondaryContext && (
+                                        <Box sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5 }}>
+                                            {secondaryContext}
+                                        </Box>
+                                    )}
+                                </Box>
+                                {assetId !== null && (
+                                    <Button
+                                        variant="text"
+                                        size="small"
+                                        startIcon={<SwapHorizIcon />}
+                                        onClick={handleReturnToSelection}
+                                        sx={{
+                                            ml: 2,
+                                            alignSelf: 'flex-start',
+                                        }}
+                                    >
+                                        Change asset
+                                    </Button>
+                                )}
+                            </Box>
+                        </Box>
+
+                        <WorkbenchContent>
+                            {assetId === null ? (
+                                <AssetSelector onAssetSelect={handleAssetSelect} />
+                            ) : (
+                                children
+                            )}
+                        </WorkbenchContent>
+
+                        {/* Actions area - "Return to Story" button */}
+                        <Box
+                            sx={{
+                                padding: 2,
+                                borderTop: 1,
+                                borderColor: 'divider',
+                                minHeight: 64,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                startIcon={<ArrowBackIcon />}
+                                onClick={onClose}
+                                sx={{
+                                    minWidth: 200,
+                                }}
+                            >
+                                Return to Story
+                            </Button>
+                        </Box>
                     </Box>
-                </Box>
+                </ThemeProvider>
             </Drawer>
         )
     }
@@ -200,90 +207,92 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                     flexDirection: 'column',
                 }
             }}
-        >
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: '100%',
-                }}
             >
-                {/* Workbench header */}
-                <Box
-                    sx={{
-                        padding: 2,
-                        borderBottom: 1,
-                        borderColor: 'divider',
-                        minHeight: 64,
-                        display: 'flex',
-                        flexDirection: 'column',
-                    }}
-                >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <Box sx={{ flex: 1 }}>
-                            <Box sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                {assetName || 'Select an Asset'}
-                            </Box>
-                            {visibilityState && (
-                                <Box sx={{ fontSize: '0.875rem', color: 'text.secondary', mt: 0.5 }}>
-                                    {visibilityState}
-                                </Box>
-                            )}
-                            {secondaryContext && (
-                                <Box sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5 }}>
-                                    {secondaryContext}
-                                </Box>
-                            )}
-                        </Box>
-                        {assetId !== null && (
-                            <Button
-                                variant="text"
-                                size="small"
-                                startIcon={<SwapHorizIcon />}
-                                onClick={handleReturnToSelection}
-                                sx={{
-                                    ml: 2,
-                                    alignSelf: 'flex-start',
-                                    minHeight: 44, // Touch-friendly on mobile
-                                }}
-                            >
-                                Change asset
-                            </Button>
-                        )}
-                    </Box>
-                </Box>
-
-                <WorkbenchContent>
-                    {assetId === null ? (
-                        <AssetSelector onAssetSelect={handleAssetSelect} />
-                    ) : (
-                        children
-                    )}
-                </WorkbenchContent>
-
-                {/* Actions area - "Return to Story" button */}
-                <Box
-                    sx={{
-                        padding: 2,
-                        borderTop: 1,
-                        borderColor: 'divider',
-                        minHeight: 64,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
-                >
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        fullWidth
-                        startIcon={<ArrowBackIcon />}
-                        onClick={onClose}
+                <ThemeProvider theme={workbenchTheme}>
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            height: '100%',
+                        }}
                     >
-                        Return to Story
-                    </Button>
-                </Box>
-            </Box>
+                        {/* Workbench header */}
+                        <Box
+                            sx={{
+                                padding: 2,
+                                borderBottom: 1,
+                                borderColor: 'divider',
+                                minHeight: 64,
+                                display: 'flex',
+                                flexDirection: 'column',
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <Box sx={{ flex: 1 }}>
+                                    <Box sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
+                                        {assetName || 'Select an Asset'}
+                                    </Box>
+                                    {visibilityState && (
+                                        <Box sx={{ fontSize: '0.875rem', color: 'text.secondary', mt: 0.5 }}>
+                                            {visibilityState}
+                                        </Box>
+                                    )}
+                                    {secondaryContext && (
+                                        <Box sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5 }}>
+                                            {secondaryContext}
+                                        </Box>
+                                    )}
+                                </Box>
+                                {assetId !== null && (
+                                    <Button
+                                        variant="text"
+                                        size="small"
+                                        startIcon={<SwapHorizIcon />}
+                                        onClick={handleReturnToSelection}
+                                        sx={{
+                                            ml: 2,
+                                            alignSelf: 'flex-start',
+                                            minHeight: 44, // Touch-friendly on mobile
+                                        }}
+                                    >
+                                        Change asset
+                                    </Button>
+                                )}
+                            </Box>
+                        </Box>
+
+                        <WorkbenchContent>
+                            {assetId === null ? (
+                                <AssetSelector onAssetSelect={handleAssetSelect} />
+                            ) : (
+                                children
+                            )}
+                        </WorkbenchContent>
+
+                        {/* Actions area - "Return to Story" button */}
+                        <Box
+                            sx={{
+                                padding: 2,
+                                borderTop: 1,
+                                borderColor: 'divider',
+                                minHeight: 64,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                fullWidth
+                                startIcon={<ArrowBackIcon />}
+                                onClick={onClose}
+                            >
+                                Return to Story
+                            </Button>
+                        </Box>
+                    </Box>
+                </ThemeProvider>
         </Dialog>
     )
 }

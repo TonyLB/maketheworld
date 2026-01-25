@@ -1,6 +1,6 @@
 import React, { ReactNode, FunctionComponent } from 'react'
 import { useSelector } from 'react-redux'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { ThemeProvider } from '@mui/material/styles'
 import {
     blue,
     pink,
@@ -14,43 +14,17 @@ import { getMySettings, getPlayer } from '../../slices/player'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { EphemeraCharacterId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-declare module '@mui/material/styles' {
-    interface PaletteOptions {
-        extras?: {
-            midPale?: string;
-            pale?: string;
-            paleTransparent?: string;
-            paleGradient?: string;
-            stripedGradient?: string;
-        }
-    }
-}
+// Import theme extensions as side-effect to ensure module augmentation is applied
+import '../../theme/extensions'
+import { createMakeTheWorldThemeFromColor } from '../../theme/createMakeTheWorldTheme'
 
 //
 // TODO: Typescript-constrain characterPalettes
 //
+// Create character themes using the centralized factory
+// This ensures consistency with the overall visual language
 const characterThemes = (Object.entries({ blue, pink, purple, green, grey })).map(([colorName, color]) => ({
-    [colorName]: createTheme({
-        palette: {
-            primary: color,
-            extras: {
-                midPale: color[100],
-                pale: color[50],
-                paleTransparent: `${color[50]} transparent`,
-                paleGradient: `linear-gradient(${color[50]} 30%, ${color[100]})`,
-                stripedGradient: `
-                    repeating-linear-gradient(
-                        45deg,
-                        transparent,
-                        transparent 10px,
-                        ${color[50]}80 10px,
-                        ${color[50]}80 20px
-                    ),
-                    linear-gradient(white 70%, ${color[50]})
-                `
-            }
-        },
-    })
+    [colorName]: createMakeTheWorldThemeFromColor(color)
 })).reduce((prev, item) => ({ ...prev, ...item }), {})
 
 type CharacterColorWrapper = {
