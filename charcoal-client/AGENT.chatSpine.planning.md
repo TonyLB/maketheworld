@@ -312,10 +312,22 @@ Current visibility: Private draft
      - Mobile version includes `minHeight: 44` for touch-friendly interaction
      - Button text: "Change asset" (aligned with design principles, avoids "edit" language)
    
-1c. **Add "Add asset" button on selector**
-   - Add button/affordance in asset selector UI to create new asset
-   - Integrate with existing asset creation flow (similar to Library's "New Draft" functionality)
-   - After creation, automatically set as `currentAssetId` and proceed to editing
+1c. **Add "Add asset" button on selector** ✅ **COMPLETED**
+   - ✅ Added "Add asset" button/card UI to AssetSelector component
+   - ✅ Integrated with existing asset creation flow (reused Library's `handleCreateDraft` pattern)
+   - ✅ After creation, automatically sets as `currentAssetId` and proceeds to editing
+   - **Implementation Notes**:
+     - Created `handleCreateAsset` function following Library's `handleCreateDraft` pattern
+     - Uses UUID generation, WML structure creation via `Schema` and `schemaToWML`, and `socketDispatchPromise` API call
+     - Implements optimistic UI updates with `draftAssetIdBeingAdded` state
+     - Auto-selection via `useEffect` watching for new asset in `DraftAssets`
+     - Includes error handling with user feedback via feedback slice
+     - Includes timeout fallback (10 seconds) to clear optimistic state
+     - Prevents duplicate creation requests by checking `draftAssetIdBeingAdded` state
+     - "Add asset" button displayed at top of asset list (full-width card with dashed border)
+     - Shows loading spinner during creation, disabled state prevents duplicate clicks
+     - Empty state also includes "Add asset" button for better UX
+     - Implementation: `src/components/Workbench/AssetSelector.tsx`
 
 2. **Implement workbench header**
    - Asset name (primary)
