@@ -26,6 +26,7 @@ import MessageComponent from '../Message/MessageComponent'
 import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/baseClasses'
 import EntryModeRoller from './EntryModeRoller'
 import TutorialPopover from '../Onboarding/TutorialPopover'
+import DraftLabel from '../Message/DraftLabel'
 
 interface EntryFieldProps {
     placeholder?: string;
@@ -182,6 +183,8 @@ export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => 
     return (
         <CharacterColorWrapper color="blue">
             <MessageComponent
+                leftIcon={<DraftLabel />}
+                leftGutter={100} // Increased to accommodate larger DraftLabel
                 rightIcon={
                     <Stack direction="row">
                         <EntryModeRoller />

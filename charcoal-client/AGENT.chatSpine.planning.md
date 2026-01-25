@@ -191,7 +191,7 @@ Current visibility: Private draft
 
 ## Strategic Phases
 
-### Phase 1: Foundation - Play Spine Establishment
+### Phase 1: Foundation - Play Spine Establishment ✅ **COMPLETED**
 
 **Goal**: Establish chat-focused play spine as primary surface
 
@@ -230,11 +230,15 @@ Current visibility: Private draft
    - **Rationale**: Play spine should be the single, stable primary surface. Tab-based navigation competed with play spine for user attention.
    - **Implementation Note**: All routes remain functional via direct navigation. Components no longer auto-pin tabs when mounted.
 
-4. **Wire draft worldview rendering** (UI Placeholder)
-   - Add "Draft" label/placard in play spine UI for visibility
-   - Document that actual draft worldview rendering depends on backend message/perception system refactor
-   - Add code comments indicating this is a placeholder that will become functional when backend supports draft worldview selection
-   - **Note**: Play spine currently receives messages from backend based on player Authorization settings. Full draft worldview rendering requires backend changes to message crafting system. For Phase 1, we add UI indicator only.
+4. **Wire draft worldview rendering** (UI Placeholder) ✅ **COMPLETED**
+   - ✅ Added "Draft" label/placard in play spine UI (`DraftLabel` component)
+   - ✅ Integrated into `LineEntry` component as `leftIcon` in `MessageComponent`, aligned vertically with input field
+   - ✅ Sized appropriately: font size matches input field (`1rem`), `minWidth: 80px` to accommodate future select element
+   - ✅ Added `LanguageIcon` from Material-UI icons to the left of "Draft" text
+   - ✅ Documented placeholder nature in component comments and code
+   - ✅ Styled with Typography (body1 variant) matching input field visual weight
+   - ✅ Implementation: Created `src/components/Message/DraftLabel.tsx` and integrated into `LineEntry/index.tsx` with `leftGutter={100}`
+   - **Note**: Play spine currently receives messages from backend based on player Authorization settings. Full draft worldview rendering requires backend changes to message crafting system. For Phase 1, we add UI indicator only. The label currently always displays "Draft" as a placeholder; future backend integration will make this conditional based on worldview state and convert it to a select/dropdown element for worldview switching.
 
 **Success Criteria**:
 - ✅ Current character selection persists across sessions
@@ -246,9 +250,9 @@ Current visibility: Private draft
 - ✅ Library and Knowledge moved to `/Explore` placeholder route
 - ✅ Tab-based navigation removed (play spine is now single, stable primary surface)
 - ✅ All routes remain accessible via direct navigation (Settings, Who, Onboarding, Library, etc.)
-- ⏳ One worldview rendered at a time (pending task 4)
+- ✅ One worldview rendered at a time (UI indicator added; full rendering requires backend refactor)
 - ✅ Sticky room summary preserved and functional (existing `MessagePanel` behavior maintained)
-- ⏳ Draft worldview UI indicator added (pending task 4 - UI placeholder only; full rendering requires backend refactor)
+- ✅ Draft worldview UI indicator added (integrated into LineEntry, aligned with input, includes LanguageIcon, UI placeholder only; full rendering requires backend refactor)
 - ✅ All existing message types display properly (no changes to message rendering logic)
 
 **Dependencies**: None (can start immediately)
