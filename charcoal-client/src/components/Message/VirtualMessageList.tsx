@@ -71,8 +71,6 @@ export const VirtualMessageList = () => {
             itemContent={itemContent}
             followOutput={true}
             ref={virtuoso as any}
-            onPointerEnterCapture={undefined}
-            onPointerLeaveCapture={undefined}
         />
     )
 }
