@@ -284,6 +284,34 @@ Current visibility: Private draft
    - Clear, prominent action to exit workbench
    - Returns to play spine
 
+**Architectural Considerations for Future Chat-Based Editing**:
+
+Phase 2 implements a workbench overlay while the play spine remains visible. However, the future iteration will replace the play spine chat with an authoring chat in the main content area during authoring mode. To avoid painting ourselves into a corner, Phase 2 must:
+
+1. **State Management Design**:
+   - Implement mode state (`authoringMode: 'play' | 'authoring'`) even if Phase 2 doesn't use it fully
+   - Keep `workbenchOpen` state independent of `authoringMode`
+   - Design entry ritual as a mode transition, not just "open workbench"
+   - **Rationale**: Future iteration will swap main content area based on mode; state model must support this
+
+2. **Workbench Positioning**:
+   - Position workbench relative to `gridArea: "content"` container, not `MessagePanel` specifically
+   - Workbench should work identically whether main area shows play chat or authoring chat
+   - **Rationale**: Main content area will swap between play spine and authoring chat; workbench must be independent
+
+3. **Layout Structure**:
+   - Workbench should overlay/attach to the content grid area container
+   - Avoid coupling workbench layout to MessagePanel structure
+   - **Rationale**: Same workbench must coexist with different main content (play chat → authoring chat)
+
+4. **Entry Ritual Design**:
+   - Entry ritual should set `authoringMode: 'authoring'` (even if Phase 2 still renders play spine)
+   - In Phase 2: `authoringMode: 'authoring'` renders play spine + workbench overlay
+   - In future: `authoringMode: 'authoring'` renders authoring chat + workbench overlay
+   - **Rationale**: Makes future change a rendering swap, not an architectural refactor
+
+**Key Principle**: Workbench must be designed to coexist with either play chat or authoring chat in the main content area, without knowing or caring which one is present.
+
 **Success Criteria**:
 - Workbench opens as overlay/side-panel
 - Header displays asset name and visibility state correctly
@@ -683,6 +711,18 @@ These features are explicitly deferred but should be considered in the architect
 - Admin/moderation dashboards
 
 **Architecture Note**: The workbench container is designed to be reusable for these future features (side-threads, deliberation, tutorials, collaboration).
+
+### Chat-Based Authoring (Future Iteration)
+
+**Future Architecture**: In a future iteration, entering authoring mode will replace the play spine chat with an authoring chat interface in the main content area. The authoring chat will provide a conversational interface for collaborating with AI on asset editing, using the same screen real estate currently occupied by the play spine.
+
+**Key Design Points**:
+- **Main Content Area Swap**: During authoring mode, the main content area (`gridArea: "content"`) switches from play spine (`MessagePanel`) to authoring chat interface
+- **Workbench Coexistence**: The workbench overlay/side-panel remains visible alongside the authoring chat, positioned relative to the content grid area (not the specific chat component)
+- **Mode-Based Rendering**: State management tracks `authoringMode: 'play' | 'authoring'` to determine which chat interface renders in the main area
+- **Entry/Exit Rituals**: Entry ritual transitions to `authoringMode: 'authoring'` (swapping main content), exit ritual returns to `authoringMode: 'play'` (restoring play spine)
+
+**Phase 2 Preparation**: Phase 2 must design state management and layout structure to support this future swap without architectural refactoring. See Phase 2 "Architectural Considerations" section for implementation guidance.
 
 ---
 
