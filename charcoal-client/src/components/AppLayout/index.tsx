@@ -169,8 +169,13 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
     const secondaryContext = useSelector(getSecondaryContext)
     
     // Derive asset info from personalAssets and player slices
-    const standardFormData = currentAssetId ? useSelector(getStandardForm(currentAssetId)) : null
-    const zone = currentAssetId ? useSelector(getAssetZone(currentAssetId)) : null
+    // Always call useSelector to maintain hook order, handle null in selector
+    const standardFormData = useSelector((state: any) => 
+        currentAssetId ? getStandardForm(currentAssetId)(state) : null
+    )
+    const zone = useSelector((state: any) => 
+        currentAssetId ? getAssetZone(currentAssetId)(state) : null
+    )
     
     // Extract asset name from standardForm
     let assetName: string | null = null

@@ -298,10 +298,19 @@ Current visibility: Private draft
      - Asset selection updates `currentAssetId` via `setCurrentAssetId` action and persists via `putWorkbenchSettings`
      - Uses `AssetKey` utility to normalize asset IDs to proper format
    
-1b. **Add "Return to asset selection" affordance**
-   - Add UI control (button/link) in workbench header or actions area
-   - Allows user to clear `currentAssetId` and return to asset selector
-   - Useful when user wants to switch to a different asset
+1b. **Add "Return to asset selection" affordance** ✅ **COMPLETED**
+   - ✅ Add UI control (button/link) in workbench header or actions area
+   - ✅ Allows user to clear `currentAssetId` and return to asset selector
+   - ✅ Useful when user wants to switch to a different asset
+   - **Implementation Notes**:
+     - Added "Change asset" button in workbench header (both desktop and mobile layouts)
+     - Button positioned in header area on the right side, aligned with asset name
+     - Uses Material-UI `Button` with `variant="text"` and `size="small"` for secondary action styling
+     - Includes `SwapHorizIcon` from Material-UI icons for visual clarity
+     - Button only visible when `assetId !== null` (conditional rendering)
+     - Handler function `handleReturnToSelection` dispatches `setCurrentAssetId(null)` and `putWorkbenchSettings({ currentAssetId: null })` to clear selection and persist change
+     - Mobile version includes `minHeight: 44` for touch-friendly interaction
+     - Button text: "Change asset" (aligned with design principles, avoids "edit" language)
    
 1c. **Add "Add asset" button on selector**
    - Add button/affordance in asset selector UI to create new asset
@@ -318,9 +327,17 @@ Current visibility: Private draft
    - Normalize authoring UI with consistent sections/cards
    - Ensure single-asset editing constraint
 
-4. **Add "Return to Story" affordance**
-   - Clear, prominent action to exit workbench
-   - Returns to play spine
+4. **Add "Return to Story" affordance** ✅ **COMPLETED**
+   - ✅ Clear, prominent action to exit workbench
+   - ✅ Returns to play spine
+   - **Implementation Notes**:
+     - Added "Return to Story" button in workbench actions area (bottom section)
+     - Button uses Material-UI `Button` with `variant="contained"` and `color="primary"` for prominence
+     - Includes `ArrowBackIcon` to emphasize returning to story
+     - Desktop: Button centered with `minWidth: 200px`
+     - Mobile: Button full width for better touch target
+     - Button calls `onClose` prop which dispatches `closeWorkbench()` action
+     - Button is always visible in actions area when workbench is open
 
 **Architectural Considerations for Future Chat-Based Editing**:
 
