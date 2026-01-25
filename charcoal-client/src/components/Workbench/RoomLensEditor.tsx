@@ -11,7 +11,7 @@ import Alert from "@mui/material/Alert"
 import { useWorkbenchAsset } from "./useWorkbenchAsset"
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
-import SidebarTitle from "../Library/Edit/SidebarTitle"
+import WorkbenchSidebarTitle from "./WorkbenchSidebarTitle"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import StandardMark, { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldState"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
@@ -335,18 +335,18 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
 
     if (!room) {
         return (
-            <SidebarTitle title="Lens" minHeight="5em">
+            <WorkbenchSidebarTitle title="Lens" minHeight="5em">
                 <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
                     Room not found
                 </Box>
-            </SidebarTitle>
+            </WorkbenchSidebarTitle>
         )
     }
 
     if (lensCount === 0) {
         return (
             <>
-                <SidebarTitle title="Lens" minHeight="5em">
+                <WorkbenchSidebarTitle title="Lens" minHeight="5em">
                     <List>
                         <ListItem>
                             <ListItemButton
@@ -361,7 +361,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                             </ListItemButton>
                         </ListItem>
                     </List>
-                </SidebarTitle>
+                </WorkbenchSidebarTitle>
                 <WorkbenchLensSelectorDialog
                     open={dialogOpen}
                     onClose={() => setDialogOpen(false)}
@@ -374,7 +374,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
 
     if (lensCount === 1 && singleLens) {
         return (
-            <SidebarTitle title="Lens" minHeight="5em">
+            <WorkbenchSidebarTitle title="Lens" minHeight="5em">
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
                     <WorkbenchTitledBox title="Short Name">
                         <WorkbenchStandardLiteralEditor
@@ -423,12 +423,12 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                         </List>
                     </WorkbenchTitledBox>
                 </Box>
-            </SidebarTitle>
+            </WorkbenchSidebarTitle>
         )
     }
 
     return (
-        <SidebarTitle title="Lens" minHeight="5em">
+        <WorkbenchSidebarTitle title="Lens" minHeight="5em">
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
                 <Alert severity="warning" sx={{ mb: 2 }}>
                     <Typography variant="body2" fontWeight="bold" gutterBottom>
@@ -489,7 +489,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                     })}
                 </List>
             </Box>
-        </SidebarTitle>
+        </WorkbenchSidebarTitle>
     )
 }
 

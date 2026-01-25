@@ -15,7 +15,7 @@ import { useWorkbenchAsset } from "./useWorkbenchAsset"
 import ExitIcon from '@mui/icons-material/CallMade'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
-import SidebarTitle from "../Library/Edit/SidebarTitle"
+import WorkbenchSidebarTitle from "./WorkbenchSidebarTitle"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardExitFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
@@ -233,16 +233,16 @@ export const WorkbenchRoomExitEditor: FunctionComponent<RoomExitEditorProps> = (
 
     if (!room) {
         return (
-            <SidebarTitle title="Exits" minHeight="5em">
+            <WorkbenchSidebarTitle title="Exits" minHeight="5em">
                 <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
                     Room not found
                 </Box>
-            </SidebarTitle>
+            </WorkbenchSidebarTitle>
         )
     }
 
     return (
-        <SidebarTitle title="Exits" minHeight="5em">
+        <WorkbenchSidebarTitle title="Exits" minHeight="5em">
             <List>
                 {exits.map((exit, index) => (
                     <ExitEditor
@@ -262,7 +262,7 @@ export const WorkbenchRoomExitEditor: FunctionComponent<RoomExitEditorProps> = (
                     </ListItemButton>
                 </ListItem>
             </List>
-        </SidebarTitle>
+        </WorkbenchSidebarTitle>
     )
 }
 
