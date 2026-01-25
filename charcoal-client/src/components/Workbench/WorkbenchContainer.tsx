@@ -1,7 +1,10 @@
-import React, { FunctionComponent, ReactNode } from 'react'
+import React, { FunctionComponent, ReactNode, useCallback } from 'react'
+import { useDispatch } from 'react-redux'
 import { Box, Drawer, Dialog, useMediaQuery, useTheme } from '@mui/material'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import WorkbenchContent from './WorkbenchContent'
+import AssetSelector from './AssetSelector'
+import { setCurrentAssetId, putWorkbenchSettings } from '../../slices/UI/workbench'
 
 interface WorkbenchContainerProps {
     open: boolean;
@@ -38,6 +41,12 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
 }) => {
     const theme = useTheme()
     const isDesktop = useMediaQuery('(min-width: 1200px) and (orientation: landscape)')
+    const dispatch = useDispatch()
+
+    const handleAssetSelect = useCallback((selectedAssetId: AssetUUID) => {
+        dispatch(setCurrentAssetId(selectedAssetId))
+        dispatch(putWorkbenchSettings({ currentAssetId: selectedAssetId }))
+    }, [dispatch])
 
     // Desktop: Use Drawer as side panel
     if (isDesktop) {
@@ -71,7 +80,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                         }}
                     >
                         <Box sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
-                            {assetName || 'No asset selected'}
+                            {assetName || 'Select an Asset'}
                         </Box>
                         {visibilityState && (
                             <Box sx={{ fontSize: '0.875rem', color: 'text.secondary', mt: 0.5 }}>
@@ -86,7 +95,11 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                     </Box>
 
                     <WorkbenchContent>
-                        {children}
+                        {assetId === null ? (
+                            <AssetSelector onAssetSelect={handleAssetSelect} />
+                        ) : (
+                            children
+                        )}
                     </WorkbenchContent>
 
                     {/* Actions area - "Return to Story" will be implemented in Task 4 */}
@@ -135,7 +148,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                     }}
                 >
                     <Box sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
-                        {assetName || 'No asset selected'}
+                        {assetName || 'Select an Asset'}
                     </Box>
                     {visibilityState && (
                         <Box sx={{ fontSize: '0.875rem', color: 'text.secondary', mt: 0.5 }}>
@@ -150,7 +163,11 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                 </Box>
 
                 <WorkbenchContent>
-                    {children}
+                    {assetId === null ? (
+                        <AssetSelector onAssetSelect={handleAssetSelect} />
+                    ) : (
+                        children
+                    )}
                 </WorkbenchContent>
 
                 {/* Actions area - "Return to Story" will be implemented in Task 4 */}

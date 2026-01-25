@@ -284,11 +284,19 @@ Current visibility: Private draft
      - Asset data derivation: AppLayout uses `getStandardForm` and `getAssetZone` selectors directly (following plan's alternative approach)
      - Workbench positioned at AppLayout level to overlay entire content area, independent of main content type
    
-1a. **Create asset selector UI** (when `currentAssetId` is undefined)
-   - Display asset selection interface when workbench opens without a selected asset
-   - Show list/grid of available assets (similar to Library component's asset cards)
-   - Allow user to select an asset to work on
-   - Update `currentAssetId` when asset is selected
+1a. **Create asset selector UI** (when `currentAssetId` is undefined) ✅ **COMPLETED**
+   - ✅ Display asset selection interface when workbench opens without a selected asset
+   - ✅ Show list/grid of available assets (similar to Library component's asset cards)
+   - ✅ Allow user to select an asset to work on
+   - ✅ Update `currentAssetId` when asset is selected
+   - **Implementation Notes**:
+     - Created `AssetSelector` component in `components/Workbench/AssetSelector.tsx`
+     - Reuses `AssetCard` component from Library for consistency
+     - Displays draft and personal assets in responsive grid layout (xs: 12, sm: 6, md: 4)
+     - Shows empty state message when no assets are available
+     - Integrated into `WorkbenchContainer` with conditional rendering (shows selector when `assetId` is null)
+     - Asset selection updates `currentAssetId` via `setCurrentAssetId` action and persists via `putWorkbenchSettings`
+     - Uses `AssetKey` utility to normalize asset IDs to proper format
    
 1b. **Add "Return to asset selection" affordance**
    - Add UI control (button/link) in workbench header or actions area
