@@ -344,10 +344,34 @@ Current visibility: Private draft
      - Edge cases handled: shows "Select an Asset" when no asset selected, "Untitled" for missing names
      - Implementation: `src/components/AppLayout/index.tsx` uses `getWorkbenchAssetInfo` selector, `src/components/Workbench/WorkbenchContainer.tsx` displays header
 
-3. **Migrate existing editing interfaces**
+3a. **Create `useWorkbenchAsset` hook** (Preliminary sub-task - **MUST BE COMPLETED FIRST**) ✅ **COMPLETED**
+   - ✅ Create a `useWorkbenchAsset` hook that can be used as a drop-in replacement for `useLibraryAsset`
+   - ✅ The hook does NOT require an AssetId parameter provided by the calling code
+   - ✅ The hook uses `currentAssetId` from the workbench Redux slice (`getCurrentAssetId` selector)
+   - ✅ The hook provides the same interface/API as `useLibraryAsset` to enable seamless migration
+   - **Rationale**: Existing editing interfaces use `useLibraryAsset` which requires an `assetKey` prop passed to the `LibraryAsset` context provider. To migrate these interfaces to the workbench context, we need a hook that automatically derives the asset ID from the workbench state rather than requiring it to be passed explicitly.
+   - **Implementation Notes**:
+     - ✅ Hook reads `currentAssetId` from workbench slice using `getCurrentAssetId` selector
+     - ✅ Hook derives `AssetId` from `currentAssetId` using `AssetKey` utility to normalize the format
+     - ✅ Hook uses the same selectors and logic as `LibraryAsset` component to provide identical context values
+     - ✅ Hook handles the case where `currentAssetId` is null by returning default values matching `LibraryAssetContext` default context
+     - ✅ Hook located at `src/components/Workbench/useWorkbenchAsset.ts`
+     - ✅ Hook exported from `src/components/Workbench/index.ts`
+     - ✅ Workbench header refactored to use the hook as a test case (removed `assetName` and `visibilityState` props from `WorkbenchContainer`, now derives them from hook)
+     - ✅ `AppLayout` updated to remove `getWorkbenchAssetInfo` selector usage and removed `assetName`/`visibilityState` props from `WorkbenchContainer`
+     - **Implementation Details**:
+       - Hook returns the same type as `LibraryAssetContextType` for drop-in compatibility
+       - When `currentAssetId` is null, hook returns default values (empty strings, default StandardForm instances, readonly: true, etc.)
+       - Asset name derived from `standardForm.shortName?.toJSON()` (StandardLiteral API)
+       - Visibility state derived from `zone` using `getAssetZone` selector (same logic as `getWorkbenchAssetInfo`)
+       - All selectors and callbacks mirror `LibraryAsset` component implementation
+
+3. **Migrate existing editing interfaces** (Depends on 3a)
+   - **Prerequisite**: Task 3a (`useWorkbenchAsset` hook) must be completed first
    - Move asset editing components into workbench
    - Normalize authoring UI with consistent sections/cards
    - Ensure single-asset editing constraint
+   - Replace `useLibraryAsset` calls with `useWorkbenchAsset` in migrated components
 
 4. **Add "Return to Story" affordance** ✅ **COMPLETED**
    - ✅ Clear, prominent action to exit workbench

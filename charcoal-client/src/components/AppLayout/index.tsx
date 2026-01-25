@@ -40,7 +40,7 @@ import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
 import { getClientSettings, getCurrentCharacterId } from '../../slices/settings'
 import { putClientSettings } from '../../slices/settings'
-import { getWorkbenchOpen, getCurrentAssetId, getSecondaryContext, getWorkbenchAssetInfo, closeWorkbench } from '../../slices/UI/workbench'
+import { getWorkbenchOpen, getCurrentAssetId, getSecondaryContext, closeWorkbench } from '../../slices/UI/workbench'
 import { WorkbenchContainer } from '../Workbench'
 
 type FeedbackSnackbarProps = {
@@ -165,12 +165,6 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
     const workbenchOpen = useSelector(getWorkbenchOpen)
     const currentAssetId = useSelector(getCurrentAssetId)
     const secondaryContext = useSelector(getSecondaryContext)
-    const assetInfo = useSelector(getWorkbenchAssetInfo)
-    
-    // Extract asset name and visibility state from selector result
-    // getWorkbenchAssetInfo returns null when no asset is selected
-    const assetName = assetInfo?.assetName || null
-    const visibilityState = assetInfo?.visibilityState || null
 
     const routes = useMemo(() => (
         <Routes>
@@ -256,8 +250,6 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
                 open={workbenchOpen}
                 onClose={() => dispatch(closeWorkbench())}
                 assetId={currentAssetId}
-                assetName={assetName}
-                visibilityState={visibilityState}
                 secondaryContext={secondaryContext}
             >
                 {/* Placeholder content for now - Task 3 will add actual editing */}

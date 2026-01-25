@@ -1,5 +1,5 @@
-import React, { FunctionComponent, ReactNode, useCallback } from 'react'
-import { useDispatch } from 'react-redux'
+import React, { FunctionComponent, ReactNode, useCallback, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { Box, Drawer, Dialog, useMediaQuery, useTheme, Button } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
@@ -7,14 +7,13 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import WorkbenchContent from './WorkbenchContent'
 import AssetSelector from './AssetSelector'
 import { setCurrentAssetId, putWorkbenchSettings } from '../../slices/UI/workbench'
-import { addItem } from '../../slices/personalAssets'
+import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { getAssetZone } from '../../slices/player'
 
 interface WorkbenchContainerProps {
     open: boolean;
     onClose: () => void;
     assetId: AssetUUID | null;
-    assetName: string | null;
-    visibilityState: string | null;
     secondaryContext?: string | null;
     children: ReactNode;
 }
@@ -37,22 +36,48 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
     open,
     onClose,
     assetId,
-    assetName,
-    visibilityState,
     secondaryContext,
     children
 }) => {
     const theme = useTheme()
     const isDesktop = useMediaQuery('(min-width: 1200px) and (orientation: landscape)')
     const dispatch = useDispatch()
+    
+    // Use workbench asset hook to get asset data
+    const assetData = useWorkbenchAsset()
+    
+    // Derive asset name from standardForm
+    // standardForm.shortName is a StandardLiteral object, use toJSON() to get string value
+    const assetName = useMemo(() => {
+        if (!assetId || assetData.AssetId === 'ASSET#uninitialized') {
+            return null
+        }
+        
+        // Use toJSON() to get the string value from StandardLiteral
+        const name = assetData.standardForm.shortName?.toJSON() ?? 'Untitled'
+        return name
+    }, [assetId, assetData.standardForm, assetData.AssetId])
+    
+    // Get zone directly using selector (needed for visibility state)
+    const zone = useSelector(getAssetZone(assetData.AssetId))
+    
+    // Derive visibility state from zone (same logic as getWorkbenchAssetInfo selector)
+    const visibilityState = useMemo(() => {
+        if (!assetId || assetData.AssetId === 'ASSET#uninitialized') {
+            return null
+        }
+        
+        return zone === 'Draft' ? 'Private draft' : 
+               zone === 'Personal' ? 'Personal' : 
+               zone === 'Library' ? 'Library' : 
+               zone === 'Canon' ? 'Canon' : 
+               'Unknown'
+    }, [assetId, assetData.AssetId, zone])
 
     const handleAssetSelect = useCallback((selectedAssetId: AssetUUID) => {
         dispatch(setCurrentAssetId(selectedAssetId))
         dispatch(putWorkbenchSettings({ currentAssetId: selectedAssetId }))
-        
-        // Ensure asset is loaded into personalAssets for editing
-        // addItem is idempotent - it won't create duplicates if already loaded
-        dispatch(addItem({ key: selectedAssetId, options: { initialState: 'NEW' }}))
+        // Asset loading is now handled automatically by useWorkbenchAsset hook
     }, [dispatch])
 
     const handleReturnToSelection = useCallback(() => {

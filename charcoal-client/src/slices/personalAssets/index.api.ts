@@ -21,7 +21,6 @@ import { isSubscriptionClientMessage, WMLSubscriptionClientMessage } from '@tony
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
     const status = getStatus(state)
-
     return (status === 'CONNECTED')
 }
 
