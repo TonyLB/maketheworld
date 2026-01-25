@@ -39,6 +39,8 @@ import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/compone
 import { enforceTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import { v4 as uuidv4 } from 'uuid'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import WorkbenchComponentRow from './WorkbenchComponentRow'
 import ImageHeader from '../Library/Edit/ImageHeader'
 import WorkbenchDraftLockout from './DraftLockout'
@@ -149,7 +151,16 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                 
                 const component = standardComponentFactory({ tag, universalKey })
                 if (component) {
-                    draft._components = [...draft._components, component]
+                    // Use byUniversalId to add component (handles _components and cache invalidation)
+                    draft.byUniversalId[universalKey] = component
+                    
+                    // Add component reference to _topLevel if it exists, or create it
+                    const componentReference = new StandardReference({ universalKey, tag })
+                    if (draft._topLevel) {
+                        draft._topLevel = draft._topLevel.assureItem(componentReference)
+                    } else {
+                        draft._topLevel = new ReferenceList([componentReference])
+                    }
                 }
                 else {
                     throw new Error(`Invalid tag: ${tag}`)
