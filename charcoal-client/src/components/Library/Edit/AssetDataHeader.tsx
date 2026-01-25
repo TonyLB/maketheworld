@@ -5,7 +5,8 @@ import {
     ListItem,
     ListItemText,
     ListItemIcon,
-    SxProps
+    SxProps,
+    Box
 } from '@mui/material'
 
 import MiniChip from '../../MiniChip'
@@ -21,6 +22,7 @@ export type AssetDataHeaderRenderFunction = {
 interface AssetDataHeaderProps {
     ItemId: string;
     icon: ReactChild;
+    iconIndicator?: ReactChild;
     actions?: ReactChild;
     primary?: AssetDataHeaderRenderFunction;
     secondary?: AssetDataHeaderRenderFunction;
@@ -29,16 +31,22 @@ interface AssetDataHeaderProps {
     selected?: boolean;
 }
 
-export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon, actions = null, primary, secondary, ItemId, onClick, sx, selected }) => {
+export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon, iconIndicator, actions = null, primary, secondary, ItemId, onClick, sx, selected }) => {
     const primaryOutput = <React.Fragment>
         { primary?.(ItemId) || null }
     </React.Fragment>
     const secondaryOutput = secondary?.(ItemId) || null
+    const iconContent = (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            { icon }
+            { iconIndicator }
+        </Box>
+    )
     if (onClick) {
         return <ListItem sx={sx} secondaryAction={actions}>
             <ListItemButton onClick={onClick} selected={selected}>
                 <ListItemIcon>
-                    { icon }
+                    { iconContent }
                 </ListItemIcon>
                 <ListItemText primary={primaryOutput} secondary={secondaryOutput} />
             </ListItemButton>
@@ -47,7 +55,7 @@ export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon,
     else {
         return <ListItem sx={sx}>
             <ListItemIcon>
-                { icon }
+                { iconContent }
             </ListItemIcon>
             <ListItemText primary={primaryOutput} secondary={secondaryOutput} />
         </ListItem>
