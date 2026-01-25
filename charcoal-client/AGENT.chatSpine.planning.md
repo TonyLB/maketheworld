@@ -266,9 +266,39 @@ Current visibility: Private draft
 **Goal**: Create non-chat authoring workbench as overlay/side-panel
 
 **Key Tasks**:
-1. **Create workbench container**
-   - Implement overlay/panel/sheet layout (responsive: side panel on desktop, full-screen on mobile)
-   - Design reusable container structure for future features
+1. **Create workbench container** ✅ **COMPLETED**
+   - ✅ Implemented overlay/panel/sheet layout (responsive: side panel on desktop, full-screen on mobile)
+   - ✅ Designed reusable container structure for future features
+   - ✅ Stored `currentAssetId` persistently in Redux state and IndexedDB (following `currentCharacterId` pattern)
+   - ✅ Added `CurrentAssetIdType` to `cacheDB/index.ts` ClientSettingType union
+   - ✅ Added `loadWorkbenchSettings()` and `putWorkbenchSettings()` thunks for persistence
+   - ✅ Loaded persisted `currentAssetId` on app startup in `AppController`
+   - ✅ Created `WorkbenchContainer` component with responsive Drawer (desktop) and Dialog (mobile) layouts
+   - ✅ Created `WorkbenchContent` flexible wrapper component
+   - ✅ Integrated workbench into `AppLayout` at viewport level (positioned relative to content grid area, not MessagePanel)
+   - ✅ Workbench state slice created with `authoringMode` support for future chat-based editing
+   - **Implementation Notes**:
+     - Workbench state slice: `slices/UI/workbench/index.ts` with Redux slice, selectors, and persistence functions
+     - Container component: `components/Workbench/WorkbenchContainer.tsx` uses Material-UI Drawer (desktop) and Dialog (mobile)
+     - Content wrapper: `components/Workbench/WorkbenchContent.tsx` provides flexible content area
+     - Asset data derivation: AppLayout uses `getStandardForm` and `getAssetZone` selectors directly (following plan's alternative approach)
+     - Workbench positioned at AppLayout level to overlay entire content area, independent of main content type
+   
+1a. **Create asset selector UI** (when `currentAssetId` is undefined)
+   - Display asset selection interface when workbench opens without a selected asset
+   - Show list/grid of available assets (similar to Library component's asset cards)
+   - Allow user to select an asset to work on
+   - Update `currentAssetId` when asset is selected
+   
+1b. **Add "Return to asset selection" affordance**
+   - Add UI control (button/link) in workbench header or actions area
+   - Allows user to clear `currentAssetId` and return to asset selector
+   - Useful when user wants to switch to a different asset
+   
+1c. **Add "Add asset" button on selector**
+   - Add button/affordance in asset selector UI to create new asset
+   - Integrate with existing asset creation flow (similar to Library's "New Draft" functionality)
+   - After creation, automatically set as `currentAssetId` and proceed to editing
 
 2. **Implement workbench header**
    - Asset name (primary)

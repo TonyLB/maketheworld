@@ -40,6 +40,10 @@ import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
 import { getClientSettings, getCurrentCharacterId } from '../../slices/settings'
 import { putClientSettings } from '../../slices/settings'
+import { getWorkbenchOpen, getCurrentAssetId, getSecondaryContext, closeWorkbench } from '../../slices/UI/workbench'
+import { getStandardForm } from '../../slices/personalAssets'
+import { getAssetZone } from '../../slices/player'
+import { WorkbenchContainer } from '../Workbench'
 
 type FeedbackSnackbarProps = {
     feedbackMessage: string;
@@ -157,6 +161,33 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
 export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, onboardingPanel, feedbackMessage, closeFeedback, signInOrUp }: any) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const { AlwaysShowOnboarding } = useSelector(getClientSettings)
+    const dispatch = useDispatch()
+    
+    // Workbench state
+    const workbenchOpen = useSelector(getWorkbenchOpen)
+    const currentAssetId = useSelector(getCurrentAssetId)
+    const secondaryContext = useSelector(getSecondaryContext)
+    
+    // Derive asset info from personalAssets and player slices
+    const standardFormData = currentAssetId ? useSelector(getStandardForm(currentAssetId)) : null
+    const zone = currentAssetId ? useSelector(getAssetZone(currentAssetId)) : null
+    
+    // Extract asset name from standardForm
+    let assetName: string | null = null
+    if (standardFormData?.shortName) {
+        if (typeof standardFormData.shortName === 'string') {
+            assetName = standardFormData.shortName
+        } else if (standardFormData.shortName?.toJSON) {
+            assetName = standardFormData.shortName.toJSON()
+        }
+    }
+    
+    // Format visibility state from zone
+    const visibilityState = zone === 'Draft' ? 'Private draft' : 
+                            zone === 'Personal' ? 'Personal' : 
+                            zone === 'Library' ? 'Library' : 
+                            zone === 'Canon' ? 'Canon' : 
+                            null
 
     const routes = useMemo(() => (
         <Routes>
@@ -238,6 +269,17 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
                 </Box>
                 : []
             }
+            <WorkbenchContainer
+                open={workbenchOpen}
+                onClose={() => dispatch(closeWorkbench())}
+                assetId={currentAssetId}
+                assetName={assetName}
+                visibilityState={visibilityState}
+                secondaryContext={secondaryContext}
+            >
+                {/* Placeholder content for now - Task 3 will add actual editing */}
+                <Box>Workbench content placeholder</Box>
+            </WorkbenchContainer>
         </Box>
     </Router>
 
