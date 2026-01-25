@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import {
     Box,
     Button,
-    List,
     Typography,
     Divider
 } from '@mui/material'
@@ -14,6 +13,7 @@ import AddIcon from '@mui/icons-material/Add'
 import MapIcon from '@mui/icons-material/Map'
 import PersonIcon from '@mui/icons-material/Person'
 import ImportExportIcon from '@mui/icons-material/ImportExport'
+import HomeIcon from '@mui/icons-material/Home'
 
 import { getAssetZone } from '../../slices/player'
 import { addOnboardingComplete } from '../../slices/player/index.api'
@@ -39,7 +39,7 @@ import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/compone
 import { enforceTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import { v4 as uuidv4 } from 'uuid'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import WorkbenchWMLComponentHeader from './WMLComponentHeader'
+import WorkbenchComponentRow from './WorkbenchComponentRow'
 import ImageHeader from '../Library/Edit/ImageHeader'
 import WorkbenchDraftLockout from './DraftLockout'
 import { MakeTheWorldAccordion } from '../UI'
@@ -122,6 +122,17 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
     const maps = useMemo<StandardMap[]>(() => topLevelComponents.filter((component): component is StandardMap => component instanceof StandardMap), [topLevelComponents])
     const images = useMemo<StandardImage[]>(() => topLevelComponents.filter((component): component is StandardImage => component instanceof StandardImage), [topLevelComponents])
 
+    // Combine all components for rendering with alternating row shading
+    const allComponents = useMemo(() => {
+        const result: Array<{ component: StandardComponent; icon: React.ReactChild }> = []
+        characters.forEach(c => result.push({ component: c, icon: <PersonIcon sx={{ fontSize: '1.25rem' }} /> }))
+        maps.forEach(m => result.push({ component: m, icon: <MapIcon sx={{ fontSize: '1.25rem' }} /> }))
+        rooms.forEach(r => result.push({ component: r, icon: <HomeIcon sx={{ fontSize: '1.25rem' }} /> }))
+        features.forEach(f => result.push({ component: f, icon: <FeatureIcon sx={{ fontSize: '1.25rem' }} /> }))
+        knowledges.forEach(k => result.push({ component: k, icon: <KnowledgeIcon sx={{ fontSize: '1.25rem' }} /> }))
+        return result
+    }, [characters, maps, rooms, features, knowledges])
+
     const addAsset = useCallback((tag: 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image') => () => {
         switch(tag) {
             case 'Room':
@@ -194,73 +205,26 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                     )}
                     
                     <MakeTheWorldAccordion title="Components" defaultExpanded={true}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <List dense>
-                                {characters.length
-                                    ? characters.map((characterItem) => (
-                                        <WorkbenchWMLComponentHeader
-                                            key={characterItem.universalKey}
-                                            ItemId={characterItem.universalKey!}
-                                            onClick={() => handleComponentClick(characterItem.universalKey!)}
-                                            icon={<PersonIcon />}
-                                        />
-                                    ))
-                                    : null
-                                }
-                                {maps.length
-                                    ? maps.map((mapItem) => (
-                                        <WorkbenchWMLComponentHeader
-                                            key={mapItem.universalKey}
-                                            ItemId={mapItem.universalKey!}
-                                            onClick={() => handleComponentClick(mapItem.universalKey!)}
-                                            icon={<MapIcon />}
-                                        />
-                                    ))
-                                    : null
-                                }
-                                {rooms.length
-                                    ? rooms.map((room) => (
-                                        <WorkbenchWMLComponentHeader
-                                            key={room.universalKey}
-                                            ItemId={room.universalKey!}
-                                            onClick={() => handleComponentClick(room.universalKey!)}
-                                        />
-                                    ))
-                                    : null
-                                }
-                                {features.length
-                                    ? features.map((feature) => (
-                                        <WorkbenchWMLComponentHeader
-                                            key={feature.universalKey}
-                                            ItemId={feature.universalKey!}
-                                            onClick={() => handleComponentClick(feature.universalKey!)}
-                                            icon={<FeatureIcon />}
-                                        />
-                                    ))
-                                    : null
-                                }
-                                {knowledges.length
-                                    ? knowledges.map((knowledge) => (
-                                        <WorkbenchWMLComponentHeader
-                                            key={knowledge.universalKey}
-                                            ItemId={knowledge.universalKey!}
-                                            onClick={() => handleComponentClick(knowledge.universalKey!)}
-                                            icon={<KnowledgeIcon />}
-                                        />
-                                    ))
-                                    : null
-                                }
-                                {images.length
-                                    ? images.map((image) => (
-                                        <ImageHeader
-                                            key={image.universalKey ?? image.key}
-                                            ItemId={image.universalKey ?? ''}
-                                            onClick={() => {}}
-                                        />
-                                    ))
-                                    : null
-                                }
-                            </List>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            {allComponents.map(({ component, icon }, index) => (
+                                <WorkbenchComponentRow
+                                    key={component.universalKey}
+                                    ItemId={component.universalKey!}
+                                    onClick={() => handleComponentClick(component.universalKey!)}
+                                    icon={icon}
+                                    isEven={index % 2 === 1}
+                                />
+                            ))}
+                            {images.length
+                                ? images.map((image) => (
+                                    <ImageHeader
+                                        key={image.universalKey ?? image.key}
+                                        ItemId={image.universalKey ?? ''}
+                                        onClick={() => {}}
+                                    />
+                                ))
+                                : null
+                            }
                             
                             {!readonly && (
                                 <>
