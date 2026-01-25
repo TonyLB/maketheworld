@@ -10,7 +10,8 @@ import AssetCard, { AssetWithMetadata } from '../Library/AssetCard'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { addItem } from '../../slices/personalAssets'
 import { Schema, schemaToWML } from '@tonylb/mtw-wml/ts/schema'
-import { ApplyEditAPIMessage } from '@tonylb/mtw-interfaces/ts/wml'
+import { ApplyEditAPIMessage, PurgeAssetAPIMessage } from '@tonylb/mtw-interfaces/ts/wml'
+import { EphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { push } from '../../slices/UI/feedback'
 
 interface AssetSelectorProps {
@@ -38,6 +39,10 @@ export const AssetSelector: FunctionComponent<AssetSelectorProps> = ({ onAssetSe
     // Track draft asset being added for optimistic UI updates and auto-selection
     const [draftAssetIdBeingAdded, setDraftAssetIdBeingAdded] = useState<AssetUUID | undefined>(undefined)
 
+    // Track draft assets being deleted for optimistic UI updates
+    // Record maps AssetUUID to timeout ID, allowing per-asset timeout management
+    const [draftAssetIdsBeingDeleted, setDraftAssetIdsBeingDeleted] = useState<Record<AssetUUID, NodeJS.Timeout>>({})
+
     // Combine assets: drafts first, then personal assets
     const allAssets = useMemo(() => {
         return [
@@ -56,6 +61,63 @@ export const AssetSelector: FunctionComponent<AssetSelectorProps> = ({ onAssetSe
         const assetUuid = assetKey as AssetUUID
         onAssetSelect(assetUuid)
     }
+
+    // Handle purging/deleting a draft asset
+    const handlePurgeAsset = useCallback(async (asset: AssetWithMetadata) => {
+        const { AssetId, zone } = asset
+        const normalizedAssetId = AssetKey(AssetId) as EphemeraAssetId
+        const inferredZone = zone ?? 'Draft'
+        
+        // Only allow deletion from Draft or Archive zones
+        if (inferredZone !== 'Draft' && inferredZone !== 'Archive') {
+            dispatch(push('Asset cannot be purged from this zone.'))
+            return
+        }
+
+        const confirm = window.confirm('Permanently delete this draft? This cannot be undone.')
+        if (!confirm) {
+            return
+        }
+
+        // Optimistically mark as being deleted and set up timeout
+        const timeout = setTimeout(() => {
+            setDraftAssetIdsBeingDeleted(prev => {
+                const next = { ...prev }
+                delete next[normalizedAssetId as AssetUUID]
+                return next
+            })
+        }, 10000)
+        setDraftAssetIdsBeingDeleted(prev => ({
+            ...prev,
+            [normalizedAssetId as AssetUUID]: timeout
+        }))
+
+        const purgeMessage: PurgeAssetAPIMessage = {
+            message: 'purgeAsset',
+            AssetId: normalizedAssetId,
+            expectedZone: inferredZone,
+            requireExists: true
+        }
+
+        try {
+            await dispatch(socketDispatchPromise(purgeMessage, { service: 'wml' }) as any)
+            dispatch(push('Draft purge started.'))
+            // Note: The draftAssetIdsBeingDeleted state will be cleared automatically when the draft
+            // disappears from DraftAssets or after 10 seconds as a fallback.
+        } catch (error) {
+            dispatch(push('Failed to purge draft.'))
+            console.error('Failed to purge asset', error)
+            // Clear the optimistic state on error (clear timeout and remove from record)
+            setDraftAssetIdsBeingDeleted(prev => {
+                const next = { ...prev }
+                if (next[normalizedAssetId as AssetUUID]) {
+                    clearTimeout(next[normalizedAssetId as AssetUUID])
+                    delete next[normalizedAssetId as AssetUUID]
+                }
+                return next
+            })
+        }
+    }, [dispatch])
 
     // Handle creating a new draft asset
     const handleCreateAsset = useCallback(async () => {
@@ -136,6 +198,39 @@ export const AssetSelector: FunctionComponent<AssetSelectorProps> = ({ onAssetSe
         }
     }, [draftAssetIdBeingAdded])
 
+    // Clear draftAssetIdsBeingDeleted when drafts disappear from DraftAssets (successful deletion)
+    useEffect(() => {
+        const deletionKeys = Object.keys(draftAssetIdsBeingDeleted) as AssetUUID[]
+        if (deletionKeys.length > 0) {
+            // Find which drafts in the deletion record are no longer in DraftAssets
+            const currentAssetIds = new Set(draftAssets.map(asset => AssetKey(asset.AssetId)))
+            const stillExist = deletionKeys.filter(id => currentAssetIds.has(id))
+            
+            // If any drafts were removed, clear their timeouts and remove from record
+            if (stillExist.length !== deletionKeys.length) {
+                setDraftAssetIdsBeingDeleted(prev => {
+                    const next: Record<AssetUUID, NodeJS.Timeout> = {}
+                    // Clear timeouts for removed assets
+                    deletionKeys.forEach(id => {
+                        if (stillExist.includes(id)) {
+                            next[id] = prev[id]
+                        } else {
+                            clearTimeout(prev[id])
+                        }
+                    })
+                    return next
+                })
+            }
+        }
+    }, [draftAssets, draftAssetIdsBeingDeleted])
+
+    // Cleanup all timeouts on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(draftAssetIdsBeingDeleted).forEach(timeout => clearTimeout(timeout))
+        }
+    }, [draftAssetIdsBeingDeleted])
+
     // CreateDraftPlaceholder component for "Add asset" button
     const CreateDraftPlaceholder: FunctionComponent<{ onClick: () => void; disabled?: boolean }> = ({ onClick, disabled = false }) => {
         return (
@@ -207,12 +302,18 @@ export const AssetSelector: FunctionComponent<AssetSelectorProps> = ({ onAssetSe
     return (
         <Stack spacing={2}>
             {allAssets.map((asset) => {
+                const normalizedAssetId = AssetKey(asset.AssetId) as AssetUUID
+                const isDeleting = normalizedAssetId in draftAssetIdsBeingDeleted
+                const isDraft = asset.zone === 'Draft'
+                
                 return (
                     <Box key={asset.AssetId} sx={{ width: '100%' }}>
                         <AssetCard
                             asset={asset}
                             onClick={() => handleAssetClick(asset)}
                             isSelected={false}
+                            onPurge={isDraft ? () => handlePurgeAsset(asset) : undefined}
+                            isDeleting={isDeleting}
                         />
                     </Box>
                 )

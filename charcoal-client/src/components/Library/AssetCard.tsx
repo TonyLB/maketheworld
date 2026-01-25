@@ -75,7 +75,7 @@ const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelect
                 sx={{ flexGrow: 1, alignSelf: 'stretch' }}
             >
                 <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: 1, flexWrap: 'wrap', gap: 1 }}>
                         <Avatar variant="rounded" sx={{ marginRight: 1, opacity: isDeleting ? 0.5 : 1 }}>
                             <AssetIcon />
                         </Avatar>
@@ -85,7 +85,8 @@ const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelect
                             sx={{ 
                                 flexGrow: 1,
                                 textDecoration: isDeleting ? 'line-through' : 'none',
-                                color: isDeleting ? 'text.disabled' : 'inherit'
+                                color: isDeleting ? 'text.disabled' : 'inherit',
+                                minWidth: 0
                             }}
                         >
                             {displayName}
@@ -94,6 +95,21 @@ const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelect
                             <Typography variant="caption" color="error.main" sx={{ marginLeft: 1 }}>
                                 Deleting...
                             </Typography>
+                        )}
+                        {onPurge && (
+                            <Button
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                                startIcon={<DeleteForeverIcon />}
+                                onClick={(event) => {
+                                    event.stopPropagation()
+                                    onPurge()
+                                }}
+                                sx={{ flexShrink: 0 }}
+                            >
+                                Discard
+                            </Button>
                         )}
                     </Box>
                     {summaryString && (
@@ -107,22 +123,6 @@ const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelect
                     )}
                 </CardContent>
             </CardActionArea>
-            {onPurge && (
-                <CardActions sx={{ justifyContent: 'flex-end', paddingTop: 0 }}>
-                    <Button
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                        startIcon={<DeleteForeverIcon />}
-                        onClick={(event) => {
-                            event.stopPropagation()
-                            onPurge()
-                        }}
-                    >
-                        Discard
-                    </Button>
-                </CardActions>
-            )}
         </Card>
     )
 }
