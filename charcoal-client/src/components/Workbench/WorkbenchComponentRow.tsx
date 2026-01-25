@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactChild, useCallback } from 'react'
+import React, { FunctionComponent, ReactChild, useCallback, useMemo } from 'react'
 import {
     Box,
     IconButton,
@@ -8,7 +8,7 @@ import {
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import DeleteIcon from '@mui/icons-material/Delete'
-import CloudDownloadIcon from '@mui/icons-material/CloudDownload'
+import CallMadeIcon from '@mui/icons-material/CallMade'
 
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
@@ -43,16 +43,6 @@ const ComponentName: FunctionComponent<{ itemId: ComponentUUID }> = ({ itemId })
     return <Typography variant="body2" color="text.secondary">Untitled</Typography>
 }
 
-const ImportStatusIcon: FunctionComponent<{ itemId: ComponentUUID }> = ({ itemId }) => {
-    const { inheritedStandardForm } = useWorkbenchAsset()
-    const isImported = Boolean(inheritedStandardForm.byUniversalId[itemId])
-    
-    if (isImported) {
-        return <CloudDownloadIcon sx={{ fontSize: '1rem', color: 'text.secondary' }} />
-    }
-    return null
-}
-
 export const WorkbenchComponentRow: FunctionComponent<WorkbenchComponentRowProps> = ({ 
     ItemId, 
     onClick, 
@@ -61,13 +51,19 @@ export const WorkbenchComponentRow: FunctionComponent<WorkbenchComponentRowProps
     selected,
     isEven = false
 }) => {
-    const { updateStandard } = useWorkbenchAsset()
+    const { updateStandard, inheritedStandardForm, standardForm } = useWorkbenchAsset()
     const theme = useTheme()
 
     const handleDelete = useCallback((e: React.MouseEvent) => {
         e.stopPropagation()
         updateStandard({ type: 'removeComponent', componentKey: ItemId })
     }, [updateStandard, ItemId])
+
+    // Check if component is imported (either in inheritedStandardForm or has _from property)
+    const isImported = useMemo(() => {
+        const component = standardForm.byUniversalId[ItemId]
+        return Boolean(inheritedStandardForm.byUniversalId[ItemId]) || Boolean(component?._from)
+    }, [ItemId, inheritedStandardForm, standardForm])
 
     return (
         <Box
@@ -92,14 +88,19 @@ export const WorkbenchComponentRow: FunctionComponent<WorkbenchComponentRowProps
                 ...sx
             }}
         >
-            {/* Component type icon */}
+            {/* Component type icon with import indicator */}
             <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                minWidth: '24px',
+                gap: 0.5,
+                width: '38px',
+                flexShrink: 0,
                 color: 'text.secondary'
             }}>
                 {icon}
+                {isImported && (
+                    <CallMadeIcon sx={{ fontSize: '0.875rem', opacity: 0.7 }} />
+                )}
             </Box>
             
             {/* Component name */}
@@ -111,9 +112,6 @@ export const WorkbenchComponentRow: FunctionComponent<WorkbenchComponentRowProps
             }}>
                 <ComponentName itemId={ItemId} />
             </Box>
-            
-            {/* Import status icon - only shown for imported components */}
-            <ImportStatusIcon itemId={ItemId} />
             
             {/* Delete affordance */}
             <IconButton
