@@ -255,6 +255,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                                 minHeight: 64,
                                 display: 'flex',
                                 flexDirection: 'column',
+                                background: (theme) => (theme.palette as any).extras.headerGradient,
                             }}
                         >
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -395,6 +396,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                                 minHeight: 64,
                                 display: 'flex',
                                 flexDirection: 'column',
+                                background: (theme) => theme.palette.extras?.headerGradient,
                             }}
                         >
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

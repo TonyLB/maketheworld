@@ -32,6 +32,7 @@ declare module '@mui/material/styles' {
             sectionHeaderBackground?: string;
             sidebarBackground?: string;
             sidebarBorder?: string;
+            headerGradient?: string;
         }
     }
     
@@ -50,6 +51,7 @@ declare module '@mui/material/styles' {
             sectionHeaderBackground?: string;
             sidebarBackground?: string;
             sidebarBorder?: string;
+            headerGradient?: string;
         }
     }
 }
