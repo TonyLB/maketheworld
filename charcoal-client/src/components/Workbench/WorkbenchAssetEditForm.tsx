@@ -52,6 +52,16 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
         [standardForm.shortName]
     )
     
+    // Determine if Metadata accordion should default to open
+    // Open if ShortName is not defined or is empty (to prompt user to enter it)
+    const metadataDefaultExpanded = useMemo(() => {
+        if (!standardForm.shortName) {
+            return true // No ShortName defined, open accordion to prompt entry
+        }
+        const shortNameValue = shortName._payload?.plain?.toJSON() ?? ''
+        return shortNameValue.trim() === '' // Empty ShortName, open accordion to prompt entry
+    }, [standardForm.shortName, shortName])
+    
     const [summary, setSummary] = useState(standardForm.summary ?? new StandardRender([]))
     const summaryRef = useRef(summary)
     const [importDialogOpen, setImportDialogOpen] = useState(false)
@@ -164,7 +174,7 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
             <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
                 <Box sx={{ marginLeft: 2, marginRight: 2, width: "calc(100% - 32px)" }}>
                     {!readonly && (
-                        <MakeTheWorldAccordion title="Metadata" defaultExpanded={true}>
+                        <MakeTheWorldAccordion title="Metadata" defaultExpanded={metadataDefaultExpanded}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 <Box>
                                     <Typography variant="subtitle2" sx={{ marginBottom: "0.5em" }}>Short Name</Typography>
