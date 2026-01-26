@@ -15,14 +15,13 @@ import { addOnboardingComplete } from '../../slices/player/index.api'
 import { OnboardingKey } from '../Onboarding/checkpoints'
 import { getPlayer } from '../../slices/player'
 import { useNavigate } from 'react-router-dom'
-import CharacterSelectionModal from '../CharacterSelection'
 import { openWorkbench } from '../../slices/UI/workbench'
+import { putClientSettings } from '../../slices/settings'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const { CharacterId, info: { Name = '???' } = {}, scopedId } = useActiveCharacter()
-    const [showCharacterModal, setShowCharacterModal] = useState(false)
     // Removed useAutoPin - tab navigation removed
     useOnboardingCheckpoint('navigatePlay')
     useOnboardingCheckpoint('navigateInPlayEdit', { requireSequence: true })
@@ -74,7 +73,14 @@ export const MessagePanel: FunctionComponent<{}> = () => {
                     position: 'relative'
                 }}>
                     <IconButton
-                        onClick={() => setShowCharacterModal(true)}
+                        onClick={() => {
+                            // Set flag to indicate user-initiated character selection
+                            // This ensures modal is shown even if only one option exists
+                            dispatch(putClientSettings({ 
+                                currentCharacterId: null,
+                                showCharacterSelection: true 
+                            }))
+                        }}
                         sx={{
                             position: 'absolute',
                             top: 8,
@@ -98,11 +104,6 @@ export const MessagePanel: FunctionComponent<{}> = () => {
                     <LineEntry callback={handleInput} />
                 </Box>
             </Box>
-            <CharacterSelectionModal
-                open={showCharacterModal}
-                onClose={() => setShowCharacterModal(false)}
-                required={false}
-            />
         </>
     )
 }

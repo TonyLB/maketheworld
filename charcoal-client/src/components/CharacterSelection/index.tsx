@@ -49,11 +49,17 @@ export const CharacterSelectionModal: FunctionComponent<CharacterSelectionModalP
 
     const handleCharacterSelect = (characterId: string, isGuest: boolean = false) => {
         if (isGuest && guestId) {
-            dispatch(putClientSettings({ currentCharacterId: `CHARACTER#${guestId}` as const }))
+            dispatch(putClientSettings({ 
+                currentCharacterId: `CHARACTER#${guestId}` as const,
+                showCharacterSelection: false // Clear user intent flag
+            }))
         } else {
             const character = myCharacters.find(({ CharacterId }) => (CharacterId === characterId))
             if (character?.CharacterId) {
-                dispatch(putClientSettings({ currentCharacterId: character.CharacterId }))
+                dispatch(putClientSettings({ 
+                    currentCharacterId: character.CharacterId,
+                    showCharacterSelection: false // Clear user intent flag
+                }))
             }
         }
         // Navigate to root, which will show the chat interface
