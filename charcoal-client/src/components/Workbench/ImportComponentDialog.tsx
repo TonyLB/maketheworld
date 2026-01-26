@@ -23,13 +23,9 @@ import {
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import DownloadIcon from '@mui/icons-material/Download'
-import FeatureIcon from '@mui/icons-material/Search'
-import KnowledgeIcon from '@mui/icons-material/School'
-import MapIcon from '@mui/icons-material/Map'
-import PersonIcon from '@mui/icons-material/Person'
-import ImageIcon from '@mui/icons-material/Image'
 
 import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { getComponentIconByTag } from '../../lib/componentIcons'
 import { addImport } from '../../slices/personalAssets'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -53,23 +49,6 @@ interface ImportComponentDialogProps {
     open: boolean
     onClose: () => void
     assetId: AssetUUID
-}
-
-const getComponentIcon = (type: ComponentGroup['type']) => {
-    switch (type) {
-        case 'Room':
-            return null
-        case 'Feature':
-            return <FeatureIcon />
-        case 'Knowledge':
-            return <KnowledgeIcon />
-        case 'Map':
-            return <MapIcon />
-        case 'Image':
-            return <ImageIcon />
-        case 'Character':
-            return <PersonIcon />
-    }
 }
 
 export const WorkbenchImportComponentDialog: FunctionComponent<ImportComponentDialogProps> = ({ open, onClose, assetId }) => {
@@ -203,7 +182,7 @@ export const WorkbenchImportComponentDialog: FunctionComponent<ImportComponentDi
                                         <React.Fragment key={group.type}>
                                             <ListSubheader>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    {getComponentIcon(group.type)}
+                                                    {getComponentIconByTag(group.type)}
                                                     <Typography variant="subtitle2">
                                                         {group.type}s ({group.components.length})
                                                     </Typography>
