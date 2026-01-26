@@ -17,6 +17,7 @@ import { getPlayer } from '../../slices/player'
 import { useNavigate } from 'react-router-dom'
 import { openWorkbench } from '../../slices/UI/workbench'
 import { putClientSettings } from '../../slices/settings'
+import { setForceCharacterSelection } from '../../slices/UI/playSpine'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
@@ -76,10 +77,8 @@ export const MessagePanel: FunctionComponent<{}> = () => {
                         onClick={() => {
                             // Set flag to indicate user-initiated character selection
                             // This ensures modal is shown even if only one option exists
-                            dispatch(putClientSettings({ 
-                                currentCharacterId: null,
-                                showCharacterSelection: true 
-                            }))
+                            dispatch(putClientSettings({ currentCharacterId: null }))
+                            dispatch(setForceCharacterSelection(true))
                         }}
                         sx={{
                             position: 'absolute',

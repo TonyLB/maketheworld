@@ -39,7 +39,8 @@ import { getMyCharacters, getMySettings, getPlayer } from '../../slices/player'
 import { playerDataSourceSelectors } from '../../slices/player/playerDataSource'
 import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
-import { getClientSettings, getCurrentCharacterId, getShowCharacterSelection } from '../../slices/settings'
+import { getClientSettings, getCurrentCharacterId } from '../../slices/settings'
+import { getForceCharacterSelection, setForceCharacterSelection } from '../../slices/UI/playSpine'
 import { putClientSettings } from '../../slices/settings'
 import { getWorkbenchOpen, getCurrentAssetId, getSecondaryContext, closeWorkbench } from '../../slices/UI/workbench'
 import { WorkbenchContainer, WorkbenchAssetEditor } from '../Workbench'
@@ -104,7 +105,7 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
     // State Tracking (Critical): Track "initial load complete" separately from "character selected"
     const isDataLoaded = playerDataSourceStatus === 'READY' || playerDataSourceStatus === 'SUBSCRIBED'
     const hasCharacterSelected = currentCharacterId !== null && currentCharacterId !== undefined
-    const showCharacterSelection = useSelector(getShowCharacterSelection) // User-initiated selection intent
+    const forceCharacterSelection = useSelector(getForceCharacterSelection) // User-initiated selection intent
     
     // Check available character options
     const hasCharacters = myCharacters && myCharacters.length > 0 && myCharacters.some(({ scopedId }) => scopedId)
@@ -115,25 +116,26 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
     // Auto-select if there's only one character option and no current selection
     // BUT only if user hasn't explicitly requested to see the selection modal
     useEffect(() => {
-        if (!hasCharacterSelected && isDataLoaded && totalOptions === 1 && !showCharacterSelection) {
+        if (!hasCharacterSelected && isDataLoaded && totalOptions === 1 && !forceCharacterSelection) {
+            // Clear flag if it was somehow set during auto-selection
+            dispatch(setForceCharacterSelection(false))
+            
             if (hasGuestOption && !hasCharacters) {
                 // Only Guest available
                 dispatch(putClientSettings({ 
-                    currentCharacterId: `CHARACTER#${guestId}` as const,
-                    showCharacterSelection: false // Clear flag if it was somehow set
+                    currentCharacterId: `CHARACTER#${guestId}` as const
                 }))
             } else if (hasCharacters && characterCount === 1) {
                 // Only one regular character available
                 const character = myCharacters.find(({ scopedId }) => scopedId)
                 if (character?.CharacterId) {
                     dispatch(putClientSettings({ 
-                        currentCharacterId: character.CharacterId,
-                        showCharacterSelection: false // Clear flag if it was somehow set
+                        currentCharacterId: character.CharacterId
                     }))
                 }
             }
         }
-    }, [hasCharacterSelected, isDataLoaded, totalOptions, hasGuestOption, hasCharacters, characterCount, myCharacters, guestId, dispatch, showCharacterSelection])
+    }, [hasCharacterSelected, isDataLoaded, totalOptions, hasGuestOption, hasCharacters, characterCount, myCharacters, guestId, dispatch, forceCharacterSelection])
 
     // Rendering Logic: Three distinct states
     
@@ -141,7 +143,7 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
     // Consolidate all skeleton conditions here
     const hasCharactersAvailable = hasCharacters || hasGuestOption
     // Only auto-select (show skeletons) for single option if user hasn't explicitly requested selection modal
-    const shouldAutoSelect = !hasCharacterSelected && totalOptions <= 1 && !showCharacterSelection
+    const shouldAutoSelect = !hasCharacterSelected && totalOptions <= 1 && !forceCharacterSelection
     if (!isDataLoaded || 
         shouldAutoSelect || 
         (!hasCharacterSelected && !hasCharactersAvailable) ||

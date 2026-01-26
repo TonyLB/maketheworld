@@ -12,7 +12,6 @@ interface ClientSettings {
     ShowNeighborhoodHeaders: boolean;
     AlwaysShowOnboarding: boolean;
     currentCharacterId?: EphemeraCharacterId | null;
-    showCharacterSelection?: boolean; // User-initiated character selection (not persisted)
 }
 
 interface ConnectionInfo {
@@ -65,8 +64,6 @@ export const getSessionId = (state: any): string => (state.settings.connection?.
 export const getPlayerName = (state: any): string => (state.settings.connection?.playerName || '')
 export const getCurrentCharacterId = (state: any): EphemeraCharacterId | null | undefined => 
     (state.settings.client.currentCharacterId)
-export const getShowCharacterSelection = (state: any): boolean => 
-    (state.settings.client.showCharacterSelection || false)
 
 export const loadClientSettings = (dispatch: any) => {
     cacheDB.clientSettings.toArray()
@@ -77,9 +74,19 @@ export const loadClientSettings = (dispatch: any) => {
 }
 
 export const putClientSettings = (settings: Partial<ClientSettings>) => (dispatch: any) => {
+    // Optimistic update: dispatch immediately for responsive UI
+    dispatch(receiveClientSettings(settings))
+    
+    // Persist to IndexedDB in background, then dispatch again to ensure consistency
+    // Since receiveClientSettings is idempotent, the second dispatch is safe
     cacheDB.clientSettings.bulkPut(Object.entries(settings).map(([key, value]) => ({ key, value } as ClientSettingType)))
         .then(() => {
             dispatch(receiveClientSettings(settings))
+        })
+        .catch((error) => {
+            // Log error but don't revert - optimistic update remains in Redux for current session
+            // On next page load, loadClientSettings will restore from IndexedDB
+            console.error('Failed to persist client settings to IndexedDB:', error)
         })
 }
 
