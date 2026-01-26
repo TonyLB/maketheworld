@@ -20,7 +20,6 @@ import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowled
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import WorkbenchRecentlyVisited from './RecentlyVisited'
 import WorkbenchImportComponentDialog from './ImportComponentDialog'
 import WorkbenchStandardLiteralEditor from './StandardLiteralEditor'
 import WorkbenchStandardRenderEditor from './StandardRenderEditor'
@@ -164,8 +163,6 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
         <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
             <Box sx={{ display: 'flex', position: "relative", width: "100%", flexGrow: 1, overflowY: "auto" }}>
                 <Box sx={{ marginLeft: 2, marginRight: 2, width: "calc(100% - 32px)" }}>
-                    <WorkbenchRecentlyVisited />
-                    
                     {!readonly && (
                         <MakeTheWorldAccordion title="Metadata" defaultExpanded={true}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
