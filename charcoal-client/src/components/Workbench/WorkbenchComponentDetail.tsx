@@ -1,35 +1,26 @@
-import React, { FunctionComponent, useCallback, useMemo } from 'react'
-import { useDispatch } from 'react-redux'
-import { Box, Button, Card, CardHeader, CardContent } from '@mui/material'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import React, { FunctionComponent, useMemo } from 'react'
+import { Box } from '@mui/material'
 
-import WorkbenchStandardLiteralEditor from './StandardLiteralEditor'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
-import { setCurrentView, setCurrentComponentId } from '../../slices/UI/workbench'
 import WorkbenchDraftLockout from './DraftLockout'
 import WorkbenchRoomExitEditor from './RoomExitEditor'
 import WorkbenchRoomLensEditor from './RoomLensEditor'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
-import WorkbenchTitledBox from './WorkbenchTitledBox'
-import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
-import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
-import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
-
-import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
-import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
-import { hasName, hasShortName, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { SchemaOutputTag } from '@tonylb/mtw-base/ts/schema'
-import WorkbenchExampleEditor from './ExampleEditor'
-import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
-import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
-import { StandardExplicitKey } from '@tonylb/mtw-wml/ts/standardize/explicit'
-import { excludeUndefined } from '../../lib/lists'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { useSelector } from 'react-redux'
 import { getCurrentComponentId } from '../../slices/UI/workbench'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
+import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
+import { hasShortName, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import { excludeUndefined } from '../../lib/lists'
+import WorkbenchTitledBox from './WorkbenchTitledBox'
+import WorkbenchStandardLiteralEditor from './StandardLiteralEditor'
+import WorkbenchExampleEditor from './ExampleEditor'
 
 const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }> = ({ universalKey }) => {
     const { standardForm, inheritedStandardForm, updateStandard } = useWorkbenchAsset()
@@ -102,8 +93,7 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
 }
 
 export const WorkbenchComponentDetail: FunctionComponent = () => {
-    const dispatch = useDispatch()
-    const { updateStandard, standardForm } = useWorkbenchAsset()
+    const { standardForm } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
     
     // Derive universalKey from currentComponentId
@@ -112,77 +102,12 @@ export const WorkbenchComponentDetail: FunctionComponent = () => {
         return currentComponentId as ComponentUUID
     }, [currentComponentId])
     
-    const componentName = useMemo(() => {
-        if (!universalKey) {
-            return ''
-        }
-        const component = standardForm.byUniversalId[universalKey]
-        if (component) {
-            if (hasShortName(component)) {
-                return component.shortName?._payload?.plain?.toJSON() ?? 'Untitled'
-            }
-            else if (hasName(component)) {
-                return schemaOutputToString((unwrapSubject(component.name)?.children ?? []) as GenericTree<SchemaOutputTag>)
-            }
-        }
-        return ''
-    }, [standardForm, universalKey])
-    
-    const onKeyChange = useCallback((toKey: string) => {
-        if (!universalKey) return
-        const component = standardForm.byUniversalId[universalKey]
-        if (!component) return
-        
-        const currentKey = component.key
-        if (currentKey === toKey) return
-        
-        updateStandard({
-            type: 'update',
-            update: (draft: StandardForm) => {
-                const componentToUpdate = draft.byUniversalId[universalKey]
-                if (componentToUpdate) {
-                    componentToUpdate._key = new StandardExplicitKey(toKey)
-                }
-                return draft
-            }
-        })
-    }, [updateStandard, universalKey, standardForm])
-    
-    const handleBackToAsset = useCallback(() => {
-        dispatch(setCurrentView('asset'))
-        dispatch(setCurrentComponentId(null))
-    }, [dispatch])
-    
     if (!universalKey || !(universalKey in standardForm.byUniversalId)) {
         return <Box />
     }
     
-    const component = standardForm.byUniversalId[universalKey]
-    const displayKey = component?.key || currentComponentId || ''
-    
     return (
         <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-            <Box sx={{ padding: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Button
-                    startIcon={<ArrowBackIcon />}
-                    onClick={handleBackToAsset}
-                    variant="outlined"
-                    size="small"
-                >
-                    Back to Asset
-                </Button>
-                <Box sx={{ flex: 1 }}>
-                    <Box sx={{ fontWeight: 'bold', fontSize: '1.125rem' }}>
-                        {componentName || 'Untitled'}
-                    </Box>
-                    {displayKey && (
-                        <Box sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-                            {displayKey}
-                        </Box>
-                    )}
-                </Box>
-            </Box>
-            
             <Box sx={{ flexGrow: 1, position: "relative", width: "100%", overflowY: 'auto' }}>
                 <Box sx={{ padding: 2 }}>
                     <WMLComponentAppearance universalKey={universalKey} />
