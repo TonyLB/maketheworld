@@ -17,6 +17,7 @@ import GuestIcon from '@mui/icons-material/PersonSearch'
 import { getConfiguration } from '../../slices/configuration'
 import { getMySettings, getMyCharacters } from '../../slices/player'
 import { putClientSettings } from '../../slices/settings'
+import { setForceCharacterSelection } from '../../slices/UI/playSpine'
 import TutorialPopover from '../Onboarding/TutorialPopover'
 import { DevEnvironment } from '../../environment'
 
@@ -48,17 +49,18 @@ export const CharacterSelectionModal: FunctionComponent<CharacterSelectionModalP
     const hasGuestOption = guestId !== undefined && guestId !== null
 
     const handleCharacterSelect = (characterId: string, isGuest: boolean = false) => {
+        // Clear user intent flag
+        dispatch(setForceCharacterSelection(false))
+        
         if (isGuest && guestId) {
             dispatch(putClientSettings({ 
-                currentCharacterId: `CHARACTER#${guestId}` as const,
-                showCharacterSelection: false // Clear user intent flag
+                currentCharacterId: `CHARACTER#${guestId}` as const
             }))
         } else {
             const character = myCharacters.find(({ CharacterId }) => (CharacterId === characterId))
             if (character?.CharacterId) {
                 dispatch(putClientSettings({ 
-                    currentCharacterId: character.CharacterId,
-                    showCharacterSelection: false // Clear user intent flag
+                    currentCharacterId: character.CharacterId
                 }))
             }
         }
