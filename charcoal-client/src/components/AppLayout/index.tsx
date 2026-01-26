@@ -28,6 +28,7 @@ import InDevelopment from '../InDevelopment'
 import ChoiceDialog from '../ChoiceDialog'
 import CharacterSelectionModal from '../CharacterSelection'
 import MessagePanelSkeleton from '../Message/MessagePanelSkeleton'
+import CheckpointOverlay from '../Message/CheckpointOverlay'
 import Explore from '../Explore'
 
 import MapView from '../Maps/View'
@@ -138,7 +139,7 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
     }, [hasCharacterSelected, isDataLoaded, totalOptions, hasGuestOption, hasCharacters, characterCount, myCharacters, guestId, dispatch, forceCharacterSelection])
 
     // Rendering Logic: Three distinct states
-    
+
     // State 1: Show skeletons during loading, auto-selection, or when characters aren't available yet
     // Consolidate all skeleton conditions here
     const hasCharactersAvailable = hasCharacters || hasGuestOption
@@ -151,7 +152,12 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
         // Render MessagePanelSkeleton directly (not wrapped in ActiveCharacter)
         // Do NOT show CharacterSelectionModal (data not ready, auto-selection in progress, or characters not available)
         // Also show skeletons when character is selected but characters haven't loaded yet (race condition)
-        return <MessagePanelSkeleton />
+        return (
+            <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
+                <MessagePanelSkeleton />
+                <CheckpointOverlay />
+            </Box>
+        )
     }
     
     // State 2: Data loaded, no character selected, characters ready
@@ -160,7 +166,10 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
         // Render modal over skeleton so modal appears over content, not empty space
         return (
             <>
-                <MessagePanelSkeleton />
+                <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <MessagePanelSkeleton />
+                    <CheckpointOverlay />
+                </Box>
                 <CharacterSelectionModal open={true} required={true} />
             </>
         )
@@ -178,7 +187,10 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
         // Character no longer exists, show selection modal over skeleton (treat as state 2)
         return (
             <>
-                <MessagePanelSkeleton />
+                <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <MessagePanelSkeleton />
+                    <CheckpointOverlay />
+                </Box>
                 <CharacterSelectionModal open={true} required={true} />
             </>
         )
