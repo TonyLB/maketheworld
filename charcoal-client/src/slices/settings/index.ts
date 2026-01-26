@@ -12,6 +12,7 @@ interface ClientSettings {
     ShowNeighborhoodHeaders: boolean;
     AlwaysShowOnboarding: boolean;
     currentCharacterId?: EphemeraCharacterId | null;
+    showCharacterSelection?: boolean; // User-initiated character selection (not persisted)
 }
 
 interface ConnectionInfo {
@@ -64,6 +65,8 @@ export const getSessionId = (state: any): string => (state.settings.connection?.
 export const getPlayerName = (state: any): string => (state.settings.connection?.playerName || '')
 export const getCurrentCharacterId = (state: any): EphemeraCharacterId | null | undefined => 
     (state.settings.client.currentCharacterId)
+export const getShowCharacterSelection = (state: any): boolean => 
+    (state.settings.client.showCharacterSelection || false)
 
 export const loadClientSettings = (dispatch: any) => {
     cacheDB.clientSettings.toArray()
