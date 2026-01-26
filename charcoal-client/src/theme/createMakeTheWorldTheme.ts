@@ -173,6 +173,7 @@ export const createMakeTheWorldTheme = (options: MakeTheWorldThemeOptions): Them
         sectionHeaderBackground: primary[100],
         sidebarBackground: primary[50],
         sidebarBorder: primary[500],
+        headerGradient: `linear-gradient(75deg, ${primary[200]}, ${primary[50]})`,
     }
     
     // Build the theme
