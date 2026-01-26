@@ -58,8 +58,11 @@ export const RecentlyVisited: FunctionComponent<RecentlyVisitedProps> = () => {
 
     const [collapseStates, setCollapseStates] = React.useState<Record<string, boolean>>({})
 
+    const hasItemsToShow = Object.keys(recentlyVisitedByAsset).length > 0
+    if (!hasItemsToShow) return null
+
     return <List dense>
-        { Boolean(recentlyVisited.length) && <ListSubheader>Recently Visited</ListSubheader> }
+        <ListSubheader>Recently Visited</ListSubheader>
         { Object.entries(recentlyVisitedByAsset).map(([fromAssetId, visitList]) => (
             <React.Fragment key={fromAssetId}>
                 <ListItemButton
