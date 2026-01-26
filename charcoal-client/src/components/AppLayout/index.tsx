@@ -27,6 +27,7 @@ import ActiveCharacter from '../ActiveCharacter'
 import InDevelopment from '../InDevelopment'
 import ChoiceDialog from '../ChoiceDialog'
 import CharacterSelectionModal from '../CharacterSelection'
+import MessagePanelSkeleton from '../Message/MessagePanelSkeleton'
 import Explore from '../Explore'
 
 import MapView from '../Maps/View'
@@ -91,7 +92,8 @@ const CharacterRouterSwitch = ({ messagePanel }: any) => {
 }
 
 // Component to render play spine at root path
-// Shows MessagePanel if character is selected, CharacterSelectionModal if not
+// Shows skeletons during loading, CharacterSelectionModal when data loaded but no character selected,
+// or MessagePanel when data loaded and character selected
 const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = ({ messagePanel }) => {
     const currentCharacterId = useSelector(getCurrentCharacterId)
     const myCharacters = useSelector(getMyCharacters)
@@ -99,8 +101,9 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
     const dispatch = useDispatch()
     const playerDataSourceStatus = useSelector(playerDataSourceSelectors.getStatus)
     
-    // Check if player data is loaded
-    const isPlayerDataLoaded = playerDataSourceStatus === 'READY' || playerDataSourceStatus === 'SUBSCRIBED'
+    // State Tracking (Critical): Track "initial load complete" separately from "character selected"
+    const isDataLoaded = playerDataSourceStatus === 'READY' || playerDataSourceStatus === 'SUBSCRIBED'
+    const hasCharacterSelected = currentCharacterId !== null && currentCharacterId !== undefined
     
     // Check available character options
     const hasCharacters = myCharacters && myCharacters.length > 0 && myCharacters.some(({ scopedId }) => scopedId)
@@ -110,7 +113,7 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
     
     // Auto-select if there's only one character option and no current selection
     useEffect(() => {
-        if (!currentCharacterId && isPlayerDataLoaded && totalOptions === 1) {
+        if (!hasCharacterSelected && isDataLoaded && totalOptions === 1) {
             if (hasGuestOption && !hasCharacters) {
                 // Only Guest available
                 dispatch(putClientSettings({ currentCharacterId: `CHARACTER#${guestId}` as const }))
@@ -122,30 +125,51 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
                 }
             }
         }
-    }, [currentCharacterId, isPlayerDataLoaded, totalOptions, hasGuestOption, hasCharacters, characterCount, myCharacters, guestId, dispatch])
+    }, [hasCharacterSelected, isDataLoaded, totalOptions, hasGuestOption, hasCharacters, characterCount, myCharacters, guestId, dispatch])
 
-    // If no character selected, show selection modal (unless we're auto-selecting)
-    if (!currentCharacterId) {
-        // Show nothing while auto-selecting (will re-render once selection is set)
-        // Or show modal if multiple options
-        if (isPlayerDataLoaded && totalOptions === 1) {
-            // Auto-selection in progress, return null to avoid showing modal
-            return null
-        }
-        return <CharacterSelectionModal open={true} required={true} />
+    // Rendering Logic: Three distinct states
+    
+    // State 1: Show skeletons during loading, auto-selection, or when characters aren't available yet
+    // Consolidate all skeleton conditions here
+    const hasCharactersAvailable = hasCharacters || hasGuestOption
+    if (!isDataLoaded || 
+        (!hasCharacterSelected && totalOptions <= 1) || 
+        (!hasCharacterSelected && !hasCharactersAvailable) ||
+        (hasCharacterSelected && !hasCharactersAvailable)) {
+        // Render MessagePanelSkeleton directly (not wrapped in ActiveCharacter)
+        // Do NOT show CharacterSelectionModal (data not ready, auto-selection in progress, or characters not available)
+        // Also show skeletons when character is selected but characters haven't loaded yet (race condition)
+        return <MessagePanelSkeleton />
+    }
+    
+    // State 2: Data loaded, no character selected, multiple options available, characters ready
+    if (!hasCharacterSelected) {
+        // Multiple options available, user needs to select
+        // Render modal over skeleton so modal appears over content, not empty space
+        return (
+            <>
+                <MessagePanelSkeleton />
+                <CharacterSelectionModal open={true} required={true} />
+            </>
+        )
     }
 
+    // State 3: Data loaded, character selected, characters available
     // Convert EphemeraCharacterId to the format needed for ActiveCharacter
-    // ActiveCharacter expects EphemeraCharacterId directly
     const characterId = currentCharacterId
 
-    // Verify character exists
+    // Verify character exists (characters are guaranteed to be available at this point)
     const isValidCharacter = characterId === `CHARACTER#${guestId}` || 
         myCharacters.some(({ CharacterId }) => CharacterId === characterId)
 
     if (!isValidCharacter) {
-        // Character no longer exists, show selection modal
-        return <CharacterSelectionModal open={true} required={true} />
+        // Character no longer exists, show selection modal over skeleton (treat as state 2)
+        return (
+            <>
+                <MessagePanelSkeleton />
+                <CharacterSelectionModal open={true} required={true} />
+            </>
+        )
     }
 
     // Render MessagePanel wrapped in ActiveCharacter context

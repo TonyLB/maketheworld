@@ -14,13 +14,10 @@ import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
 import GuestIcon from '@mui/icons-material/PersonSearch'
 
-import { AssetClientPlayerCharacter } from '@tonylb/mtw-interfaces/ts/asset'
 import { getConfiguration } from '../../slices/configuration'
 import { getMySettings, getMyCharacters } from '../../slices/player'
-import { playerDataSourceSelectors } from '../../slices/player/playerDataSource'
 import { putClientSettings } from '../../slices/settings'
 import TutorialPopover from '../Onboarding/TutorialPopover'
-import Spinner from '../Spinner'
 import { DevEnvironment } from '../../environment'
 
 type CharacterSelectionModalProps = {
@@ -36,7 +33,6 @@ export const CharacterSelectionModal: FunctionComponent<CharacterSelectionModalP
 }) => {
     const { guestId } = useSelector(getMySettings)
     const myCharacters = useSelector(getMyCharacters)
-    const playerDataSourceStatus = useSelector(playerDataSourceSelectors.getStatus)
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const medium = useMediaQuery('(min-width: 600px)')
@@ -46,15 +42,10 @@ export const CharacterSelectionModal: FunctionComponent<CharacterSelectionModalP
     const appBaseURL = DevEnvironment ? `https://${AppBaseURL}` : ''
     const guest = useRef<HTMLDivElement>()
 
-    // Check if player data is still loading
-    const isPlayerDataLoading = playerDataSourceStatus !== 'READY' && playerDataSourceStatus !== 'SUBSCRIBED'
-    
-    // Check if we have characters available (after loading completes)
+    // Check if we have characters available
+    // Note: This modal only shows when data is loaded but no character selected (handled by PlaySpineRoot)
     const hasCharacters = myCharacters && myCharacters.length > 0 && myCharacters.some(({ scopedId }) => scopedId)
     const hasGuestOption = guestId !== undefined && guestId !== null
-    
-    // Keep showing spinner if data is still loading or we don't have any character options yet
-    const shouldShowSpinner = isPlayerDataLoading || (!hasCharacters && !hasGuestOption)
 
     const handleCharacterSelect = (characterId: string, isGuest: boolean = false) => {
         if (isGuest && guestId) {
@@ -115,27 +106,7 @@ export const CharacterSelectionModal: FunctionComponent<CharacterSelectionModalP
                         justifyContent="center"
                         spacing={3}
                     >
-                        {shouldShowSpinner && (
-                            <Grid
-                                container
-                                size={{ sm: 3 }}
-                                sx={{
-                                    justifyContent: 'center',
-                                    alignContent: 'center',
-                                }}
-                            >
-                                <Stack
-                                    direction="column"
-                                    justifyContent="center"
-                                    alignItems="center"
-                                    spacing={2}
-                                >
-                                    <Spinner size={iconSize} border={iconSize * 0.1} />
-                                    <React.Fragment>Loading...</React.Fragment>
-                                </Stack>
-                            </Grid>
-                        )}
-                        {!shouldShowSpinner && hasGuestOption && (
+                        {hasGuestOption && (
                             <Grid
                                 container
                                 size={{ sm: 3 }}
@@ -164,7 +135,7 @@ export const CharacterSelectionModal: FunctionComponent<CharacterSelectionModalP
                                 <TutorialPopover anchorEl={guest as any} placement="right" checkPoints={['navigateInPlayEdit']} />
                             </Grid>
                         )}
-                        {!shouldShowSpinner && hasCharacters && myCharacters.filter(({ scopedId }) => (scopedId)).map(({ Name, fileURL, scopedId, CharacterId }) => (
+                        {hasCharacters && myCharacters.filter(({ scopedId }) => (scopedId)).map(({ Name, fileURL, scopedId, CharacterId }) => (
                             scopedId && 
                             <Grid
                                 key={`${Name}:${scopedId}`}
