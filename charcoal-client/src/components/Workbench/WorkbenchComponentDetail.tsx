@@ -5,6 +5,7 @@ import { useWorkbenchAsset } from './useWorkbenchAsset'
 import WorkbenchDraftLockout from './DraftLockout'
 import WorkbenchRoomExitEditor from './RoomExitEditor'
 import WorkbenchRoomLensEditor from './RoomLensEditor'
+import WorkbenchRoomFeatureEditor from './WorkbenchRoomFeatureEditor'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
@@ -85,6 +86,7 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
                     <WorkbenchSpacer />
                     <WorkbenchRoomExitEditor RoomId={universalKey} />
                     <WorkbenchRoomLensEditor RoomId={universalKey} />
+                    <WorkbenchRoomFeatureEditor RoomId={universalKey} />
                 </>
             )
         }
