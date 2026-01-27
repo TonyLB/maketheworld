@@ -8,6 +8,7 @@ import internalCache from "./internalCache"
 import { connectionDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
 import { apiClient } from "./apiClient"
+import { apiClient as rawAPIClient } from "@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient"
 import { CoordinationClientSessionInitializedMessage } from "@tonylb/mtw-interfaces/ts/coordination"
 
 // Configuration for replayable DataSources that support snapshot initialization
@@ -134,23 +135,37 @@ export const handler = async (event: any) => {
         if (event["detail-type"] === 'Player Connected') {
             const { connectionId, sessionId, player } = event.detail || {}
             if (connectionId && sessionId && player) {
-                // Small delay to ensure WebSocket handshake has completed
-                // EventBridge's natural latency (tens of ms) is usually sufficient,
-                // but adding a small buffer for safety
-                await new Promise(resolve => setTimeout(resolve, 100))
+                // Poll GetConnection to detect when WebSocket handshake has completed
+                // The connection is only ready after the $connect handler completes,
+                // so we poll with short intervals until it's available
+                const maxAttempts = 20  // 20 attempts * 10ms = 200ms max wait
+                const pollInterval = 10 // 10ms between attempts
+                let connectionReady = false
                 
-                try {
-                    await apiClient.send(connectionId, {
-                        messageType: 'SessionInitialized',
-                        SessionId: sessionId,
-                        PlayerName: player
-                    } as CoordinationClientSessionInitializedMessage)
-                }
-                catch (error: any) {
-                    // Log but don't fail - connection might have closed
-                    if (error.name !== 'GoneException' && error.name !== 'BadRequestException') {
-                        console.error('Failed to send SessionInitialized message', error)
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    connectionReady = await rawAPIClient.checkConnection(connectionId)
+                    if (connectionReady) {
+                        break
                     }
+                    await new Promise(resolve => setTimeout(resolve, pollInterval))
+                }
+                
+                if (connectionReady) {
+                    try {
+                        await apiClient.send(connectionId, {
+                            messageType: 'SessionInitialized',
+                            SessionId: sessionId,
+                            PlayerName: player
+                        } as CoordinationClientSessionInitializedMessage)
+                    }
+                    catch (error: any) {
+                        // Log but don't fail - connection might have closed between check and send
+                        if (error.name !== 'GoneException' && error.name !== 'BadRequestException') {
+                            console.error('Failed to send SessionInitialized message', error)
+                        }
+                    }
+                } else {
+                    console.warn(`Connection ${connectionId} not ready after ${maxAttempts * pollInterval}ms, skipping SessionInitialized`)
                 }
             }
         }
