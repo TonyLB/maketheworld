@@ -244,7 +244,7 @@ export const WorkbenchRoomExitEditor: FunctionComponent<RoomExitEditorProps> = (
 
     if (!room) {
         return (
-            <MakeTheWorldAccordion title="Exits" defaultExpanded={false}>
+            <MakeTheWorldAccordion title="Exits" defaultExpanded>
                 <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
                     Room not found
                 </Box>
@@ -253,7 +253,7 @@ export const WorkbenchRoomExitEditor: FunctionComponent<RoomExitEditorProps> = (
     }
 
     return (
-        <MakeTheWorldAccordion title="Exits" defaultExpanded summary={exitSummary}>
+        <MakeTheWorldAccordion title="Exits" defaultExpanded={false} summary={exitSummary}>
             <List>
                 {exits.map((exit, index) => (
                     <ExitEditor

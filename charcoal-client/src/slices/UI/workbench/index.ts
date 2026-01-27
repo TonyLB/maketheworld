@@ -7,6 +7,29 @@ import { getStandardForm } from '../../personalAssets'
 import { getAssetZone, getMyAssets } from '../../player'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 
+type WorkbenchBreadcrumbKind = 'asset' | 'component'
+
+export type WorkbenchBreadcrumbEntry = {
+    //
+    // NOTE: Breadcrumbs track **navigation history**, not schema ancestry.
+    // For now we assume a simple stack model (push on deeper navigation,
+    // pop when going \"back\" or clicking a breadcrumb).
+    //
+    // In future we may support sibling navigation patterns (for example,
+    // clicking a Feature link inside a room-example description) that are
+    // more naturally represented as \"pop some, then push a different branch\"
+    // rather than a pure stack. The current model is intentionally small and
+    // conservative so we can evolve it as those needs become concrete.
+    //
+    id: string;
+    kind: WorkbenchBreadcrumbKind;
+    //
+    // When kind === 'component', componentId points at the component in the
+    // current asset's standardForm. For 'asset', componentId is null.
+    //
+    componentId: string | null;
+}
+
 interface WorkbenchState {
     open: boolean;
     authoringMode: 'play' | 'authoring';
@@ -14,6 +37,7 @@ interface WorkbenchState {
     secondaryContext: string | null;
     currentView: 'asset' | 'component' | null;
     currentComponentId: string | null;
+    breadcrumbStack: WorkbenchBreadcrumbEntry[];
 }
 
 const initialState: WorkbenchState = {
@@ -22,7 +46,8 @@ const initialState: WorkbenchState = {
     currentAssetId: null,
     secondaryContext: null,
     currentView: null,
-    currentComponentId: null
+    currentComponentId: null,
+    breadcrumbStack: []
 }
 
 const workbenchSlice = createSlice({
@@ -36,11 +61,32 @@ const workbenchSlice = createSlice({
             state.open = false
         },
         setCurrentAssetId(state, action: PayloadAction<AssetUUID | null>) {
-            state.currentAssetId = action.payload
-            // Reset navigation state when asset changes
-            if (action.payload !== state.currentAssetId) {
+            const nextAssetId = action.payload
+            const prevAssetId = state.currentAssetId
+            state.currentAssetId = nextAssetId
+            //
+            // When the asset changes, treat that as a new navigation root:
+            // - reset view to the asset-level editor
+            // - clear component selection
+            // - initialize breadcrumbs to just the asset
+            //
+            if (nextAssetId && nextAssetId !== prevAssetId) {
                 state.currentView = 'asset'
                 state.currentComponentId = null
+                state.breadcrumbStack = [{
+                    id: nextAssetId,
+                    kind: 'asset',
+                    componentId: null
+                }]
+            }
+            //
+            // When clearing the asset entirely (back to selector), there is
+            // no meaningful breadcrumb history to display.
+            //
+            if (!nextAssetId) {
+                state.currentView = null
+                state.currentComponentId = null
+                state.breadcrumbStack = []
             }
         },
         setAuthoringMode(state, action: PayloadAction<'play' | 'authoring'>) {
@@ -50,8 +96,33 @@ const workbenchSlice = createSlice({
             state.secondaryContext = action.payload
         },
         receiveWorkbenchSettings(state, action: PayloadAction<Partial<Pick<WorkbenchState, 'currentAssetId'>>>) {
-            if (action.payload.currentAssetId !== undefined) {
-                state.currentAssetId = action.payload.currentAssetId
+            const nextAssetId = action.payload.currentAssetId
+            if (nextAssetId !== undefined) {
+                state.currentAssetId = nextAssetId
+                //
+                // When workbench settings are hydrated (e.g., on app startup), we may already have
+                // a currentAssetId without having gone through setCurrentAssetId(). In that case,
+                // initialize a root breadcrumb on first load so that later component navigation
+                // can extend it into Asset → Component paths rather than starting at the component.
+                //
+                if (nextAssetId && state.breadcrumbStack.length === 0) {
+                    state.currentView = state.currentView ?? 'asset'
+                    state.currentComponentId = state.currentComponentId ?? null
+                    state.breadcrumbStack = [{
+                        id: nextAssetId,
+                        kind: 'asset',
+                        componentId: null
+                    }]
+                }
+                //
+                // If settings explicitly clear currentAssetId, also clear breadcrumb history so the
+                // header falls back to the asset selector state.
+                //
+                if (!nextAssetId) {
+                    state.currentView = null
+                    state.currentComponentId = null
+                    state.breadcrumbStack = []
+                }
             }
         },
         setCurrentView(state, action: PayloadAction<'asset' | 'component' | null>) {
@@ -59,11 +130,50 @@ const workbenchSlice = createSlice({
         },
         setCurrentComponentId(state, action: PayloadAction<string | null>) {
             state.currentComponentId = action.payload
+        },
+        //
+        // Breadcrumb actions
+        //
+        pushBreadcrumb(state, action: PayloadAction<WorkbenchBreadcrumbEntry>) {
+            const next = action.payload
+            const last = state.breadcrumbStack[state.breadcrumbStack.length - 1]
+            //
+            // Avoid trivial duplicates when repeatedly navigating to the same
+            // component. More complex sibling navigation (\"jump from this
+            // room directly to a feature\") can build on top of this by
+            // dispatching an explicit pop followed by a push.
+            //
+            if (last && last.kind === next.kind && last.id === next.id) {
+                return
+            }
+            state.breadcrumbStack = [...state.breadcrumbStack, next]
+        },
+        popBreadcrumbToIndex(state, action: PayloadAction<number>) {
+            const index = action.payload
+            if (index < 0 || index >= state.breadcrumbStack.length) {
+                return
+            }
+            state.breadcrumbStack = state.breadcrumbStack.slice(0, index + 1)
+        },
+        resetBreadcrumbs(state) {
+            state.breadcrumbStack = []
         }
     }
 })
 
-export const { openWorkbench, closeWorkbench, setCurrentAssetId, setAuthoringMode, setSecondaryContext, receiveWorkbenchSettings, setCurrentView, setCurrentComponentId } = workbenchSlice.actions
+export const {
+    openWorkbench,
+    closeWorkbench,
+    setCurrentAssetId,
+    setAuthoringMode,
+    setSecondaryContext,
+    receiveWorkbenchSettings,
+    setCurrentView,
+    setCurrentComponentId,
+    pushBreadcrumb,
+    popBreadcrumbToIndex,
+    resetBreadcrumbs
+} = workbenchSlice.actions
 
 // Selectors
 export const getWorkbenchOpen: Selector<boolean> = (state: RootState) => state.UI.workbench.open
@@ -72,6 +182,7 @@ export const getCurrentAssetId: Selector<AssetUUID | null> = (state: RootState) 
 export const getSecondaryContext: Selector<string | null> = (state: RootState) => state.UI.workbench.secondaryContext
 export const getCurrentView: Selector<'asset' | 'component' | null> = (state: RootState) => state.UI.workbench.currentView
 export const getCurrentComponentId: Selector<string | null> = (state: RootState) => state.UI.workbench.currentComponentId
+export const getBreadcrumbStack: Selector<WorkbenchBreadcrumbEntry[]> = (state: RootState) => state.UI.workbench.breadcrumbStack
 
 // Intermediate selector to get standard form for current asset using full RootState
 const getCurrentAssetStandardForm = createSelector(
